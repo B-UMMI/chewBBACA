@@ -9,7 +9,7 @@ Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast
 settings and a set of functions to visualize and validate allele variation in the loci.
 
 ----------
-## Check the [wiki pages](https://github.com/mickaelsilva/chewBBACA/wiki) ...
+## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
 ...for a much more thorough chewBBACA walkthrough. 
 Below you can find a list of commands for a quick usage of the software.
 
@@ -25,7 +25,7 @@ Below you can find a list of commands for a quick usage of the software.
  - All the referenced lists of files *must contain full path* for the files.
  - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](http://linuxcommand.org/man_pages/dos2unix1.html).
 
-## An extensive [tutorial repository](https://github.com/mickaelsilva/chewBBACA_tutorial) ...
+## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial) ...
 ...is available as example on how to run an analysis pipeline using chewBBACA. 
 
 ## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca/) ...

@@ -189,7 +189,7 @@ def evaluate_schema():
                         default=False)
     parser.add_argument('--log', dest='logScale', action='store_true', default=False)
     parser.add_argument('-l', nargs='?', type=str, help='name/location main html file', required=True)
-    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=True)
+    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=False, default=11)
     parser.add_argument('-t', nargs='?', type=float, help='Threshold', required=False, default=0.05)
     parser.add_argument('--title', nargs='?', type=str, help='title on the html', required=False,
                         default="My Analyzed wg/cg MLST Schema - Rate My Schema")
@@ -342,7 +342,7 @@ if __name__ == "__main__":
 	rep="https://github.com/B-UMMI/chewBBACA"
 	contact="mickaelsilva@medicina.ulisboa.pt"
 	
-	print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\n email contact "+ contact)
+	print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
 
 	try:
 		print ("\n")

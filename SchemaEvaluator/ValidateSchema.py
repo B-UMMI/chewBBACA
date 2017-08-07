@@ -38,7 +38,7 @@ def main():
                         default=False)
     parser.add_argument('--log', dest='logScale', action='store_true')
     parser.add_argument('-l', nargs='?', type=str, help='name/location main html file', required=True)
-    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=True)
+    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=False, default=11)
     parser.add_argument('-t', nargs='?', type=float, help='Threshold', required=False, default=0.05)
     parser.add_argument('--title', nargs='?', type=str, help='title on the html', required=False,
                         default="My Analyzed wg/cg MLST Schema - Rate My Schema")

@@ -44,34 +44,34 @@ def reverseComplement(strDNA):
 
 def translateSeq(DNASeq, genename):
     seq = DNASeq
-    reversedSeq = False
+    tableid = 11
+    inverted = False
     try:
+        reverseComplement(seq)
         myseq = Seq(seq)
-        protseq = Seq.translate(myseq, table=11, cds=True)
+        protseq = Seq.translate(myseq, table=tableid, cds=True)
     except:
-        reversedSeq = True
         try:
             seq = reverseComplement(seq)
             myseq = Seq(seq)
-            protseq = Seq.translate(myseq, table=11, cds=True)
-
+            protseq = Seq.translate(myseq, table=tableid, cds=True)
+            inverted = True
         except:
             try:
                 seq = seq[::-1]
                 myseq = Seq(seq)
-                protseq = Seq.translate(myseq, table=11, cds=True)
+                protseq = Seq.translate(myseq, table=tableid, cds=True)
+                inverted = True
             except:
-                reversedSeq = False
                 try:
                     seq = seq[::-1]
                     seq = reverseComplement(seq)
                     myseq = Seq(seq)
-                    protseq = Seq.translate(myseq, table=11, cds=True)
+                    protseq = Seq.translate(myseq, table=tableid, cds=True)
+                    inverted = False
                 except Exception as e:
-                    print "translation error :", e, " on locus " + str(genename)
-
                     protseq = ""
-    return protseq, seq, reversedSeq
+    return protseq, seq, inverted
 
 
 def main():
@@ -136,14 +136,14 @@ def main():
 
             for gene in SeqIO.parse(genes, "fasta", generic_dna):
                 dnaseq = str(gene.seq)
-                protseq, x, y = translateSeq(dnaseq, gene.id)
+                protseq, seq, y = translateSeq(dnaseq, gene.id)
                 totalgenes += 1
                 if len(protseq) > 1:
 
                     if str(protseq) in alreadyIn:
                         repeatedgenes += 1
 
-                    elif len(str(protseq)) < 67:
+                    elif len(str(seq)) < sizethresh:
                         smallgenes += 1
 
                     else:

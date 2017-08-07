@@ -142,7 +142,10 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
 
         rowid -= 1
 
+    
     originald2 = originald2.T
+    geneslist = (originald2[:1, 1:])[0]
+    print len(geneslist)
     originald2 = originald2.tolist()
 
     # write the output file
@@ -150,6 +153,9 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     with open(os.path.join(outputfile,"cgMLST.tsv"), "wb") as f:
         writer = csv.writer(f, delimiter='	')
         writer.writerows(originald2)
+    with open(os.path.join(outputfile,"cgMLSTschema.txt"), "wb") as f:
+        for gene in geneslist:
+			f.write(gene+"\n")
 
     #chewbbaca files have INF that needs to be removed
     myfile = open(os.path.join(outputfile,"cgMLST.tsv"))

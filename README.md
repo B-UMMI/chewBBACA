@@ -173,9 +173,10 @@ Basic usage:
 `-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
 
 ----------
+[comment]: <> (
 ## 5. All in one option 
 
-### Run all chewBBACA analyses in a single command: 
+### Run all chewBBACA analyse (s in a single command: 
 
 **if you have no schema**
 
@@ -208,7 +209,7 @@ folder 2 : target genes fasta files
 
 `-t` (Optional) taxon to use for prodigal training input
 
-
+)
 ----------
 ## FAQ
 

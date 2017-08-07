@@ -229,15 +229,15 @@ Try to run again step 4, remove some of those genomes and check if the cgMLST lo
 
 ### Q: Which species already have a training file?  
 A: At the moment:
- - *Campylobacter jejuni*
  - *Acinetobacter baumannii*
- - *Haemophilus influenzae*
- - *Streptococcus agalactiae*
- - *Yersinia enterocolitica*
+ - *Campylobacter jejuni*
  - *Enterococcus faecium*
- - *Staphylococcus haemolyticus*
+ - *Haemophilus influenzae*
  - *Salmonella enterica enteritidis*
+ - *Streptococcus agalactiae*
+ - *Staphylococcus haemolyticus*
  - *Staphylococcus aureus*
+ - *Yersinia enterocolitica*
 
 ----------
 

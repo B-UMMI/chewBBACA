@@ -336,6 +336,13 @@ if __name__ == "__main__":
 
 	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes']
 	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output']
+	
+	version="1.0"
+	createdBy="Mickael Silva"
+	rep="https://github.com/B-UMMI/chewBBACA"
+	contact="mickaelsilva@medicina.ulisboa.pt"
+	
+	print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\n email contact "+ contact)
 
 	try:
 		print ("\n")

@@ -173,44 +173,6 @@ Basic usage:
 `-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
 
 ----------
-[comment]: <> (
-## 5. All in one option 
-
-### Run all chewBBACA analyse (s in a single command: 
-
-**if you have no schema**
-
-`cd` to the folder where you want to do the analysis, create folders for:
-folder 1 : genomes fasta files as base for schema creation
-folder 2 : genomes fasta files to call the alleles (genomes from folder 1 will already be used)
-
-`/home/user/chewBBACA/fullBBACA.py --cs genomes/cg/ 
---cpu 6 -o myAnalysis -t Streptococcus agalactiae --genomes ./genomes/other/`
-
-**if you have a schema**
-
-`cd` to the folder where you want to do the analysis, create folders for:
-folder 1 : genomes fasta files to call the alleles
-folder 2 : target genes fasta files 
-
-
-`/home/user/chewBBACA/fullBBACA.py --genes schema_seed/ 
---cpu 6 -o myAnalysis -t Streptococcus agalactiae --genomes ./genomes/other/`
-
-`--cs` path to folder with genomes to create schema
-
-`--genes` path to folder with target genes
-
-`--genomes` path to folder with target genomes
-
-`--cpu` Number of cpus to use (dont use all your cpu if using a laptop)
-
-`-o` folder name with the analysis files
-
-`-t` (Optional) taxon to use for prodigal training input
-
-)
-----------
 ## FAQ
 
 ### Q: Which is the fastest way to run?  

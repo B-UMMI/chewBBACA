@@ -1,3 +1,38 @@
+# TestGenomeQuality.py
+
+Evaluate wgMLST call quality per genome
+
+Usage:
+
+	% chewBBACA.py TestGenomeQuality -i out.txt -n 12 -t 250
+	
+`-i` raw output file from an allele calling
+
+`-n` maximum number of iterations, each iteration removes a set of genomes over the threshold and recalculates all variables
+
+`-t` maximum threshold, will start at 5 increasing in a step of 5 until t
+
+The output consists on an interactive plot and a `removedGenomes.txt`. The file contains the information of which genomes were removed per threshold.
+
+Example of the plot output can be seen [here](http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html). This examples use an 
+original set of 710 genomes and a scheme of 1264 loci, using a parameter `-n 12`,`-s 5` and `-t 300`.
+
+Based on the plot and specific knowledge of the species under analysis the user has to decide which threshold he wants to use and what, if any, genomes should be excluded the analysis due to possible draft genome assembly/annotation (i.e. CDS definition) problems.
+
+# init_schema_4_bbaca.py
+
+chewBBACA allele call requires a "short" version of each gene file, which regular public schemas d'ont provide. This script creates those files in order to prepare external schemas to be run with chewBBACCA.
+
+This program prepares a schema for a chewBBACA allele call, removing alleles that are not a cds, creating a short version of each fast with only the 1st cds allele and removing loci that have no cds alleles.
+
+	% init_schema_4_bbaca.py -i schema/
+	
+`-i` path to folder
+
+`--cpu` number of cpu to use. Default 1.
+
+`-v` (optional)more verbose output
+
 # AutoAlleleCuration.py
 
 Remove alleles from a specific list of genomes
@@ -7,7 +42,6 @@ Remove alleles from a specific list of genomes
 `-i` list of path of gene files to process
 
 `-g` list of genomes names from which the alleles must be removed
-
 
 
 # CountNumberMissingData.py
@@ -31,6 +65,8 @@ This program removes genes from a tab separated allele profile file. Writes a fi
 
 `-o` output file name
 
+`--inverse` (optional) instead of removing the list of genes, keep the ones on the list and remove the others
+
 # RemoveGenomes.py
 
 This program removes genomes from a tab separated allele profile file
@@ -43,29 +79,3 @@ This program removes genomes from a tab separated allele profile file
 
 `-o` output file name
 
-# TestGenomeQuality.py
-
-Evaluate wgMLST call quality per genome
-
-Usefull to determine a core genome and remove genomes that may have technical issues.
-
-	% TestGenomeQuality.py -i out.txt -n 12 -t 250
-	
-`-i` raw output file from an allele calling
-
-`-n` maximum number of iterations, each iteration removes a set of genomes over the threshold and recalculates all variables
-
-`-t` maximum threshold, will start at 5 increasing in a step of 5 until t
-
-The output consists in a set of plots per iteration and a removedGenomes.txt file where its informed of which genomes are removed per threshold when it reaches a stable point (no more genomes are removed)
-
-
-# init_schema_4_bbaca.py
-
-chewBBACA allele call requires a "short" version of each gene file, which regular public schemas d'ont provide. This script creates those files in order to prepare external schemas to be run with chewBBACCA.
-
-This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele.
-
-	% init_schema_4_bbaca.py -i listgenes.txt
-	
-`-i` list of path of gene files to process

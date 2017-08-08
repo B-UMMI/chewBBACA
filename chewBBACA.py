@@ -331,11 +331,41 @@ def remove_genes():
     proc = subprocess.Popen(args)
     proc.wait()
 
+def prep_schema():
+	
+    def msg(name=None):                                                            
+        return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v]
+                    '''
+	
+    parser = argparse.ArgumentParser(
+        description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele")
+    parser.add_argument('PrepExternalSchema', nargs='+', help='prepare a schema for chewbbaca')
+    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
+                        default=False)
+
+    args = parser.parse_args()
+
+    geneFiles = args.i
+    cpu2use = args.cpu
+    verbose = args.verbose
+    
+
+    ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/init_schema_4_bbaca.py')
+    args = [ScriptPath, '-i', geneFiles, '--cpu', str(cpu2use)]
+
+    if verbose:
+        args.append('-v')
+
+    proc = subprocess.Popen(args)
+    proc.wait()
+
 
 if __name__ == "__main__":
 
-	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes']
-	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output']
+	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema']
+	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA']
 	
 	version="1.0"
 	createdBy="Mickael Silva"
@@ -358,6 +388,8 @@ if __name__ == "__main__":
 			extract_cgmlst()
 		elif sys.argv[1] == functions_list[5]:
 			remove_genes()
+		elif sys.argv[1] == functions_list[6]:
+			prep_schema()
 		else:
 			print('\n\tUSAGE : chewBBACA.py [module] -h \n')
 			print('Select one of the following functions :\n')

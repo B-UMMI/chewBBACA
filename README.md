@@ -232,11 +232,12 @@ A: At the moment:
  - *Acinetobacter baumannii*
  - *Campylobacter jejuni*
  - *Enterococcus faecium*
+ - *Escherichia coli*
  - *Haemophilus influenzae*
  - *Salmonella enterica enteritidis*
  - *Streptococcus agalactiae*
- - *Staphylococcus haemolyticus*
  - *Staphylococcus aureus*
+ - *Staphylococcus haemolyticus*
  - *Yersinia enterocolitica*
 
 ----------

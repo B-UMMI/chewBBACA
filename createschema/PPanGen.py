@@ -86,15 +86,19 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
             j = 0
 
             counter = 0
+            tsvProtidGenome=""
 
             for contigTag, value in currentCDSDict.iteritems():
 
                 for protein in value:
                     protid += 1
+                    
 
                     # at first iteration we use the genome file and after a cds only multifasta file
                     try:
                         seq = currentGenomeDict[contigTag][protein[0]:protein[1]].upper()
+                        aux=[genomename,contigTag,str(protein[0]),str(protein[1]),str(protid)]
+                        tsvProtidGenome+="\n"+'\t'.join(aux)
 
                     except Exception as e:
 
@@ -129,10 +133,9 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                                 dictprots[protid] = protseq
                                 newlistOfCDS[protid] = orderedSeq
                                 try:
-                                    idstr = ">" + str(genomename) + "|protein" + str(protid) + "|:" + str(
-                                        protein[0]) + "-" + str(protein[1]) + " "
-                                    idstr2 = ">" + str(genomename) + "|protein" + str(protid) + "|:" + str(
-                                        protein[0]) + "-" + str(protein[1])
+                                    protein[1]
+                                    idstr = ">" + str(genomename) + "|protein" + str(protid)
+                                    idstr2 = ">" + str(genomename) + "|protein" + str(protid)
                                 except:
                                     idstr = ">" + str(contigTag)
                                     idstr2 = ">" + str((contigTag.split(" "))[0])
@@ -146,10 +149,9 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                         dictprots[protid] = protseq
                         newlistOfCDS[protid] = orderedSeq
                         try:
-                            idstr = ">" + str(genomename) + "|protein" + str(protid) + "|:" + str(
-                                protein[0]) + "-" + str(protein[1]) + " "
-                            idstr2 = ">" + str(genomename) + "|protein" + str(protid) + "|:" + str(
-                                protein[0]) + "-" + str(protein[1])
+                            protein[1]
+                            idstr = ">" + str(genomename) + "|protein" + str(protid)
+                            idstr2 = ">" + str(genomename) + "|protein" + str(protid)
 
                         except:
                             idstr = ">" + str(contigTag)
@@ -167,6 +169,8 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
             listOfCDS = ''
             currentGenomeDict = ''
             currentCDSDict = ''
+            with open("proteinID_Genome.tsv", 'a') as f:
+                f.write(tsvProtidGenome)
 
         verboseprint( "Checked equal proteins for: " + str(genome1) + " " + str(genome2))
         verboseprint( "Starting with a total of loci: " + str(protid))
@@ -439,6 +443,8 @@ def main():
 
     pairID = 0
     # while len(processed)<len(toprocess):
+    with open("proteinID_Genome.tsv", 'wb') as f:
+        f.write("Genome\tcontig\tStart\tStop\tprotID")
     while len(listOfGenomes) > 0:
 
         pair = []

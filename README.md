@@ -173,6 +173,27 @@ Basic usage:
 `-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
 
 ----------
+## 5. Visualize your schema
+
+ **Create an html to help visualize your schema** 
+ 
+
+Basic usage:
+
+
+`chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"`
+	
+`-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line
+
+`-ta` (optional) which translation table to use (Default: 11 in case of bacteria)
+
+`--title` (optional) title to appear on the final html.
+
+`-l` Location/name of the final html output
+
+`--cpu` number of cpu to use, will be used for mafft and clustalw2
+
+----------
 ## FAQ
 
 ### Q: Which is the fastest way to run?  

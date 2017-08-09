@@ -276,7 +276,7 @@ def analyzeCDS(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
 			f.write("<input type=button onClick=window.open('"+os.path.join((os.path.relpath(alignFileName,alignFileName)),(os.path.basename(gene)).replace(".fasta","_aligned.fasta"))+"') value='Get msa file'>\n""")
 			
 			f.write("""<p>MSA alignement done using mafft and visualized using msaviewer</p>
-				<p>Tree built with mafft and visualized using phylocanvas</p>
+				<p>Tree built with clustalw2 and visualized using phylocanvas</p>
 				<div class='container'>
 					<div class='row'>
 						

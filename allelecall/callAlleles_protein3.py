@@ -4,7 +4,7 @@ from Bio.Alphabet import generic_dna
 import sys
 from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
-from Counter import Counter
+from collections import Counter
 import os
 from CommonFastaFunctions import Create_Blastdb
 from CommonFastaFunctions import runBlastParser

@@ -2,7 +2,7 @@
 
 import numpy as np
 import argparse
-import Counter
+from collections import Counter
 import time
 import plotly
 import plotly.graph_objs as go
@@ -141,7 +141,7 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
         totals.append(float(float(d2d.shape[0] - notfound) / float(d2d.shape[0])))
         column += 1
 
-    counter = Counter.Counter(allbadgenomes)
+    counter = Counter(allbadgenomes)
 
     for elem in counter.most_common():
         if int(elem[1]) > ythreshold:

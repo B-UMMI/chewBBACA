@@ -46,8 +46,14 @@ def translateSeq(DNASeq, genename):
     seq = DNASeq
     tableid = 11
     inverted = False
+    
+    #look for ambiguous base
     try:
         reverseComplement(seq)
+    except:
+		protseq = ""
+    
+    try:
         myseq = Seq(seq)
         protseq = Seq.translate(myseq, table=tableid, cds=True)
     except:

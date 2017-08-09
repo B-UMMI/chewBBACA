@@ -271,6 +271,12 @@ def reverseComplement(strDNA):
 def translateSeq(DNASeq):
     seq = DNASeq
     tableid = 11
+
+    #look for ambiguous bases
+    try:
+        reverseComplement(seq)
+    except:
+		raise
     try:
         myseq = Seq(seq)
         protseq = Seq.translate(myseq, table=tableid, cds=True)

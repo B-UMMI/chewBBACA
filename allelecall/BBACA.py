@@ -548,8 +548,8 @@ def main():
             phylovout.append(alleleschema)
             if len(geneOut[0]) > 0:
                 containedOutpWrite += lGenesFiles[gene] + "\n"
-            for contained in geneOut[0]:
-                containedOutpWrite += contained[0] + "\t" + contained[1] + "-->" + contained[2] + "\n"
+            for contained2 in geneOut[0]:
+                containedOutpWrite += contained2[0] + "\t" + contained2[1] + "-->" + contained2[2] + "\n"
             gene += 1
 
         for geneOut in output2:

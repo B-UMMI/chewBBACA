@@ -278,15 +278,15 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
         i += 1
 
     with open(os.path.join(out_folder,"removedGenomes.txt"), "a") as f:
-        f.write("using a threshold of " + str(ythreshold) + " at iteration number " + str(i) +" :\t"+ ('\t'.join(map(str, removedlistgenomes)))+ "\n")
+        f.write( str(ythreshold) +"\t"+ (' '.join(map(str, removedlistgenomes)))+ "\n")
 
 
     with open(os.path.join(out_folder,"Genes_95%.txt"), "a") as f:
-        f.write("using a threshold of " + str(ythreshold) + "\n")
+        f.write(str(ythreshold) +"\t")
 
         for x in listgenes2showtotal:
             # ~ f.write(str(x)+"\n")
-            f.write(('\t'.join(map(str, x))) + "\n")
+            f.write((' '.join(map(str, x))) + "\n")
 
     return statsvector, iterationStabilizedat
 
@@ -335,6 +335,11 @@ def main():
 
     # for each threshold run a clean function on the dataset, using the previous run output (to be removed genomes) as input for the new one
 
+    with open(os.path.join(out_folder,"removedGenomes.txt"), "wb") as f:
+        f.write( "Threshold\tRemoved_genomes\n")
+    with open(os.path.join(out_folder,"Genes_95%.txt"), "wb") as f:
+        f.write( "Threshold\tPresent_genes\n")
+        
     print "will try to open file..."
     # d2=np.loadtxt(inputfile, delimiter='\t')
     d2original = np.genfromtxt(pathOutputfile, delimiter='\t', dtype=None)

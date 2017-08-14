@@ -411,6 +411,15 @@ li a {
 											  },
 									};
 						Plotly.newPlot('fig03b', trace,layout);
+						
+						var myPlot = document.getElementById('fig03a');
+							myPlot.on('plotly_click', function(data){
+								link = '';
+								link = data.points[0].data.text[data.points[0].pointNumber];
+								window.open(link, '_blank');
+							});
+						
+						
 					  }
 					  $("#fig03").css({"display":"block"});
 					  $("#fig01").css({"display":"none"});

@@ -187,19 +187,22 @@ def getStats(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,sp
 	orderedlistgene2=[]
 	sortbyNumberAllelesx=[]
 	for elem in sortbyNumberAlleles:
-		orderedlistgene2.append(os.path.basename(elem.pop(0)))
+		#orderedlistgene2.append(os.path.basename(elem.pop(0)))
+		orderedlistgene2.append(os.path.join(relpath,(os.path.basename(elem.pop(0))).replace(".fasta",".html")))
 		sortbyNumberAllelesx.append(elem.pop(0))
 	
 	orderedlistgene3=[]
 	sortbyNumberAllelesMeanx=[]
 	for elem in sortbyNumberAllelesMean:
-		orderedlistgene3.append(os.path.basename(elem.pop(0)))
+		#orderedlistgene3.append(os.path.basename(elem.pop(0)))
+		orderedlistgene3.append(os.path.join(relpath,(os.path.basename(elem.pop(0))).replace(".fasta",".html")))
 		sortbyNumberAllelesMeanx.append(elem.pop(0))
 	
 	orderedlistgene4=[]
 	sortbyNumberAllelesMedianx=[]
 	for elem in sortbyNumberAllelesMedian:
-		orderedlistgene4.append(os.path.basename(elem.pop(0)))
+		#orderedlistgene4.append(os.path.basename(elem.pop(0)))
+		orderedlistgene4.append(os.path.join(relpath,(os.path.basename(elem.pop(0))).replace(".fasta",".html")))
 		sortbyNumberAllelesMedianx.append(elem.pop(0))
 	
 	
@@ -232,6 +235,7 @@ def getStats(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,sp
 		sortbyNumberAllelesMean=[item for sublist in sortbyNumberAllelesMean for item in sublist]
 		sortbyNumberAllelesMedian=[item for sublist in sortbyNumberAllelesMedian for item in sublist]
 		
+		#numberallelesplotMedianhtml=[[sortbyNumberAllelesx,sortbyNumberAlleles,orderedlistgene2],[sortbyNumberAllelesMeanx,sortbyNumberAllelesMean,orderedlistgene3],[sortbyNumberAllelesMedianx,sortbyNumberAllelesMedian,orderedlistgene4]]
 		numberallelesplotMedianhtml=[[sortbyNumberAllelesx,sortbyNumberAlleles,orderedlistgene2],[sortbyNumberAllelesMeanx,sortbyNumberAllelesMean,orderedlistgene3],[sortbyNumberAllelesMedianx,sortbyNumberAllelesMedian,orderedlistgene4]]
 		
 		

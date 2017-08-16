@@ -180,18 +180,18 @@ def analyzeCDS(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
 		for allele in SeqIO.parse(gene, "fasta", generic_dna):
 			
 			k+=1
-			
+			realAlleleID=allele.id.split("_")[-1]
 			# if allele is not multiple of 3 it's useless to try to translate
 			if (len(str(allele.seq)) % 3 != 0):
 				multiple=False
-				listnotMultiple.append(str(k))
-				alleleSizesNotMultipleNames.append(k)
+				listnotMultiple.append(realAlleleID)
+				alleleSizesNotMultipleNames.append(realAlleleID)
 				alleleSizesNotMultiple.append(len(str(allele.seq)))
 				pass
 			else:
 				try:
 					protseq,seq,reversedSeq=translateSeq(allele.seq, transTable)
-					alleleNames.append(str(k))
+					alleleNames.append(realAlleleID)
 					alleleSizes.append(len(str(allele.seq)))
 					
 				except Exception, err:
@@ -203,12 +203,12 @@ def analyzeCDS(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
 						listnotStart.append(str(k))
 					elif "is not a stop codon" in str(err):
 						notStart+=1
-						listnotStart.append(str(k))
+						listnotStart.append(realAlleleID)
 					else:
-						listOther.append(str(k))
+						listOther.append(realAlleleID)
 						print err
 					
-					alleleSizesTransErrorNames.append(k)
+					alleleSizesTransErrorNames.append(realAlleleID)
 					alleleSizesTransError.append(len(str(allele.seq)))
 					#print "allele "+str(k)+" is not translating"
 					pass

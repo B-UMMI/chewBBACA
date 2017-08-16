@@ -241,7 +241,7 @@ li a {
 
         f.write("""<div id="fig03" ><div id="fig03b" style="width: 1000px; height: 600px;"></div><div id="fig03a" style="width: 1300px; height: 700px;"></div></div>
 		<div id="fig01" style="display:none; width: 100%;">
-		<h2>Size boxplot for all loci</h2><p>Box plot for each locus on a descending order of the median allele sizes</p>
+		<h2>Size boxplot for all loci</h2><p>Box plot for the sizes of each locus. Loci ordered by increasing median allele size</p>
 		<p>Use the zoom button and hover the mouse over a box/median to see the locus name and points data</p>
 		<p>-->Use the following buttons to navigate through all loci</p>
 		<button id='buttonbackward' > Previous 500 loci < </button>
@@ -374,14 +374,21 @@ li a {
 						var listTraces=[];
 						var i = 0;
 						var len = jsonsScatterPlot.length;
-						var listName=['Mode','Mean','Median']
+						var listName=['Mode','Mean','Median'];
 						for (; i < len; i++) { 
-							var aux=jsonsScatterPlot[i]
+							var aux=jsonsScatterPlot[i];
+							var listgenes=[];
+							var j = 0;
+							for (; j < aux[2].length; j++) { 
+								genename=aux[2][j];
+								listgenes.push(genename.replace(/^.*[\\\/]/, ''));
+							}
 							var trace = {
 									x: aux[0],
 									  y: aux[1],
 									  name: listName[i],
-									  text: aux[2],
+									  customdata: aux[2],
+									  text: listgenes,
 									  mode: 'markers',
 									  type: 'scattergl'
 									};
@@ -402,7 +409,7 @@ li a {
 						var layout = {
 									  barmode: "stack",
 									  showlegend: false,
-									  yaxis: {title: "Number of Locus"},
+									  yaxis: {title: "Number of Loci"},
 									  xaxis: {
 												autotick: true,
 												showgrid: true,
@@ -415,7 +422,7 @@ li a {
 						var myPlot = document.getElementById('fig03a');
 							myPlot.on('plotly_click', function(data){
 								link = '';
-								link = data.points[0].data.text[data.points[0].pointNumber];
+								link = data.points[0].data.customdata[data.points[0].pointNumber];
 								window.open(link, '_blank');
 							});
 						
@@ -443,10 +450,10 @@ li a {
 									  type: 'histogram'
 									}];
 						var layout = {
-									  title: 'Distribution of allele mode sizes per gene',
+									  title: 'Distribution of allele mode sizes per locus',
 									  barmode: "stack",
 									  showlegend: false,
-									  yaxis: {title: "Number of occurrences"},
+									  yaxis: {title: "Number of locus"},
 									  xaxis: {
 												autotick: true,
 												showgrid: true,

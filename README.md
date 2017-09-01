@@ -94,7 +94,7 @@ The fasta file names are the given according the FASTA annotation for each codin
 
 Then run is the following:
 
-`chewBBACA.py Allelecall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
+`chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
 
 **Parameters** 
 

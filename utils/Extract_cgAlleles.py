@@ -68,7 +68,6 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
 			L=d2c[:,column][1:].astype(np.int)
 			present=np.count_nonzero(L==1)
 			percentPresence=(float(present)/float(total))
-			print percentPresence
 			if percentPresence <cgPercent:
 				row2Del.append(int(column))
 			column += 1

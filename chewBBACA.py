@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -24,17 +24,17 @@ def check_if_list_or_folder(folder_or_list):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
-                print e
+                print(e)
                 pass
 
     return list_files
 
 
 def create_schema():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-t [T]] [-v] [-l [L]]'''
-	
+
     parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
     parser.add_argument('CreateSchema', nargs='+', help='create a schema')
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
@@ -61,7 +61,7 @@ def create_schema():
 
     genomeFiles = check_if_list_or_folder(genomeFiles)
     if isinstance(genomeFiles, list):
-        with open("listGenomes2Call.txt", "wb") as f:
+        with open("listGenomes2Call.txt", "w") as f:
             for genome in genomeFiles:
                 f.write(genome + "\n")
         genomeFiles = "listGenomes2Call.txt"
@@ -74,8 +74,8 @@ def create_schema():
     if verbose:
         args.append('-v')
     if chosenTaxon:
-		args.append('-t')
-		args.append(chosenTaxon)
+        args.append('-t')
+        args.append(chosenTaxon)
 
     proc = subprocess.Popen(args)
 
@@ -84,15 +84,15 @@ def create_schema():
     try:
         os.remove("listGenomes2Call.txt")
     except:
-	    pass
-		
+        pass
+
 
 def allele_call():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py AlleleCall [AlleleCall ...][-h] -i [I] -g [G] -o [O] --cpu [CPU] [-v] [-b [B]][--bsr [BSR]] [-t [T]] [--fc] [--fr] [--json]
-			'''
-	
+            '''
+
     parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes when provided a schema",usage=msg())
     parser.add_argument('AlleleCall', nargs='+', help='do allele call')
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
@@ -124,12 +124,11 @@ def allele_call():
     forceReset = args.fr
     contained = args.contained
     jsonReport = args.json
-    
 
     genes2call = check_if_list_or_folder(genes)
 
     if isinstance(genes2call, list):
-        with open("listGenes2Call.txt", "wb") as f:
+        with open("listGenes2Call.txt", "w") as f:
             for genome in genes2call:
                 f.write(genome + "\n")
         genes2call = "listGenes2Call.txt"
@@ -137,7 +136,7 @@ def allele_call():
     genomes2call = check_if_list_or_folder(genomeFiles)
 
     if isinstance(genomes2call, list):
-        with open("listGenomes2Call.txt", "wb") as f:
+        with open("listGenomes2Call.txt", "w") as f:
             for genome in genomes2call:
                 f.write(genome + "\n")
         genomes2call = "listGenomes2Call.txt"
@@ -158,27 +157,27 @@ def allele_call():
         args.append('--contained')
 
     if chosenTaxon:
-		args.append('-t')
-		args.append(chosenTaxon)
-		
+        args.append('-t')
+        args.append(chosenTaxon)
+
     proc = subprocess.Popen(args)
     proc.wait()
-	
+
     try:
         os.remove("listGenes2Call.txt")
     except:
-	    pass
+        pass
     try:
         os.remove("listGenomes2Call.txt")
     except:
-	    pass
+        pass
 
 def evaluate_schema():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h] -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]] [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]
-			'''
-	
+            '''
+
     parser = argparse.ArgumentParser(
         description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene",usage=msg())
     parser.add_argument('SchemaEvaluator', nargs='+', help='evaluation of a schema')
@@ -228,11 +227,11 @@ def evaluate_schema():
 
 
 def test_schema():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h] -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]
                     '''
-	
+
     parser = argparse.ArgumentParser(
         description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss",usage=msg())
     parser.add_argument('TestGenomeQuality', nargs='+', help='test the quality of the genomes on the allele call')
@@ -265,11 +264,11 @@ def test_schema():
 
 
 def extract_cgmlst():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py ExtractCgMLST [ExtractCgMLST ...] [-h] -i [I] -o [O] [-r [R]] [-g [G]]
                     '''
-	
+
     parser = argparse.ArgumentParser(description="This program cleans an output file for phyloviz",usage=msg())
     parser.add_argument('ExtractCgMLST', nargs='+', help='clean chewBBACA output')
     parser.add_argument('-i', nargs='?', type=str, help='input file to clean', required=True)
@@ -300,11 +299,11 @@ def extract_cgmlst():
     proc.wait()
 
 def remove_genes():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py RemoveGenes [RemoveGenes ...][-h] -i [I] -g [G] -o [O] [--inverse]
                     '''
-	
+
     parser = argparse.ArgumentParser(description="This program removes gens from a tab separated allele profile file",usage=msg())
     parser.add_argument('RemoveGenes', nargs='+', help='remove loci from a chewBBACA profile')
     parser.add_argument('-i', nargs='?', type=str, help='main matrix file from which to remove', required=True)
@@ -332,11 +331,11 @@ def remove_genes():
     proc.wait()
 
 def prep_schema():
-	
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v]
                     '''
-	
+
     parser = argparse.ArgumentParser(
         description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele")
     parser.add_argument('PrepExternalSchema', nargs='+', help='prepare a schema for chewbbaca')
@@ -364,44 +363,45 @@ def prep_schema():
 
 if __name__ == "__main__":
 
-	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema']
-	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA']
-	
-	version="1.0"
-	createdBy="Mickael Silva"
-	rep="https://github.com/B-UMMI/chewBBACA"
-	contact="mickaelsilva@medicina.ulisboa.pt"
-	
-	print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema']
+    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA']
 
-	try:
-		print ("\n")
-		if sys.argv[1] == functions_list[0]:
-			create_schema()
-		elif sys.argv[1] == functions_list[1]:
-			allele_call()
-		elif sys.argv[1] == functions_list[2]:
-			evaluate_schema()
-		elif sys.argv[1] == functions_list[3]:
-			test_schema()
-		elif sys.argv[1] == functions_list[4]:
-			extract_cgmlst()
-		elif sys.argv[1] == functions_list[5]:
-			remove_genes()
-		elif sys.argv[1] == functions_list[6]:
-			prep_schema()
-		else:
-			print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-			print('Select one of the following functions :\n')
-			i=0
-			while i<len(functions_list):
-				print functions_list[i] +" : "+desc_list[i]
-				i+=1
-	except Exception as e:
-		#print e
-		print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-		print('Select one of the following functions :\n')
-		i=0
-		while i<len(functions_list):
-			print functions_list[i] +" : "+desc_list[i]
-			i+=1
+    version="1.0"
+    createdBy="Mickael Silva"
+    rep="https://github.com/B-UMMI/chewBBACA"
+    contact="mickaelsilva@medicina.ulisboa.pt"
+
+    print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+
+    try:
+        print ("\n")
+        if sys.argv[1] == functions_list[0]:
+            create_schema()
+        elif sys.argv[1] == functions_list[1]:
+            print("here")
+            allele_call()
+        elif sys.argv[1] == functions_list[2]:
+            evaluate_schema()
+        elif sys.argv[1] == functions_list[3]:
+            test_schema()
+        elif sys.argv[1] == functions_list[4]:
+            extract_cgmlst()
+        elif sys.argv[1] == functions_list[5]:
+            remove_genes()
+        elif sys.argv[1] == functions_list[6]:
+            prep_schema()
+        else:
+            print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+            print('Select one of the following functions :\n')
+            i=0
+            while i<len(functions_list):
+                print(functions_list[i] +" : "+desc_list[i])
+                i+=1
+    except Exception as e:
+        #print e
+        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('Select one of the following functions :\n')
+        i=0
+        while i<len(functions_list):
+            print(functions_list[i] +" : "+desc_list[i])
+            i+=1

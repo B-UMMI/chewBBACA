@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import csv
 import numpy as np
@@ -32,7 +32,7 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
         d3 = np.delete(d3, idtoremove, 0)
         d2c = np.delete(d2c, idtoremove, 0)
 
-    print "building the presence and abscence matrix..."
+    print("building the presence and abscence matrix...")
     row = 1
     row2Del = []
     while row < d2c.shape[0]:
@@ -61,22 +61,22 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
         
 
     if cgPercent <float(1):
-		column = 1
-		row2Del=[]
-		total=int(d2c.shape[0])-1
-		while column < d2c.shape[1]:
-			L=d2c[:,column][1:].astype(np.int)
-			present=np.count_nonzero(L==1)
-			percentPresence=(float(present)/float(total))
-			print percentPresence
-			if percentPresence <cgPercent:
-				row2Del.append(int(column))
-			column += 1
-    print "presence and abscence matrix built"
+        column = 1
+        row2Del=[]
+        total=int(d2c.shape[0])-1
+        while column < d2c.shape[1]:
+            L=d2c[:,column][1:].astype(np.int)
+            present=np.count_nonzero(L==1)
+            percentPresence=(float(present)/float(total))
+            print(percentPresence)
+            if percentPresence <cgPercent:
+                row2Del.append(int(column))
+            column += 1
+    print("presence and abscence matrix built")
 
     d2d = d2c.tolist()
 
-    with open(os.path.join(outputfile,"Presence_Abscence.tsv"), "wb") as f:
+    with open(os.path.join(outputfile,"Presence_Abscence.tsv"), "w") as f:
 
         writer = csv.writer(f, delimiter='	')
         writer.writerows(d2d)
@@ -114,11 +114,11 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     lostgenesList = []
 
     # clean the original matrix, using the information on the presence/abscence matrix
-    print "processing the matrix"
+    print("processing the matrix")
     while rowid > 0:
         columnid = 1
         genomeindex = 0
-        print str(rowid) + "/" + str(d2.shape[0])
+        print(str(rowid) + "/" + str(d2.shape[0]))
         # ~ print type((d2[rowid,1:])[0]
         if rowid in del2CG:
             originald2 = np.delete(originald2, rowid, 0)
@@ -145,17 +145,17 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     
     originald2 = originald2.T
     geneslist = (originald2[:1, 1:])[0]
-    print len(geneslist)
+    print(len(geneslist))
     originald2 = originald2.tolist()
 
     # write the output file
 
-    with open(os.path.join(outputfile,"cgMLST.tsv"), "wb") as f:
+    with open(os.path.join(outputfile,"cgMLST.tsv"), "w") as f:
         writer = csv.writer(f, delimiter='	')
         writer.writerows(originald2)
-    with open(os.path.join(outputfile,"cgMLSTschema.txt"), "wb") as f:
+    with open(os.path.join(outputfile,"cgMLSTschema.txt"), "w") as f:
         for gene in geneslist:
-			f.write(gene+"\n")
+            f.write(gene+"\n")
 
     #chewbbaca files have INF that needs to be removed
     myfile = open(os.path.join(outputfile,"cgMLST.tsv"))
@@ -164,20 +164,20 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     
     #change all missing data to 0
     if cgPercent <float(1):
-		contents = contents.replace('LNF', '0')
-		contents = contents.replace('PLOT3', '0')
-		contents = contents.replace('PLOT5', '0')
-		contents = contents.replace('ASM', '0')
-		contents = contents.replace('ALM', '0')
-		contents = contents.replace('NIPH', '0')
-		contents = contents.replace('NIPHEM', '0')
-		contents = contents.replace('LOTSC', '0')
+        contents = contents.replace('LNF', '0')
+        contents = contents.replace('PLOT3', '0')
+        contents = contents.replace('PLOT5', '0')
+        contents = contents.replace('ASM', '0')
+        contents = contents.replace('ALM', '0')
+        contents = contents.replace('NIPH', '0')
+        contents = contents.replace('NIPHEM', '0')
+        contents = contents.replace('LOTSC', '0')
 
     with open(os.path.join(outputfile,"cgMLST.tsv"), 'w') as f:
         f.write(contents)
 
-    print "deleted : %s loci" % totaldeletedgenes
-    print "total loci remaining : " + str(cgMLST)
+    print("deleted : %s loci" % totaldeletedgenes)
+    print("total loci remaining : " + str(cgMLST))
 
 
 def main():

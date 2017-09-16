@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 
@@ -19,7 +19,7 @@ def main():
     with open(toRemoveListFile) as f:
         for File in f:
             FilesToRemove.append(File.replace("\n", ''))
-    print FilesToRemove
+    print(FilesToRemove)
     towrite = ''
 
     with open(mainListFile) as f:
@@ -28,7 +28,7 @@ def main():
             if (line.split("\t"))[0] not in FilesToRemove:
                 towrite += line
 
-    with open(outputfile, 'wb') as f:
+    with open(outputfile, 'w') as f:
         f.write(towrite)
 
 

@@ -145,23 +145,26 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                                 genomeProtsTrans += str(protseq) + "\n"
                                 dictprotsName[protid] = idstr2
                     except Exception as e:
-                        dictprotsLen[lengthofProt] = [protid]
-                        dictprots[protid] = protseq
-                        newlistOfCDS[protid] = orderedSeq
-                        try:
-                            protein[1]
-                            idstr = ">" + str(genomename) + "|protein" + str(protid)
-                            idstr2 = ">" + str(genomename) + "|protein" + str(protid)
+                        try:    
+                            dictprotsLen[lengthofProt] = [protid]
+                            dictprots[protid] = protseq
+                            newlistOfCDS[protid] = orderedSeq
+                            try:
+                                protein[1]
+                                idstr = ">" + str(genomename) + "|protein" + str(protid)
+                                idstr2 = ">" + str(genomename) + "|protein" + str(protid)
 
+                            except:
+                                idstr = ">" + str(contigTag)
+                                idstr2 = ">" + str((contigTag.split(" "))[0])
+
+                            genomeProts += idstr + "\n"
+                            genomeProtsTrans += idstr2 + "\n"
+                            genomeProts += str(orderedSeq) + "\n"
+                            genomeProtsTrans += str(protseq) + "\n"
+                            dictprotsName[protid] = idstr2
                         except:
-                            idstr = ">" + str(contigTag)
-                            idstr2 = ">" + str((contigTag.split(" "))[0])
-
-                        genomeProts += idstr + "\n"
-                        genomeProtsTrans += idstr2 + "\n"
-                        genomeProts += str(orderedSeq) + "\n"
-                        genomeProtsTrans += str(protseq) + "\n"
-                        dictprotsName[protid] = idstr2
+                            pass
 
                     else:
                         pass

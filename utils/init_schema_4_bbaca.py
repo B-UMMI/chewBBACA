@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -23,98 +23,97 @@ def check_if_list_or_folder(folder_or_list):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
-                print e
+                print(e)
                 pass
 
     return list_files
 
 def sort_fasta (gene,verbose):
 
-	if verbose:
-		def verboseprint(*args):
-			for arg in args:
-				print (arg),
-			print
-	else:
-		verboseprint = lambda *a: None  # do-nothing function	
-	
-	newFasta=''
-	allelesTranslated=0
-	for allele in SeqIO.parse(gene, "fasta", generic_dna):		
-		try: 
-			translatedSequence,sequence=translateSeq(allele.seq)
-			newFasta+=">"+allele.id+"\n"+str(sequence)+"\n"
-			allelesTranslated+=1
-			if allelesTranslated==1:
-				shortAllele='>' + str(allele.id) + '\n' + str(allele.seq) + '\n'
-			
-		except Exception as e:
-			verboseprint( (str(e) + " on gene "+gene+" on allele "+str(allele.id)))
-			pass
-	
-	if allelesTranslated>0:
-		
-		pathtoDir = os.path.join(os.path.dirname(gene), "short")
-		if not os.path.exists(pathtoDir):
-			os.makedirs(pathtoDir)
-		shortgene = os.path.join(os.path.dirname(gene), "short", os.path.basename(gene))
-		shortgene = shortgene.replace(".fasta", "_short.fasta")
-		fG = open(shortgene, 'w')
-		fG.write(shortAllele)
-		fG.close()
-		
-		with open(gene, "wb") as f:
-			f.write(newFasta)
-	else:
-		try:
-			os.remove(gene)
-			print("No alleles represent a CDS. Removed "+ gene)
-		except:
-			pass
+    if verbose:
+        def verboseprint(*args):
+            for arg in args:
+                print (arg),
+            print()
+    else:
+        verboseprint = lambda *a: None  # do-nothing function
 
-		
-	return	True
-	
+    newFasta=''
+    allelesTranslated=0
+    for allele in SeqIO.parse(gene, "fasta", generic_dna):
+        try:
+            translatedSequence,sequence=translateSeq(allele.seq)
+            newFasta+=">"+allele.id+"\n"+str(sequence)+"\n"
+            allelesTranslated+=1
+            if allelesTranslated==1:
+                shortAllele='>' + str(allele.id) + '\n' + str(allele.seq) + '\n'
+
+        except Exception as e:
+            verboseprint( (str(e) + " on gene "+gene+" on allele "+str(allele.id)))
+            pass
+
+    if allelesTranslated>0:
+
+        pathtoDir = os.path.join(os.path.dirname(gene), "short")
+        if not os.path.exists(pathtoDir):
+            os.makedirs(pathtoDir)
+        shortgene = os.path.join(os.path.dirname(gene), "short", os.path.basename(gene))
+        shortgene = shortgene.replace(".fasta", "_short.fasta")
+        fG = open(shortgene, 'w')
+        fG.write(shortAllele)
+        fG.close()
+
+        with open(gene, "w") as f:
+            f.write(newFasta)
+    else:
+        try:
+            os.remove(gene)
+            print("No alleles represent a CDS. Removed "+ gene)
+        except:
+            pass
+
+
+    return	True
+
 def translateSeq(DNASeq):
-	seq=DNASeq
-	reversedSeq=False
-	tableid=11
-	try:
-		myseq= Seq(seq)
-		protseq=Seq.translate(myseq, table=tableid,cds=True)
-	except:
-		reversedSeq=True
-		try:
-			seq=reverseComplement(seq)
-			myseq= Seq(seq)
-			protseq=Seq.translate(myseq, table=tableid,cds=True)
-						
-		except:
-			try:
-				seq=seq[::-1]
-				myseq= Seq(seq)
-				protseq=Seq.translate(myseq, table=tableid,cds=True)
-			except:
-				reversedSeq=False
-				try:
-					seq=seq[::-1]							
-					seq=reverseComplement(seq)
-					myseq= Seq(seq)
-					protseq=Seq.translate(myseq, table=tableid,cds=True)
-				except Exception as e:
-					raise ValueError(e)
-	return protseq,seq
+    seq=DNASeq
+    reversedSeq=False
+    tableid=11
+    try:
+        myseq= Seq(seq)
+        protseq=Seq.translate(myseq, table=tableid,cds=True)
+    except:
+        reversedSeq=True
+        try:
+            seq=reverseComplement(seq)
+            myseq= Seq(seq)
+            protseq=Seq.translate(myseq, table=tableid,cds=True)
+
+        except:
+            try:
+                seq=seq[::-1]
+                myseq= Seq(seq)
+                protseq=Seq.translate(myseq, table=tableid,cds=True)
+            except:
+                reversedSeq=False
+                try:
+                    seq=seq[::-1]
+                    seq=reverseComplement(seq)
+                    myseq= Seq(seq)
+                    protseq=Seq.translate(myseq, table=tableid,cds=True)
+                except Exception as e:
+                    raise ValueError(e)
+    return protseq,seq
 
 def reverseComplement(strDNA):
 
-	basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-        strDNArevC = ''
-        for l in strDNA:
+    basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+    strDNArevC = ''
+    for l in strDNA:
 
-        	strDNArevC += basecomplement[l]
+        strDNArevC += basecomplement[l]
 
-        return strDNArevC[::-1]
-
+    return strDNArevC[::-1]
 
 
 def main():
@@ -133,12 +132,12 @@ def main():
     
     geneFiles = check_if_list_or_folder(geneFiles)
     if isinstance(geneFiles, list):
-        with open("listGenes.txt", "wb") as f:
+        with open("listGenes.txt", "w") as f:
             for genome in geneFiles:
                 f.write(genome + "\n")
         geneFiles = "listGenes.txt"
-	
-	
+
+
     listGenes=[]
     gene_fp = open( geneFiles, 'r')
     for gene in gene_fp:
@@ -150,11 +149,11 @@ def main():
         os.remove("listGenes.txt")
     except:
         pass
-	
+
     print ("Processing the fastas")
     pool = multiprocessing.Pool(cpu2use)
     for gene in listGenes:
-		
+
         pool.apply_async(sort_fasta,args=[str(gene),verbose])
     pool.close()
     pool.join()

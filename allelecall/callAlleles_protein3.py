@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import sys
@@ -60,7 +60,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein2.fasta'))
 
             # new db for each allele to blast it against himself
-            with open(proteinfastaPath, "wb") as f:
+            with open(proteinfastaPath, "w") as f:
                 f.write(alleleProt)
             Gene_Blast_DB_name = Create_Blastdb(proteinfastaPath, 1, True)
 
@@ -101,7 +101,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
                 # ~ allelescores=var[1]
 
     proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein.fasta'))
-    with open(proteinfastaPath, "wb") as f:
+    with open(proteinfastaPath, "w") as f:
         f.write(alleleAllProt)
 
     # returning all allele BSR scores and list of alleles for this gene
@@ -207,11 +207,11 @@ def main():
         if verbose == 'True':
             verbose = True
         else:
-            verbose = False
+         verbose = False
 
     except IndexError:
         print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
-	
+
     bsrTresh = float(bsrTresh)
 
     argumentList = []
@@ -248,8 +248,8 @@ def main():
     basepath = os.path.join(temppath, os.path.splitext(geneFile)[0])
 
     print (
-    "Processing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
-        locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.")
+    "\rProcessing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
+        locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.", end="")
 
     if not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -367,7 +367,7 @@ def main():
                     pass
 
                 raise ValueError("EQUAL")
-        except Exception, e:
+        except Exception as e:
             # ~ exc_type, exc_obj, exc_tb = sys.exc_info()
             # ~ fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             # ~ print(exc_tb.tb_lineno)

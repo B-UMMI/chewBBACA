@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from Bio.Blast import NCBIXML
 import os
@@ -40,7 +40,7 @@ def Create_Blastdb(questionDB, overwrite, dbtypeProt):
                 "makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
 
     else:
-        print "BLAST DB files found. Using existing DBs.."
+        print("BLAST DB files found. Using existing DBs..")
     return name
 
 def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):

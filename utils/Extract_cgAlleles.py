@@ -61,17 +61,18 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
         
 
     if cgPercent <float(1):
-		column = 1
-		row2Del=[]
-		total=int(d2c.shape[0])-1
-		while column < d2c.shape[1]:
-			L=d2c[:,column][1:].astype(np.int)
-			present=np.count_nonzero(L==1)
-			percentPresence=(float(present)/float(total))
-			if percentPresence <cgPercent:
-				row2Del.append(int(column))
-			column += 1
-    print "presence and abscence matrix built"
+        column = 1
+        row2Del=[]
+        total=int(d2c.shape[0])-1
+        while column < d2c.shape[1]:
+            L=d2c[:,column][1:].astype(np.int)
+            present=np.count_nonzero(L==1)
+            percentPresence=(float(present)/float(total))
+            print(percentPresence)
+            if percentPresence <cgPercent:
+                row2Del.append(int(column))
+            column += 1
+    print("presence and abscence matrix built")
 
     d2d = d2c.tolist()
 

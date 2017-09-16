@@ -1,6 +1,6 @@
-#!/usr/bin/env python
-import CheckCDS
-import alleleSizeStats
+#!/usr/bin/env python3
+from CheckCDS import analyzeCDS
+from alleleSizeStats import getStats
 import os
 import argparse
 import json
@@ -25,7 +25,7 @@ def which(program):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return True
-    print program+" not found"
+    print(program+" not found")
     sys.exit()
     return "Not found"
 
@@ -76,7 +76,7 @@ def main():
     except IOError:
         listbasename = os.path.basename(os.path.normpath(genes))
 
-        with open("listGenes" + listbasename + ".txt", "wb") as f:
+        with open("listGenes" + listbasename + ".txt", "w") as f:
             for gene in os.listdir(genes):
                 try:
                     genepath = os.path.join(genes, gene)
@@ -85,7 +85,7 @@ def main():
                         break
                     f.write(genepath + "\n")
                 except Exception as e:
-                    print e
+                    print(e)
                     pass
 
         genes = "listGenes" + listbasename + ".txt"
@@ -97,7 +97,7 @@ def main():
     # genebasename=genebasename[0]
 
 
-    notConservedgenes, totalgenes, genesWOneAllele, boxplot, histplot, allelenumberplot, listgenesBoxOrdered, totalnumberofgenes, boxListLink, allAllelesStats = alleleSizeStats.getStats(
+    notConservedgenes, totalgenes, genesWOneAllele, boxplot, histplot, allelenumberplot, listgenesBoxOrdered, totalnumberofgenes, boxListLink, allAllelesStats = getStats(
         genes, threshold, OneBadGeneNotConserved, True, logScale, outputpath, splited)
 
     # boxplot=str(json.dumps(boxplot))
@@ -105,7 +105,7 @@ def main():
     allelenumberplot = str(json.dumps(allelenumberplot))
     allAllelesStats = str(json.dumps(allAllelesStats))
 
-    statsPerGene = CheckCDS.analyzeCDS(genes, transTable, True, outputpath, cpuToUse,skipHeavy)
+    statsPerGene = analyzeCDS(genes, transTable, True, outputpath, cpuToUse,skipHeavy)
 
     # stats values are ordered in a list allelesNotMultiple3,listStopcodonsInside,listnotStartCodon,numberOfAlleles
 
@@ -115,7 +115,7 @@ def main():
     if not os.path.exists(htmlgenespath):
         os.makedirs(htmlgenespath)
 
-    with open(htmlFile, "wb") as f:
+    with open(htmlFile, "w") as f:
         f.write(
             "<!DOCTYPE html>\n<html>\n<head><script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js'></script>\n")
         f.write(
@@ -548,7 +548,7 @@ li a {
 		  </tr>""")
         ordered = []
         orderedBySize = []
-        for key, value in statsPerGene.iteritems():
+        for key, value in statsPerGene.items():
             numberMultip = float(len(value[0]))
             numberStop = float(len(value[1]))
             numberStart = float(len(value[2]))
@@ -703,16 +703,16 @@ li a {
         listGenesJson = str(json.dumps(listgenesBoxOrdered[i]))
         listLinkGenesJson = str(json.dumps(boxListLink[i]))
         filename = "jsonbox" + str(i) + (".js")
-        with open((os.path.join(outputpath, filename)), "wb") as f:
+        with open((os.path.join(outputpath, filename)), "w") as f:
             f.write("var jsonboxList =" + str(boxplotElem) + ";var listgenes=" + str(
                 listGenesJson) + ";var listlinks=" + str(listLinkGenesJson))
         i += 1
 
-    with open((os.path.join(outputpath, "json2.js")), "wb") as f:
+    with open((os.path.join(outputpath, "json2.js")), "w") as f:
 
         f.write("var jsonHistPlot =" + str(histplot))
 
-    with open((os.path.join(outputpath, "json3.js")), "wb") as f:
+    with open((os.path.join(outputpath, "json3.js")), "w") as f:
 
         f.write("var jsonsScatterPlot =" + str(allelenumberplot) + ";var listNumberDifAlleles=" + allAllelesStats)
 

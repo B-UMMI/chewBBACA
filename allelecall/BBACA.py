@@ -327,7 +327,7 @@ def main():
         raise ValueError('ERROR! No usable gene files in ' + str(genes))
     
     #sort the genomes and genes list for an ordered output 
-    listOfGenomes.sort(key=lambda y: y.lower())
+    listOfGenomes.sort(key=lambda y: os.path.basename(y).lower())
     listOfGenomesBasename.sort(key=lambda y: y.lower())
     lGenesFiles.sort(key=lambda y: y.lower())
         

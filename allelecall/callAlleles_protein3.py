@@ -646,7 +646,7 @@ def main():
                             fullAlleleList.append(alleleStr)
                             fullAlleleNameList.append(appendAllele)
 
-                            if bestmatch[1] >= int(bsrTresh) and float(bestmatch[1]) < int(bsrTresh) + 0.1:
+                            if float(bestmatch[1]) >= bsrTresh and float(bestmatch[1]) < bsrTresh + 0.1:
                                 fG = open(shortgeneFile, 'a')
                                 fG.write(appendAllele)
                                 fG.write(alleleStr + '\n')

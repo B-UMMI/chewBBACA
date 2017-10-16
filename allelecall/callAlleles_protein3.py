@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import sys
@@ -45,9 +45,9 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
 
         # try to translate the allele
         alleleIlist.append(alleleI)
-        alleleList.append(str(allele.seq))
+        alleleList.append(str(allele.seq.upper()))
         listAllelesNames.append(allele.id)
-        translatedSequence, x, y = translateSeq(allele.seq)
+        translatedSequence, x = translateSeq(str(allele.seq.upper()))
 
         if translatedSequence == '':
             print ("cannot translate allele on bsr calculation")
@@ -60,7 +60,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein2.fasta'))
 
             # new db for each allele to blast it against himself
-            with open(proteinfastaPath, "wb") as f:
+            with open(proteinfastaPath, "w") as f:
                 f.write(alleleProt)
             Gene_Blast_DB_name = Create_Blastdb(proteinfastaPath, 1, True)
 
@@ -101,7 +101,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
                 # ~ allelescores=var[1]
 
     proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein.fasta'))
-    with open(proteinfastaPath, "wb") as f:
+    with open(proteinfastaPath, "w") as f:
         f.write(alleleAllProt)
 
     # returning all allele BSR scores and list of alleles for this gene
@@ -190,7 +190,7 @@ def translateSeq(DNASeq):
                     print ("translation error")
                     print (e)
                     protseq = ""
-    return protseq, seq, reversedSeq
+    return protseq, seq
 
 
 # ======================================================== #
@@ -207,11 +207,11 @@ def main():
         if verbose == 'True':
             verbose = True
         else:
-            verbose = False
+         verbose = False
 
     except IndexError:
         print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
-	
+
     bsrTresh = float(bsrTresh)
 
     argumentList = []
@@ -248,8 +248,8 @@ def main():
     basepath = os.path.join(temppath, os.path.splitext(geneFile)[0])
 
     print (
-    "Processing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
-        locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.")
+    "\rProcessing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
+        locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.", end="")
 
     if not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -266,7 +266,7 @@ def main():
             alleleI = int(aux[0])
         else:
             alleleI = int(aux[-1])
-        fullAlleleList.append(str(allele.seq))
+        fullAlleleList.append(str(allele.seq.upper()))
         fullAlleleNameList.append(allele.id)
 
     resultsList = []
@@ -367,7 +367,7 @@ def main():
                     pass
 
                 raise ValueError("EQUAL")
-        except Exception, e:
+        except Exception as e:
             # ~ exc_type, exc_obj, exc_tb = sys.exc_info()
             # ~ fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             # ~ print(exc_tb.tb_lineno)
@@ -503,13 +503,14 @@ def main():
 
                     bestMatchContigLen = currentGenomeDict[contigname]
 
-                    protSeq, alleleStr, Reversed = translateSeq(alleleStr)
-
+                    protSeq, alleleStr = translateSeq(alleleStr)
                     # get extra space to the right and left between the allele and match and check if it's still inside the contig
 
                     rightmatchAllele = geneLen - ((int(match.query_end) + 1) * 3)
                     leftmatchAllele = ((int(match.query_start) - 1) * 3)
 
+                    
+                    Reversed=False
                     # ~ if Reversed swap left and right contig extra
                     if int(matchLocation[1]) < int(matchLocation[0]):
                         rightmatchContig = bestMatchContigLen - int(matchLocation[0])
@@ -517,10 +518,12 @@ def main():
                         aux = rightmatchAllele
                         rightmatchAllele = leftmatchAllele
                         leftmatchAllele = aux
+                        Reversed=True
 
                     else:
                         rightmatchContig = bestMatchContigLen - int(matchLocation[1])
                         leftmatchContig = int(matchLocation[0])
+                        
 
                     ###########################
                     # LOCUS ON THE CONTIG TIP #

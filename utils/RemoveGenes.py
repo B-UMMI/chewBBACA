@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import csv
 import argparse
@@ -30,7 +30,7 @@ def main():
             FilesToRemove.append(File)
     # print FilesToRemove
 
-    with open(mainListFile, 'rb') as tsvin, open(outputfileName + ".tsv", "wb") as csvout:
+    with open(mainListFile, 'r') as tsvin, open(outputfileName + ".tsv", "w") as csvout:
         tsvin = csv.reader(tsvin, delimiter='\t')
 
         listindextoremove = []

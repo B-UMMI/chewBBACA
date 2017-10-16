@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
@@ -35,7 +35,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
+                print(arg, end="")
             print
     else:
         verboseprint = lambda *a: None  # do-nothing function
@@ -72,7 +72,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
             #g_fp = HTSeq.FastaReader(genomeFile)
             for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-                sequence = str(contig.seq)
+                sequence = str(contig.seq.upper())
                 currentGenomeDict[contig.id] = sequence
 
             # after the first iteration, genomes are already defined by their cds and no longer have a cds dictionary pickle file
@@ -80,7 +80,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                 with open(filepath, 'rb') as f:
                     currentCDSDict = pickle.load(f)
             except:
-                for k, v in currentGenomeDict.iteritems():
+                for k, v in currentGenomeDict.items():
                     currentCDSDict[k] = [[v]]
 
             j = 0
@@ -88,7 +88,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
             counter = 0
             tsvProtidGenome=""
 
-            for contigTag, value in currentCDSDict.iteritems():
+            for contigTag, value in currentCDSDict.items():
 
                 for protein in value:
                     protid += 1
@@ -279,7 +279,7 @@ def translateSeq(DNASeq):
     try:
         reverseComplement(seq)
     except:
-		raise
+        raise
     try:
         myseq = Seq(seq)
         protseq = Seq.translate(myseq, table=tableid, cds=True)
@@ -326,6 +326,7 @@ def main():
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
 
@@ -337,13 +338,14 @@ def main():
     BlastpPath = args.b
     bsr = args.bsr
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = args.l
 
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
+                print(arg, end="")
             print
     else:
         verboseprint = lambda *a: None  # do-nothing function
@@ -351,7 +353,7 @@ def main():
 
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
-        print "Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action"
+        print("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
 
     taxonList = {'Campylobacter jejuni': 'trained_campyJejuni.trn',
                  'Acinetobacter baumannii': 'trained_acinetoBaumannii.trn',
@@ -365,23 +367,38 @@ def main():
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
                  }
-    if isinstance(chosenTaxon, basestring):
+    if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
         try:
             chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
 
             if os.path.isfile(chosenTaxon):
-                print "will use this training file : " + chosenTaxon
+                print("will use this training file : " + chosenTaxon)
             else:
-                print "training file don't exist"
-                print chosenTaxon
+                print("training file don't exist")
+                print(chosenTaxon)
                 return "retry"
         except:
-            print "Your chosen taxon "+chosenTaxon+" is not attributed, select one from:"
+            print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
             for elem in taxonList.keys():
-                print elem
+                print(elem)
             return "retry"
 
+    if isinstance(chosenTrainingFile, basestring):
+        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+        try:
+            chosenTaxon = trainingFolderPAth
+
+            if os.path.isfile(chosenTaxon):
+                print ("will use this training file : " + chosenTaxon)
+            else:
+                print ("training file don't exist "+chosenTaxon)
+                return "retry"
+        except:
+            print "The training file you provided doesn't exist:"
+            print (chosenTaxon)
+            return "retry"
+    
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
     print ("Will use this number of cpus: " + str(cpuToUse))
@@ -427,7 +444,7 @@ def main():
     pool.close()
     pool.join()
 
-    print "\nChecking all prodigal processes created the necessary files..."
+    print("\nChecking all prodigal processes created the necessary files...")
 
     listOfORFCreated = []
     for orffile in os.listdir(basepath):
@@ -440,7 +457,7 @@ def main():
         shutil.rmtree(basepath)
         raise ValueError(message)
     else:
-        print "All prodigal files necessary were created\n"
+        print("All prodigal files necessary were created\n")
 
     print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -453,7 +470,7 @@ def main():
 
     pairID = 0
     # while len(processed)<len(toprocess):
-    with open("proteinID_Genome.tsv", 'wb') as f:
+    with open("proteinID_Genome.tsv", 'w') as f:
         f.write("Genome\tcontig\tStart\tStop\tprotID")
     while len(listOfGenomes) > 0:
 
@@ -499,7 +516,7 @@ def main():
             extraCpuPerProcess = extraCpu / numberOfPairs
             print( "running analysis for pair : " + str(v[0]) + " " + str(v[1]))
             pool.apply_async(checkGeneStrings,
-                             args=[v[0], v[1], newgGenome, basepath, extraCpuPerProcess + 1, BlastpPath,
+                             args=[v[0], v[1], newgGenome, basepath, int(extraCpuPerProcess + 1), BlastpPath,
                                    createSchemaPath,verbose])
 
         pool.close()
@@ -507,6 +524,7 @@ def main():
         verboseprint( "finished running pair analysis")
 
         if len(listOfGenomes) == 1:
+
             verboseprint( "___________________\nFinal step : creating the schema")
             lastFile = listOfGenomes.pop()
             proc = subprocess.Popen(

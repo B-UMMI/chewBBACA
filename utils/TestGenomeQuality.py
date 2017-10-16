@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy as np
 import argparse
@@ -10,7 +10,7 @@ import os
 
 
 def presAbs(d2c):
-    print "generating presence abscence matrix"
+    print("generating presence abscence matrix")
     # genelist= d2[:1,1:]
     # print "Warning: all profiles must have same length"
     # for item in d2c:
@@ -41,7 +41,7 @@ def presAbs(d2c):
 
             column += 1
         row += 1
-    print "done"
+    print("done")
 
     return d2c
 
@@ -53,8 +53,8 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
-            print
+                print(arg, end="")
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -116,8 +116,8 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
 
         if len(genomeslist) > 500:
             xthreshold = 0.95
-        elif len(genomeslist) > 200:
-            xthreshold = 0.95
+        elif len(genomeslist) < 20:
+            xthreshold = 0.90
         else:
             xthreshold = 0.95
 
@@ -195,8 +195,8 @@ def removegenomes(d2a, bagenomeslist,verbose):
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
-            print
+                print(arg, end="")
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -230,8 +230,8 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
-            print
+                print(arg, end="")
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -316,8 +316,8 @@ def main():
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print arg,
-            print
+                print(arg, end="")
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -335,22 +335,22 @@ def main():
 
     # for each threshold run a clean function on the dataset, using the previous run output (to be removed genomes) as input for the new one
 
-    with open(os.path.join(out_folder,"removedGenomes.txt"), "wb") as f:
+    with open(os.path.join(out_folder,"removedGenomes.txt"), "w") as f:
         f.write( "Threshold\tRemoved_genomes\n")
-    with open(os.path.join(out_folder,"Genes_95%.txt"), "wb") as f:
+    with open(os.path.join(out_folder,"Genes_95%.txt"), "w") as f:
         f.write( "Threshold\tPresent_genes\n")
         
-    print "will try to open file..."
+    print("will try to open file...")
     # d2=np.loadtxt(inputfile, delimiter='\t')
     d2original = np.genfromtxt(pathOutputfile, delimiter='\t', dtype=None)
     d2copy = np.copy(d2original)
     # create abscence/presence matrix for easier processing
     d2copy = presAbs(d2copy)
-    print "file was read"
+    print("file was read")
 
     while threshold < thresholdBadCalls:
         thresholdlist.append(threshold)
-        print " ######## CALCULATING WITH THRESHOLD AT " + str(threshold) + " ########"
+        print(" ######## CALCULATING WITH THRESHOLD AT " + str(threshold) + " ########")
         result, stabilizedIter = clean(d2copy, iterationNumber, threshold,out_folder,verbose)
         listStableIter.append(stabilizedIter)
         allresults.append(result)

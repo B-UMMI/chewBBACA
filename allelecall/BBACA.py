@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -38,7 +38,7 @@ def prepGenomes(genomeFile, basepath, verbose):
         def verboseprint(*args):
             for arg in args:
                 print (arg),
-            print
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -51,11 +51,11 @@ def prepGenomes(genomeFile, basepath, verbose):
         currentCDSDict = pickle.load(f)
 
     for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-        sequence = str(contig.seq)
+        sequence = str(contig.seq.upper())
         currentGenomeDict[contig.id] = sequence
 
     j = 0
-    for contigTag, value in currentCDSDict.iteritems():
+    for contigTag, value in currentCDSDict.items():
 
         for protein in value:
             try:
@@ -80,7 +80,7 @@ def prepGenomes(genomeFile, basepath, verbose):
     listOfCDS = ''
 
     filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
-    with open(filepath, 'wb') as f:
+    with open(filepath, 'w') as f:
         f.write(genomeProts)
     genomeProts = ''
     var = ''
@@ -162,7 +162,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
         #gene_fp2 = HTSeq.FastaReader(shortgene)
         for allele in SeqIO.parse(shortgene, "fasta", generic_dna):
-            sequence=allele.seq
+            sequence=str(allele.seq.upper())
             k += 1
             if len(sequence) % 3 != 0:
                 multiple = False
@@ -214,6 +214,7 @@ def main():
     parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
                         default=False)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
@@ -230,6 +231,7 @@ def main():
     divideOutput = args.divideOutput
     gOutFile = args.o
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     forceContinue = args.fc
     forceReset = args.fr
     jsonReport = args.json
@@ -251,7 +253,7 @@ def main():
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
                  }
-    if isinstance(chosenTaxon, basestring):
+    if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
         try:
             chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
@@ -262,12 +264,27 @@ def main():
                 print ("training file don't exist "+chosenTaxon)
                 return "retry"
         except:
-            print "Your chosen taxon is not attributed, select one from:"
+            print("Your chosen taxon is not attributed, select one from:")
             for elem in taxonList.keys():
                 print (elem)
             return "retry"
 
-    print BlastpPath
+    if isinstance(chosenTrainingFile, str):
+        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+        try:
+            chosenTaxon = trainingFolderPAth
+
+            if os.path.isfile(chosenTaxon):
+                print ("will use this training file : " + chosenTaxon)
+            else:
+                print ("training file don't exist "+chosenTaxon)
+                return "retry"
+        except:
+            print("The training file you provided doesn't exist:")
+            print (chosenTaxon)
+            return "retry"
+
+    print(BlastpPath)
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -337,17 +354,17 @@ def main():
     basepath = os.path.join(genepath, "temp")
     testVar = ""
     if os.path.isdir(basepath) and not forceContinue and not forceReset:
-        testVar = raw_input(
+        testVar = input(
             "We found files belonging to a previous run not finished, If they are yours and want to continue were it stopped type Y or yes")
     continueRun = False
 
     if testVar.lower() == "yes" or testVar.lower() == "y" or forceContinue:
         if os.path.isdir(basepath):
             continueRun = True
-	
-	if forceReset:
-		continueRun = True
-		
+
+    if forceReset:
+        continueRun = True
+
     if continueRun:
         print ("You chose to continue the allele call")
         argumentsList = []
@@ -564,7 +581,7 @@ def main():
             phylovout2.append(alleleschema)
 
         genome = 0
-		
+
         genesHeader = "FILE" + "\t" + ('\t'.join(map(str, genesnames)))
         finalphylovinput = genesHeader
         finalphylovinput2 = genesHeader
@@ -658,7 +675,7 @@ def main():
                 genome = aux2[0]
                 runReport[genome] = aux2[1:]
 
-            with open(os.path.join(outputfolder, "results_alleles.json"), 'wb') as outfile:
+            with open(os.path.join(outputfolder, "results_alleles.json"), 'w') as outfile:
                 json.dump(runReport, outfile)
 
             aux = []
@@ -672,22 +689,22 @@ def main():
                 genome = aux2[0]
                 runReport[genome] = aux2[1:]
 
-            with open(os.path.join(outputfolder, "results_statistics.json"), 'wb') as outfile:
+            with open(os.path.join(outputfolder, "results_statistics.json"), 'w') as outfile:
                 json.dump(runReport, outfile)
 
         elif not divideOutput:
-            with open(os.path.join(outputfolder, "results_alleles.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_alleles.tsv"), 'w') as f:
                 f.write(finalphylovinput)
 
-            with open(os.path.join(outputfolder, "results_statistics.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_statistics.tsv"), 'w') as f:
                 f.write(str(statswrite))
 
-            with open(os.path.join(outputfolder, "results_contigsInfo.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_contigsInfo.tsv"), 'w') as f:
                 f.write(str(finalphylovinput2))
             if contained:
-                with open(os.path.join(outputfolder, "results_contained.txt"), 'wb') as f:
+                with open(os.path.join(outputfolder, "results_contained.txt"), 'w') as f:
                     f.write(str(containedOutpWrite))
-            with open(os.path.join(outputfolder, "logging_info.txt"), 'wb') as f:
+            with open(os.path.join(outputfolder, "logging_info.txt"), 'w') as f:
                 f.write(starttime)
                 f.write("\nFinished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
                 f.write("\nnumber of genomes: " + str(len(listOfGenomes)))
@@ -707,15 +724,15 @@ def main():
                 currentGenome = os.path.splitext(genome)[0]
                 perGenomeFolder = os.path.join(outputfolder, currentGenome)
                 os.makedirs(perGenomeFolder)
-                with open(os.path.join(perGenomeFolder, currentGenome + "_statistics.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_statistics.txt"), 'w') as f:
                     f.write(statsHeader + "\n")
                     f.write(genome)
                     f.write(statsDict[genome])
-                with open(os.path.join(perGenomeFolder, currentGenome + "_contigsInfo.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_contigsInfo.txt"), 'w') as f:
                     f.write(genesHeader + "\n")
                     f.write(genome)
                     f.write(contigDict[genome])
-                with open(os.path.join(perGenomeFolder, currentGenome + "_alleles.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_alleles.txt"), 'w') as f:
                     f.write(genesHeader + "\n")
                     f.write(genome)
                     f.write(allelesDict[genome])

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from Bio.Seq import Seq
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
@@ -10,7 +10,7 @@ from CommonFastaFunctions import runBlastParser
 from Bio.Blast.Applications import NcbiblastpCommandline
 import collections
 import shutil
-from  init_schema_4_bbaca import get_Short
+from init_schema_4_bbaca import get_Short
 import time
 
 
@@ -51,7 +51,7 @@ def translateSeq(DNASeq, genename):
     try:
         reverseComplement(seq)
     except:
-		protseq = ""
+        protseq = ""
     
     try:
         myseq = Seq(seq)
@@ -137,11 +137,11 @@ def main():
 
     if not proteinFIlePath:
         # print "not passing steps"
-        with open(proteinfile, "wb") as f:
+        with open(proteinfile, "w") as f:
             #g_fp = HTSeq.FastaReader(genes)
 
             for gene in SeqIO.parse(genes, "fasta", generic_dna):
-                dnaseq = str(gene.seq)
+                dnaseq = str(gene.seq.upper())
                 protseq, seq, y = translateSeq(dnaseq, gene.id)
                 totalgenes += 1
                 if len(protseq) > 1:
@@ -213,9 +213,9 @@ def main():
 
         # overwrite the original file, obtaining a new file with unique genes
 
-        with open(proteinfile, "wb") as f:
+        with open(proteinfile, "w") as f:
             allsequences = ''
-            for k, v in auxDict.iteritems():
+            for k, v in auxDict.items():
                 allsequences += v + k + "\n"
             f.write(allsequences)
 
@@ -229,7 +229,7 @@ def main():
         proteinfile = proteinFIlePath
         for gene in SeqIO.parse(genes, "fasta", generic_dna):
         #for gene in g_fp:
-            dnaseq = str(gene.seq)
+            dnaseq = str(gene.seq.upper())
 
             protname = ">" + str(gene.id) + "\n"
             # protDict[protname] = str(protseq)
@@ -282,7 +282,7 @@ def main():
                     if str((blast_record.alignments[0]).hit_def) not in toRemove:
                         genesToKeep.append(str((blast_record.alignments[0]).hit_def))
 
-                    raise
+                    raise Exception
 
                 selfblastscore = (((blast_record.alignments[0]).hsps)[0]).score
 
@@ -306,7 +306,7 @@ def main():
                             log.append(str(blast_record.query) + "\t" + str(
                                 align.hit_def) + "\t" + "2 is bigger and bsr >" + str(bsr))
 
-                            raise
+                            raise Exception
                         # else add gene B to toremove list
                         elif str(align.hit_def) in genesToKeep:
                             genesToKeep.remove(str(align.hit_def))
@@ -325,7 +325,7 @@ def main():
                     if not (str(align.hit_def) == str(blast_record.query)):
                         selfblastscore = ((align.hsps)[0]).score
                         # print "gene "+str(align.hit_def)+" is larger than gene "+str(blast_record.query)
-                        raise
+                        raise Exception
 
                 while i < len(blast_record.alignments):
                     align = blast_record.alignments[i]
@@ -390,15 +390,15 @@ def main():
                 if not proteinFIlePath and not outputFIlePath:
                     newFile = os.path.join(schema_folder_path, namefile + ".fasta")
                     listfiles.append(newFile)
-                    with open(newFile, "wb") as f:
-                        f.write(">" + namefile + "_1\n" + str(contig.seq) + "\n")
+                    with open(newFile, "w") as f:
+                        f.write(">" + namefile + "_1\n" + str(contig.seq).upper() + "\n")
                 elif not proteinFIlePath and outputFIlePath:
                     newFile = os.path.join(outputFIlePath, namefile + ".fasta")
                     listfiles.append(newFile)
-                    with open(newFile, "wb") as f:
-                        f.write(">" + namefile + "_1\n" + str(contig.seq) + "\n")
+                    with open(newFile, "w") as f:
+                        f.write(">" + namefile + "_1\n" + str(contig.seq).upper() + "\n")
                 else:
-                    concatenatedFile += ">" + contig.id + " \n" + str(contig.seq) + "\n"
+                    concatenatedFile += ">" + contig.id + " \n" + str(contig.seq.upper()) + "\n"
 
                 rest += 1
 
@@ -409,7 +409,7 @@ def main():
             removedparalogs += 1
 
     if proteinFIlePath and outputFIlePath:
-        with open(outputFIlePath, "wb") as f:
+        with open(outputFIlePath, "w") as f:
             f.write(concatenatedFile)
     elif not proteinFIlePath and outputFIlePath:
         get_Short(listfiles)

@@ -604,6 +604,8 @@ def main():
             genome += 1
             statistics.append(statsaux)
 
+        finalphylovinput= finalphylovinput.replace("*INF-","*")
+        
         genome = 0
         while genome < len(listOfGenomes):
             auxList = []

@@ -367,7 +367,16 @@ def main():
 
                 alleleName = fullAlleleNameList[fullAlleleList.index(alleleStr)]
                 alleleMatchid = int((alleleName.split("_"))[-1])
-                perfectMatchIdAllele.append(str(alleleMatchid))
+                
+                isLocalAllele=""
+                try:
+                    containedInfo = (alleleName.split("_"))[1]
+                    if containedInfo.startswith("*"):
+						isLocalAllele="*"
+                except:
+                    containedInfo = ''
+                
+                perfectMatchIdAllele.append(isLocalAllele+str(alleleMatchid))
 
                 if matchLocation[0] > matchLocation[1]:
                     perfectMatchIdAllele2.append(
@@ -378,10 +387,7 @@ def main():
                         str(contigname) + "&" + str(matchLocation[0]) + "-" + str(matchLocation[1]) + "&" + "+")
 
                 # check if atributed allele is contained or contains
-                try:
-                    containedInfo = (alleleName.split("_"))[1]
-                except:
-                    containedInfo = ''
+                
                 if containedInfo == "CD":
                     resultsList.append([(os.path.basename(genomeFile)), str(alleleMatchid), containedInfo.rstrip()])
                 elif containedInfo == "CS":
@@ -632,24 +638,24 @@ def main():
                         #######################
 
                         wasContained = False
-                        tagAuxC = 'S'
+                        tagAuxC = '*S'
                         for alleleaux in fullAlleleList:
 
                             if alleleStr in alleleaux:
                                 alleleName = fullAlleleNameList[fullAlleleList.index(alleleaux)]
                                 alleleMatchid = (alleleName.split("_"))[-1]
-                                tagAuxC = 'CD' + alleleMatchid.rstrip()
+                                tagAuxC = '*CD' + alleleMatchid.rstrip()
                                 resultsList.append([(os.path.basename(genomeFile)), str(alleleI + 1), tagAuxC])
                                 break
                             elif alleleaux in alleleStr:
                                 alleleName = fullAlleleNameList[fullAlleleList.index(alleleaux)]
                                 alleleMatchid = (alleleName.split("_"))[-1]
-                                tagAuxC = 'CS' + alleleMatchid.rstrip()
+                                tagAuxC = '*CS' + alleleMatchid.rstrip()
                                 resultsList.append([(os.path.basename(genomeFile)), str(alleleI + 1), tagAuxC])
                                 break
 
                         if not wasContained:
-                            tagAux = 'INF'
+                            tagAux = '*INF'
 
                             perfectMatchIdAllele.append(tagAux + "-" + str(alleleI + 1))
 

@@ -331,6 +331,31 @@ def remove_genes():
     proc = subprocess.Popen(args)
     proc.wait()
 
+def join_profiles():
+	
+    def msg(name=None):                                                            
+        return ''' chewBBACA.py JoinProfiles [RemoveGenes ...][-h] -p1 -p2 -o [O] 
+                    '''
+	
+    parser = argparse.ArgumentParser(description="This program joins two profiles, returning a single profile file with the common loci",usage=msg())
+    parser.add_argument('JoinProfiles', nargs='+', help='join profiles')
+    parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
+    parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
+    parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
+
+    args = parser.parse_args()
+    profile1 = args.p1
+    profile2 = args.p2
+    outputFile = args.o
+    
+
+    ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/profile_joiner.py')
+    args = [ScriptPath, '-p1', profile1, '-p2', profile2, '-o', outputFile]
+
+
+    proc = subprocess.Popen(args)
+    proc.wait()
+
 def prep_schema():
 	
     def msg(name=None):                                                            
@@ -364,8 +389,8 @@ def prep_schema():
 
 if __name__ == "__main__":
 
-	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema']
-	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA']
+	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles']
+	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file']
 	
 	version="1.0"
 	createdBy="Mickael Silva"
@@ -390,6 +415,8 @@ if __name__ == "__main__":
 			remove_genes()
 		elif sys.argv[1] == functions_list[6]:
 			prep_schema()
+		elif sys.argv[1] == functions_list[7]:
+			join_profiles()		
 		else:
 			print('\n\tUSAGE : chewBBACA.py [module] -h \n')
 			print('Select one of the following functions :\n')
@@ -398,7 +425,7 @@ if __name__ == "__main__":
 				print functions_list[i] +" : "+desc_list[i]
 				i+=1
 	except Exception as e:
-		#print e
+		print e
 		print('\n\tUSAGE : chewBBACA.py [module] -h \n')
 		print('Select one of the following functions :\n')
 		i=0

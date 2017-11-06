@@ -658,7 +658,7 @@ def main():
                 genome = aux2[0]
                 runReport[genome] = aux2[1:]
 
-            with open(os.path.join(outputfolder, "results_alleles.json"), 'wb') as outfile:
+            with open(os.path.join(outputfolder, "results_alleles.json"), 'w') as outfile:
                 json.dump(runReport, outfile)
 
             aux = []

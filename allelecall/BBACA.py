@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -55,7 +55,7 @@ def prepGenomes(genomeFile, basepath, verbose):
         currentGenomeDict[contig.id] = sequence
 
     j = 0
-    for contigTag, value in currentCDSDict.iteritems():
+    for contigTag, value in currentCDSDict.items():
 
         for protein in value:
             try:
@@ -80,7 +80,7 @@ def prepGenomes(genomeFile, basepath, verbose):
     listOfCDS = ''
 
     filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
-    with open(filepath, 'wb') as f:
+    with open(filepath, 'w') as f:
         f.write(genomeProts)
     genomeProts = ''
     var = ''
@@ -151,8 +151,12 @@ def loci_translation(genesList, listOfGenomes2, verbose):
     noshortgeneFile = []
 
     for gene in gene_fp:
-        k = 0
         gene = gene.rstrip('\n')
+        if not gene.endswith(".fasta"):
+            continue
+		
+        k = 0
+        
         multiple = True
         shortgene = os.path.join(os.path.dirname(gene), "short", os.path.basename(gene))
         shortgene = shortgene.replace(".fasta", "_short.fasta")
@@ -251,7 +255,7 @@ def main():
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
                  }
-    if isinstance(chosenTaxon, basestring):
+    if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
         try:
             chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
@@ -262,12 +266,12 @@ def main():
                 print ("training file don't exist "+chosenTaxon)
                 return "retry"
         except:
-            print "Your chosen taxon is not attributed, select one from:"
+            print ("Your chosen taxon is not attributed, select one from:")
             for elem in taxonList.keys():
                 print (elem)
             return "retry"
 
-    print BlastpPath
+    print (BlastpPath)
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -318,6 +322,9 @@ def main():
         for gene in gene_fp:
             gene = gene.rstrip('\n')
             gene = gene.rstrip('\r')
+            if not gene.endswith(".fasta"):
+                print (gene)
+                continue          
             if os.path.isfile(gene):
                 lGenesFiles.append(gene)
             else:
@@ -337,7 +344,7 @@ def main():
     basepath = os.path.join(genepath, "temp")
     testVar = ""
     if os.path.isdir(basepath) and not forceContinue and not forceReset:
-        testVar = raw_input(
+        testVar = input(
             "We found files belonging to a previous run not finished, If they are yours and want to continue were it stopped type Y or yes")
     continueRun = False
 
@@ -345,8 +352,8 @@ def main():
         if os.path.isdir(basepath):
             continueRun = True
 	
-	if forceReset:
-		continueRun = True
+    if forceReset:
+        continueRun = True
 		
     if continueRun:
         print ("You chose to continue the allele call")
@@ -604,7 +611,7 @@ def main():
             genome += 1
             statistics.append(statsaux)
 
-        finalphylovinput= finalphylovinput.replace("*INF-","*")
+        finalphylovinput= finalphylovinput.replace("INF-","")
         
         genome = 0
         while genome < len(listOfGenomes):
@@ -660,7 +667,7 @@ def main():
                 genome = aux2[0]
                 runReport[genome] = aux2[1:]
 
-            with open(os.path.join(outputfolder, "results_alleles.json"), 'wb') as outfile:
+            with open(os.path.join(outputfolder, "results_alleles.json"), 'w') as outfile:
                 json.dump(runReport, outfile)
 
             aux = []
@@ -674,22 +681,22 @@ def main():
                 genome = aux2[0]
                 runReport[genome] = aux2[1:]
 
-            with open(os.path.join(outputfolder, "results_statistics.json"), 'wb') as outfile:
+            with open(os.path.join(outputfolder, "results_statistics.json"), 'w') as outfile:
                 json.dump(runReport, outfile)
 
         elif not divideOutput:
-            with open(os.path.join(outputfolder, "results_alleles.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_alleles.tsv"), 'w') as f:
                 f.write(finalphylovinput)
 
-            with open(os.path.join(outputfolder, "results_statistics.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_statistics.tsv"), 'w') as f:
                 f.write(str(statswrite))
 
-            with open(os.path.join(outputfolder, "results_contigsInfo.tsv"), 'wb') as f:
+            with open(os.path.join(outputfolder, "results_contigsInfo.tsv"), 'w') as f:
                 f.write(str(finalphylovinput2))
             if contained:
-                with open(os.path.join(outputfolder, "results_contained.txt"), 'wb') as f:
+                with open(os.path.join(outputfolder, "results_contained.txt"), 'w') as f:
                     f.write(str(containedOutpWrite))
-            with open(os.path.join(outputfolder, "logging_info.txt"), 'wb') as f:
+            with open(os.path.join(outputfolder, "logging_info.txt"), 'w') as f:
                 f.write(starttime)
                 f.write("\nFinished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
                 f.write("\nnumber of genomes: " + str(len(listOfGenomes)))
@@ -709,15 +716,15 @@ def main():
                 currentGenome = os.path.splitext(genome)[0]
                 perGenomeFolder = os.path.join(outputfolder, currentGenome)
                 os.makedirs(perGenomeFolder)
-                with open(os.path.join(perGenomeFolder, currentGenome + "_statistics.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_statistics.txt"), 'w') as f:
                     f.write(statsHeader + "\n")
                     f.write(genome)
                     f.write(statsDict[genome])
-                with open(os.path.join(perGenomeFolder, currentGenome + "_contigsInfo.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_contigsInfo.txt"), 'w') as f:
                     f.write(genesHeader + "\n")
                     f.write(genome)
                     f.write(contigDict[genome])
-                with open(os.path.join(perGenomeFolder, currentGenome + "_alleles.txt"), 'wb') as f:
+                with open(os.path.join(perGenomeFolder, currentGenome + "_alleles.txt"), 'w') as f:
                     f.write(genesHeader + "\n")
                     f.write(genome)
                     f.write(allelesDict[genome])

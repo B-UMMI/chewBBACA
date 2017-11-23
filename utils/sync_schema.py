@@ -134,7 +134,7 @@ def syncSchema(lastSyncServerDate,schemaUri,path2schema,cpu2use):
 	#test down bar
 	auxBar=[]
 	orderedkeys=sorted(newDict.keys())
-	step=int((len(orderedkeys))/10)
+	step=(int((len(orderedkeys))/10))+1
 	counter=0
 	while counter < len(orderedkeys):
 		auxBar.append(orderedkeys[counter])

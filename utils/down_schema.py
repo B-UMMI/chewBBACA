@@ -57,7 +57,7 @@ def get_schema(schema_uri,path2down,cpu2use):
 	#get server time before starting to down stuff, usefull for further sync function
 	if not os.path.exists(os.path.join(path2down, "config.py")):
 		with open(os.path.join(path2down, ".config.txt"), 'w') as f:
-			f.write(serverTime+'"\n'+schema_uri)
+			f.write(serverTime+'\n'+schema_uri)
 
 	totallen=len(result)
 	

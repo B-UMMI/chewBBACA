@@ -293,7 +293,7 @@ def main():
 	
 	#test down bar
 	auxBar=[]
-	step=int((len(listGenes))/10)
+	step=int((len(listGenes))/10)+1
 	counter=0
 	while counter < len(listGenes):
 		auxBar.append(listGenes[counter])

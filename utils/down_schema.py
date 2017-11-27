@@ -68,7 +68,7 @@ def get_schema(schema_uri,path2down,cpu2use):
 	#test down bar
 	auxBar=[]
 	orderedkeys=sorted(dictLoci.keys())
-	step=int((len(orderedkeys))/10)
+	step=int((len(orderedkeys))/10)+1
 	counter=0
 	while counter < len(orderedkeys):
 		auxBar.append(orderedkeys[counter])

@@ -67,7 +67,7 @@ def sort_fasta (gene,verbose):
 			f.write(newFasta)
 	else:
 		try:
-			os.remove(gene)
+			#~ os.remove(gene)
 			print("No alleles represent a CDS. Removed "+ gene)
 		except:
 			pass

@@ -49,7 +49,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
         alleleIlist.append(alleleI)
         alleleList.append(str(allele.seq.upper()))
         listAllelesNames.append(allele.id)
-        translatedSequence, x, y = translateSeq(str(allele.seq.upper()))
+        translatedSequence, x = translateSeq(str(allele.seq.upper()))
 
         if translatedSequence == '':
             print ("cannot translate allele on bsr calculation")
@@ -205,7 +205,7 @@ def translateSeq(DNASeq):
                     print ("translation error")
                     print (e)
                     protseq = ""
-    return protseq, seq, reversedSeq
+    return protseq, seq
 
 
 # ======================================================== #
@@ -534,13 +534,14 @@ def main():
 
                     bestMatchContigLen = currentGenomeDict[contigname]
 
-                    protSeq, alleleStr, Reversed = translateSeq(alleleStr)
-
+                    protSeq, alleleStr = translateSeq(alleleStr)
                     # get extra space to the right and left between the allele and match and check if it's still inside the contig
 
                     rightmatchAllele = geneLen - ((int(match.query_end) + 1) * 3)
                     leftmatchAllele = ((int(match.query_start) - 1) * 3)
 
+                    
+                    Reversed=False
                     # ~ if Reversed swap left and right contig extra
                     if int(matchLocation[1]) < int(matchLocation[0]):
                         rightmatchContig = bestMatchContigLen - int(matchLocation[0])
@@ -548,10 +549,12 @@ def main():
                         aux = rightmatchAllele
                         rightmatchAllele = leftmatchAllele
                         leftmatchAllele = aux
+                        Reversed=True
 
                     else:
                         rightmatchContig = bestMatchContigLen - int(matchLocation[1])
                         leftmatchContig = int(matchLocation[0])
+                        
 
                     ###########################
                     # LOCUS ON THE CONTIG TIP #
@@ -654,6 +657,8 @@ def main():
                             perfectMatchIdAllele.append(tagAux + "-" + str(alleleI + 1))
 
                             if not Reversed:
+                                print (Reversed)
+                                print "#########"
                                 perfectMatchIdAllele2.append(str(contigname) + "&" + str(matchLocation[0]) + "-" + str(
                                     matchLocation[1]) + "&" + "+")
                             else:

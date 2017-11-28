@@ -42,11 +42,12 @@ def sort_fasta (gene,verbose):
 	allelesTranslated=0
 	for allele in SeqIO.parse(gene, "fasta", generic_dna):		
 		try: 
-			translatedSequence,sequence=translateSeq(allele.seq)
+			alleleSequence=(allele.seq).upper()
+			translatedSequence,sequence=translateSeq(alleleSequence)
 			newFasta+=">"+allele.id+"\n"+str(sequence)+"\n"
 			allelesTranslated+=1
 			if allelesTranslated==1:
-				shortAllele='>' + str(allele.id) + '\n' + str(allele.seq) + '\n'
+				shortAllele='>' + str(allele.id) + '\n' + alleleSequence + '\n'
 			
 		except Exception as e:
 			verboseprint( (str(e) + " on gene "+gene+" on allele "+str(allele.id)))

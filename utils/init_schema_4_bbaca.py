@@ -42,12 +42,12 @@ def sort_fasta (gene,verbose):
 	allelesTranslated=0
 	for allele in SeqIO.parse(gene, "fasta", generic_dna):		
 		try: 
-			alleleSequence=(allele.seq).upper()
+			alleleSequence=str((allele.seq).upper())
 			translatedSequence,sequence=translateSeq(alleleSequence)
 			newFasta+=">"+allele.id+"\n"+str(sequence)+"\n"
 			allelesTranslated+=1
 			if allelesTranslated==1:
-				shortAllele='>' + str(allele.id) + '\n' + alleleSequence + '\n'
+				shortAllele='>' + str(allele.id) + '\n' + str(alleleSequence) + '\n'
 			
 		except Exception as e:
 			verboseprint( (str(e) + " on gene "+gene+" on allele "+str(allele.id)))
@@ -60,9 +60,8 @@ def sort_fasta (gene,verbose):
 			os.makedirs(pathtoDir)
 		shortgene = os.path.join(os.path.dirname(gene), "short", os.path.basename(gene))
 		shortgene = shortgene.replace(".fasta", "_short.fasta")
-		fG = open(shortgene, 'w')
-		fG.write(shortAllele)
-		fG.close()
+		with open(shortgene, "wb") as f:
+			f.write(shortAllele)
 		
 		with open(gene, "wb") as f:
 			f.write(newFasta)

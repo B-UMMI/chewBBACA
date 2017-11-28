@@ -72,7 +72,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
             #g_fp = HTSeq.FastaReader(genomeFile)
             for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-                sequence = str(contig.seq)
+                sequence = str(contig.seq).upper()
                 currentGenomeDict[contig.id] = sequence
 
             # after the first iteration, genomes are already defined by their cds and no longer have a cds dictionary pickle file

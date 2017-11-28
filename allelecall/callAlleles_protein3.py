@@ -657,8 +657,6 @@ def main():
                             perfectMatchIdAllele.append(tagAux + "-" + str(alleleI + 1))
 
                             if not Reversed:
-                                print (Reversed)
-                                print "#########"
                                 perfectMatchIdAllele2.append(str(contigname) + "&" + str(matchLocation[0]) + "-" + str(
                                     matchLocation[1]) + "&" + "+")
                             else:

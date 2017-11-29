@@ -14,12 +14,17 @@ def down_fasta(uri,name,path2down,auxBar):
 		return True
 	
 	uriFasta=uri+"/fasta"
-	r = requests.get(uriFasta)
+	r = requests.get(uriFasta, timeout=10)
 	result=r.json()
 	auxDict={}
 	auxname=name.split(".")
 	auxString={}
 	listIndexAux=[]
+	
+	if os.path.isfile(os.path.join(path2down, name)):
+		print (name+ "already exists")
+		return True
+	
 	for allele in result:
 		listIndexAux.append(int(allele['allele_id']['value']))
 		auxDict[int(allele['allele_id']['value'])]=str(allele['nucSeq']['value'])

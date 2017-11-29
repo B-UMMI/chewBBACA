@@ -102,7 +102,7 @@ def get_Short (gene,auxBar):
 					
 					#calculate selfbsr for each allele
 					
-					translatedSequence=translateSeq(str(allele.seq.upper())
+					translatedSequence=translateSeq(str(allele.seq.upper()))
 					
 										
 					tempgeneProt2Fasta='>'+str(allele.name)+'\n'+str(translatedSequence) + '\n'

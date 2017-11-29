@@ -24,7 +24,7 @@ def check_if_list_or_folder(folder_or_list):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
-                print e
+                print (e)
                 pass
 
     return list_files

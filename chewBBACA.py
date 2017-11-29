@@ -74,8 +74,8 @@ def create_schema():
     if verbose:
         args.append('-v')
     if chosenTaxon:
-		args.append('-t')
-		args.append(chosenTaxon)
+        args.append('-t')
+        args.append(chosenTaxon)
 
     proc = subprocess.Popen(args)
 
@@ -158,8 +158,8 @@ def allele_call():
         args.append('--contained')
 
     if chosenTaxon:
-		args.append('-t')
-		args.append(chosenTaxon)
+        args.append('-t')
+        args.append(chosenTaxon)
 		
     proc = subprocess.Popen(args)
     proc.wait()
@@ -511,13 +511,13 @@ if __name__ == "__main__":
 			print('Select one of the following functions :\n')
 			i=0
 			while i<len(functions_list):
-				print functions_list[i] +" : "+desc_list[i]
+				print (functions_list[i] +" : "+desc_list[i])
 				i+=1
 	except Exception as e:
-		print e
+		print (e)
 		print('\n\tUSAGE : chewBBACA.py [module] -h \n')
 		print('Select one of the following functions :\n')
 		i=0
 		while i<len(functions_list):
-			print functions_list[i] +" : "+desc_list[i]
+			print (functions_list[i] +" : "+desc_list[i])
 			i+=1

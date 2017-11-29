@@ -48,7 +48,7 @@ def main():
 		i+=1	
 	
 	for k,v in pontuationDict.items():
-		print k,v
+		print (k,v)
 
 
 			

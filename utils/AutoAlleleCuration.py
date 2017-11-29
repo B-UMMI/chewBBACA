@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import argparse
 from Bio import SeqIO
@@ -38,7 +38,7 @@ def main():
 			if not alleleGenomeName in listGenomesRemove:
 				listSeqTokeep.append(allele)				
 			else:
-				print "removed: "+ str(allele.name)
+				print ("removed: "+ str(allele.name))
 			
 			alleleGenomeName=((str(allele.name)).split("_"))[-1]
 			

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import os
 
@@ -9,7 +9,7 @@ def main():
         directory = sys.argv[2]
         genomeFile = sys.argv[3]
     except IndexError:
-        print "usage: Sum Ting Wong"
+        print ("usage: Sum Ting Wong")
 
 
     name = directory + "/" + genomeFile + "_db"

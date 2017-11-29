@@ -52,9 +52,9 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
 
         # try to translate the allele
         alleleIlist.append(alleleI)
-        alleleList.append(str(allele.seq))
+        alleleList.append(str(allele.seq.upper()))
         listAllelesNames.append(allele.id)
-        translatedSequence, x, y = translateSeq(allele.seq)
+        translatedSequence, x, y = translateSeq(str(allele.seq.upper()))
 
         if translatedSequence == '':
             print ("cannot translate allele on bsr calculation")
@@ -292,7 +292,7 @@ def main():
         else:
             alleleI = int(aux[-1].replace("*",""))
             alleleI = aux[-1]
-        fullAlleleList.append(str(allele.seq))
+        fullAlleleList.append(str(allele.seq.upper()))
         fullAlleleNameList.append(allele.id)
 
     resultsList = []
@@ -537,7 +537,7 @@ def main():
 
                     # load the contig info of the genome to a dictionary
                     for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-                        currentGenomeDict[contig.id] = len(str(contig.seq))
+                        currentGenomeDict[contig.id] = len(str(contig.seq.upper()))
 
                     match = bestmatch[5]
                     geneLen = bestmatch[6]

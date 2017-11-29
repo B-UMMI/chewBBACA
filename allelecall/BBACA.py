@@ -51,7 +51,7 @@ def prepGenomes(genomeFile, basepath, verbose):
         currentCDSDict = pickle.load(f)
 
     for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-        sequence = str(contig.seq)
+        sequence = str(contig.seq.upper())
         currentGenomeDict[contig.id] = sequence
 
     j = 0
@@ -166,7 +166,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
         #gene_fp2 = HTSeq.FastaReader(shortgene)
         for allele in SeqIO.parse(shortgene, "fasta", generic_dna):
-            sequence=allele.seq
+            sequence=str(allele.seq.upper())
             k += 1
             if len(sequence) % 3 != 0:
                 multiple = False

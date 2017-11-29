@@ -54,7 +54,7 @@ def get_Short (gene,auxBar):
 		
 		for allele in SeqIO.parse(gene, "fasta", generic_dna):
 			try: 
-				translatedSequence=translateSeq(allele.seq)
+				translatedSequence=translateSeq(str(allele.seq.upper()))
 				
 				#~ alleleI=int(((allele.name).split("_"))[-1])
 				alleleI=((allele.name).split("_"))[-1]
@@ -64,7 +64,7 @@ def get_Short (gene,auxBar):
 					
 					counter+=1
 					
-					shortfasta='>'+str(allele.name)+'\n'+str(allele.seq) + '\n'
+					shortfasta='>'+str(allele.name)+'\n'+str(allele.seq.upper()) + '\n'
 					
 					
 
@@ -102,7 +102,7 @@ def get_Short (gene,auxBar):
 					
 					#calculate selfbsr for each allele
 					
-					translatedSequence=translateSeq(allele.seq)
+					translatedSequence=translateSeq(str(allele.seq.upper())
 					
 										
 					tempgeneProt2Fasta='>'+str(allele.name)+'\n'+str(translatedSequence) + '\n'
@@ -164,7 +164,7 @@ def get_Short (gene,auxBar):
 
 					if bestbsr>=0.6 and bestbsr<0.7:
 
-						shortfasta+='>'+str(allele.name)+'\n'+str(allele.seq) + '\n'
+						shortfasta+='>'+str(allele.name)+'\n'+str(allele.seq.upper()) + '\n'
 					
 						var[alleleI]= selfscore
 						selfscores.append(selfscore)

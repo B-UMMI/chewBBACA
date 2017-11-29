@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import os
 import subprocess
@@ -12,7 +12,7 @@ def main():
         choosenTaxon = sys.argv[3]
 
     except IndexError:
-        print "usage: list_pickle_obj"
+        print ("usage: list_pickle_obj")
 
     contigsFasta = input_file
 
@@ -70,7 +70,7 @@ def main():
                 cdsL[2])])  # start index correction needed because prodigal indexes start in 1 instead of 0
 
         # reads the stdout from 'prodigal'
-        line = proc.stdout.readline()
+        line = proc.stdout.readline().decode("utf-8")
 
     # ADD LAST
     if len(tempList) > 0:
@@ -91,7 +91,7 @@ def main():
         var = cdsDict
         pickle.dump(var, f)
 
-    print "done prodigal run on:" + str(os.path.basename(contigsFasta))
+    print ("done prodigal run on:" + str(os.path.basename(contigsFasta)))
 
     return True
 

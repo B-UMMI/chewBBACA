@@ -560,12 +560,14 @@ def main():
                     leftmatchAllele = ((int(match.query_start) - 1) * 3)
 
                     # ~ if Reversed swap left and right contig extra
+                    Reversed=False
                     if int(matchLocation[1]) < int(matchLocation[0]):
                         rightmatchContig = bestMatchContigLen - int(matchLocation[0])
                         leftmatchContig = int(matchLocation[1])
                         aux = rightmatchAllele
                         rightmatchAllele = leftmatchAllele
                         leftmatchAllele = aux
+                        Reversed=True
 
                     else:
                         rightmatchContig = bestMatchContigLen - int(matchLocation[1])

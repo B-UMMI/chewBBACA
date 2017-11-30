@@ -129,7 +129,7 @@ def allele_call():
     genes2call = check_if_list_or_folder(genes)
 
     if isinstance(genes2call, list):
-        with open("listGenes2Call.txt", "wb") as f:
+        with open("listGenes2Call.txt", "w") as f:
             for genome in genes2call:
                 f.write(genome + "\n")
         genes2call = "listGenes2Call.txt"
@@ -137,7 +137,7 @@ def allele_call():
     genomes2call = check_if_list_or_folder(genomeFiles)
 
     if isinstance(genomes2call, list):
-        with open("listGenomes2Call.txt", "wb") as f:
+        with open("listGenomes2Call.txt", "w") as f:
             for genome in genomes2call:
                 f.write(genome + "\n")
         genomes2call = "listGenomes2Call.txt"

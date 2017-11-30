@@ -214,6 +214,7 @@ def main():
     parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
                         default=False)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--train', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
@@ -230,6 +231,7 @@ def main():
     divideOutput = args.divideOutput
     gOutFile = args.o
     chosenTaxon = args.t
+    chosenTrainingFile = args.train
     forceContinue = args.fc
     forceReset = args.fr
     jsonReport = args.json
@@ -267,6 +269,21 @@ def main():
                 print (elem)
             return "retry"
 
+    if isinstance(chosenTrainingFile, basestring):
+        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+        try:
+            chosenTaxon = trainingFolderPAth
+
+            if os.path.isfile(chosenTaxon):
+                print ("will use this training file : " + chosenTaxon)
+            else:
+                print ("training file don't exist "+chosenTaxon)
+                return "retry"
+        except:
+            print "The training file you provided doesn't exist:"
+            print (chosenTaxon)
+            return "retry"
+    
     print BlastpPath
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))

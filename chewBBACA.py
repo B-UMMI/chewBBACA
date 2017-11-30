@@ -106,6 +106,7 @@ def allele_call():
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=str, help="minimum BSR score", required=False, default='0.6')
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--train', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
@@ -120,6 +121,7 @@ def allele_call():
     BlastpPath = args.b
     gOutFile = args.o
     chosenTaxon = args.t
+    chosenTrainingFile = args.train
     forceContinue = args.fc
     forceReset = args.fr
     contained = args.contained
@@ -160,6 +162,10 @@ def allele_call():
     if chosenTaxon:
 		args.append('-t')
 		args.append(chosenTaxon)
+	
+    if chosenTrainingFile:
+        args.append('--train')
+        args.append(chosenTrainingFile)
 		
     proc = subprocess.Popen(args)
     proc.wait()

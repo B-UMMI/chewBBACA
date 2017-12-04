@@ -38,12 +38,13 @@ def create_schema():
     parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
     parser.add_argument('CreateSchema', nargs='+', help='create a schema')
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    parser.add_argument('-o', nargs='?', type=str, help="Name of the output folder", required=True)
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
@@ -56,6 +57,7 @@ def create_schema():
     BlastpPath = args.b
     bsr = str(args.bsr)
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = str(args.l)
 
@@ -74,8 +76,11 @@ def create_schema():
     if verbose:
         args.append('-v')
     if chosenTaxon:
-		args.append('-t')
-		args.append(chosenTaxon)
+        args.append('-t')
+        args.append(chosenTaxon)
+    if chosenTrainingFile:
+        args.append('--ptf')
+        args.append(chosenTrainingFile)
 
     proc = subprocess.Popen(args)
 
@@ -106,7 +111,7 @@ def allele_call():
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=str, help="minimum BSR score", required=False, default='0.6')
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    parser.add_argument('--train', nargs='?', type=str, help="provide own training file path", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
@@ -121,7 +126,7 @@ def allele_call():
     BlastpPath = args.b
     gOutFile = args.o
     chosenTaxon = args.t
-    chosenTrainingFile = args.train
+    chosenTrainingFile = args.ptf
     forceContinue = args.fc
     forceReset = args.fr
     contained = args.contained
@@ -164,7 +169,7 @@ def allele_call():
 		args.append(chosenTaxon)
 	
     if chosenTrainingFile:
-        args.append('--train')
+        args.append('--ptf')
         args.append(chosenTrainingFile)
 		
     proc = subprocess.Popen(args)

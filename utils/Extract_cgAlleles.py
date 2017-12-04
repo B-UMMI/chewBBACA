@@ -168,8 +168,8 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
 		contents = contents.replace('PLOT5', '0')
 		contents = contents.replace('ASM', '0')
 		contents = contents.replace('ALM', '0')
-		contents = contents.replace('NIPH', '0')
 		contents = contents.replace('NIPHEM', '0')
+		contents = contents.replace('NIPH', '0')
 		contents = contents.replace('LOTSC', '0')
 
     with open(os.path.join(outputfile,"cgMLST.tsv"), 'w') as f:

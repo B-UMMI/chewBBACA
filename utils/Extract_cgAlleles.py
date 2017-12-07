@@ -163,14 +163,14 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     
     #change all missing data to 0
     if cgPercent <float(1):
-		contents = contents.replace('LNF', '0')
-		contents = contents.replace('PLOT3', '0')
-		contents = contents.replace('PLOT5', '0')
-		contents = contents.replace('ASM', '0')
-		contents = contents.replace('ALM', '0')
-		contents = contents.replace('NIPHEM', '0')
-		contents = contents.replace('NIPH', '0')
-		contents = contents.replace('LOTSC', '0')
+		contents = contents.replace('\tLNF', '\t0')
+		contents = contents.replace('\tPLOT3', '\t0')
+		contents = contents.replace('\tPLOT5', '\t0')
+		contents = contents.replace('\tASM', '\t0')
+		contents = contents.replace('\tALM', '\t0')
+		contents = contents.replace('\tNIPHEM', '\t0')
+		contents = contents.replace('\tNIPH', '\t0')
+		contents = contents.replace('\tLOTSC', '\t0')
 
     with open(os.path.join(outputfile,"cgMLST.tsv"), 'w') as f:
         f.write(contents)

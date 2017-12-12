@@ -5,8 +5,6 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import os
 import argparse
-import urllib
-import datetime
 from SPARQLWrapper import SPARQLWrapper, JSON
 import requests
 import csv

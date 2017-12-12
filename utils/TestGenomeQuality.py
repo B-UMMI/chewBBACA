@@ -117,7 +117,7 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
         if len(genomeslist) > 500:
             xthreshold = 0.95
         elif len(genomeslist) < 20:
-            xthreshold = 0.94999
+            xthreshold = 0.90
         else:
             xthreshold = 0.95
 

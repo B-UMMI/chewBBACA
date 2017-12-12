@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from Bio.Seq import Seq
 from Bio import SeqIO

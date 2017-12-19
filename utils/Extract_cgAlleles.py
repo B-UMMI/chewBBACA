@@ -141,10 +141,34 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
 
         rowid -= 1
 
-    
+    #remove INF and other missing data tags from the profile
+    list2Replace=['LNF','PLOT3','PLOT5','ASM','ALM','NIPHEM','NIPH','LOTSC']
+    rowid=0
+
+    for row in originald2:
+        auxrow=[]
+        for elem in row:
+            if elem in list2Replace:
+                elem=0
+            elif "INF-" in elem:
+                elem=elem.replace('INF-', '')
+            auxrow.append(elem)
+
+        
+        originald2[rowid]=auxrow
+        rowid+=1
+
     originald2 = originald2.T
+    
+    #count number of missing data per genome
+    rowid=1
+    missingDataCount=[["FILE","number of missing data","percentage"]]
+    while rowid<originald2.shape[0]:
+		mdCount=originald2[rowid].tolist().count("0")
+		missingDataCount.append( [originald2[rowid][0],mdCount,float("{0:.2f}".format(float(mdCount)/int(originald2.shape[1])*100))])
+		rowid+=1
+
     geneslist = (originald2[:1, 1:])[0]
-    print len(geneslist)
     originald2 = originald2.tolist()
 
     # write the output file
@@ -156,24 +180,11 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
         for gene in geneslist:
 			f.write(gene+"\n")
 
-    #chewbbaca files have INF that needs to be removed
-    myfile = open(os.path.join(outputfile,"cgMLST.tsv"))
-    contents = myfile.read()
-    contents = contents.replace('INF-', '')
+    with open(os.path.join(outputfile,"mdata_stats.tsv"), "wb") as f:
+        for stats in missingDataCount:
+            f.write(('\t'.join(map(str, stats)))+"\n")
     
-    #change all missing data to 0
-    if cgPercent <float(1):
-		contents = contents.replace('\tLNF', '\t0')
-		contents = contents.replace('\tPLOT3', '\t0')
-		contents = contents.replace('\tPLOT5', '\t0')
-		contents = contents.replace('\tASM', '\t0')
-		contents = contents.replace('\tALM', '\t0')
-		contents = contents.replace('\tNIPHEM', '\t0')
-		contents = contents.replace('\tNIPH', '\t0')
-		contents = contents.replace('\tLOTSC', '\t0')
-
-    with open(os.path.join(outputfile,"cgMLST.tsv"), 'w') as f:
-        f.write(contents)
+    #~ statswrite += ('\t'.join(map(str, auxList)))
 
     print "deleted : %s loci" % totaldeletedgenes
     print "total loci remaining : " + str(cgMLST)

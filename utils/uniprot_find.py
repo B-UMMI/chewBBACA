@@ -9,8 +9,19 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import requests
 import csv
 from collections import defaultdict
+import multiprocessing
 virtuoso_server=SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
+class Result():
+	def __init__(self):
+		self.val = []
+
+	def update_result(self, val):
+		lala=val
+		self.val.append(lala)
+        
+	def get_result(self):
+		return self.val
 
 def translateSeq(DNASeq, verbose):
     if verbose:
@@ -81,7 +92,7 @@ def get_data(sparql_query):
     result = virtuoso_server.query().convert()
     return result
 
-def get_protein_info(proteinSequence,notgot,uncharacterized,got,selected_prots):
+def get_protein_info(proteinSequence):
 	proteinSequence=proteinSequence.replace("*","")
 
 	name=''
@@ -129,17 +140,58 @@ def get_protein_info(proteinSequence,notgot,uncharacterized,got,selected_prots):
 
 	return str(name),str(url)
 
+def proc_gene(gene,auxBar):
+    
+    #~ print gene
+    name=''
+    url=''
+    prevName=''
+    prevUrl=''
+    for allele in SeqIO.parse(gene, "fasta", generic_dna):
+            params = {}
+            sequence=str(allele.seq)
+            try:
+                proteinSequence=translateSeq(sequence,False)
+            except:
+                continue
+            try:
+                name,url=get_protein_info(proteinSequence)
+                if "Uncharacterized protein" in name or "hypothetical" in name or "DUF" in name :
+                    if not prevName=="":
+                        name=prevName
+                        url=prevUrl
+                    #~ print("trying next allele")
+                    continue
+                else:
+                    prevName=name
+                    prevUrl=url
+                    #~ print (name)
+                    #~ print (url)
+                    break
+            except Exception as e:
+                #~ print (e)
+                #~ print("trying next allele")
+                continue
+    
+    if gene in auxBar:
+        auxlen=len(auxBar)
+        index=auxBar.index(gene)
+        print ( "["+"="*index+">"+" "*(auxlen-index)+"] Querying "+str(int((float(index)/auxlen)*100))+"%")
+    
+    return [gene, name, url]
 
 def main():
     parser = argparse.ArgumentParser(
         description="This program get names for a schema")
     parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
     parser.add_argument('-t', nargs='?', type=str, help='path to tsv file)', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
 
     args = parser.parse_args()
 
     geneFiles = args.i
     proteinid2genome = args.t
+    cpu2use = args.cpu
     
     geneFiles = check_if_list_or_folder(geneFiles)
     if isinstance(geneFiles, list):
@@ -177,38 +229,33 @@ def main():
     uncharacterized=[]
     selected_prots=[]
     counter=0
+    
+    
+    #test down bar
+    auxBar=[]
+	#~ orderedkeys=sorted(newDict.keys())
+    step=(int((len(listGenes))/10))+1
+    counter=0
+    while counter < len(listGenes):
+        auxBar.append(listGenes[counter])
+        counter+=step
+    
+    pool = multiprocessing.Pool(cpu2use)
+    result = Result()
     for gene in listGenes:
-        counter+=1
-        print (gene)
-        print (str(counter)+"/"+str(len(listGenes)))
-        name=""
-        url=""
-        prevName=""
-        prevUrl=""
-        for allele in SeqIO.parse(gene, "fasta", generic_dna):
-            params = {}
-            sequence=str(allele.seq)
-            try:
-                proteinSequence=translateSeq(sequence,False)
-            except:
-                continue
-            try:
-                name,url=get_protein_info(proteinSequence,notgot,uncharacterized,got,selected_prots)
-                if "Uncharacterized protein" in name or "hypothetical" in name or "DUF" in name :
-                    if not prevName=="":
-                        name=prevName
-                        url=prevUrl
-                    print("trying next allele")
-                    continue
-                else:
-                    prevName=name
-                    prevUrl=url
-                    #~ print (name)
-                    #~ print (url)
-                    break
-            except:
-                #~ print("trying next allele")
-                continue
+        p=pool.apply_async(proc_gene,args=[gene,auxBar],callback=result.update_result)    
+        
+    pool.close()
+    pool.join()
+    listResults=result.get_result()
+   
+
+    for result in listResults:
+    #~ lala=process_locus(gene,path2schema,newDict,auxBar)
+        gene=result[0]
+        name=result[1]
+        url=result[2]
+        
         print ("final name: "+name)
         if "Uncharacterized protein" in name or "hypothetical" in name: 
             uncharacterized.append(gene)

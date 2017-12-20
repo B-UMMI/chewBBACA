@@ -253,7 +253,8 @@ def main():
                  'Staphylococcus haemolyticus': 'trained_staphHaemolyticus.trn',
                  'Salmonella enterica': 'trained_salmonellaEnterica_enteritidis.trn',
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
-                 'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
+                 'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn',
+                 'Legionella pneumophila': 'trained_legionellaPneumo.trn'
                  }
     if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))

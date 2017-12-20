@@ -8,6 +8,33 @@ import os
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 
+def send_post(loci_uri,sequence,token):
+	params = {}
+	params['sequence'] = sequence
+	headers={'Authentication-Token': token}
+	url = loci_uri+"/alleles"
+	r = requests.post(url, data=params,headers=headers)
+	allele_url=((r.content).decode("utf-8")).replace('"', '').strip()
+	
+	return allele_url
+
+def read_metadata(metadataFile):
+	metadata={}
+	with open(metadataFile) as csvfile:
+		reader = csv.reader(csvfile, delimiter='\t')
+		
+		firstrow=next(reader)
+		if "FILE" not in firstrow or "ACCESSION" not in firstrow or  "COUNTRY" not in firstrow or  "ST" not in firstrow :
+			print (firstrow)
+			return "Not correct header"
+		
+		print (firstrow)
+		for row in reader:
+			metadata[row[0]]=row[1:]
+			
+	
+	return 	metadata
+	
 
 def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 	profileDict2={}
@@ -48,12 +75,15 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 			missing_data_count+=row.count("LNF")
 			missing_data_count+=row.count("NIPH")
 			missing_data_count+=row.count("PLOT")
+			missing_data_count+=row.count("ASM")
+			missing_data_count+=row.count("ALM")
 			
 			i=1
 			#~ print (int(len(listHeaders)/2))
 			#~ print (missing_data_count)
 			if int(len(listHeaders)/2)<=missing_data_count:
 				i+=1
+				print (row[0]+" discarded from further analysis because missing data count is over 50%")
 				listGenomes2discard.append(row[0])
 				continue
 
@@ -95,7 +125,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 	r = requests.get(schemaURI+"/loci")
 	result=r.json()
 	
-	#remover server time
+	#remove server time
 	result.pop()
 	for gene in result:
 		dictgenes[str(gene['name']['value'])]=str(gene['locus']['value'])
@@ -108,6 +138,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 		sequence=sequencesdict[allele_name]
         
 		#~ sequence=str(allele.seq)
+		prev_allele_id=str(allele_name).split("_")[-1]
 		allele_id=int(str(allele_name).split("_")[-1].replace("*",""))
 		gene=str(allele_name).split("_")[0]
 		print ("Sending alleles of: "+gene)
@@ -116,14 +147,38 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 
 
 		# post the sequence to the respective locus, api return the new allele or the allele if already on db
-		params = {}
-		params['sequence'] = sequence
-		headers={'Authentication-Token': token}
-		url = loci_uri+"/alleles"
-		r = requests.post(url, data=params,headers=headers)
-		allele_url=((r.content).decode("utf-8")).replace('"', '').strip()
-
-		new_allele_id=str(int(allele_url.split("/")[-1]))
+		#if token is not provided just query the db for the sequence
+		try:
+			if token == False:
+				params = {}
+				params['sequence'] = sequence
+				r = requests.get(loci_uri+"/sequences",data=params)
+				result=r.json()
+				try:
+					print (result[0]['id']['value'])
+					new_allele_id=result[0]['id']['value']
+				except:
+					new_allele_id=prev_allele_id
+			else:
+				allele_url=send_post(loci_uri,sequence,token)
+				new_allele_id=str(int(allele_url.split("/")[-1]))
+		
+		except Exception as e:
+			# something went wrong,wait and retry
+			sleep(5)
+			if token == False:
+				params = {}
+				params['sequence'] = sequence
+				r = requests.get(loci_uri+"/sequences",data=params)
+				result=r.json()
+				try:
+					print (result[0]['id']['value'])
+					new_allele_id=result[0]['id']['value']
+				except:
+					new_allele_id=prev_allele_id
+			else:
+				allele_url=send_post(loci_uri,sequence,token)
+				new_allele_id=str(int(allele_url.split("/")[-1]))
 
 
 		#replace the old id on the profile for the new one
@@ -145,30 +200,33 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 	for elem in lists2print:
 		newProfileStr += str(list(genomes)[i])+"\t"+('\t'.join(map(str, elem)))+"\n"
 		i+=1
-	
-	#~ print (modifiedProfileDict)
-	#~ asdasd
-	
-	for genome,profile in modifiedProfileDict.items():
-		
-		if genome in listGenomes2discard:
-			print (genome+" profile has a low locus count, probably a different species")
-			continue
-	
-		# schema uri is like http://137.205.69.51/app/NS/species/1/schemas/1 remove last 2 and get species uri
-		server_ip = schemaURI.split("/")
-		server_ip.pop()
-		server_ip.pop()
-		server_ip=(str.join("/",server_ip))+"/profiles"
-		
-		headers = {'Content-Type': 'application/json','Authentication-Token': token}
-		event_data = {}
-		event_data['profile']={genome:profile}
-		event_data['headers']=listHeaders
 
-		#~ server_return = requests.post(server_ip, headers=headers, json=event_data)
-		server_return = requests.post(server_ip, headers=headers, data=json.dumps(event_data))
-		print (server_return.content)
+	
+	if not token == False:
+		for genome,profile in modifiedProfileDict.items():
+			
+			if genome in listGenomes2discard:
+				print (genome+" profile has a low locus count, probably a different species")
+				continue
+		
+			# schema uri is like http://137.205.69.51/app/NS/species/1/schemas/1 remove last 2 and get species uri
+			server_ip = schemaURI.split("/")
+			server_ip.pop()
+			server_ip.pop()
+			server_ip=(str.join("/",server_ip))+"/profiles"
+			
+			headers = {'Content-Type': 'application/json','Authentication-Token': token}
+			event_data = {}
+			event_data['profile']={genome:profile}
+			event_data['headers']=listHeaders
+
+			#~ server_return = requests.post(server_ip, headers=headers, json=event_data)
+			server_return = requests.post(server_ip, headers=headers, data=json.dumps(event_data))
+			print (server_return.content.decode("utf-8"))
+	
+	with open("newProfile.tsv", 'w') as f:
+		f.write(newProfileStr)
+	
 	
 	return "Done"
 
@@ -196,13 +254,24 @@ def main():
 	parser = argparse.ArgumentParser(description="This synchronizes a local profile and it's new alleles with the NS")
 	parser.add_argument('-s', nargs='?', type=str, help='path to schema folder', required=True)
 	parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
-	parser.add_argument('-t', nargs='?', type=str, help='private token', required=True)
+	parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
+	parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
 
 	args = parser.parse_args()
 
 	profileFile = args.p
 	pathSchema = args.s
 	token= args.t
+	metadataFile= args.m
+	
+	if not metadataFile==False:
+		metadataFile=read_metadata(metadataFile)
+	
+	if metadataFile == '"Not correct header"':
+		print ("Error on metadata file header")
+		return
+	#~ print (metadata)
+	#~ asdasd
 	
 	lastSyncServerDate,schemaUri=get_schema_vars(pathSchema)
 	

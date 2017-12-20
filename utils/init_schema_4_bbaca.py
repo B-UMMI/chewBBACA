@@ -22,12 +22,18 @@ def get_Short (gene,auxBar):
 	blastPath='blastp'
 	genesList=[str(gene)]
 
+	pathtoDir=os.path.join(os.path.dirname(gene),"short")
+	try:
+		if not os.path.exists(pathtoDir):
+			os.makedirs(pathtoDir)
+	except Exception as e:
+		#~ print (e)
+		pass
+	
 	for gene in genesList:
 		#~ print ("processing " +gene)
 
-		pathtoDir=os.path.join(os.path.dirname(gene),"short")
-		if not os.path.exists(pathtoDir):
-			os.makedirs(pathtoDir)
+		
 		shortgene= os.path.join(os.path.dirname(gene),"short",os.path.basename(gene))
 		shortgene= shortgene.replace(".fasta","_short.fasta")
 

@@ -449,17 +449,27 @@ def send_NS():
     parser.add_argument('Send2NS', nargs='+', help='send profiles and local alleles to NS')
     parser.add_argument('-s', nargs='?', type=str, help='path to schema folder', required=True)
     parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=True)
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
+    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
 
     args = parser.parse_args()
 
     profileFile = args.p
     pathSchema = args.s
     token= args.t
+    metadata= args.m
+
     
 
     ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/send2NS.py')
-    args = [ScriptPath, '-p', profileFile,'-t', token, '-s', pathSchema]
+    args = [ScriptPath, '-p', profileFile, '-s', pathSchema ]
+    
+    if not token == False:
+        args.append('-t')
+        args.append(token)
+    if not metadata == False:
+        args.append('-t')
+        args.append(metadata)
 
 
     proc = subprocess.Popen(args)

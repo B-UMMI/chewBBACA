@@ -94,7 +94,6 @@ def get_schema(schema_uri,path2down,cpu2use):
 	pool.join()
 				
 
-
 	#~ print (str(len(counter))+" locus downloaded successfully") 
 	
 	print ("processing the fastas for chewBBACA usability")

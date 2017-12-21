@@ -4,7 +4,6 @@ chewBBACA teams with nomenclature server
 
 example: http://137.205.69.51/app/v1/NS/species/2/schemas/1
 
-----------
 
 ----------
 
@@ -12,7 +11,9 @@ example: http://137.205.69.51/app/v1/NS/species/2/schemas/1
 
 **Installing chewBBACA**
 
-Git clone the whole repository
+### chewBBACA_ns works with python 3
+
+Git clone the whole repository (advised to clone to a new folder as it uses a different branch)
 
 ```
 git clone -b chewie_NS https://github.com/B-UMMI/chewBBACA.git
@@ -23,7 +24,7 @@ You need to install the following dependencies. Prodigal and BLAST must be added
 You may use this pip command to install the python dependencies automatically:
 
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 
@@ -125,3 +126,21 @@ Basic usage:
 
 ----------
 
+## 4. Download all profiles from a given species for a given locus
+
+Get all profiles on a tsv.
+
+Basic usage:
+
+`chewBBACA.py DownloadProfiles --sp http://137.205.69.51/app/v1/NS/species/2 --sc http://137.205.69.51/app/v1/NS/species/2/schemas/1 --cpu 6`
+	
+`--sp` species uri
+
+`--sc` schema uri
+
+`--cpu` number of cpu to use
+
+The output will be a new file with all the profiles (profiles.tsv)
+
+
+----------

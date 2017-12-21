@@ -389,7 +389,7 @@ def prep_schema():
 def download_schema_NS():
 	
     def msg(name=None):                                                            
-        return ''' chewBBACA.py DownloadSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] -p [P]
+        return ''' chewBBACA.py DownloadSchema [DownloadSchema ...][-h] -i [I] --cpu [CPU] -p [P]
                     '''
                     
     parser = argparse.ArgumentParser(
@@ -416,7 +416,7 @@ def download_schema_NS():
 def sync_schema_NS():
 	
     def msg(name=None):                                                            
-        return ''' chewBBACA.py SyncSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] -p [P]
+        return ''' chewBBACA.py SyncSchema [SyncSchema ...][-h] -i [I] --cpu [CPU] -p [P]
                     '''
                     
     parser = argparse.ArgumentParser(
@@ -441,7 +441,7 @@ def sync_schema_NS():
 def send_NS():
 	
     def msg(name=None):                                                            
-        return ''' chewBBACA.py Send2NS [PrepExternalSchema ...][-h] -s [S] -t [T] -p [P]
+        return ''' chewBBACA.py Send2NS [Send2NS ...][-h] -s [S] -t [T] -p [P]
                     '''
 	
     parser = argparse.ArgumentParser(
@@ -475,15 +475,44 @@ def send_NS():
     proc = subprocess.Popen(args)
     proc.wait()
 
+def down_prof():
+	
+    def msg(name=None):                                                            
+        return ''' chewBBACA.py DownloadProfiles [DownloadProfiles ...][-h] --sp [SP] --sc [SC] --cpu [CPU]
+                    '''
+	
+    parser = argparse.ArgumentParser(
+        description="Send local profile and respective alleles to NS")
+    parser.add_argument('Send2NS', nargs='+', help='send profiles and local alleles to NS')
+    parser.add_argument('--sp', nargs='?', type=str, help='species uri', required=True)
+    parser.add_argument('--sc', nargs='?', type=str, help='tsv with profile', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    
+
+    args = parser.parse_args()
+
+    species = args.sp
+    schema = args.sc
+    cpu2use = str(args.cpu)
+
+    
+
+    ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/down_profiles.py')
+    args = [ScriptPath, '--sp', species, '--sc', schema, '--cpu', cpu2use  ]
+    
+
+    proc = subprocess.Popen(args)
+    proc.wait()
+
 if __name__ == "__main__":
 
 	functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles',
-	'DownloadSchema',"SyncSchema",'Send2NS']
+	'DownloadSchema',"SyncSchema",'Send2NS','DownloadProfiles']
 	desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 
 	'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas',
 	 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output',
 	 'prepare an external schema to be used by chewBBACA','join two profiles in a single profile file', 'Download schema from NS',
-	 'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS']
+	 'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS','Download all profiles of a given species for a given schema']
 	
 	version="1.0"
 	createdBy="Mickael Silva"
@@ -515,7 +544,9 @@ if __name__ == "__main__":
 		elif sys.argv[1] == functions_list[9]:
 			sync_schema_NS()
 		elif sys.argv[1] == functions_list[10]:
-			send_NS()	
+			send_NS()
+		elif sys.argv[1] == functions_list[11]:
+			down_prof()	
 		else:
 			print('\n\tUSAGE : chewBBACA.py [module] -h \n')
 			print('Select one of the following functions :\n')

@@ -42,10 +42,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 		reader = csv.reader(csvfile, delimiter='\t')
 		for row in reader:
 			profileDict2[row[0]]=row
-	
-	
-	profile=[]
-    
+
     
 	profileDict= defaultdict(list)
 	listHeaders=profileDict2.pop("FILE")
@@ -270,8 +267,6 @@ def main():
 	if metadataFile == '"Not correct header"':
 		print ("Error on metadata file header")
 		return
-	#~ print (metadata)
-	#~ asdasd
 	
 	lastSyncServerDate,schemaUri=get_schema_vars(pathSchema)
 	

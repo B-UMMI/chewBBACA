@@ -10,7 +10,6 @@ import os
 def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
     d2c = np.copy(d3)
 
-    geneslist = d2c[:1, :]
     genomeslist = d2c[:, :1]
     genomeslist = (genomeslist.tolist())
 
@@ -25,7 +24,7 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
             print ("removed genome : "+genome)
             rowid = geneslistaux.index(genome)
             listidstoremove.append(rowid)
-        # geneslistaux.pop(rowid)
+            # geneslistaux.pop(rowid)
 
     listidstoremove = sorted(listidstoremove, reverse=True)
     for idtoremove in listidstoremove:
@@ -56,21 +55,21 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
                     row2Del.append(int(column))
 
             column += 1
-        
+
         row += 1
-        
+
 
     if cgPercent <float(1):
-		column = 1
-		row2Del=[]
-		total=int(d2c.shape[0])-1
-		while column < d2c.shape[1]:
-			L=d2c[:,column][1:].astype(np.int)
-			present=np.count_nonzero(L==1)
-			percentPresence=(float(present)/float(total))
-			if percentPresence <cgPercent:
-				row2Del.append(int(column))
-			column += 1
+        column = 1
+        row2Del=[]
+        total=int(d2c.shape[0])-1
+        while column < d2c.shape[1]:
+            L=d2c[:,column][1:].astype(np.int)
+            present=np.count_nonzero(L==1)
+            percentPresence=(float(present)/float(total))
+            if percentPresence <cgPercent:
+                row2Del.append(int(column))
+            column += 1
     print ("presence and abscence matrix built")
 
     d2d = d2c.tolist()
@@ -113,29 +112,23 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     lostgenesList = []
 
     # clean the original matrix, using the information on the presence/abscence matrix
-    print "processing the matrix"
+    print ("processing the matrix")
     while rowid > 0:
-        columnid = 1
-        genomeindex = 0
-        print str(rowid) + "/" + str(d2.shape[0])
-        # ~ print type((d2[rowid,1:])[0]
+
+        print (str(rowid) + "/" + str(d2.shape[0]))
         if rowid in del2CG:
             originald2 = np.delete(originald2, rowid, 0)
             d2 = np.delete(d2, rowid, 0)
             totaldeletedgenes += 1
             deleted += 1
-            # ~ rowid-=1
-            columnid = 1
+
 
         elif geneslist[rowid - 1] in toremovegenes:
 
             originald2 = np.delete(originald2, rowid, 0)
-            # ~ d2=np.delete(d2, rowid, 0)
             totaldeletedgenes += 1
             deleted += 1
-            # ~ rowid-=1
-            columnid = 1
-        # ~ break
+
         else:
             cgMLST += 1
 
@@ -153,22 +146,22 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
                 elem=elem.replace('INF-', '')
             auxrow.append(elem)
 
-        
+
         originald2[rowid]=auxrow
         rowid=1
-    
+
     originald2 = originald2.T
     geneslist = (originald2[:1, 1:])[0]
-    print len(geneslist)
+    print (len(geneslist))
     originald2 = originald2.tolist()
 
     #count number of missing data per genome
     rowid=1
     missingDataCount=[["FILE","number of missing data","percentage"]]
-    while rowid<originald2.shape[0]:
-		mdCount=originald2[rowid].tolist().count("0")
-		missingDataCount.append( [originald2[rowid][0],mdCount,float("{0:.2f}".format(float(mdCount)/int(originald2.shape[1])*100))])
-		rowid=1
+    while rowid<len(originald2):
+        mdCount=originald2[rowid].count("0")
+        missingDataCount.append( [originald2[rowid][0],mdCount,float("{0:.2f}".format(float(mdCount)/int(len(originald2[0]))*100))])
+        rowid+=1
 
     # write the output file
 
@@ -177,12 +170,11 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
         writer.writerows(originald2)
     with open(os.path.join(outputfile,"cgMLSTschema.txt"), "w") as f:
         for gene in geneslist:
-			f.write(gene+"\n")
+            f.write(gene+"\n")
 
-    with open(os.path.join(outputfile,"mdata_stats.tsv"), "wb") as f:
+    with open(os.path.join(outputfile,"mdata_stats.tsv"), "w") as f:
         for stats in missingDataCount:
             f.write(('\t'.join(map(str, stats)))+"\n")
-    
 
     print ("deleted : %s loci" % totaldeletedgenes)
     print ("total loci remaining : " + str(cgMLST))

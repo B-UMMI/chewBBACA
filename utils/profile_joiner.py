@@ -6,7 +6,7 @@ from collections import defaultdict
 
 def main():
 	parser = argparse.ArgumentParser(
-        description="This program joins two profiles with the ")
+		description="This program joins two profiles with the ")
 	parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
 	parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
 	parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
@@ -29,11 +29,10 @@ def main():
 		for row in reader:
 			i=0
 			for elem in row:
-				#~ print (elem)
 				dictaux[headers[i]].append(elem)
 				i+=1
 			len1+=1
-	
+
 	print ("reading profile 2")
 	with open(profile2) as csvfile:
 		reader = csv.reader(csvfile, delimiter='\t')
@@ -55,7 +54,7 @@ def main():
 		if len(aux)==len1+len2:
 			listheaders2include.append(header)
 	i=0
-	
+
 	print ("building new profile")
 	while i<len1+len2:
 		aux=[]
@@ -63,17 +62,17 @@ def main():
 			aux.append(dictaux[header][i])
 		i+=1
 		lists2print.append(aux)
-	
+
 	newProfileStr=('\t'.join(map(str, listheaders2include)))+"\n"
 	for elem in lists2print:
 		newProfileStr += ('\t'.join(map(str, elem)))+"\n"
 
 	with open(outputFile, "w") as f:
 		f.write(newProfileStr)
-	
-	
+
+
 	print ("Done")
-    
+
 
 if __name__ == "__main__":
-    main()
+	main()

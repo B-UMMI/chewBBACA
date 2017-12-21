@@ -12,21 +12,21 @@ def main():
 	parser = argparse.ArgumentParser(description="Check if locus are being represented more than once")
 	parser.add_argument('-i', nargs='?', type=str, help='contig info file', required=True)
 	parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False,default=".")
-	
-	
+
+
 	args = parser.parse_args()
 	contigsfile = args.i
 	out_folder = args.o
 
 	if not os.path.exists(out_folder):
 		os.makedirs(out_folder)
-	
+
 	with open(contigsfile) as f:
 		reader = csv.reader(f, delimiter="\t")
 		d = list(reader)
-	
+
 	d2 = array(d)
-	
+
 	genelist= d2[:1,:]
 	genelist=genelist.tolist()[0]
 	genomeslist= d2[:,:1]
@@ -36,22 +36,22 @@ def main():
 	paralogs=[]
 	pontuationDict={}
 	pontuationDict2={}
-	
+
 	while i<len(genomeslist):
 
 		genomeSchema2=d2[i]
 		genomeSchema=genomeSchema2.tolist()
 
-		i+=1	
-		
+		i+=1
+
 		#per each line(genome) get the contigs+positions that are repeated
 		#remove the repeated elements that are not contigs+positions
-		
+
 		equalelem=[x for x, y in Counter(genomeSchema).items() if y > 1]
-		
+
 		if "LNF" in equalelem:
 			equalelem.remove("LNF")
-		if "LOT3" in equalelem:	
+		if "LOT3" in equalelem:
 			equalelem.remove("LOT3")
 		if "LOT5" in equalelem:
 			equalelem.remove("LOT5")
@@ -96,7 +96,7 @@ def main():
 				else:
 					pontuationDict[genelist[index]]=1
 		j=0
-		
+
 		#give a +1(problem) point to a locus per each reapeated contig+position
 		for elem in genomeSchema:
 
@@ -108,12 +108,12 @@ def main():
 			j+=1
 	ordered = sorted(pontuationDict.items(), key=operator.itemgetter(1))
 
-	paralogs=set(paralogs)	
+	paralogs=set(paralogs)
 	print ("Detected number of paralog loci: "+ str(len(paralogs)))
 
-	
+
 	#write file with a overrepresented locus per line, the number of times the locus is overrepresented, problems and total of overrepresentation+problems
-	
+
 	with open(os.path.join(out_folder,"RepeatedLoci.txt"), "w") as f:
 		f.write("gene\tPC\tNDC\n")
 		for k,v in ordered:
@@ -121,9 +121,9 @@ def main():
 				troubledLocus=str(pontuationDict2[k])
 			except:
 				troubledLocus="0"
-				pass	
+				pass
 			f.write( (k+ "\t"+str( v)+"\t"+ troubledLocus+"\n"))
-			
-	
+
+
 if __name__ == "__main__":
 	main()

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import requests,json
-import csv
 import argparse
 from collections import defaultdict
 import os

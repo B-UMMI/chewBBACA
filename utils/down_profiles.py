@@ -123,7 +123,7 @@ def get_profiles(species,schema,cpu2use):
 			f.write(('\t'.join(map(str, profile)))+"\n")
 
 
-	print ("Schema is now available at profiles.tsv")
+	print ("Profile is now available at profiles.tsv")
 
 def main():
 

@@ -7,13 +7,14 @@ from collections import defaultdict
 import os
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
+import time
 
 def send_post(loci_uri,sequence,token):
 	params = {}
 	params['sequence'] = sequence
 	headers={'Authentication-Token': token}
 	url = loci_uri+"/alleles"
-	r = requests.post(url, data=params,headers=headers)
+	r = requests.post(url, data=params,headers=headers,timeout=10)
 	allele_url=((r.content).decode("utf-8")).replace('"', '').strip()
 	
 	return allele_url
@@ -34,7 +35,24 @@ def read_metadata(metadataFile):
 			
 	
 	return 	metadata
-	
+
+
+def send_sequence(token,sequence,loci_uri):
+	if token == False:
+		params = {}
+		params['sequence'] = sequence
+		r = requests.get(loci_uri+"/sequences",data=params,timeout=10)
+		result=r.json()
+		try:
+			print (result[0]['id']['value'])
+			new_allele_id=result[0]['id']['value']
+		except:
+			new_allele_id=prev_allele_id
+	else:
+		allele_url=send_post(loci_uri,sequence,token)
+		new_allele_id=str(int(allele_url.split("/")[-1]))
+		
+	return new_allele_id
 
 def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 	profileDict2={}
@@ -146,37 +164,19 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI):
 		# post the sequence to the respective locus, api return the new allele or the allele if already on db
 		#if token is not provided just query the db for the sequence
 		try:
-			if token == False:
-				params = {}
-				params['sequence'] = sequence
-				r = requests.get(loci_uri+"/sequences",data=params)
-				result=r.json()
-				try:
-					print (result[0]['id']['value'])
-					new_allele_id=result[0]['id']['value']
-				except:
-					new_allele_id=prev_allele_id
-			else:
-				allele_url=send_post(loci_uri,sequence,token)
-				new_allele_id=str(int(allele_url.split("/")[-1]))
+			new_allele_id=send_sequence(token,sequence,loci_uri)
+
 		
 		except Exception as e:
+			#~ print (e)
 			# something went wrong,wait and retry
-			sleep(5)
-			if token == False:
-				params = {}
-				params['sequence'] = sequence
-				r = requests.get(loci_uri+"/sequences",data=params)
-				result=r.json()
-				try:
-					print (result[0]['id']['value'])
-					new_allele_id=result[0]['id']['value']
-				except:
-					new_allele_id=prev_allele_id
-			else:
-				allele_url=send_post(loci_uri,sequence,token)
-				new_allele_id=str(int(allele_url.split("/")[-1]))
-
+			print ("timed out sequence post, retrying")
+			time.sleep(5)
+			try:
+				new_allele_id=send_sequence(token,sequence,loci_uri)
+			except:
+				print ("timed out sequence post, retrying 3rd and last time")
+				new_allele_id=send_sequence(token,sequence,loci_uri)
 
 		#replace the old id on the profile for the new one
 		profileDict[gene+".fasta"]=[new_allele_id if x=="*"+str(allele_id) else x for x in profileDict[gene+".fasta"]]

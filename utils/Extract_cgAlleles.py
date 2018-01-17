@@ -160,16 +160,8 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
         rowid+=1
 
     originald2 = originald2.T
-
-    #count number of missing data per genome
-    rowid=1
-    missingDataCount=[["FILE","number of missing data","percentage"]]
-    while rowid<originald2.shape[0]:
-		mdCount=originald2[rowid].tolist().count("0")
-		missingDataCount.append( [originald2[rowid][0],mdCount,float("{0:.2f}".format(float(mdCount)/int(originald2.shape[1])*100))])
-		rowid+=1
-
     geneslist = (originald2[:1, 1:])[0]
+    print(len(geneslist))
     originald2 = originald2.tolist()
 
     # write the output file
@@ -185,7 +177,19 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
         for stats in missingDataCount:
             f.write(('\t'.join(map(str, stats)))+"\n")
     
-    #~ statswrite += ('\t'.join(map(str, auxList)))
+    #change all missing data to 0
+    if cgPercent <float(1):
+        contents = contents.replace('LNF', '0')
+        contents = contents.replace('PLOT3', '0')
+        contents = contents.replace('PLOT5', '0')
+        contents = contents.replace('ASM', '0')
+        contents = contents.replace('ALM', '0')
+        contents = contents.replace('NIPH', '0')
+        contents = contents.replace('NIPHEM', '0')
+        contents = contents.replace('LOTSC', '0')
+
+    with open(os.path.join(outputfile,"cgMLST.tsv"), 'w') as f:
+        f.write(contents)
 
     print("deleted : %s loci" % totaldeletedgenes)
     print("total loci remaining : " + str(cgMLST))

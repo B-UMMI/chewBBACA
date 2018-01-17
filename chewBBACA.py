@@ -38,12 +38,13 @@ def create_schema():
     parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
     parser.add_argument('CreateSchema', nargs='+', help='create a schema')
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    parser.add_argument('-o', nargs='?', type=str, help="Name of the output folder", required=True)
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
@@ -56,6 +57,7 @@ def create_schema():
     BlastpPath = args.b
     bsr = str(args.bsr)
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = str(args.l)
 
@@ -76,6 +78,9 @@ def create_schema():
     if chosenTaxon:
         args.append('-t')
         args.append(chosenTaxon)
+    if chosenTrainingFile:
+        args.append('--ptf')
+        args.append(chosenTrainingFile)
 
     proc = subprocess.Popen(args)
 
@@ -106,6 +111,7 @@ def allele_call():
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=str, help="minimum BSR score", required=False, default='0.6')
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
@@ -120,6 +126,7 @@ def allele_call():
     BlastpPath = args.b
     gOutFile = args.o
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     forceContinue = args.fc
     forceReset = args.fr
     contained = args.contained
@@ -159,6 +166,11 @@ def allele_call():
     if chosenTaxon:
         args.append('-t')
         args.append(chosenTaxon)
+
+    if chosenTrainingFile:
+        args.append('--ptf')
+        args.append(chosenTrainingFile)
+
 
     proc = subprocess.Popen(args)
     proc.wait()
@@ -330,6 +342,31 @@ def remove_genes():
     proc = subprocess.Popen(args)
     proc.wait()
 
+def join_profiles():
+
+    def msg(name=None):
+        return ''' chewBBACA.py JoinProfiles [RemoveGenes ...][-h] -p1 -p2 -o [O] 
+                    '''
+
+    parser = argparse.ArgumentParser(description="This program joins two profiles, returning a single profile file with the common loci",usage=msg())
+    parser.add_argument('JoinProfiles', nargs='+', help='join profiles')
+    parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
+    parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
+    parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
+
+    args = parser.parse_args()
+    profile1 = args.p1
+    profile2 = args.p2
+    outputFile = args.o
+
+
+    ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/profile_joiner.py')
+    args = [ScriptPath, '-p1', profile1, '-p2', profile2, '-o', outputFile]
+
+
+    proc = subprocess.Popen(args)
+    proc.wait()
+
 def prep_schema():
 
     def msg(name=None):                                                            
@@ -363,8 +400,8 @@ def prep_schema():
 
 if __name__ == "__main__":
 
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA']
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles']
+    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file']
 
     version="1.0"
     createdBy="Mickael Silva"
@@ -378,8 +415,7 @@ if __name__ == "__main__":
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
-            print("here")
-            allele_call()
+            print("here")allele_call()
         elif sys.argv[1] == functions_list[2]:
             evaluate_schema()
         elif sys.argv[1] == functions_list[3]:
@@ -390,18 +426,20 @@ if __name__ == "__main__":
             remove_genes()
         elif sys.argv[1] == functions_list[6]:
             prep_schema()
+        elif sys.argv[1] == functions_list[7]:
+            join_profiles()
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')
             i=0
             while i<len(functions_list):
-                print(functions_list[i] +" : "+desc_list[i])
+                print (functions_list[i] +" : "+desc_list[i])
                 i+=1
     except Exception as e:
-        #print e
+        print (e)
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i=0
         while i<len(functions_list):
-            print(functions_list[i] +" : "+desc_list[i])
+            print (functions_list[i] +" : "+desc_list[i])
             i+=1

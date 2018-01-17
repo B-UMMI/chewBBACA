@@ -45,9 +45,9 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
 
         # try to translate the allele
         alleleIlist.append(alleleI)
-        alleleList.append(str(allele.seq))
+        alleleList.append(str(allele.seq.upper()))
         listAllelesNames.append(allele.id)
-        translatedSequence, x, y = translateSeq(allele.seq)
+        translatedSequence, x = translateSeq(str(allele.seq.upper()))
 
         if translatedSequence == '':
             print ("cannot translate allele on bsr calculation")
@@ -190,7 +190,7 @@ def translateSeq(DNASeq):
                     print ("translation error")
                     print (e)
                     protseq = ""
-    return protseq, seq, reversedSeq
+    return protseq, seq
 
 
 # ======================================================== #
@@ -266,7 +266,7 @@ def main():
             alleleI = int(aux[0])
         else:
             alleleI = int(aux[-1])
-        fullAlleleList.append(str(allele.seq))
+        fullAlleleList.append(str(allele.seq.upper()))
         fullAlleleNameList.append(allele.id)
 
     resultsList = []
@@ -503,13 +503,14 @@ def main():
 
                     bestMatchContigLen = currentGenomeDict[contigname]
 
-                    protSeq, alleleStr, Reversed = translateSeq(alleleStr)
-
+                    protSeq, alleleStr = translateSeq(alleleStr)
                     # get extra space to the right and left between the allele and match and check if it's still inside the contig
 
                     rightmatchAllele = geneLen - ((int(match.query_end) + 1) * 3)
                     leftmatchAllele = ((int(match.query_start) - 1) * 3)
 
+                    
+                    Reversed=False
                     # ~ if Reversed swap left and right contig extra
                     if int(matchLocation[1]) < int(matchLocation[0]):
                         rightmatchContig = bestMatchContigLen - int(matchLocation[0])
@@ -517,10 +518,12 @@ def main():
                         aux = rightmatchAllele
                         rightmatchAllele = leftmatchAllele
                         leftmatchAllele = aux
+                        Reversed=True
 
                     else:
                         rightmatchContig = bestMatchContigLen - int(matchLocation[1])
                         leftmatchContig = int(matchLocation[0])
+                        
 
                     ###########################
                     # LOCUS ON THE CONTIG TIP #

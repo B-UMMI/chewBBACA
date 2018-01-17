@@ -72,7 +72,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
             #g_fp = HTSeq.FastaReader(genomeFile)
             for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
-                sequence = str(contig.seq)
+                sequence = str(contig.seq.upper())
                 currentGenomeDict[contig.id] = sequence
 
             # after the first iteration, genomes are already defined by their cds and no longer have a cds dictionary pickle file
@@ -326,6 +326,7 @@ def main():
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
     parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
 
@@ -337,6 +338,7 @@ def main():
     BlastpPath = args.b
     bsr = args.bsr
     chosenTaxon = args.t
+    chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = args.l
 
@@ -382,6 +384,21 @@ def main():
                 print(elem)
             return "retry"
 
+    if isinstance(chosenTrainingFile, basestring):
+        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+        try:
+            chosenTaxon = trainingFolderPAth
+
+            if os.path.isfile(chosenTaxon):
+                print ("will use this training file : " + chosenTaxon)
+            else:
+                print ("training file don't exist "+chosenTaxon)
+                return "retry"
+        except:
+            print "The training file you provided doesn't exist:"
+            print (chosenTaxon)
+            return "retry"
+    
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
     print ("Will use this number of cpus: " + str(cpuToUse))

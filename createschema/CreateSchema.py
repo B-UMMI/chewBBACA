@@ -10,7 +10,7 @@ from CommonFastaFunctions import runBlastParser
 from Bio.Blast.Applications import NcbiblastpCommandline
 import collections
 import shutil
-from init_schema_4_bbaca import get_Short
+from  init_schema_4_bbaca import get_Short
 import time
 
 
@@ -141,7 +141,7 @@ def main():
             #g_fp = HTSeq.FastaReader(genes)
 
             for gene in SeqIO.parse(genes, "fasta", generic_dna):
-                dnaseq = str(gene.seq)
+                dnaseq = str(gene.seq.upper())
                 protseq, seq, y = translateSeq(dnaseq, gene.id)
                 totalgenes += 1
                 if len(protseq) > 1:
@@ -229,7 +229,7 @@ def main():
         proteinfile = proteinFIlePath
         for gene in SeqIO.parse(genes, "fasta", generic_dna):
         #for gene in g_fp:
-            dnaseq = str(gene.seq)
+            dnaseq = str(gene.seq.upper())
 
             protname = ">" + str(gene.id) + "\n"
             # protDict[protname] = str(protseq)
@@ -391,14 +391,14 @@ def main():
                     newFile = os.path.join(schema_folder_path, namefile + ".fasta")
                     listfiles.append(newFile)
                     with open(newFile, "w") as f:
-                        f.write(">" + namefile + "_1\n" + str(contig.seq) + "\n")
+                        f.write(">" + namefile + "_1\n" + str(contig.seq).upper() + "\n")
                 elif not proteinFIlePath and outputFIlePath:
                     newFile = os.path.join(outputFIlePath, namefile + ".fasta")
                     listfiles.append(newFile)
                     with open(newFile, "w") as f:
-                        f.write(">" + namefile + "_1\n" + str(contig.seq) + "\n")
+                        f.write(">" + namefile + "_1\n" + str(contig.seq).upper() + "\n")
                 else:
-                    concatenatedFile += ">" + contig.id + " \n" + str(contig.seq) + "\n"
+                    concatenatedFile += ">" + contig.id + " \n" + str(contig.seq.upper()) + "\n"
 
                 rest += 1
 

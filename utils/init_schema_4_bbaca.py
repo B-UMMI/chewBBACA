@@ -231,7 +231,9 @@ def translateSeq(DNASeq):
                     myseq= Seq(seq)
                     protseq=Seq.translate(myseq, table=tableid,cds=True)
                 except Exception as e:
-                    raise ValueError(e)
+                    print ("translation error")
+                    print (e)
+                    raise
     return protseq
 
 def reverseComplement(strDNA):

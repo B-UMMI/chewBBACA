@@ -170,6 +170,7 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
 		rowid+=1
 
     geneslist = (originald2[:1, 1:])[0]
+    print(len(geneslist))
     originald2 = originald2.tolist()
 
     # write the output file

@@ -166,9 +166,12 @@ def allele_call():
     if chosenTaxon:
         args.append('-t')
         args.append(chosenTaxon)
+
     if chosenTrainingFile:
         args.append('--ptf')
         args.append(chosenTrainingFile)
+
+
     proc = subprocess.Popen(args)
     proc.wait()
 
@@ -424,15 +427,17 @@ if __name__ == "__main__":
             remove_genes()
         elif sys.argv[1] == functions_list[6]:
             prep_schema()
+        elif sys.argv[1] == functions_list[7]:
+            join_profiles()
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')
             i=0
-            while i <len(functions_list):
+            while i<len(functions_list):
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
     except Exception as e:
-        #print(e)
+        print (e)
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i=0

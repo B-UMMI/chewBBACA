@@ -362,8 +362,8 @@ def main():
         if os.path.isdir(basepath):
             continueRun = True
 
-    if forceReset:
-        continueRun = True
+        if forceReset:
+            continueRun = True
 
     if continueRun:
         print ("You chose to continue the allele call")

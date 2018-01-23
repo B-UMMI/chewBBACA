@@ -397,11 +397,36 @@ def prep_schema():
     proc = subprocess.Popen(args)
     proc.wait()
 
+def find_uniprot():
+	
+    def msg(name=None):                                                            
+        return ''' chewBBACA.py UniprotFinder [UniprotFinder ...][-h] -i [I] -t [T] --cpu [CPU]
+                    '''
+	
+    parser = argparse.ArgumentParser(
+        description="This program gets information of each locus created on the schema creation, based on the uniprot database")
+    parser.add_argument('UniprotFinder', nargs='+', help='get info about a schema created with chewBBACA')
+    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
+    parser.add_argument('-t', nargs='?', type=str, help='path to proteinID_Genome.tsv file generated', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+
+    args = parser.parse_args()
+
+    geneFiles = args.i
+    tsvFile = args.t
+    cpu2use = args.cpu
+    
+
+    ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/uniprot_find.py')
+    args = [ScriptPath, '-i', geneFiles,'-t', tsvFile, '--cpu', str(cpu2use)]
+
+    proc = subprocess.Popen(args)
+    proc.wait()
 
 if __name__ == "__main__":
 
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file']
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
+    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
     version="1.0"
     createdBy="Mickael Silva"
@@ -415,7 +440,6 @@ if __name__ == "__main__":
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
-            print("here")
             allele_call()
         elif sys.argv[1] == functions_list[2]:
             evaluate_schema()
@@ -429,6 +453,8 @@ if __name__ == "__main__":
             prep_schema()
         elif sys.argv[1] == functions_list[7]:
             join_profiles()
+        elif sys.argv[1] == functions_list[8]:
+            find_uniprot()
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')

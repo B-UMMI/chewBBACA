@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -6,7 +6,6 @@ from Bio.Alphabet import generic_dna
 import os
 import argparse
 from SPARQLWrapper import SPARQLWrapper, JSON
-import requests
 import csv
 from collections import defaultdict
 import multiprocessing
@@ -89,7 +88,12 @@ def check_if_list_or_folder(folder_or_list):
 def get_data(sparql_query):
     virtuoso_server.setQuery(sparql_query)
     virtuoso_server.setReturnFormat(JSON)
-    result = virtuoso_server.query().convert()
+    try:
+        result = virtuoso_server.query().convert()
+    except:
+        print ("A request to uniprot timed out, trying new request")
+        time.sleep(5)
+        result = virtuoso_server.query().convert()
     return result
 
 def get_protein_info(proteinSequence):

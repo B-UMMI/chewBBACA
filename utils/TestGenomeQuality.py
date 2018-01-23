@@ -33,7 +33,7 @@ def presAbs(d2c):
                     d2c[row, column] = 0
             except:
                 try:
-                    aux = str((d2c[row, column])).replace("INF-", "")
+                    aux = str((d2c[row, column]).decode("utf-8")).replace("INF-", "")
                     aux = int(aux)
                     d2c[row, column] = 1
                 except Exception as e:
@@ -116,13 +116,13 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
 
         if len(genomeslist) > 500:
             xthreshold = 0.95
-        elif len(genomeslist) < 20:
-            xthreshold = 0.90
+        elif len(genomeslist) > 200:
+            xthreshold = 0.95
         else:
             xthreshold = 0.95
 
         if value > xthreshold:
-            listgenes2show.append(geneslist[column])
+            listgenes2show.append(geneslist[column].decode("utf-8"))
 
         if value > xthreshold and value < 1:
             for badgenome in badgenomes:
@@ -253,7 +253,7 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
     while i <= iterations:
 
         for elem in toremovegenomes:
-            removedlistgenomes.append(elem)
+            removedlistgenomes.append(elem.decode("utf-8"))
 
         if len(removedlistgenomes) > lastremovedgenomesCount and i > 0:
             lastremovedgenomesCount = len(removedlistgenomes)
@@ -278,7 +278,7 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
         i += 1
 
     with open(os.path.join(out_folder,"removedGenomes.txt"), "a") as f:
-        f.write( str(ythreshold) +"\t"+ (' '.join(map(str, removedlistgenomes)))+ "\n")
+        f.write( (str(ythreshold) +"\t"+ (' '.join(map(str, removedlistgenomes)))+ "\n"))
 
 
     with open(os.path.join(out_folder,"Genes_95%.txt"), "a") as f:

@@ -384,7 +384,7 @@ def main():
                 print(elem)
             return "retry"
 
-    if isinstance(chosenTrainingFile, basestring):
+    if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)
         try:
             chosenTaxon = trainingFolderPAth
@@ -395,7 +395,7 @@ def main():
                 print ("training file don't exist "+chosenTaxon)
                 return "retry"
         except:
-            print "The training file you provided doesn't exist:"
+            print ("The training file you provided doesn't exist:")
             print (chosenTaxon)
             return "retry"
     

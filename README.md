@@ -50,17 +50,26 @@ You need to install the following dependencies. Prodigal and BLAST must be added
 You may use this pip command to install the python dependencies automatically:
 
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 
 Python dependencies:
-* [Biopython 1.70 ](http://biopython.org/wiki/Main_Page)
+* numpy>=1.13.1
+* scipy>=0.13.3
+* biopython>=1.70
+* plotly>=1.12.9
+* SPARQLWrapper>=1.8.0
 
 
-Other dependencies:
+Main dependencies:
 * BLAST 2.5.0+ ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.5.0/ or above
 * [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/) or above
+
+Other dependencies (for schema evaluation only):
+* [ClustalW2](http://www.clustal.org/download/current/)
+* [mafft](https://mafft.cbrc.jp/alignment/software/)
+
 
 ----------
 
@@ -88,6 +97,25 @@ Create your own wgMLST schema based on a set of genomes fasta files. The command
 
 One fasta file per gene in the `-o`directory that is created. 
 The fasta file names are the given according the FASTA annotation for each coding sequence. 
+
+*Optional:* 
+
+Information about each locus is almost non existant at this point, the only information directly given by the schema creation is where are located each identified protein on the 
+genome (proteinID_Genome.tsv file). A function was added to fetch information on each locus based on the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
+
+`chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4`
+
+**Parameters**
+
+`-i` Folder containing the reference genes of the schema.
+
+`-t` proteinID_Genome.tsv output from the schema creation
+
+`--cpu` Number of cpus to use
+
+**Outputs:** 
+
+A tsv file with the information of each fasta (new_protids.tsv), location on the genome, a name for which the protein sequence was submitted on uniprot and a link to that identified protein. 
 
 ----------
 

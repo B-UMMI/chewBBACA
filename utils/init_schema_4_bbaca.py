@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 from Bio import SeqIO
@@ -60,11 +60,13 @@ def get_Short (gene,auxBar):
 
 		geneScorePickle=shortgene+'_bsr.txt'
 		selfscores=[]
-		
+		fasta_corrected=''
 		for allele in SeqIO.parse(gene, "fasta", generic_dna):
 			try: 
-				translatedSequence=translateSeq(str(allele.seq.upper()))
+				translatedSequence,sortedSeq, originalSeq=translateSeq(str(allele.seq.upper()))
 				
+				if not originalSeq:
+					fasta_corrected+='>'+str(allele.name)+'\n'+str(sortedSeq) + '\n'
 				#~ alleleI=int(((allele.name).split("_"))[-1])
 				alleleI=int(((allele.name).split("_"))[-1])
 				if counter<1:
@@ -111,7 +113,7 @@ def get_Short (gene,auxBar):
 					
 					#calculate selfbsr for each allele
 					
-					translatedSequence=translateSeq(str(allele.seq.upper()))
+					translatedSequence,sortedSeq, originalSeq=translateSeq(str(allele.seq.upper()))
 					
 										
 					tempgeneProt2Fasta='>'+str(allele.name)+'\n'+str(translatedSequence) + '\n'
@@ -184,7 +186,7 @@ def get_Short (gene,auxBar):
 					
 			
 			except Exception as e:
-				print ('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+				#~ print ('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
 				print (str(allele.name)+" "+str(e))
 				print ("allele not translatable")
 
@@ -196,6 +198,10 @@ def get_Short (gene,auxBar):
 		fG = open( shortgene, 'w' )
 		fG.write(shortfasta)
 		fG.close()
+		
+		if len(fasta_corrected)>1:
+			with open(gene,'w') as f:
+				f.write(fasta_corrected)
 		
 		#print status bar
 		if gene in auxBar:
@@ -211,11 +217,13 @@ def translateSeq(DNASeq):
 	seq=DNASeq
 	reversedSeq=False
 	tableid=11
+	originalSeq=True
 	try:
 		myseq= Seq(seq)
 		protseq=Seq.translate(myseq, table=tableid,cds=True)
 	except:
 		reversedSeq=True
+		originalSeq=False
 		try:
 			seq=reverseComplement(seq)
 			myseq= Seq(seq)
@@ -237,7 +245,7 @@ def translateSeq(DNASeq):
 					print ("translation error")
 					print (e)
 					raise
-	return protseq
+	return protseq, seq, originalSeq
 
 def reverseComplement(strDNA):
 

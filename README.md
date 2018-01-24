@@ -98,7 +98,7 @@ Create your own wgMLST schema based on a set of genomes fasta files. The command
 One fasta file per gene in the `-o`directory that is created. 
 The fasta file names are the given according the FASTA annotation for each coding sequence. 
 
-*Optional:* 
+**Optional:** 
 
 Information about each locus is almost non existant at this point, the only information directly given by the schema creation is where are located each identified protein on the 
 genome (proteinID_Genome.tsv file). A function was added to fetch information on each locus based on the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).

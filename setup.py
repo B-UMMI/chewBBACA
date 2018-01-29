@@ -10,4 +10,5 @@ setup(
   download_url = 'https://github.com/B-UMMI/chewBBACA/archive/v2.0_pypi.tar.gz', 
   keywords = ['cgMLST', 'bacterial typing'],
   classifiers = [],
+  install_requires=['numpy>=1.13.1','scipy>=0.13.3','biopython>=1.70','plotly>=1.12.9','SPARQLWrapper>=1.8.0'],
 )

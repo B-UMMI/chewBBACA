@@ -13,8 +13,10 @@ import subprocess
 import json
 try:
 	from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+	from utils import ParalogPrunning
 except ImportError:
 	from CHEWBBACA.allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+	from CHEWBBACA.utils import ParalogPrunning
 
 def which(program):
     import os
@@ -195,11 +197,6 @@ def loci_translation(genesList, listOfGenomes2, verbose):
     lGenesFiles.sort(key=lambda y: y.lower())
     return genepath, basepath, lGenesFiles, argumentsList, noshortgeneFile
 
-
-def call_proc(cmd):
-    p = subprocess.Popen(args=cmd)
-    p.communicate()
-    return p
 
 
 # ================================================ MAIN ================================================ #
@@ -423,8 +420,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             pool = multiprocessing.Pool(cpuToUse)
             for genome in listOfGenomes:
                 pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
-                #~ pool.apply_async(call_proc, args=(
-                    #~ [os.path.join(scripts_path, "runProdigal.py"), str(genome), basepath, str(chosenTaxon)],))
 
             pool.close()
             pool.join()
@@ -468,9 +463,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 
                 pool.apply_async(Create_Genome_Blastdb.main,(filepath,os.path.join(basepath, str(os.path.basename(genomeFile))),str(os.path.basename(genomeFile)),False))
 
-                #~ pool.apply_async(call_proc, args=([os.path.join(scripts_path, "Create_Genome_Blastdb.py"), filepath,
-                                                   #~ os.path.join(basepath, str(os.path.basename(genomeFile))),
-                                                   #~ str(os.path.basename(genomeFile))],))
 
             pool.close()
             pool.join()
@@ -504,10 +496,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         #~ print (argList)
         #~ asdasd
         pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh)))
-        #~ pool.apply_async(call_proc, args=(
-            #~ [os.path.join(scripts_path, "callAlleles_protein3.py"), str(argList), basepath, str(BlastpPath),
-             #~ str(verbose),
-             #~ str(BSRTresh)],))
 
     pool.close()
     pool.join()

@@ -97,7 +97,7 @@ def main(genes,cpuToUse,htmlFile,transTable,threshold,splited,title,logScale,One
     # genebasename=genebasename[0]
 
 
-    notConservedgenes, totalgenes, genesWOneAllele, boxplot, histplot, allelenumberplot, listgenesBoxOrdered, totalnumberofgenes, boxListLink, allAllelesStats = getStats(
+    notConservedgenes, totalgenes, genesWOneAllele, boxplot, histplot, allelenumberplot, listgenesBoxOrdered, totalnumberofgenes, boxListLink, allAllelesStats = alleleSizeStats.main(
         genes, threshold, OneBadGeneNotConserved, True, logScale, outputpath, splited)
 
     # boxplot=str(json.dumps(boxplot))
@@ -105,7 +105,7 @@ def main(genes,cpuToUse,htmlFile,transTable,threshold,splited,title,logScale,One
     allelenumberplot = str(json.dumps(allelenumberplot))
     allAllelesStats = str(json.dumps(allAllelesStats))
 
-    statsPerGene = analyzeCDS(genes, transTable, True, outputpath, cpuToUse,skipHeavy)
+    statsPerGene = CheckCDS.main(genes, transTable, True, outputpath, cpuToUse,skipHeavy)
 
     # stats values are ordered in a list allelesNotMultiple3,listStopcodonsInside,listnotStartCodon,numberOfAlleles
 

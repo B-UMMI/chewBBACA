@@ -8,6 +8,7 @@ from Bio.Alphabet import generic_dna
 import subprocess
 from allelecall import BBACA
 from createschema import PPanGen
+from SchemaEvaluator import ValidateSchema
 from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
 #~ from allelecall import CommonFastaFunctions,callAlleles_protein3,BBACA
 
@@ -76,23 +77,6 @@ def create_schema():
     PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile)
 
     
-    #~ ppanScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'createschema/PPanGen.py')
-#~ 
-    #~ args = [ppanScriptPath, '-i', genomeFiles, '--cpu', cpuToUse, "-o", outputFile,
-            #~ "--bsr", bsr, "-b", BlastpPath,"-l", min_length]
-#~ 
-    #~ if verbose:
-        #~ args.append('-v')
-    #~ if chosenTaxon:
-        #~ args.append('-t')
-        #~ args.append(chosenTaxon)
-    #~ if chosenTrainingFile:
-        #~ args.append('--ptf')
-        #~ args.append(chosenTrainingFile)
-#~ 
-    #~ proc = subprocess.Popen(args)
-
-    #~ proc.wait()
     
     try:
         os.remove("listGenomes2Call.txt")
@@ -158,32 +142,6 @@ def allele_call():
 
     BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile)
 
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'allelecall/BBACA.py')
-    #~ args = [ScriptPath, '-i', genomes2call, '-g', genes2call, '--cpu', cpuToUse,
-            #~ "-o", gOutFile, "--bsr", BSRTresh,
-            #~ '-b', BlastpPath]
-    #~ if forceContinue:
-        #~ args.append('--fc')
-    #~ if jsonReport:
-        #~ args.append('--json')
-    #~ if verbose:
-        #~ args.append('-v')
-    #~ if forceReset:
-        #~ args.append('--fr')
-    #~ if contained:
-        #~ args.append('--contained')
-#~ 
-    #~ if chosenTaxon:
-        #~ args.append('-t')
-        #~ args.append(chosenTaxon)
-#~ 
-    #~ if chosenTrainingFile:
-        #~ args.append('--ptf')
-        #~ args.append(chosenTrainingFile)
-#~ 
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
 
     try:
         os.remove("listGenes2Call.txt")
@@ -233,19 +191,7 @@ def evaluate_schema():
     title = str(args.title)
 
     ValidateSchema.main(genes,cpuToUse,outputpath,transTable,threshold,splited,title,logScale,OneBadGeneNotConserved,light)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'SchemaEvaluator/ValidateSchema.py')
-    #~ args = [ScriptPath, '-i', genes, '--cpu', str(cpuToUse), "-l", outputpath,
-            #~ '-ta', transTable, '-t', threshold,
-            #~ '-s', splited, '--title', title]
-    #~ if logScale:
-        #~ args.append('--log')
-    #~ if OneBadGeneNotConserved:
-        #~ args.append('-p')
-    #~ if light:
-        #~ args.append('--light')
 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
 
 
 def test_schema():
@@ -276,14 +222,7 @@ def test_schema():
     verbose = args.verbose
 
     TestGenomeQuality.main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbose)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/TestGenomeQuality.py')
-    #~ args = [ScriptPath, '-i', pathOutputfile, '-n', iterationNumber, '-t',
-            #~ thresholdBadCalls, '-s', step, '-o', out_folder]
-    #~ if verbose:
-        #~ args.append('-v')
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 
 def extract_cgmlst():
@@ -309,18 +248,7 @@ def extract_cgmlst():
     cgMLSTpercent=args.p
 
     Extract_cgAlleles.main(pathOutputfile,newfile,cgMLSTpercent,genes2remove,genomes2remove)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/Extract_cgAlleles.py')
-    #~ args = [ScriptPath, '-i', pathOutputfile, '-o', newfile,'-p', cgMLSTpercent]
-#~ 
-    #~ if genes2remove:
-        #~ args.append('-r')
-        #~ args.append(genes2remove)
-    #~ if genomes2remove:
-        #~ args.append('-g')
-        #~ args.append(genomes2remove)
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 def remove_genes():
 
@@ -346,14 +274,7 @@ def remove_genes():
     
     
     RemoveGenes.main(mainListFile,toRemoveListFile,outputfileName,inverse)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/RemoveGenes.py')
-    #~ args = [ScriptPath, '-i', mainListFile, '-g', toRemoveListFile, '-o', outputfileName]
-#~ 
-    #~ if inverse:
-        #~ args.append('--inverse')
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 def join_profiles():
 
@@ -373,12 +294,7 @@ def join_profiles():
     outputFile = args.o
 
     profile_joiner.main(profile1,profile2,outputFile)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/profile_joiner.py')
-    #~ args = [ScriptPath, '-p1', profile1, '-p2', profile2, '-o', outputFile]
-#~ 
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 def prep_schema():
 
@@ -401,12 +317,7 @@ def prep_schema():
     verbose = args.verbose
     
     init_schema_4_bbaca.main(geneFiles,cpu2use)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/init_schema_4_bbaca.py')
-    #~ args = [ScriptPath, '-i', geneFiles, '--cpu', str(cpu2use)]
-#~ 
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 def find_uniprot():
 	
@@ -428,11 +339,7 @@ def find_uniprot():
     cpu2use = args.cpu
     
     uniprot_find.main(geneFiles,tsvFile,cpu2use)
-    #~ ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/uniprot_find.py')
-    #~ args = [ScriptPath, '-i', geneFiles,'-t', tsvFile, '--cpu', str(cpu2use)]
-#~ 
-    #~ proc = subprocess.Popen(args)
-    #~ proc.wait()
+
 
 if __name__ == "__main__":
 

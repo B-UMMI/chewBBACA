@@ -6,7 +6,10 @@ from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
 from collections import Counter
 import os
-from allelecall import CommonFastaFunctions
+try:
+	from allelecall import CommonFastaFunctions
+except ImportError:
+	from CHEWBBACA.allelecall import CommonFastaFunctions
 #~ from CommonFastaFunctions import Create_Blastdb
 #~ from CommonFastaFunctions import runBlastParser
 import time

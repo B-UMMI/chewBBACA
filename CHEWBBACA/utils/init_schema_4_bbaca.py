@@ -8,10 +8,15 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
 import os
 import argparse
-from utils import CommonFastaFunctions
 import pickle
 import multiprocessing
 import shutil
+
+try:
+	from utils import CommonFastaFunctions
+except ImportError:
+	from CHEWBBACA.utils import CommonFastaFunctions
+
 #~ from cStringIO import StringIO
 try:
     from StringIO import StringIO

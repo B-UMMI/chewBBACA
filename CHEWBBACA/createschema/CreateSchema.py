@@ -5,11 +5,13 @@ from Bio.Alphabet import generic_dna
 import argparse
 import os.path
 from Bio.Seq import Seq
-from createschema import CommonFastaFunctions
 from Bio.Blast.Applications import NcbiblastpCommandline
 import collections
 import shutil
-from createschema import init_schema_4_bbaca
+try:
+	from createschema import init_schema_4_bbaca,CommonFastaFunctions
+except ImportError:
+	from CHEWBBACA.createschema import init_schema_4_bbaca,CommonFastaFunctions
 import time
 
 

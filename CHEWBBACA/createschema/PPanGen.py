@@ -9,7 +9,10 @@ import pickle
 import shutil
 import multiprocessing
 import subprocess
-from createschema import CreateSchema,runProdigal
+try:
+	from createschema import CreateSchema,runProdigal
+except ImportError:
+	from CHEWBBACA.createschema import CreateSchema,runProdigal
 
 
 def which(program):

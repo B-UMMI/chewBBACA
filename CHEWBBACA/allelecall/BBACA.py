@@ -11,7 +11,10 @@ import shutil
 import multiprocessing
 import subprocess
 import json
-from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+try:
+	from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+except ImportError:
+	from CHEWBBACA.allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
 
 def which(program):
     import os

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from SchemaEvaluator import CheckCDS
-from SchemaEvaluator import alleleSizeStats
 import os
 import argparse
 import json
@@ -9,6 +7,11 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import time
 import sys
+
+try:
+	from SchemaEvaluator import CheckCDS,alleleSizeStats
+except ImportError:
+	from CHEWBBACA.SchemaEvaluator import CheckCDS,alleleSizeStats
 
 def which(program):
     import os

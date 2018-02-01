@@ -6,10 +6,18 @@ import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import subprocess
-from allelecall import BBACA
-from createschema import PPanGen
-from SchemaEvaluator import ValidateSchema
-from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
+
+try:
+	from allelecall import BBACA
+	from createschema import PPanGen
+	from SchemaEvaluator import ValidateSchema
+	from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
+except ImportError:
+	from CHEWBBACA.allelecall import BBACA
+	from CHEWBBACA.createschema import PPanGen
+	from CHEWBBACA.SchemaEvaluator import ValidateSchema
+	from CHEWBBACA.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
+
 #~ from allelecall import CommonFastaFunctions,callAlleles_protein3,BBACA
 
 
@@ -341,8 +349,7 @@ def find_uniprot():
     uniprot_find.main(geneFiles,tsvFile,cpu2use)
 
 
-if __name__ == "__main__":
-
+def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
@@ -388,3 +395,5 @@ if __name__ == "__main__":
         while i<len(functions_list):
             print (functions_list[i] +" : "+desc_list[i])
             i+=1
+if __name__ == "__main__":
+    main()

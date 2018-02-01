@@ -3,17 +3,7 @@ import sys
 import os
 
 
-def main():
-    try:
-        questionDB = sys.argv[1]
-        directory = sys.argv[2]
-        genomeFile = sys.argv[3]
-    except IndexError:
-        print("usage: Sum Ting Wong")
-
-    base = os.path.basename(questionDB)
-
-
+def main(questionDB,directory,genomeFile):
 
     name = directory + "/" + genomeFile + "_db"
 

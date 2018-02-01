@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from CheckCDS import analyzeCDS
-from alleleSizeStats import getStats
+from SchemaEvaluator import CheckCDS
+from SchemaEvaluator import alleleSizeStats
 import os
 import argparse
 import json
@@ -29,38 +29,38 @@ def which(program):
     sys.exit()
     return "Not found"
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene")
-    parser.add_argument('-i', nargs='?', type=str, help='list genes, directory or .txt file with the full path',
-                        required=True)
-    parser.add_argument('-p', nargs='?', type=bool, help='One bad allele still makes gene conserved', required=False,
-                        default=False)
-    parser.add_argument('--log', dest='logScale', action='store_true')
-    parser.add_argument('-l', nargs='?', type=str, help='name/location main html file', required=True)
-    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=False, default=11)
-    parser.add_argument('-t', nargs='?', type=float, help='Threshold', required=False, default=0.05)
-    parser.add_argument('--title', nargs='?', type=str, help='title on the html', required=False,
-                        default="My Analyzed wg/cg MLST Schema - Rate My Schema")
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu to use', required=True)
-    parser.add_argument('-s', nargs='?', type=int,
-                        help='number of boxplots per page (more than 500 can make the page very slow)', required=False,
-                        default=500)
-    parser.add_argument('--light', help="skip clustal and mafft run", required=False, action="store_true", default=False)
-    parser.set_defaults(logScale=False)
-
-    args = parser.parse_args()
-    genes = args.i
-    transTable = args.ta
-    logScale = args.logScale
-    htmlFile = args.l
+def main(genes,cpuToUse,htmlFile,transTable,threshold,splited,title,logScale,OneBadGeneNotConserved,skipHeavy):
+    #~ parser = argparse.ArgumentParser(
+        #~ description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='list genes, directory or .txt file with the full path',
+                        #~ required=True)
+    #~ parser.add_argument('-p', nargs='?', type=bool, help='One bad allele still makes gene conserved', required=False,
+                        #~ default=False)
+    #~ parser.add_argument('--log', dest='logScale', action='store_true')
+    #~ parser.add_argument('-l', nargs='?', type=str, help='name/location main html file', required=True)
+    #~ parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=False, default=11)
+    #~ parser.add_argument('-t', nargs='?', type=float, help='Threshold', required=False, default=0.05)
+    #~ parser.add_argument('--title', nargs='?', type=str, help='title on the html', required=False,
+                        #~ default="My Analyzed wg/cg MLST Schema - Rate My Schema")
+    #~ parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu to use', required=True)
+    #~ parser.add_argument('-s', nargs='?', type=int,
+                        #~ help='number of boxplots per page (more than 500 can make the page very slow)', required=False,
+                        #~ default=500)
+    #~ parser.add_argument('--light', help="skip clustal and mafft run", required=False, action="store_true", default=False)
+    #~ parser.set_defaults(logScale=False)
+#~ 
+    #~ args = parser.parse_args()
+    #~ genes = args.i
+    #~ transTable = args.ta
+    #~ logScale = args.logScale
+    #~ htmlFile = args.l
     outputpath = os.path.dirname(htmlFile)
-    cpuToUse = args.cpu
-    threshold = float(args.t)
-    OneBadGeneNotConserved = bool(args.p)
-    splited = int(args.s)
-    title = str(args.title)
-    skipHeavy = args.light
+    #~ cpuToUse = args.cpu
+    #~ threshold = float(args.t)
+    #~ OneBadGeneNotConserved = bool(args.p)
+    #~ splited = int(args.s)
+    #~ title = str(args.title)
+    #~ skipHeavy = args.light
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
     print (starttime)

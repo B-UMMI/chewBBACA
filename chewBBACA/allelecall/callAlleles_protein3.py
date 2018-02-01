@@ -6,8 +6,9 @@ from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
 from collections import Counter
 import os
-from CommonFastaFunctions import Create_Blastdb
-from CommonFastaFunctions import runBlastParser
+from allelecall import CommonFastaFunctions
+#~ from CommonFastaFunctions import Create_Blastdb
+#~ from CommonFastaFunctions import runBlastParser
 import time
 import pickle
 import shutil
@@ -62,7 +63,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             # new db for each allele to blast it against himself
             with open(proteinfastaPath, "w") as f:
                 f.write(alleleProt)
-            Gene_Blast_DB_name = Create_Blastdb(proteinfastaPath, 1, True)
+            Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb(proteinfastaPath, 1, True)
 
             # if bsr hasn't been calculated, do the BLAST
             if doAll:
@@ -75,7 +76,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
                                               evalue=0.001, out=blast_out_file, outfmt=5, num_threads=1)
                 allelescore = 0
 
-                blast_records = runBlastParser(cline, blast_out_file)
+                blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
 
                 verboseprint("Blasted alleles at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -131,7 +132,7 @@ def reDogetBlastScoreRatios(genefile, basepath, alleleI, allelescores2, newGene_
     cline = NcbiblastpCommandline(cmd=blastPath, query=proteinfastaPath, db=newGene_Blast_DB_name, evalue=0.001,
                                   out=blast_out_file2, outfmt=5,num_threads=1)
     allelescore = 0
-    blast_records = runBlastParser(cline, blast_out_file2)
+    blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file2)
 
     verboseprint("Blasted alleles at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -196,21 +197,21 @@ def translateSeq(DNASeq):
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
-def main():
-    try:
-        input_file = sys.argv[1]
-        temppath = sys.argv[2]
-        blastPath = sys.argv[3]
-        verbose = sys.argv[4]
-        bsrTresh = sys.argv[5]
+def main(input_file,temppath,blastPath,verbose,bsrTresh):
+    #~ try:
+        #~ input_file = sys.argv[1]
+        #~ temppath = sys.argv[2]
+        #~ blastPath = sys.argv[3]
+        #~ verbose = sys.argv[4]
+        #~ bsrTresh = sys.argv[5]
 
-        if verbose == 'True':
-            verbose = True
-        else:
-         verbose = False
+    if verbose == 'True':
+        verbose = True
+    else:
+        verbose = False
 
-    except IndexError:
-        print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
+    #~ except IndexError:
+        #~ print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
 
     bsrTresh = float(bsrTresh)
 
@@ -390,7 +391,7 @@ def main():
             cline = NcbiblastpCommandline(cmd=blastPath, query=proteinfastaPath, db=Gene_Blast_DB_name, evalue=0.001,
                                           out=blast_out_file, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1)
 
-            blast_records = runBlastParser(cline, blast_out_file)
+            blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
             verboseprint("Blasted alleles on genome at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
             alleleSizes = []
@@ -672,7 +673,7 @@ def main():
                                 listShortAllelesNames.append(appendAllele)
 
                                 genefile2 = geneTransalatedPath2
-                                Gene_Blast_DB_name2 = Create_Blastdb(genefile2, 1, True)
+                                Gene_Blast_DB_name2 = CommonFastaFunctions.Create_Blastdb(genefile2, 1, True)
                                 verboseprint("Re-calculating BSR at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
                                 allelescores, alleleList, listShortAllelesNames = reDogetBlastScoreRatios(genefile2,
                                                                                                           basepath,

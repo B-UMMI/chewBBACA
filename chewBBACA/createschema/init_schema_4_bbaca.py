@@ -24,12 +24,12 @@ def get_Short(genesList):
     return True
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele")
-    parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
-
-    args = parser.parse_args()
+def main(geneFiles):
+    #~ parser = argparse.ArgumentParser(
+        #~ description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
+#~ 
+    #~ args = parser.parse_args()
 
     geneFiles = args.i
     listGenes = []

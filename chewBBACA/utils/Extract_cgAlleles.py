@@ -190,19 +190,19 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     print ("total loci remaining : " + str(cgMLST))
 
 
-def main():
-    parser = argparse.ArgumentParser(description="This program cleans an output file for phyloviz")
-    parser.add_argument('-i', nargs='?', type=str, help='output to clean', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help='name of the clean file', required=True)
-    parser.add_argument('-r', nargs='?', type=str, help='listgenes to remove', required=False)
-    parser.add_argument('-g', nargs='?', type=str, help='listgenomes to remove', required=False)
-    parser.add_argument('-p', nargs='?', type=float, help='maximum presence', required=False, default=1)
-
-    args = parser.parse_args()
-
-    pathOutputfile = args.i
-    newfile = args.o
-    percent = args.p
+def main(pathOutputfile,newfile,percent,genesToRemoveFile,genomesToRemoveFile):
+    #~ parser = argparse.ArgumentParser(description="This program cleans an output file for phyloviz")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='output to clean', required=True)
+    #~ parser.add_argument('-o', nargs='?', type=str, help='name of the clean file', required=True)
+    #~ parser.add_argument('-r', nargs='?', type=str, help='listgenes to remove', required=False)
+    #~ parser.add_argument('-g', nargs='?', type=str, help='listgenomes to remove', required=False)
+    #~ parser.add_argument('-p', nargs='?', type=float, help='maximum presence', required=False, default=1)
+#~ 
+    #~ args = parser.parse_args()
+#~ 
+    #~ pathOutputfile = args.i
+    #~ newfile = args.o
+    #~ percent = args.p
 
     if not os.path.exists(newfile):
         os.makedirs(newfile)

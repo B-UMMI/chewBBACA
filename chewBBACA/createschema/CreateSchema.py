@@ -5,12 +5,11 @@ from Bio.Alphabet import generic_dna
 import argparse
 import os.path
 from Bio.Seq import Seq
-from CommonFastaFunctions import Create_Blastdb
-from CommonFastaFunctions import runBlastParser
+from createschema import CommonFastaFunctions
 from Bio.Blast.Applications import NcbiblastpCommandline
 import collections
 import shutil
-from init_schema_4_bbaca import get_Short
+from createschema import init_schema_4_bbaca
 import time
 
 
@@ -80,29 +79,29 @@ def translateSeq(DNASeq, genename):
     return protseq, seq, inverted
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Given an ffn file, recovers the genes that are not paralogs and have a size bigger than the g parameter provided")
-    parser.add_argument('-i', nargs='?', type=str, help='ffn file', required=True)
-    parser.add_argument('-l', nargs='?', type=int, help='int minimum length', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        required=False)
-    parser.add_argument('-p', nargs='?', type=str, help="file with protein", required=False, default=False)
-    parser.add_argument('-o', nargs='?', type=str, help="output filename", required=False, default=False)
-    parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
-
-    args = parser.parse_args()
-    genes = args.i
-    sizethresh = args.l
-    cpuToUse = args.cpu
-    proteinFIlePath = args.p
-    outputFIlePath = args.o
-    BlastpPath = args.b
-    bsr = args.bsr
-    verbose = args.verbose
+def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose):
+    #~ parser = argparse.ArgumentParser(
+        #~ description="Given an ffn file, recovers the genes that are not paralogs and have a size bigger than the g parameter provided")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='ffn file', required=True)
+    #~ parser.add_argument('-l', nargs='?', type=int, help='int minimum length', required=True)
+    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
+                        #~ required=False)
+    #~ parser.add_argument('-p', nargs='?', type=str, help="file with protein", required=False, default=False)
+    #~ parser.add_argument('-o', nargs='?', type=str, help="output filename", required=False, default=False)
+    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
+    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
+    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
+                        #~ default=False)
+#~ 
+    #~ args = parser.parse_args()
+    #~ genes = args.i
+    #~ sizethresh = args.l
+    #~ cpuToUse = args.cpu
+    #~ proteinFIlePath = args.p
+    #~ outputFIlePath = args.o
+    #~ BlastpPath = args.b
+    #~ bsr = args.bsr
+    #~ verbose = args.verbose
 
     if verbose:
         def verboseprint(*args):
@@ -239,7 +238,7 @@ def main():
     # print "Blasting the total of "+ str(len(auxDict.keys())) + " loci"
 
     geneFile = os.path.abspath(proteinfile)
-    Gene_Blast_DB_name = Create_Blastdb(geneFile, 1, True)
+    Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb(geneFile, 1, True)
 
     geneF = os.path.splitext(geneFile)[0]
     blast_out_file = geneF + '.xml'
@@ -250,7 +249,7 @@ def main():
     else:
         cline = NcbiblastpCommandline(cmd=BlastpPath, query=geneFile, db=Gene_Blast_DB_name, evalue=0.001,
                                       out=blast_out_file, outfmt=5, num_threads=1)
-    blast_records = runBlastParser(cline, blast_out_file)
+    blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
     verboseprint ( "Finished blast")
 
     toRemove = []
@@ -412,7 +411,7 @@ def main():
         with open(outputFIlePath, "w") as f:
             f.write(concatenatedFile)
     elif not proteinFIlePath and outputFIlePath:
-        get_Short(listfiles)
+        init_schema_4_bbaca.get_Short(listfiles)
         verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
         print ("Total of "+str(rest)+" loci that constitute the schema")
         os.remove(proteinfile)
@@ -422,7 +421,7 @@ def main():
         # ~ with open("schemacreation.log", "wb") as f:
         # ~ for elem in log:
         # ~ f.write(str(elem)+"\n")
-        get_Short(listfiles)
+        init_schema_4_bbaca.get_Short(listfiles)
         verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
         print ("Total of "+str(rest)+" loci that constitute the schema")
         os.remove(proteinfile)

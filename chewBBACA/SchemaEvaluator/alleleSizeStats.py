@@ -7,40 +7,40 @@ from operator import itemgetter
 import numpy
 import math
 
-def main():
+#~ def main():
+#~ 
+    #~ parser = argparse.ArgumentParser(description="This program screens a set of genes in a fasta file.")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
+    #~ parser.add_argument('-t', nargs='?', type=float, help='threshold', required=False)
+    #~ parser.add_argument('-c', nargs='?', type=bool, help='All alleles must be conserved', required=False)
+    #~ parser.add_argument('-r', nargs='?', type=bool, help='Return values', required=False)
+#~ 
+    #~ args = parser.parse_args()
+    #~ genes = args.i
+#~ 
+#~ 
+    #~ try:
+        #~ threshold=float(args.t)
+    #~ except:
+        #~ threshold=0.05
+        #~ pass
+    #~ try:
+        #~ OneNotConserved=bool(args.c)
+    #~ except:
+        #~ OneNotConserved=False
+        #~ pass
+#~ 
+    #~ try:
+        #~ ReturnValues=bool(args.r)
+    #~ except:
+        #~ ReturnValues=False
+        #~ pass
+#~ 
+    #~ return getStats(genes,threshold,OneNotConserved,ReturnValues)
 
-    parser = argparse.ArgumentParser(description="This program screens a set of genes in a fasta file.")
-    parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
-    parser.add_argument('-t', nargs='?', type=float, help='threshold', required=False)
-    parser.add_argument('-c', nargs='?', type=bool, help='All alleles must be conserved', required=False)
-    parser.add_argument('-r', nargs='?', type=bool, help='Return values', required=False)
-
-    args = parser.parse_args()
-    genes = args.i
 
 
-    try:
-        threshold=float(args.t)
-    except:
-        threshold=0.05
-        pass
-    try:
-        OneNotConserved=bool(args.c)
-    except:
-        OneNotConserved=False
-        pass
-
-    try:
-        ReturnValues=bool(args.r)
-    except:
-        ReturnValues=False
-        pass
-
-    return getStats(genes,threshold,OneNotConserved,ReturnValues)
-
-
-
-def getStats(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_thresh):
+def main(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_thresh):
 
     gene_fp = open( genes, 'r')
 

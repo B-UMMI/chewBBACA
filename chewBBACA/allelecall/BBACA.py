@@ -11,6 +11,7 @@ import shutil
 import multiprocessing
 import subprocess
 import json
+from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
 
 def which(program):
     import os
@@ -200,42 +201,44 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main():
-    parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
-    parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        required=True)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
-    parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
-    parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
-                        default=False)
-    parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
-    parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
-    parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
-    parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
-    parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile):
 
-    args = parser.parse_args()
-
-    genomeFiles = args.i
-    genes = args.g
-    cpuToUse = args.cpu
-    BSRTresh = args.bsr
-    verbose = args.verbose
-    BlastpPath = args.b
-    divideOutput = args.divideOutput
-    gOutFile = args.o
-    chosenTaxon = args.t
-    chosenTrainingFile = args.ptf
-    forceContinue = args.fc
-    forceReset = args.fr
-    jsonReport = args.json
-    contained = args.contained
+    #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
+    #~ parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
+    #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
+                        #~ required=True)
+    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
+                        #~ default=False)
+    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
+    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+    #~ parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
+                        #~ default=False)
+    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
+    #~ parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
+    #~ parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
+    #~ parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
+    #~ parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+#~ 
+    #~ args = parser.parse_args()
+#~ 
+    #~ genomeFiles = args.i
+    #~ genes = args.g
+    #~ cpuToUse = args.cpu
+    #~ BSRTresh = args.bsr
+    #~ verbose = args.verbose
+    #~ BlastpPath = args.b
+    #~ divideOutput = args.divideOutput
+    #~ gOutFile = args.o
+    #~ chosenTaxon = args.t
+    #~ chosenTrainingFile = args.ptf
+    #~ forceContinue = args.fc
+    #~ forceReset = args.fr
+    #~ jsonReport = args.json
+    #~ contained = args.contained
+    divideOutput=False
 
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
@@ -416,8 +419,9 @@ def main():
 
             pool = multiprocessing.Pool(cpuToUse)
             for genome in listOfGenomes:
-                pool.apply_async(call_proc, args=(
-                    [os.path.join(scripts_path, "runProdigal.py"), str(genome), basepath, str(chosenTaxon)],))
+                pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
+                #~ pool.apply_async(call_proc, args=(
+                    #~ [os.path.join(scripts_path, "runProdigal.py"), str(genome), basepath, str(chosenTaxon)],))
 
             pool.close()
             pool.join()
@@ -458,10 +462,12 @@ def main():
             for genomeFile in listOfGenomes:
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))
+                
+                pool.apply_async(Create_Genome_Blastdb.main,(filepath,os.path.join(basepath, str(os.path.basename(genomeFile))),str(os.path.basename(genomeFile)),False))
 
-                pool.apply_async(call_proc, args=([os.path.join(scripts_path, "Create_Genome_Blastdb.py"), filepath,
-                                                   os.path.join(basepath, str(os.path.basename(genomeFile))),
-                                                   str(os.path.basename(genomeFile))],))
+                #~ pool.apply_async(call_proc, args=([os.path.join(scripts_path, "Create_Genome_Blastdb.py"), filepath,
+                                                   #~ os.path.join(basepath, str(os.path.basename(genomeFile))),
+                                                   #~ str(os.path.basename(genomeFile))],))
 
             pool.close()
             pool.join()
@@ -492,10 +498,13 @@ def main():
 
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
-        pool.apply_async(call_proc, args=(
-            [os.path.join(scripts_path, "callAlleles_protein3.py"), str(argList), basepath, str(BlastpPath),
-             str(verbose),
-             str(BSRTresh)],))
+        #~ print (argList)
+        #~ asdasd
+        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh)))
+        #~ pool.apply_async(call_proc, args=(
+            #~ [os.path.join(scripts_path, "callAlleles_protein3.py"), str(argList), basepath, str(BlastpPath),
+             #~ str(verbose),
+             #~ str(BSRTresh)],))
 
     pool.close()
     pool.join()

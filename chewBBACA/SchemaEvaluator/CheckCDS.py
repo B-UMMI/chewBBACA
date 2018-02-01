@@ -78,26 +78,26 @@ def call_clustalw(genefile,htmlpath):
     except Exception as e:
         print(e)
         return False
-def main():
+#~ def main():
+#~ 
+    #~ parser = argparse.ArgumentParser(description="This program analyses cds")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='list genes', required=True)
+    #~ parser.add_argument('-r', nargs='?', type=bool, help='Return values', required=False)
+#~ 
+    #~ args=parser.parse_args()
+#~ 
+#~ 
+    #~ genes = args.i
+#~ 
+    #~ try:
+        #~ ReturnValues=bool(args.r)
+    #~ except:
+        #~ ReturnValues=False
+        #~ pass
+#~ 
+    #~ analyzeCDS(genes,ReturnValues)
 
-    parser = argparse.ArgumentParser(description="This program analyses cds")
-    parser.add_argument('-i', nargs='?', type=str, help='list genes', required=True)
-    parser.add_argument('-r', nargs='?', type=bool, help='Return values', required=False)
-
-    args=parser.parse_args()
-
-
-    genes = args.i
-
-    try:
-        ReturnValues=bool(args.r)
-    except:
-        ReturnValues=False
-        pass
-
-    analyzeCDS(genes,ReturnValues)
-
-def analyzeCDS(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
+def main(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
 
     gene_fp = open( genes, 'r')
 

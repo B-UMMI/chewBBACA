@@ -3,21 +3,13 @@ import sys
 import os
 
 
-def main():
-    try:
-        questionDB = sys.argv[1]
-        directory = sys.argv[2]
-        genomeFile = sys.argv[3]
-    except IndexError:
-        print("usage: Sum Ting Wong")
-
+def main(questionDB,directory,genomeFile,nucleotide):
 
     name = directory + "/" + genomeFile + "_db"
 
-    try:
-        nucleotide = sys.argv[4]
+    if nucleotide==True:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype nucl -logfile " + name + "_blast.log")
-    except:
+    else:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
 
     return True

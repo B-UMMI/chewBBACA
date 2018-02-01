@@ -5,14 +5,7 @@ import subprocess
 import pickle
 
 
-def main():
-    try:
-        input_file = sys.argv[1]
-        tempPath = sys.argv[2]
-        choosenTaxon = sys.argv[3]
-
-    except IndexError:
-        print("usage: list_pickle_obj")
+def main(input_file,tempPath,choosenTaxon):
 
     contigsFasta = input_file
 
@@ -91,7 +84,6 @@ def main():
         var = cdsDict
         pickle.dump(var, f)
 
-    blastdbpath = os.path.join(basepath, str(os.path.basename(contigsFasta)))
     print("done prodigal run on:" + str(os.path.basename(contigsFasta)))
 
     return True

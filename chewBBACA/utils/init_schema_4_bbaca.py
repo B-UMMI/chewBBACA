@@ -8,8 +8,7 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
 import os
 import argparse
-from CommonFastaFunctions import Create_Blastdb, Create_Blastdb_no_fasta
-from CommonFastaFunctions import runBlastParser
+from utils import CommonFastaFunctions
 import pickle
 import multiprocessing
 import shutil
@@ -81,7 +80,7 @@ def get_Short (gene,auxBar):
 
 					tempgeneProtFasta='>'+str(allele.name)+'\n'+str(translatedSequence) + '\n'
 					
-					Gene_Blast_DB_name = Create_Blastdb_no_fasta(tempgeneProt, 1, True,tempgeneProtFasta)
+					Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(tempgeneProt, 1, True,tempgeneProtFasta)
 										
 
 					# --- get BLAST score ratio --- #
@@ -119,7 +118,7 @@ def get_Short (gene,auxBar):
 					tempgeneProt2Fasta='>'+str(allele.name)+'\n'+str(translatedSequence) + '\n'
 					
 					
-					Gene_Blast_DB_name = Create_Blastdb_no_fasta(tempgeneProt2, 1, True,tempgeneProt2Fasta)
+					Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(tempgeneProt2, 1, True,tempgeneProt2Fasta)
 										
 
 					# --- get BLAST score ratio --- #
@@ -285,17 +284,17 @@ def check_if_list_or_folder(folder_or_list):
 
 	return list_files
 
-def main():
+def main(geneFiles,cpu2use):
 			
-	parser = argparse.ArgumentParser(description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fasta with only the most diverse alleles")
-	parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
-	parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-	
-	args = parser.parse_args()
-	
-	geneFiles = args.i
-	cpu2use = args.cpu
+	#~ parser = argparse.ArgumentParser(description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fasta with only the most diverse alleles")
+	#~ parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
+	#~ parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+#~ 
+	#~ 
+	#~ args = parser.parse_args()
+	#~ 
+	#~ geneFiles = args.i
+	#~ cpu2use = args.cpu
 	
 	listGenes=[]
 	#~ gene_fp = open( geneFiles, 'r')

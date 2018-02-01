@@ -9,6 +9,7 @@ import pickle
 import shutil
 import multiprocessing
 import subprocess
+from createschema import CreateSchema,runProdigal
 
 
 def which(program):
@@ -30,7 +31,7 @@ def which(program):
     return "Not found"
 
 
-def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSchemaPath,verbose):
+def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSchemaPath,verbose,bsr):
 
     if verbose:
         def verboseprint(*args):
@@ -246,10 +247,11 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
         # run createschema for the final protogenome
         verboseprint( "running blast will use this number of cpu: " + str(cpu))
-        proc = subprocess.Popen(
-            [createSchemaPath, '-i', fastaFile, '-l', "200", '--cpu', str(cpu), '-p', proteinFile, '-o', fastaFile,
-             "-b", blastp], stdout=subprocess.PIPE)
-        p_status = proc.wait()
+        CreateSchema.main(fastaFile,200,cpu,proteinFile,fastaFile,blastp,bsr,verbose)
+        #~ proc = subprocess.Popen(
+            #~ [createSchemaPath, '-i', fastaFile, '-l', "200", '--cpu', str(cpu), '-p', proteinFile, '-o', fastaFile,
+             #~ "-b", blastp], stdout=subprocess.PIPE)
+        #~ p_status = proc.wait()
         verboseprint( "finished blast")
 
         os.remove(proteinFile)
@@ -316,31 +318,31 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main():
-    parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
-    parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        required=True)
-    parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
-    parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
-
-    args = parser.parse_args()
-
-    genomeFiles = args.i
-    cpuToUse = args.cpu
-    outputFile = args.o
-    BlastpPath = args.b
-    bsr = args.bsr
-    chosenTaxon = args.t
-    chosenTrainingFile = args.ptf
-    verbose = args.verbose
-    min_length = args.l
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile):
+    #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
+    #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
+                        #~ required=True)
+    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
+    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
+    #~ parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
+    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
+    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
+                        #~ default=False)
+#~ 
+    #~ args = parser.parse_args()
+#~ 
+    #~ genomeFiles = args.i
+    #~ cpuToUse = args.cpu
+    #~ outputFile = args.o
+    #~ BlastpPath = args.b
+    #~ bsr = args.bsr
+    #~ chosenTaxon = args.t
+    #~ chosenTrainingFile = args.ptf
+    #~ verbose = args.verbose
+    #~ min_length = args.l
 
     if verbose:
         def verboseprint(*args):
@@ -438,8 +440,7 @@ def main():
     print ("chosen taxon :" + str(chosenTaxon))
     pool = multiprocessing.Pool(cpuToUse)
     for genome in listOfGenomes:
-        pool.apply_async(call_proc, args=(
-        [os.path.join(scripts_path, "runProdigal.py"), str(genome), basepath, str(chosenTaxon)],))
+        pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon)))
 
     pool.close()
     pool.join()
@@ -517,7 +518,7 @@ def main():
             print( "running analysis for pair : " + str(v[0]) + " " + str(v[1]))
             pool.apply_async(checkGeneStrings,
                              args=[v[0], v[1], newgGenome, basepath, int(extraCpuPerProcess + 1), BlastpPath,
-                                   createSchemaPath,verbose])
+                                   createSchemaPath,verbose,bsr])
 
         pool.close()
         pool.join()
@@ -527,10 +528,11 @@ def main():
 
             verboseprint( "___________________\nFinal step : creating the schema")
             lastFile = listOfGenomes.pop()
-            proc = subprocess.Popen(
-                [createSchemaPath, '-i', lastFile, '-l', str(min_length), '--cpu', str(cpuToUse), "-b", BlastpPath, "-o",
-                 outputFile, "--bsr", str(bsr)])
-            p_status = proc.wait()
+            CreateSchema.main(lastFile,min_length,cpuToUse,False,outputFile,BlastpPath,bsr,verbose)
+            #~ proc = subprocess.Popen(
+                #~ [createSchemaPath, '-i', lastFile, '-l', str(min_length), '--cpu', str(cpuToUse), "-b", BlastpPath, "-o",
+                 #~ outputFile, "--bsr", str(bsr)])
+            #~ p_status = proc.wait()
             verboseprint( "Schema Created sucessfully")
 
     shutil.rmtree(basepath)

@@ -4,18 +4,18 @@ import argparse
 import csv
 from collections import defaultdict
 
-def main():
-	parser = argparse.ArgumentParser(
-        description="This program joins two profiles with the ")
-	parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
-	parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
-	parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
-
-	args = parser.parse_args()
-
-	profile1 = args.p1
-	profile2 = args.p2
-	outputFile = args.o
+def main(profile1,profile2,outputFile):
+	#~ parser = argparse.ArgumentParser(
+        #~ description="This program joins two profiles with the ")
+	#~ parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
+	#~ parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
+	#~ parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
+#~ 
+	#~ args = parser.parse_args()
+#~ 
+	#~ profile1 = args.p1
+	#~ profile2 = args.p2
+	#~ outputFile = args.o
 
 
 	dictaux= defaultdict(list)

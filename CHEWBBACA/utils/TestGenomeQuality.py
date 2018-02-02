@@ -295,17 +295,17 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
 
 
     #~ parser = argparse.ArgumentParser(
-        #~ description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss")
+    #~ description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss")
     #~ parser.add_argument('-i', nargs='?', type=str, help='raw allele call matrix file', required=True)
     #~ parser.add_argument('-n', nargs='?', type=int, help='maximum number of iterations', required=True)
     #~ parser.add_argument('-t', nargs='?', type=int, help='maximum threshold of bad calls above 95 percent', required=True)
     #~ parser.add_argument('-s', nargs='?', type=int, help='step between each threshold analysis', required=True)
     #~ parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False, default=".")
     #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        #~ default=False)
-#~ 
+    #~ default=False)
+    #~
     #~ args = parser.parse_args()
-#~ 
+    #~
     #~ pathOutputfile = args.i
     #~ iterationNumber = int(args.n)
     #~ thresholdBadCalls = int(args.t)
@@ -339,7 +339,7 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
         f.write( "Threshold\tRemoved_genomes\n")
     with open(os.path.join(out_folder,"Genes_95%.txt"), "w") as f:
         f.write( "Threshold\tPresent_genes\n")
-        
+
     print("will try to open file...")
     # d2=np.loadtxt(inputfile, delimiter='\t')
     d2original = np.genfromtxt(pathOutputfile, delimiter='\t', dtype=None)

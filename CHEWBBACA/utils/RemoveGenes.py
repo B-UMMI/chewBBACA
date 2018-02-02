@@ -10,8 +10,8 @@ def main(mainListFile,toRemoveListFile,outputfileName,inverse):
     #~ parser.add_argument('-g', nargs='?', type=str, help='list of genes to remove', required=True)
     #~ parser.add_argument('-o', nargs='?', type=str, help='output file name', required=True)
     #~ parser.add_argument("--inverse", help="list to remove is actually the one to keep", dest='inverse',
-                        #~ action="store_true", default=False)
-#~ 
+    #~ action="store_true", default=False)
+    #~
     #~ args = parser.parse_args()
     #~ mainListFile = args.i
     #~ toRemoveListFile = args.g

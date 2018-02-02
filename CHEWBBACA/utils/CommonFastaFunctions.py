@@ -54,7 +54,7 @@ def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
     ensure_dir(dirname + "/blastdbs")
     name = dirname + "/blastdbs/" + basename + "_db"
 
-    
+
     if not os.path.isfile(name + ".nin") and not os.path.isfile(name + ".nhr") and not os.path.isfile(name + ".nsq"):
 
         if not isProt:

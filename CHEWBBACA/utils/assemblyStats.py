@@ -149,17 +149,17 @@ def main():
         y2=v[1]
 
         trace = typeScatter(
-                        x= [x1,x2],
-                        y = [y1,y2],
-                        name= k,
-                        mode = 'lines',
-                        hoverinfo= "none",
-                        showlegend=False,
-                        line = dict(
-                                    color = 'grey',
-                                    width = 1,
-                                    dash = 'dash')
-                    )
+            x= [x1,x2],
+            y = [y1,y2],
+            name= k,
+            mode = 'lines',
+            hoverinfo= "none",
+            showlegend=False,
+            line = dict(
+                color = 'grey',
+                width = 1,
+                dash = 'dash')
+        )
         listTraces.append(trace)
 
     for k,v in annotDict.items():
@@ -170,20 +170,20 @@ def main():
         y2=v[1]
 
         trace = typeScatter(
-                        x= [x1,x2],
-                        y = [y1,y2],
-                        name= k,
-                        mode = 'lines',
-                        hoverinfo= "none",
-                        showlegend=False,
-                        line = dict(
-                                    color = 'grey',
-                                    width = 1,
-                                    dash = 'dash')
-                    )
+            x= [x1,x2],
+            y = [y1,y2],
+            name= k,
+            mode = 'lines',
+            hoverinfo= "none",
+            showlegend=False,
+            line = dict(
+                color = 'grey',
+                width = 1,
+                dash = 'dash')
+        )
         listTraces.append(trace)
 
-    #~ for k,v in annotDict.iteritems():
+        #~ for k,v in annotDict.iteritems():
         #~ x1=v[0]
         #~ y1=v[1]
         #~ v=annotDict2[k]
@@ -191,74 +191,74 @@ def main():
         #~ y2=v[1]
         #~
         #~ trace = go.Scatter(
-                        #~ x= [x1,x2],
-                        #~ y = [y1,y2],
-                        #~ name= k,
-                        #~ mode = 'lines',
-                        #~ hoverinfo= "none",
-                        #~ showlegend=False,
-                        #~ line = dict(
-                                    #~ color = 'grey',
-                                    #~ width = 1,
-                                    #~ dash = 'dash')
-                    #~ )
+        #~ x= [x1,x2],
+        #~ y = [y1,y2],
+        #~ name= k,
+        #~ mode = 'lines',
+        #~ hoverinfo= "none",
+        #~ showlegend=False,
+        #~ line = dict(
+        #~ color = 'grey',
+        #~ width = 1,
+        #~ dash = 'dash')
+        #~ )
         #~ listTraces.append(trace)
 
 
     trace1 = typeScatter(
-                        y = sorted(dictContigs.values(),reverse=True),
-                        name= "No. contigs",
-                        mode = 'markers',
-                        text = sorted(dictContigs.keys(),key=dictContigs.__getitem__,reverse=True),
-                        hoverinfo= "y+text",
-                        marker = dict(
-                                    color = 'pink',
-                                ),
-                    )
+        y = sorted(dictContigs.values(),reverse=True),
+        name= "No. contigs",
+        mode = 'markers',
+        text = sorted(dictContigs.keys(),key=dictContigs.__getitem__,reverse=True),
+        hoverinfo= "y+text",
+        marker = dict(
+            color = 'pink',
+        ),
+    )
     listTraces.append(trace1)
     #~ trace2 = go.Scatter(
-                        #~ y = sorted(dictBases.values(),reverse=True),
-                        #~ name= "No. bases",
-                        #~ mode = 'markers',
-                        #~ text = sorted(dictBases.keys(),key=dictBases.__getitem__,reverse=True),
-                    #~ )
+    #~ y = sorted(dictBases.values(),reverse=True),
+    #~ name= "No. bases",
+    #~ mode = 'markers',
+    #~ text = sorted(dictBases.keys(),key=dictBases.__getitem__,reverse=True),
+    #~ )
     #~ trace1 = go.Scatter(
-                        #~ y = sorted(dictn90.values(),reverse=True),
-                        #~ name= "N90",
-                        #~ text = sorted(dictn90.keys(),key=dictn90.__getitem__,reverse=True),
-                    #~ )
+    #~ y = sorted(dictn90.values(),reverse=True),
+    #~ name= "N90",
+    #~ text = sorted(dictn90.keys(),key=dictn90.__getitem__,reverse=True),
+    #~ )
     trace3 = typeScatter(
-                        y = sorted(dictn50.values(),reverse=True),
-                        name= "N50",
-                        mode = 'markers',
-                        marker = dict(
-                                    color = 'red',
-                                ),
-                        text = sorted(dictn50.keys(),key=dictn50.__getitem__,reverse=True),
-                        hoverinfo= "y+text",
-                    )
+        y = sorted(dictn50.values(),reverse=True),
+        name= "N50",
+        mode = 'markers',
+        marker = dict(
+            color = 'red',
+        ),
+        text = sorted(dictn50.keys(),key=dictn50.__getitem__,reverse=True),
+        hoverinfo= "y+text",
+    )
     listTraces.append(trace3)
     trace4 = typeScatter(
-                        y = sorted(dictContigs1000.values(),reverse=True),
-                        name= "No. contigs > 10k bp",
-                        mode = 'markers',
-                        marker = dict(
-                                    color = 'green',
-                                ),
-                        text = sorted(dictContigs1000.keys(),key=dictContigs1000.__getitem__,reverse=True),
-                        hoverinfo= "y+text",
-                    )
+        y = sorted(dictContigs1000.values(),reverse=True),
+        name= "No. contigs > 10k bp",
+        mode = 'markers',
+        marker = dict(
+            color = 'green',
+        ),
+        text = sorted(dictContigs1000.keys(),key=dictContigs1000.__getitem__,reverse=True),
+        hoverinfo= "y+text",
+    )
     listTraces.append(trace4)
     trace5 = typeScatter(
-                        y = sorted(dictBases1000.values(),reverse=True),
-                        name= "No. bases >10k bp",
-                        mode = 'markers',
-                        hoverinfo= "y+text",
-                        marker = dict(
-                                    color = 'blue',
-                                ),
-                        text = sorted(dictBases1000.keys(),key=dictBases1000.__getitem__,reverse=True),
-                    )
+        y = sorted(dictBases1000.values(),reverse=True),
+        name= "No. bases >10k bp",
+        mode = 'markers',
+        hoverinfo= "y+text",
+        marker = dict(
+            color = 'blue',
+        ),
+        text = sorted(dictBases1000.keys(),key=dictBases1000.__getitem__,reverse=True),
+    )
     listTraces.append(trace5)
 
 

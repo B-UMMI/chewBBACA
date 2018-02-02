@@ -6,13 +6,13 @@ from collections import defaultdict
 
 def main(profile1,profile2,outputFile):
 	#~ parser = argparse.ArgumentParser(
-        #~ description="This program joins two profiles with the ")
+	#~ description="This program joins two profiles with the ")
 	#~ parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
 	#~ parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
 	#~ parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
-#~ 
+	#~
 	#~ args = parser.parse_args()
-#~ 
+	#~
 	#~ profile1 = args.p1
 	#~ profile2 = args.p2
 	#~ outputFile = args.o
@@ -33,7 +33,7 @@ def main(profile1,profile2,outputFile):
 				dictaux[headers[i]].append(elem)
 				i+=1
 			len1+=1
-	
+
 	print ("reading profile 2")
 	with open(profile2) as csvfile:
 		reader = csv.reader(csvfile, delimiter='\t')
@@ -55,7 +55,7 @@ def main(profile1,profile2,outputFile):
 		if len(aux)==len1+len2:
 			listheaders2include.append(header)
 	i=0
-	
+
 	print ("building new profile")
 	while i<len1+len2:
 		aux=[]
@@ -63,17 +63,17 @@ def main(profile1,profile2,outputFile):
 			aux.append(dictaux[header][i])
 		i+=1
 		lists2print.append(aux)
-	
+
 	newProfileStr=('\t'.join(map(str, listheaders2include)))+"\n"
 	for elem in lists2print:
 		newProfileStr += ('\t'.join(map(str, elem)))+"\n"
 
 	with open(outputFile, "w") as f:
 		f.write(newProfileStr)
-	
-	
+
+
 	print ("Done")
-    
+
 
 if __name__ == "__main__":
-    main()
+	main()

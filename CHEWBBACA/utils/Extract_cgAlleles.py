@@ -25,7 +25,7 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
             print ("removed genome : "+genome)
             rowid = geneslistaux.index(genome)
             listidstoremove.append(rowid)
-        # geneslistaux.pop(rowid)
+            # geneslistaux.pop(rowid)
 
     listidstoremove = sorted(listidstoremove, reverse=True)
     for idtoremove in listidstoremove:
@@ -56,9 +56,9 @@ def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
                     row2Del.append(int(column))
 
             column += 1
-        
+
         row += 1
-        
+
 
     if cgPercent <float(1):
         column = 1
@@ -154,12 +154,12 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
                 elem=elem.replace('INF-', '')
             auxrow.append(elem)
 
-        
+
         originald2[rowid]=auxrow
         rowid+=1
 
     originald2 = originald2.T
-    
+
     #count number of missing data per genome
     rowid=1
     missingDataCount=[["FILE","number of missing data","percentage"]]
@@ -183,7 +183,7 @@ def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, t
     with open(os.path.join(outputfile,"mdata_stats.tsv"), "w") as f:
         for stats in missingDataCount:
             f.write(('\t'.join(map(str, stats)))+"\n")
-    
+
     #~ statswrite += ('\t'.join(map(str, auxList)))
 
     print ("deleted : %s loci" % totaldeletedgenes)
@@ -207,7 +207,7 @@ def main(pathOutputfile,newfile,percent,genesToRemoveFile,genomesToRemoveFile):
                 geneFile = (geneFile.split('\t'))[0]
 
                 genesToRemove.append(geneFile)
-    
+
 
     if not genomesToRemoveFile==False:
         with open(genomesToRemoveFile, "r") as fp:
@@ -219,7 +219,7 @@ def main(pathOutputfile,newfile,percent,genesToRemoveFile,genomesToRemoveFile):
                 genomesToRemove.append(genomeFile)
 
 
-    
+
     clean(pathOutputfile, newfile, 0, 0.2, genesToRemove, genomesToRemove,percent)
 
 

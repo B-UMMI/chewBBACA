@@ -713,11 +713,8 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 f.write("\nused a bsr of : " + str(BSRTresh))
 
             print ("checking the existance of paralog genes...")
-            ScriptPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'utils/ParalogPrunning.py')
-
-            proc = subprocess.Popen(
-                [ScriptPath, '-i', os.path.join(outputfolder, "results_contigsInfo.tsv"), '-o', outputfolder])
-            p_status = proc.wait()
+            ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"), outputfolder)
+            
 
         else:
             for genome in listOfGenomesBasename:

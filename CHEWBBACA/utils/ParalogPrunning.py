@@ -7,16 +7,16 @@ import operator
 from collections import Counter
 import os
 
-def main():
+def main(contigsfile,out_folder):
 
-    parser = argparse.ArgumentParser(description="Check if locus are being represented more than once")
-    parser.add_argument('-i', nargs='?', type=str, help='contig info file', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False,default=".")
-
-
-    args = parser.parse_args()
-    contigsfile = args.i
-    out_folder = args.o
+    #~ parser = argparse.ArgumentParser(description="Check if locus are being represented more than once")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='contig info file', required=True)
+    #~ parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False,default=".")
+#~ 
+#~ 
+    #~ args = parser.parse_args()
+    #~ contigsfile = args.i
+    #~ out_folder = args.o
 
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)

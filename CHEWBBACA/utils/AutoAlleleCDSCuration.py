@@ -44,7 +44,7 @@ def translateSeq(DNASeq,transTable):
 					myseq= Seq(seq)
 					protseq=Seq.translate(myseq, table=tableid,cds=True)
 				except Exception as e:
-					print e
+					print (e)
 					raise ValueError(e)
 	return protseq,seq,reversedSeq
 
@@ -68,7 +68,7 @@ def curate(geneFile):
 				gene2write+=">"+name+"\n"+sequence+"\n"
 
 			except Exception as err:
-				print err
+				print(err)
 
 
 	with open(geneFile, "wb") as f:
@@ -89,7 +89,7 @@ def main():
 
 	pool = multiprocessing.Pool(cpuToUse)
 	for gene in gene_fp:
-		print gene
+		print (gene)
 		gene = gene.rstrip('\n')
 
 		pool.apply_async(curate,args=[str(gene)])

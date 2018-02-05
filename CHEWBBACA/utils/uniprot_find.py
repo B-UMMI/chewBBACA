@@ -34,32 +34,10 @@ def translateSeq(DNASeq, verbose):
     seq = DNASeq
     tableid = 11
     inverted = False
-    try:
-        myseq = Seq(seq)
-        protseq = Seq.translate(myseq, table=tableid, cds=True)
-    except:
-        try:
-            seq = reverseComplement(seq)
-            myseq = Seq(seq)
-            protseq = Seq.translate(myseq, table=tableid, cds=True)
-            inverted = True
-        except:
-            try:
-                seq = seq[::-1]
-                myseq = Seq(seq)
-                protseq = Seq.translate(myseq, table=tableid, cds=True)
-                inverted = True
-            except:
-                try:
-                    seq = seq[::-1]
-                    seq = reverseComplement(seq)
-                    myseq = Seq(seq)
-                    protseq = Seq.translate(myseq, table=tableid, cds=True)
-                    inverted = False
-                except Exception as e:
-                    verboseprint("translation error")
-                    verboseprint(e)
-                    raise
+
+    myseq = Seq(seq)
+    protseq = Seq.translate(myseq, table=tableid, cds=True)
+
 
     return str(protseq)
 

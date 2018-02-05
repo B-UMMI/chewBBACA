@@ -13,7 +13,7 @@ setup(
   author_email = 'mickaelsilva@medicina.ulisboa.pt',
   url = 'https://github.com/B-UMMI/chewBBACA', 
   keywords = ['cgMLST', 'bacterial typing'],
-  install_requires=['numpy>=1.13.1','scipy>=0.13.3','biopython>=1.70','plotly>=1.12.9','SPARQLWrapper>=1.8.0'],
+  install_requires=['numpy>=1.14.0','scipy>=0.13.3','biopython>=1.70','plotly>=1.12.9','SPARQLWrapper>=1.8.0'],
   entry_points={
         "console_scripts": [
             "chewBBACA.py = CHEWBBACA.chewBBACA:main"

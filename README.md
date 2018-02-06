@@ -38,29 +38,26 @@ Below you can find a list of commands for a quick usage of the software.
 ## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca/) ...
 ...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
 
+## Available [training files](https://github.com/mickaelsilva/prodigal_training_files) ...
+...use for a better result, species specific. 
+
 ----------
 
 ## 0. Setting up the analysis
 
 **Installing chewBBACA**
 
-Git clone the whole repository
+Install using pip
 
 ```
-git clone https://github.com/B-UMMI/chewBBACA.git
+pip3 install chewbbaca
 ```
 
 You need to install the following dependencies. Prodigal and BLAST must be added to the PATH variables.
 
-You may use this pip command to install the python dependencies automatically:
-
-```
-pip3 install -r requirements.txt
-```
-
 
 Python dependencies:
-* numpy>=1.13.1
+* numpy>=1.14.0
 * scipy>=0.13.3
 * biopython>=1.70
 * plotly>=1.12.9
@@ -94,13 +91,13 @@ Create your own wgMLST schema based on a set of genomes fasta files. The command
 
 `--cpu` Number of cpus to use
 
-`-t` (Optional but recommended, contact for new species) taxon name (e.g. Streptococcus agalactiae). It will call the taxon-specific file to be used for training prodigal
-
 `--bsr` (Optional) Minimum BSR for defining locus similarity. Default at 0.6. 
+
+`--ptf` (Optional but recommended, contact for new species) path to file of prodigal training file to use.
 
 **Outputs:** 
 
-One fasta file per gene in the `-o`directory that is created. 
+One fasta file per gene in the `-o` directory that is created. 
 The fasta file names are the given according the FASTA annotation for each coding sequence. 
 
 **Optional:** 
@@ -142,11 +139,10 @@ Then run is the following:
 
 `--cpu` Number of cpus to use 
 
-`-t` (Optional but recommended, contact for new species) taxon name (e.g. Streptococcus agalactiae). It will call the taxon-specific file to be used for training prodigal
-
 `-b` (optional)Blastp full path. In case of slurm system BLAST version being outdated it may 
 be hard to use a different one, use this option using the full path of the updated blastp executable
 
+`--ptf` (Optional but recommended, contact for new species) path to file of prodigal training file to use.
 
 
 **Outputs files**:

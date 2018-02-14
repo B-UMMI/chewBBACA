@@ -140,14 +140,27 @@ def allele_call():
                 f.write(genome + "\n")
         genes2call = "listGenes2Call.txt"
 
-    genomes2call = check_if_list_or_folder(genomeFiles)
-
+    
+    #try to open as a fasta
+    fasta = SeqIO.parse(genomeFiles, "fasta", generic_dna)
+    try:
+        isFasta=(any(fasta))
+    except:
+        isFasta=False
+    
+    #if is a fasta pass as a list of genomes with a single genome, if not check if is a folder or a txt with a list of paths
+    if isFasta==True:
+        genomes2call=[os.path.abspath(genomeFiles)]
+    else:
+        genomes2call = check_if_list_or_folder(genomeFiles)
+    
     if isinstance(genomes2call, list):
         with open("listGenomes2Call.txt", "w") as f:
             for genome in genomes2call:
                 f.write(genome + "\n")
         genomes2call = "listGenomes2Call.txt"
 
+    
     BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile)
 
 

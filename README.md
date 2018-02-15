@@ -3,6 +3,11 @@
 As from 25/01/2018 this repo is now fully on python 3. The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2
 
 
+# Latest updates
+## New in 2.0.5 (14/02/2018)
+* AlleleCall : -i option accepts a single fasta file now
+
+
 # chewBBACA: Quick Usage
 
 **chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 

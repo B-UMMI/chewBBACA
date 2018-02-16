@@ -1,6 +1,6 @@
 # IMPORTANT
 
-As from 25/01/2018 this repo is now fully on python 3. The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2
+As from 25/01/2018 this repo is now fully on python 3. The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
 As from 02/02/2018 chewBBACA is a python package, install with pip instead of git clone.
 
 # Latest updates

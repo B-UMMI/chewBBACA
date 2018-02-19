@@ -18,9 +18,10 @@ chewBBACA is a comprehensive pipeline including a set of functions for the creat
 Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
 settings and a set of functions to visualize and validate allele variation in the loci.
 
+chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
+
 A preprint of this work with the title "**chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**" is available in [BioRxiv](https://www.biorxiv.org/content/early/2017/10/23/173146) 
 
-chewBBACA runs over complete or assembled genomes, sequenced strains need to be assembled first to be used.
 
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...

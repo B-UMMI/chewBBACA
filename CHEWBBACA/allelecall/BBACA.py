@@ -11,6 +11,7 @@ import shutil
 import multiprocessing
 import subprocess
 import json
+import re
 try:
 	from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
 	from utils import ParalogPrunning
@@ -221,9 +222,9 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     #~ parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     #~ parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
     #~ parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
-#~ 
+#~
     #~ args = parser.parse_args()
-#~ 
+#~
     #~ genomeFiles = args.i
     #~ genes = args.g
     #~ cpuToUse = args.cpu
@@ -299,9 +300,10 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
     # check version of Blast
 
-    proc = subprocess.Popen([BlastpPath, '-version'], stdout=subprocess.PIPE)
-    line = proc.stdout.readline()
-    if not "blastp: 2.5." in str(line) and not "blastp: 2.6." in str(line):
+    proc = subprocess.run([BlastpPath, '-version'], stdout=subprocess.PIPE, encoding='utf8')
+    line = proc.stdout
+    blast_version_pat = re.compile(r'2.[5-9]')
+    if not blast_version_pat.search(line):
         print ("your blast version is " + str(line))
         print ("update your blast to 2.5.0 or above, will exit program")
         sys.exit()
@@ -345,12 +347,12 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
     if len(lGenesFiles) == 0:
         raise ValueError('ERROR! No usable gene files in ' + str(genes))
-    
-    #sort the genomes and genes list for an ordered output 
+
+    #sort the genomes and genes list for an ordered output
     listOfGenomes.sort(key=lambda y: os.path.basename(y).lower())
     listOfGenomesBasename.sort(key=lambda y: y.lower())
     lGenesFiles.sort(key=lambda y: y.lower())
-        
+
     # create temp folder inside the folder where the first gene is located
     first_gene = lGenesFiles[0]
     genepath = os.path.dirname(first_gene)
@@ -460,7 +462,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             for genomeFile in listOfGenomes:
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))
-                
+
                 pool.apply_async(Create_Genome_Blastdb.main,(filepath,os.path.join(basepath, str(os.path.basename(genomeFile))),str(os.path.basename(genomeFile)),False))
 
 
@@ -714,7 +716,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
             print ("checking the existance of paralog genes...")
             ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"), outputfolder)
-            
+
 
         else:
             for genome in listOfGenomesBasename:

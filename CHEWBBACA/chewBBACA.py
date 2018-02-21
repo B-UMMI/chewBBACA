@@ -5,7 +5,6 @@ import os
 import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
-import subprocess
 
 try:
 	from allelecall import BBACA

@@ -1,7 +1,7 @@
 # IMPORTANT
 
 As from 25/01/2018 this repo is now fully on **python 3** (tested on >=3.4). The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
-As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.
+As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.  
 As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
 
 # Latest updates

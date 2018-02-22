@@ -301,10 +301,12 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     # check version of Blast
 
     proc = subprocess.Popen([BlastpPath, '-version'], stdout=subprocess.PIPE)
-    line = proc.stdout
+    stdout, stderr = proc.communicate()
+    version_string = stdout.decode('utf8')
     blast_version_pat = re.compile(r'2.[5-9]')
-    if not blast_version_pat.search(line):
-        print ("your blast version is " + str(line))
+    if not blast_version_pat.search(version_string):
+        m = blast_version_pat.search(version_string).group()
+        print ("your blast version is " + str(version_string))
         print ("update your blast to 2.5.0 or above, will exit program")
         sys.exit()
     else:

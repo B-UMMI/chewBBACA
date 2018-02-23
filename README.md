@@ -5,6 +5,11 @@ As from 02/02/2018 **chewBBACA is a python package**, install with pip instead o
 As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
 
 # Latest updates
+## New in 2.0.7 (23/02/2018)
+* corrected bug that prevented usage of latest blast version (>=2.7.0)
+* version flag can now be used --version
+* instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
+
 ## New in 2.0.5 (14/02/2018)
 * AlleleCall : -i option accepts a single fasta file now
 

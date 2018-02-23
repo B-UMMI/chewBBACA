@@ -63,9 +63,9 @@ def create_schema():
 
     args = parser.parse_args()
 
-    genomeFiles = args.i
+    genomeFiles = os.path.abspath(args.i)
     cpuToUse = args.cpu
-    outputFile = args.o
+    outputFile = os.path.abspath(args.o)  # Is this an output file or the output folder? If it is the outdir be careful with basepath = os.path.join((os.path.dirname(outputFile)), "temp") in PPanGen.main
     BlastpPath = args.b
     bsr = args.bsr
     chosenTaxon = args.t
@@ -75,10 +75,10 @@ def create_schema():
 
     genomeFiles = check_if_list_or_folder(genomeFiles)
     if isinstance(genomeFiles, list):
-        with open("listGenomes2Call.txt", "w") as f:
+        with open(os.path.join(os.path.dirname(outputFile), "listGenomes2Call.txt"), "w") as f:
             for genome in genomeFiles:
                 f.write(genome + "\n")
-        genomeFiles = "listGenomes2Call.txt"
+        genomeFiles = os.path.join(os.path.dirname(outputFile), "listGenomes2Call.txt")
 
     
     PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile)
@@ -86,7 +86,7 @@ def create_schema():
     
     
     try:
-        os.remove("listGenomes2Call.txt")
+        os.remove(os.path.join(os.path.dirname(outputFile), "listGenomes2Call.txt"))
     except:
         pass
 
@@ -101,7 +101,7 @@ def allele_call():
     parser.add_argument('AlleleCall', nargs='+', help='do allele call')
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
     parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)  # Is this the output folder? If so, help description and subsequent variable (gOutFile) should be renamed accordingly.
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
@@ -117,13 +117,13 @@ def allele_call():
 
     args = parser.parse_args()
 
-    genomeFiles = args.i
-    genes = args.g
+    genomeFiles = os.path.abspath(args.i)
+    genes = os.path.abspath(args.g)
     cpuToUse = args.cpu
     BSRTresh = args.bsr
     verbose = args.verbose
     BlastpPath = args.b
-    gOutFile = args.o
+    gOutFile = os.path.abspath(args.o)
     chosenTaxon = False
     chosenTrainingFile = args.ptf
     forceContinue = args.fc
@@ -134,10 +134,10 @@ def allele_call():
     genes2call = check_if_list_or_folder(genes)
 
     if isinstance(genes2call, list):
-        with open("listGenes2Call.txt", "w") as f:
+        with open(os.path.join(gOutFile, "listGenes2Call.txt"), "w") as f:
             for genome in genes2call:
                 f.write(genome + "\n")
-        genes2call = "listGenes2Call.txt"
+        genes2call = os.path.join(gOutFile, "listGenes2Call.txt")
 
     
     #try to open as a fasta
@@ -149,26 +149,26 @@ def allele_call():
     
     #if is a fasta pass as a list of genomes with a single genome, if not check if is a folder or a txt with a list of paths
     if isFasta==True:
-        genomes2call=[os.path.abspath(genomeFiles)]
+        genomes2call=[genomeFiles]
     else:
         genomes2call = check_if_list_or_folder(genomeFiles)
     
     if isinstance(genomes2call, list):
-        with open("listGenomes2Call.txt", "w") as f:
+        with open(os.path.join(gOutFile, "listGenomes2Call.txt"), "w") as f:
             for genome in genomes2call:
                 f.write(genome + "\n")
-        genomes2call = "listGenomes2Call.txt"
+        genomes2call = os.path.join(gOutFile, "listGenomes2Call.txt")
 
     
     BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile)
 
 
     try:
-        os.remove("listGenes2Call.txt")
+        os.remove(os.path.join(gOutFile, "listGenes2Call.txt"))
     except:
         pass
     try:
-        os.remove("listGenomes2Call.txt")
+        os.remove(os.path.join(gOutFile, "listGenomes2Call.txt"))
     except:
         pass
 

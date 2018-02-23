@@ -176,7 +176,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
             listOfCDS = ''
             currentGenomeDict = ''
             currentCDSDict = ''
-            with open("proteinID_Genome.tsv", 'a') as f:
+            with open(os.path.join(os.path.dirname(basepath), "proteinID_Genome.tsv"), 'a') as f:
                 f.write(tsvProtidGenome)
 
         verboseprint( "Checked equal proteins for: " + str(genome1) + " " + str(genome2))
@@ -474,7 +474,7 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
 
     pairID = 0
     # while len(processed)<len(toprocess):
-    with open("proteinID_Genome.tsv", 'w') as f:
+    with open(os.path.join(os.path.dirname(outputFile), "proteinID_Genome.tsv"), 'w') as f:
         f.write("Genome\tcontig\tStart\tStop\tprotID")
     while len(listOfGenomes) > 0:
 

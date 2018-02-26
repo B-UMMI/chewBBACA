@@ -365,12 +365,12 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.7"
+    version="2.0.8"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"
 
-    if "version" in sys.argv[1]:
+    if len(sys.argv)>1 and "version" in sys.argv[1]:
         print (version)
         return
     
@@ -404,7 +404,7 @@ def main():
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
     except Exception as e:
-        print (e)
+        #~ print (e)
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i=0

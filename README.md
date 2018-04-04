@@ -7,7 +7,7 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 # Latest updates
 ## New in 2.0.9 (04/04/2018)
 * blast results during allele call are not saved as a file, instead are piped directly for processing
-* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS option`
+* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option
 
 ## New in 2.0.7 (23/02/2018)
 * corrected bug that prevented usage of latest blast version (>=2.7.0)

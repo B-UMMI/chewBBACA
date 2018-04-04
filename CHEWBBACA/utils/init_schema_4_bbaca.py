@@ -7,7 +7,6 @@ from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
 import os
-import argparse
 import pickle
 import multiprocessing
 import shutil

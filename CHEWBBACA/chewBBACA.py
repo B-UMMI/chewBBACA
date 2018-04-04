@@ -105,6 +105,7 @@ def allele_call():
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
+    parser.add_argument("--CDS", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
@@ -129,6 +130,7 @@ def allele_call():
     forceContinue = args.fc
     forceReset = args.fr
     contained = args.contained
+    inputCDS = args.CDS
     jsonReport = args.json
 
     genes2call = check_if_list_or_folder(genes)
@@ -160,7 +162,7 @@ def allele_call():
         genomes2call = "listGenomes2Call.txt"
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS)
 
 
     try:
@@ -365,7 +367,7 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.8"
+    version="2.0.9"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"
@@ -404,7 +406,7 @@ def main():
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
     except Exception as e:
-        #~ print (e)
+        print (e)
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i=0

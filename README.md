@@ -12,7 +12,9 @@ chewBBACA performs the schema creation and allele calls on complete or draft gen
 
 The code contained in this repository concerning release v2.0.5. has been published in Microbial Genomics under the title:  
 **chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**  - [Link to paper](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166) 
-When using chewBBACA please use the folloing citation:
+
+When using chewBBACA please use the following citation:
+
 
 Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
 

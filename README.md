@@ -1,5 +1,22 @@
-# IMPORTANT
+# chewBBACA: Quick Usage
 
+**chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
+but at this point still it needs a bit of work to make that claim so we just add "chew" to add extra coolness to the software name. BSR stands for 
+BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2) 
+
+chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence 
+Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
+settings and a set of functions to visualize and validate allele variation in the loci.
+
+chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
+
+The code contained in this repository concerning release v2.0.5. has been published in Microbial Genomics under the title:  
+**chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**  - [Link to paper](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166) 
+When using chewBBACA please use the folloing citation:
+
+Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
+
+# IMPORTANT
 As from 25/01/2018 this repo is now fully on **python 3** (tested on >=3.4). The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
 As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.  
 As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
@@ -16,23 +33,6 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 
 ## New in 2.0.5 (14/02/2018)
 * AlleleCall : -i option accepts a single fasta file now
-
-
-# chewBBACA: Quick Usage
-
-**chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
-but at this point still it needs a bit of work to make that claim so we just add "chew" to add extra coolness to the software name. BSR stands for 
-BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2) 
-
-chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence 
-Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
-settings and a set of functions to visualize and validate allele variation in the loci.
-
-chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
-
-A preprint of this work with the title "**chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**" is available in [BioRxiv](https://www.biorxiv.org/content/early/2017/10/23/173146) 
-
-
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
 ...for a much more thorough chewBBACA walkthrough. 

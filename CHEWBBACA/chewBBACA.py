@@ -59,7 +59,7 @@ def create_schema():
     parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
-    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
+    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=201)
 
     args = parser.parse_args()
 

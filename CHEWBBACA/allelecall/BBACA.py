@@ -328,13 +328,17 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     stdout, stderr = proc.communicate()
     version_string = stdout.decode('utf8')
     blast_version_pat = re.compile(r'2.[5-9]')
-    if not blast_version_pat.search(version_string):
-        m = blast_version_pat.search(version_string).group()
-        print ("your blast version is " + str(version_string))
-        print ("update your blast to 2.5.0 or above, will exit program")
-        sys.exit()
-    else:
-        print ("blast version is up to date, the program will continue")
+    try:
+        if not blast_version_pat.search(version_string):
+            m = blast_version_pat.search(version_string).group()
+            print ("your blast version is " + str(version_string))
+            print ("update your blast to 2.5.0 or above, will exit program")
+            sys.exit()
+        else:
+            print ("blast version is up to date, the program will continue")
+    except:
+        print("Something went wrong. Your blast version is " + str(version_string))
+        print("update your blast to 2.5.0 or above, will exit program")
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
     print (starttime)

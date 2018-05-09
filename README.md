@@ -251,9 +251,6 @@ Basic usage:
 ----------
 ## FAQ
 
-### Q: Which is the fastest way to run?  
-A: Check step 1
-
 ### Q: Step 2 is taking hours, will it ever end?  
 A: Depending on the variability of the strains used to create the schema and the number 
 of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
@@ -265,6 +262,9 @@ A: chewBBACA should allow you to continue where you stopped, just re-run the sam
 ### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  
 A: You probably forgot to eliminate from the analysis genomes responsible for a considerable loss of loci. 
 Try to run again step 4, remove some of those genomes and check if the cgMLST loci number rises.
+
+### Q: Can I use a schema from an external source?
+A: Yes. Be sure to have a single fasta for each locus and use the "PrepExternalSchema​" function.
 
 ### Q: Which species already have a training file?  
 A: At the moment:
@@ -278,6 +278,15 @@ A: At the moment:
  - *Staphylococcus aureus*
  - *Staphylococcus haemolyticus*
  - *Yersinia enterocolitica*
+ 
+get them at https://github.com/mickaelsilva/prodigal_training_files
+ 
+### Q: My favorite species has no training file. What can I do?
+A: You can propose a new one to be added to the repository or create your own training 
+files. To create a training file do:
+
+`prodigal -i myGoldStandardGenome.fna -t myTrainedFile.trn -p single`
+ 
 
 ----------  
   

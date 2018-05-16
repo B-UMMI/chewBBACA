@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="7f7afd94-72ba-4d7d-b670-faa142fe3f35" name="Default" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="callAlleles_protein3.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/allelecall/callAlleles_protein3.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="8680">
+              <caret line="448" column="17" lean-forward="false" selection-start-line="448" selection-start-column="17" selection-end-line="448" selection-end-column="17" />
+              <folding>
+                <element signature="e#23#44#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BBACA.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/allelecall/BBACA.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="9800">
+              <caret line="502" column="24" lean-forward="false" selection-start-line="502" selection-start-column="13" selection-end-line="502" selection-end-column="24" />
+              <folding>
+                <element signature="e#23#33#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="PPanGen.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/createschema/PPanGen.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="8640">
+              <caret line="442" column="24" lean-forward="false" selection-start-line="442" selection-start-column="13" selection-end-line="442" selection-end-column="24" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CreateSchema.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/createschema/CreateSchema.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="__init__.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/utils/__init__.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="init_schema_4_bbaca.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/utils/init_schema_4_bbaca.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="462">
+              <caret line="323" column="24" lean-forward="false" selection-start-line="323" selection-start-column="13" selection-end-line="323" selection-end-column="24" />
+              <folding>
+                <marker date="1517481635711" expanded="true" signature="7903:8041" ph="..." />
+                <marker date="1517481635711" expanded="true" signature="8199:8251" ph="..." />
+                <marker date="1517481635711" expanded="true" signature="8334:8456" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ValidateSchema.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SchemaEvaluator/ValidateSchema.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="220">
+              <caret line="98" column="0" lean-forward="true" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
+              <folding>
+                <element signature="e#23#59#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CheckCDS.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/SchemaEvaluator/CheckCDS.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-2062">
+              <caret line="132" column="39" lean-forward="false" selection-start-line="132" selection-start-column="29" selection-end-line="132" selection-end-column="39" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="chewBBACA.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/chewBBACA.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2300">
+              <caret line="124" column="41" lean-forward="false" selection-start-line="124" selection-start-column="41" selection-end-line="124" selection-end-column="41" />
+              <folding>
+                <marker date="1517482537315" expanded="true" signature="477:1086" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="580:672" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="692:1063" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="741:1063" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="758:982" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="1017:1063" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="1109:3940" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="1134:1338" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="2987:3163" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="3040:3118" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="3295:3859" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="3961:7962" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="3986:4223" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="4062:4223" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="6398:6568" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="6449:6526" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="6665:6843" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="6718:6797" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="7013:7811" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="7986:10821" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="8011:8256" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="8087:8256" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="10308:10821" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="10842:12707" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="10867:11072" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="10943:11072" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="12415:12707" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="12708:12767" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="12791:14165" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="12816:13003" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="12892:13003" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="13979:14165" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="14166:14413" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="14434:15788" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="14459:14642" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="14535:14642" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="15599:15788" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="15789:15907" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="15929:16885" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="15954:16061" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="15970:16061" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="16707:16885" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="16886:16949" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="16969:18212" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="16994:17182" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="17070:17182" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="18041:18212" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="18213:18276" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="18297:19495" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="18323:18503" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="18399:18503" ph="'''...'''" />
+                <marker date="1517482537315" expanded="true" signature="19317:19495" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="19496:19555" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="20539:21506" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="21242:21506" ph="..." />
+                <marker date="1517482537315" expanded="true" signature="21423:21506" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CommonFastaFunctions.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/allelecall/CommonFastaFunctions.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>Create_Genome_Blastdb</find>
+      <find>callAlleles_protein3</find>
+      <find>cpuToUse</find>
+      <find>runProdigal</find>
+      <find>apply_async</find>
+      <find>getStats</find>
+      <find>MafftCommandline</find>
+      <find>call_mafft</find>
+    </findStrings>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/chewBBACA.py" />
+        <option value="$PROJECT_DIR$/allelecall/BBACA.py" />
+        <option value="$PROJECT_DIR$/createschema/PPanGen.py" />
+        <option value="$PROJECT_DIR$/utils/init_schema_4_bbaca.py" />
+        <option value="$PROJECT_DIR$/SchemaEvaluator/ValidateSchema.py" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-1" />
+    <option name="y" value="27" />
+    <option name="width" value="1922" />
+    <option name="height" value="1054" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="utils" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="SchemaEvaluator" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="createschema" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="chewBBACA" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="allelecall" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+    <property name="nodejs_interpreter_path" value="/usr/bin/node" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7f7afd94-72ba-4d7d-b670-faa142fe3f35" name="Default" comment="" />
+      <created>1517407049846</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1517407049846</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-1" y="27" width="1922" height="1054" extended-state="6" />
+    <layout>
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="processedProjectFiles" value="true" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager />
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/allelecall/callAlleles_protein3.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8680">
+          <caret line="448" column="17" lean-forward="false" selection-start-line="448" selection-start-column="17" selection-end-line="448" selection-end-column="17" />
+          <folding>
+            <element signature="e#23#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/allelecall/BBACA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="9800">
+          <caret line="502" column="24" lean-forward="false" selection-start-line="502" selection-start-column="13" selection-end-line="502" selection-end-column="24" />
+          <folding>
+            <element signature="e#23#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createschema/PPanGen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8640">
+          <caret line="442" column="24" lean-forward="false" selection-start-line="442" selection-start-column="13" selection-end-line="442" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createschema/CreateSchema.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/chewBBACA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2300">
+          <caret line="123" column="41" lean-forward="false" selection-start-line="123" selection-start-column="41" selection-end-line="123" selection-end-column="41" />
+          <folding>
+            <marker date="1517482537315" expanded="true" signature="477:1086" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="580:672" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="692:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="741:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="758:982" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1017:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1109:3940" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1134:1338" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="2987:3163" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3040:3118" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3295:3859" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3961:7962" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3986:4223" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="4062:4223" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="6398:6568" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6449:6526" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6665:6843" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6718:6797" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="7013:7811" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="7986:10821" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="8011:8256" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="8087:8256" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="10308:10821" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10842:12707" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10867:11072" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10943:11072" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="12415:12707" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12708:12767" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12791:14165" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12816:13003" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12892:13003" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="13979:14165" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14166:14413" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14434:15788" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14459:14642" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14535:14642" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="15599:15788" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15789:15907" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15929:16885" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15954:16061" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15970:16061" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="16707:16885" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16886:16949" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16969:18212" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16994:17182" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="17070:17182" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="18041:18212" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18213:18276" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18297:19495" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18323:18503" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18399:18503" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="19317:19495" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="19496:19555" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="20539:21506" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="21242:21506" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="21423:21506" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/allelecall/CommonFastaFunctions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/init_schema_4_bbaca.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="6240">
+          <caret line="323" column="24" lean-forward="false" selection-start-line="323" selection-start-column="13" selection-end-line="323" selection-end-column="24" />
+          <folding>
+            <marker date="1517481635711" expanded="true" signature="7903:8041" ph="..." />
+            <marker date="1517481635711" expanded="true" signature="8199:8251" ph="..." />
+            <marker date="1517481635711" expanded="true" signature="8334:8456" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/allelecall/CommonFastaFunctions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/chewBBACA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2300">
+          <caret line="124" column="41" lean-forward="false" selection-start-line="124" selection-start-column="41" selection-end-line="124" selection-end-column="41" />
+          <folding>
+            <marker date="1517482537315" expanded="true" signature="477:1086" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="580:672" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="692:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="741:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="758:982" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1017:1063" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1109:3940" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="1134:1338" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="2987:3163" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3040:3118" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3295:3859" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3961:7962" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="3986:4223" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="4062:4223" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="6398:6568" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6449:6526" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6665:6843" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="6718:6797" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="7013:7811" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="7986:10821" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="8011:8256" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="8087:8256" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="10308:10821" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10842:12707" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10867:11072" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="10943:11072" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="12415:12707" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12708:12767" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12791:14165" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12816:13003" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="12892:13003" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="13979:14165" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14166:14413" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14434:15788" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14459:14642" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="14535:14642" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="15599:15788" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15789:15907" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15929:16885" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15954:16061" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="15970:16061" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="16707:16885" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16886:16949" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16969:18212" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="16994:17182" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="17070:17182" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="18041:18212" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18213:18276" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18297:19495" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18323:18503" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="18399:18503" ph="'''...'''" />
+            <marker date="1517482537315" expanded="true" signature="19317:19495" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="19496:19555" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="20539:21506" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="21242:21506" ph="..." />
+            <marker date="1517482537315" expanded="true" signature="21423:21506" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/allelecall/callAlleles_protein3.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8680">
+          <caret line="448" column="17" lean-forward="false" selection-start-line="448" selection-start-column="17" selection-end-line="448" selection-end-column="17" />
+          <folding>
+            <element signature="e#23#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/allelecall/BBACA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="9800">
+          <caret line="502" column="24" lean-forward="false" selection-start-line="502" selection-start-column="13" selection-end-line="502" selection-end-column="24" />
+          <folding>
+            <element signature="e#23#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createschema/PPanGen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8640">
+          <caret line="442" column="24" lean-forward="false" selection-start-line="442" selection-start-column="13" selection-end-line="442" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/createschema/CreateSchema.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/init_schema_4_bbaca.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="462">
+          <caret line="323" column="24" lean-forward="false" selection-start-line="323" selection-start-column="13" selection-end-line="323" selection-end-column="24" />
+          <folding>
+            <marker date="1517481635711" expanded="true" signature="7903:8041" ph="..." />
+            <marker date="1517481635711" expanded="true" signature="8199:8251" ph="..." />
+            <marker date="1517481635711" expanded="true" signature="8334:8456" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SchemaEvaluator/ValidateSchema.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="98" column="0" lean-forward="true" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
+          <folding>
+            <element signature="e#23#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SchemaEvaluator/CheckCDS.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2062">
+          <caret line="132" column="39" lean-forward="false" selection-start-line="132" selection-start-column="29" selection-end-line="132" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

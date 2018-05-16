@@ -95,7 +95,7 @@ def clean(inputfile, outputfile, toremovegenes, toremovegenomes, cgPercent):
                                   value='0', regex=True)
 
     cleaned = cleaned.replace(to_replace='INF-', value='', regex=True)
-
+    cleaned = cleaned.apply(pd.to_numeric)
     # cleaned = cleaned.reindex(cleaned.index.rename(['FILE']))
 
     # count number of missing data per genome

@@ -226,7 +226,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
 
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
@@ -531,7 +531,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     for argList in argumentsList:
         #~ print (argList)
         #~ asdasd
-        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh)))
+        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh),str(sizeTresh)))
 
     pool.close()
     pool.join()

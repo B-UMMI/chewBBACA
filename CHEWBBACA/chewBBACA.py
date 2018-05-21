@@ -110,6 +110,7 @@ def allele_call():
                         default=False)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+    parser.add_argument('--st', nargs='?', type=float, help="size threshold, default at 0.2 means alleles with size variation of +-20% will be tagged as ASM/ALM", required=False, default=0.2)
     #parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide the prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
@@ -122,6 +123,7 @@ def allele_call():
     genes = args.g
     cpuToUse = args.cpu
     BSRTresh = args.bsr
+    sizeTresh = args.st
     verbose = args.verbose
     BlastpPath = args.b
     gOutFile = args.o
@@ -162,7 +164,7 @@ def allele_call():
         genomes2call = "listGenomes2Call.txt"
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
 
 
     try:
@@ -367,7 +369,7 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.9"
+    version="2.0.10"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"

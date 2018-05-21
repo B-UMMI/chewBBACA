@@ -36,6 +36,10 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 ## New in 2.0.9 (04/04/2018)
 * blast results during allele call are not saved as a file, instead are piped directly for processing
 * new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option
+
+## New in 2.0.10 (21/05/2018)
+* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
+* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
   
   
 ---------

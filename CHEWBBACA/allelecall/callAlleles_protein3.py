@@ -212,7 +212,7 @@ def translateSeq(DNASeq):
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
-def main(input_file,temppath,blastPath,verbose,bsrTresh):
+def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
     #~ try:
         #~ input_file = sys.argv[1]
         #~ temppath = sys.argv[2]
@@ -229,6 +229,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh):
         #~ print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
 
     bsrTresh = float(bsrTresh)
+    sizeTresh = float(sizeTresh)
 
     argumentList = []
     with open(input_file, 'rb') as f:
@@ -462,6 +463,8 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh):
                             #DNAstr = str(currentCDSDict[">" + cdsStrName])
 
                             AlleleDNAstr = alleleList[int(alleleMatchid) - 1]
+                            verboseprint(str(match))
+                            verboseprint("BSR : " + str(scoreRatio))
 
                             if scoreRatio >= bsrTresh:
                                 locationcontigs.append(cdsStrName)
@@ -603,7 +606,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh):
 
 
 
-                    elif float(len(alleleStr)) > moda + (moda * 0.2):
+                    elif float(len(alleleStr)) > moda + (moda * sizeTresh):
 
                         verboseprint("Locus is larger than mode", moda, alleleStr)
 
@@ -615,7 +618,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh):
                     # ~ else:
                     # ~ perfectMatchIdAllele2.append(str(contigname)+"&"+str(matchLocation[0])+"-"+str(matchLocation[1])+"&"+"-")
 
-                    elif float(len(alleleStr)) < moda - (moda * 0.2):
+                    elif float(len(alleleStr)) < moda - (moda * sizeTresh):
 
                         verboseprint("Locus is smaller than mode", moda, alleleStr)
 

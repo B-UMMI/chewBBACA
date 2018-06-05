@@ -40,7 +40,11 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 ## New in 2.0.10 (21/05/2018)
 * cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
 * new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
-  
+
+## New in 2.0.11 (05/06/2018)
+* corrected bug when -h on allele call
+* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
+
   
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...

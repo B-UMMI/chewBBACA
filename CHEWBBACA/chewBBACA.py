@@ -28,10 +28,15 @@ def check_if_list_or_folder(folder_or_list):
         f.close()
         list_files = folder_or_list
     except IOError:
-
+		
         for gene in os.listdir(folder_or_list):
+			
             try:
                 genepath = os.path.join(folder_or_list, gene)
+                
+                if os.path.isdir(genepath):
+                    continue
+                
                 for allele in SeqIO.parse(genepath, "fasta", generic_dna):
                     break
                 list_files.append(os.path.abspath(genepath))
@@ -45,7 +50,7 @@ def check_if_list_or_folder(folder_or_list):
 def create_schema():
 
     def msg(name=None):                                                            
-        return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-t [T]] [-v] [-l [L]]'''
+        return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-v] [-l [L]]'''
 
     parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
     parser.add_argument('CreateSchema', nargs='+', help='create a schema')
@@ -56,7 +61,7 @@ def create_schema():
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument("--CDS", help="use a fasta file, one gene per entry, to call alleles", required=False, action="store_true", default=False)
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
@@ -69,7 +74,7 @@ def create_schema():
     outputFile = args.o
     BlastpPath = args.b
     bsr = args.bsr
-    chosenTaxon = args.t
+    #~ chosenTaxon = args.t
     chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = args.l
@@ -87,7 +92,7 @@ def create_schema():
         genomeFiles = "listGenomes2Call.txt"
 
     
-    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile,inputCDS)
+    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS)
 
     
     
@@ -375,7 +380,7 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.11"
+    version="2.0.12"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"

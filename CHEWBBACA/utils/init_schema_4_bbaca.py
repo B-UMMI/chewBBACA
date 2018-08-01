@@ -64,7 +64,10 @@ def get_Short (gene,auxBar):
 		geneScorePickle=shortgene+'_bsr.txt'
 		selfscores=[]
 		fasta_corrected=''
+		total_alleles=0
+		error_alleles=0
 		for allele in SeqIO.parse(gene, "fasta", generic_dna):
+			total_alleles+=1
 			try:
 				translatedSequence,sortedSeq, originalSeq=translateSeq(str(allele.seq.upper()))
 
@@ -190,18 +193,24 @@ def get_Short (gene,auxBar):
 
 			except Exception as e:
 				#~ print ('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
-				print (str(allele.name)+" "+str(e))
-				print ("allele not translatable")
+				#print (str(allele.name)+" "+str(e))
+				#print ("allele not translatable")
+				error_alleles+=1
 
 		#~ print ("processed " +gene)
+		
+		if error_alleles<total_alleles:
 
-		with open(geneScorePickle,'wb') as f:
-			pickle.dump(var, f)
+			with open(geneScorePickle,'wb') as f:
+				pickle.dump(var, f)
 
-		fG = open( shortgene, 'w' )
-		fG.write(shortfasta)
-		fG.close()
-
+			with open(shortgene,'w') as f:
+				f.write(shortfasta)
+		
+		else:
+			print ("ATTENTION!!!111 \n"+str(gene)+" has no correct aleles, the file will be removed!!")
+			os.remove(gene)
+		
 		if len(fasta_corrected)>1:
 			with open(gene,'w') as f:
 				f.write(fasta_corrected)
@@ -245,8 +254,8 @@ def translateSeq(DNASeq):
 					myseq= Seq(seq)
 					protseq=Seq.translate(myseq, table=tableid,cds=True)
 				except Exception as e:
-					print ("translation error")
-					print (e)
+					#~ print ("translation error")
+					#~ print (e)
 					raise
 	return protseq, seq, originalSeq
 
@@ -279,6 +288,10 @@ def check_if_list_or_folder(folder_or_list):
 				continue
 			try:
 				genepath = os.path.join(folder_or_list, gene)
+				
+				if os.path.isdir(genepath):
+					continue
+				
 				for allele in SeqIO.parse(genepath, "fasta", generic_dna):
 					break
 				list_files.append(os.path.abspath(genepath))

@@ -45,7 +45,10 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 * corrected bug when -h on allele call
 * new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
 
-  
+## New in 2.0.12 (01/08/2018)
+* `[Errno 21] Is a directory:` when starting allele call was removed
+* when using the function `PrepExternalSchema`, locus that had no suitable alleles (translation error) would create an empty short file. The output now indicates to the user which locus has no allele suitable to be used by chewbbaca and deletes the fasta file.
+ 
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
 ...for a much more thorough chewBBACA walkthrough. 

@@ -321,7 +321,7 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile,inputCDS):
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS):
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
     #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
@@ -372,22 +372,22 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
                  }
-    if isinstance(chosenTaxon, str):
-        trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
-        try:
-            chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
-
-            if os.path.isfile(chosenTaxon):
-                print("will use this training file : " + chosenTaxon)
-            else:
-                print("training file don't exist")
-                print(chosenTaxon)
-                return "retry"
-        except:
-            print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
-            for elem in taxonList.keys():
-                print(elem)
-            return "retry"
+    #~ if isinstance(chosenTaxon, str):
+        #~ trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
+        #~ try:
+            #~ chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
+#~ 
+            #~ if os.path.isfile(chosenTaxon):
+                #~ print("will use this training file : " + chosenTaxon)
+            #~ else:
+                #~ print("training file don't exist")
+                #~ print(chosenTaxon)
+                #~ return "retry"
+        #~ except:
+            #~ print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
+            #~ for elem in taxonList.keys():
+                #~ print(elem)
+            #~ return "retry"
 
     if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)
@@ -403,6 +403,8 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             print ("The training file you provided doesn't exist:")
             print (chosenTaxon)
             return "retry"
+    else:
+        chosenTaxon=False
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 

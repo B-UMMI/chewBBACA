@@ -32,7 +32,8 @@ def get_Short (gene,auxBar):
 		if not os.path.exists(pathtoDir):
 			os.makedirs(pathtoDir)
 	except Exception as e:
-		print (e)
+		pass
+		#~ print (e)
 
 
 	for gene in genesList:

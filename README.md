@@ -96,7 +96,7 @@ Python dependencies:
 * biopython>=1.70
 * plotly>=1.12.9
 * SPARQLWrapper>=1.8.0
-
+* pandas>=0.22.0
 
 Main dependencies:
 * BLAST 2.5.0+ ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.5.0/ or above
@@ -284,6 +284,8 @@ A: At the moment:
  - *Enterococcus faecium*
  - *Escherichia coli*
  - *Haemophilus influenzae*
+ - *Legionella pneumophila
+ - *Listeria monocytogenes
  - *Salmonella enterica enteritidis*
  - *Streptococcus agalactiae*
  - *Staphylococcus aureus*

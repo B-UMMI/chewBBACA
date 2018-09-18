@@ -48,7 +48,11 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 ## New in 2.0.12 (01/08/2018)
 * `[Errno 21] Is a directory:` when starting allele call was removed
 * when using the function `PrepExternalSchema`, locus that had no suitable alleles (translation error) would create an empty short file. The output now indicates to the user which locus has no allele suitable to be used by chewbbaca and deletes the fasta file.
- 
+
+## New in 2.0.13 (18/09/2018)
+* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
+
+  
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
 ...for a much more thorough chewBBACA walkthrough. 

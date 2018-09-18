@@ -67,6 +67,7 @@ def get_Short (gene,auxBar):
 		fasta_corrected=''
 		total_alleles=0
 		error_alleles=0
+		corrected_alleles=0
 		for allele in SeqIO.parse(gene, "fasta", generic_dna):
 			total_alleles+=1
 			try:
@@ -74,6 +75,9 @@ def get_Short (gene,auxBar):
 
 				if not originalSeq:
 					fasta_corrected+='>'+str(allele.name)+'\n'+str(sortedSeq) + '\n'
+					corrected_alleles+=1
+				else:
+					fasta_corrected+='>'+str(allele.name)+'\n'+str(str(allele.seq.upper())) + '\n'
 				#~ alleleI=int(((allele.name).split("_"))[-1])
 				alleleI=int(((allele.name).split("_"))[-1])
 				if counter<1:
@@ -212,7 +216,7 @@ def get_Short (gene,auxBar):
 			print ("ATTENTION!!!111 \n"+str(gene)+" has no correct aleles, the file will be removed!!")
 			os.remove(gene)
 		
-		if len(fasta_corrected)>1:
+		if corrected_alleles>=1 or error_alleles>=1:
 			with open(gene,'w') as f:
 				f.write(fasta_corrected)
 

@@ -1,5 +1,0 @@
-numpy==1.13.1
-scipy==0.13.3
-biopython==1.70
-plotly==1.12.9
-requests==2.2.1

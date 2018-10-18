@@ -97,8 +97,10 @@ def get_schema(schema_uri,path2down,cpu2use,maxBsrShort):
 	dictLoci={}
 	r = requests.get(schemaLociList)
 	result=r.json()
+	result = result["Loci"]
+	serverTime = result.pop()['date']
 
-	serverTime=result.pop()
+
 	#get server time and save on config before starting to down stuff, usefull for further sync function
 	if not os.path.exists(os.path.join(path2down, "config.py")):
 		with open(os.path.join(path2down, ".config.txt"), 'w') as f:

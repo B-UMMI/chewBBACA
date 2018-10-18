@@ -340,7 +340,11 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 	result=r.json()
 
 	#remove server time
-	result.pop()
+	#result.pop()
+
+	#get only the locus
+	result = result["Loci"]
+	serverTime = result.pop()['date']
 
 	for gene in result:
 		dictgenes[str(gene['name']['value'])]=str(gene['locus']['value'])
@@ -506,6 +510,16 @@ def main(profileFile,pathSchema,token,metadataFile,percentMDallowed,cpu):
 
 	#get schema uri and date from schema .config file
 	lastSyncServerDate,schemaUri=get_schema_vars(pathSchema)
+
+	server_url = (schemaUri.split("/species"))[0]
+
+	r = requests.get(server_url, timeout=5)
+	if r.status_code > 200:
+		print("server returned error with code " + str(
+			r.status_code) + ", program will stop since there seems to be a problem contacting the server")
+		return
+	else:
+		print("server is running, will start the program")
 
 	collect_new_alleles_seq(profileFile,pathSchema,token,schemaUri,cpu2Use,percentMDallowed,metadataFile)
 

@@ -52,6 +52,9 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 ## New in 2.0.13 (18/09/2018)
 * when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
 
+## New in 2.0.14 (06/1/2018)
+* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
+
   
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
@@ -288,8 +291,8 @@ A: At the moment:
  - *Enterococcus faecium*
  - *Escherichia coli*
  - *Haemophilus influenzae*
- - *Legionella pneumophila
- - *Listeria monocytogenes
+ - *Legionella pneumophila*
+ - *Listeria monocytogenes*
  - *Salmonella enterica enteritidis*
  - *Streptococcus agalactiae*
  - *Staphylococcus aureus*

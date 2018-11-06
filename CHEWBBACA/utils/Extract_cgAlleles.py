@@ -106,7 +106,7 @@ def clean(inputfile, outputfile, toremovegenes, toremovegenomes, cgPercent):
     cleaned.to_csv(cgmlst_path, sep='\t')
 
     schema_path = os.path.join(outputfile, 'cgMLSTschema.txt')
-    pd.Series(list(cleaned.index)).to_csv(schema_path, index=False)
+    pd.Series(list(cleaned.columns.values)).to_csv(schema_path, index=False)
 
     mdata_path = os.path.join(outputfile, 'mdata_stats.tsv')
     missing_data_df.to_csv(mdata_path, sep='\t', index=False)

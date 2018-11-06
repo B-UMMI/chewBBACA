@@ -81,7 +81,7 @@ Below you can find a list of commands for a quick usage of the software.
 
 ## Available [training files](https://github.com/mickaelsilva/prodigal_training_files) ...
 
-...use for a better result, species specific. *Also inside the package now!* `--ptf e.g. Acinetobacter_baumannii.trn` will now also work!
+...use for a better result, species specific. **Also inside the package now!** e.g. `--ptf  Acinetobacter_baumannii.trn` will now also work!
 
 ----------
 

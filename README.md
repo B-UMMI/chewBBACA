@@ -24,38 +24,33 @@ As from 02/02/2018 **chewBBACA is a python package**, install with pip instead o
 As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
 
 # Latest updates
-## New in 2.0.5 (14/02/2018)
-* AlleleCall : -i option accepts a single fasta file now
-
+ 
+## New in 2.0.15 (06/1/2018)
+* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
+ 
+## New in 2.0.13 (18/09/2018)
+* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
+ 
+## New in 2.0.11 (05/06/2018)
+* corrected bug when -h on allele call
+* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
+ 
+## New in 2.0.10 (21/05/2018)
+* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
+* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
+ 
+## New in 2.0.9 (04/04/2018)
+* blast results during allele call are not saved as a file, instead are piped directly for processing
+* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option  
+ 
 ## New in 2.0.7 (23/02/2018)
 * corrected bug that prevented usage of latest blast version (>=2.7.0)
 * version flag can now be used `--version`
 * instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
+ 
+## New in 2.0.5 (14/02/2018)
+* AlleleCall : -i option accepts a single fasta file now
 
-
-## New in 2.0.9 (04/04/2018)
-* blast results during allele call are not saved as a file, instead are piped directly for processing
-* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option
-
-## New in 2.0.10 (21/05/2018)
-* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
-* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
-
-## New in 2.0.11 (05/06/2018)
-* corrected bug when -h on allele call
-* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
-
-## New in 2.0.12 (01/08/2018)
-* `[Errno 21] Is a directory:` when starting allele call was removed
-* when using the function `PrepExternalSchema`, locus that had no suitable alleles (translation error) would create an empty short file. The output now indicates to the user which locus has no allele suitable to be used by chewbbaca and deletes the fasta file.
-
-## New in 2.0.13 (18/09/2018)
-* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
-
-## New in 2.0.15 (06/1/2018)
-* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
-
-  
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
 ...for a much more thorough chewBBACA walkthrough. 

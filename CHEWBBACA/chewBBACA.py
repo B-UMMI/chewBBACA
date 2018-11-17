@@ -90,13 +90,19 @@ def create_schema():
             for genome in genomeFiles:
                 f.write(genome + "\n")
         genomeFiles = "listGenomes2Call.txt"
-
-    chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
+    try:
+        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
+    except:
+        chosenTrainingFileLocal=False
+        pass
+        
     if os.path.isfile(chosenTrainingFile):
         pass
 	
     elif os.path.isfile(chosenTrainingFileLocal):
         chosenTrainingFile=chosenTrainingFileLocal
+        pass
+    elif not chosenTrainingFileLocal:
         pass
     else:
         print( chosenTrainingFile+ " file not found")
@@ -164,16 +170,22 @@ def allele_call():
                 f.write(genome + "\n")
         genes2call = "listGenes2Call.txt"
 	
+    try:
+        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
+    except:
+        chosenTrainingFileLocal=False
+        pass
 
-    chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
     if os.path.isfile(chosenTrainingFile):
         pass
 	
     elif os.path.isfile(chosenTrainingFileLocal):
         chosenTrainingFile=chosenTrainingFileLocal
         pass
+    elif not chosenTrainingFileLocal:
+        pass
     else:
-        print( chosenTrainingFile+ " file not found")
+        print( str(chosenTrainingFile)+ " file not found")
         return
     
     #try to open as a fasta
@@ -401,7 +413,7 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.15"
+    version="2.0.16"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"

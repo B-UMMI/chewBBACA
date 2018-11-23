@@ -9,6 +9,10 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import time
 
+try:
+    from utils import send_metadata
+except ImportError:
+    from CHEWBBACA_NS.utils import send_metadata
 
 class Result():
 	def __init__(self):
@@ -32,62 +36,6 @@ def send_post(loci_uri,sequence,token):
 
 	return allele_url,req_code,r.content
 
-def read_metadata(metadataFile):
-	metadata={}
-	with open(metadataFile) as csvfile:
-		reader = csv.reader(csvfile, delimiter='\t')
-
-		firstrow=next(reader)
-		if "FILE" not in firstrow or "ACCESSION" not in firstrow or  "COUNTRY" not in firstrow or  "ST" not in firstrow :
-			print (firstrow)
-			return "Not correct header"
-
-		print (firstrow)
-		metadata["metadata"]=firstrow
-		for row in reader:
-			metadata[row[0]]=row
-
-
-	return 	metadata
-
-def send_metadata(token,metadata,url):
-
-	params = {}
-	params['accession'] = metadata[2]
-	params['ST'] = metadata[1]
-	params['country'] = metadata[3]
-	headers = {'Authentication-Token': token}
-
-
-	sucess_send = False
-	attempts = 0
-	waitFactor = 4
-	while not sucess_send and attempts < 5:
-		r = requests.post(url, data=params, headers=headers, timeout=60)
-		req_code = int(r.status_code)
-
-		if req_code == 409:
-			print(url)
-			print("Genome already has metadata")
-			return
-
-		elif req_code == 403:
-			print(url)
-			print("Genome is not your property")
-			return
-
-		elif req_code > 201:
-			print((r.content).decode("utf-8"))
-			print("Server returned code " + str(req_code))
-			time.sleep(waitFactor)
-			waitFactor = waitFactor * 2
-			attempts += 1
-		# raise
-		else:
-			sucess_send = True
-			print(r.text)
-
-	return "Done"
 
 def send_sequence(token,sequence,loci_uri,prev_allele_id):
 
@@ -242,9 +190,10 @@ def process_genome(genome,schemaURI,profile,listHeaders,token,auxBar):
 
 		server_return = requests.post(server_ip, headers=headers, data=json.dumps(event_data))
 
-		if server_return.status_code==403:
-			print(genome+ " already exists and you are not the owner, change the isolate name?")
+		if server_return.status_code == 401:
+			print("Token is not valid")
 			sucess_send = True
+
 		elif server_return.status_code>201:
 			time.sleep(waitFactor)
 			waitFactor=waitFactor*2
@@ -262,6 +211,7 @@ def process_genome(genome,schemaURI,profile,listHeaders,token,auxBar):
 			int((index / auxlen) * 100)) + "%")
 
 	try:
+		time.sleep(1)
 		genome_new_uri=((server_return.content.decode("utf-8").split("at "))[-1]).strip()
 	except:
 		genome_new_uri=False
@@ -317,7 +267,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 			#if number of missing data is larger than the missing data allowed the genome is discarded
 			if int(len(listHeaders)*(percentMDallowed))<=missing_data_count:
 				i+=1
-				print (row[0]+" discarded from further analysis because missing data count is over 50%")
+				print (row[0]+" discarded from further analysis because missing data count is over "+str(percentMDallowed))
 				listGenomes2discard.append(row[0])
 				continue
 
@@ -344,7 +294,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 
 	#get only the locus
 	result = result["Loci"]
-	serverTime = result.pop()['date']
+	serverTime = r.headers['Server-Date']
 
 	for gene in result:
 		dictgenes[str(gene['name']['value'])]=str(gene['locus']['value'])
@@ -400,6 +350,10 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 
 	print(str(number_new_alleles)+" new alleles were uploaded")
 
+	#give the server a minute of rest if a lot of alleles were sent, you already waited a lot so it wont make difference anyway :))
+	if number_new_alleles>100000:
+		time.sleep(300)
+
 	lists2print=[]
 	modifiedProfileDict={}
 	i=0
@@ -451,22 +405,21 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 
 		#if to send metadata process the metadata info and send it
 		if metadataFile:
-			meta_headers=metadataFile["metadata"]
-			file_index = meta_headers.index("FILE")
-			st_index=meta_headers.index("ST")
-			acc_index = meta_headers.index("ACCESSION")
-			count_index = meta_headers.index("COUNTRY")
-
-			pool = multiprocessing.Pool(cpu2Use)
+			dicgenomes2sendMeta={}
 			for genome in listUploadedGenomes:
 				if genome[1]:
-					aux=metadataFile[genome[0]]
-					auxlist=[aux[file_index],aux[st_index],aux[acc_index],aux[count_index]]
-					#send_metadata(token,auxlist,genome[1])
-					p = pool.apply_async(send_metadata, args=[token,auxlist,genome[1].replace('"','')])
+					try:
+						dicgenomes2sendMeta[genome[0]]=(genome[1]).replace('"', '').strip()
+					except:
+						#genome is not on the metadata file
+						continue
 
-			pool.close()
-			pool.join()
+
+
+			print("will send the metadata of the following isolates")
+			print(dicgenomes2sendMeta)
+			send_metadata.main(metadataFile, cpu2Use,token,str(dicgenomes2sendMeta))
+
 
 
 	with open("newProfile.tsv", 'w') as f:
@@ -500,13 +453,6 @@ def main(profileFile,pathSchema,token,metadataFile,percentMDallowed,cpu):
 	cpu2Use=int(cpu)
 	percentMDallowed=float(percentMDallowed)
 
-	#check if metadata is correct or not to be sent with the profiles
-	if not metadataFile==False:
-		metadataFile=read_metadata(metadataFile)
-
-	if metadataFile == '"Not correct header"':
-		print ("Error on metadata file header, should contain FILE ACCESSION COUNTRY ST")
-		return
 
 	#get schema uri and date from schema .config file
 	lastSyncServerDate,schemaUri=get_schema_vars(pathSchema)

@@ -98,7 +98,7 @@ def get_schema(schema_uri,path2down,cpu2use,maxBsrShort):
 	r = requests.get(schemaLociList)
 	result=r.json()
 	result = result["Loci"]
-	serverTime = result.pop()['date']
+	serverTime = r.headers['Server-Date']
 
 
 	#get server time and save on config before starting to down stuff, usefull for further sync function
@@ -165,7 +165,6 @@ def main(uri2schema,path2down,cpu2use,maxBsrShort):
 		print("server is running, will start the program")
 
 	maxBsrShort=maxBsrShort
-	#~ uri2schema="http://137.205.69.51/app/NS/species/1/schemas/1"
 
 	lala=get_schema(uri2schema,path2down,cpu2use,maxBsrShort)
 

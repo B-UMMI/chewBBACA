@@ -389,14 +389,22 @@ def getNewsequences(newDict,lastSyncServerDate,schemaUri,numberSequences):
 	#print(result["newAlleles"][-1]['date'])
 
 	#remove the server date from the request last result, the request returns the list of alleles sorted meaning the last is the oldest from the list
-	servertime = result.pop()['date']
+	#servertime = result.pop()['date']
+
+	#if no Last-Allele on headers is because there are no alleles
+	try:
+		servertime = r.headers['Last-Allele']
+	except:
+		servertime = r.headers['Server-Date']
+		print("The schema is already up to date at: " + str(lastSyncServerDate))
+		return (newDict, True, servertime, numberSequences)
 
 	print("Getting NS new alleles since " + str(lastSyncServerDate))
 
 	#no allele returned, no more new alleles on the db
-	if len(result) < 1:
-		print("The schema is already up to date at: " + str(lastSyncServerDate))
-		return (newDict,True,servertime,numberSequences)
+	#if len(result) < 1:
+	#	print("The schema is already up to date at: " + str(lastSyncServerDate))
+	#	return (newDict,True,servertime,numberSequences)
 
 	#for each new allele add info to the dictionary
 	for newAllele in result:
@@ -408,12 +416,16 @@ def getNewsequences(newDict,lastSyncServerDate,schemaUri,numberSequences):
 
 
 	numberSequences +=len(result)
-
+	print(r.headers)
 	#if the result is the maximum number of new alleles the server can return, re-do the function, else stop doing the function
-	if len(result) >= 100000:
-		return (newDict,False,servertime,numberSequences)
+	if r.headers['All-Alleles-Returned']=='False':
+		return (newDict, False, servertime, numberSequences)
 	else:
-		return (newDict, True, servertime,numberSequences)
+		return (newDict, True, servertime, numberSequences)
+
+	#if len(result) >= 50000:
+	#	return (newDict,False,servertime,numberSequences)
+
 
 def syncSchema(lastSyncServerDate,schemaUri,path2schema,cpu2use,blastPath,bsrTresh):
 
@@ -432,7 +444,7 @@ def syncSchema(lastSyncServerDate,schemaUri,path2schema,cpu2use,blastPath,bsrTre
 
 	#the last date is the last allele date from the server
 	if numberSequences < 1:
-		print("The schema is already up to date at: " + str(lastSyncServerDate))
+		print("The schema is now up to date at: " + str(lastSyncServerDate))
 		return (lastSyncServerDate)
 
 

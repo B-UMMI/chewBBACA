@@ -30,24 +30,30 @@ Python dependencies:
 * pandas>=0.22.0
 * requests==2.2.1
 
+**Docker image**
+
+```
+docker pull mickaelsilva/chewbbaca_nserver
+```
+
 ----------
 
-## 1. get a schema from NS
+## 1. Download a schema from NS
 
 Download a schema from NS with the DownloadSchema. Schemas are associated to species, each species has its own schemas.
-To check the schemas of species 1 you go to http://137.205.69.51/app/v1/NS/species/1/schemas. The URI that defines the schema should be used
+To check the schemas of species 1 you go to http://chewbbaca.online/app/v1/NS/species/1/schemas. The URI that defines the schema should be used
 for the -i input.
 
 **Note:**
 Downloading a schema with thousands of loci and thousands of alleles from the server is fast, however
 due to the need of some calculations for chewBBACA software usage (BSR scores), it may take a while to complete the process.
 In order to mitigate this issue we have compressed versions of the schemas available that, even if outdated, are easily
-updatable locally through the SyncSchema function. The compressed versions can be downloaded from a
-browser e.g. http://137.205.69.51/app/v1/NS/species/1/schemas/2/compressed
+updatable locally through the SyncSchema function (see step 4). The compressed versions can be downloaded from a
+browser e.g. http://chewbbaca.online/app/v1/NS/species/1/schemas/2/compressed
 
 The command is the following:
 
-`chewBBACA.py DownloadSchema -i http://137.205.69.51/app/v1/NS/species/1/schemas/2 -p my_schema/ --cpu 6`
+`chewBBACA.py DownloadSchema -i http://chewbbaca.online/app/v1/NS/species/1/schemas/2 -p my_schema/ --cpu 6`
 
 **Parameters**
 
@@ -80,6 +86,7 @@ Then run is the following:
 
 `-i` Folder containing the query genomes. Alternatively a file
  containing the list with the full path of the location of the query genomes.
+
 `-g` Folder containing the reference genes of the schema. Alternatively a file
  containing the list with the full path of the location of the reference genes.  
 
@@ -131,7 +138,7 @@ Usage:
 
 
 Metadata file should be a tsv file with the following headers:
-```FILE ACCESSION COUNTRY ST ```
+```FILE ACCESSION COUNTRY ST STRAIN```
 
 Country should be one of the present on the DBpedia list:
 http://dbpedia.org/class/yago/WikicatMemberStatesOfTheUnitedNations
@@ -166,17 +173,17 @@ new profiles (-p option)
 
 Basic usage:
 
-`chewBBACA.py DownloadProfiles --sp http://137.205.69.51/app/v1/NS/species/2 --sc http://137.205.69.51/app/v1/NS/species/2/schemas/1 --cpu 6`
+`chewBBACA.py DownloadProfiles --sp http://chewbbaca.online/app/v1/NS/species/2 --sc 1 --cpu 6`
 	
 `--sp` species uri
 
-`--sc` schema uri
+`--sc` schema id
 
 `--cpu` number of cpu to use
 
-`-r` genomes to down profile
+`-r` (optional) list of specific genomes to download profiles
 
-`-p` profile with already downloaded profiles for that schema
+`-p` (optional) profile with already downloaded profiles for that schema.
 
 The output will be a new file with all the profiles (profiles.tsv)
 
@@ -186,16 +193,16 @@ The output will be a new file with all the profiles (profiles.tsv)
 ## 5. Defining the cgMLST profile
 
 This function is to be used to clean a raw output 
-file from an allele calling to a phyloviz readable file. Alleles that are only present locally (*alleles)
+file from an allele calling to a PhyloViz readable file. Alleles that are only present locally (*alleles)
 will be replaced by a high allele number (e.g. 99999)
 
 Basic usage:
 
 `chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
 	
--i` raw output file from an allele calling
+`-i` raw output file from an allele calling
 
-`-o` output folder (created by the script if not existant yet)
+`-o` output folder (created by the script if not existent yet)
 
 `-r` (optional) list of genes to remove, one per line (e.g. the list of gene detected by ParalogPrunning.py)
 

@@ -1,0 +1,3 @@
+FILE	ST	ACCESSION	COUNTRY	STRAIN	collection_date	host	host_disease	lat	long	isol_source
+http://chewbbaca.online/app/v1/NS/species/2/isolates/9bce983846cacde948f624749596db9a095274175843ed5dda061585ee8482bc	1	ERR1227232	Portugal	Philadelphia 1	1990-10-20	human	0060859	-35.5	36.2222	nose of patient
+http://chewbbaca.online/app/v1/NS/species/2/isolates/9bce983846cacde948f624749596db9a095274175843ed5dda061585ee8482bc	1	ERR1221234	France	XYZ	200-10-20	pig	0060859	-35.5	36.2222	armpit

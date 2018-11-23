@@ -5,7 +5,7 @@ import CHEWBBACA_NS
 VERSION = CHEWBBACA_NS.__version__
 
 setup(
-  name = 'chewBBACA_NS',
+  name = 'chewBBACA_NServer',
   packages = ['CHEWBBACA_NS','CHEWBBACA_NS.allelecall','CHEWBBACA_NS.utils','CHEWBBACA_NS.SchemaEvaluator'],
   version = VERSION,
   description = 'chewBBACA comunicates with the nomenclature server HUUURRR',

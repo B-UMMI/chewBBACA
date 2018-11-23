@@ -9,11 +9,13 @@ from Bio.Alphabet import generic_dna
 try:
     from allelecall import BBACA
     from SchemaEvaluator import ValidateSchema
-    from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema
+    from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
 except ImportError:
     from CHEWBBACA_NS.allelecall import BBACA
     from CHEWBBACA_NS.SchemaEvaluator import ValidateSchema
-    from CHEWBBACA_NS.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema
+    from CHEWBBACA_NS.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
+
+import CHEWBBACA_NS
 
 
 def check_if_list_or_folder(folder_or_list):
@@ -115,6 +117,25 @@ def allele_call():
             for genome in genomes2call:
                 f.write(genome + "\n")
         genomes2call = "listGenomes2Call.txt"
+
+    try:
+        chosenTrainingFileLocal = os.path.join(os.path.dirname(CHEWBBACA_NS.__file__), "prodigal_training_files",
+                                               chosenTrainingFile)
+    except:
+        chosenTrainingFileLocal = False
+        pass
+
+    if os.path.isfile(chosenTrainingFile):
+        pass
+
+    elif os.path.isfile(chosenTrainingFileLocal):
+        chosenTrainingFile = chosenTrainingFileLocal
+        pass
+    elif not chosenTrainingFileLocal:
+        pass
+    else:
+        print(str(chosenTrainingFile) + " file not found")
+        return
 
     BBACA.main(genomes2call, genes2call, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceContinue, jsonReport, verbose,
                forceReset, contained, chosenTaxon, chosenTrainingFile, inputCDS, sizeTresh)
@@ -312,6 +333,13 @@ def download_schema_NS():
     cpu2use = args.cpu
     maxBsrShort = args.bsr
 
+    #check if path to down is direcotry
+    if not os.path.isdir(path2down):
+        print(path2down+" is not a folder")
+        return
+    if os.listdir(path2down):
+        print(path2down+" is not a folder")
+        return
     down_schema.main(uri2schema, path2down,cpu2use,maxBsrShort)
 
 def sync_schema_NS():
@@ -349,7 +377,7 @@ def send_NS():
     parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
     parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
     parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
-    parser.add_argument('--mdr', nargs='?', type=str, help='maximum missing data allowed to fail, default 0.5 (50 percent missing data allowed', required=False, default=0.5)
+    parser.add_argument('--mdr', nargs='?', type=str, help='maximum missing data allowed to fail, default 0.5 (50 percent missing data allowed). 1 == all profiles are uploaded even with 100 percent missing data', required=False, default=0.5)
     parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
 
     args = parser.parse_args()
@@ -362,6 +390,26 @@ def send_NS():
     percentMDallowed=args.mdr
 
     send2NS.main(profileFile,pathSchema,token,metadata,percentMDallowed,cpu2use)
+
+def send_meta():
+
+    def msg(name=None):
+        return ''' chewBBACA.py SendMetadata [SendMetadata ...][-h] -s [S] -t [T] -p [P]
+                    '''
+
+    parser = argparse.ArgumentParser(description="send metadata to isolates on the NS",usage=msg())
+    parser.add_argument('SendMetadata', nargs='+', help='send metadata to isolates on the NS')
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
+    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+
+    args = parser.parse_args()
+
+    token= args.t
+    metadata = args.m
+    cpu2use = args.cpu
+
+    send_metadata.main(metadata,cpu2use,token)
 
 
 def down_prof():
@@ -378,6 +426,7 @@ def down_prof():
     parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
     parser.add_argument('-r', nargs='?', type=str, help='genomes to down profile', required=False, default=None)
     parser.add_argument('-p', nargs='?', type=str, help='profile with already downloaded profiles for that schema', required=False, default=None)
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
 
 
     args = parser.parse_args()
@@ -387,21 +436,22 @@ def down_prof():
     cpu2use = args.cpu
     genomes2Down = args.r
     inputProfile = args.p
+    token = args.t
 
-    down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down)
+    down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down,token)
 
 
 def main():
 
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles',
-                      'DownloadSchema',"SyncSchema",'Send2NS','DownloadProfiles']
+                      'DownloadSchema',"SyncSchema",'Send2NS','DownloadProfiles','SendMetadata']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes',
                  'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas',
                  'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output',
                  'prepare an external schema to be used by chewBBACA','join two profiles in a single profile file', 'Download schema from NS',
-                 'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS','Download all profiles of a given species for a given schema']
+                 'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS','Download all profiles of a given species for a given schema','send metadata to isolates on the NS']
 
-    version="1.0.9"
+    version="1.0.0"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA/tree/chewie_NS"
     contact="mickaelsilva@medicina.ulisboa.pt"
@@ -437,6 +487,8 @@ def main():
             send_NS()
         elif sys.argv[1] == functions_list[11]:
             down_prof()
+        elif sys.argv[1] == functions_list[12]:
+            send_meta()
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')

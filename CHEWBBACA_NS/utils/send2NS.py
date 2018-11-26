@@ -297,7 +297,7 @@ def collect_new_alleles_seq(profileFile,path2Schema, token,schemaURI,cpu2Use,per
 	serverTime = r.headers['Server-Date']
 
 	for gene in result:
-		dictgenes[str(gene['name']['value'])]=str(gene['locus']['value'])
+		dictgenes[str(gene['name']['value'])+".fasta"]=str(gene['locus']['value'])
 
 
 	#read the fasta and process each new allele, send the sequence to the server and replace the attributed allele on the profiles

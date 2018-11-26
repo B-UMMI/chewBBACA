@@ -451,7 +451,7 @@ def main():
                  'prepare an external schema to be used by chewBBACA','join two profiles in a single profile file', 'Download schema from NS',
                  'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS','Download all profiles of a given species for a given schema','send metadata to isolates on the NS']
 
-    version="1.0.0"
+    version="1.0.1"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA/tree/chewie_NS"
     contact="mickaelsilva@medicina.ulisboa.pt"

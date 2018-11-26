@@ -408,7 +408,7 @@ def getNewsequences(newDict,lastSyncServerDate,schemaUri,numberSequences):
 
 	#for each new allele add info to the dictionary
 	for newAllele in result:
-		geneFasta = newAllele['locus_name']['value']
+		geneFasta = (newAllele['locus_name']['value'])+".fasta"
 		alleleid = newAllele['allele_id']['value']
 		sequenceUri = newAllele['sequence']['value']
 		# newDict[geneFasta].append([alleleid,sequenceUri])

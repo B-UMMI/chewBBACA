@@ -110,7 +110,7 @@ def get_schema(schema_uri,path2down,cpu2use,maxBsrShort):
 
 	print ("Number of loci to Down: "+str(totallen))
 	for locus in result:
-		dictLoci[str(locus['locus']['value'])]=str(locus['name']['value'])
+		dictLoci[str(locus['locus']['value'])]=str(locus['name']['value'])+".fasta"
 
 	#test down bar
 	auxBar=[]

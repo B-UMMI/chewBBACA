@@ -17,7 +17,7 @@ Users with sensible data can be matched to non authenticated users.
 Install using pip:
 
 ```
-pip3 install chewbbaca_ns
+pip3 install chewbbaca_nserver
 ```
 
 
@@ -53,7 +53,7 @@ browser e.g. http://chewbbaca.online/app/v1/NS/species/1/schemas/2/compressed
 
 The command is the following:
 
-`chewBBACA.py DownloadSchema -i http://chewbbaca.online/app/v1/NS/species/1/schemas/2 -p my_schema/ --cpu 6`
+`chewie_ns DownloadSchema -i http://chewbbaca.online/app/v1/NS/species/1/schemas/2 -p my_schema/ --cpu 6`
 
 **Parameters**
 
@@ -80,7 +80,7 @@ alleles will be present both on the fastas from the schema and the profile resul
 
 Then run is the following:
 
-`chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
+`chewie_ns AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
 
 **Parameters** 
 
@@ -124,7 +124,7 @@ the allele server number if it has already been attributed
 Usage:
 
 
-`chewBBACA.py Send2NS -s my_schema/ -p results/results_20171220T154443/results_alleles.tsv`  
+`chewie_ns Send2NS -s my_schema/ -p results/results_20171220T154443/results_alleles.tsv`
 	
 `-s` path to folder where the schema is
 
@@ -137,12 +137,37 @@ Usage:
 `-m` (optional) metadata file
 
 
-Metadata file should be a tsv file with the following headers:
-```FILE ACCESSION COUNTRY ST STRAIN```
+**NOTICE** metadata may be sent later with another function, see 7.
 
-Country should be one of the present on the DBpedia list:
+Metadata file should be a tsv file with the following headers:
+```
+FILE	ST	ACCESSION	COUNTRY	STRAIN	collection_date	host	host_disease	lat	long	isol_source
+```
+
+Metadata fields with no info should be completed with NA.
+
+**FILE** column must have the same name as the genome given in `-p`.
+
+**Country** should be one of the present on the DBpedia list:
 http://dbpedia.org/class/yago/WikicatMemberStatesOfTheUnitedNations
 
+**STRAIN** is free text .
+
+**ACCESSION** needs to be found either on ENA or SRA.
+
+**collection_date** needs to be on the YYYY-MM-DD format.
+
+**host** needs to be an acceptable taxon name of common name found at https://www.uniprot.org/taxonomy/ . Common names such as 'pig' 'human' will also work.
+
+**host_disease** needs to be a disease ID found at http://www.disease-ontology.org/ . e.g salmonellosis will be 0060859
+
+**lat** needs to be a float number.
+
+**long** needs to be a float number.
+
+**isol_source** is free text.
+
+All metadata fields are optional except FILE.
 
 **Outputs files**:
 The output will be a new modified file with the new modified profile (newProfile.tsv). Alleles id with an * are only present locally.
@@ -155,7 +180,7 @@ update your local schema.
 
 Basic usage:
 
-`chewBBACA.py SyncSchema -p my_schema/ --cpu 6`
+`chewie_ns SyncSchema -p my_schema/ --cpu 6`
 	
 `-p` path to schema folder
 
@@ -163,7 +188,7 @@ Basic usage:
 
 ----------
 
-## 4. Download profiles from a given species for a given schema
+## 5. Download profiles from a given species for a given schema
 
 This function is to be used to get profiles from the Nomenclature server. Given a species id and a
 schema id from that species, get a tsv with all the profiles. Due to the way the nomenclature server is built,
@@ -173,7 +198,7 @@ new profiles (-p option)
 
 Basic usage:
 
-`chewBBACA.py DownloadProfiles --sp http://chewbbaca.online/app/v1/NS/species/2 --sc 1 --cpu 6`
+`chewie_ns DownloadProfiles --sp http://chewbbaca.online/app/v1/NS/species/2 --sc 1 --cpu 6`
 	
 `--sp` species uri
 
@@ -185,12 +210,14 @@ Basic usage:
 
 `-p` (optional) profile with already downloaded profiles for that schema.
 
+`-t` (optional) private authentication token. If given, will download only the isolates that belong to the user.
+
 The output will be a new file with all the profiles (profiles.tsv)
 
 
 ----------
 
-## 5. Defining the cgMLST profile
+## 6. Manipulating the profile
 
 This function is to be used to clean a raw output 
 file from an allele calling to a PhyloViz readable file. Alleles that are only present locally (*alleles)
@@ -198,7 +225,7 @@ will be replaced by a high allele number (e.g. 99999)
 
 Basic usage:
 
-`chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
+`chewie_ns ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
 	
 `-i` raw output file from an allele calling
 
@@ -209,3 +236,54 @@ Basic usage:
 `-g` (optional) list of genomes to remove, one per line (e.g. list of genomes to be removed selected based on testGenomeQuality results) 
 
 `-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
+
+----------
+
+## 7. Send metadata to isolates already on the Nomenclature server
+
+This function is to be used to send metadata to isolates that are already on the Nomenclature server.
+Metadata that were already uploaded to the server will not be updated.
+
+
+Usage:
+
+
+`chewie_ns SendMetadata -t qweqweasd -m info.tsv --cpu 3`
+
+`-t` private authentication token
+
+`--cpu` Number of cpus to use
+
+`-m` metadata file
+
+Metadata file should be a tsv file with the following headers:
+```
+FILE	ST	ACCESSION	COUNTRY	STRAIN	collection_date	host	host_disease	lat	long	isol_source
+```
+
+Metadata fields with no info should be completed with NA.
+
+**FILE** column must have the **isolate URI**.
+
+**Country** should be one of the present on the DBpedia list:
+http://dbpedia.org/class/yago/WikicatMemberStatesOfTheUnitedNations
+
+**STRAIN** is free text .
+
+**ACCESSION** needs to be found either on ENA or SRA.
+
+**collection_date** needs to be on the YYYY-MM-DD format.
+
+**host** needs to be an acceptable taxon name of common name found at https://www.uniprot.org/taxonomy/ . Common names such as 'pig' 'human' will also work.
+
+**host_disease** needs to be a disease ID found at http://www.disease-ontology.org/ . e.g salmonellosis will be 0060859
+
+**lat** needs to be a float number.
+
+**long** needs to be a float number.
+
+**isol_source** is free text.
+
+All metadata fields are optional except FILE.
+
+See the info.tsv file for an example.

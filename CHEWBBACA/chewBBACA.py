@@ -421,11 +421,11 @@ def main():
     if len(sys.argv)>1 and "version" in sys.argv[1]:
         print (version)
         return
-    
+
     print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
 
     try:
-        print ("\n")
+        #print ("\n")
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
@@ -452,7 +452,7 @@ def main():
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
     except Exception as e:
-        print (e)
+        print (e) #CHECK THIS
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i=0

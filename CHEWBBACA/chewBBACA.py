@@ -451,6 +451,14 @@ def main():
             while i<len(functions_list):
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
+    except IndexError:
+        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('Select one of the following functions :\n')
+        i = 0
+        while i < len(functions_list):
+            print(functions_list[i] + " : " + desc_list[i])
+            i += 1
+
     except Exception as e:
         print (e)
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')

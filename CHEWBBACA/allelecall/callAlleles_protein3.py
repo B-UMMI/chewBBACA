@@ -673,7 +673,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                             alleleI += 1
                             appendAllele = '>' + str((((os.path.basename(geneFile)).split("."))[0]).replace("_",
                                                                                                             "-")) + "_" + tagAuxC + "_" + (
-                                           str(os.path.basename(genomeFile))).replace("_", "-") + "_" + str(
+                                           str(os.path.basename(genomeFile))).replace("_", "-") +"_"+time.strftime("%d/%m/%YT%H:%M:%S") + "_" + str(
                                 alleleI) + '\n'
                             
                             

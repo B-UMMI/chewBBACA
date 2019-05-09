@@ -25,7 +25,7 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 
 # Latest updates
 
-##chewBBACA released as a galaxy module! 
+## chewBBACA released as a galaxy module! 
 Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome ! 
 https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
 

@@ -421,7 +421,7 @@ def main():
                  'prepare an external schema to be used by chewBBACA', 'join two profiles in a single profile file',
                  'get info about a schema created with chewBBACA']
 
-    version = "2.0.17.1"
+    version = "2.0.17.2"
     createdBy = "Mickael Silva"
     rep = "https://github.com/B-UMMI/chewBBACA"
     contact = "mickaelsilva@medicina.ulisboa.pt"

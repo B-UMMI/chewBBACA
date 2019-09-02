@@ -463,7 +463,6 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                             #DNAstr = str(currentCDSDict[">" + cdsStrName])
 
                             AlleleDNAstr = alleleList[int(alleleMatchid) - 1]
-                            verboseprint(str(match))
                             verboseprint("BSR : " + str(scoreRatio))
 
                             if scoreRatio >= bsrTresh:

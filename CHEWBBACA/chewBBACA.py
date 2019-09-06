@@ -2,6 +2,7 @@
 
 import sys
 import os
+import platform
 import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
@@ -410,22 +411,49 @@ def find_uniprot():
 
 
 def main():
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST',
+                      'RemoveGenes', 'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder']
+    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes',
+                 'Tool that builds an html output to better navigate/visualize your schema',
+                 'Analyze your allele call output to refine schemas',
+                 'Select a subset of loci without missing data (to be used as PHYLOViZ input)',
+                 'Remove a provided list of loci from your allele call output',
+                 'prepare an external schema to be used by chewBBACA', 'join two profiles in a single profile file',
+                 'get info about a schema created with chewBBACA']
 
-    version="2.0.17.2"
-    createdBy="Mickael Silva"
-    rep="https://github.com/B-UMMI/chewBBACA"
-    contact="mickaelsilva@medicina.ulisboa.pt"
+    version = "2.0.17.2"
+    createdBy = "Mickael Silva"
+    rep = "https://github.com/B-UMMI/chewBBACA"
+    contact = "mickaelsilva@medicina.ulisboa.pt"
 
-    if len(sys.argv)>1 and "version" in sys.argv[1]:
-        print (version)
-        return
-    
-    print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+    # Check python version, if fail, exist with message
 
     try:
-        print ("\n")
+        python_version = platform.python_version()
+        assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
+
+    except AssertionError:
+        print("Python version found: {} ".format(platform.python_version()))
+        print("Please use version Python >= 3.4")
+        sys.exit(0)
+
+    # print help if no command is passed
+    if len(sys.argv) == 1:
+        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('Select one of the following functions :\n')
+        i = 0
+        while i < len(functions_list):
+            print(functions_list[i] + " : " + desc_list[i])
+            i += 1
+        sys.exit(0)
+
+    if len(sys.argv) > 1 and "version" in sys.argv[1]:
+        print(version)
+        return
+
+    print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
+
+    try:
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
@@ -447,11 +475,13 @@ def main():
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')
-            i=0
+            i = 0
             while i<len(functions_list):
-                print (functions_list[i] +" : "+desc_list[i])
-                i+=1
-    except IndexError:
+                print (functions_list[i] + " : " + desc_list[i])
+                i += 1
+
+    except Exception as e:
+        print(e)  # CHECK THIS
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i = 0
@@ -459,13 +489,6 @@ def main():
             print(functions_list[i] + " : " + desc_list[i])
             i += 1
 
-    except Exception as e:
-        print (e)
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-        print('Select one of the following functions :\n')
-        i=0
-        while i<len(functions_list):
-            print (functions_list[i] +" : "+desc_list[i])
-            i+=1
+
 if __name__ == "__main__":
     main()

@@ -41,9 +41,25 @@ strain: JCSC1435
 [GCF_000007265.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000007265.1/)
 strain: 2603V/R
 
+**Streptococcus canis**
+[NZ_LR134293.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_900636575.1/)
+strain: NCTC12191
+
+**Streptococcus dysgalactiae**
+[NC_019042.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000317855.1/)
+strain: AC-2713
+
+**Streptococcus equi**
+[NC_012470.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000026605.1/)
+strain: H70
+
 **Streptococcus pneumoniae**
 [GCF_000006885.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000006885.1)
 strain: TIGR4
+
+**Streptococcus pyogenes**
+[NC_002737.2](https://www.ncbi.nlm.nih.gov/assembly/GCF_000006785.2/)
+strain: SF370
 
 **Yersinia enterocolitica**
 [GCF_000009345.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_008800.1)

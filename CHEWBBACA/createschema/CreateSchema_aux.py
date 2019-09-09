@@ -822,7 +822,7 @@ def hierarchical_clustering(protein_fasta, output_directory, threads, cd_hit_sim
 
     # read clusters and remove sequences that share a cutoff_sim equal or greater than
     # the defined value. This avoids BLASTing sequences that are from the same gene
-    pruned_seqids = prune_clusters(clstr_path, cutoff_sim)
+    pruned_seqids = prune_clusters('{0}.clstr'.format(clstr_path), cutoff_sim)
 
     # sort clusters by cluster size
     sort_clusters_command = ('clstr_sort_by.pl < {0}/{1}.clstr '

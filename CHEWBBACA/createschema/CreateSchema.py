@@ -27,10 +27,10 @@ import runProdigal
 import CreateSchema_aux as rfm
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_genomes'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/test_32ref'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_complete_genomes'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_complete_genomes_schema'
 prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
-schema_name = 'sagalactiae_test'
+schema_name = 'sagalactiae_schema_seed'
 cpu_count = 6
 blastp_path = shutil.which('blastp')
 blast_score_ratio = 0.6
@@ -107,6 +107,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     with open(protein_table, 'w') as file:
         file.write('Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n')
 
+    # add multiprocessing!!!
     protid = 1
     cds_ids = []
     cds_file = os.path.join(temp_directory, 'coding_sequences.fasta')
@@ -164,7 +165,8 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
             lines.append(line)
 
         inv.writelines(lines)
-
+        
+    # add multiprocessing!!!
     # remove DNA sequences that could not be translated
     translatable_cds = list(set(valid_dna_seqs) - set(untranslatable_seqids))
     print('Removed {0} DNA sequences that could not be translated.'.format(len(untranslatable_seqids)))
@@ -206,7 +208,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     excluded_alleles = cd_hit_excluded
 
     # read clusters file and keep only lines for clusters with more than one sequence
-    clstr_file = '{0}/cd_hit_perc60-50-20_sorted.clstr'.format(temp_directory)
+    clstr_file = '{0}/cd_hit_{1}perc_n{2}_sorted.clstr'.format(temp_directory, int(cd_hit_sim*100), cd_hit_word)
     clstr_dictionary = os.path.join(temp_directory, 'clusters_dictionary')
     rfm.load_cluster_info(clstr_file, clstr_dictionary)
 

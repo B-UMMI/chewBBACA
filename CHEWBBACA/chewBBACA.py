@@ -450,7 +450,7 @@ def main():
     if len(sys.argv) > 1 and "version" in sys.argv[1]:
         print(version)
         return
-
+      
     print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
 
     try:
@@ -488,7 +488,6 @@ def main():
         while i < len(functions_list):
             print(functions_list[i] + " : " + desc_list[i])
             i += 1
-
 
 if __name__ == "__main__":
     main()

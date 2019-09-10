@@ -7,15 +7,17 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 
 try:
-	from allelecall import BBACA
-	from createschema import PPanGen
-	from SchemaEvaluator import ValidateSchema
-	from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
+    from allelecall import BBACA
+    from createschema import PPanGen
+    from SchemaEvaluator import ValidateSchema
+    from PrepExternalSchema import PrepExternalSchema
+    from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
 except ImportError:
-	from CHEWBBACA.allelecall import BBACA
-	from CHEWBBACA.createschema import PPanGen
-	from CHEWBBACA.SchemaEvaluator import ValidateSchema
-	from CHEWBBACA.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
+    from CHEWBBACA.allelecall import BBACA
+    from CHEWBBACA.createschema import PPanGen
+    from CHEWBBACA.SchemaEvaluator import ValidateSchema
+    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
 
 import CHEWBBACA
 
@@ -367,24 +369,43 @@ def join_profiles():
 def prep_schema():
 
     def msg(name=None):                                                            
-        return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v]
-                    '''
+        return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v] '''
 
-    parser = argparse.ArgumentParser(
-        description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele")
-    parser.add_argument('PrepExternalSchema', nargs='+', help='prepare a schema for chewbbaca')
-    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
+    parser = argparse.ArgumentParser(description='This script enables the adaptation of external schemas so that '
+                                                 'the loci and alleles present in those schemas can be used with '
+                                                 'chewBBACA. During the process, alleles that do not correspond to '
+                                                 'a complete CDS or that cannot be translated are discarded from the '
+                                                 'final schema. One or more alleles of each gene/locus will be chosen '
+                                                 'as representatives and included in the "short" directory.')
+
+    parser.add_argument('PrepExternalSchema', nargs='+', help='Adapt an external schema to be used with chewBBACA.')
+
+    parser.add_argument('-i', type=str, required=True, dest='input_files',
+                        help='Path to the folder containing the fasta files, '
+                             'one fasta file per gene/locus (alternatively, '
+                             'a file with the list of files can be given).')
+
+    parser.add_argument('-o', type=str, required=True, dest='output_directory',
+                        help='The directory where the output files will be saved '
+                        '(will create the directory if it does not exist).')
+
+    parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
+                        help='The number of processes to start. The input data will'
+                             ' be divided into sublists in order to reduce core idling '
+                             'and execution time (default=1).')
+
+    parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
+                        help='The BLAST Score Ratio value that will be used to adapt the external '
+                        'schema (default=0.6).')
 
     args = parser.parse_args()
 
-    geneFiles = args.i
-    cpu2use = args.cpu
-    verbose = args.verbose
+    gene_files = args.input_files
+    output_dir = args.output_directory
+    processes = args.core_count
+    bsr = args.blast_score_ratio
     
-    init_schema_4_bbaca.main(geneFiles,cpu2use)
+    PrepExternalSchema.main(gene_files, output_dir, processes, bsr)
 
 
 def find_uniprot():
@@ -410,13 +431,24 @@ def find_uniprot():
 
 
 def main():
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator',
+                      'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes',
+                      'PrepExternalSchema','JoinProfiles','UniprotFinder']
 
-    version="2.0.17.2"
-    createdBy="Mickael Silva"
-    rep="https://github.com/B-UMMI/chewBBACA"
-    contact="mickaelsilva@medicina.ulisboa.pt"
+    desc_list = ['Create a gene by gene schema based on genomes',
+                 'Perform allele call for target genomes',
+                 'Tool that builds an html output to better navigate/visualize your schema',
+                 'Analyze your allele call output to refine schemas',
+                 'Select a subset of loci without missing data (to be used as PHYLOViZ input)',
+                 'Remove a provided list of loci from your allele call output',
+                 'Adapt an external schema to be used with chewBBACA.',
+                 'join two profiles in a single profile file',
+                 'get info about a schema created with chewBBACA']
+
+    version = "2.0.17.2"
+    createdBy = "Mickael Silva"
+    rep = "https://github.com/B-UMMI/chewBBACA"
+    contact = "mickaelsilva@medicina.ulisboa.pt"
 
     if len(sys.argv)>1 and "version" in sys.argv[1]:
         print (version)

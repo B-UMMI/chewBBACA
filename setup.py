@@ -6,7 +6,7 @@ VERSION = CHEWBBACA.__version__
 
 setup(
   name = 'chewBBACA',
-  packages = ['CHEWBBACA','CHEWBBACA.allelecall','CHEWBBACA.createschema','CHEWBBACA.utils','CHEWBBACA.SchemaEvaluator'],
+  packages = ['CHEWBBACA','CHEWBBACA.allelecall','CHEWBBACA.createschema','CHEWBBACA.utils','CHEWBBACA.SchemaEvaluator','CHEWBBACA.PrepExternalSchema'],
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification',
   author = 'Mickael Silva',

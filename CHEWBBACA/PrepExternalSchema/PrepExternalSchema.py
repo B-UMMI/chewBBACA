@@ -865,9 +865,12 @@ def main(external_schema, output_schema, cpu_threads, bsr):
     schema_short_path = os.path.join(schema_path, 'short')
 
     # create output directories
+    # check if they exist first
     if not os.path.exists(schema_path):
-        os.makedirs(schema_path)
-        os.makedirs(schema_short_path)
+        os.mkdir(schema_path)
+    
+    if not os.path.exists(schema_short_path):
+        os.mkdir(schema_short_path)
 
     # append output paths and bsr value to each input
     for i in range(len(even_genes_groups)):

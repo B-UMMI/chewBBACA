@@ -390,9 +390,9 @@ def prep_schema():
                         '(will create the directory if it does not exist).')
 
     parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
-                        help='The number of processes to start. The input data will'
-                             ' be divided into sublists in order to reduce core idling '
-                             'and execution time (default=1).')
+                        help='The number of CPU cores to use (default=1). More cores'
+                        'significantly improve running time because several inputs '
+                        'are processed in parallel.')
 
     parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be used to adapt the external '

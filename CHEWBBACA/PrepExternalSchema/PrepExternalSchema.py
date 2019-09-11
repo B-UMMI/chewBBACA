@@ -997,31 +997,28 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-i', '--input_schema', type=str, required=True,
-                        dest='input_schema', help='External schema to adapt. '
-                        'Must be a directory with a FASTA file per gene to '
-                        'adapt.')
+    parser.add_argument('-i', type=str, required=True, dest='input_files',
+    					help='Path to the folder containing the fasta files, '
+                             'one fasta file per gene/locus (alternatively, '
+                             'a file with the list of files can be given).')
 
-    parser.add_argument('-o', '--output_directory', type=str, required=True,
-                        dest='output_directory', help='The directory where '
-                        'the output files will be saved (will create the '
-                        'directory if it does not exist).')
+    parser.add_argument('-o', type=str, required=True, dest='output_directory',
+    					help='The directory where the output files will be saved '
+                        '(will create the directory if it does not exist).')
 
-    parser.add_argument('-t', '--threads', type=int, required=False,
-                        dest='threads', default=1, help='The number of '
-                        'processes to start. The input data will be divided '
-                        'into sublists in order to reduce core idling and '
-                        'execution time (default=1).')
+    parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
+    					help='The number of CPU cores to use (default=1). More cores'
+                        'significantly improve running time because several inputs '
+                        'are processed in parallel.')
 
-    parser.add_argument('-bsr', '--blast_score_ratio', type=float,
-                        required=False, dest='blast_score_ratio', default=0.6,
-                        help='The BLAST Score Ratio value that will be '
-                        'used to adapt the external schema (default=0.6).')
+    parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
+                        help='The BLAST Score Ratio value that will be used to adapt the external '
+                        'schema (default=0.6).')
 
     args = parser.parse_args()
 
-    return [args.input_schema, args.output_directory,
-            args.threads, args.blast_score_ratio]
+    return [args.input_files, args.output_directory,
+            args.core_count, args.blast_score_ratio]
 
 
 if __name__ == '__main__':

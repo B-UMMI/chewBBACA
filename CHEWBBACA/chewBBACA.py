@@ -404,7 +404,7 @@ def prep_schema():
     output_dir = args.output_directory
     processes = args.core_count
     bsr = args.blast_score_ratio
-    
+
     PrepExternalSchema.main(gene_files, output_dir, processes, bsr)
 
 

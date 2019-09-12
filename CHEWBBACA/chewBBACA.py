@@ -390,7 +390,7 @@ def prep_schema():
                         '(will create the directory if it does not exist).')
 
     parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
-                        help='The number of CPU cores to use (default=1). More cores'
+                        help='The number of CPU cores to use (default=1). More cores '
                         'significantly improve running time because several inputs '
                         'are processed in parallel.')
 

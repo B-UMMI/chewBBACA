@@ -161,6 +161,8 @@ def get_seqs_dicts(gene_file, table_id):
                 translated.
     """
 
+    seqid = 1
+    seqids_map = {}
     dna_seqs = {}
     prot_seqs = {}
     invalid_alleles = []
@@ -169,14 +171,16 @@ def get_seqs_dicts(gene_file, table_id):
         translated_seq = translate_dna(str(allele.seq), table_id)
         # if returned value is a list, translation was successful
         if isinstance(translated_seq, list):
+            seqids_map[str(seqid)] = allele.id
             dna_seqs[allele.id] = translated_seq[0][1]
-            prot_seqs[allele.id] = str(translated_seq[0][0])
+            prot_seqs[str(seqid)] = str(translated_seq[0][0])
+            seqid += 1
         # if returned value is a string, translation failed and
         # string contains exceptions
         elif isinstance(translated_seq, str):
             invalid_alleles.append([allele.id, translated_seq])
 
-    return [dna_seqs, prot_seqs, invalid_alleles]
+    return [dna_seqs, prot_seqs, invalid_alleles, seqids_map]
 
 
 def reverse_complement(dna_sequence):
@@ -642,6 +646,8 @@ def gene_seqs_info(genes_list):
     return genes_info
 
 
+#genes_list = even_genes_groups[0]
+
 def adapt_external_schema(genes_list):
     """ Adapts a set of genes/loci from as external schema to be
         used with chewBBACA. Removes invalid alleles and selects
@@ -695,7 +701,8 @@ def adapt_external_schema(genes_list):
 
         # get dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
-        gene_seqs, prot_seqs, gene_invalid = get_seqs_dicts(gene, table_id)
+        gene_seqs, prot_seqs, gene_invalid, seqids_map = \
+            get_seqs_dicts(gene, table_id)
         invalid_alleles.extend(gene_invalid)
 
         # if locus has no valid CDS sequences,
@@ -751,7 +758,7 @@ def adapt_external_schema(genes_list):
             write_list(rep_protein_lines, rep_file)
 
             # create file with seqids to BLAST against
-            ids_str = concatenate_list(ids_to_blast, '\n')
+            ids_str = concatenate_list([str(i) for i in ids_to_blast], '\n')
             ids_file = os.path.join(gene_temp_dir,
                                     '{0}_ids.txt'.format(gene_id))
             write_text_chunk(ids_file, ids_str)
@@ -850,12 +857,19 @@ def adapt_external_schema(genes_list):
         write_list(gene_lines, gene_file)
 
         # write schema file with representatives
+        representatives = [seqids_map[rep] for rep in representatives]
         gene_rep_lines = fasta_lines(representatives, gene_seqs)
         write_list(gene_rep_lines, gene_short_file)
 
         shutil.rmtree(gene_temp_dir)
 
     return [invalid_alleles, invalid_genes]
+
+
+#external_schema = '/home/rfm/Desktop/rfm/Lab_Software/PrepExternalSchema_tests/660senterica'
+#output_schema = '/home/rfm/Desktop/rfm/Lab_Software/PrepExternalSchema_tests/adapted_660senterica'
+#cpu_threads = 6
+#bsr = 0.6
 
 
 def main(external_schema, output_schema, cpu_threads, bsr):
@@ -869,16 +883,20 @@ def main(external_schema, output_schema, cpu_threads, bsr):
 
     genes_list = []
 
-    # list FASTA files in input directory and determine absolute path for each
-    genes_list = os.listdir(external_schema)
+    # list FASTA files in input directory
+    # or get list of files from text file
+    if os.path.isdir(external_schema) is True:
+        genes_list = os.listdir(external_schema)
+        # get absolute paths
+        genes_list = [os.path.join(external_schema, file)
+                      for file in genes_list]
+    elif os.path.isfile(external_schema) is True:
+        with open(external_schema, 'r') as infile:
+            genes_list = [file.strip() for file in infile.readlines()]
 
     # filter files based on suffix
     file_suffixes = ['.fasta', '.fna', '.ffn']
     genes_list = filter_files(genes_list, file_suffixes)
-
-    # get absolute path for every file
-    for f in range(len(genes_list)):
-        genes_list[f] = os.path.join(external_schema, genes_list[f])
 
     # filter files based on contents, must be FASTA with sequences
     genes_list = filter_non_fasta(genes_list)

@@ -646,7 +646,92 @@ def gene_seqs_info(genes_list):
     return genes_info
 
 
-#genes_list = even_genes_groups[0]
+def make_blast_db(input_fasta, output_path, db_type):
+    """
+    """
+
+    makedb_cmd = ('makeblastdb -in {0} -out {1} -parse_seqids '
+                  '-dbtype {2} > /dev/null'.format(input_fasta,
+                                                   output_path,
+                                                   db_type))
+    os.system(makedb_cmd)
+
+
+def determine_blast_task(proteins):
+    """
+    """
+
+    blast_task = 'blastp'
+    for allele in SeqIO.parse(proteins, 'fasta', generic_dna):
+        if len(str(allele.seq)) < 30:
+            blast_task = 'blastp-short'
+
+    return blast_task
+
+
+def create_directory(directory_path):
+    """
+    """
+
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+
+def join_paths(parent_path, child_path):
+    """
+    """
+
+    joined_paths = os.path.join(parent_path, child_path)
+
+    return joined_paths
+
+
+def determine_new_representative(candidates, proteins,
+                                 seqids, representatives):
+    """
+    """
+
+    # with more than one sequence as candidate, select longest
+    if len(candidates) > 1:
+
+        # determine length of all candidates
+        candidates_len = [(seqid, len(proteins[seqid]))
+                          for seqid in candidates]
+
+        # order representative candidates by length descending order
+        candidates_len = sorted(candidates_len, key=lambda x: x[1],
+                                reverse=True)
+
+        # longest allele is the new representative
+        representatives.append(candidates_len[0][0])
+
+    # if tere is only one candidate, keet that
+    elif len(candidates) == 1:
+
+        representatives.append(candidates[0])
+
+    # if no hit qualifies and there are still sequences
+    # without representative
+    elif len(candidates) == 0 and \
+            len(seqids) > len(representatives):
+
+        # determine length of remaining sequences
+        # (representatives not included)
+        candidates_len = [(seqid, len(proteins[seqid]))
+                          for seqid in seqids
+                          if seqid not in representatives]
+
+        # sort by descending length
+        candidates_len = sorted(candidates_len, key=lambda x: x[1],
+                                reverse=True)
+
+        # longest of remaining sequences is new representative
+        representatives.append(candidates_len[0][0])
+
+    return representatives
+
+
+# genes_list = even_genes_groups[0]
 
 def adapt_external_schema(genes_list):
     """ Adapts a set of genes/loci from as external schema to be
@@ -684,20 +769,18 @@ def adapt_external_schema(genes_list):
         gene_id = gene_basename.split('.f')[0]
 
         # create paths to gene files in new schema
-        gene_file = os.path.join(schema_path,
-                                 '{0}{1}'.format(gene_id, '.fasta'))
+        gene_file = join_paths(schema_path,
+                               '{0}{1}'.format(gene_id, '.fasta'))
 
-        gene_short_file = os.path.join(schema_short_path,
-                                       '{0}{1}'.format(gene_id,
-                                                       '_short.fasta'))
+        gene_short_file = join_paths(schema_short_path,
+                                     '{0}{1}'.format(gene_id, '_short.fasta'))
 
         # create path to temp working directory for current gene
-        gene_temp_dir = os.path.join(schema_path,
-                                     '{0}{1}'.format(gene_id, '_temp'))
+        gene_temp_dir = join_paths(schema_path,
+                                   '{0}{1}'.format(gene_id, '_temp'))
 
         # create temp directory for the current gene
-        if not os.path.exists(gene_temp_dir):
-            os.makedirs(gene_temp_dir)
+        create_directory(gene_temp_dir)
 
         # get dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
@@ -727,24 +810,18 @@ def adapt_external_schema(genes_list):
 
         # create FASTA file with distinct protein sequences
         # create with only one representative per protein
-        protein_file = os.path.join(gene_temp_dir,
-                                    '{0}_protein.fasta'.format(gene_id))
+        protein_file = join_paths(gene_temp_dir,
+                                  '{0}_protein.fasta'.format(gene_id))
         protein_lines = fasta_lines(ids_to_blast, prot_seqs)
         write_list(protein_lines, protein_file)
 
         # create blastdb with all distinct proteins
         blastp_db = os.path.join(gene_temp_dir, gene_id)
-        makedb_cmd = ('makeblastdb -in {0} -out {1} -parse_seqids '
-                      '-dbtype prot > /dev/null'.format(protein_file,
-                                                        blastp_db))
-        os.system(makedb_cmd)
+        make_blast_db(protein_file, blastp_db, 'prot')
 
         # determine if sequences are shorter than 30aa and choose
         # appropriate blastp task
-        blastp_task = 'blastp'
-        for allele in SeqIO.parse(protein_file, 'fasta', generic_dna):
-            if len(str(allele.seq)) < 30:
-                blastp_task = 'blastp-short'
+        blastp_task = determine_blast_task(protein_file)
 
         # BLAST representative against all proteins, determine if any hit
         # can be a candidate and keep applying the same process until only
@@ -752,21 +829,21 @@ def adapt_external_schema(genes_list):
         while len(ids_to_blast) > len(representatives):
 
             # create FASTA file with representative sequences
-            rep_file = os.path.join(gene_temp_dir,
-                                    '{0}_rep_protein.fasta'.format(gene_id))
+            rep_file = join_paths(gene_temp_dir,
+                                  '{0}_rep_protein.fasta'.format(gene_id))
             rep_protein_lines = fasta_lines(representatives, prot_seqs)
             write_list(rep_protein_lines, rep_file)
 
             # create file with seqids to BLAST against
             ids_str = concatenate_list([str(i) for i in ids_to_blast], '\n')
-            ids_file = os.path.join(gene_temp_dir,
-                                    '{0}_ids.txt'.format(gene_id))
+            ids_file = join_paths(gene_temp_dir,
+                                  '{0}_ids.txt'.format(gene_id))
             write_text_chunk(ids_file, ids_str)
 
             # BLAST representatives against all sequences that
             # still have no representative
-            blast_output = os.path.join(gene_temp_dir,
-                                        '{0}_blast_out.tsv'.format(gene_id))
+            blast_output = join_paths(gene_temp_dir,
+                                      '{0}_blast_out.tsv'.format(gene_id))
             # set max_target_seqs to huge number because BLAST only
             # returns 500 hits by default
             blast_command = ('blastp -task {0} -db {1} -query {2} -out {3} '
@@ -810,42 +887,11 @@ def adapt_external_schema(genes_list):
             rep_candidates = [seqid for seqid in rep_candidates
                               if seqid not in representatives]
 
-            # with more than one sequence as candidate, select longest
-            if len(rep_candidates) > 1:
-
-                # determine length of all candidates
-                candidates_len = [(seqid, len(prot_seqs[seqid]))
-                                  for seqid in rep_candidates]
-
-                # order representative candidates by length descending order
-                candidates_len = sorted(candidates_len, key=lambda x: x[1],
-                                        reverse=True)
-
-                # longest allele is the new representative
-                representatives.append(candidates_len[0][0])
-
-            # if tere is only one candidate, keet that
-            elif len(rep_candidates) == 1:
-
-                representatives.append(rep_candidates[0])
-
-            # if no hit qualifies and there are still sequences
-            # without representative
-            elif len(rep_candidates) == 0 and \
-                    len(ids_to_blast) > len(representatives):
-
-                # determine length of remaining sequences
-                # (representatives not included)
-                candidates_len = [(seqid, len(prot_seqs[seqid]))
-                                  for seqid in ids_to_blast
-                                  if seqid not in representatives]
-
-                # sort by descending length
-                candidates_len = sorted(candidates_len, key=lambda x: x[1],
-                                        reverse=True)
-
-                # longest of remaining sequences is new representative
-                representatives.append(candidates_len[0][0])
+            # decide which candidate to add as representative
+            representatives = determine_new_representative(rep_candidates,
+                                                           prot_seqs,
+                                                           ids_to_blast,
+                                                           representatives)
 
             # remove files created for current gene iteration
             os.remove(rep_file)
@@ -913,15 +959,12 @@ def main(external_schema, output_schema, cpu_threads, bsr):
 
     # define output paths
     schema_path = os.path.abspath(output_schema)
-    schema_short_path = os.path.join(schema_path, 'short')
+    schema_short_path = join_paths(schema_path, 'short')
 
     # create output directories
     # check if they exist first
-    if not os.path.exists(schema_path):
-        os.mkdir(schema_path)
-
-    if not os.path.exists(schema_short_path):
-        os.mkdir(schema_short_path)
+    create_directory(schema_path)
+    create_directory(schema_short_path)
 
     # append output paths and bsr value to each input
     for i in range(len(even_genes_groups)):
@@ -1018,16 +1061,14 @@ def parse_arguments():
     parser.add_argument('-i', type=str, required=True, dest='input_files',
     					help='Path to the folder containing the fasta files, '
                              'one fasta file per gene/locus (alternatively, '
-                             'a file with the list of files can be given).')
+                             'a file with a list of paths can be given).')
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
     					help='The directory where the output files will be saved '
                         '(will create the directory if it does not exist).')
 
     parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
-    					help='The number of CPU cores to use (default=1). More cores'
-                        'significantly improve running time because several inputs '
-                        'are processed in parallel.')
+    					help='The number of CPU cores to use (default=1).')
 
     parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be used to adapt the external '

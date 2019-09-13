@@ -4,6 +4,6 @@ python:
   - "3.6"
 cache: pip
 install:
-  - pip install -r requirements.txt
+  - pip install -r ./CHEWBBACA/requirements.txt
 script:
   - python tests.py

@@ -1,5 +1,5 @@
 language: python
 
-script: pytest
+install: pip install --user -r CHEWBBACA/requirements.txt
 
-install: pip install --user -r requirements.txt
+script: pytest

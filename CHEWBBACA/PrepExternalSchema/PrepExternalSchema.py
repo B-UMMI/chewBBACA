@@ -647,7 +647,16 @@ def gene_seqs_info(genes_list):
 
 
 def make_blast_db(input_fasta, output_path, db_type):
-    """
+    """ Creates a BLAST database.
+
+        Args:
+            input_fasta (str): path to the input file with sequences.
+            output_path (str): path to the output database.
+            db_type (str): type of the database, nucleotide (nuc) or
+            protein (prot).
+
+        Returns:
+            Creates a BLAST database with the input sequences.
     """
 
     makedb_cmd = ('makeblastdb -in {0} -out {1} -parse_seqids '
@@ -658,7 +667,14 @@ def make_blast_db(input_fasta, output_path, db_type):
 
 
 def determine_blast_task(proteins):
-    """
+    """ Determine the type of task that should be used to run BLAST.
+
+        Args:
+            proteins (str): path to a file with sequences.
+
+        Returns:
+            blast_task (str): a string that indicates the type of BLAST
+            task to run.
     """
 
     blast_task = 'blastp'
@@ -670,16 +686,14 @@ def determine_blast_task(proteins):
 
 
 def create_directory(directory_path):
-    """
-    """
+    """ Creates a diretory if it does not exist."""
 
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
 
 def join_paths(parent_path, child_path):
-    """
-    """
+    """ Joins a parent directory and a subdirectory."""
 
     joined_paths = os.path.join(parent_path, child_path)
 
@@ -688,7 +702,23 @@ def join_paths(parent_path, child_path):
 
 def determine_new_representative(candidates, proteins,
                                  seqids, representatives):
-    """
+    """ Chooses a new representative sequence.
+
+        Args:
+            candidates (list): list with the sequence identifiers
+            of all candidates.
+            proteins (dict): a dictionary with protein identifiers
+            as keys and protein sequences as values.
+            seqids (list): a list with the sequence identifiers that
+            still have no representative (representatives identifiers
+            are included because they have to be BLASTed in order to
+            determine their self score).
+            representatives (list): the sequence identifiers of all
+            representatives.
+
+        Returns:
+            representatives (list): the set of all representatives,
+            including the new repsentative that was chosen by the function.
     """
 
     # with more than one sequence as candidate, select longest
@@ -730,8 +760,6 @@ def determine_new_representative(candidates, proteins,
 
     return representatives
 
-
-# genes_list = even_genes_groups[0]
 
 def adapt_external_schema(genes_list):
     """ Adapts a set of genes/loci from as external schema to be
@@ -912,12 +940,6 @@ def adapt_external_schema(genes_list):
     return [invalid_alleles, invalid_genes]
 
 
-#external_schema = '/home/rfm/Desktop/rfm/Lab_Software/PrepExternalSchema_tests/660senterica'
-#output_schema = '/home/rfm/Desktop/rfm/Lab_Software/PrepExternalSchema_tests/adapted_660senterica'
-#cpu_threads = 6
-#bsr = 0.6
-
-
 def main(external_schema, output_schema, cpu_threads, bsr):
 
     start = time.time()
@@ -1059,20 +1081,23 @@ def parse_arguments():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('-i', type=str, required=True, dest='input_files',
-    					help='Path to the folder containing the fasta files, '
+                        help='Path to the folder containing the fasta files, '
                              'one fasta file per gene/locus (alternatively, '
                              'a file with a list of paths can be given).')
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
-    					help='The directory where the output files will be saved '
-                        '(will create the directory if it does not exist).')
+                        help='The directory where the output files will be '
+                        'saved (will create the directory if it does not '
+                        'exist).')
 
-    parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
-    					help='The number of CPU cores to use (default=1).')
+    parser.add_argument('--cpu', type=int, required=False, default=1,
+                        dest='core_count',
+                        help='The number of CPU cores to use (default=1).')
 
-    parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
-                        help='The BLAST Score Ratio value that will be used to adapt the external '
-                        'schema (default=0.6).')
+    parser.add_argument('--bsr', type=float, required=False, default=0.6,
+                        dest='blast_score_ratio',
+                        help='The BLAST Score Ratio value that will be '
+                        'used to adapt the external schema (default=0.6).')
 
     args = parser.parse_args()
 

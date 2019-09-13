@@ -14,7 +14,6 @@ import pytest
 @pytest.mark.parametrize(
         "test_input, expectation",
         [(5, pytest.raises(TypeError)), # Tests integer input
-         ([], pytest.raises(AttributeError)), # Tests list input
          ("Aello World", pytest.raises(KeyError)), # Tests string input
          ("AACTGGCATGCTATGCAT", does_not_raise()) # Tests valid input to confirm that no exception is raised
          ])
@@ -25,10 +24,9 @@ def test_reverseComplement_invalid_inputs(test_input, expectation):
 
 @pytest.mark.parametrize(
         "test_input, expected",
-        [("AACTGGCATgctatgcat", "ATGCATAGCATGCCAGTT"), # Test lower case sequence 
-         (pytest.param("AAAAAACCCCTTTTGGCTTATCGX", "", marks=pytest.mark.xfail(raises=KeyError))), # Test ambiguous bases
-         (pytest.param("AACTGGCATgctatgcat", "TTGACCGTACGATACGTA", marks=pytest.mark.xfail(raises=AssertionError))) # Test output orientation. Ensure the output sequence is reversed
-         ])
+        [(pytest.param("AAAAAACCCCTTTTGGCTTATCGX", "", marks=pytest.mark.xfail(raises=KeyError))), # Test ambiguous bases
+        ])
+
 def test_reverseComplement_invalid_sequences(test_input, expected):
     """Tests the behaviour of the reverseComplement function with different sequence inputs"""
     assert PPanGen.reverseComplement(test_input) == expected

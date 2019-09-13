@@ -2,6 +2,7 @@
 
 import sys
 import os
+import platform
 import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
@@ -457,14 +458,34 @@ def main():
     rep = "https://github.com/B-UMMI/chewBBACA"
     contact = "mickaelsilva@medicina.ulisboa.pt"
 
+    # Check python version, if fail, exist with message
+
+    try:
+        python_version = platform.python_version()
+        assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
+
+    except AssertionError:
+        print("Python version found: {} ".format(platform.python_version()))
+        print("Please use version Python >= 3.4")
+        sys.exit(0)
+
+    # print help if no command is passed
+    if len(sys.argv) == 1:
+        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('Select one of the following functions :\n')
+        i = 0
+        while i < len(functions_list):
+            print(functions_list[i] + " : " + desc_list[i])
+            i += 1
+        sys.exit(0)
+
     if len(sys.argv) > 1 and "version" in sys.argv[1]:
         print(version)
         return
-
-    print("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+      
+    print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
 
     try:
-        #print ("\n")
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
@@ -486,11 +507,13 @@ def main():
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')
-            i=0
+            i = 0
             while i<len(functions_list):
-                print (functions_list[i] +" : "+desc_list[i])
-                i+=1
-    except IndexError:
+                print (functions_list[i] + " : " + desc_list[i])
+                i += 1
+
+    except Exception as e:
+        print(e)  # CHECK THIS
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i = 0
@@ -498,13 +521,5 @@ def main():
             print(functions_list[i] + " : " + desc_list[i])
             i += 1
 
-    except Exception as e:
-        print (e) #CHECK THIS
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-        print('Select one of the following functions :\n')
-        i=0
-        while i<len(functions_list):
-            print (functions_list[i] +" : "+desc_list[i])
-            i+=1
 if __name__ == "__main__":
     main()

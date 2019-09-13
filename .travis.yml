@@ -1,1 +1,5 @@
 language: python
+
+script: pytest
+
+install: pip install --user -r requirements.txt

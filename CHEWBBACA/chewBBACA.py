@@ -363,12 +363,12 @@ def join_profiles():
     profile2 = args.p2
     outputFile = args.o
 
-    profile_joiner.main(profile1,profile2,outputFile)
+    profile_joiner.main(profile1, profile2, outputFile)
 
 
 def prep_schema():
 
-    def msg(name=None):                                                            
+    def msg(name=None):
         return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v] '''
 
     parser = argparse.ArgumentParser(description='This script enables the adaptation of external schemas so that '
@@ -378,7 +378,9 @@ def prep_schema():
                                                  'final schema. One or more alleles of each gene/locus will be chosen '
                                                  'as representatives and included in the "short" directory.')
 
-    parser.add_argument('PrepExternalSchema', nargs='+', help='Adapt an external schema to be used with chewBBACA.')
+    parser.add_argument('PrepExternalSchema', nargs='+',
+                        help='Adapt an external schema to be used with '
+                        'chewBBACA.')
 
     parser.add_argument('-i', type=str, required=True, dest='input_files',
                         help='Path to the folder containing the fasta files, '
@@ -386,17 +388,18 @@ def prep_schema():
                              'a file with the list of files can be given).')
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
-                        help='The directory where the output files will be saved '
-                        '(will create the directory if it does not exist).')
+                        help='The directory where the output files will be '
+                        'saved (will create the directory if it does not '
+                        'exist).')
 
-    parser.add_argument('--cpu', type=int, required=False, default=1, dest='core_count',
-                        help='The number of CPU cores to use (default=1). More cores '
-                        'significantly improve running time because several inputs '
-                        'are processed in parallel.')
+    parser.add_argument('--cpu', type=int, required=False, default=1,
+                        dest='core_count',
+                        help='The number of CPU cores to use (default=1).')
 
-    parser.add_argument('--bsr', type=float, required=False, default=0.6, dest='blast_score_ratio',
-                        help='The BLAST Score Ratio value that will be used to adapt the external '
-                        'schema (default=0.6).')
+    parser.add_argument('--bsr', type=float, required=False, default=0.6,
+                        dest='blast_score_ratio',
+                        help='The BLAST Score Ratio value that will be '
+                        'used to adapt the external schema (default=0.6).')
 
     args = parser.parse_args()
 
@@ -416,24 +419,28 @@ def find_uniprot():
 	
     parser = argparse.ArgumentParser(
         description="This program gets information of each locus created on the schema creation, based on the uniprot database")
-    parser.add_argument('UniprotFinder', nargs='+', help='get info about a schema created with chewBBACA')
-    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
-    parser.add_argument('-t', nargs='?', type=str, help='path to proteinID_Genome.tsv file generated', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    parser.add_argument('UniprotFinder', nargs='+',
+                        help='get info about a schema created with chewBBACA')
+    parser.add_argument('-i', nargs='?', type=str,
+                        help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
+    parser.add_argument('-t', nargs='?', type=str,
+                        help='path to proteinID_Genome.tsv file generated', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu',
+                        required=False, default=1)
 
     args = parser.parse_args()
 
     geneFiles = args.i
     tsvFile = args.t
     cpu2use = args.cpu
-    
-    uniprot_find.main(geneFiles,tsvFile,cpu2use)
+
+    uniprot_find.main(geneFiles, tsvFile, cpu2use)
 
 
 def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator',
-                      'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes',
-                      'PrepExternalSchema','JoinProfiles','UniprotFinder']
+                      'TestGenomeQuality', 'ExtractCgMLST', 'RemoveGenes',
+                      'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder']
 
     desc_list = ['Create a gene by gene schema based on genomes',
                  'Perform allele call for target genomes',
@@ -450,11 +457,11 @@ def main():
     rep = "https://github.com/B-UMMI/chewBBACA"
     contact = "mickaelsilva@medicina.ulisboa.pt"
 
-    if len(sys.argv)>1 and "version" in sys.argv[1]:
-        print (version)
+    if len(sys.argv) > 1 and "version" in sys.argv[1]:
+        print(version)
         return
 
-    print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+    print("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
 
     try:
         #print ("\n")

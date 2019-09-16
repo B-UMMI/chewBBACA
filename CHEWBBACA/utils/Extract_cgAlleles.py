@@ -1,193 +1,121 @@
 #!/usr/bin/env python3
 
-import csv
-import numpy as np
-from numpy import array
-import argparse
 import os
+import numpy as np
+import pandas as pd
 
 
-def presAbs(d3, listgenomesRemove,outputfile,cgPercent):
-    d2c = np.copy(d3)
+def presAbs(calls, listgenomesRemove, outputfile, cgPercent):
 
-    geneslist = d2c[:1, :]
-    genomeslist = d2c[:, :1]
-    genomeslist = (genomeslist.tolist())
+    def binarize(column):
 
-    geneslistaux = []
-    for genome in genomeslist:
-        geneslistaux.append(genome[0])
+        fix_inf = column.replace(to_replace='INF-', value='', regex=True)
+        col = fix_inf.replace(to_replace='\D+.*', value='0', regex=True)
+        coln = pd.to_numeric(col)
+
+        return np.int64(coln > 0)
+
+    def above_threshold(column, column_length):
+
+        return (np.sum(column) / column_length) >= cgPercent
 
     # remove genomes
-    listidstoremove = []
-    for genome in geneslistaux:
+    for genome in calls.index:
+
         if genome in listgenomesRemove:
-            print ("removed genome : "+genome)
-            rowid = geneslistaux.index(genome)
-            listidstoremove.append(rowid)
-            # geneslistaux.pop(rowid)
 
-    listidstoremove = sorted(listidstoremove, reverse=True)
-    for idtoremove in listidstoremove:
-        d3 = np.delete(d3, idtoremove, 0)
-        d2c = np.delete(d2c, idtoremove, 0)
+            print("removed genome : {}".format(genome))
 
-    print ("building the presence and abscence matrix...")
-    row = 1
-    row2Del = []
-    while row < d2c.shape[0]:
-        column = 1
-        while column < d2c.shape[1]:
-            try:
+    to_remove_bool = calls.index.isin(listgenomesRemove)
 
-                aux = int(d2c[row, column])
-                if aux > 0:
-                    d2c[row, column] = 1
-                else:
-                    d2c[row, column] = 0
-                    row2Del.append(int(column))
-            except:
-                try:
-                    aux = str((d2c[row, column])).replace("INF-", "")
-                    aux = int(aux)
-                    d2c[row, column] = 1
-                except Exception as e:
-                    d2c[row, column] = 0
-                    row2Del.append(int(column))
+    calls_removed = calls.loc[~ to_remove_bool]
 
-            column += 1
+    print ("building the presence and absence matrix...")
 
-        row += 1
+    presence_absence = calls_removed.apply(binarize)
 
 
-    if cgPercent <float(1):
-        column = 1
-        row2Del=[]
-        total=int(d2c.shape[0])-1
-        while column < d2c.shape[1]:
-            L=d2c[:,column][1:].astype(np.int)
-            present=np.count_nonzero(L==1)
-            percentPresence=(float(present)/float(total))
-            if percentPresence <cgPercent:
-                row2Del.append(int(column))
-            column += 1
+    pa_path = os.path.join(outputfile, 'Presence_Absence.tsv')
+    presence_absence.to_csv(pa_path, sep='\t')
+
     print ("presence and abscence matrix built")
 
-    d2d = d2c.tolist()
+    pa_rows, _ = presence_absence.shape
+    is_above_threshold = presence_absence.apply(above_threshold,
+                                                args=(pa_rows,))
 
-    with open(os.path.join(outputfile,"Presence_Abscence.tsv"), "w") as f:
+    columns_to_remove = calls_removed.columns[~ is_above_threshold]
 
-        writer = csv.writer(f, delimiter='	')
-        writer.writerows(d2d)
+    return presence_absence, calls_removed, columns_to_remove
 
-    row2Del = list(set(row2Del))
+def missing_data_table(cleaned_calls):
 
-    return d2c, d3, row2Del
+    n_genes = len(cleaned_calls.columns)
+    genes_present = cleaned_calls.apply(np.count_nonzero, axis=1)
+
+    missing_data = {'FILE': cleaned_calls.index,
+                    'number of missing data': n_genes - genes_present,
+                    'percentage': 1 - (genes_present / n_genes)}
+
+    missing_data_df = pd.DataFrame(missing_data,
+                                   columns=['FILE',
+                                            'number of missing data',
+                                            'percentage'])
+
+    return missing_data_df
 
 
-def clean(inputfile, outputfile, totaldeletedgenes, rangeFloat, toremovegenes, toremovegenomes,cgPercent):
+def clean(inputfile, outputfile, toremovegenes, toremovegenomes, cgPercent):
+
     # open the raw file to be clean
-
-    with open(inputfile) as f:
-        reader = csv.reader(f, delimiter="\t")
-        d = list(reader)
-
-    originald2 = array(d)
+    calls = pd.read_csv(inputfile,
+                        header=0, index_col=0, sep='\t', low_memory=False)
 
     # get presence abscence matrix
-    d2, originald2, del2CG = presAbs(originald2, toremovegenomes,outputfile,cgPercent)
+    presence_absence, calls_removed, cols_to_remove = presAbs(calls,
+                                                              toremovegenomes,
+                                                              outputfile,
+                                                              cgPercent)
 
-    genomeslist = d2[1:, :1]
-    geneslist = (d2[:1, 1:])[0]
 
-    originald2 = originald2.T
-    d2 = d2.T
-    rowid = (d2.shape[0]) - 1
-    deleted = 0
-    abscenceMatrix = True
-    balldel = 0
-    cgMLST = 0
+    total_genes_to_delete = set(toremovegenes).union(set(cols_to_remove))
 
-    numbergenomes = len(genomeslist)
-    pontuationmatrix = [0] * numbergenomes
-    lostgenesList = []
-
-    # clean the original matrix, using the information on the presence/abscence matrix
+    # clean the original matrix,
+    # using the information on the presence/abscence matrix
     print ("processing the matrix")
-    while rowid > 0:
-        columnid = 1
-        genomeindex = 0
-        print (str(rowid) + "/" + str(d2.shape[0]))
-        # ~ print type((d2[rowid,1:])[0]
-        if rowid in del2CG:
-            originald2 = np.delete(originald2, rowid, 0)
-            d2 = np.delete(d2, rowid, 0)
-            totaldeletedgenes += 1
-            deleted += 1
-            # ~ rowid-=1
-            columnid = 1
 
-        elif geneslist[rowid - 1] in toremovegenes:
+    to_keep = ~calls_removed.columns.isin(total_genes_to_delete)
 
-            originald2 = np.delete(originald2, rowid, 0)
-            # ~ d2=np.delete(d2, rowid, 0)
-            totaldeletedgenes += 1
-            deleted += 1
-            # ~ rowid-=1
-            columnid = 1
-        # ~ break
-        else:
-            cgMLST += 1
+    cleaned = calls_removed.loc[:, to_keep]
 
-        rowid -= 1
+    # remove INF and other missing data tags from the profile
+    words = ['LNF', 'PLOT3', 'PLOT5', 'ASM', 'ALM', 'NIPHEM', 'NIPH', 'LOTSC']
+    for word in words:
+        cleaned = cleaned.replace(to_replace='{}.*'.format(word),
+                                  value='0', regex=True)
 
-    #remove INF and other missing data tags from the profile
-    list2Replace=['LNF','PLOT3','PLOT5','ASM','ALM','NIPHEM','NIPH','LOTSC']
-    rowid=0
+    cleaned = cleaned.replace(to_replace='INF-', value='', regex=True)
+    cleaned = cleaned.apply(pd.to_numeric)
+    # cleaned = cleaned.reindex(cleaned.index.rename(['FILE']))
 
-    for row in originald2:
-        auxrow=[]
-        for elem in row:
-            if elem in list2Replace:
-                elem=0
-            elif "INF-" in elem:
-                elem=elem.replace('INF-', '')
-            auxrow.append(elem)
-
-
-        originald2[rowid]=auxrow
-        rowid+=1
-
-    originald2 = originald2.T
-
-    #count number of missing data per genome
-    rowid=1
-    missingDataCount=[["FILE","number of missing data","percentage"]]
-    while rowid<originald2.shape[0]:
-        mdCount=originald2[rowid].tolist().count("0")
-        missingDataCount.append( [originald2[rowid][0],mdCount,float("{0:.2f}".format(float(mdCount)/int(originald2.shape[1])*100))])
-        rowid+=1
-
-    geneslist = (originald2[:1, 1:])[0]
-    originald2 = originald2.tolist()
+    # count number of missing data per genome
+    missing_data_df = missing_data_table(cleaned)
 
     # write the output file
+    cgmlst_path = os.path.join(outputfile, 'cgMLST.tsv')
+    cleaned.to_csv(cgmlst_path, sep='\t')
 
-    with open(os.path.join(outputfile,"cgMLST.tsv"), "w") as f:
-        writer = csv.writer(f, delimiter='	')
-        writer.writerows(originald2)
-    with open(os.path.join(outputfile,"cgMLSTschema.txt"), "w") as f:
-        for gene in geneslist:
-            f.write(gene+"\n")
+    schema_path = os.path.join(outputfile, 'cgMLSTschema.txt')
+    pd.Series(list(cleaned.columns.values)).to_csv(schema_path, index=False)
 
-    with open(os.path.join(outputfile,"mdata_stats.tsv"), "w") as f:
-        for stats in missingDataCount:
-            f.write(('\t'.join(map(str, stats)))+"\n")
+    mdata_path = os.path.join(outputfile, 'mdata_stats.tsv')
+    missing_data_df.to_csv(mdata_path, sep='\t', index=False)
 
-    #~ statswrite += ('\t'.join(map(str, auxList)))
+    cgmlst_genes = len(cleaned.columns)
+    totaldeletedgenes = len(calls.columns) - cgmlst_genes
 
-    print ("deleted : %s loci" % totaldeletedgenes)
-    print ("total loci remaining : " + str(cgMLST))
+    print ("deleted : {} loci".format(totaldeletedgenes))
+    print ("total loci remaining : {}".format(cgmlst_genes))
 
 
 def main(pathOutputfile,newfile,percent,genesToRemoveFile,genomesToRemoveFile):
@@ -198,29 +126,17 @@ def main(pathOutputfile,newfile,percent,genesToRemoveFile,genomesToRemoveFile):
     genesToRemove = []
     genomesToRemove = []
 
-    if not genesToRemoveFile==False:
-        with open(genesToRemoveFile, "r") as fp:
+    if genesToRemoveFile:
 
-            for geneFile in fp:
-                geneFile = geneFile.rstrip('\n')
-                geneFile = geneFile.rstrip('\r')
-                geneFile = (geneFile.split('\t'))[0]
+        genesToRemove = pd.read_csv(genesToRemoveFile,
+                                    header=None, index_col=None)[0]
 
-                genesToRemove.append(geneFile)
+    if genomesToRemoveFile:
 
+        genomesToRemove = pd.read_csv(genomesToRemoveFile,
+                                      header=None, index_col=None)[0]
 
-    if not genomesToRemoveFile==False:
-        with open(genomesToRemoveFile, "r") as fp:
-
-            for genomeFile in fp:
-                genomeFile = genomeFile.rstrip('\n')
-                genomeFile = genomeFile.rstrip('\r')
-
-                genomesToRemove.append(genomeFile)
-
-
-
-    clean(pathOutputfile, newfile, 0, 0.2, genesToRemove, genomesToRemove,percent)
+    clean(pathOutputfile, newfile, genesToRemove, genomesToRemove, percent)
 
 
 if __name__ == "__main__":

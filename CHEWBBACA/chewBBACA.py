@@ -2,6 +2,7 @@
 
 import sys
 import os
+import platform
 import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
@@ -17,7 +18,7 @@ except ImportError:
 	from CHEWBBACA.SchemaEvaluator import ValidateSchema
 	from CHEWBBACA.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
 
-#~ from allelecall import CommonFastaFunctions,callAlleles_protein3,BBACA
+import CHEWBBACA
 
 
 def check_if_list_or_folder(folder_or_list):
@@ -28,10 +29,15 @@ def check_if_list_or_folder(folder_or_list):
         f.close()
         list_files = folder_or_list
     except IOError:
-
+		
         for gene in os.listdir(folder_or_list):
+			
             try:
                 genepath = os.path.join(folder_or_list, gene)
+                
+                if os.path.isdir(genepath):
+                    continue
+                
                 for allele in SeqIO.parse(genepath, "fasta", generic_dna):
                     break
                 list_files.append(os.path.abspath(genepath))
@@ -45,7 +51,7 @@ def check_if_list_or_folder(folder_or_list):
 def create_schema():
 
     def msg(name=None):                                                            
-        return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-t [T]] [-v] [-l [L]]'''
+        return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-v] [-l [L]]'''
 
     parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
     parser.add_argument('CreateSchema', nargs='+', help='create a schema')
@@ -54,12 +60,13 @@ def create_schema():
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
+    parser.add_argument("--CDS", help="use a fasta file, one gene per entry, to call alleles", required=False, action="store_true", default=False)
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
-    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
+    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=201)
 
     args = parser.parse_args()
 
@@ -68,20 +75,26 @@ def create_schema():
     outputFile = os.path.abspath(args.o)  # Is this an output file or the output folder? If it is the outdir be careful with basepath = os.path.join((os.path.dirname(outputFile)), "temp") in PPanGen.main
     BlastpPath = args.b
     bsr = args.bsr
-    chosenTaxon = args.t
+    #~ chosenTaxon = args.t
     chosenTrainingFile = args.ptf
     verbose = args.verbose
     min_length = args.l
+    inputCDS = args.CDS
 
-    genomeFiles = check_if_list_or_folder(genomeFiles)
+    if inputCDS==True:
+        genomeFiles=[os.path.abspath(genomeFiles)]
+    else:
+        genomeFiles = check_if_list_or_folder(genomeFiles)
+
     if isinstance(genomeFiles, list):
         with open(os.path.join(os.path.dirname(outputFile), "listGenomes2Call.txt"), "w") as f:
             for genome in genomeFiles:
                 f.write(genome + "\n")
+
         genomeFiles = os.path.join(os.path.dirname(outputFile), "listGenomes2Call.txt")
 
     
-    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile)
+    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS)
 
     
     
@@ -105,10 +118,12 @@ def allele_call():
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
+    parser.add_argument("--CDS", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+    parser.add_argument('--st', nargs='?', type=float, help="size threshold, default at 0.2 means alleles with size variation of +-20 percent will be tagged as ASM/ALM", required=False, default=0.2)
     #parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide the prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
@@ -121,6 +136,7 @@ def allele_call():
     genes = os.path.abspath(args.g)
     cpuToUse = args.cpu
     BSRTresh = args.bsr
+    sizeTresh = args.st
     verbose = args.verbose
     BlastpPath = args.b
     gOutFile = os.path.abspath(args.o)
@@ -129,6 +145,7 @@ def allele_call():
     forceContinue = args.fc
     forceReset = args.fr
     contained = args.contained
+    inputCDS = args.CDS
     jsonReport = args.json
 
     genes2call = check_if_list_or_folder(genes)
@@ -160,7 +177,7 @@ def allele_call():
         genomes2call = os.path.join(gOutFile, "listGenomes2Call.txt")
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
 
 
     try:
@@ -362,18 +379,49 @@ def find_uniprot():
 
 
 def main():
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
+    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST',
+                      'RemoveGenes', 'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder']
+    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes',
+                 'Tool that builds an html output to better navigate/visualize your schema',
+                 'Analyze your allele call output to refine schemas',
+                 'Select a subset of loci without missing data (to be used as PHYLOViZ input)',
+                 'Remove a provided list of loci from your allele call output',
+                 'prepare an external schema to be used by chewBBACA', 'join two profiles in a single profile file',
+                 'get info about a schema created with chewBBACA']
 
-    version="2.0.5"
-    createdBy="Mickael Silva"
-    rep="https://github.com/B-UMMI/chewBBACA"
-    contact="mickaelsilva@medicina.ulisboa.pt"
+    version = "2.0.17.2"
+    createdBy = "Mickael Silva"
+    rep = "https://github.com/B-UMMI/chewBBACA"
+    contact = "mickaelsilva@medicina.ulisboa.pt"
 
-    print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
+    # Check python version, if fail, exist with message
 
     try:
-        print ("\n")
+        python_version = platform.python_version()
+        assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
+
+    except AssertionError:
+        print("Python version found: {} ".format(platform.python_version()))
+        print("Please use version Python >= 3.4")
+        sys.exit(0)
+
+    # print help if no command is passed
+    if len(sys.argv) == 1:
+        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('Select one of the following functions :\n')
+        i = 0
+        while i < len(functions_list):
+            print(functions_list[i] + " : " + desc_list[i])
+            i += 1
+        sys.exit(0)
+
+    if len(sys.argv) > 1 and "version" in sys.argv[1]:
+        print(version)
+        return
+      
+    print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
+
+    try:
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
@@ -395,17 +443,19 @@ def main():
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
             print('Select one of the following functions :\n')
-            i=0
+            i = 0
             while i<len(functions_list):
-                print (functions_list[i] +" : "+desc_list[i])
-                i+=1
+                print (functions_list[i] + " : " + desc_list[i])
+                i += 1
+
     except Exception as e:
-        print (e)
+        print(e)  # CHECK THIS
         print('\n\tUSAGE : chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
-        i=0
-        while i<len(functions_list):
-            print (functions_list[i] +" : "+desc_list[i])
-            i+=1
+        i = 0
+        while i < len(functions_list):
+            print(functions_list[i] + " : " + desc_list[i])
+            i += 1
+
 if __name__ == "__main__":
     main()

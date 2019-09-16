@@ -10,9 +10,9 @@ import shutil
 import multiprocessing
 import subprocess
 try:
-	from createschema import CreateSchema,runProdigal
+    from createschema import CreateSchema,runProdigal
 except ImportError:
-	from CHEWBBACA.createschema import CreateSchema,runProdigal
+    from CHEWBBACA.createschema import CreateSchema,runProdigal
 
 
 def which(program):
@@ -96,7 +96,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
                 for protein in value:
                     protid += 1
-                    
+
 
                     # at first iteration we use the genome file and after a cds only multifasta file
                     try:
@@ -149,7 +149,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                                 genomeProtsTrans += str(protseq) + "\n"
                                 dictprotsName[protid] = idstr2
                     except Exception as e:
-                        try:    
+                        try:
                             dictprotsLen[lengthofProt] = [protid]
                             dictprots[protid] = protseq
                             newlistOfCDS[protid] = orderedSeq
@@ -252,8 +252,8 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
         verboseprint( "running blast will use this number of cpu: " + str(cpu))
         CreateSchema.main(fastaFile,200,cpu,proteinFile,fastaFile,blastp,bsr,verbose)
         #~ proc = subprocess.Popen(
-            #~ [createSchemaPath, '-i', fastaFile, '-l', "200", '--cpu', str(cpu), '-p', proteinFile, '-o', fastaFile,
-             #~ "-b", blastp], stdout=subprocess.PIPE)
+        #~ [createSchemaPath, '-i', fastaFile, '-l', "200", '--cpu', str(cpu), '-p', proteinFile, '-o', fastaFile,
+        #~ "-b", blastp], stdout=subprocess.PIPE)
         #~ p_status = proc.wait()
         verboseprint( "finished blast")
 
@@ -321,22 +321,22 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTaxon,chosenTrainingFile):
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS):
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
     #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
     #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        #~ required=True)
+    #~ required=True)
     #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
     #~ parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
     #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
     #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        #~ default=False)
-#~ 
+    #~ default=False)
+    #~
     #~ args = parser.parse_args()
-#~ 
+    #~
     #~ genomeFiles = args.i
     #~ cpuToUse = args.cpu
     #~ outputFile = args.o
@@ -372,22 +372,22 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
                  }
-    if isinstance(chosenTaxon, str):
-        trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
-        try:
-            chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
-
-            if os.path.isfile(chosenTaxon):
-                print("will use this training file : " + chosenTaxon)
-            else:
-                print("training file don't exist")
-                print(chosenTaxon)
-                return "retry"
-        except:
-            print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
-            for elem in taxonList.keys():
-                print(elem)
-            return "retry"
+    #~ if isinstance(chosenTaxon, str):
+        #~ trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
+        #~ try:
+            #~ chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
+#~ 
+            #~ if os.path.isfile(chosenTaxon):
+                #~ print("will use this training file : " + chosenTaxon)
+            #~ else:
+                #~ print("training file don't exist")
+                #~ print(chosenTaxon)
+                #~ return "retry"
+        #~ except:
+            #~ print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
+            #~ for elem in taxonList.keys():
+                #~ print(elem)
+            #~ return "retry"
 
     if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)
@@ -403,7 +403,9 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             print ("The training file you provided doesn't exist:")
             print (chosenTaxon)
             return "retry"
-    
+    else:
+        chosenTaxon=False
+
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
     print ("Will use this number of cpus: " + str(cpuToUse))
@@ -436,36 +438,43 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
     #           RUN PRODIGAL OVER ALL GENOMES           #
     # ------------------------------------------------- #
 
-
-    print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-
-    # Prodigal run on the genomes, one genome per core using n-2 cores (n number of cores)
-    print ("chosen taxon :" + str(chosenTaxon))
-    pool = multiprocessing.Pool(cpuToUse)
-    for genome in listOfGenomes:
-        pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon)))
-
-    pool.close()
-    pool.join()
-
-    print("\nChecking all prodigal processes created the necessary files...")
-
-    listOfORFCreated = []
-    for orffile in os.listdir(basepath):
-        if orffile.endswith("_ORF.txt"):
-            listOfORFCreated.append(orffile)
-
-    if len(listOfGenomes) > len(listOfORFCreated):
-        message = "Missing some files from prodigal. " + str(
-            (len(listOfGenomes)) - (len(listOfORFCreated))) + " missing files out of " + str(len(listOfGenomes))
+    if inputCDS==True:
+        CreateSchema.main(listOfGenomes[0], min_length, cpuToUse, False, outputFile, BlastpPath, bsr, verbose)
         shutil.rmtree(basepath)
-        raise ValueError(message)
-    else:
-        print("All prodigal files necessary were created\n")
+        return True
 
-    print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    elif inputCDS==False:
+
+        print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+
+        # Prodigal run on the genomes, one genome per core using n-2 cores (n number of cores)
+        print ("chosen taxon :" + str(chosenTaxon))
+        pool = multiprocessing.Pool(cpuToUse)
+        for genome in listOfGenomes:
+            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon)))
+
+        pool.close()
+        pool.join()
+
+        print("\nChecking all prodigal processes created the necessary files...")
+
+        listOfORFCreated = []
+        for orffile in os.listdir(basepath):
+            if orffile.endswith("_ORF.txt"):
+                listOfORFCreated.append(orffile)
+
+        if len(listOfGenomes) > len(listOfORFCreated):
+            message = "Missing some files from prodigal. " + str(
+                (len(listOfGenomes)) - (len(listOfORFCreated))) + " missing files out of " + str(len(listOfGenomes))
+            shutil.rmtree(basepath)
+            raise ValueError(message)
+        else:
+            print("All prodigal files necessary were created\n")
+
+        print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
     createSchemaPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CreateSchema.py')
+
 
     # ---CDS to protein---#
 
@@ -533,8 +542,8 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             lastFile = listOfGenomes.pop()
             CreateSchema.main(lastFile,min_length,cpuToUse,False,outputFile,BlastpPath,bsr,verbose)
             #~ proc = subprocess.Popen(
-                #~ [createSchemaPath, '-i', lastFile, '-l', str(min_length), '--cpu', str(cpuToUse), "-b", BlastpPath, "-o",
-                 #~ outputFile, "--bsr", str(bsr)])
+            #~ [createSchemaPath, '-i', lastFile, '-l', str(min_length), '--cpu', str(cpuToUse), "-b", BlastpPath, "-o",
+            #~ outputFile, "--bsr", str(bsr)])
             #~ p_status = proc.wait()
             verboseprint( "Schema Created sucessfully")
 

@@ -1,14 +1,3 @@
-# IMPORTANT
-
-As from 25/01/2018 this repo is now fully on **python 3** (tested on >=3.4). The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
-As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.  
-As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
-
-# Latest updates
-## New in 2.0.5 (14/02/2018)
-* AlleleCall : -i option accepts a single fasta file now
-
-
 # chewBBACA: Quick Usage
 
 **chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
@@ -21,8 +10,56 @@ settings and a set of functions to visualize and validate allele variation in th
 
 chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
 
-A preprint of this work with the title "**chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**" is available in [BioRxiv](https://www.biorxiv.org/content/early/2017/10/23/173146) 
+The code contained in this repository concerning release v2.0.5. has been published in Microbial Genomics under the title:  
+**chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**  - [Link to paper](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166) 
 
+When using chewBBACA please use the following citation:
+
+
+Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
+
+# IMPORTANT
+As from 25/01/2018 this repo is now fully on **python 3** (tested on >=3.4). The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
+As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.  
+As from 02/02/2018 **prodigal training files** to be used are now on a separate repository. You can find them at https://github.com/mickaelsilva/prodigal_training_files.
+
+# Latest updates
+
+## chewBBACA released as a galaxy module! 
+Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome ! 
+https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
+
+## New in 2.0.17 (10/2/2019)
+* New alleles also have a timestamp added to the allele name.
+
+## New in 2.0.16 (06/1/2018)
+* Corrected bug from 2.0.15 when no prodigal training file provided.
+
+## New in 2.0.15 (06/1/2018)
+* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
+ 
+## New in 2.0.13 (18/09/2018)
+* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
+ 
+## New in 2.0.11 (05/06/2018)
+* corrected bug when -h on allele call
+* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
+ 
+## New in 2.0.10 (21/05/2018)
+* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
+* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
+ 
+## New in 2.0.9 (04/04/2018)
+* blast results during allele call are not saved as a file, instead are piped directly for processing
+* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option  
+ 
+## New in 2.0.7 (23/02/2018)
+* corrected bug that prevented usage of latest blast version (>=2.7.0)
+* version flag can now be used `--version`
+* instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
+ 
+## New in 2.0.5 (14/02/2018)
+* AlleleCall : -i option accepts a single fasta file now
 
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
@@ -48,7 +85,8 @@ Below you can find a list of commands for a quick usage of the software.
 ...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
 
 ## Available [training files](https://github.com/mickaelsilva/prodigal_training_files) ...
-...use for a better result, species specific. 
+
+...use for a better result, species specific. **Also inside the package now!** e.g. `--ptf  Acinetobacter_baumannii.trn` will now also work!
 
 ----------
 
@@ -71,7 +109,7 @@ Python dependencies:
 * biopython>=1.70
 * plotly>=1.12.9
 * SPARQLWrapper>=1.8.0
-
+* pandas>=0.22.0
 
 Main dependencies:
 * BLAST 2.5.0+ ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.5.0/ or above
@@ -237,9 +275,6 @@ Basic usage:
 ----------
 ## FAQ
 
-### Q: Which is the fastest way to run?  
-A: Check step 1
-
 ### Q: Step 2 is taking hours, will it ever end?  
 A: Depending on the variability of the strains used to create the schema and the number 
 of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
@@ -252,6 +287,9 @@ A: chewBBACA should allow you to continue where you stopped, just re-run the sam
 A: You probably forgot to eliminate from the analysis genomes responsible for a considerable loss of loci. 
 Try to run again step 4, remove some of those genomes and check if the cgMLST loci number rises.
 
+### Q: Can I use a schema from an external source?
+A: Yes. Be sure to have a single fasta for each locus and use the "PrepExternalSchema​" function.
+
 ### Q: Which species already have a training file?  
 A: At the moment:
  - *Acinetobacter baumannii*
@@ -259,11 +297,25 @@ A: At the moment:
  - *Enterococcus faecium*
  - *Escherichia coli*
  - *Haemophilus influenzae*
+ - *Legionella pneumophila*
+ - *Listeria monocytogenes*
  - *Salmonella enterica enteritidis*
  - *Streptococcus agalactiae*
  - *Staphylococcus aureus*
  - *Staphylococcus haemolyticus*
  - *Yersinia enterocolitica*
+ 
+get them at https://github.com/mickaelsilva/prodigal_training_files
+ 
+### Q: My favorite species has no training file. What can I do?
+A: You can propose a new one to be added to the repository or create your own training 
+files. To create a training file do:
 
-----------
+`prodigal -i myGoldStandardGenome.fna -t myTrainedFile.trn -p single`
+ 
 
+----------  
+  
+ 
+## Citation
+Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)

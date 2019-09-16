@@ -27,17 +27,21 @@ def main():
     for gene in gene_fp:
         listSeqTokeep=[]
         gene = gene.rstrip('\n')
+        print(gene)
 
         #per gene remove the alleles that belong to the genomes to be removed
         firstallele=False
+        changed=False
+        fasta2Write=''
         for allele in SeqIO.parse(gene, "fasta", generic_dna):
 
 
             alleleGenomeName=((str(allele.name)).split("_"))[-1]
 
             if not alleleGenomeName in listGenomesRemove:
-                listSeqTokeep.append(allele)
+                fasta2Write+=">"+allele.name+"\n"+allele.seq+"\n"
             else:
+                changed=True
                 print("removed: "+ str(allele.name))
 
             alleleGenomeName=((str(allele.name)).split("_"))[-1]
@@ -56,12 +60,11 @@ def main():
                 print "removed: "+ str(allele.name)
             except:
                 listSeqTokeep.append(allele)"""
-        my_fasta_file = open( gene, "w" )
-
-        for Seq in listSeqTokeep:
-
-            Seq.write_to_fasta_file( my_fasta_file )
-        my_fasta_file.close()
+        
+        if changed==True:
+            with open(gene,'w') as f:
+                f.write(fasta2Write)
+        
 
 
 

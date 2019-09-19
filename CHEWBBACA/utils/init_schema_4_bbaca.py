@@ -10,6 +10,7 @@ import os
 import pickle
 import multiprocessing
 import shutil
+import warnings
 
 try:
 	from utils import CommonFastaFunctions
@@ -21,6 +22,16 @@ try:
 	from StringIO import StringIO
 except ImportError:
 	from io import StringIO
+
+
+#warnings.simplefilter('default')
+
+def custom_formatwarning(msg, *args, **kwargs):
+    # ignore everything except the message
+    return '\n{0}\n\n'.format(str(msg))
+
+warnings.formatwarning = custom_formatwarning
+
 
 def get_Short (gene,auxBar):
 	blastPath='blastp'
@@ -308,6 +319,13 @@ def check_if_list_or_folder(folder_or_list):
 
 def main(geneFiles,cpu2use):
 
+	warnings.warn('init_schema_4_bbaca will be deprecated in '
+				  'a future version. To adapt external schemas '
+				  'use the PrepExternalSchema process instead. '
+				  '\nType "chewBBACA.py PrepExternalSchema -h" '
+				  'to get information about adapting external '
+				  'schemas.')
+
 	#~ parser = argparse.ArgumentParser(description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fasta with only the most diverse alleles")
 	#~ parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
 	#~ parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
@@ -354,7 +372,6 @@ def main(geneFiles,cpu2use):
 		pass
 
 
-
-
 if __name__ == "__main__":
+
 	main()

@@ -24,11 +24,10 @@ except ImportError:
 	from io import StringIO
 
 
-#warnings.simplefilter('default')
-
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
-    return '\n{0}\n\n'.format(str(msg))
+    return '\n{0}: {1}\n\n'.format('PendingDeprecationWarning',
+    							 str(msg))
 
 warnings.formatwarning = custom_formatwarning
 

@@ -17,6 +17,7 @@ DESCRIPTION
 """
 
 import os
+import sys
 import csv
 import time
 import shutil
@@ -161,12 +162,14 @@ def get_seqs_dicts(gene_file, table_id):
                 translated.
     """
 
+    total_seqs = 0
     seqid = 1
     seqids_map = {}
     dna_seqs = {}
     prot_seqs = {}
     invalid_alleles = []
     for allele in SeqIO.parse(gene_file, 'fasta', generic_dna):
+        total_seqs += 1
         # try to translate each sequence in the file
         translated_seq = translate_dna(str(allele.seq), table_id)
         # if returned value is a list, translation was successful
@@ -180,7 +183,8 @@ def get_seqs_dicts(gene_file, table_id):
         elif isinstance(translated_seq, str):
             invalid_alleles.append([allele.id, translated_seq])
 
-    return [dna_seqs, prot_seqs, invalid_alleles, seqids_map]
+    return [dna_seqs, prot_seqs,
+            invalid_alleles, seqids_map, total_seqs]
 
 
 def reverse_complement(dna_sequence):
@@ -761,6 +765,52 @@ def determine_new_representative(candidates, proteins,
     return representatives
 
 
+def check_input_type(input_path):
+    """ Checks if input path corresponds to a directory or to a file
+        and returns a list with the files in the directory or the paths
+        in the file.
+
+        Args:
+            input_path (str): path to the directory with Fasta files or
+            to the file with the list of paths.
+
+        Returns:
+            genes_list (list): list with the paths to the Fasta files.
+    """
+
+    if os.path.isdir(input_path) is True:
+        genes_list = os.listdir(input_path)
+        # get absolute paths
+        if len(genes_list) > 0:
+            genes_list = [os.path.join(input_path, file)
+                          for file in genes_list]
+        else:
+            sys.tracebacklimit=0
+            print()
+            raise Exception('Provided directory is empty! Please provide '
+                            'a directory with Fasta files, one per gene, '
+                            'or a file with a list of paths to Fasta files, '
+                            'one per line.\n')
+    elif os.path.isfile(input_path) is True:
+        with open(input_path, 'r') as infile:
+            genes_list = [file.strip() for file in infile.readlines()]
+            if len(genes_list) == 0 or genes_list[0] == '':
+                sys.tracebacklimit=0
+                print()
+                raise Exception('Input file had no valid paths! Please provide '
+                                'a directory with Fasta files, one per gene, '
+                                'or a file with a list of paths to Fasta files, '
+                                'one per line.\n')
+    else:
+        sys.tracebacklimit=0
+        print()
+        input_basename = os.path.basename(input_path.strip('/'))
+        raise Exception('Could not find "{0}" directory or file in '
+                        'provided path.\n'.format(input_basename))
+
+    return genes_list
+
+
 def adapt_external_schema(genes_list):
     """ Adapts a set of genes/loci from as external schema to be
         used with chewBBACA. Removes invalid alleles and selects
@@ -787,6 +837,7 @@ def adapt_external_schema(genes_list):
     bsr = genes_list[-1]
     invalid_alleles = []
     invalid_genes = []
+    summary_stats = []
     table_id = 11
     for gene in genes:
 
@@ -812,7 +863,7 @@ def adapt_external_schema(genes_list):
 
         # get dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
-        gene_seqs, prot_seqs, gene_invalid, seqids_map = \
+        gene_seqs, prot_seqs, gene_invalid, seqids_map, total_sequences = \
             get_seqs_dicts(gene, table_id)
         invalid_alleles.extend(gene_invalid)
 
@@ -821,6 +872,7 @@ def adapt_external_schema(genes_list):
         if len(prot_seqs) == 0:
             shutil.rmtree(gene_temp_dir)
             invalid_genes.append(gene_id)
+            summary_stats.append([gene_id, str(total_sequences), '0', '0'])
             continue
 
         # create dictionary to store protein sequences and sequence
@@ -930,14 +982,23 @@ def adapt_external_schema(genes_list):
         gene_lines = fasta_lines(list(gene_seqs.keys()), gene_seqs)
         write_list(gene_lines, gene_file)
 
+        # get total number of valid sequences
+        valid_sequences = len(gene_lines) // 2
+
         # write schema file with representatives
         representatives = [seqids_map[rep] for rep in representatives]
         gene_rep_lines = fasta_lines(representatives, gene_seqs)
         write_list(gene_rep_lines, gene_short_file)
 
+        # get number of representatives
+        representatives_number = len(gene_rep_lines) // 2
+
+        summary_stats.append([gene_id, str(total_sequences),
+             str(valid_sequences), str(representatives_number)])
+
         shutil.rmtree(gene_temp_dir)
 
-    return [invalid_alleles, invalid_genes]
+    return [invalid_alleles, invalid_genes, summary_stats]
 
 
 def main(external_schema, output_schema, cpu_threads, bsr):
@@ -947,20 +1008,11 @@ def main(external_schema, output_schema, cpu_threads, bsr):
     print('\nAdapting schema in the following '
           'directory:\n{0}'.format(os.path.abspath(external_schema)))
     print('Number of threads: {0}'.format(cpu_threads))
-    print('BLAST Score Ratio: {0}\n'.format(bsr))
-
-    genes_list = []
+    print('BLAST Score Ratio: {0}'.format(bsr))
 
     # list FASTA files in input directory
     # or get list of files from text file
-    if os.path.isdir(external_schema) is True:
-        genes_list = os.listdir(external_schema)
-        # get absolute paths
-        genes_list = [os.path.join(external_schema, file)
-                      for file in genes_list]
-    elif os.path.isfile(external_schema) is True:
-        with open(external_schema, 'r') as infile:
-            genes_list = [file.strip() for file in infile.readlines()]
+    genes_list = check_input_type(external_schema)
 
     # filter files based on suffix
     file_suffixes = ['.fasta', '.fna', '.ffn']
@@ -969,6 +1021,22 @@ def main(external_schema, output_schema, cpu_threads, bsr):
     # filter files based on contents, must be FASTA with sequences
     genes_list = filter_non_fasta(genes_list)
 
+    # check if the filtering steps removed all the files
+    if len(genes_list) == 0:
+        sys.tracebacklimit=0
+        # add space between code execution info and exception text
+        print()
+        raise Exception('There were no valid Fasta files in the input '
+                        'directory or valid Fasta files in any path '
+                        'listed in the input file. Please provide '
+                        'a directory with Fasta files, one per gene, '
+                        'or a file with a list of paths to Fasta files, '
+                        'one per line.\n')
+
+    print('Number of genes to adapt: {0}\n'.format(len(genes_list)))
+
+    print('Determining the total number of alleles and '
+          'allele mean length per gene...\n'.format())
     # count number of sequences and mean length per gene
     genes_info = gene_seqs_info(genes_list)
 
@@ -994,6 +1062,7 @@ def main(external_schema, output_schema, cpu_threads, bsr):
         even_genes_groups[i].append(schema_short_path)
         even_genes_groups[i].append(bsr)
 
+    print('Adapting {0} genes...\n'.format(len(genes_list)))
     invalid_data = []
     # process inputs in parallel
     genes_pools = multiprocessing.Pool(processes=cpu_threads)
@@ -1033,7 +1102,7 @@ def main(external_schema, output_schema, cpu_threads, bsr):
 
     # define paths and write files with list of invalid
     # alleles and invalid genes
-    output_schema_basename = os.path.basename(output_schema)
+    output_schema_basename = os.path.basename(output_schema.rstrip('/'))
     schema_parent_directory = os.path.dirname(schema_path)
 
     # write file with alleles that were determined to be invalid
@@ -1064,7 +1133,22 @@ def main(external_schema, output_schema, cpu_threads, bsr):
         invalid_geqids = '\n'.join(invalid_genes)
         inv.write(invalid_geqids)
 
-    print('\n\nSuccessfully adapted {0}/{1} genes present in the '
+    stats_lines = [sub[2] for sub in invalid_data]
+    stats_lines = list(itertools.chain.from_iterable(stats_lines))
+    stats_lines = ['\t'.join(line) for line in stats_lines]
+    stats_genes_file = '{0}/{1}_{2}'.format(schema_parent_directory,
+                                              output_schema_basename,
+                                              'summary_stats.txt')
+
+    with open(stats_genes_file, 'w') as stats:
+        summary_stats_text = '\n'.join(stats_lines)
+        stats.write('Gene\tTotal_alleles\tValid_alleles\tNumber_representatives\n')
+        stats.write(summary_stats_text)
+
+    print('\n\nNumber of invalid genes: {0}'.format(len(invalid_genes)))
+    print('Number of invalid alleles: {0}'.format(len(invalid_alleles)))
+
+    print('\nSuccessfully adapted {0}/{1} genes present in the '
           'external schema.'.format(len(genes_list)-len(invalid_genes),
                                     len(genes_list)))
 

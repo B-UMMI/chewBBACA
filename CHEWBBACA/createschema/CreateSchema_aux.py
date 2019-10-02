@@ -1015,3 +1015,99 @@ def apply_bsr(inputs):
                     excluded_alleles.append(hit)
 
     return excluded_alleles
+
+
+
+def sequence_kmerizer(sequence, k_value):
+    """
+    """
+
+    kmers = [sequence[i:i+k_value] for i in range(0, len(sequence)-k_value+1)]
+
+    return kmers
+
+
+def cluster_sequences(sorted_sequences, word_filter,
+                      word_size, clustering_sim, mode):
+    """
+    """
+
+    reps = {}
+    clusters = {}
+    reps_groups = {}
+    for prot in sorted_sequences:
+        protid = prot[0]
+        protein = prot[1]
+        if len(clusters) == 0:
+            clusters[protid] = [(protid, 1.0)]
+            kmers = sequence_kmerizer(protein, word_size)
+            reps[protid] = kmers
+            longmers = sequence_kmerizer(protein, word_filter)
+            for k in longmers:
+                reps_groups[k] = [protid]
+        else:
+            kmers = sequence_kmerizer(protein, word_size)
+            longmers = sequence_kmerizer(protein, word_filter)
+            current_reps = []
+            for k in longmers:
+                if k in reps_groups:
+                    current_reps += reps_groups[k]
+
+            current_reps = list(set(current_reps))
+
+            intersections = []
+            for r in current_reps:
+                shared_kmers = len(set.intersection(set(reps[r]), set(kmers)))
+                intersections.append((r, shared_kmers/len(kmers)))
+
+            sims = [s for s in intersections if s[1] >= clustering_sim]
+            # sort to get most similar at index 0
+            sims = sorted(sims, key=lambda x: x[1], reverse=True)
+
+            if len(sims) > 0:
+
+                if mode == 'greedy':
+                    clusters[sims[0][0]].append((protid, sims[0][1]))
+                elif mode == 'full':
+                    for s in sims:
+                        clusters[s[0]].append((protid, s[1]))
+            else:
+                for k in longmers:
+                    if k in reps_groups:
+                        reps_groups[k].append(protid)
+                    else:
+                        reps_groups[k] = [protid]
+                reps[protid] = kmers
+                clusters[protid] = [(protid, 1.0)]
+
+    return clusters
+
+
+def cluster_prunner(clusters, sim_cutoff):
+    """
+    """
+
+    prunned_clusters = {}
+    for c in clusters:
+        # this removes the representative from the cluster
+        prunned_clusters[c] = [seqid for seqid in clusters[c] if seqid[1] < sim_cutoff]
+
+    return prunned_clusters
+
+
+def determine_singletons(clusters):
+    """
+    """
+
+    singletons = {k: v for k, v in clusters.items() if len(v) == 0}
+
+    return singletons
+
+
+def remove_clusters(clusters, cluster_ids):
+    """
+    """
+
+    new_clusters = {k: v for k, v in clusters.items() if k not in cluster_ids}
+
+    return new_clusters

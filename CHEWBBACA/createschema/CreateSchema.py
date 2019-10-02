@@ -194,6 +194,44 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     print('Kept {0} sequences after filtering the initial {1} sequences.'.format(len(final_seqids), len(cds_ids)))
 
+    # Use clustering to reduce number of BLAST comparisons
+
+    # import proteins to cluster
+    prots = {}
+    for record in SeqIO.parse(prot_file, 'fasta'):
+        seqid = record.id
+        prot_seq = str(record.seq)
+        prots[seqid] = prot_seq
+
+    # sort proteins in order of decreasing length
+    sorted_prots = sorted(list(prots.items()),
+                          key=lambda x: len(x[1]),
+                          reverse=True)
+
+    # cluster parameters
+    mode = 'greedy'
+    word_filter = 10
+    word_size = 5
+    clustering_sim = 0.0
+    locus_sim = 0.9
+
+    # cluster proteins
+    start = time.time()
+    clusters = cluster_sequences(sorted_prots, word_filter,
+                                 word_size, clustering_sim,
+                                 mode)
+    end = time.time()
+    delta = end - start
+
+    # remove sequences that are very similar to representatives
+    prunned_clusters = cluster_prunner(clusters, locus_sim)
+    # determine clusters that only have the representative
+    singletons = determine_singletons(prunned_clusters)
+    # remove singletons and keep clusters that need to be BLASTed
+    final_clusters = remove_clusters(prunned_clusters, singletons)
+
+###############################################################################
+
     # use CD-HIT to cluster remaining proteins
     # change working directory
     print('\nClustering {0} protein sequences with CD-HIT...'.format(len(final_seqids)))

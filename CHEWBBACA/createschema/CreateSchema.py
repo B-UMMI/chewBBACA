@@ -27,18 +27,21 @@ import runProdigal
 import CreateSchema_aux as rfm
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_complete_genomes'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_complete_genomes_schema'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/GBS_680_genomes'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_680ref_schema'
 prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
 schema_name = 'sagalactiae_schema_seed'
 cpu_count = 6
 blastp_path = shutil.which('blastp')
 blast_score_ratio = 0.6
 minimum_cds_length = 201
-cd_hit_sim = 0.6
-cd_hit_word = 4
-cutoff_sim = 70.00
 cleanup = 'yes'
+# cluster parameters
+clustering_mode = 'greedy'
+word_filter = 10
+word_size = 4
+clustering_sim = 0.0
+cluster_filter_sim = 0.80
 
 
 def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count, 
@@ -195,60 +198,33 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     print('Kept {0} sequences after filtering the initial {1} sequences.'.format(len(final_seqids), len(cds_ids)))
 
     # Use clustering to reduce number of BLAST comparisons
-
     # import proteins to cluster
     prots = {}
-    for record in SeqIO.parse(prot_file, 'fasta'):
+    for record in SeqIO.parse(protein_file, 'fasta'):
         seqid = record.id
         prot_seq = str(record.seq)
         prots[seqid] = prot_seq
 
-    # sort proteins in order of decreasing length
+    # sort proteins by length and alphabetically
     sorted_prots = sorted(list(prots.items()),
-                          key=lambda x: len(x[1]),
-                          reverse=True)
-
-    # cluster parameters
-    mode = 'greedy'
-    word_filter = 10
-    word_size = 5
-    clustering_sim = 0.0
-    locus_sim = 0.9
+                          key=lambda x: (-len(x[1]), x[0]))
 
     # cluster proteins
-    start = time.time()
-    clusters = cluster_sequences(sorted_prots, word_filter,
-                                 word_size, clustering_sim,
-                                 mode)
-    end = time.time()
-    delta = end - start
+    cluster_start = time.time()
+    clusters = rfm.cluster_sequences(sorted_prots, word_filter,
+                                     word_size, clustering_sim,
+                                     clustering_mode)
+    cluster_end = time.time()
+    cluster_delta = cluster_end - cluster_start
 
     # remove sequences that are very similar to representatives
-    prunned_clusters = cluster_prunner(clusters, locus_sim)
+    prunned_clusters, excluded_alleles = rfm.cluster_prunner(clusters,
+                                                             cluster_filter_sim)
+    excluded_alleles = [e[0] for e in excluded_alleles]
     # determine clusters that only have the representative
-    singletons = determine_singletons(prunned_clusters)
+    singletons = rfm.determine_singletons(prunned_clusters)
     # remove singletons and keep clusters that need to be BLASTed
-    final_clusters = remove_clusters(prunned_clusters, singletons)
-
-###############################################################################
-
-    # use CD-HIT to cluster remaining proteins
-    # change working directory
-    print('\nClustering {0} protein sequences with CD-HIT...'.format(len(final_seqids)))
-    os.chdir(temp_directory)
-
-    cd_hit_excluded = rfm.hierarchical_clustering(protein_file, temp_directory, cpu_to_apply,
-                                                  cd_hit_sim, cd_hit_word, cutoff_sim)
-
-    os.chdir(parent_directory)
-
-    # exclude seqids
-    excluded_alleles = cd_hit_excluded
-
-    # read clusters file and keep only lines for clusters with more than one sequence
-    clstr_file = '{0}/cd_hit_{1}perc_n{2}_sorted.clstr'.format(temp_directory, int(cd_hit_sim*100), cd_hit_word)
-    clstr_dictionary = os.path.join(temp_directory, 'clusters_dictionary')
-    rfm.load_cluster_info(clstr_file, clstr_dictionary)
+    final_clusters = rfm.remove_clusters(prunned_clusters, singletons)
 
     # create dictionary mapping seqids to sequences
     protein_dict_file = os.path.join(temp_directory, 'protein_dictionary')
@@ -265,7 +241,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     blast_results_dir = os.path.join(temp_directory, 'blast_results')
     os.mkdir(blast_results_dir)
 
-    seqids_to_blast = rfm.blast_inputs(clstr_dictionary, blast_db, 
+    seqids_to_blast = rfm.blast_inputs(final_clusters, blast_db, 
                                        protein_dict_file, blast_results_dir)
 
     # distribute clusters per available cores, try to group inputs into
@@ -281,12 +257,12 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # ADD progress bar!!!
     # BLAST each sequences in a cluster against every sequence in that cluster
     p = Pool(processes = cpu_to_apply)
-    r = p.map_async(rfm.cd_hit_blast, splitted_seqids)
+    r = p.map_async(rfm.cluster_blaster, splitted_seqids)
     r.wait()
 
     print('Finished BLASTp. Determining schema representatives...')
+
     # Import BLAST results
-    # CD-HIT strategy that BLASTs cluster sequences all-against-all
     blast_files = os.listdir(blast_results_dir)
     blast_files = [os.path.join(blast_results_dir, file) for file in blast_files if 'blast_out.tsv' in file]
 
@@ -304,7 +280,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # merge bsr results
     blast_excluded_alleles = list(itertools.chain.from_iterable(blast_excluded_alleles))
-    excluded_alleles = excluded_alleles + blast_excluded_alleles
+    excluded_alleles.extend(blast_excluded_alleles)
 
     # perform final BLAST to avoid creating a schema with paralogs
     print('Performing a final BLAST to check for paralogs...')

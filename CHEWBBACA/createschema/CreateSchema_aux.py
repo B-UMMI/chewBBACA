@@ -574,17 +574,18 @@ def get_sequences_by_id(sequences_file, seqids, out_file):
         out.write(lines)
 
 
-def load_cluster_info(cluster_file, out_file):
-    """
-    """
-
-    clusters = import_clusters(cluster_file)
-
-    # create mapping between representative sequences and subjects in clusters
-    clusters = clusters_dicts(clusters)
-
-    with open(out_file, 'wb') as out:
-        pickle.dump(clusters, out)
+# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
+#def load_cluster_info(cluster_file, out_file):
+#    """
+#    """
+#
+#    clusters = import_clusters(cluster_file)
+#
+#    # create mapping between representative sequences and subjects in clusters
+#    clusters = clusters_dicts(clusters)
+#
+#    with open(out_file, 'wb') as out:
+#        pickle.dump(clusters, out)
 
 
 def create_protein_dict(protein_file, out_file):
@@ -727,7 +728,7 @@ def build_schema(last_file, output_file):
         print('\nTotal of {0} loci that constitute the schema.'.format(total_genes))
 
 
-def cd_hit_blast(inputs):
+def cluster_blaster(inputs):
     """
     """
 
@@ -741,6 +742,8 @@ def cd_hit_blast(inputs):
         cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
         with open(cluster_file, 'rb')as clstr:
             cluster_ids = pickle.load(clstr)
+            #cluster_ids = [seqid[0] for seqid in cluster_ids]
+            cluster_ids.append(cluster_id)
 
         blast_db = cluster[1]
 
@@ -773,171 +776,194 @@ def cd_hit_blast(inputs):
         os.system(blast_command)
 
 
-def prune_clusters(clstr_file, cutoff):
+# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
+#def prune_clusters(clstr_file, cutoff):
+#    """
+#    """
+#
+#    with open(clstr_file, 'r') as clstrs:
+#        lines = clstrs.readlines()
+#
+#    new_lines = []
+#    excluded_seqids = []
+#    for l in lines:
+#        if '>Cluster' in l:
+#            new_lines.append(l)
+#        elif '*' in l:
+#            new_lines.append(l)
+#        else:
+#            current_line = l.split(' ')
+#            percentage = current_line[-1].strip()
+#            percentage = float(percentage.strip('%'))
+#
+#            if percentage < cutoff:
+#                new_lines.append(l)
+#            else:
+#                seqid = l.split('...')[0].split('>')[1]
+#                excluded_seqids.append(seqid)
+#
+#    os.remove(clstr_file)
+#    with open(clstr_file, 'w') as new_file:
+#        new_file.writelines(new_lines)
+#
+#    return excluded_seqids
+
+
+# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
+#def hierarchical_clustering(protein_fasta, output_directory, threads, cd_hit_sim, cd_hit_word, cutoff_sim):
+#    """
+#    """
+#
+#    # cluster file based on defined similarity
+#    sim_percentage = int(cd_hit_sim*100)
+#    print('Clustering at {0}%...'.format(sim_percentage))
+#    clstr_file = 'cd_hit_{0}perc_n{1}'.format(sim_percentage, cd_hit_word)
+#    clstr_path = '{0}/{1}'.format(output_directory, clstr_file)
+#    cd_hit_command = ('cd-hit -i {0} -o {1} -c {2} -n {3} '
+#                             '-d 200 -T {4} -sc 1 -sf 1 -g 1 >/dev/null 2>&1'.format(protein_fasta, clstr_path,
+#                                                                                     cd_hit_sim, cd_hit_word,
+#                                                                                     threads))
+#    os.system(cd_hit_command)
+#
+#    # read clusters and remove sequences that share a cutoff_sim equal or greater than
+#    # the defined value. This avoids BLASTing sequences that are from the same gene
+#    pruned_seqids = prune_clusters('{0}.clstr'.format(clstr_path), cutoff_sim)
+#
+#    # sort clusters by cluster size
+#    sort_clusters_command = ('clstr_sort_by.pl < {0}/{1}.clstr '
+#                             '> {0}/cd_hit_{2}perc_n{3}_sorted.clstr'.format(output_directory, clstr_file,
+#                                                                             sim_percentage, cd_hit_word))
+#    os.system(sort_clusters_command)
+#
+#    print('Finished clustering sequences!')
+#
+#    return pruned_seqids
+
+
+# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
+#def import_clusters(clstr_file):
+#    """
+#    """
+#
+#    with open(clstr_file, 'r') as file:
+#        clusters = {}
+#        # read all lines from clstr file
+#        lines = file.readlines()
+#        # remove new line chars
+#        lines = [line.strip() for line in lines]
+#        # variable to signal singletons
+#        singleton = False
+#        l = 0
+#        # increment to check the number of sequences per cluster
+#        # if a new cluster identifier appears when this variable is 1, the last
+#        # cluster was a singleton
+#        last_seen = 0
+#        # clusters are ordered by descending number of sequences
+#        # when the first singleton is found, stop iterating over the lines
+#        while singleton != True:
+#            new_line = lines[l]
+#            # if the new line is a cluster identifier line
+#            if 'Cluster' in new_line:
+#                # check if the last cluster was a singleton
+#                if last_seen == 1:
+#                    singleton = True
+#                    # remove last cluster, it was a singleton
+#                    clusters.pop(cluster_id)
+#                # create a new dictionary entry for the new cluster
+#                else:
+#                    cluster_id = new_line.split(' ')[-1]
+#                    clusters[cluster_id] = []
+#                    # reset variable value
+#                    last_seen = 0
+#            # if the new line is not a cluster identifier, keep adding the sequences
+#            # in the cluster to the dictionary entry
+#            else:
+#                clusters[cluster_id].append(new_line)
+#                last_seen += 1
+#
+#            # increment variable with line number
+#            l += 1
+#
+#            # if we reach the end of the file without finding singletons
+#            # stop iterating
+#            if l == len(lines):
+#                singleton = True
+#
+#    return clusters
+
+
+# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
+#def clusters_dicts(clusters):
+#    """
+#    """
+#
+#    rep_sub_mapping = {}
+#    # for each cluster (cluster identifiers are integers)
+#    for i in clusters:
+#        # get all sequences in that cluster
+#        cluster_lines = clusters[i]
+#        # list to store sequences identifiers in the cluster
+#        all_subs = []
+#        for line in range(len(cluster_lines)):
+#            # representative sequences have '*'
+#            if '*' in cluster_lines[line]:
+#                # split in order to get only the identifier
+#                rep_id = cluster_lines[line].split('>')[1]
+#                rep_id = rep_id.split('...')[0]
+#                # create dictionary entry with represetative identifier as key
+#                rep_sub_mapping[rep_id] = []
+#                # add representative identifier to list
+#                all_subs.append(rep_id)
+#            else:
+#                # add to the cluster list every other sequence
+#                sub_id = cluster_lines[line].split('>')[1]
+#                sub_id = sub_id.split('...')[0]
+#                all_subs.append(sub_id)
+#
+#        # add the list of sequences identifiers as value
+#        rep_sub_mapping[rep_id] += all_subs
+#
+#    return rep_sub_mapping
+
+
+def blast_inputs(clusters, blastdb_path, proteins_dict_file, output_directory):
     """
     """
-
-    with open(clstr_file, 'r') as clstrs:
-        lines = clstrs.readlines()
-
-    new_lines = []
-    excluded_seqids = []
-    for l in lines:
-        if '>Cluster' in l:
-            new_lines.append(l)
-        elif '*' in l:
-            new_lines.append(l)
-        else:
-            current_line = l.split(' ')
-            percentage = current_line[-1].strip()
-            percentage = float(percentage.strip('%'))
-
-            if percentage < cutoff:
-                new_lines.append(l)
-            else:
-                seqid = l.split('...')[0].split('>')[1]
-                excluded_seqids.append(seqid)
-
-    os.remove(clstr_file)
-    with open(clstr_file, 'w') as new_file:
-        new_file.writelines(new_lines)
-
-    return excluded_seqids
-
-
-def hierarchical_clustering(protein_fasta, output_directory, threads, cd_hit_sim, cd_hit_word, cutoff_sim):
-    """
-    """
-
-    # cluster file based on defined similarity
-    sim_percentage = int(cd_hit_sim*100)
-    print('Clustering at {0}%...'.format(sim_percentage))
-    clstr_file = 'cd_hit_{0}perc_n{1}'.format(sim_percentage, cd_hit_word)
-    clstr_path = '{0}/{1}'.format(output_directory, clstr_file)
-    cd_hit_command = ('cd-hit -i {0} -o {1} -c {2} -n {3} '
-                             '-d 200 -T {4} -sc 1 -sf 1 -g 1 >/dev/null 2>&1'.format(protein_fasta, clstr_path,
-                                                                                     cd_hit_sim, cd_hit_word,
-                                                                                     threads))
-    os.system(cd_hit_command)
-
-    # read clusters and remove sequences that share a cutoff_sim equal or greater than
-    # the defined value. This avoids BLASTing sequences that are from the same gene
-    pruned_seqids = prune_clusters('{0}.clstr'.format(clstr_path), cutoff_sim)
-
-    # sort clusters by cluster size
-    sort_clusters_command = ('clstr_sort_by.pl < {0}/{1}.clstr '
-                             '> {0}/cd_hit_{2}perc_n{3}_sorted.clstr'.format(output_directory, clstr_file,
-                                                                             sim_percentage, cd_hit_word))
-    os.system(sort_clusters_command)
-
-    print('Finished clustering sequences!')
-
-    return pruned_seqids
-
-
-def import_clusters(clstr_file):
-    """
-    """
-
-    with open(clstr_file, 'r') as file:
-        clusters = {}
-        # read all lines from clstr file
-        lines = file.readlines()
-        # remove new line chars
-        lines = [line.strip() for line in lines]
-        # variable to signal singletons
-        singleton = False
-        l = 0
-        # increment to check the number of sequences per cluster
-        # if a new cluster identifier appears when this variable is 1, the last
-        # cluster was a singleton
-        last_seen = 0
-        # clusters are ordered by descending number of sequences
-        # when the first singleton is found, stop iterating over the lines
-        while singleton != True:
-            new_line = lines[l]
-            # if the new line is a cluster identifier line
-            if 'Cluster' in new_line:
-                # check if the last cluster was a singleton
-                if last_seen == 1:
-                    singleton = True
-                    # remove last cluster, it was a singleton
-                    clusters.pop(cluster_id)
-                # create a new dictionary entry for the new cluster
-                else:
-                    cluster_id = new_line.split(' ')[-1]
-                    clusters[cluster_id] = []
-                    # reset variable value
-                    last_seen = 0
-            # if the new line is not a cluster identifier, keep adding the sequences
-            # in the cluster to the dictionary entry
-            else:
-                clusters[cluster_id].append(new_line)
-                last_seen += 1
-
-            # increment variable with line number
-            l += 1
-
-            # if we reach the end of the file without finding singletons
-            # stop iterating
-            if l == len(lines):
-                singleton = True
-
-    return clusters
-
-
-def clusters_dicts(clusters):
-    """
-    """
-
-    rep_sub_mapping = {}
-    # for each cluster (cluster identifiers are integers)
-    for i in clusters:
-        # get all sequences in that cluster
-        cluster_lines = clusters[i]
-        # list to store sequences identifiers in the cluster
-        all_subs = []
-        for line in range(len(cluster_lines)):
-            # representative sequences have '*'
-            if '*' in cluster_lines[line]:
-                # split in order to get only the identifier
-                rep_id = cluster_lines[line].split('>')[1]
-                rep_id = rep_id.split('...')[0]
-                # create dictionary entry with represetative identifier as key
-                rep_sub_mapping[rep_id] = []
-                # add representative identifier to list
-                all_subs.append(rep_id)
-            else:
-                # add to the cluster list every other sequence
-                sub_id = cluster_lines[line].split('>')[1]
-                sub_id = sub_id.split('...')[0]
-                all_subs.append(sub_id)
-
-        # add the list of sequences identifiers as value
-        rep_sub_mapping[rep_id] += all_subs
-
-    return rep_sub_mapping
-
-
-def blast_inputs(clusters_dict_file, blastdb_path, proteins_dict_file, output_directory):
-    """
-    """
-
-    # import clusters dict
-    with open(clusters_dict_file, 'rb') as infile:
-        clusters = pickle.load(infile)
 
     ids_to_blast = []
     for i in clusters:
 
         cluster_file = os.path.join(output_directory, '{0}.clstr'.format(i))
+        cluster_ids = [seq[0] for seq in clusters[i]]
         with open(cluster_file, 'wb') as out_clstr:
-            pickle.dump(clusters[i], out_clstr)
+            pickle.dump(cluster_ids, out_clstr)
 
         blast_input = [i, blastdb_path, proteins_dict_file]
         ids_to_blast.append(blast_input)
 
     return ids_to_blast
+
+
+# DEPRECATED
+#def blast_inputs(clusters_dict_file, blastdb_path, proteins_dict_file, output_directory):
+#    """
+#    """
+#
+#    # import clusters dict
+#    with open(clusters_dict_file, 'rb') as infile:
+#        clusters = pickle.load(infile)
+#
+#    ids_to_blast = []
+#    for i in clusters:
+#
+#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(i))
+#        with open(cluster_file, 'wb') as out_clstr:
+#            pickle.dump(clusters[i], out_clstr)
+#
+#        blast_input = [i, blastdb_path, proteins_dict_file]
+#        ids_to_blast.append(blast_input)
+#
+#    return ids_to_blast
 
 
 def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
@@ -1017,7 +1043,6 @@ def apply_bsr(inputs):
     return excluded_alleles
 
 
-
 def sequence_kmerizer(sequence, k_value):
     """
     """
@@ -1087,12 +1112,14 @@ def cluster_prunner(clusters, sim_cutoff):
     """
     """
 
+    excluded = []
     prunned_clusters = {}
-    for c in clusters:
+    for rep, seqids in clusters.items():
         # this removes the representative from the cluster
-        prunned_clusters[c] = [seqid for seqid in clusters[c] if seqid[1] < sim_cutoff]
+        prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
+        excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
 
-    return prunned_clusters
+    return [prunned_clusters, excluded]
 
 
 def determine_singletons(clusters):

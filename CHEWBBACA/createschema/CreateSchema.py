@@ -18,6 +18,7 @@ import time
 import shutil
 import argparse
 import itertools
+from collections import Counter
 from multiprocessing import Pool
 
 from Bio import SeqIO
@@ -27,36 +28,43 @@ import runProdigal
 import CreateSchema_aux as rfm
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/GBS_680_genomes'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_680ref_schema'
-prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
-schema_name = 'sagalactiae_schema_seed'
-cpu_count = 6
-blastp_path = shutil.which('blastp')
-blast_score_ratio = 0.6
-minimum_cds_length = 201
-cleanup = 'yes'
-# cluster parameters
-clustering_mode = 'greedy'
-word_filter = 10
-word_size = 4
-clustering_sim = 0.0
-cluster_filter_sim = 0.80
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_genomes'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_schema_seed'
+#prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
+#schema_name = 'ref32_schema_seed'
+#cpu_count = 6
+#blastp_path = shutil.which('blastp')
+#blast_score_ratio = 0.6
+#minimum_cds_length = 201
+#cleanup = 'yes'
+## cluster parameters
+#clustering_mode = 'greedy'
+#word_filter = 4
+#filtering_sim = 0.15
+#word_size = 4
+#clustering_sim = 0.20
+#cluster_filter = 0.80
 
 
 def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count, 
-         blastp_path, blast_score_ratio, minimum_cds_length, cd_hit_sim, cd_hit_word,
-         cutoff_sim, cleanup):
+         blastp_path, blast_score_ratio, minimum_cds_length, clustering_mode, word_filter,
+         filtering_sim, clustering_sim, word_size, cluster_filter, cleanup):
     """
     """
 
-    start = time.time()
+    global_start = time.time()
 
     cpu_to_apply = new_utils.verify_cpu_usage(cpu_count)
     print('\nNumber of cores: {0}'.format(cpu_to_apply))
 
     chosen_taxon = os.path.abspath(prodigal_training_file)
     print('Training file: {0}'.format(chosen_taxon))
+    print('Clustering mode: {0}'.format(clustering_mode))
+    print('Word filter: {0}'.format(word_filter))
+    print('Filtering similarity: {0}'.format(filtering_sim))
+    print('Clustering similarity: {0}'.format(clustering_sim))
+    print('Word size: {0}'.format(word_size))
+    print('Cluster filter: {0}'.format(cluster_filter))
 
     # path to directory with genomes FASTA files
     genomes_path = input_files
@@ -91,6 +99,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         os.makedirs(prodigal_path)
 
     # run Prodigal to determine CDSs for all input genomes
+    prodigal_start = time.time()
     print('\nPredicting CDS sequences...')
     print ('Started Prodigal at: {0}'.format(time.strftime('%H:%M:%S - %d/%m/%Y')))
 
@@ -104,6 +113,9 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     print('\nChecking if Prodigal created all the necessary files...')
     new_utils.check_prodigal_output_files(prodigal_path, fasta_files)
     print('Finished Prodigal at: {0}'.format(time.strftime("%H:%M:%S - %d/%m/%Y")))
+    prodigal_end = time.time()
+    prodigal_delta = prodigal_end - prodigal_start
+    print('Prodigal delta: {0}'.format(prodigal_delta))
 
     # get CDSs for each genome
     protein_table = os.path.join(parent_directory, 'protein_info.tsv')
@@ -112,6 +124,9 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # add multiprocessing!!!
     protid = 1
+    # with big files, this list with all CDSs identifiers is occupying a lot
+    # of RAM memory, aorund 500mb-700mb. Better to write identifiers to file
+    # and import them if needed thorugh a generator?
     cds_ids = []
     cds_file = os.path.join(temp_directory, 'coding_sequences.fasta')
     for g in range(len(fasta_files)):
@@ -135,15 +150,21 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         protid = 1
 
     # determine seqids of repeated sequences
+    #r1_start = time.time()
     repeated_dna_cds = rfm.determine_repeated(cds_file)
+    #r1_end = time.time()
+    #r1_delta = r1_end - r1_start
 
     # remove seqids that are from repeated sequences
+    # import file with identifiers, iterate over lines, one at a time to save
+    # memory and only keep identifiers that are not in the repeated list
     unique_dna_seqs = list(set(cds_ids) - set(repeated_dna_cds))
     print('\nRemoved {0} repeated DNA sequences.'.format(len((repeated_dna_cds))))
     unique_dna_seqs.sort(key=lambda y: y.lower())
 
     # determine small DNA sequences and remove those seqids
-    small_dna_cds = rfm.determine_small(cds_file, minimum_cds_length)
+    # index file and only check if unique sequences are small!
+    small_dna_cds = rfm.determine_small(cds_file, unique_dna_seqs, minimum_cds_length)
 
     valid_dna_seqs = list(set(unique_dna_seqs) - set(small_dna_cds))
     print('Removed {0} DNA sequences shorter than {1} nucleotides.'.format(len(small_dna_cds), minimum_cds_length))
@@ -189,16 +210,21 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # write protein FASTA file
     protein_file = os.path.join(temp_directory, 'filtered_proteins.fasta')
-    rfm.get_sequences_by_id(protein_valid_file, final_seqids, protein_file)
+    indexed_protein_valid_file = SeqIO.index(protein_valid_file, 'fasta')
+    rfm.get_sequences_by_id(indexed_protein_valid_file, final_seqids, protein_file)
 
     # write DNA FASTA file
     dna_file = os.path.join(temp_directory, 'filtered_dna.fasta')
-    rfm.get_sequences_by_id(dna_valid_file, final_seqids, dna_file)
+    indexed_dna_valid_file = SeqIO.index(dna_valid_file, 'fasta')
+    rfm.get_sequences_by_id(indexed_dna_valid_file, final_seqids, dna_file)
 
     print('Kept {0} sequences after filtering the initial {1} sequences.'.format(len(final_seqids), len(cds_ids)))
 
     # Use clustering to reduce number of BLAST comparisons
     # import proteins to cluster
+    
+    # is this using too much memory???
+    # should not import all proteins into memory you noob!!!
     prots = {}
     for record in SeqIO.parse(protein_file, 'fasta'):
         seqid = record.id
@@ -211,56 +237,164 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # cluster proteins
     cluster_start = time.time()
-    clusters = rfm.cluster_sequences(sorted_prots, word_filter,
-                                     word_size, clustering_sim,
-                                     clustering_mode)
+    clusters = rfm.cluster_sequences(sorted_prots, word_filter, filtering_sim,
+                                     word_size, clustering_sim, clustering_mode)
+    print('Clustered proteins into {0} clusters'.format(len(clusters)))
     cluster_end = time.time()
     cluster_delta = cluster_end - cluster_start
+    print('Cluster delta: {0}'.format(cluster_delta))
 
     # remove sequences that are very similar to representatives
     prunned_clusters, excluded_alleles = rfm.cluster_prunner(clusters,
-                                                             cluster_filter_sim)
+                                                             cluster_filter)
     excluded_alleles = [e[0] for e in excluded_alleles]
     # determine clusters that only have the representative
     singletons = rfm.determine_singletons(prunned_clusters)
+    print('Singletons: {0}'.format(len(singletons)))
     # remove singletons and keep clusters that need to be BLASTed
     final_clusters = rfm.remove_clusters(prunned_clusters, singletons)
+    print('Clusters to BLAST: {0}'.format(len(final_clusters)))
+    
+    clustered_sequences = sum([len(v) for k, v in final_clusters.items()])
+    print('Remaining sequences after clustering and prunning: {0}'.format(clustered_sequences))
+    
+    # After clustering proteins, removing sequences with high similarity with the representative,
+    # and keeping only clusters that are not singletons
+    # further reduce the number of sequences to BLAST by performing intra-cluster comparisons
+    # by decomposing sequences into kmers and comparing them against other sequences in the cluster
+    # to determine if some sequences are very similar and can be excluded, mantaining only one of the
+    # sequences that share high similarity
+#    def intra_cluster_sim():
+#        """
+#        """
 
-    # create dictionary mapping seqids to sequences
-    protein_dict_file = os.path.join(temp_directory, 'protein_dictionary')
-    rfm.create_protein_dict(protein_file, protein_dict_file)
+    # identify clusters with more than 1 sequence besides the representative
+    print('Determining intra cluster similarity...')
+
+    intra_start = time.time()
+    intra_clusters = {k: v for k, v in final_clusters.items() if len(v) > 1}
+
+    # create kmer profile for each cluster and determine similarity
+    #test_dict = {'GCA_000007265-protein1101': intra_clusters['GCA_000007265-protein1101']}
+
+    indexed_prots = SeqIO.index(protein_file, 'fasta')
+    excluded_dict = {}
+    #for k, v in test_dict.items():
+    for k, v in intra_clusters.items():
+        cluster_ids = v
+
+        # get sequences
+        cluster_sequences = {}
+        for seqid in cluster_ids:
+            cluster_sequences[seqid[0]] = str(indexed_prots[seqid[0]].seq)
+
+        # get all kmers per sequence
+        kmers_mapping = {}
+        cluster_kmers = {}
+        for seqid, prot in cluster_sequences.items():
+            prot_kmers = rfm.sequence_kmerizer(prot, 4)
+            cluster_kmers[seqid] = prot_kmers
+            
+            for kmer in prot_kmers:
+                if kmer in kmers_mapping:
+                    kmers_mapping[kmer].add(seqid)
+                else:
+                    kmers_mapping[kmer] = set([seqid])
+
+        sims_cases = {}
+        excluded = []
+        for seqid, kmers in cluster_kmers.items():
+            if seqid not in excluded:
+                query_kmers = kmers
+                current_reps = []
+                for kmer in query_kmers:
+                    if kmer in kmers_mapping:
+                        current_reps.extend(list(kmers_mapping[kmer]))
+                
+                counts = Counter(current_reps)
+                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= 0.8]
+                
+                sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
+                
+                if len(sims) > 1:
+                    candidates = [s for s in sims if s[0] != seqid]
+                    #candidate = sims[0] if sims[0][0] != seqid else sims[1]
+                    #if candidate[0] not in excluded:
+                    for c in candidates:
+                    
+                        if len(query_kmers) >= len(cluster_kmers[c[0]]):
+                            sims_cases[c[0]] = (seqid, c[1])
+                            excluded.append(c[0])
+                        elif len(cluster_kmers[c[0]]) > len(query_kmers):
+                            sims_cases[seqid] = (c[0], c[1])
+                            excluded.append(seqid)
+
+        excluded_dict[k] = [list(set(excluded)), sims_cases]
+
+    intra_excluded = [v[0] for k, v in excluded_dict.items()]
+    intra_excluded = list(itertools.chain.from_iterable(intra_excluded))
+
+    intra_end = time.time()
+    intra_delta = intra_end - intra_start
+    print('Intra cluster similarity: {0}'.format(intra_delta))
+
+    excluded_alleles = excluded_alleles + intra_excluded
+
+    for k, v in excluded_dict.items():
+        if len(v[0]) > 0:
+            final_clusters[k] = [e for e in final_clusters[k] if e[0] not in v[0]]
+
+    clustered_sequences2 = [[k]+[e[0] for e in v] for k, v in final_clusters.items()]
+    clustered_sequences2 = list(itertools.chain.from_iterable(clustered_sequences2))
+    print('Remaining sequences after intra cluster prunning: {0}'.format(len(clustered_sequences2)))
+
 
     # create BLASTdb with all protein sequences from the protogenome, and with files to
     # possibilitate Blasting only against certain database sequences
-    makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format(protein_file)
+    clustered_seqs_file = os.path.join(temp_directory, 'clustered_proteins.fasta')
+    rfm.get_sequences_by_id(indexed_prots, clustered_sequences2, clustered_seqs_file)
+    
+
+    makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format(clustered_seqs_file)
     os.system(makedb_cmd)
 
     # BLAST necessary sequences against only the sequences from the same cluster
-    blast_db = os.path.join(temp_directory, 'filtered_proteins.fasta')
+    blast_db = os.path.join(temp_directory, 'clustered_proteins.fasta')
 
     blast_results_dir = os.path.join(temp_directory, 'blast_results')
     os.mkdir(blast_results_dir)
 
-    seqids_to_blast = rfm.blast_inputs(final_clusters, blast_db, 
-                                       protein_dict_file, blast_results_dir)
+    seqids_to_blast = rfm.blast_inputs(final_clusters, blast_results_dir)
 
     # distribute clusters per available cores, try to group inputs into
     # even groups in terms of number of clusters and sum of number of sequences
     # per inputs group
     splitted_seqids = rfm.split_blast_inputs_by_core(seqids_to_blast,
-                                                     cpu_to_apply, blast_results_dir)
+                                                     cpu_to_apply,
+                                                     blast_results_dir)
+
     for s in range(len(splitted_seqids)):
         splitted_seqids[s].append(blastp_path)
+        splitted_seqids[s].append(blast_db)
         splitted_seqids[s].append(blast_results_dir)
-
-    print('BLASTing protein sequences in each cluster determined by CD-HIT...')
+        splitted_seqids[s].append(clustered_seqs_file)
+    
+    # create the FASTA files with the protein sequences before BLAST?
+    
+    
+    blast_start = time.time()
+    print('BLASTing protein sequences in each cluster...')
     # ADD progress bar!!!
     # BLAST each sequences in a cluster against every sequence in that cluster
     p = Pool(processes = cpu_to_apply)
     r = p.map_async(rfm.cluster_blaster, splitted_seqids)
+    #r = p.map_async(rfm.alt_cluster_blaster, splitted_seqids)
     r.wait()
 
     print('Finished BLASTp. Determining schema representatives...')
+    blast_end = time.time()
+    blast_delta = blast_end - blast_start
+    print('BLAST delta: {0}'.format(blast_delta))
 
     # Import BLAST results
     blast_files = os.listdir(blast_results_dir)
@@ -275,8 +409,13 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     blast_excluded_alleles = []
     for i in splitted_results:
-        e = rfm.apply_bsr(i)
-        blast_excluded_alleles.append(e)
+        try:
+            e = rfm.apply_bsr(i)
+            blast_excluded_alleles.append(e)
+        # proteins with low complexity regions might
+        # fail to align 
+        except Exception:
+            print('Could not apply BSR to {0} results. Probably low complexity proteins. FAGGOTS!'.format(i))
 
     # merge bsr results
     blast_excluded_alleles = list(itertools.chain.from_iterable(blast_excluded_alleles))
@@ -286,20 +425,25 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     print('Performing a final BLAST to check for paralogs...')
     schema_seqids = list(set(final_seqids) - set(excluded_alleles))
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
-    rfm.get_sequences_by_id(protein_valid_file, schema_seqids, beta_file)
+    rfm.get_sequences_by_id(indexed_protein_valid_file, schema_seqids, beta_file)
 
     makedb_cmd = 'makeblastdb -in {0} -dbtype prot >/dev/null 2>&1'.format(beta_file)
     os.system(makedb_cmd)
 
     blast_db = os.path.join(temp_directory, beta_file)
-
+    
+    second_blast_start = time.time()
     blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory, 'beta_schema')
     blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
                      '-max_hsps 1 -num_threads {4} -evalue 0.001'.format(blastp_path, beta_file, beta_file, blast_output, cpu_to_apply))
     os.system(blast_command)
+    second_blast_end = time.time()
+    second_blast_delta = second_blast_end - second_blast_start
+    print('Total BLAST time: {0}'.format(second_blast_delta))
 
     final_excluded = rfm.apply_bsr([blast_output, indexed_fasta, blast_score_ratio])
     excluded_alleles = excluded_alleles + final_excluded
+    schema_seqids_final = list(set(schema_seqids) - set(excluded_alleles))
     print('Removed {0} loci that were too similar with other loci in the schema.'.format(len(final_excluded)))
 
     # decide which identifiers to keep and redo BLAST to check for residual paralogs
@@ -307,7 +451,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # filter protogenome to keep only representative sequences
     # optimize? seems to take too long!
-    rfm.remove_same_locus_alleles(dna_file, excluded_alleles,
+    rfm.remove_same_locus_alleles(indexed_fasta, schema_seqids_final,
                                   protein_file, output_schema, minimum_cds_length)
 
     schema_dir = os.path.join(parent_directory, schema_name)
@@ -318,13 +462,15 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     if cleanup == 'yes':
         shutil.rmtree(temp_directory)
 
-    end = time.time()
-    delta = end - start
+    global_end = time.time()
+    global_delta = global_end - global_start
     print('Created schema based on {0} assemblies/genomes of {1} in {2}m{3}s.'.format(len(fasta_files),
                                                                   os.path.basename(chosen_taxon).rstrip('.trn'),
-                                                                  int(delta/60), int(((delta/60)%1)*60)))
+                                                                  int(global_delta/60), int(((global_delta/60)%1)*60)))
+
 
 def parse_arguments():
+
 
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -358,26 +504,35 @@ def parse_arguments():
     parser.add_argument('--l', '--minimum_cds_length', type=int, required=False, dest='minimum_cds_length',
                         default=201, help='Minimum acceptable CDS length (default=201).')
 
-    parser.add_argument('--cd_hit_sim', '--cd_hit_similarity', type=float, required=False, dest='cd_hit_similarity',
-                        default=0.6, help='Clustering similarity used to cluster proteins (default=0.6).')
+    parser.add_argument('--cm', '--clustering_mode', type=str, required=False, dest='clustering_mode',
+                        default='greedy', help='')
 
-    parser.add_argument('--cd_hit_word', '--cd_hit_word_size', type=int, required=False, dest='cd_hit_word_size',
-                        default=4, help='Word size used in CD-HIT to cluster proteins (default=4).')
+    parser.add_argument('--wf', '--word_filter', type=int, required=False, dest='word_filter',
+                        default=4, help='')
+    
+    parser.add_argument('--fs', '--filtering_sim', type=float, required=False, dest='filtering_sim',
+                        default=0.15, help='')
 
-    parser.add_argument('--cutoff_sim', '--cutoff_similarity', type=float, required=False, dest='cutoff_similarity',
-                        default=70.00, help='Similarity cutoff that will be used to consider that sequences in the same cluster'
-                                            'correspond to alleles of the same gene (default=70.00).')
+    parser.add_argument('--cs', '--clustering_sim', type=float, required=False, dest='clustering_sim',
+                        default=0.20, help='')
+
+    parser.add_argument('--ws', '--word_size', type=int, required=False, dest='word_size',
+                        default=4, help='')
+
+    parser.add_argument('--cf', '--cluster_filter', type=float, required=False, dest='cluster_filter',
+                        default=0.80, help='')
 
     parser.add_argument('--c', '--cleanup', type=str, required=False, dest='cleanup',
                         default='yes', help='If the temporary directory should be deleted at the end '
-                                          '(default=yes.')
+                        '(default=yes).')
 
     args = parser.parse_args()
 
-    return [args.input_files, args.output_directory, args.prodigal_training_file, 
+    return [args.input_files, args.output_directory, args.prodigal_training_file,
             args.schema_name, args.cpu_count, args.blastp_path, args.blast_score_ratio,
-            args.minimum_cds_length, args.cd_hit_similarity, args.cd_hit_word_size,
-            args.cutoff_similarity, args.cleanup]
+            args.minimum_cds_length, args.clustering_mode, args.word_filter,
+            args.filtering_sim, args.clustering_sim, args.word_size,
+            args.cluster_filter, args.cleanup]
 
 
 if __name__ == '__main__':
@@ -385,4 +540,4 @@ if __name__ == '__main__':
     args = parse_arguments()
     main(args[0], args[1], args[2], args[3], args[4],
          args[5], args[6], args[7], args[8], args[9],
-         args[10], args[11])
+         args[10], args[11], args[12], args[13], args[14])

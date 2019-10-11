@@ -19,9 +19,11 @@ import os
 import csv
 import pickle
 import itertools
+from collections import Counter
 
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqUtils.CheckSum import seguid
 from Bio.Alphabet import IUPAC, generic_dna
 
 import new_utils
@@ -431,6 +433,8 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
     return [translated_seq, exception_collector]
 
 
+# optimize! Do not keep all lines in memory, append them to file as they are created
+# create smaller chunks to save memory and write chunks, restarting the chunk after a chunk has been written
 def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, protein_valid_file, table_id):
     """ Translates CDSs into protein sequences.
 
@@ -462,6 +466,7 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, prote
             ...}
     """
 
+    line_limit = 5000
     dna_lines = []
     prot_lines = []
     invalid_alleles = []
@@ -471,7 +476,7 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, prote
 
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
-    for seqid in valid_seqs:
+    for i, seqid in enumerate(valid_seqs):
         sequence = str(cds_index.get(seqid).seq)
 
         translation = translate_dna(sequence, table_id)
@@ -487,17 +492,26 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, prote
         elif isinstance(translation, str):
             invalid_alleles.append([seqid, translation])
 
-    with open(dna_seqs_file, 'w') as dna_out:
-        dna_lines = '\n'.join(dna_lines)
-        dna_out.writelines(dna_lines)
+        if len(dna_lines)//2 == line_limit or i+1 == len(valid_seqs):
 
-    with open(protein_seqs_file, 'w') as protein_out:
-        prot_lines = '\n'.join(prot_lines)
-        protein_out.writelines(prot_lines)
+            with open(dna_seqs_file, 'a') as dna_out:
+                dna_lines = '\n'.join(dna_lines)
+                dna_out.writelines(dna_lines+'\n')
+
+            dna_lines = []
+
+            with open(protein_seqs_file, 'a') as protein_out:
+                prot_lines = '\n'.join(prot_lines)
+                protein_out.writelines(prot_lines+'\n')
+
+            prot_lines = []
 
     return [invalid_alleles, total_seqs]
 
 
+# optimize!
+# avoid storing seqs in dictionary so check for repeated
+# avoid returning all seqids in a list, write to file and use import as generator and use for cycle???
 def determine_repeated(sequences_file):
     """
     """
@@ -521,7 +535,24 @@ def determine_repeated(sequences_file):
     return repeated_seqs
 
 
-def determine_small(sequences_file, minimum_length):
+#def determine_repeated(sequences_file):
+#    """
+#    """
+#
+#    checksums = set()
+#    repeated_seqs = []
+#    for record in SeqIO.parse(sequences_file, 'fasta'):
+#        # seq object has to be converted to string
+#        checksum = seguid(record.seq)
+#        if checksum in checksums:
+#            repeated_seqs.append(record.id)
+#        else:
+#            checksums.add(checksum)
+#
+#    return repeated_seqs
+
+
+def determine_small(sequences_file, seqids, minimum_length):
     """ Find protein sequences that are shorter than desired length.
 
         Args:
@@ -541,12 +572,13 @@ def determine_small(sequences_file, minimum_length):
             19: 'MTLNEMVGYVISAHHGMYDFCYCSDDAE',
             ...}
     """
-
+    
+    sequences_index = SeqIO.index(sequences_file, 'fasta')
+    
     small_seqs = []
-    for entry in SeqIO.parse(sequences_file, 'fasta'):
+    for seqid in seqids:
         # seq object has to be converted to string
-        sequence = str(entry.seq.upper())
-        seqid = entry.id
+        sequence = sequences_index.get(seqid).seq
 
         if len(sequence) < minimum_length:
             small_seqs.append(seqid)
@@ -554,24 +586,32 @@ def determine_small(sequences_file, minimum_length):
     return small_seqs
 
 
+# also change this to create chunks and write the chunk as it gets to a certain
+# size, restarting the chunk when one has been written
 def get_sequences_by_id(sequences_file, seqids, out_file):
     """
     """
-    
+
     # index FASTA file, much faster and efficient with large files
-    sequences_index = SeqIO.index(sequences_file, 'fasta')
+    #sequences_index = SeqIO.index(sequences_file, 'fasta')
+    sequences_index = sequences_file
 
     selected = []
-    for seqid in seqids:
+    seq_limit = 5000
+    for i, seqid in enumerate(seqids):
         identifier = sequences_index[seqid].id
         header = '>{0}'.format(identifier)
         sequence = str(sequences_index[seqid].seq)
         selected.append(header)
         selected.append(sequence)
 
-    with open(out_file, 'w') as out:
-        lines = '\n'.join(selected)
-        out.write(lines)
+        if len(selected) // 2 == seq_limit or i+1 == len(seqids):
+
+            with open(out_file, 'a') as out:
+                lines = '\n'.join(selected)
+                out.write(lines+'\n')
+
+            selected = []
 
 
 # DEPRECATED - WAS USED WITH CD-HIT STRATEGY
@@ -674,29 +714,28 @@ def read_blast_tabular(blast_tabular_file):
     return blasting_results
 
 
-def remove_same_locus_alleles(genes, genes_to_remove, proteinFIlePath, output_file, sizethresh):
+def remove_same_locus_alleles(dna_index, schema_seqids, proteinFIlePath, output_file, sizethresh):
     """
     """
 
     outputFIlePath = output_file
-    concatenatedFile = ''
+    schema_lines = []
 
     # Create directory for final protogenome file
     if not proteinFIlePath and outputFIlePath and not os.path.exists(outputFIlePath):
         os.makedirs(outputFIlePath)
 
-    for contig in SeqIO.parse(genes, "fasta", IUPAC.unambiguous_dna):
-        name2 = contig.id
+    for seqid in schema_seqids:
+        header = '>{0}'.format(seqid)
+        sequence = str(dna_index[seqid].seq)
+        
+        schema_lines.append(header)
+        schema_lines.append(sequence)
 
-        # print name2
-        if name2 not in genes_to_remove:
-            if int(len(contig.seq)) >= sizethresh:
-
-                concatenatedFile += ">" + contig.id + " \n" + str(contig.seq.upper()) + "\n" 
-
+    schema_lines = '\n'.join(schema_lines)
     if proteinFIlePath and outputFIlePath:
-        with open(outputFIlePath, "w") as f:
-            f.write(concatenatedFile)
+        with open(outputFIlePath, 'w') as schema:
+            schema.write(schema_lines)
 
 
 def build_schema(last_file, output_file):
@@ -728,44 +767,58 @@ def build_schema(last_file, output_file):
         print('\nTotal of {0} loci that constitute the schema.'.format(total_genes))
 
 
+# optimize!
+# try to create BLASTdbs for each case instead of having a big database for every case?
+#inputs = splitted_seqids[0]
 def cluster_blaster(inputs):
     """
     """
 
-    blast_inputs = inputs[0:-2]
-    blastp_path = inputs[-2]
-    output_directory = inputs[-1]
+    blast_inputs = inputs[0:-4]
+    blastp_path = inputs[-4]
+    output_directory = inputs[-2]
+    proteins_file = inputs[-1]
+    blast_db = inputs[-3]
+
+    indexed_fasta = SeqIO.index(proteins_file, 'fasta')
 
     for cluster in blast_inputs:
 
-        cluster_id = cluster[0]
-        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
-        with open(cluster_file, 'rb')as clstr:
-            cluster_ids = pickle.load(clstr)
-            #cluster_ids = [seqid[0] for seqid in cluster_ids]
-            cluster_ids.append(cluster_id)
-
-        blast_db = cluster[1]
-
-        ids_str = '\n'.join(cluster_ids)
+        cluster_id = cluster
         ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
-        with open(ids_file, 'w') as ids:
-            ids.write(ids_str)
+#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
+        with open(ids_file, 'r') as clstr:
+#            cluster_rep = [cluster_id]
+#            cluster_ids = cluster_rep
+            cluster_ids = [l.strip() for l in clstr.readlines()]
+            #cluster_ids.extend(pickle.load(clstr))
+            #cluster_ids = [seqid[0] for seqid in cluster_ids]
 
-        # import protein sequences
-        with open(cluster[2], 'rb') as proteins:
-            protein_sequences = pickle.load(proteins)
 
+#        ids_str = '\n'.join(cluster_ids)
+#        ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
+#        with open(ids_file, 'w') as ids:
+#            ids.write(ids_str)
+
+        #proteins_file = cluster[2]
+        #indexed_fasta = SeqIO.index(proteins_file, 'fasta')
+        
+#        rep_fasta_file = os.path.join(output_directory, '{0}_rep_protein.fasta'.format(cluster_id))
+#        get_sequences_by_id(proteins_file, cluster_rep, rep_fasta_file)
+        
+        # with big clusters, try to BLAST the representative against other sequences
+        # to quickly remove very similar sequences that were not filtered by clustering cutoff
+        # this way we can avoid BLASTing really huge sets of sequences all-against-all
+        # only do this if the clusters are bigger??? :/
+        # the representative is BLASTed first and the BSR function will go through those
+        # results first so BLASTing only the representative and applying the BSR function to those results
+        # should be equivalent but much faster, allowing us to remove a lot of possibilities that
+        # would make the all-against-all BLAST take a really long time
+        
+        # BLAST only the cases that were not excluded by BLAST with the representative!
         fasta_file = os.path.join(output_directory, '{0}_protein.fasta'.format(cluster_id))
-        with open(fasta_file, "w") as output:
-            seqs_lines = []
-            for s in cluster_ids:
-                header = '>{0}\n'.format(s)
-                sequence = '{0}\n'.format(protein_sequences[s])
-                seqs_lines.append(header)
-                seqs_lines.append(sequence)
-
-            output.writelines(seqs_lines)
+        # create file with protein sequences
+        get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
 
         blast_output = os.path.join(output_directory, '{0}_blast_out.tsv'.format(cluster_id))
         blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
@@ -775,6 +828,67 @@ def cluster_blaster(inputs):
 
         os.system(blast_command)
 
+########################################################################################
+# Alternative BLASTer function!
+# this one constructs a database for each cluster and does not use a big database with
+# parse seqids
+#def alt_cluster_blaster(inputs):
+#    """
+#    """
+#
+#    blast_inputs = inputs[0:-2]
+#    blastp_path = inputs[-2]
+#    output_directory = inputs[-1]
+#
+#    for cluster in blast_inputs:
+#
+#        cluster_id = cluster[0]
+#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
+#        with open(cluster_file, 'rb')as clstr:
+#            cluster_rep = [cluster_id]
+#            cluster_ids = cluster_rep
+#            cluster_ids.extend(pickle.load(clstr))
+#            #cluster_ids = [seqid[0] for seqid in cluster_ids]
+#
+#        blast_db = cluster[1]
+#
+#        ids_str = '\n'.join(cluster_ids)
+#        ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
+#        with open(ids_file, 'w') as ids:
+#            ids.write(ids_str)
+#
+#        proteins_file = cluster[2]
+#        #indexed_fasta = SeqIO.index(proteins_file, 'fasta')
+#        
+##        rep_fasta_file = os.path.join(output_directory, '{0}_rep_protein.fasta'.format(cluster_id))
+##        get_sequences_by_id(proteins_file, cluster_rep, rep_fasta_file)
+#        
+#        # with big clusters, try to BLAST the representative against other sequences
+#        # to quickly remove very similar sequences that were not filtered by clustering cutoff
+#        # this way we can avoid BLASTing really huge sets of sequences all-against-all
+#        # only do this if the clusters are bigger??? :/
+#        # the representative is BLASTed first and the BSR function will go through those
+#        # results first so BLASTing only the representative and applying the BSR function to those results
+#        # should be equivalent but much faster, allowing us to remove a lot of possibilities that
+#        # would make the all-against-all BLAST take a really long time
+#        if len(clusters_ids) <= 3:
+#        # start BLASTing with the representative
+#        fasta_ids = cluster_ids[0]
+#        # BLAST only the cases that were not excluded by BLAST with the representative!
+#        fasta_file = os.path.join(output_directory, '{0}_protein.fasta'.format(cluster_id))
+#        # create file with protein sequences
+#        get_sequences_by_id(proteins_file, cluster_ids, fasta_file)
+#
+#        blast_output = os.path.join(output_directory, '{0}_blast_out.tsv'.format(cluster_id))
+#        blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
+#                         '-max_hsps 1 -num_threads {4} -evalue 0.001 -seqidlist {5}'.format(blastp_path, blast_db,
+#                                                                                            fasta_file, blast_output,
+#                                                                                            1, ids_file))
+#
+#        os.system(blast_command)
+
+
+###############################################################################################################
 
 # DEPRECATED - WAS USED WITH CD-HIT STRATEGY
 #def prune_clusters(clstr_file, cutoff):
@@ -926,20 +1040,21 @@ def cluster_blaster(inputs):
 #    return rep_sub_mapping
 
 
-def blast_inputs(clusters, blastdb_path, proteins_dict_file, output_directory):
+def blast_inputs(clusters, output_directory):
     """
     """
 
     ids_to_blast = []
     for i in clusters:
 
-        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(i))
-        cluster_ids = [seq[0] for seq in clusters[i]]
-        with open(cluster_file, 'wb') as out_clstr:
-            pickle.dump(cluster_ids, out_clstr)
+        cluster_file = os.path.join(output_directory, '{0}_ids.txt'.format(i))
+        cluster_ids = [i] + [seq[0] for seq in clusters[i]]
+        with open(cluster_file, 'w') as out_clstr:
+            clstr_lines = '\n'.join(cluster_ids)
+            out_clstr.writelines(clstr_lines)
+            #pickle.dump(cluster_ids, out_clstr)
 
-        blast_input = [i, blastdb_path, proteins_dict_file]
-        ids_to_blast.append(blast_input)
+        ids_to_blast.append(i)
 
     return ids_to_blast
 
@@ -975,9 +1090,10 @@ def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
     cluster_sums = [0] * threads
     i = 0
     for cluster in blast_inputs:
-        cluster_file = os.path.join(blast_files_dir, '{0}.clstr'.format(cluster[0]))
-        with open(cluster_file, 'rb') as infile:
-            cluster_seqs = pickle.load(infile)
+        cluster_file = os.path.join(blast_files_dir, '{0}_ids.txt'.format(cluster))
+        with open(cluster_file, 'r') as infile:
+            #cluster_seqs = pickle.load(infile)
+            cluster_seqs = [line.strip() for line in infile.readlines()]
         splitted_values[i].append(len(cluster_seqs))
         splitted_ids[i].append(cluster)
         cluster_sums[i] += len(cluster_seqs)
@@ -1006,6 +1122,7 @@ def apply_bsr(inputs):
     blast_file = inputs[0]
     blast_results = read_blast_tabular(blast_file)
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}
+    # do not include self-scores lines, no need to evaluate those hits
     blast_results = [r for r in blast_results if r[0] != r[1]]
 
     fasta_file = inputs[1]
@@ -1025,20 +1142,29 @@ def apply_bsr(inputs):
         score = res[2]
 
         if query not in excluded_alleles:
-            self_blast_score = self_scores[query]
+            #print(res)
+            # try to apply BSR strategy
+            try:
+                self_blast_score = self_scores[query]
 
-            query_length = lengths[query]
-            hit_length = lengths[hit]
-            blast_score_ratio = float(score) / float(self_blast_score)
+                query_length = lengths[query]
+                hit_length = lengths[hit]
+                blast_score_ratio = float(score) / float(self_blast_score)
 
-            # BSR has to be greater than threshold, just as in the original function
-            if blast_score_ratio >= bsr and hit not in excluded_alleles:
+                # BSR has to be greater than threshold, just as in the original function
+                if blast_score_ratio >= bsr and hit not in excluded_alleles:
 
-                if hit_length > query_length and query not in excluded_alleles:
-                    excluded_alleles.append(query)
+                    if hit_length > query_length and query not in excluded_alleles:
+                        excluded_alleles.append(query)
+                        #print(query)
 
-                elif hit_length <= query_length:
-                    excluded_alleles.append(hit)
+                    elif hit_length <= query_length:
+                        excluded_alleles.append(hit)
+                        #print(hit)
+            # it might not work because there is no self score for
+            # some sequences due to low complexity regions...
+            except Exception:
+                excluded_alleles.append(query)
 
     return excluded_alleles
 
@@ -1052,12 +1178,11 @@ def sequence_kmerizer(sequence, k_value):
     return kmers
 
 
-def cluster_sequences(sorted_sequences, word_filter,
+def cluster_sequences(sorted_sequences, word_filter, filtering_sim,
                       word_size, clustering_sim, mode):
     """
     """
 
-    reps = {}
     clusters = {}
     reps_groups = {}
     for prot in sorted_sequences:
@@ -1066,28 +1191,33 @@ def cluster_sequences(sorted_sequences, word_filter,
         if len(clusters) == 0:
             clusters[protid] = [(protid, 1.0)]
             kmers = sequence_kmerizer(protein, word_size)
-            reps[protid] = kmers
             longmers = sequence_kmerizer(protein, word_filter)
             for k in longmers:
-                reps_groups[k] = [protid]
+                # initiallize as set to avoid duplication of
+                # ids per kmer that will lead to overestimation
+                # of similarity
+                reps_groups[k] = set([protid])
         else:
             kmers = sequence_kmerizer(protein, word_size)
             longmers = sequence_kmerizer(protein, word_filter)
             current_reps = []
             for k in longmers:
                 if k in reps_groups:
-                    current_reps += reps_groups[k]
+                    current_reps.extend(list(reps_groups[k]))
 
-            current_reps = list(set(current_reps))
+            # count number of kmer hits per representative
+            # 0.20
+            counts = Counter(current_reps)
+            current_reps = [(k, v/len(kmers)) for k, v in counts.items() if v/len(kmers) >= clustering_sim]
 
-            intersections = []
-            for r in current_reps:
-                shared_kmers = len(set.intersection(set(reps[r]), set(kmers)))
-                intersections.append((r, shared_kmers/len(kmers)))
+#            intersections = []
+#            for r in current_reps:
+#                shared_kmers = len(set.intersection(set(reps[r]), set(kmers)))
+#                intersections.append((r, shared_kmers/len(kmers)))
 
-            sims = [s for s in intersections if s[1] >= clustering_sim]
+#            sims = [s for s in intersections if s[1] >= clustering_sim]
             # sort to get most similar at index 0
-            sims = sorted(sims, key=lambda x: x[1], reverse=True)
+            sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
 
             if len(sims) > 0:
 
@@ -1099,10 +1229,9 @@ def cluster_sequences(sorted_sequences, word_filter,
             else:
                 for k in longmers:
                     if k in reps_groups:
-                        reps_groups[k].append(protid)
+                        reps_groups[k].add(protid)
                     else:
-                        reps_groups[k] = [protid]
-                reps[protid] = kmers
+                        reps_groups[k] = set([protid])
                 clusters[protid] = [(protid, 1.0)]
 
     return clusters

@@ -291,7 +291,7 @@ def create_uniprot_queries(protein_files, dna_files):
     
 
 
-def post_alleles3(sequence, name, label, url, loci_url, species_name, noCDSCheck, headers_post):
+def post_alleles3(sequence, name, label, uniprot_url, loci_url, species_name, noCDSCheck, headers_post):
     """ Creates new alleles in the endpoint. Multiple alleles can be created.
     """    
     
@@ -301,7 +301,7 @@ def post_alleles3(sequence, name, label, url, loci_url, species_name, noCDSCheck
     params = {}
     params['sequence'] = sequence
     params['species_name'] = species_name
-    params['uniprot_url'] = url
+    params['uniprot_url'] = uniprot_url
     params['uniprot_label'] = label
     params['uniprot_sname'] = name
     

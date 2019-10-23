@@ -30,13 +30,13 @@ virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 def select_name(result):
     """
     """
+    
     name = ''
     url = ''
     label = ''
 
     aux = result["results"]["bindings"]
     
-#    try:
     for elem in aux:
         if 'fname' in elem.keys():
             name = str(elem['fname']['value'])
@@ -58,10 +58,6 @@ def select_name(result):
 def get_data(sparql_query):
     """ Retrieve annotations from uniprot
     """
-
-#    locus = sparql_queries[0]
-#    queries = [qq[0] for qq in sparql_queries[1]]
-#    dna_seq_to_ns = [dna[1] for dna in sparql_queries[1]]
     
     virtuoso_server.setReturnFormat(JSON)
     virtuoso_server.setTimeout(10)
@@ -146,73 +142,6 @@ def uniprot_query(sequence):
 
 
     return query
-
-
-def create_protein_files(file, response_tuple, parent_dir):
-    """ Creates fasta file with the protein sequence of
-        the allele to be uploaded to NS.
-    """
-    
-    protein_files = []
-    dna_files = []
-    invalid_prots = []
-    prots = []
-
-    res = response_tuple[0]
-    allele = response_tuple[1]
-    
-    indexed_fasta = SeqIO.index(file, 'fasta')
-    
-    allele_seq = indexed_fasta.get(allele).seq
-    
-    
-    for file, v in list(response_dict.items()):
-        dna_files.append(file)
-        indexed_fasta = SeqIO.index(file, 'fasta')
-        prots = []
-        locus_id = os.path.basename(file)
-        locus_id = locus_id.split('.fasta')[0]
-        for allele in v:
-            allele_seq = indexed_fasta.get(allele[1]).seq
-            protein = translate_sequence(str(allele_seq), 11)
-            if isinstance(protein, TranslationError):
-                invalid_prots.append(allele_seq)
-            else:
-                prots.append((allele[1], protein))
-        
-        protein_lines = []
-        for prot in prots:
-            header = '>{0}\n'.format(prot[0])
-            sequence = '{0}\n'.format(prot[1])
-            protein_lines.append(header)
-            protein_lines.append(sequence)
-        
-        protein_lines = ''.join(protein_lines)
-        protein_file = '{0}/{1}{2}'.format(parent_dir, locus_id, '_protein.fasta')
-        with open(protein_file, 'w') as pf:
-            pf.write(protein_lines)
-        protein_files.append(protein_file)
-        
-    return protein_files, dna_files
-
-
-def create_uniprot_queries(protein_files, dna_files):
-    """ Build SPARQL queries for Uniprot
-    """
-    # construct queries
-    queries = {}
-    for pfile, dnafile in zip(protein_files, dna_files):
-        pfile_id = os.path.basename(pfile).split('.fasta')[0]
-        queries[pfile_id] = []
-        #index dna file
-        indexed_dna_fasta = SeqIO.index(dnafile, 'fasta')
-        for record in SeqIO.parse(pfile, 'fasta'):
-            # get the dna seq
-            dna_seq = str(indexed_dna_fasta.get(record.id).seq)
-            queries[pfile_id].append((uniprot_query(str(record.seq)), dna_seq))
-            
-    return queries
-#
 
 
 def check_seq_req(headers_get, url):
@@ -364,7 +293,8 @@ def get_new_allele_seqs(headers_get, uri):
     
 
 
-def syncSchema(lastSyncServerDate, schemaUri, path2schema, path_new_alleles, cpu2use, bsrThresh, server_url, headers_get, headers_post):
+def syncSchema(lastSyncServerDate, schemaUri, path2schema, path_new_alleles, cpu2use, 
+               bsrThresh, server_url, headers_get, headers_post, submit=False):
 
 	#get list of sequences that are new considering the last date
     allNewSequences = False
@@ -446,95 +376,96 @@ def syncSchema(lastSyncServerDate, schemaUri, path2schema, path_new_alleles, cpu
     shutil.rmtree(path_new_alleles)
     
     # submit option
-    # if submi:
+    if submit:
     
-    species_url = ut.make_url(server_url, "species", schemaUri.split("/")[-3])
-    
-    r_species_name = requests.get(species_url, headers = headers_get)
-    
-    species_name = r_species_name.json()[0]["name"]["value"]
-
-    # loop over path2schema
-    path2schema_files = [os.path.join(path2schema, fi) for fi in os.listdir(path2schema) if ".fasta" in fi]
-    parent_dir = os.path.dirname(path2schema)
-    files_res = []
-    # ask NS if they exist (check_seq2 from load_schema)
-    for f in path2schema_files:
-        # Check if sequences are already on NS
-        check_seq_responses = check_seq2(f, server_url, headers_get, cpu2use)
-                
-        files_res.append(check_seq_responses)
+        species_url = ut.make_url(server_url, "species", schemaUri.split("/")[-3])
         
-    for fiel in files_res:
-        response_404_file = []
-        response_200_file = []
-        for k, v in fiel.items():
-            response_404_file = [res for res in v if res[0].status_code == 404]
-            response_200_file = [res for res in v if res[0].status_code == 200]
+        r_species_name = requests.get(species_url, headers = headers_get)
+        
+        species_name = r_species_name.json()[0]["name"]["value"]
+    
+        # loop over path2schema
+        path2schema_files = [os.path.join(path2schema, fi) for fi in os.listdir(path2schema) if ".fasta" in fi]
+       
+        files_res = []
+        # ask NS if they exist (check_seq2 from load_schema)
+        for f in path2schema_files:
+            # Check if sequences are already on NS
+            check_seq_responses = check_seq2(f, server_url, headers_get, cpu2use)
+                    
+            files_res.append(check_seq_responses)
             
-            # Proceed only if response_200_file list is not empty
-            # Meaning that the sequences do not exist in NS
-            if not ut.isListEmpty(response_200_file):
-                for r in response_200_file:
+        for fiel in files_res:
+            response_404_file = []
+            response_200_file = []
+            for k, v in fiel.items():
+                # Get alleles that are not present in NS
+                response_404_file = [res for res in v if res[0].status_code == 404]
+                # Get alleles already present on NS
+                response_200_file = [res for res in v if res[0].status_code == 200]
+                
+                # Proceed only if response_200_file list is not empty
+                if not ut.isListEmpty(response_200_file):
+                    for r in response_200_file:
+                        
+                        for locus in r[0].json()["result"]:
+                            ns_locus_id = locus["locus"]["value"].split("/")[-1]
+                        
+                            # if it belongs to another locus in NS, add the allele to the current locus
+                            if ns_locus_id not in os.path.basename(k):
+                                
+                                print("Detected allele belonging to another locus in NS, adding to the current locus...\n")
+                                # get local locus id
+                                local_locus_id_temp = k.split("-")[1].replace(".fasta", "")
+                                if "_corrected" in local_locus_id_temp:
+                                    local_locus_id = int(local_locus_id_temp.replace("_corrected", ""))
+                                else:
+                                    local_locus_id = int(local_locus_id_temp)
+                                # get allele sequenece to upload
+                                allele_seq = ut.get_sequence_from_url(r[0].url)
+                                print("Translating allele...\n")
+                                # translate sequence
+                                prot_allele_seq = str(translate_sequence(allele_seq, 11))
+                                # build uniprot query
+                                unip_query = uniprot_query(prot_allele_seq)
+                                print("Retrieving Uniprot annotation...\n")
+                                # obtain uniprot results
+                                name, label, url = get_data(unip_query)
+                                # build loci url using local loci id
+                                loci_url = ut.make_url(server_url, "loci", str(local_locus_id))
+                                print("Adding to NS...\n")
+                                # upload allele
+                                new_alleles = post_alleles3(allele_seq, name, label, url, loci_url, species_name, headers_post)
+                                
+                if not ut.isListEmpty(response_404_file):
                     
-                    for locus in r[0].json()["result"]:
-                        ns_locus_id = locus["locus"]["value"].split("/")[-1]
+                    print("Detected new alleles, adding them to NS...\n")
                     
-                        # if it belongs to another locus in NS, add the allele to the current locus
-                        if ns_locus_id not in os.path.basename(k):
-                            
-                            print("Detected allele belonging to another locus in NS, adding to the current locus...\n")
-                            # get local locus id
-                            local_locus_id_temp = k.split("-")[1].replace(".fasta", "")
-                            if "_corrected" in local_locus_id_temp:
-                                local_locus_id = int(local_locus_id_temp.replace("_corrected", ""))
-                            else:
-                                local_locus_id = int(local_locus_id_temp)
-                            # get allele sequenece to upload
-                            allele_seq = ut.get_sequence_from_url(r[0].url)
-                            print("Translating allele...\n")
-                            # translate sequence
-                            prot_allele_seq = str(translate_sequence(allele_seq, 11))
-                            # build uniprot query
-                            unip_query = uniprot_query(prot_allele_seq)
-                            print("Retrieving Uniprot annotation...\n")
-                            # obtain uniprot results
-                            name, label, url = get_data(unip_query)
-                            # build loci url using local loci id
-                            loci_url = ut.make_url(server_url, "loci", str(local_locus_id))
-                            print("Adding to NS...\n")
-                            # upload allele
-                            new_alleles = post_alleles3(allele_seq, name, label, url, loci_url, species_name, headers_post)
-                            
-            if not ut.isListEmpty(response_404_file):
-                
-                print("Detected new alleles, adding them to NS...\n")
-                
-                # get local locus id
-                local_locus_id2_temp = os.path.basename(k).split("-")[1].replace(".fasta", "")
-                if "_corrected" in local_locus_id2_temp:
-                    local_locus_id2 = int(local_locus_id2_temp.replace("_corrected", ""))
-                else:
-                    local_locus_id2 = int(local_locus_id2_temp)
-
-                
-                for r2 in response_404_file:
-                
-                    # get allele sequenece to upload
-                    allele_seq2 = ut.get_sequence_from_url(r2[0].url)
-                    print("Translating allele...\n")
-                    # translate sequence
-                    prot_allele_seq2 = str(translate_sequence(allele_seq2, 11))
-                    # build uniprot query
-                    unip_query2 = uniprot_query(prot_allele_seq2)
-                    print("Retrieving Uniprot annotation...\n")
-                    # obtain uniprot results
-                    name2, label2, url2 = get_data(unip_query2)
-                    # build loci url using local loci id
-                    loci_url2 = ut.make_url(server_url, "loci", str(local_locus_id2))
-                    print("Adding to NS...\n")
-                    # upload allele
-                    new_alleles2 = post_alleles3(allele_seq2, name2, label2, url2, loci_url2, species_name, headers_post)
+                    # get local locus id
+                    local_locus_id2_temp = os.path.basename(k).split("-")[1].replace(".fasta", "")
+                    if "_corrected" in local_locus_id2_temp:
+                        local_locus_id2 = int(local_locus_id2_temp.replace("_corrected", ""))
+                    else:
+                        local_locus_id2 = int(local_locus_id2_temp)
+    
+                    
+                    for r2 in response_404_file:
+                    
+                        # get allele sequenece to upload
+                        allele_seq2 = ut.get_sequence_from_url(r2[0].url)
+                        print("Translating allele...\n")
+                        # translate sequence
+                        prot_allele_seq2 = str(translate_sequence(allele_seq2, 11))
+                        # build uniprot query
+                        unip_query2 = uniprot_query(prot_allele_seq2)
+                        print("Retrieving Uniprot annotation...\n")
+                        # obtain uniprot results
+                        name2, label2, url2 = get_data(unip_query2)
+                        # build loci url using local loci id
+                        loci_url2 = ut.make_url(server_url, "loci", str(local_locus_id2))
+                        print("Adding to NS...\n")
+                        # upload allele
+                        new_alleles2 = post_alleles3(allele_seq2, name2, label2, url2, loci_url2, species_name, headers_post)
 
 
 
@@ -572,7 +503,8 @@ def post_alleles3(sequence, name, label, uniprot_url, loci_url, species_name, he
     
     # Build the url for loci/loci_id/alleles
     url = ut.make_url(loci_url, "alleles")
-
+    
+    # Build the request parameters
     params = {}
     params['sequence'] = sequence
     params['species_name'] = species_name
@@ -602,6 +534,7 @@ def main(path2schema, cpu2use, bsrThresh):
     path_new_alleles = "/home/pcerqueira/Lab_Software/refactored_ns/ns_security/extra_scripts/senterica_new_alleles"
     cpu2use = 6
     bsrThresh = 0.6
+    submit = True
     
 #    blastPath = 'blastp'
     lastSyncServerDate, schemaUri = get_schema_vars(path2schema)
@@ -633,7 +566,7 @@ def main(path2schema, cpu2use, bsrThresh):
         
     
     newserverTime = syncSchema(lastSyncServerDate, schemaUri, path2schema, path_new_alleles, 
-                               cpu2use, bsrThresh, server_url, headers_get, headers_post)
+                               cpu2use, bsrThresh, server_url, headers_get, headers_post, submit)
     
     
     if newserverTime == lastSyncServerDate:

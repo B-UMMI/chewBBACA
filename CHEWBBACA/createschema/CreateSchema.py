@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 """
 AUTHOR
-    
+
     Rafael Mamede
     github: @rfm-targa
 
 DESCRIPTION
-    
-    
-    
+
 """
 
 
@@ -29,9 +27,9 @@ import CreateSchema_aux as rfm
 
 
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_genomes'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_schema_seed'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/dup_ref32_schema_seed'
 #prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
-#schema_name = 'ref32_schema_seed'
+#schema_name = 'dup_ref32_schema_seed'
 #cpu_count = 6
 #blastp_path = shutil.which('blastp')
 #blast_score_ratio = 0.6
@@ -123,61 +121,64 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         file.write('Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n')
 
     # add multiprocessing!!!
+    print('Extracting coding sequences from all genomes...')
+    cds_start = time.time()
     protid = 1
-    # with big files, this list with all CDSs identifiers is occupying a lot
-    # of RAM memory, aorund 500mb-700mb. Better to write identifiers to file
-    # and import them if needed thorugh a generator?
-    cds_ids = []
     cds_file = os.path.join(temp_directory, 'coding_sequences.fasta')
+    # divide list of input genomes per core and write into separate files to be capable of
+    # multiprocessing?
     for g in range(len(fasta_files)):
         # determine Prodigal ORF file path for current genome
         orf_file_path = os.path.join(prodigal_path, '{0}_ORF.txt'.format(genomes_identifiers[g]))
         # import contigs for current genome/assembly (importing for all genomes into memory might occupy too much memory)
-        contigs = rfm.import_contigs(fasta_files[g])
+        contigs = rfm.import_sequences(fasta_files[g])
         # extract coding sequences from contigs
         genome_info = rfm.extract_coding_sequences(orf_file_path, contigs, protid)
         # save coding sequences to file
         genome_id = genomes_identifiers[g]
-        # create sequence ids
-        genome_ids = [genome_id+'-protein'+str(seqid) for seqid in genome_info[0].keys()]
 
+        # create records and write them to file
         cds_lines = rfm.create_fasta_lines(genome_info[0], genome_id)
         rfm.write_fasta(cds_lines, cds_file)
-        cds_ids.extend(genome_ids)
+
         rfm.write_protein_table(protein_table, genome_id, genome_info[1])
 
         # keep track of CDSs identifiers to assign them sequentially
         protid = 1
 
-    # determine seqids of repeated sequences
-    #r1_start = time.time()
-    repeated_dna_cds = rfm.determine_repeated(cds_file)
-    #r1_end = time.time()
-    #r1_delta = r1_end - r1_start
+    cds_end = time.time()
+    cds_delta = cds_end - cds_start
+    print('CDS extraction delta: {0}:'.format(cds_delta))
+    # determine repeated sequences and keep only one representative
+    r1_start = time.time()
+    repeated_seqs_file = os.path.join(temp_directory, 'repeated_dna_seqids.txt')
+    unique_dna_seqids = os.path.join(temp_directory, 'unique_dna_seqids.fasta')
+    repeated_dna_cds = rfm.determine_repeated(cds_file, repeated_seqs_file, unique_dna_seqids)
+    r1_end = time.time()
+    r1_delta = r1_end - r1_start
 
-    # remove seqids that are from repeated sequences
-    # import file with identifiers, iterate over lines, one at a time to save
-    # memory and only keep identifiers that are not in the repeated list
-    unique_dna_seqs = list(set(cds_ids) - set(repeated_dna_cds))
-    print('\nRemoved {0} repeated DNA sequences.'.format(len((repeated_dna_cds))))
-    unique_dna_seqs.sort(key=lambda y: y.lower())
+    print('Repeated DNA sequences removal delta: {0}:'.format(r1_delta))
+    print('\nRemoved {0} repeated DNA sequences.'.format(repeated_dna_cds[0]))
 
     # determine small DNA sequences and remove those seqids
-    # index file and only check if unique sequences are small!
-    small_dna_cds = rfm.determine_small(cds_file, unique_dna_seqs, minimum_cds_length)
+    small_dna_cds = rfm.determine_small(unique_dna_seqids, minimum_cds_length)
 
-    valid_dna_seqs = list(set(unique_dna_seqs) - set(small_dna_cds))
-    print('Removed {0} DNA sequences shorter than {1} nucleotides.'.format(len(small_dna_cds), minimum_cds_length))
+    valid_dna_seqs = small_dna_cds[1]
+    print('Removed {0} DNA sequences shorter than {1} nucleotides.'.format(len(small_dna_cds[0]), minimum_cds_length))
     valid_dna_seqs.sort(key=lambda y: y.lower())
 
     # convert to protein
+    trans_start = time.time()
     dna_valid_file = os.path.join(temp_directory, 'valid_dna.fasta')
     protein_valid_file = os.path.join(temp_directory, 'valid_protein.fasta')
     print('\nTranslating {0} DNA sequences...'.format(len(valid_dna_seqs)))
-    untranslatable_cds, total_seqs = rfm.translate_coding_sequences(cds_file, valid_dna_seqs,
+    untranslatable_cds, total_seqs = rfm.translate_coding_sequences(unique_dna_seqids, valid_dna_seqs,
                                                                     dna_valid_file, protein_valid_file, 11)
     untranslatable_seqids = [t[0] for t in untranslatable_cds]
 
+    trans_end = time.time()
+    trans_delta = trans_end - trans_start
+    print('Translation delta: {0}:'.format(trans_delta))
     # write file with invalid alleles info
     invalid_alleles_file = os.path.join(parent_directory, 'invalid_alleles.txt')
     with open(invalid_alleles_file, 'w') as inv:
@@ -198,11 +199,13 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     translatable_cds.sort(key=lambda y: y.lower())
 
     # next round of finding repeated sequences, but for proteins
-    repeated_protein_cds = rfm.determine_repeated(protein_valid_file)
+    repeated_prots_file = os.path.join(temp_directory, 'repeated_prots_seqids.txt')
+    unique_prots_file = os.path.join(temp_directory, 'unique_prots_seqs.fasta')
+    repeated_protein_cds = rfm.determine_repeated(protein_valid_file, repeated_prots_file, unique_prots_file)
 
     # remove seqids that are from repeated protein sequences
-    unique_protein_seqs = list(set(translatable_cds) - set(repeated_protein_cds))
-    print('Removed {0} repeated Protein sequences.'.format(len(repeated_protein_cds)))
+    unique_protein_seqs = repeated_protein_cds[1]
+    #print('Removed {0} repeated Protein sequences.'.format(len(repeated_protein_cds[0])))
     unique_protein_seqs.sort(key=lambda y: y.lower())
 
     final_seqids = unique_protein_seqs
@@ -218,13 +221,12 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     indexed_dna_valid_file = SeqIO.index(dna_valid_file, 'fasta')
     rfm.get_sequences_by_id(indexed_dna_valid_file, final_seqids, dna_file)
 
-    print('Kept {0} sequences after filtering the initial {1} sequences.'.format(len(final_seqids), len(cds_ids)))
+    print('Kept {0} sequences after filtering the initial sequences.'.format(len(final_seqids)))
 
     # Use clustering to reduce number of BLAST comparisons
-    # import proteins to cluster
-    
-    # is this using too much memory???
     # should not import all proteins into memory you noob!!!
+    # proteins should be imported one by one and clustered that way?
+    # maybe sort them in new file and then use SeqIO.parse and cluster one by one
     prots = {}
     for record in SeqIO.parse(protein_file, 'fasta'):
         seqid = record.id
@@ -388,7 +390,6 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # BLAST each sequences in a cluster against every sequence in that cluster
     p = Pool(processes = cpu_to_apply)
     r = p.map_async(rfm.cluster_blaster, splitted_seqids)
-    #r = p.map_async(rfm.alt_cluster_blaster, splitted_seqids)
     r.wait()
 
     print('Finished BLASTp. Determining schema representatives...')
@@ -449,16 +450,18 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # decide which identifiers to keep and redo BLAST to check for residual paralogs
     output_schema = os.path.join(temp_directory, 'cd_hit_chewie.fasta')
 
-    # filter protogenome to keep only representative sequences
-    # optimize? seems to take too long!
-    rfm.remove_same_locus_alleles(indexed_fasta, schema_seqids_final,
-                                  protein_file, output_schema, minimum_cds_length)
+    # create file with the schema representative sequences
+    rfm.get_schema_reps(indexed_fasta, schema_seqids_final,
+                        protein_file, output_schema)
 
     schema_dir = os.path.join(parent_directory, schema_name)
+    if not os.path.exists(schema_dir):
+        os.makedirs(schema_dir)
 
     # create directory and schema files
     rfm.build_schema(output_schema, schema_dir)
-
+    
+    # remove temporary files
     if cleanup == 'yes':
         shutil.rmtree(temp_directory)
 

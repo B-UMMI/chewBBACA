@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 AUTHOR
-    
+
     Rafael Mamede
     github: @rfm-targa
 
@@ -18,152 +18,121 @@ DESCRIPTION
 import os
 import csv
 import pickle
-import itertools
 from collections import Counter
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.SeqUtils.CheckSum import seguid
 from Bio.Alphabet import IUPAC, generic_dna
 
 import new_utils
 import init_schema_4_bbaca
 
 
-def genome_id(fasta_path):
-    """ Get genome/assembly identifier from full path.
-    
-        Args: 
-            fasta_path (str): the full path to the FASTA file.
-        
-        Returns: 
-            file (str): the last string resulting from the splitting of the path by 
-            "/" and stripped of the file extension suffix.
-        
-        Example:
-            
-            >>> get_id("/home/user/wd/file.fasta")
-            file
-        
+def join_list(lst, link):
     """
-    
-    # possible FASTA file suffixes
-    extension_format = ['.fasta','.fna','.ffn']
-    
-    file = fasta_path.split('/')[-1]
-    
-    for extension in extension_format:
-        if extension in file:
-            file = file.rstrip(extension)
-    
-    file = file.split('.')[0]
-            
-    return file
-    
+    """
 
-# Import contigs for each genome
-def import_contigs(fasta_path):
-    """ Imports contigs from a FASTA file.
-    
-        Args: 
-            fasta_path (str): full path to the FASTA file.
-        
-        Returns: 
-            dictionary that has contigs ids as keys and contigs DNA 
-            sequences as values.
-            
-        Example:
-            
-            >>> import_contigs("/home/user/wd/file.fasta")
-            {contig_1:'TCGAACCACCGACCTCACGCTTATCAGG...',
-            contig_2:'ATAAATGGCGCGAGACGGAATCGAACCGCCGA...'
-            ...}
-            
+    return link.join(lst)
+
+
+def genome_id(file_path):
+    """ Get file basename without extension suffix.
+
+        Args:
+            file_path (str): the path to the file.
+            Full path or relative path.
+
+        Returns:
+            file (str): the file basename without the
+            file extension suffix.
     """
-    
-    contigs_dict = {}
+
+    file = os.path.basename(file_path)
+
+    file = file.split('.')[0]
+
+    return file
+
+
+def import_sequences(fasta_path):
+    """ Imports sequences from a FASTA file.
+
+        Args:
+            fasta_path (str): full path to the FASTA file.
+
+        Returns:
+            dictionary that has sequences ids as keys and DNA
+            sequences as values.
+    """
+
+    seqs_dict = {}
     # use BioPython to read FASTA file and get each contig sequence
-    for contig in SeqIO.parse(fasta_path, 'fasta', generic_dna):
+    for record in SeqIO.parse(fasta_path, 'fasta', generic_dna):
         # seq object has to be converted to string
-        sequence = str(contig.seq.upper())
-        contig_id = contig.id
-        
+        sequence = str(record.seq.upper())
+        seqid = record.id
+
         # add contig id as key and DNA sequence as value
-        contigs_dict[contig_id] = sequence
-    
-    return contigs_dict
+        seqs_dict[seqid] = sequence
+
+    return seqs_dict
 
 
 def extract_coding_sequences(reading_frames, contigs, starting_id):
-    """ Extracts CDSs from contigs based on the start codon and stop codon 
-        positions determined by Prodigal.
-        
-        Args:
-            orf_file_path (str): full path to the ORF file derived from Prodigal.
-            contigs (dict): a dictionary with contigs ids as keys and contigs 
-            sequences as values.
-            starting_protid (int): integer identifier to give to the first CDS
-            extracted and that will be incremented to serve as identifier for
-            subsequent CDSs.
-            genome_id (str): id of the genome or assembly.
-            
-        Returns:
-            cds_dict (dict): dictionary with CDSs ids as keys and CDSs DNA 
-            sequences as values.
-            cdss_lines (list): list of lists where each sublist has information 
-            about the CDS.
-            cdss_contigs (dict): dictionary with CDSs ids as keys and contigs 
-            ids as values.
-            protid (int): last extracted CDS id + 1. integer value that might 
-            serve as starting id if the function will be used to extract CDSs 
-            from more genomes/assemblies.
-        
-        Example:
-            >>> extract_cdss("/home/user/wd/file_ORF.txt", contigs, 1, "genome1")
-            {1: 'GTGACACCAAAACCAGTACCGGATAAA...',
-            2: 'TTAGTCTAATTCTATTTGGAGAAATTTA...',
-            ...},
-            [['genome1','contig_1','102','528','1'],
-            ['genome1','contig_1','1861','2110','2'],
-            ...],
-            {1: 'contig_1',
-            2: 'contig_1,
-            ...},
-            1914
-            
-    """
-    
-    # load binary file with a list of lists for each contig
-    # each sublist has a start codon and stop codon positions in the contig
-    with open(reading_frames, 'rb') as orf_file:
-        start_stop_codons = pickle.load(orf_file)
+    """ Extracts CDSs from contigs based on the start
+        and stop codon positions determined by Prodigal.
 
-    protid = starting_id
+        Args:
+            reading_frames (str): full path to the ORF file derived
+            from Prodigal.
+            contigs (dict): a dictionary with contigs ids as keys
+            and contigs sequences as values.
+            starting_id (int): integer identifier to give to the
+            first CDS extracted and that will be incremented to
+            serve as identifier for subsequent CDSs.
+
+        Returns:
+            coding_sequences (dict): dictionary with CDSs ids as keys and
+            CDSs DNA sequences as values.
+            coding_sequences_info (list): list with a sublist for each
+            extracted CDS. Sublists have information about the extracted CDS
+            (identifier of the contig where the CDS was found, start position
+            in the contig, stop position in the contig, sequence identifier
+            attributed to that CDS and the strand that coded for that CDS.)
+    """
+
+    # load binary file with a list of lists for each contig
+    # each sublist has a start codon and stop codon positions
+    # in the contig
+    with open(reading_frames, 'rb') as orf_file:
+        rfs = pickle.load(orf_file)
+
+    seqid = starting_id
     coding_sequences = {}
     coding_sequences_info = []
-    # for each contig
-    for contig_id, frames in start_stop_codons.items():
-        # for each start and stop codon in that contig
+    for contig_id, frames in rfs.items():
+        # for each start and stop codon in the contig
         for coding_sequence in frames:
             start_codon = coding_sequence[0]
             stop_codon = coding_sequence[1]
             strand = coding_sequence[2]
             # extract CDS sequence
             cds_sequence = contigs[contig_id][start_codon:stop_codon].upper()
+            # check coding strand to change sequence orientation
+            # if needed
             if strand == 0:
                 cds_sequence = reverse_complement(cds_sequence)
 
             # store CDS with unique id
-            coding_sequences[protid] = cds_sequence
+            coding_sequences[seqid] = cds_sequence
 
             # store CDS information
             coding_sequences_info.append([contig_id, str(start_codon),
-                                          str(stop_codon), str(protid),
+                                          str(stop_codon), str(seqid),
                                           str(strand)])
 
-            # increment the CDS id by 1 so that it can be an unique identifier
-            # for the next CDS
-            protid += 1
+            # increment seqid
+            seqid += 1
 
     return [coding_sequences, coding_sequences_info]
 
@@ -187,15 +156,11 @@ def reverse_complement(dna_sequence):
     """ Determines the reverse complement of given DNA strand.
 
         Args:
-            strDNA (str): string representing a DNA sequence.
+            dna_sequence (str): string representing a DNA sequence.
 
         Returns:
-            revC_dna (str): the reverse complement of the DNA sequence, without
-            lowercase letters.
-
-        Example:
-            >>> reverse_complement('ATCGgcaNn')
-            'NNTGCCGAT'
+            reverse_complement_strand (str): the reverse complement
+            of the DNA sequence, without lowercase letters.
     """
 
     base_complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A',
@@ -212,7 +177,7 @@ def reverse_complement(dna_sequence):
         else:
             complement_bases.append(base.upper())
 
-    complement_strand = ''.join(complement_bases)
+    complement_strand = join_list(complement_bases, '')
 
     # reverse strand
     reverse_complement_strand = reverse_str(complement_strand)
@@ -233,6 +198,7 @@ def translate_sequence(dna_str, table_id):
     """
 
     myseq_obj = Seq(dna_str)
+    # sequences must be a complete and valid CDS
     protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
 
     return protseq
@@ -393,7 +359,7 @@ def translate_dna(dna_sequence, table_id):
     # if it could not be translated, return the string with all exception
     # that were collected
     else:
-        exception_str = ','.join(exception_collector)
+        exception_str = join_list(exception_collector, ',')
         return exception_str
 
 
@@ -433,46 +399,41 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
     return [translated_seq, exception_collector]
 
 
-# optimize! Do not keep all lines in memory, append them to file as they are created
-# create smaller chunks to save memory and write chunks, restarting the chunk after a chunk has been written
-def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, protein_valid_file, table_id):
+def write_to_file(text, output_file, write_mode, end_char):
+    """
+    """
+
+    with open(output_file, write_mode) as out:
+        out.write(text+end_char)
+
+
+def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
+                               protein_valid_file, table_id):
     """ Translates CDSs into protein sequences.
 
         Args:
-            cdss (dict): a dictionary with CDSs ids as keys and CDSs DNA 
+            cdss (dict): a dictionary with CDSs ids as keys and CDSs DNA
             sequences as values.
 
         Returns:
-            prots (dict): a dictionary with CDSs/proteins ids as keys and protein
-            sequences as values.
-            trans_state (dict): a dictionary with the CDSs/proteins ids as keys 
-            and the DNA strand that coded for those proteins.
-            ambiguous (dict): a dictionary with CDSs/proteins ids as keys and 
-            CDSs DNA sequences that had ambiguous bases as values.
-            untranslatable (dict): a dictionary with CDSs/proteins ids as keys 
-            and CDSs DNA sequences that could not be translated.
-
-        Example:
-
-            >>> translate_cds(coding_sequences)
-            {1: 'MTPKPVPDKDKYDPTG',
-            2: 'MSPLGMIKDEGLFNTELD',
-            ...},
-            {1: 'sense',
-            2: 'antisense',
-            ...},
-            {3: 'AAATTTNTGCATGA',
-            4: 'ATGATTTTTGCBTGA',
-            ...}
+            prots (dict): a dictionary with CDSs/proteins ids as keys and
+            protein sequences as values.
+            trans_state (dict): a dictionary with the CDSs/proteins ids as
+            keys and the DNA strand that coded for those proteins.
+            ambiguous (dict): a dictionary with CDSs/proteins ids as keys
+            and CDSs DNA sequences that had ambiguous bases as values.
+            untranslatable (dict): a dictionary with CDSs/proteins ids as
+            keys and CDSs DNA sequences that could not be translated.
     """
 
-    line_limit = 5000
+    # define limit of records to keep in memory
     dna_lines = []
+    total_seqs = 0
     prot_lines = []
+    line_limit = 5000
     invalid_alleles = []
     dna_seqs_file = dna_valid_file
     protein_seqs_file = protein_valid_file
-    total_seqs = 0
 
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
@@ -494,107 +455,88 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file, prote
 
         if len(dna_lines)//2 == line_limit or i+1 == len(valid_seqs):
 
-            with open(dna_seqs_file, 'a') as dna_out:
-                dna_lines = '\n'.join(dna_lines)
-                dna_out.writelines(dna_lines+'\n')
-
+            dna_lines = join_list(dna_lines, '\n')
+            write_to_file(dna_lines, dna_seqs_file, 'a', '\n')
             dna_lines = []
 
-            with open(protein_seqs_file, 'a') as protein_out:
-                prot_lines = '\n'.join(prot_lines)
-                protein_out.writelines(prot_lines+'\n')
-
+            prot_lines = join_list(prot_lines, '\n')
+            write_to_file(prot_lines, protein_seqs_file, 'a', '\n')
             prot_lines = []
 
     return [invalid_alleles, total_seqs]
 
 
-# optimize!
-# avoid storing seqs in dictionary so check for repeated
-# avoid returning all seqids in a list, write to file and use import as generator and use for cycle???
-def determine_repeated(sequences_file):
+def determine_repeated(sequences_file, repeated_output, unique_fasta):
     """
     """
 
+    total = 0
     seqs_dict = {}
-    for entry in SeqIO.parse(sequences_file, 'fasta'):
+    for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
-        sequence = str(entry.seq.upper())
-        seqid = entry.id
+        sequence = str(record.seq.upper())
+        seqid = record.id
 
+        # store each sequence and first seqid found
+        # with that sequence
         if sequence not in seqs_dict:
-            seqs_dict[sequence] = [seqid]
+            seqs_dict[sequence] = seqid
         elif sequence in seqs_dict:
-            seqs_dict[sequence].append(seqid)
+            total += 1
 
     # get sequences with more than one seqid
-    repeated_seqs = {seq: seqids for seq, seqids in seqs_dict.items() if len(seqids) > 1}
-    repeated_seqs = [seqids[1:] for seq, seqids in repeated_seqs.items()]
-    repeated_seqs = list(itertools.chain.from_iterable(repeated_seqs))
+    out_limit = 5000
+    out_seqs = []
+    for seq, seqid in seqs_dict.items():
+        header = '>{0}'.format(seqid)
+        sequence = seq
+        out_seqs.append(header)
+        out_seqs.append(sequence)
+        if len(out_seqs)/2 == out_limit:
+            out_seqs = join_list(out_seqs, '\n')
+            write_to_file(out_seqs, unique_fasta, 'a', '\n')
+            out_seqs = []
 
-    return repeated_seqs
+    out_seqs = join_list(out_seqs, '\n')
+    write_to_file(out_seqs, unique_fasta, 'a', '\n')
+    unique_seqids = list(seqs_dict.values())
 
-
-#def determine_repeated(sequences_file):
-#    """
-#    """
-#
-#    checksums = set()
-#    repeated_seqs = []
-#    for record in SeqIO.parse(sequences_file, 'fasta'):
-#        # seq object has to be converted to string
-#        checksum = seguid(record.seq)
-#        if checksum in checksums:
-#            repeated_seqs.append(record.id)
-#        else:
-#            checksums.add(checksum)
-#
-#    return repeated_seqs
+    return [total, unique_seqids]
 
 
-def determine_small(sequences_file, seqids, minimum_length):
+def determine_small(sequences_file, minimum_length):
     """ Find protein sequences that are shorter than desired length.
 
         Args:
-            prots (dict): a dictionary with protein ids as keys and protein 
+            prots (dict): a dictionary with protein ids as keys and protein
             sequences as values.
-            min_len (int): Proteins with a number of amino acids lower than 
+            min_len (int): Proteins with a number of amino acids lower than
             this value are considered small.
 
         Returns:
-            small_proteins (dict): a dictionary with the ids of small proteins 
+            small_proteins (dict): a dictionary with the ids of small proteins
             as keys and their amino acid sequence as values.
-
-        Example:
-
-            >>> small_prots(prots, 67)
-            {5: 'MTPKPVDKDKYD',
-            19: 'MTLNEMVGYVISAHHGMYDFCYCSDDAE',
-            ...}
     """
-    
-    sequences_index = SeqIO.index(sequences_file, 'fasta')
-    
+
     small_seqs = []
-    for seqid in seqids:
+    valid_seqs = []
+    for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
-        sequence = sequences_index.get(seqid).seq
+        #sequence = sequences_index.get(seqid).seq
+        sequence = str(record.seq)
+        seqid = record.id
 
         if len(sequence) < minimum_length:
             small_seqs.append(seqid)
+        else:
+            valid_seqs.append(seqid)
 
-    return small_seqs
+    return [small_seqs, valid_seqs]
 
 
-# also change this to create chunks and write the chunk as it gets to a certain
-# size, restarting the chunk when one has been written
-def get_sequences_by_id(sequences_file, seqids, out_file):
+def get_sequences_by_id(sequences_index, seqids, out_file):
     """
     """
-
-    # index FASTA file, much faster and efficient with large files
-    #sequences_index = SeqIO.index(sequences_file, 'fasta')
-    sequences_index = sequences_file
 
     selected = []
     seq_limit = 5000
@@ -607,42 +549,10 @@ def get_sequences_by_id(sequences_file, seqids, out_file):
 
         if len(selected) // 2 == seq_limit or i+1 == len(seqids):
 
-            with open(out_file, 'a') as out:
-                lines = '\n'.join(selected)
-                out.write(lines+'\n')
+            lines = join_list(selected, '\n')
+            write_to_file(lines, out_file, 'a', '\n')
 
             selected = []
-
-
-# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
-#def load_cluster_info(cluster_file, out_file):
-#    """
-#    """
-#
-#    clusters = import_clusters(cluster_file)
-#
-#    # create mapping between representative sequences and subjects in clusters
-#    clusters = clusters_dicts(clusters)
-#
-#    with open(out_file, 'wb') as out:
-#        pickle.dump(clusters, out)
-
-
-def create_protein_dict(protein_file, out_file):
-    """
-    """
-
-    protein_lines = {}
-    for seq in SeqIO.parse(protein_file, 'fasta'):
-        # seq object has to be converted to string
-        seq_id = seq.id
-
-        sequence = str(seq.seq.upper())
-
-        protein_lines[seq_id] = sequence
-
-    with open(out_file, 'wb') as out:
-        pickle.dump(protein_lines, out)
 
 
 def create_fasta_lines(sequences, genome_id):
@@ -670,39 +580,34 @@ def write_fasta(fasta_lines, output_file):
     """
     """
 
-    joined_lines = '\n'.join(fasta_lines)
+    joined_lines = join_list(fasta_lines, '\n')
 
-    with open(output_file, 'a') as file:
-        file.write(joined_lines+'\n')
+    write_to_file(joined_lines, output_file, 'a', '\n')
 
-    return 'Wrote FASTA sequences to ' + output_file
 
+#file_name = protein_table 
+#cds_info = genome_info[1]
 
 def write_protein_table(file_name, genome_id, cds_info):
     """
     """
 
-    total_proteins = 0
-    with open(file_name, 'a') as file:
-        for protein_list in cds_info:
-            line = [genome_id] + protein_list
-            line = '\t'.join(line)+'\n'
-            file.writelines(line)
-
-            total_proteins += len(line)
-
-    return 'Wrote information about ' + str(total_proteins) + ' proteins to ' + file_name
+    table_lines = [[genome_id] + protein_info
+                   for protein_info in cds_info]
+    table_lines = [join_list(line, '\t') for line in table_lines]
+    table_text = join_list(table_lines, '\n')
+    write_to_file(table_text, file_name, 'a', '\n')
 
 
 def read_blast_tabular(blast_tabular_file):
     """ Read a file with BLAST results in tabular format
 
-        Args: 
+        Args:
             blast_tabular_file (str): path to output file of BLAST.
 
         Returns:
-            blasting_results (list): a list with a sublist per line in the input
-            file.
+            blasting_results (list): a list with a sublist per line
+            in the input file.
     """
 
     with open(blast_tabular_file, 'r') as blastout:
@@ -714,62 +619,47 @@ def read_blast_tabular(blast_tabular_file):
     return blasting_results
 
 
-def remove_same_locus_alleles(dna_index, schema_seqids, proteinFIlePath, output_file, sizethresh):
+def get_schema_reps(dna_index, schema_seqids, protein_file, output_file):
     """
     """
 
-    outputFIlePath = output_file
     schema_lines = []
-
-    # Create directory for final protogenome file
-    if not proteinFIlePath and outputFIlePath and not os.path.exists(outputFIlePath):
-        os.makedirs(outputFIlePath)
-
     for seqid in schema_seqids:
         header = '>{0}'.format(seqid)
         sequence = str(dna_index[seqid].seq)
-        
+
         schema_lines.append(header)
         schema_lines.append(sequence)
 
-    schema_lines = '\n'.join(schema_lines)
-    if proteinFIlePath and outputFIlePath:
-        with open(outputFIlePath, 'w') as schema:
-            schema.write(schema_lines)
+    schema_text = join_list(schema_lines, '\n')
+    write_to_file(schema_text, output_file, 'w', '')
 
 
-def build_schema(last_file, output_file):
+def build_schema(schema_file, output_path):
     """
     """
-
-    outputFIlePath = output_file
-    if not os.path.exists(output_file):
-        os.mkdir(output_file)
-
-    listfiles = []
 
     total_genes = 0
+    schema_files = []
+    for record in SeqIO.parse(schema_file, 'fasta', IUPAC.unambiguous_dna):
+        file_name = record.name
+        file_name = new_utils.replace_multiple_characters(file_name)
 
-    for contig in SeqIO.parse(last_file, "fasta", IUPAC.unambiguous_dna):
-        namefile = contig.name
-        namefile_replaced = new_utils.replace_multiple_characters(namefile)
+        new_file = '{0}{1}'.format(file_name, '.fasta')
+        new_file_path = os.path.join(output_path, new_file)
+        schema_files.append(new_file_path)
 
-        if outputFIlePath:
-            newFile = os.path.join(outputFIlePath, namefile_replaced + ".fasta")
-            listfiles.append(newFile)
-            with open(newFile, "w") as f:
-                f.write(">" + namefile_replaced + "_1\n" + str(contig.seq).upper() + "\n")
+        header = '>{0}_1'.format(file_name)
+        sequence = str(record.seq).upper()
+        file_text = join_list([header, sequence], '\n')
+        write_to_file(file_text, new_file_path, 'w', '\n')
 
-                total_genes += 1
+        total_genes += 1
 
-    if outputFIlePath:
-        init_schema_4_bbaca.get_Short(listfiles)
-        print('\nTotal of {0} loci that constitute the schema.'.format(total_genes))
+    init_schema_4_bbaca.get_Short(schema_files)
+    print('\nTotal of {0} loci that constitute the schema.'.format(total_genes))
 
 
-# optimize!
-# try to create BLASTdbs for each case instead of having a big database for every case?
-#inputs = splitted_seqids[0]
 def cluster_blaster(inputs):
     """
     """
@@ -785,259 +675,29 @@ def cluster_blaster(inputs):
     for cluster in blast_inputs:
 
         cluster_id = cluster
-        ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
-#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
+        ids_file = os.path.join(output_directory,
+                                '{0}_ids.txt'.format(cluster_id))
+
         with open(ids_file, 'r') as clstr:
-#            cluster_rep = [cluster_id]
-#            cluster_ids = cluster_rep
             cluster_ids = [l.strip() for l in clstr.readlines()]
-            #cluster_ids.extend(pickle.load(clstr))
-            #cluster_ids = [seqid[0] for seqid in cluster_ids]
 
-
-#        ids_str = '\n'.join(cluster_ids)
-#        ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
-#        with open(ids_file, 'w') as ids:
-#            ids.write(ids_str)
-
-        #proteins_file = cluster[2]
-        #indexed_fasta = SeqIO.index(proteins_file, 'fasta')
-        
-#        rep_fasta_file = os.path.join(output_directory, '{0}_rep_protein.fasta'.format(cluster_id))
-#        get_sequences_by_id(proteins_file, cluster_rep, rep_fasta_file)
-        
-        # with big clusters, try to BLAST the representative against other sequences
-        # to quickly remove very similar sequences that were not filtered by clustering cutoff
-        # this way we can avoid BLASTing really huge sets of sequences all-against-all
-        # only do this if the clusters are bigger??? :/
-        # the representative is BLASTed first and the BSR function will go through those
-        # results first so BLASTing only the representative and applying the BSR function to those results
-        # should be equivalent but much faster, allowing us to remove a lot of possibilities that
-        # would make the all-against-all BLAST take a really long time
-        
-        # BLAST only the cases that were not excluded by BLAST with the representative!
-        fasta_file = os.path.join(output_directory, '{0}_protein.fasta'.format(cluster_id))
+        fasta_file = os.path.join(output_directory,
+                                  '{0}_protein.fasta'.format(cluster_id))
         # create file with protein sequences
         get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
 
-        blast_output = os.path.join(output_directory, '{0}_blast_out.tsv'.format(cluster_id))
-        blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
-                         '-max_hsps 1 -num_threads {4} -evalue 0.001 -seqidlist {5}'.format(blastp_path, blast_db,
-                                                                                            fasta_file, blast_output,
-                                                                                            1, ids_file))
+        blast_output = os.path.join(output_directory,
+                                    '{0}_blast_out.tsv'.format(cluster_id))
+        blast_command = ('{0} -db {1} -query {2} -out {3} '
+                         '-outfmt "6 qseqid sseqid score" '
+                         '-max_hsps 1 -num_threads {4} -evalue '
+                         '0.001 -seqidlist {5}'.format(blastp_path,
+                                                       blast_db,
+                                                       fasta_file,
+                                                       blast_output,
+                                                       1, ids_file))
 
         os.system(blast_command)
-
-########################################################################################
-# Alternative BLASTer function!
-# this one constructs a database for each cluster and does not use a big database with
-# parse seqids
-#def alt_cluster_blaster(inputs):
-#    """
-#    """
-#
-#    blast_inputs = inputs[0:-2]
-#    blastp_path = inputs[-2]
-#    output_directory = inputs[-1]
-#
-#    for cluster in blast_inputs:
-#
-#        cluster_id = cluster[0]
-#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(cluster_id))
-#        with open(cluster_file, 'rb')as clstr:
-#            cluster_rep = [cluster_id]
-#            cluster_ids = cluster_rep
-#            cluster_ids.extend(pickle.load(clstr))
-#            #cluster_ids = [seqid[0] for seqid in cluster_ids]
-#
-#        blast_db = cluster[1]
-#
-#        ids_str = '\n'.join(cluster_ids)
-#        ids_file = os.path.join(output_directory, '{0}_ids.txt'.format(cluster_id))
-#        with open(ids_file, 'w') as ids:
-#            ids.write(ids_str)
-#
-#        proteins_file = cluster[2]
-#        #indexed_fasta = SeqIO.index(proteins_file, 'fasta')
-#        
-##        rep_fasta_file = os.path.join(output_directory, '{0}_rep_protein.fasta'.format(cluster_id))
-##        get_sequences_by_id(proteins_file, cluster_rep, rep_fasta_file)
-#        
-#        # with big clusters, try to BLAST the representative against other sequences
-#        # to quickly remove very similar sequences that were not filtered by clustering cutoff
-#        # this way we can avoid BLASTing really huge sets of sequences all-against-all
-#        # only do this if the clusters are bigger??? :/
-#        # the representative is BLASTed first and the BSR function will go through those
-#        # results first so BLASTing only the representative and applying the BSR function to those results
-#        # should be equivalent but much faster, allowing us to remove a lot of possibilities that
-#        # would make the all-against-all BLAST take a really long time
-#        if len(clusters_ids) <= 3:
-#        # start BLASTing with the representative
-#        fasta_ids = cluster_ids[0]
-#        # BLAST only the cases that were not excluded by BLAST with the representative!
-#        fasta_file = os.path.join(output_directory, '{0}_protein.fasta'.format(cluster_id))
-#        # create file with protein sequences
-#        get_sequences_by_id(proteins_file, cluster_ids, fasta_file)
-#
-#        blast_output = os.path.join(output_directory, '{0}_blast_out.tsv'.format(cluster_id))
-#        blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
-#                         '-max_hsps 1 -num_threads {4} -evalue 0.001 -seqidlist {5}'.format(blastp_path, blast_db,
-#                                                                                            fasta_file, blast_output,
-#                                                                                            1, ids_file))
-#
-#        os.system(blast_command)
-
-
-###############################################################################################################
-
-# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
-#def prune_clusters(clstr_file, cutoff):
-#    """
-#    """
-#
-#    with open(clstr_file, 'r') as clstrs:
-#        lines = clstrs.readlines()
-#
-#    new_lines = []
-#    excluded_seqids = []
-#    for l in lines:
-#        if '>Cluster' in l:
-#            new_lines.append(l)
-#        elif '*' in l:
-#            new_lines.append(l)
-#        else:
-#            current_line = l.split(' ')
-#            percentage = current_line[-1].strip()
-#            percentage = float(percentage.strip('%'))
-#
-#            if percentage < cutoff:
-#                new_lines.append(l)
-#            else:
-#                seqid = l.split('...')[0].split('>')[1]
-#                excluded_seqids.append(seqid)
-#
-#    os.remove(clstr_file)
-#    with open(clstr_file, 'w') as new_file:
-#        new_file.writelines(new_lines)
-#
-#    return excluded_seqids
-
-
-# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
-#def hierarchical_clustering(protein_fasta, output_directory, threads, cd_hit_sim, cd_hit_word, cutoff_sim):
-#    """
-#    """
-#
-#    # cluster file based on defined similarity
-#    sim_percentage = int(cd_hit_sim*100)
-#    print('Clustering at {0}%...'.format(sim_percentage))
-#    clstr_file = 'cd_hit_{0}perc_n{1}'.format(sim_percentage, cd_hit_word)
-#    clstr_path = '{0}/{1}'.format(output_directory, clstr_file)
-#    cd_hit_command = ('cd-hit -i {0} -o {1} -c {2} -n {3} '
-#                             '-d 200 -T {4} -sc 1 -sf 1 -g 1 >/dev/null 2>&1'.format(protein_fasta, clstr_path,
-#                                                                                     cd_hit_sim, cd_hit_word,
-#                                                                                     threads))
-#    os.system(cd_hit_command)
-#
-#    # read clusters and remove sequences that share a cutoff_sim equal or greater than
-#    # the defined value. This avoids BLASTing sequences that are from the same gene
-#    pruned_seqids = prune_clusters('{0}.clstr'.format(clstr_path), cutoff_sim)
-#
-#    # sort clusters by cluster size
-#    sort_clusters_command = ('clstr_sort_by.pl < {0}/{1}.clstr '
-#                             '> {0}/cd_hit_{2}perc_n{3}_sorted.clstr'.format(output_directory, clstr_file,
-#                                                                             sim_percentage, cd_hit_word))
-#    os.system(sort_clusters_command)
-#
-#    print('Finished clustering sequences!')
-#
-#    return pruned_seqids
-
-
-# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
-#def import_clusters(clstr_file):
-#    """
-#    """
-#
-#    with open(clstr_file, 'r') as file:
-#        clusters = {}
-#        # read all lines from clstr file
-#        lines = file.readlines()
-#        # remove new line chars
-#        lines = [line.strip() for line in lines]
-#        # variable to signal singletons
-#        singleton = False
-#        l = 0
-#        # increment to check the number of sequences per cluster
-#        # if a new cluster identifier appears when this variable is 1, the last
-#        # cluster was a singleton
-#        last_seen = 0
-#        # clusters are ordered by descending number of sequences
-#        # when the first singleton is found, stop iterating over the lines
-#        while singleton != True:
-#            new_line = lines[l]
-#            # if the new line is a cluster identifier line
-#            if 'Cluster' in new_line:
-#                # check if the last cluster was a singleton
-#                if last_seen == 1:
-#                    singleton = True
-#                    # remove last cluster, it was a singleton
-#                    clusters.pop(cluster_id)
-#                # create a new dictionary entry for the new cluster
-#                else:
-#                    cluster_id = new_line.split(' ')[-1]
-#                    clusters[cluster_id] = []
-#                    # reset variable value
-#                    last_seen = 0
-#            # if the new line is not a cluster identifier, keep adding the sequences
-#            # in the cluster to the dictionary entry
-#            else:
-#                clusters[cluster_id].append(new_line)
-#                last_seen += 1
-#
-#            # increment variable with line number
-#            l += 1
-#
-#            # if we reach the end of the file without finding singletons
-#            # stop iterating
-#            if l == len(lines):
-#                singleton = True
-#
-#    return clusters
-
-
-# DEPRECATED - WAS USED WITH CD-HIT STRATEGY
-#def clusters_dicts(clusters):
-#    """
-#    """
-#
-#    rep_sub_mapping = {}
-#    # for each cluster (cluster identifiers are integers)
-#    for i in clusters:
-#        # get all sequences in that cluster
-#        cluster_lines = clusters[i]
-#        # list to store sequences identifiers in the cluster
-#        all_subs = []
-#        for line in range(len(cluster_lines)):
-#            # representative sequences have '*'
-#            if '*' in cluster_lines[line]:
-#                # split in order to get only the identifier
-#                rep_id = cluster_lines[line].split('>')[1]
-#                rep_id = rep_id.split('...')[0]
-#                # create dictionary entry with represetative identifier as key
-#                rep_sub_mapping[rep_id] = []
-#                # add representative identifier to list
-#                all_subs.append(rep_id)
-#            else:
-#                # add to the cluster list every other sequence
-#                sub_id = cluster_lines[line].split('>')[1]
-#                sub_id = sub_id.split('...')[0]
-#                all_subs.append(sub_id)
-#
-#        # add the list of sequences identifiers as value
-#        rep_sub_mapping[rep_id] += all_subs
-#
-#    return rep_sub_mapping
 
 
 def blast_inputs(clusters, output_directory):
@@ -1047,38 +707,14 @@ def blast_inputs(clusters, output_directory):
     ids_to_blast = []
     for i in clusters:
 
-        cluster_file = os.path.join(output_directory, '{0}_ids.txt'.format(i))
+        cluster_file = os.path.join(output_directory,
+                                    '{0}_ids.txt'.format(i))
         cluster_ids = [i] + [seq[0] for seq in clusters[i]]
-        with open(cluster_file, 'w') as out_clstr:
-            clstr_lines = '\n'.join(cluster_ids)
-            out_clstr.writelines(clstr_lines)
-            #pickle.dump(cluster_ids, out_clstr)
-
+        cluster_lines = join_list(cluster_ids, '\n')
+        write_to_file(cluster_lines, cluster_file, 'w', '')
         ids_to_blast.append(i)
 
     return ids_to_blast
-
-
-# DEPRECATED
-#def blast_inputs(clusters_dict_file, blastdb_path, proteins_dict_file, output_directory):
-#    """
-#    """
-#
-#    # import clusters dict
-#    with open(clusters_dict_file, 'rb') as infile:
-#        clusters = pickle.load(infile)
-#
-#    ids_to_blast = []
-#    for i in clusters:
-#
-#        cluster_file = os.path.join(output_directory, '{0}.clstr'.format(i))
-#        with open(cluster_file, 'wb') as out_clstr:
-#            pickle.dump(clusters[i], out_clstr)
-#
-#        blast_input = [i, blastdb_path, proteins_dict_file]
-#        ids_to_blast.append(blast_input)
-#
-#    return ids_to_blast
 
 
 def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
@@ -1090,9 +726,9 @@ def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
     cluster_sums = [0] * threads
     i = 0
     for cluster in blast_inputs:
-        cluster_file = os.path.join(blast_files_dir, '{0}_ids.txt'.format(cluster))
+        cluster_file = os.path.join(blast_files_dir,
+                                    '{0}_ids.txt'.format(cluster))
         with open(cluster_file, 'r') as infile:
-            #cluster_seqs = pickle.load(infile)
             cluster_seqs = [line.strip() for line in infile.readlines()]
         splitted_values[i].append(len(cluster_seqs))
         splitted_ids[i].append(cluster)

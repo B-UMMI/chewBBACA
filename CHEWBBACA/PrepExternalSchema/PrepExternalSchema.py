@@ -12,7 +12,7 @@ DESCRIPTION
     alleles present in those schemas can be used with chewBBACA. During the
     process, alleles that do not correspond to a complete CDS or that cannot be
     translated are discarded from the final schema. One or more alleles of each
-    gene/locus will be chosen as representatives and included in the "short"
+    gene/locus will be chosen as representatives and included in the 'short'
     directory.
 """
 
@@ -142,7 +142,7 @@ def determine_longest(seqids, proteins):
     return chosen
 
 
-def get_seqs_dicts(gene_file, table_id):
+def get_seqs_dicts(gene_file, table_id, min_len):
     """ Creates a dictionary mapping seqids to DNA sequences and
         another dictionary mapping protids to protein sequences.
 
@@ -170,8 +170,9 @@ def get_seqs_dicts(gene_file, table_id):
     invalid_alleles = []
     for allele in SeqIO.parse(gene_file, 'fasta', generic_dna):
         total_seqs += 1
+        sequence = str(allele.seq)
         # try to translate each sequence in the file
-        translated_seq = translate_dna(str(allele.seq), table_id)
+        translated_seq = translate_dna(sequence, table_id, min_len)
         # if returned value is a list, translation was successful
         if isinstance(translated_seq, list):
             seqids_map[str(seqid)] = allele.id
@@ -347,7 +348,7 @@ def check_str_multiple(string, number):
         return 'sequence length is not a multiple of {0}'.format(number)
 
 
-def translate_dna(dna_sequence, table_id):
+def translate_dna(dna_sequence, table_id, min_len):
     """ Checks if sequence is valid and attempts to translate it,
         calling several functions to ensure that the sequence only has
         'ACTG', is multiple of 3 and that it can be translated in any of 4
@@ -384,6 +385,10 @@ def translate_dna(dna_sequence, table_id):
     valid_length = check_str_multiple(original_seq, 3)
     if valid_length is not True:
         return valid_length
+
+    # check if sequence is not shorter than the accepted minimum length
+    if len(original_seq) < min_len:
+        return 'sequence shorter than {0} nucleotides'.format(min_len)
 
     # try to translate in 4 different orientations
     # or reach the conclusion that the sequence cannot be translated
@@ -785,7 +790,7 @@ def check_input_type(input_path):
             genes_list = [os.path.join(input_path, file)
                           for file in genes_list]
         else:
-            sys.tracebacklimit=0
+            sys.tracebacklimit = 0
             print()
             raise Exception('Provided directory is empty! Please provide '
                             'a directory with Fasta files, one per gene, '
@@ -795,14 +800,14 @@ def check_input_type(input_path):
         with open(input_path, 'r') as infile:
             genes_list = [file.strip() for file in infile.readlines()]
             if len(genes_list) == 0 or genes_list[0] == '':
-                sys.tracebacklimit=0
+                sys.tracebacklimit = 0
                 print()
                 raise Exception('Input file had no valid paths! Please provide '
                                 'a directory with Fasta files, one per gene, '
                                 'or a file with a list of paths to Fasta files, '
                                 'one per line.\n')
     else:
-        sys.tracebacklimit=0
+        sys.tracebacklimit = 0
         print()
         input_basename = os.path.basename(input_path.strip('/'))
         raise Exception('Could not find "{0}" directory or file in '
@@ -831,14 +836,15 @@ def adapt_external_schema(genes_list):
     """
 
     # divide input list into variables
-    genes = genes_list[:-3]
-    schema_path = genes_list[-3]
-    schema_short_path = genes_list[-2]
-    bsr = genes_list[-1]
+    genes = genes_list[:-5]
+    schema_path = genes_list[-5]
+    schema_short_path = genes_list[-4]
+    bsr = genes_list[-3]
+    min_len = genes_list[-2]
+    table_id = genes_list[-1]
     invalid_alleles = []
     invalid_genes = []
     summary_stats = []
-    table_id = 11
     for gene in genes:
 
         representatives = []
@@ -864,7 +870,7 @@ def adapt_external_schema(genes_list):
         # get dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
         gene_seqs, prot_seqs, gene_invalid, seqids_map, total_sequences = \
-            get_seqs_dicts(gene, table_id)
+            get_seqs_dicts(gene, table_id, min_len)
         invalid_alleles.extend(gene_invalid)
 
         # if locus has no valid CDS sequences,
@@ -994,14 +1000,14 @@ def adapt_external_schema(genes_list):
         representatives_number = len(gene_rep_lines) // 2
 
         summary_stats.append([gene_id, str(total_sequences),
-             str(valid_sequences), str(representatives_number)])
+                              str(valid_sequences), str(representatives_number)])
 
         shutil.rmtree(gene_temp_dir)
 
     return [invalid_alleles, invalid_genes, summary_stats]
 
 
-def main(external_schema, output_schema, cpu_threads, bsr):
+def main(external_schema, output_schema, cpu_threads, bsr, min_len, trans_tbl):
 
     start = time.time()
 
@@ -1009,6 +1015,8 @@ def main(external_schema, output_schema, cpu_threads, bsr):
           'directory:\n{0}'.format(os.path.abspath(external_schema)))
     print('Number of threads: {0}'.format(cpu_threads))
     print('BLAST Score Ratio: {0}'.format(bsr))
+    print('Translation table: {0}'.format(trans_tbl))
+    print('Minimum accepted sequence length: {0}'.format(min_len))
 
     # list FASTA files in input directory
     # or get list of files from text file
@@ -1023,7 +1031,7 @@ def main(external_schema, output_schema, cpu_threads, bsr):
 
     # check if the filtering steps removed all the files
     if len(genes_list) == 0:
-        sys.tracebacklimit=0
+        sys.tracebacklimit = 0
         # add space between code execution info and exception text
         print()
         raise Exception('There were no valid Fasta files in the input '
@@ -1061,6 +1069,8 @@ def main(external_schema, output_schema, cpu_threads, bsr):
         even_genes_groups[i].append(schema_path)
         even_genes_groups[i].append(schema_short_path)
         even_genes_groups[i].append(bsr)
+        even_genes_groups[i].append(min_len)
+        even_genes_groups[i].append(trans_tbl)
 
     print('Adapting {0} genes...\n'.format(len(genes_list)))
     invalid_data = []
@@ -1137,8 +1147,8 @@ def main(external_schema, output_schema, cpu_threads, bsr):
     stats_lines = list(itertools.chain.from_iterable(stats_lines))
     stats_lines = ['\t'.join(line) for line in stats_lines]
     stats_genes_file = '{0}/{1}_{2}'.format(schema_parent_directory,
-                                              output_schema_basename,
-                                              'summary_stats.txt')
+                                            output_schema_basename,
+                                            'summary_stats.txt')
 
     with open(stats_genes_file, 'w') as stats:
         summary_stats_text = '\n'.join(stats_lines)
@@ -1183,13 +1193,25 @@ def parse_arguments():
                         help='The BLAST Score Ratio value that will be '
                         'used to adapt the external schema (default=0.6).')
 
+    parser.add_argument('--len', type=int, required=False, default=0,
+                        dest='minimum_length',
+                        help='Minimum sequence length accepted. Sequences with'
+                        ' a length value smaller than the value passed to this'
+                        ' argument will be discarded (default=0).')
+
+    parser.add_argument('--tbl', type=int, required=False, default=11,
+                        dest='translation_table',
+                        help='Genetic code to use for CDS translation.'
+                        ' (default=11, for Bacteria and Archaea)')
+
     args = parser.parse_args()
 
     return [args.input_files, args.output_directory,
-            args.core_count, args.blast_score_ratio]
+            args.core_count, args.blast_score_ratio,
+            args.minimum_length, args.translation_table]
 
 
 if __name__ == '__main__':
 
     args = parse_arguments()
-    main(args[0], args[1], args[2], args[3])
+    main(args[0], args[1], args[2], args[3], args[4], args[5])

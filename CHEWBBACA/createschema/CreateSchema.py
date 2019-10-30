@@ -13,6 +13,7 @@ DESCRIPTION
 
 import os
 import time
+import pickle
 import shutil
 import argparse
 import itertools
@@ -460,6 +461,28 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # create directory and schema files
     rfm.build_schema(output_schema, schema_dir)
+
+    # write hidden config files and genes list
+    # write hidden config file with parameters
+    config_file = os.path.join(schema_dir, '.schema_config')
+    shutil.copy(prodigal_training_file, schema_dir)
+    ptf_name = os.path.basename(prodigal_training_file)
+
+    # create dictionary with parameters values
+    parameters = {'bsr': blast_score_ratio,
+                  'training_file': ptf_name,
+                  'translation_table': 11,
+                  'minimum_length': minimum_cds_length,
+                  'chewie_version': '2.1.0'}
+
+    with open(config_file, 'wb') as cf:
+        pickle.dump(parameters, cf)
+
+    # create hidden file with genes/loci list
+    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
+    schema_list_file = os.path.join(schema_dir, '.genes_list')
+    with open(schema_list_file, 'wb') as sl:
+        pickle.dump(schema_files, sl)
     
     # remove temporary files
     if cleanup == 'yes':

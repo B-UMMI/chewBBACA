@@ -386,7 +386,7 @@ def prep_schema():
     parser.add_argument('-i', type=str, required=True, dest='input_files',
                         help='Path to the folder containing the fasta files, '
                              'one fasta file per gene/locus (alternatively, '
-                             'a file with the list of files can be given).')
+                             'a file with a list of paths can be given).')
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
                         help='The directory where the output files will be '
@@ -402,14 +402,28 @@ def prep_schema():
                         help='The BLAST Score Ratio value that will be '
                         'used to adapt the external schema (default=0.6).')
 
+    parser.add_argument('--len', type=int, required=False, default=0,
+                        dest='minimum_length',
+                        help='Minimum sequence length accepted. Sequences with'
+                        ' a length value smaller than the value passed to this'
+                        ' argument will be discarded (default=0).')
+
+    parser.add_argument('--tbl', type=int, required=False, default=11,
+                        dest='translation_table',
+                        help='Genetic code to use for CDS translation.'
+                        ' (default=11, for Bacteria and Archaea)')
+
     args = parser.parse_args()
 
     gene_files = args.input_files
     output_dir = args.output_directory
     processes = args.core_count
     bsr = args.blast_score_ratio
+    min_len = args.minimum_length
+    trans_table = args.translation_table
 
-    PrepExternalSchema.main(gene_files, output_dir, processes, bsr)
+    PrepExternalSchema.main(gene_files, output_dir, processes,
+                            bsr, min_len, trans_table)
 
 
 def find_uniprot():

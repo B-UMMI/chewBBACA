@@ -45,19 +45,24 @@ import CreateSchema_aux as rfm
 #cluster_filter = 0.80
 
 
-def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count, 
-         blastp_path, blast_score_ratio, minimum_cds_length, clustering_mode, word_filter,
-         filtering_sim, clustering_sim, word_size, cluster_filter, cleanup):
-    """
-    """
+def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count,
+         blastp_path, blast_score_ratio, minimum_cds_length, translation_table, clustering_mode,
+         word_filter, filtering_sim, clustering_sim, word_size, cluster_filter, cleanup):
+
 
     global_start = time.time()
 
     cpu_to_apply = new_utils.verify_cpu_usage(cpu_count)
-    print('\nNumber of cores: {0}'.format(cpu_to_apply))
-
+    
     chosen_taxon = os.path.abspath(prodigal_training_file)
+
+    print('\nCreating schema based on the genomes '
+          'in the following directory:\n{0}'.format(os.path.abspath(input_files)))
     print('Training file: {0}'.format(chosen_taxon))
+    print('Number of cores: {0}'.format(cpu_count))
+    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
+    print('Translation table: {0}'.format(translation_table))
+    print('Minimum accepted sequence length: {0}'.format(minimum_cds_length))
     print('Clustering mode: {0}'.format(clustering_mode))
     print('Word filter: {0}'.format(word_filter))
     print('Filtering similarity: {0}'.format(filtering_sim))
@@ -105,7 +110,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # run Prodigal with multiprocessing
     pool = Pool(cpu_to_apply)
     for genome in fasta_files:
-        pool.apply_async(runProdigal.main, (genome, prodigal_path, chosen_taxon))
+        pool.apply_async(runProdigal.main, (genome, prodigal_path, chosen_taxon, translation_table))
     pool.close()
     pool.join()
 
@@ -174,7 +179,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     protein_valid_file = os.path.join(temp_directory, 'valid_protein.fasta')
     print('\nTranslating {0} DNA sequences...'.format(len(valid_dna_seqs)))
     untranslatable_cds, total_seqs = rfm.translate_coding_sequences(unique_dna_seqids, valid_dna_seqs,
-                                                                    dna_valid_file, protein_valid_file, 11)
+                                                                    dna_valid_file, protein_valid_file, translation_table)
     untranslatable_seqids = [t[0] for t in untranslatable_cds]
 
     trans_end = time.time()
@@ -258,18 +263,10 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     final_clusters = rfm.remove_clusters(prunned_clusters, singletons)
     print('Clusters to BLAST: {0}'.format(len(final_clusters)))
     
-    clustered_sequences = sum([len(v) for k, v in final_clusters.items()])
+    # determine number of sequences that still need to be evaluated
+    # +1 to include representative
+    clustered_sequences = sum([len(v)+1 for k, v in final_clusters.items()])
     print('Remaining sequences after clustering and prunning: {0}'.format(clustered_sequences))
-    
-    # After clustering proteins, removing sequences with high similarity with the representative,
-    # and keeping only clusters that are not singletons
-    # further reduce the number of sequences to BLAST by performing intra-cluster comparisons
-    # by decomposing sequences into kmers and comparing them against other sequences in the cluster
-    # to determine if some sequences are very similar and can be excluded, mantaining only one of the
-    # sequences that share high similarity
-#    def intra_cluster_sim():
-#        """
-#        """
 
     # identify clusters with more than 1 sequence besides the representative
     print('Determining intra cluster similarity...')
@@ -278,61 +275,9 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     intra_clusters = {k: v for k, v in final_clusters.items() if len(v) > 1}
 
     # create kmer profile for each cluster and determine similarity
-    #test_dict = {'GCA_000007265-protein1101': intra_clusters['GCA_000007265-protein1101']}
-
     indexed_prots = SeqIO.index(protein_file, 'fasta')
-    excluded_dict = {}
-    #for k, v in test_dict.items():
-    for k, v in intra_clusters.items():
-        cluster_ids = v
 
-        # get sequences
-        cluster_sequences = {}
-        for seqid in cluster_ids:
-            cluster_sequences[seqid[0]] = str(indexed_prots[seqid[0]].seq)
-
-        # get all kmers per sequence
-        kmers_mapping = {}
-        cluster_kmers = {}
-        for seqid, prot in cluster_sequences.items():
-            prot_kmers = rfm.sequence_kmerizer(prot, 4)
-            cluster_kmers[seqid] = prot_kmers
-            
-            for kmer in prot_kmers:
-                if kmer in kmers_mapping:
-                    kmers_mapping[kmer].add(seqid)
-                else:
-                    kmers_mapping[kmer] = set([seqid])
-
-        sims_cases = {}
-        excluded = []
-        for seqid, kmers in cluster_kmers.items():
-            if seqid not in excluded:
-                query_kmers = kmers
-                current_reps = []
-                for kmer in query_kmers:
-                    if kmer in kmers_mapping:
-                        current_reps.extend(list(kmers_mapping[kmer]))
-                
-                counts = Counter(current_reps)
-                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= 0.8]
-                
-                sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
-                
-                if len(sims) > 1:
-                    candidates = [s for s in sims if s[0] != seqid]
-                    #candidate = sims[0] if sims[0][0] != seqid else sims[1]
-                    #if candidate[0] not in excluded:
-                    for c in candidates:
-                    
-                        if len(query_kmers) >= len(cluster_kmers[c[0]]):
-                            sims_cases[c[0]] = (seqid, c[1])
-                            excluded.append(c[0])
-                        elif len(cluster_kmers[c[0]]) > len(query_kmers):
-                            sims_cases[seqid] = (c[0], c[1])
-                            excluded.append(seqid)
-
-        excluded_dict[k] = [list(set(excluded)), sims_cases]
+    excluded_dict = rfm.intra_cluster_sim(intra_clusters, indexed_prots)
 
     intra_excluded = [v[0] for k, v in excluded_dict.items()]
     intra_excluded = list(itertools.chain.from_iterable(intra_excluded))
@@ -347,17 +292,16 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         if len(v[0]) > 0:
             final_clusters[k] = [e for e in final_clusters[k] if e[0] not in v[0]]
 
+    # add key because it is representative identifier
     clustered_sequences2 = [[k]+[e[0] for e in v] for k, v in final_clusters.items()]
     clustered_sequences2 = list(itertools.chain.from_iterable(clustered_sequences2))
     print('Remaining sequences after intra cluster prunning: {0}'.format(len(clustered_sequences2)))
-
 
     # create BLASTdb with all protein sequences from the protogenome, and with files to
     # possibilitate Blasting only against certain database sequences
     clustered_seqs_file = os.path.join(temp_directory, 'clustered_proteins.fasta')
     rfm.get_sequences_by_id(indexed_prots, clustered_sequences2, clustered_seqs_file)
     
-
     makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format(clustered_seqs_file)
     os.system(makedb_cmd)
 
@@ -530,6 +474,10 @@ def parse_arguments():
     parser.add_argument('--l', '--minimum_cds_length', type=int, required=False, dest='minimum_cds_length',
                         default=201, help='Minimum acceptable CDS length (default=201).')
 
+    parser.add_argument('--t', '--translation_table', type=int, required=False, dest='translation_table',
+                        default=11, help='Genetic code to use for gene prediction with Prodigal and CDS '
+                        'translation (default=11, Bacteria and Archaea).')
+
     parser.add_argument('--cm', '--clustering_mode', type=str, required=False, dest='clustering_mode',
                         default='greedy', help='')
 
@@ -556,7 +504,7 @@ def parse_arguments():
 
     return [args.input_files, args.output_directory, args.prodigal_training_file,
             args.schema_name, args.cpu_count, args.blastp_path, args.blast_score_ratio,
-            args.minimum_cds_length, args.clustering_mode, args.word_filter,
+            args.minimum_cds_length, args.translation_table, args.clustering_mode, args.word_filter,
             args.filtering_sim, args.clustering_sim, args.word_size,
             args.cluster_filter, args.cleanup]
 
@@ -566,4 +514,5 @@ if __name__ == '__main__':
     args = parse_arguments()
     main(args[0], args[1], args[2], args[3], args[4],
          args[5], args[6], args[7], args[8], args[9],
-         args[10], args[11], args[12], args[13], args[14])
+         args[10], args[11], args[12], args[13], args[14],
+         args[15])

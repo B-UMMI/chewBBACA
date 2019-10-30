@@ -903,3 +903,60 @@ def remove_clusters(clusters, cluster_ids):
     new_clusters = {k: v for k, v in clusters.items() if k not in cluster_ids}
 
     return new_clusters
+
+
+def intra_cluster_sim(clusters, protein_file):
+    """
+    """
+
+    excluded_dict = {}
+    for k, v in clusters.items():
+        cluster_ids = v
+
+        # get sequences
+        cluster_sequences = {}
+        for seqid in cluster_ids:
+            cluster_sequences[seqid[0]] = str(protein_file[seqid[0]].seq)
+
+        # get all kmers per sequence
+        kmers_mapping = {}
+        cluster_kmers = {}
+        for seqid, prot in cluster_sequences.items():
+            prot_kmers = sequence_kmerizer(prot, 4)
+            cluster_kmers[seqid] = prot_kmers
+            
+            for kmer in prot_kmers:
+                if kmer in kmers_mapping:
+                    kmers_mapping[kmer].add(seqid)
+                else:
+                    kmers_mapping[kmer] = set([seqid])
+
+        sims_cases = {}
+        excluded = []
+        for seqid, kmers in cluster_kmers.items():
+            if seqid not in excluded:
+                query_kmers = kmers
+                current_reps = []
+                for kmer in query_kmers:
+                    if kmer in kmers_mapping:
+                        current_reps.extend(list(kmers_mapping[kmer]))
+                
+                counts = Counter(current_reps)
+                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= 0.8]
+                
+                sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
+                
+                if len(sims) > 1:
+                    candidates = [s for s in sims if s[0] != seqid]
+                    for c in candidates:
+                    
+                        if len(query_kmers) >= len(cluster_kmers[c[0]]):
+                            sims_cases[c[0]] = (seqid, c[1])
+                            excluded.append(c[0])
+                        elif len(cluster_kmers[c[0]]) > len(query_kmers):
+                            sims_cases[seqid] = (c[0], c[1])
+                            excluded.append(seqid)
+
+        excluded_dict[k] = [list(set(excluded)), sims_cases]
+
+    return excluded_dict

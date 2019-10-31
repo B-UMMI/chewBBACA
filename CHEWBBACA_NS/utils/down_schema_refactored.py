@@ -7,7 +7,10 @@ Created on Mon Sep  9 14:54:54 2019
 """
 
 import os
+import copy
 import time
+import wget
+import pickle
 import shutil
 import requests
 import concurrent.futures
@@ -111,11 +114,12 @@ def get_schema(schema_uri, path2down, cpu2use, maxBsrShort, headers_get):
     result = r.json()
     result = result["Loci"]
     serverTime = r.headers['Server-Date']
+    
 
 
 	#get server time and save on config before starting to down stuff, useful for further sync function
-    if not os.path.exists(os.path.join(path2down, "config.py")):
-        with open(os.path.join(path2down, ".config.txt"), 'w') as f:
+    if not os.path.exists(os.path.join(path2down, ".ns_config.txt")):
+        with open(os.path.join(path2down, ".ns_config.txt"), 'w') as f:
             f.write(serverTime +'\n' + schema_uri)
        
     
@@ -162,14 +166,35 @@ def get_schema(schema_uri, path2down, cpu2use, maxBsrShort, headers_get):
     
     PrepExternalSchema.main(path2down, output, cpu2use, maxBsrShort)
     
-    #copy .config.py to output
-    shutil.copy(os.path.join(path2down, ".config.txt"), output)
+    #copy .config.txt to output
+    shutil.copy(os.path.join(path2down, ".ns_config.txt"), output)
     
     # remove path2down
     shutil.rmtree(path2down)
     
     # rename output to the name provided by the user (path2down)
     os.rename(output, path2down)
+    
+    # get schema parameters
+    r_params = requests.get(schema_uri, headers = headers_get)
+    # params dict
+    schema_params = r_params.json()[0]
+    # copy params dict to delete schema name
+    schema_params_copy = copy.deepcopy(schema_params)
+    # delete schema name
+    del schema_params_copy['name']
+    
+    # create parameters dict
+    schema_params_dict = {k: schema_params_copy[k]["value"] for k in schema_params_copy.keys()}
+        
+    # write hidden schema config file
+    schema_config_file = os.path.join(path2down, '.schema_config')
+    
+    with open(schema_config_file, 'wb') as scf:
+        pickle.dump(schema_params_dict, scf)
+    
+    # Download prodigal training file training file
+    wget.download(schema_params_dict["prodigal_training_file"], path2down)
     
     print ("\n################\n" + str(len(ordered_keys)) + " loci downloaded")
     print ("Schema is now available at " + os.path.abspath(path2down))

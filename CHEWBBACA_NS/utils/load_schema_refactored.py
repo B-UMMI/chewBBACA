@@ -483,6 +483,12 @@ def main():
     # Create the parameters for the GET request
     params = {}
     params['name'] = schema_name
+    params['bsr'] = schema_bsr
+    params['ptf'] = schema_ptf 
+    params['translation_table'] = schema_translation_table 
+    params['min_locus_len'] = schema_min_locus_len 
+    params['chewBBACA_version'] = schema_chewBBACA_version
+
     
     # ON A GET REQUEST DO NOT ADD CONTENT TYPE APPLICATION JSON
     # IT WILL TRY TO DECODE THE (EMPTY) BODY OF THE REQUEST AND

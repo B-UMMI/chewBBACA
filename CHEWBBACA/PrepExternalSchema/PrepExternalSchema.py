@@ -142,7 +142,7 @@ def determine_longest(seqids, proteins):
     return chosen
 
 
-def get_seqs_dicts(gene_file, table_id, min_len):
+def get_seqs_dicts(gene_file, gene_id, table_id, min_len):
     """ Creates a dictionary mapping seqids to DNA sequences and
         another dictionary mapping protids to protein sequences.
 
@@ -173,16 +173,27 @@ def get_seqs_dicts(gene_file, table_id, min_len):
         sequence = str(allele.seq)
         # try to translate each sequence in the file
         translated_seq = translate_dna(sequence, table_id, min_len)
+        # if the allele identifier is just an integer
+        # add gene identifier as prefix
+        try:
+            int_seqid = int(allele.id)
+            new_seqid = '{0}_{1}'.format(gene_id, int_seqid)
+        except Exception:
+            new_seqid = allele.id
+
         # if returned value is a list, translation was successful
         if isinstance(translated_seq, list):
-            seqids_map[str(seqid)] = allele.id
-            dna_seqs[allele.id] = translated_seq[0][1]
+            # we need to assign simple integers as sequence identifiers
+            # because BLAST will not work if sequence identifiers are
+            # too long
+            seqids_map[str(seqid)] = new_seqid
+            dna_seqs[new_seqid] = translated_seq[0][1]
             prot_seqs[str(seqid)] = str(translated_seq[0][0])
             seqid += 1
         # if returned value is a string, translation failed and
         # string contains exceptions
         elif isinstance(translated_seq, str):
-            invalid_alleles.append([allele.id, translated_seq])
+            invalid_alleles.append([new_seqid, translated_seq])
 
     return [dna_seqs, prot_seqs,
             invalid_alleles, seqids_map, total_seqs]
@@ -802,10 +813,10 @@ def check_input_type(input_path):
             if len(genes_list) == 0 or genes_list[0] == '':
                 sys.tracebacklimit = 0
                 print()
-                raise Exception('Input file had no valid paths! Please provide '
-                                'a directory with Fasta files, one per gene, '
-                                'or a file with a list of paths to Fasta files, '
-                                'one per line.\n')
+                raise Exception('Input file had no valid paths! Please '
+                                'provide a directory with Fasta files, '
+                                'one per gene, or a file with a list of '
+                                'paths to Fasta files, one per line.\n')
     else:
         sys.tracebacklimit = 0
         print()
@@ -870,7 +881,7 @@ def adapt_external_schema(genes_list):
         # get dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
         gene_seqs, prot_seqs, gene_invalid, seqids_map, total_sequences = \
-            get_seqs_dicts(gene, table_id, min_len)
+            get_seqs_dicts(gene, gene_id, table_id, min_len)
         invalid_alleles.extend(gene_invalid)
 
         # if locus has no valid CDS sequences,
@@ -999,8 +1010,10 @@ def adapt_external_schema(genes_list):
         # get number of representatives
         representatives_number = len(gene_rep_lines) // 2
 
-        summary_stats.append([gene_id, str(total_sequences),
-                              str(valid_sequences), str(representatives_number)])
+        summary_stats.append([gene_id,
+                              str(total_sequences),
+                              str(valid_sequences),
+                              str(representatives_number)])
 
         shutil.rmtree(gene_temp_dir)
 

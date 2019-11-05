@@ -12,12 +12,26 @@ import json
 import requests
 import itertools
 import multiprocessing
+from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 
+UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
+
+
+def listdir_fullpath(path: str):
+    """ Gets the full path of the files from a directory
+        Args:
+            path (str): full path to a directory
+        Returns:
+            list containing the full path of every file contained in the input directory
+    
+    """
+    
+    return [os.path.join(path, f) for f in os.listdir(path)]
 
 
 def verify_cpu_usage(cpuToUse):
@@ -62,6 +76,24 @@ def flatten_list(list_to_flatten):
     return list(itertools.chain(*list_to_flatten))
 
 
+def isListEmpty(inList):
+    """ Checks if a nested list is empty
+    """
+    if isinstance(inList, list): # Is a list
+        return all(map(isListEmpty, inList)) if isinstance(inList, list) else False
+
+
+
+def reverseComplement(strDNA):
+
+    basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+    strDNArevC = ''
+    for l in strDNA:
+        strDNArevC += basecomplement[l]
+
+    return strDNArevC[::-1]
+
+
 def translateSeq(DNASeq):
 
     seq = DNASeq
@@ -90,17 +122,25 @@ def translateSeq(DNASeq):
                     # print(e)
                     raise
 
-    return myseq
+    return protseq
 
 
-def reverseComplement(strDNA):
+def translate_sequence(dna_str, table_id):
+    """ Translate a DNA sequence using the BioPython package.
 
-    basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-    strDNArevC = ''
-    for l in strDNA:
-        strDNArevC += basecomplement[l]
+        Args:
+            dna_str (str): DNA sequence as string type.
+            table_id (int): translation table identifier.
 
-    return strDNArevC[::-1]
+        Returns:
+            protseq (str): protein sequence created by translating
+            the input DNA sequence.
+    """
+
+    myseq_obj = Seq(dna_str)
+    protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
+
+    return protseq
 
 
 def is_fasta(filename: str):
@@ -122,7 +162,6 @@ def is_fasta(filename: str):
         return any(fasta)
     
 
-
 def is_url(url):
     """ Checks if a url is valid
     
@@ -143,8 +182,7 @@ def is_url(url):
         return False
 
 
-
-def check_if_list_or_folder(folder_or_list: str):
+def check_if_list_or_folder(folder_or_list):
     """ Checks if the input is a file or a directory.
 
         Args: 
@@ -406,22 +444,24 @@ def process_locus(gene, token, loci_url, auxBar, noCDSCheck):
     return reqCode
 
 
-#def process_locus2(sequence, token, loci_url, auxBar, noCDSCheck):
-#    """ """
-#
-#    #reqCode = send_sequence(token, sequence, loci_url, noCDSCheck)
-#    reqCode = send_post(loci_url, sequence, token, noCDSCheck)
-#        
-#
-#
-##    if gene in auxBar:
-##        auxlen = len(auxBar)
-##        index = auxBar.index(gene)
-##        print("[" + "=" * index + ">" +
-##                " " * (auxlen - index) +
-##                "] Sending alleles " +
-##                    str(int((index / auxlen) * 100)) + "%")
-#
-#    return reqCode
+def get_data(sparql_query):
+    """ Gets data from Virtuoso """
+    
+    try:
+        UNIPROT_SERVER.setQuery(sparql_query)
+        UNIPROT_SERVER.setReturnFormat(JSON)
+        UNIPROT_SERVER.setTimeout(20)
+        result = UNIPROT_SERVER.query().convert()
+    except Exception as e:
+        time.sleep(5)
+        try:
+            UNIPROT_SERVER.setQuery(sparql_query)
+            UNIPROT_SERVER.setReturnFormat(JSON)
+            UNIPROT_SERVER.setTimeout(20)
+            result = UNIPROT_SERVER.query().convert()
+        except Exception as e:
+            result = e
+            
+    return result
 
  

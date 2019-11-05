@@ -25,6 +25,9 @@ As from 02/02/2018 **prodigal training files** to be used are now on a separate 
 
 # Latest updates
 
+## New in 2.1.0 (05/11/2019)
+* New `PrepExternalSchema` implementation: Algorithmic optimizations to improve speed and maintain memory efficiency. New output files with summary information about schema adaptation and excluded sequences and options to control the Blast Score Ratio, minimum sequence length and genetic code values passed to the process.
+
 ## chewBBACA released as a galaxy module! 
 Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome ! 
 https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303

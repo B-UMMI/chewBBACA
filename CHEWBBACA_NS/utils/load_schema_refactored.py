@@ -26,42 +26,84 @@ NS_BASE_URL = 'http://127.0.0.1:5000/NS/api/'
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
 
-def check_seq_req(headers_get, url):
+def simple_get_request(base_url, headers, endpoint_list):
     """
     """
-    
+
+    # unpack list of sequential endpoints and pass to create URI
+    url = ut.make_url(base_url, *endpoint_list)
+    res = requests.get(url, headers=headers, timeout=30)
+
+    return res
+
+
+def simple_post_request(base_url, headers, endpoint_list, data):
+    """
+    """
+
+    # unpack list of sequential endpoints and pass to create URI
+    url = ut.make_url(base_url, *endpoint_list)
+    res = requests.post(url, data=json.dumps(data), headers=headers)
+
+    return res
+
+
+def check_seq(headers_get, url):
+    """ Checks if a DNA sequence is in the NS.
+
+        Args:
+            headers_get (dict): headers for the GET method used to
+            get data from the API endpoints.
+            url (str): the endpoint url that will be queried to know
+            if the DNA sequence is in the NS.
+        Returns:
+            response_tup (tup): a tuple with the query response and
+            the sequence identifier.
+    """
+
     url_req = url[0]
-    
-    res = requests.get(url_req, headers = headers_get, timeout = 30)
-    
-    return (res, url[1])
+    seqid = url[1]
+    response = requests.get(url_req, headers=headers_get, timeout=30)
+    response_tup = (response, seqid)
+
+    return response_tup
     
 
-def check_seq2(fasta, species, URL, headers_get, cpu):
-    """ Checks if a sequence already exists in NS
+def check_gene_seqs(fasta, species, base_url, headers_get, threads):
+    """ Checks if the sequences in a FASTA file are in the NS.
+
+        Args:
+            fasta (str): path to the FASTA file with the sequences.
+            species (str): species identifier in the NS.
+            base_url (str): the base URL for the NS, used to concatenate
+            with a list of elements and obtain endpoints URL.
+            headers_get (dict): headers for the GET method used to
+            get data from the API endpoints.
+            cpu (int): number of workers to pass to multi-threading.
+        Returns:
+            responses (dict): a dictionary with the FASTA file path as key
+            and tuples with the query response and sequence identifiers
+            as values.
     """
-    
-    cpu = 30
-    
+
     # Get the sequences of each record from the fasta file
     sequences = [(str(rec.seq), rec.id) for rec in SeqIO.parse(fasta, "fasta")]
-    
+
     responses = {}
-    
     responses[fasta] = []
-    
+
+    # create url for every sequence query
     urls = []
-    
     for seq in sequences:
-        
-        url_seq_info = ut.make_url(URL, "sequences", "seq_info", sequence=seq[0], species_id=species)
+        url_seq_info = ut.make_url(base_url, 'sequences', 'seq_info',
+                                   sequence=seq[0], species_id=species)
         urls.append((url_seq_info, seq[1]))
-    
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=cpu) as executor:
-        for result in executor.map(check_seq_req, repeat(headers_get), urls):
+
+    # check if sequences are in the server with multithreading
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        for result in executor.map(check_seq, repeat(headers_get), urls):
             responses[fasta].append(result)
-    
+
     return responses
 
 
@@ -398,88 +440,110 @@ def link_allele(sequence_uri, loci_url, species_name, headers_post):
     return r
 
 
+def parse_arguments():
+
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('-i', type=str, dest='input_files', required=True,
+                        help='Path to folder containg the schema fasta files '
+                        '(alternatively, a file with a list of paths to '
+                        'fasta files).')
+
+    parser.add_argument('-sp', type=str, dest='species_id', required=True,
+                        help='The identifier for the schemas species in '
+                        'the NS.')
+
+    parser.add_argument('--sdesc', type=str, dest='schema_desc', required=True,
+                        help='A brief description for the schema. It is '
+                        'important to pass a meaningful value')
+
+    parser.add_argument('--lprefix', type=str, dest='loci_prefix', required=True,
+                        help='Prefix added to the identifier of each schema gene.'
+                        ' For instance, ACIBA will produce ACIBA00001.fasta.')
+
+    parser.add_argument('--cpu', type=int, required=False, dest='cpu_threads', 
+                        default=1, help='The number of CPU threads to use '
+                        '(default=1).')
+
+    parser.add_argument('--url', type=str, required=False, dest='base_url',
+                        default='http://127.0.0.1:5000/NS/api/',
+                        help='The base URL for the NS server. Will be used '
+                        'to create endpoints URLs.')
+
+    parser.add_argument('--cont', type=bool, dest='continue_up', required=False,
+                        default=False, help='Flag used to indicate if the process '
+                        'should try to continue a schema upload that crashed '
+                        '(default=False.')
+
+    args = parser.parse_args()
+
+    return [args.input_files, args.species_id, args.schema_desc,
+            args.loci_prefix, args.cpu_threads, args.base_url,
+            args.continue_up]
+
+
 def main():
     
-    parser = argparse.ArgumentParser(
-            description="This program loads a schema to the nomenclature server, given the fasta files")
-    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
-    parser.add_argument('-sp', nargs='?', type=str, help='species id', required=True)
-    parser.add_argument('-t', nargs='?', type=str, help='token', required=True)
-    parser.add_argument('--sname', nargs='?', type=str, help='schema name', required=True)
-    parser.add_argument('--sprefix', nargs='?', type=str, help='loci prefix, for instance ACIBA will produce ACIBA00001.fasta', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('--keep', help='store original fasta name too', required=False, default=False, action='store_true')
-    parser.add_argument('--notCDS', help='dont enforce the sequences to be cds', required=False,default=False,action='store_false')
-    parser.add_argument('--cont', help='use this flag to continue a schema upload that crashed in between', required=False, default=False, action='store_true')
-    
-    args = parser.parse_args()
-    geneFiles = args.i
-    species = args.sp
-    token = args.t
-    schema_name = args.sname
-    schema_prefix = args.sprefix
-    cpu2Use=args.cpu
-    keepFileName=args.keep
-    continue_previous_upload=args.cont
-    noCDSCheck=args.notCDS
-    
-    #### DEBUG ONLY!!
-    geneFiles = "/home/pcerqueira/Lab_Software/refactored_ns/ns_security/extra_scripts/teste_senterica5"
-    species = "13"
-    schema_name = "test_debugging_script_senterica19"
-    schema_prefix = "test_senterica19"
-    cpu2Use = 6
-    keepFileName = True
-    continue_previous_upload = False
-    noCDSCheck = False
-
     # Get the parent directory of the schema directory
-    parent_dir = os.path.dirname(geneFiles)
-    
+    parent_dir = os.path.dirname(input_files)
+
     # Check if the user provided a valid number of cpu
-    cpu2use = ut.verify_cpu_usage(cpu2Use)
-     
+    cpu_threads = ut.verify_cpu_usage(cpu_threads)
+
     # Check if user provided a list of genes or a folder
-    geneFiles = ut.check_if_list_or_folder(geneFiles)
-	
-	# Create list of genes and sort it by name
-    listGenes = []
-    with open(geneFiles, "r") as gf:
-        for gene in gf:
-            gene = gene.rstrip('\n')
-            listGenes.append(gene)
-    listGenes.sort()
-    
-    try:
-        os.remove("listGenes.txt")
-    except:
+    input_files = ut.check_if_list_or_folder(input_files)
+
+    # Create list of genes and sort it by name
+    with open(input_files, 'r') as gf:
+        fasta_paths = [path.strip() for path in gf]
+    fasta_paths.sort()
+
+    # remove file with list of paths
+    if os.path.isfile('listGenes.txt'):
+        os.remove('listGenes.txt')
+
+    print('Processing the fastas')
+
+    # login with master key
+    login_key = False
+    if login_key:
         pass
-    
-    print("Processing the fastas")
-    
-    
-    ## FOR DEBUG ONLY! ###########################################################################
-    # Log the user in
-    token = ut.login_user_to_NS(NS_BASE_URL, "test@refns.com", "mega_secret")    
-    #############################################################################################
+    # if the login key is not found ask for credentials
+    else:
+        print('\nPlease provide login credentials:')
+        user = input('USERNAME: ')
+        password = getpass('PASSWORD: ')
+        print()
+        # get token
+        token = ut.login_user_to_NS(base_url, user, password)
 
     # Define the headers of the requests
     headers_get = {'X-API-KEY': token,
-                   'accept' : 'application/json'}
-    
+                   'accept': 'application/json'}
+
     headers_post = {'X-API-KEY': token,
                     'Content-type': 'application/json',
-                    'accept' : 'application/json'}
+                    'accept': 'application/json'}
 
-    
-    # Get the name of the species from the provided id
-    species_url = ut.make_url(NS_BASE_URL, "species", str(species))
-    
-    r_species_name = requests.get(species_url, headers = headers_get)
-    
-    species_name = r_species_name.json()[0]["name"]["value"]
-        
-    
+    # verify user role to check permission
+    user_info = simple_get_request(base_url, headers_get,
+                                   ['user', 'current_user'])
+    user_info = user_info.json()
+    user_role = any(role in user_info['roles']
+                    for role in ['Admin', 'Contributor'])
+
+    if not user_role:
+        print('Current user has no Administrator or Contributor permissions.\n'
+              'Not allowed to upload schemas.')
+
+        return 403
+
+     # Get the name of the species from the provided id
+    species_info = simple_get_request(base_url, headers_get,
+                                  ['species', species_id])
+    species_name = species_info.json()[0]['name']['value']
+
     # Create the parameters for the GET request
     params = {}
     params['name'] = schema_name
@@ -488,26 +552,40 @@ def main():
     params['translation_table'] = schema_translation_table 
     params['min_locus_len'] = schema_min_locus_len 
     params['chewBBACA_version'] = schema_chewBBACA_version
+  
+    # Build the new schema URL and POST to NS
+    print('Posting to /schemas endpoint...')
+    schema_post = simple_post_request(base_url, headers_post,
+                                      ['species', species_id, 'schemas'],
+                                      params)
 
-    
-    # ON A GET REQUEST DO NOT ADD CONTENT TYPE APPLICATION JSON
-    # IT WILL TRY TO DECODE THE (EMPTY) BODY OF THE REQUEST AND
-    # RETURN 400
-    
-    # Build the Schemas url
-    url_schema = ut.make_url(NS_BASE_URL, "species", species, "schemas")
-    
-    print("Posting to /schemas")
-    
-    # POST a new schema for the provided species ID  
-    r_schema = requests.post(url_schema, data = json.dumps(params), headers = headers_post)
+     # check status code
+    # add other prints for cases that fail so that users see a print explaining
+    schema_post_status = schema_post.status_code
+    if schema_post_status in [200, 201]:
+        message = ('A new schema for {0} was created '
+                   'succesfully.'.format(species_name))
+        print(message)
+    else:
+        if schema_post_status == 403:
+            message = ('{0}: No permission to load '
+                       'schema.'.format(schema_post_status))
 
-    if r_schema.status_code == 409:
-        return "schema already exists"
-    
-    elif r_schema.status_code > 201:
-        print(r_schema.status_code)
-        return "something went wrong, species probably does not exist"
+        elif schema_post_status == 404:
+            message = ('{0}: Cannot load a schema for species '
+                       'that is not in NS.'.format(schema_post_status))
+
+        elif schema_post_status == 409:
+            message = ('{0}: Cannot load a schema with the same '
+                       'description as a schema that is in the '
+                       'NS.'.format(schema_post_status))
+
+        else:
+            message = '{0}: Could not insert schema.'.format(schema_post_status)
+
+        print(message)
+        
+        return message
     
     # Get the new schema url from the response
     schema_url = r_schema.json()['url']
@@ -515,7 +593,7 @@ def main():
     start = time.time()
     # 1 LOCI PER FILE, MULTIPLE ALLELES PER FILE
 #    conflict_loci_ids = []
-    print("Checking files...\n")   
+    print('Checking if sequences in each FASTA file are in the NS...\n')   
 #    response_200 = []
 #    response_404 = {}
     fp = 0
@@ -566,9 +644,12 @@ def main():
                 new_schema_loci = post_schema_loci(new_loci_url, schema_url, headers_post)   
 
             
-            
+            #if any([v for v in response_404.values() if v != []]):
             if not bool([v for v in response_404_file.values() if v == []]):
                 
+                #novelty_loci = {k: v for k, v in response_404.items() if len(v) > 0}
+                #print(novelty_loci)
+
                 # Insert new alleles
                 total_alleles = 0
                 for i in response_404_file.values():

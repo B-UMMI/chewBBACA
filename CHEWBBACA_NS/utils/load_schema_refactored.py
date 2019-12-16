@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHORS
+AUTHOR
 
     Pedro Cerqueira
     github: @pedrorvc
@@ -50,6 +50,116 @@ def species_list(base_url, headers_get, endpoint_list):
         species_lst[species] = species_id
 
     return species_lst
+
+
+def species_ids(species_id, base_url, headers_get):
+    """
+    """
+    
+    try:
+        int(species_id)
+        species_info = simple_get_request(base_url, headers_get,
+                                          ['species', species_id])
+        if species_info.status_code == 200:
+            species_name = species_info.json()[0]['name']['value']
+            return [species_id, species_name]
+        else:
+            return 404
+    except ValueError:
+        species_name = species_id
+        ns_species = species_list(base_url, headers_get, ['species', 'list'])
+        species_id = ns_species.get(species_name, 'not_found')
+        if species_id != 'not_found':
+            return [species_id, species_name]
+        else:
+            return 404
+
+
+def retrieve_schema_info(schemas_list, schema_desc):
+    """
+    """
+    
+    schema_exists = False
+    for s in schemas_list:
+        current_desc = s['name']['value']
+        if current_desc == schema_desc:
+            schema_exists = True
+            schema_url = s['schemas']['value']
+            schema_id = schema_url.split('/')[-1]
+    
+    if schema_exists:
+        return [schema_url, schema_id]
+    else:
+        return 404
+
+
+def determine_upload(local_schema_loci, ns_schema_loci,
+                     ns_schema_locid_map, local_path,
+                     base_url, headers_get):
+    """
+    """
+
+    missing = []
+    incomplete = []
+    for locus in local_schema_loci:
+        local_locus = locus
+
+        if local_locus in ns_schema_loci:
+            local_file = os.path.join(local_path, locus)
+            local_sequences = [str(rec.seq) for rec in SeqIO.parse(local_file, 'fasta')]
+
+            ns_uri = ns_schema_locid_map[locus][0]
+            ns_locus_id = ns_uri.split('/')[-1]
+            ns_info = simple_get_request(base_url, headers_get,
+                                         ['loci', ns_locus_id, 'fasta'])
+            ns_sequences = [seq['nucSeq']['value'] for seq in ns_info.json()['Fasta']]
+
+            local_set = set(local_sequences)
+            ns_set = set(ns_sequences)
+
+            if len(ns_set) > len(local_set):
+                message = ('A locus in the NS has more sequences '
+                           'than the local locus.\nLocal schema '
+                           'is not the original.')
+                return (400, message)
+
+            ns_diff = ns_set - local_set
+            if len(ns_diff) > 0:
+                message = ('A locus in the NS has sequences '
+                           'that are not in the local locus.'
+                           '\nLocal schema is not the original.')
+                return (401, message)
+
+            local_diff = local_set - ns_set
+            if len(local_diff) > 0:
+                incomplete.append(locus)
+
+        else:
+            missing.append(locus)
+
+    upload = missing + incomplete
+    incomplete_text = ', '.join(incomplete)
+    print('Incomplete: {0}'.format(incomplete_text))
+
+    return upload
+
+
+def create_allele_data(allele_seq_list, new_loci_url, name, label,
+                       url, species_name, check_cds, headers_post,
+                       user_id):
+    """
+    """
+
+    allele_id = 1
+    post_inputs = []
+    for allele in allele_seq_list:
+        allele_uri = '{0}/alleles/{1}'.format(new_loci_url, allele_id)
+        post_inputs.append((allele, name, label, url,
+                            new_loci_url, species_name,
+                            True, headers_post, allele_uri, user_id))
+        allele_id += 1
+
+    return post_inputs
 
 
 def create_uniprot_queries(fasta_paths):
@@ -182,9 +292,9 @@ def check_configs(file_path, input_path, schema_desc):
         return [False, messages]
 
 
-def check_schema_post(status_code, species_name):
+def check_schema_status(status_code, species_name, upload_type):
     """ Checks the schema post status and determines
-        if the schema was successfully created in the NS .
+        if the schema was successfully created in the NS.
 
         Args:
             status_code (int): schema post status code.
@@ -195,21 +305,28 @@ def check_schema_post(status_code, species_name):
     """
 
     if status_code in [200, 201]:
-        message = ('A new schema for {0} was created '
-                   'succesfully.'.format(species_name))
+        if upload_type == 'de novo':
+            message = ('A new schema for {0} was created '
+                       'succesfully.'.format(species_name))
+        elif upload_type == 'continue':
+            message = ('Schema exists. Will try to continue upload.')
     else:
-        if status_code == 403:
-            message = ('{0}: No permission to load '
-                       'schema.'.format(status_code))
-        elif status_code == 404:
-            message = ('{0}: Cannot upload a schema for a species '
-                       'that is not in NS.'.format(status_code))
-        elif status_code == 409:
-            message = ('{0}: Cannot upload a schema with the same '
-                       'description as a schema that is in the '
-                       'NS.'.format(status_code))
-        else:
-            message = '{0}: Could not insert schema.'.format(status_code)
+        if upload_type == 'de novo':
+            if status_code == 403:
+                message = ('{0}: No permission to load '
+                           'schema.'.format(status_code))
+            elif status_code == 404:
+                message = ('{0}: Cannot upload a schema for a species '
+                           'that is not in NS.'.format(status_code))
+            elif status_code == 409:
+                message = ('{0}: Cannot upload a schema with the same '
+                           'description as a schema that is in the '
+                           'NS.'.format(status_code))
+            else:
+                message = '{0}: Could not insert schema.'.format(status_code)
+        elif upload_type == 'continue':
+            message = ('{0}: Cannot continue uploading data for a schema that '
+                       'does not exist.'.format(status_code))
 
     return message
 
@@ -657,10 +774,10 @@ def parse_arguments():
                         help='The base URL for the NS server. Will be used '
                         'to create endpoints URLs.')
 
-    parser.add_argument('--cont', type=bool, dest='continue_up', required=False,
-                        default=False, help='Flag used to indicate if the process '
-                        'should try to continue a schema upload that crashed '
-                        '(default=False.')
+    parser.add_argument('--cont', type=str, dest='continue_up', required=False,
+                        default='no', choices=['no', 'yes'], help='Flag used to '
+                        'indicate if the process should try to continue a schema '
+                        'upload that crashed (default=no.')
 
     args = parser.parse_args()
 
@@ -671,15 +788,18 @@ def parse_arguments():
 
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_small_loci'
 #species_id = 1
-#schema_desc = 'gre10'
-#loci_prefix = 'gre10'
+#schema_desc = 'gre99'
+#loci_prefix = 'gre99'
 #threads = 30
 #base_url = 'http://127.0.0.1:5000/NS/api/'
-#continue_up = False
+#continue_up = 'no'
 
 
 def main(input_files, species_id, schema_desc, loci_prefix, threads,
          base_url, continue_up):
+
+
+    check_cds = True
 
     # login with master key
     login_key = False
@@ -741,27 +861,14 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # Get the name of the species from the provided id
     # or vice-versa
-    try:
-        int(species_id)
-        species_info = simple_get_request(base_url, headers_get,
-                                          ['species', species_id])
-        if species_info.status_code == 200:
-            species_name = species_info.json()[0]['name']['value']
-            print('\nNS species with identifier {0} is {1}.'.format(species_id,
-                                                                    species_name))
-        else:
-            print('\nThere is no species with the provided identifier in the NS.')
-            return 404
-    except ValueError:
-        species_name = species_id
-        ns_species = species_list(base_url, headers_get, ['species', 'list'])
-        species_id = ns_species.get(species_name, 'not_found')
-        if species_id != 'not_found':
-            print('\nNS species with identifier {0} is {1}.'.format(species_id,
-                                                                    species_name))
-        else:
-            print('\nThere is no species with the provided identifier in the NS.')
-            return 404
+    species_info = species_ids(species_id, base_url, headers_get)
+    if isinstance(species_info, list):
+        species_id, species_name = species_info
+        print('\nNS species with identifier {0} is {1}.'.format(species_id,
+                                                                species_name))
+    else:
+        print('\nThere is no species with the provided identifier in the NS.')
+        return 1
 
     # translate loci sequences and contruct SPARQL queries to query UniProt
     # create queries for each file and save in binary with pickle
@@ -791,23 +898,106 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     print('\n\nSending data to NS...')
 
     # Build the new schema URL and POST to NS
-    print('\nCreating new schema...')
-    schema_post = simple_post_request(base_url, headers_post,
-                                      ['species', species_id, 'schemas'],
-                                      params)
+    if continue_up == 'no':
+        print('\nCreating new schema...')
+        schema_post = simple_post_request(base_url, headers_post,
+                                          ['species', species_id, 'schemas'],
+                                          params)
+        schema_status = schema_post.status_code
+    elif continue_up == 'yes':
+        print('\nChecking if schema already exists...')
+        schema_get = simple_get_request(base_url, headers_get,
+                                        ['species', species_id, 'schemas'])
+        schema_get_status = schema_get.status_code
+        species_schemas = schema_get.json()
+        if schema_get_status in [200, 201]:
+            # determine if there is a schema for current
+            # species with same description
+            schema_info = retrieve_schema_info(species_schemas, schema_desc)
+
+            if isinstance(schema_info, int):
+                print('\nCannot continue uploading to a schema that does not exist.')
+                return 404
+            else:
+                schema_url, schema_id = schema_info
+        else:
+            print('\nCould not retrieve schemas for current species.')
+            return 404
+
+        # compare list of genes, if they do not intersect, halt process
+        # get list of loci for schema in NS
+        ns_loci_get = simple_get_request(base_url, headers_get,
+                                         ['species', species_id,
+                                          'schemas', schema_id,
+                                          'loci'])
+        # get loci files names from response
+        ns_schema_loci = []
+        ns_schema_locid_map = {}
+        for l in ns_loci_get.json()['Loci']:
+            locus_file = l['original_name']['value']
+            ns_schema_loci.append(locus_file)
+            locus_uri = l['locus']['value']
+            locus_name = l['name']['value']
+            ns_schema_locid_map[locus_file] = (locus_uri, locus_name)
+
+        # get list of loci for schema to upload
+        local_schema_loci = [l[0].split('/')[-1] for l in results]
+
+        local_loci_set = set(local_schema_loci)
+        ns_loci_set = set(ns_schema_loci)
+
+        # verify that the number of loci in NS is not greater than in the local schema
+        ns_loci_diff = ns_loci_set - local_loci_set
+        if len(ns_loci_diff) > 0:
+            print('NS schema has loci that are not in the local schema.')
+            return 400
+
+        if len(ns_loci_set) > len(local_loci_set):
+            print('NS schema has more loci than the local schema.')
+            return 400
+        elif len(ns_loci_set) < len(local_loci_set):
+            print('NS schema has less loci than local schema.')
+            absent_loci = list(local_loci_set-ns_loci_set)
+            absent_text = ', '.join(absent_loci)
+            print('Absent loci: {0}'.format(absent_text))
+        elif len(ns_loci_set) == len(local_loci_set):
+            print('NS and local schemas have same number of loci.')
+
+        # if the set of loci is equal, check sequences in each locus
+        # if a locus in the NS has more sequences than one in the local set, halt process
+        upload = determine_upload(local_schema_loci, ns_schema_loci,
+                                  ns_schema_locid_map, input_files,
+                                  base_url, headers_get)
+
+        if isinstance(upload, tuple):
+            return upload[0]
+        elif len(upload) == 0:
+            print('Local and NS schemas are identical. Nothing left to do!')
+            return 'I am such a happy tato'
+
+        results = [list(res) for res in results if any(locus in res[0] for locus in upload)]
+
+        for r in range(len(results)):
+            lfile = (results[r][0]).split('/')[-1]
+            if lfile in ns_schema_locid_map:
+                results[r].append(ns_schema_locid_map[lfile][0])
+
+        schema_status = 200
 
     # check status code
     # add other prints for cases that fail so that users see a print explaining
-    schema_post_status = schema_post.status_code
-    schema_insert = check_schema_post(schema_post_status, species_name)
-    if schema_post_status in [200, 201]:
+    upload_type = 'de novo' if continue_up == 'no' else 'continue'
+    schema_insert = check_schema_status(schema_status, species_name, upload_type)
+    if schema_status in [200, 201]:
         print('{0}'.format(schema_insert))
     else:
         print('{0}'.format(schema_insert))
         return schema_insert
 
+    if continue_up == 'no':
+        schema_url = schema_post.json()['url']
+
     # Get the new schema url from the response
-    schema_url = schema_post.json()['url']
     print('Schema description: {0}'.format(schema_desc))
     print('Schema URI: {0}\n'.format(schema_url))
 
@@ -822,6 +1012,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     inserted_loci = 0
     linked_alleles = 0
     hash_collisions = 0
+    total_loci = len(results)
     for locus in results:
 
         locus_file = locus[0]
@@ -831,49 +1022,50 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         allele_seq_list = [str(rec.seq) for rec in SeqIO.parse(locus_file, 'fasta')]
         locus_basename = os.path.basename(locus_file)
 
-        # Create a new loci
-        new_loci_status, new_loci_url = post_locus(base_url, headers_post,
-                                                   loci_prefix, True,
-                                                   locus_basename)
-        if new_loci_status is False:
-            print('{0}'.format(new_loci_url))
-            continue
-        elif new_loci_status is True:
-            print('Created new locus: {0}'.format(new_loci_url))
+        if len(locus) == 5:
+            # re-upload alleles to existing locus
+            new_loci_url = locus[4]
+            print('Re-uploading locus: {0}'.format(new_loci_url))
 
-        # Get the new loci ID
-        new_loci_id = new_loci_url.split('/')[-1]
+        else:
+            # Create a new locus
+            new_loci_status, new_loci_url = post_locus(base_url, headers_post,
+                                                       loci_prefix, True,
+                                                       locus_basename)
+            if new_loci_status is False:
+                print('{0}'.format(new_loci_url))
+                continue
+            elif new_loci_status is True:
+                print('Created new locus: {0}'.format(new_loci_url))
 
-        # Associate the new loci id to the species
-        species_link_status, species_link_url = post_species_loci(base_url,
-                                                                  species_id,
-                                                                  new_loci_id,
-                                                                  headers_post)
-        if species_link_status is False:
-            print('{0}'.format(species_link_url))
-            continue
-        elif species_link_status is True:
-            print('Linked new locus to species: {0}'.format(species_link_url))
+            # Get the new loci ID
+            new_loci_id = new_loci_url.split('/')[-1]
 
-        # Associate the new loci id to the new schema
-        schema_loci_status, schema_link_url = post_schema_loci(new_loci_url,
-                                                               schema_url,
-                                                               headers_post)
-        if schema_loci_status is False:
-            print('{0}'.format(schema_link_url))
-            continue
-        elif schema_loci_status is True:
-            print('Linked new locus to schema: {0}'.format(schema_link_url))
+            # Associate the new loci id to the species
+            species_link_status, species_link_url = post_species_loci(base_url,
+                                                                      species_id,
+                                                                      new_loci_id,
+                                                                      headers_post)
+            if species_link_status is False:
+                print('{0}'.format(species_link_url))
+                continue
+            elif species_link_status is True:
+                print('Linked new locus to species: {0}'.format(species_link_url))
+
+            # Associate the new loci id to the new schema
+            schema_loci_status, schema_link_url = post_schema_loci(new_loci_url,
+                                                                   schema_url,
+                                                                   headers_post)
+            if schema_loci_status is False:
+                print('{0}'.format(schema_link_url))
+                continue
+            elif schema_loci_status is True:
+                print('Linked new locus to schema: {0}'.format(schema_link_url))
 
         # create inputs
-        allele_id = 1
-        post_inputs = []
-        for allele in allele_seq_list:
-            allele_uri = '{0}/alleles/{1}'.format(new_loci_url, allele_id)
-            post_inputs.append((allele, name, label, url,
-                                new_loci_url, species_name,
-                                True, headers_post, allele_uri, user_id))
-            allele_id += 1
+        post_inputs = create_allele_data(allele_seq_list, new_loci_url, name, label,
+                                         url, species_name, check_cds, headers_post,
+                                         user_id)
 
         post_results = []
         total_inserted = 0

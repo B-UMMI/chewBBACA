@@ -203,11 +203,11 @@ def get_schema(schema_uri, download_folder, core_num, bsr,
 
     # get server time and save on config before starting to download
     # useful for further sync function
-    ns_config = os.path.join(download_folder, '.ns_config.txt')
+    ns_config = os.path.join(download_folder, '.ns_config')
     if not os.path.exists(ns_config):
-        with open(ns_config, 'w') as f:
-            download_info = '{0}\n{1}'.format(server_time, schema_uri)
-            f.write(download_info)
+        with open(ns_config, 'wb') as nc:
+            download_info = [server_time, schema_uri]
+            pickle.dump(download_info, nc)
 
     # Total number of loci
     total_loci = len(loci_list)
@@ -390,7 +390,6 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
 
     # write hidden schema config file
     schema_config = os.path.join(schema_path, '.schema_config')
-
     with open(schema_config, 'wb') as scf:
         pickle.dump(schema_params_dict, scf)
 

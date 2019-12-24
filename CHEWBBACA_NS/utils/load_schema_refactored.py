@@ -146,11 +146,11 @@ def determine_upload(local_schema_loci, ns_schema_loci,
 
 def create_allele_data(allele_seq_list, new_loci_url, name, label,
                        url, species_name, check_cds, headers_post,
-                       user_id):
+                       user_id, start_id):
     """
     """
 
-    allele_id = 1
+    allele_id = start_id
     post_inputs = []
     for allele in allele_seq_list:
         allele_uri = '{0}/alleles/{1}'.format(new_loci_url, allele_id)
@@ -1065,7 +1065,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         # create inputs
         post_inputs = create_allele_data(allele_seq_list, new_loci_url, name, label,
                                          url, species_name, check_cds, headers_post,
-                                         user_id)
+                                         user_id, 1)
 
         post_results = []
         total_inserted = 0
@@ -1118,6 +1118,10 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                            repeated,
                                            hash_collisions),
           end='\r')
+
+    # create endpoint for training file
+    # send training file to folder in server
+    # save location in server to config file
 
     end = time.time()
     delta = end - start

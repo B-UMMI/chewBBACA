@@ -15,6 +15,7 @@ import pickle
 import random
 import argparse
 import requests
+from copy import deepcopy
 import concurrent.futures
 from getpass import getpass
 from itertools import repeat
@@ -453,66 +454,101 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
 
     # Check if new alleles are already on schema
     for locus in fasta_response:
-        locus_ns_seqs = list(fasta_response[locus].values())
         if locus in schema_fasta_files:
-            print('Locus exists on schema, checking if allele exists...')
+            locus_ns_seqs = {seq: seqid for seqid, seq in fasta_response[locus].items()}
+
             locus_file = os.path.join(schema_dir, locus)
             temp_file = os.path.join(temp_dir, locus)
             # remove the * from the local alleles that were on the new alleles synced
-            with open(locus_file, 'r') as sf, open(temp_file, 'w') as nf:
+            with open(locus_file, 'r') as sf:
                 # read sequences in local file
-                records = SeqIO.parse(sf, 'fasta')
-                for record in records:
-                    # we have to remove '*' but we also have to guarantee that the allele identifier becomes the same as in the NS?
-                    # an allele might have added to NS in different order and have different identifier
-                    # leaving the local identifier will make it more difficult to compare with profiles in
-                    # the NS or other results obtained with the same schema from the NS because the same allele
-                    # might have several identifiers...
-                    # changing to the NS identifier might confuse users because AlleleCall results that
-                    # they stored will suddenly have different identifiers for the updated allele...
-                    # profiles that are stored in schema directory also need to have their allele
-                    # identifiers changed
-                    # process should output info about alleles that changed identifier
-                    # so...before submiting it is necessary to sync with NS so that the new alleles
-                    # and new profiles to send have the same identifiers as in the NS
-                    # if the sequence is in the NS and has a '*', it was added to
-                    # the local schema during the AlleleCall process
-                    # we cannot just remove '*' and hope it is OK, we must change the
-                    # identifier if needed to match that in the NS!
-                    if str(record.seq) in locus_ns_seqs and '*' in record.id:
-                        record.id = record.id.replace('*', '')
-                        record.description = record.id.replace('*', '')
-                        # delete allele entry from dict with sequences
-                        # retrieved from the NS.
-                        del fasta_response[locus][record.id.split('_')[-1]]
+                records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
+                           for rec in SeqIO.parse(sf, 'fasta')}
 
-                    SeqIO.write(record, nf, 'fasta')
-                    # change profiles in the master file so that local
-                    # profiles have updated allele identifiers
+            altered_locus = deepcopy(records)
+            id_map = {int(seq[0]): seqid for seqid, seq in altered_locus.items()}
+            for seqid, seq in records.items():
+                # we have to remove '*' but we also have to guarantee that the allele identifier becomes the same as in the NS?
+                # an allele might have been added to NS in different order and have different identifier
+                # leaving the local identifier will make it more difficult to compare with profiles in
+                # the NS or other results obtained with the same schema from the NS because the same allele
+                # might have several identifiers...
+                # changing to the NS identifier might confuse users because AlleleCall results that
+                # they stored will suddenly have different identifiers for the updated allele...
+                # profiles that are stored in schema directory also need to have their allele
+                # identifiers changed
+                # process should output info about alleles that changed identifier
+                # so...before submiting it is necessary to sync with NS so that the new alleles
+                # and new profiles to send have the same identifiers as in the NS
+                # if the sequence is in the NS and has a '*', it was added to
+                # the local schema during the AlleleCall process
+                # we cannot just remove '*' and hope it is OK, we must change the
+                # identifier if needed to match that in the NS!
+                current_seqid = seqid
+                allele_id = int(seq[0])
+                current_seq = seq[1]
+                if current_seq in locus_ns_seqs and '*' in current_seqid:
+                    # get allele identifier in the NS
+                    ns_id = int(locus_ns_seqs[current_seq])
+                    # allele has the same integer identifier
+                    # in local and NS schemas
+                    if ns_id == allele_id:
+                        # simple '*' replace suffices
+                        new_id = current_seqid.replace('*', '')
+                        altered_locus[new_id] = seq
+                        del altered_locus[current_seqid]
+                        #del fasta_response[locus][str(allele_id)]
+                        del locus_ns_seqs[current_seq]
+                    # same allele may have different integer identifier
+                    # in local and NS schemas
+                    elif ns_id != allele_id:
+                        # the same allele identifier might have been attributed
+                        # to different allele sequences
+                        if ns_id in id_map:
+                            # NS identifier will be the new local identifier
+                            new_id = '{0}_{1}'.format(locus.rstrip('.fasta'),
+                                                      ns_id)
+                            # the local allele identifier will replace the
+                            # allele of the 
+                            old_id = current_seqid
+                            #old_id = '{0}_{1}'. format(locus.strip('.fasta'), allele_id)
+                            # where is the '*'
+                            old_seq = altered_locus['{0}_*{1}'.format(locus.strip('.fasta'), ns_id)][1]
+                            altered_locus[new_id] = [ns_id, current_seq]
+                            altered_locus[old_id] = [allele_id, old_seq]
 
-    # write new alleles retrieved from the NS into local temp files
-    keys_to_remove = []
-    for locus in fasta_response:
+                            #del updated_locus[current_seqid]
+                            del altered_locus['{0}_*{1}'.format(locus.strip('.fasta'), ns_id)]
+                            #del fasta_response[locus][str(ns_id)]
+                            del locus_ns_seqs[current_seq]
+                        # the identifier attributed to the allele in the NS
+                        # might not even exist in the local schema
+                        elif ns_id not in id_map:
+                            new_id = '{0}_{1}'.format(locus.rstrip('.fasta'), ns_id)
+                            altered_locus[new_id] = [ns_id, current_seq]
+                            del altered_locus[current_seqid]
+                            #del fasta_response[locus][str(ns_id)]
+                            del locus_ns_seqs[current_seq]
 
-        if locus in schema_fasta_files:
-            temp_file = os.path.join(temp_dir, locus)
-            with open(temp_file, 'a') as f:
-                for k, v in fasta_response[locus].items():
-                    fasta_str = f'>{os.path.splitext(locus)[0]}_{k}\n{v}\n'
-                    f.write(fasta_str)
-        keys_to_remove.append(locus)
+        # get local records that were synced in terms of identifiers
+        updated_records = [(seq[0], seq[1]) for seq, seqid in altered_locus.items()]
 
-    # remove already existing loci files
-    fasta_response_final = {key: fasta_response[key]
-                            for key in fasta_response
-                            if key not in keys_to_remove}
+        # check if there are any completely new sequences that are only present in the NS
+        if len(locus_ns_seqs) > 0:
+            new_records = [(seqid, seq) for seq, seqid in locus_ns_seqs]
+            updated_records.extend(new_records)
 
-    # should it enter here? it should be empty at this stage
-    # if it has new loci it might not but that should not be allowed
-    if not fasta_response_final == {}:
-        # Create the fasta files for the new alleles
-        build_fasta_files(fasta_response_final,
-                          schema_dir, temp_dir)
+        # sort by integer identifier
+        updated_records = sorted(updated_records, key=lambda x: x[0])
+
+        updated_fasta = ['>{0}\n{1}'.format(k, v[1]) for k, v in updated_records.items()]
+        # write updated locus sequences into temp file
+        fasta_text = '\n'.join(updated_fasta) + '\n'
+        with open(temp_file, 'w') as tf:
+            tf.write(fasta_text)
+
+        # change profiles in the master file so that local
+        # profiles have updated allele identifiers
 
     # Re-determine the representative sequences
     PrepExternalSchema.main(temp_dir, schema_dir,
@@ -799,7 +835,8 @@ def main(schema_dir, core_num, ns_url, submit):
 
     # check if list of loci is the same in local and NS schemas
 
-    # start syncing schemas
+    # update local schema
+    # download new sequences and change local identifiers
     bsr = schema_params['bsr']
     newserverTime = update_local(last_sync_date, schema_uri, schema_dir, temp_dir,
                                  core_num, bsr, ns_url, headers_get, headers_post)
@@ -838,7 +875,7 @@ def main(schema_dir, core_num, ns_url, submit):
 #######################################################################
 
         # compare list of genes, if they do not intersect, halt process
-        # get list of loci for schema in NS
+        # get list of loci for schema in the NS
         schema_id = schema_uri.split('/')[-1]
         ns_loci_get = simple_get_request(ns_url, headers_get,
                                          ['species', species_id,
@@ -877,7 +914,7 @@ def main(schema_dir, core_num, ns_url, submit):
                                            species_name, True, headers_post,
                                            user_id, info[4])
             alleles_data.append(post_data)
-        
+
         for inputs in alleles_data:
             post_results = []
             total_inserted = 0

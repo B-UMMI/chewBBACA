@@ -26,7 +26,7 @@ from getpass import getpass
 from itertools import repeat
 import ns_constants as const
 import extra_scripts.utils as ut
-from extra_scripts import chewBBACA_PrepExternalSchema_optimization_tests as PrepExternalSchema
+from extra_scripts import PrepExternalSchema
 
 
 def species_list(base_url, headers_get, endpoint_list):

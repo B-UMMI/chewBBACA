@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 11 10:15:29 2019
+AUTHOR
 
-@author: pcerqueira
+    Pedro Cerqueira
+    github: @pedrorvc
+
+    Rafael Mamede
+    github: @rfm-targa
+
+DESCRIPTION
+
 """
 
 
@@ -586,102 +593,6 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
     shutil.rmtree(temp_dir)
 
     return [not_in_ns, server_time]
-
-
-def update_ns():
-    """
-    """
-
-    # submit option
-    # use determine upload function from load_Schema process to get all sequences
-    # that are not in the NS loci!!!
-    species_url = ut.make_url(server_url, "species", schemaUri.split("/")[-3])
-
-    r_species_name = requests.get(species_url, headers = headers_get)
-
-    species_name = r_species_name.json()[0]["name"]["value"]
-
-    # loop over path2schema
-    path2schema_files = [os.path.join(path2schema, fi) for fi in os.listdir(path2schema) if ".fasta" in fi]
-
-    files_res = []
-    # ask NS if they exist (check_seq2 from load_schema)
-    for f in path2schema_files:
-        # Check if sequences are already on NS
-        check_seq_responses = check_seq2(f, server_url, headers_get, cpu2use)
-                
-        files_res.append(check_seq_responses)
-        
-    for fiel in files_res:
-        response_404_file = []
-        response_200_file = []
-        for k, v in fiel.items():
-            # Get alleles that are not present in NS
-            response_404_file = [res for res in v if res[0].status_code == 404]
-            # Get alleles already present on NS
-            response_200_file = [res for res in v if res[0].status_code == 200]
-            
-            # Proceed only if response_200_file list is not empty
-            if not ut.isListEmpty(response_200_file):
-                for r in response_200_file:
-                    
-                    for locus in r[0].json()["result"]:
-                        ns_locus_id = locus["locus"]["value"].split("/")[-1]
-                    
-                        # if it belongs to another locus in NS, add the allele to the current locus
-                        if ns_locus_id not in os.path.basename(k):
-                            
-                            print("Detected allele belonging to another locus in NS, adding to the current locus...\n")
-                            # get local locus id
-                            local_locus_id_temp = k.split("-")[1].replace(".fasta", "")
-                            if "_corrected" in local_locus_id_temp:
-                                local_locus_id = int(local_locus_id_temp.replace("_corrected", ""))
-                            else:
-                                local_locus_id = int(local_locus_id_temp)
-                            # get allele sequenece to upload
-                            allele_seq = ut.get_sequence_from_url(r[0].url)
-                            print("Translating allele...\n")
-                            # translate sequence
-                            prot_allele_seq = str(translate_sequence(allele_seq, 11))
-                            # build uniprot query
-                            unip_query = uniprot_query(prot_allele_seq)
-                            print("Retrieving Uniprot annotation...\n")
-                            # obtain uniprot results
-                            name, label, url = get_data(unip_query)
-                            # build loci url using local loci id
-                            loci_url = ut.make_url(server_url, "loci", str(local_locus_id))
-                            print("Adding to NS...\n")
-                            # upload allele
-                            new_alleles = post_alleles3(allele_seq, name, label, url, loci_url, species_name, headers_post)
-                            
-            if not ut.isListEmpty(response_404_file):
-                
-                print("Detected new alleles, adding them to NS...\n")
-                
-                # get local locus id
-                local_locus_id2_temp = os.path.basename(k).split("-")[1].replace(".fasta", "")
-                if "_corrected" in local_locus_id2_temp:
-                    local_locus_id2 = int(local_locus_id2_temp.replace("_corrected", ""))
-                else:
-                    local_locus_id2 = int(local_locus_id2_temp)
-
-                for r2 in response_404_file:
-
-                    # get allele sequenece to upload
-                    allele_seq2 = ut.get_sequence_from_url(r2[0].url)
-                    print("Translating allele...\n")
-                    # translate sequence
-                    prot_allele_seq2 = str(translate_sequence(allele_seq2, 11))
-                    # build uniprot query
-                    unip_query2 = uniprot_query(prot_allele_seq2)
-                    print("Retrieving Uniprot annotation...\n")
-                    # obtain uniprot results
-                    name2, label2, url2 = get_data(unip_query2)
-                    # build loci url using local loci id
-                    loci_url2 = ut.make_url(server_url, "loci", str(local_locus_id2))
-                    print("Adding to NS...\n")
-                    # upload allele
-                    new_alleles2 = post_alleles3(allele_seq2, name2, label2, url2, loci_url2, species_name, headers_post)
 
 
 def load_binary(parent_dir, file_name):

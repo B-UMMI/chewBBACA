@@ -61,6 +61,8 @@ def species_ids(species_id, base_url, headers_get):
         int(species_id)
         species_info = simple_get_request(base_url, headers_get,
                                           ['species', species_id])
+        #print(species_info)
+        #print(species_info.json())
         if species_info.status_code == 200:
             species_name = species_info.json()[0]['name']['value']
             return [species_id, species_name]
@@ -228,10 +230,11 @@ def check_configs(file_path, input_path, schema_desc):
         # Load configs dictionary
         with open(file_path, 'rb') as cf:
             configs = pickle.load(cf)
+        #print(configs)
         params['name'] = schema_desc
         # Determine if the configs are valid
         # Prodigal training file
-        schema_ptf_name = configs.get('training_file', 'not_found')
+        schema_ptf_name = configs.get('prodigal_training_file', 'not_found')
         schema_ptf_path = os.path.join(input_path, schema_ptf_name)
         if os.path.isfile(schema_ptf_path):
             print('Found valid training file in schema directory.')
@@ -240,7 +243,7 @@ def check_configs(file_path, input_path, schema_desc):
             message = 'Could not find valid training file in schema directory.'
             messages.append(message)
         # BSR value
-        schema_bsr = configs.get('bsr', 'not_found')
+        schema_bsr = float(configs.get('bsr', 'not_found'))
         if schema_bsr > 0.0 and schema_bsr < 1.0:
             print('Schema created with BSR value of {0}.'.format(schema_bsr))
             params['bsr'] = str(schema_bsr)
@@ -249,7 +252,7 @@ def check_configs(file_path, input_path, schema_desc):
                        'in the [0.0,1.0] interval.'.format(schema_bsr))
             messages.append(message)
         # Minimum sequence length
-        schema_ml = configs.get('minimum_length', 'not_found')
+        schema_ml = int(configs.get('minimum_locus_length', 'not_found'))
         if schema_ml >= 0:
             print('Schema created with a minimum sequence length '
                   'parameter of {0}.'.format(schema_ml))
@@ -259,7 +262,8 @@ def check_configs(file_path, input_path, schema_desc):
                        'create schema. Value must be a positive integer.')
             messages.append(message)
         # translation table
-        schema_gen_code = configs.get('translation_table', 'not_found')
+        schema_gen_code = int(configs.get('translation_table', 'not_found'))
+        #print(const.GENETIC_CODES)
         if schema_gen_code in const.GENETIC_CODES:
             genetic_code_desc = const.GENETIC_CODES[schema_gen_code]
             print('Schema genes were predicted with genetic code {0} ({1}).'.format(schema_gen_code, genetic_code_desc))
@@ -268,7 +272,9 @@ def check_configs(file_path, input_path, schema_desc):
             message = ('Genetic code used to create schema is not valid.')
             messages.append(message)
         # chewie version
-        schema_chewie_version = configs.get('chewie_version', 'not_found')
+        schema_chewie_version = configs.get('chewBBACA_version', 'not_found')
+        print(schema_chewie_version)
+        print(const.CHEWIE_VERSIONS)
         if schema_chewie_version in const.CHEWIE_VERSIONS:
             chewie_version = const.CHEWIE_VERSIONS[const.CHEWIE_VERSIONS.index(schema_chewie_version)]
             print('Schema created with chewBBACA v{0}.'.format(chewie_version))

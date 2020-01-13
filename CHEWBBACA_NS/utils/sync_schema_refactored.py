@@ -38,9 +38,9 @@ from Bio.Data.CodonTable import TranslationError
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
 
-local_path = schema_dir
-base_url = ns_url
-local_schema_loci = not_in_ns
+#local_path = schema_dir
+#base_url = ns_url
+#local_schema_loci = not_in_ns
 
 
 def determine_upload(local_schema_loci, ns_schema_loci,
@@ -337,55 +337,66 @@ def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
                 
     
     print(f"{len(new_allele_seq_dict)} files have been written")
-    
+
     return True
 
 
-def getNewsequences(loci_new_alleles, server_time, schema_uri, new_count, headers_get):
+def retrieve_latest_alleles(loci_new_alleles, server_time, schema_uri, new_count, headers_get):
     """
     """
 
     # request the new alleles starting on the date given
     uri = ut.make_url(schema_uri, 'loci', date=server_time)
 
-    # Request the new alleles
+    # get the new alleles
     response = requests.get(uri, headers=headers_get)
 
     response_content = response.json()
+    # get headers info with 
     response_headers = response.headers
+    # get info about sequences that were added since last date
     new_ns_alleles = response_content['newAlleles']
 
     if len(new_ns_alleles) > 0:
-        # get most recent date of new alleles
         previous_server_time = server_time
+        # get date of last added allele
         server_time = response_headers['Last-Allele']
     else:
-        # no new alleles
+        # get current server date if no sequence were added
+        # since last server time
         server_time = response_headers['Server-Date']
         return (loci_new_alleles, True, server_time, new_count)
 
-    # for each new allele add info to the dictionary
+    # group retrieved alleles by locus
+    already = 0
     for allele in new_ns_alleles:
 
         locus = '{0}{1}'.format(allele['locus_name']['value'], '.fasta')
         allele_id = allele['allele_id']['value']
         sequence_uri = allele['sequence']['value']
 
+        if locus in loci_new_alleles:
+            if allele_id in loci_new_alleles[locus]:
+                if loci_new_alleles[locus][allele_id] == sequence_uri:
+                    print('This was already here!')
+                    already += 1
+
         loci_new_alleles[locus][allele_id] = sequence_uri
 
-    new_count += len(response_content)
-    print('Retrieved {0} new alleles added to the NS '
-          'from {1} to {2}'.format(new_count,
-                                   previous_server_time,
-                                   server_time))
+    # keep count of the number of retrieved alleles
+    new_count += len(response_content['newAlleles']) - already
 
     # if we got the maximum number of alleles that can be returned
     # in one pass, return False to re-run the function until we get all
     # new alleles
-    if response_headers['All-Alleles-Returned'] == 'False':
-        return (loci_new_alleles, False, server_time, new_count)
+    if 'All-Alleles-Returned' in response_headers:
+        returned = response_headers['All-Alleles-Returned']
+        all_retrieved = False if returned == 'False' else True
+        if all_retrieved == True:
+            server_time = response_headers['Server-Date']
+        return (loci_new_alleles, all_retrieved, server_time, new_count)
     # return True to stop since there are no more new alleles
-    else:
+    elif 'Server-Date' in response_headers:
         return (loci_new_alleles, True, server_time, new_count)
 
 
@@ -393,17 +404,17 @@ def get_new_allele_seqs(headers_get, uri):
     """
     """
 
-    seq_hash = uri.split("/sequences/")[1]
+    seq_hash = uri.split('/sequences/')[1]
 
-    url = ut.make_url(uri.split(seq_hash)[0], "seq_info", seq_id=seq_hash)
+    url = ut.make_url(uri.split(seq_hash)[0], 'seq_info', seq_id=seq_hash)
 
     r = requests.get(url, headers=headers_get, timeout=30)
 
     r_content = r.json()
 
-    allele_seq = r_content["sequence"]["value"]
+    allele_seq = r_content['sequence']['value']
 
-    return allele_seq
+    return [uri, allele_seq]
 
 
 def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num, 
@@ -422,28 +433,31 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
     print('Determining if there are new sequences in the NS...')
     print('Getting new alleles added to the NS since {0}'.format(str(server_time)))
     while not new_seqs:
-        loci_new_alleles, new_seqs, server_time, new_count = getNewsequences(loci_new_alleles,
-                                                                             server_time,
-                                                                             schema_uri,
-                                                                             new_count,
-                                                                             headers_get)
-    print('Retrieved all new alleles added until {0}'.format(server_time))
+        loci_new_alleles, new_seqs, server_time, new_count = retrieve_latest_alleles(loci_new_alleles,
+                                                                                     server_time,
+                                                                                     schema_uri,
+                                                                                     new_count,
+                                                                                     headers_get)
+    print('Retrieved {0} new alleles added since {1}'.format(new_count, last_sync_date))
 
     # if new_alleles dict has no entries
     # there are no new alleles
     if not bool(loci_new_alleles):
-        return loci_new_alleles
+        return 'There were no new alleles to retrieve...'
 
     # get DNA sequences for retrieved alleles
     fasta_response = {}
     for locus in loci_new_alleles.keys():
         allele_dict = loci_new_alleles[locus]
+        hash_to_alleleid = {v:k for k, v in allele_dict.items()}
         sequence_uri_list = list(allele_dict.values())
+        
+        fasta_response[locus] = {}
 
         # Multithread requests
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             for result in executor.map(get_new_allele_seqs, repeat(headers_get), sequence_uri_list):
-                fasta_response[locus] = dict(zip(list(allele_dict.keys()), [result]))
+                fasta_response[locus][hash_to_alleleid[result[0]]] = result[1]
 
     # Create an intermediate dir for the new alleles
     if not os.path.exists(temp_dir):
@@ -469,28 +483,18 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
                            for rec in SeqIO.parse(sf, 'fasta')}
 
             altered_locus = deepcopy(records)
-            id_map = {seq[0]: seqid for seqid, seq in altered_locus.items()}
-            ids = []
-            for k in id_map:
-                ids.append(int(k) if '*' not in k else int(k[1:]))
+            id_map = {}
+            for seqid, seq in altered_locus.items():
+                if '*' in seq[0]:
+                    id_map[int(seq[0][1:])] = seqid
+                else:
+                    id_map[int(seq[0])] = seqid
+            #id_map = {seq[0]: seqid for seqid, seq in altered_locus.items()}
+            ids = list(id_map.keys())
             maxid = max(ids)
+            switched = []
             for seqid, seq in records.items():
-                # we have to remove '*' but we also have to guarantee that the allele identifier becomes the same as in the NS?
-                # an allele might have been added to NS in different order and have different identifier
-                # leaving the local identifier will make it more difficult to compare with profiles in
-                # the NS or other results obtained with the same schema from the NS because the same allele
-                # might have several identifiers...
-                # changing to the NS identifier might confuse users because AlleleCall results that
-                # they stored will suddenly have different identifiers for the updated allele...
-                # profiles that are stored in schema directory also need to have their allele
-                # identifiers changed
-                # process should output info about alleles that changed identifier
-                # so...before submiting it is necessary to sync with NS so that the new alleles
-                # and new profiles to send have the same identifiers as in the NS
-                # if the sequence is in the NS and has a '*', it was added to
-                # the local schema during the AlleleCall process
-                # we cannot just remove '*' and hope it is OK, we must change the
-                # identifier if needed to match that in the NS!
+
                 current_seqid = seqid
                 allele_id = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
                 current_seq = seq[1]
@@ -502,7 +506,7 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
                     if ns_id == allele_id:
                         # simple '*' replace suffices
                         new_id = current_seqid.replace('*', '')
-                        altered_locus[new_id] = seq
+                        altered_locus[new_id] = [str(allele_id), seq[1]]
                         del altered_locus[current_seqid]
                         #del fasta_response[locus][str(allele_id)]
                         del locus_ns_seqs[current_seq]
@@ -521,8 +525,10 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
                             #old_id = '{0}_{1}'. format(locus.strip('.fasta'), allele_id)
                             # where is the '*'
                             old_seq = altered_locus['{0}_*{1}'.format(locus_id, ns_id)][1]
-                            altered_locus[new_id] = [ns_id, current_seq]
-                            altered_locus[old_id] = [allele_id, old_seq]
+                            altered_locus[new_id] = [str(ns_id), current_seq]
+                            switched.append(current_seq)
+                            if old_seq not in switched:
+                                altered_locus[old_id] = [allele_id, old_seq]
 
                             #del updated_locus[current_seqid]
                             del altered_locus['{0}_*{1}'.format(locus_id, ns_id)]
@@ -532,7 +538,7 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
                         # might not even exist in the local schema
                         elif ns_id not in id_map:
                             new_id = '{0}_{1}'.format(locus_id, ns_id)
-                            altered_locus[new_id] = [ns_id, current_seq]
+                            altered_locus[new_id] = [str(ns_id), current_seq]
                             del altered_locus[current_seqid]
                             #del fasta_response[locus][str(ns_id)]
                             del locus_ns_seqs[current_seq]
@@ -555,6 +561,9 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
                     else:
                         not_in_ns[locus].append((current_seqid, current_seq))
 
+                elif current_seq in locus_ns_seqs and '*' not in current_seqid:
+                    del locus_ns_seqs[current_seq]
+                    
         # get local records that were synced in terms of identifiers
         updated_records = []
         for seqid, seq in altered_locus.items():
@@ -563,7 +572,7 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
 
         # check if there are any completely new sequences that are only present in the NS
         if len(locus_ns_seqs) > 0:
-            ns_rest = [(seqid, seq) for seq, seqid in locus_ns_seqs.items()]
+            ns_rest = [(int(seqid), seqid, seq) for seq, seqid in locus_ns_seqs.items()]
             updated_records.extend(ns_rest)
 
         # sort by integer identifier
@@ -582,7 +591,7 @@ def update_local(last_sync_date, schema_uri, schema_dir, temp_dir, core_num,
     # Re-determine the representative sequences
     PrepExternalSchema.main(temp_dir, schema_dir,
                             core_num, bsr)
-    
+
     # delete invalid alleles and genes files
     parent_dir = os.path.dirname(temp_dir)
     files = [os.path.join(parent_dir, file) for file in os.listdir(parent_dir) if 'invalid' in file]
@@ -711,8 +720,8 @@ def parse_arguments():
 bsr = 0.6
 core_num = 6
 submit = True
-schema_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_down_schema/ypestis_fail_schema'
-temp_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_down_schema/temp_dir'
+schema_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/ypestis_testsync2_schema/ypestis_testsync2_schema'
+temp_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema'
 ns_url = 'http://127.0.0.1:5000/NS/api/'
 
 
@@ -774,8 +783,14 @@ def main(schema_dir, core_num, ns_url, submit):
     # update local schema
     # download new sequences and change local identifiers
     bsr = float(schema_params['bsr'])
+
+    #### change last_sync_date just to be able to test
+    last_sync_date = '2019-09-07T13:31:04.677308'
+
     not_in_ns, newserverTime = update_local(last_sync_date, schema_uri, schema_dir, temp_dir,
-                                 core_num, bsr, ns_url, headers_get, headers_post)
+                                            core_num, bsr, ns_url, headers_get, headers_post)
+    
+    if 
 
     if submit:
 

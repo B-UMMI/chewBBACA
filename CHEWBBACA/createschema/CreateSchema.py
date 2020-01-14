@@ -414,10 +414,10 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # create dictionary with parameters values
     parameters = {'bsr': blast_score_ratio,
-                  'training_file': ptf_name,
+                  'prodigal_training_file': ptf_name,
                   'translation_table': 11,
-                  'minimum_length': minimum_cds_length,
-                  'chewie_version': '2.1.0'}
+                  'minimum_locus_length': minimum_cds_length,
+                  'chewBBACA_version': '2.1.0'}
 
     with open(config_file, 'wb') as cf:
         pickle.dump(parameters, cf)

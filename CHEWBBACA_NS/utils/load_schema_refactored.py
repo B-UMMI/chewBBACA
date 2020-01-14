@@ -562,7 +562,7 @@ def get_annotation(sparql_queries):
             pass
 
         a += 1
-        if a == max_tries:
+        if a == max_tries or a == len(queries):
             found = True
 
     if prev_name == '':

@@ -38,14 +38,6 @@ from Bio.Data.CodonTable import TranslationError
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
 
-local_schema_loci = uniq_local
-ns_schema_loci = incomplete
-ns_schema_locid_map = loci_uris
-schema_path = schema_dir
-temp_path = temp_dir
-base_url = ns_url
-
-
 def determine_upload(local_schema_loci, ns_schema_loci,
                      ns_schema_locid_map, schema_path,
                      temp_path, base_url, headers_get):
@@ -436,7 +428,7 @@ def get_allele_seq(headers_get, uri):
     return [uri, allele_seq]
 
 
-def get_new_alleles_seqs(alleles_info):
+def get_new_alleles_seqs(alleles_info, headers_get):
     """
     """
     
@@ -457,10 +449,6 @@ def get_new_alleles_seqs(alleles_info):
                 new_alleles[locus][allele_hash_map[result[0]]] = result[1]
 
     return new_alleles
-
-
-#new_alleles = fasta_response
-#local_loci = schema_fasta_files
 
 
 def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
@@ -620,7 +608,7 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
 
 
 def update_local_schema(last_sync_date, schema_uri, schema_dir, temp_dir,
-                        core_num, bsr, ns_url, headers_get, headers_post):
+                        bsr, ns_url, headers_get, headers_post):
     """
     """
 
@@ -648,7 +636,8 @@ def update_local_schema(last_sync_date, schema_uri, schema_dir, temp_dir,
         return 'There were no new alleles to retrieve...'
 
     # get DNA sequences for retrieved alleles
-    fasta_response = get_new_alleles_seqs(loci_new_alleles)
+    print('Getting DNA sequences of latest alleles...')
+    fasta_response = get_new_alleles_seqs(loci_new_alleles, headers_get)
 
     # get list of local schema files
     schema_fasta_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
@@ -690,7 +679,6 @@ def create_allele_data(allele_seq_list, species_name, check_cds,
 
     return post_inputs
 
-input_stuff = inlist[0]
 
 def post_allele(input_stuff):
     """ Adds a new allele to the NS.
@@ -749,38 +737,37 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-schema', type=str, dest='schema_id', required=True,
-                        help='')
-
-    parser.add_argument('-species', type=str, dest='species_id', required=True,
-                        help='The identifier for the schemas species in '
-                        'the NS. Can be the species name or the integer '
-                        'identifier for that species in the NS.')
-
-    parser.add_argument('-out', type=str, dest='download_folder', required=True,
-                        help='')
+    parser.add_argument('-schema', type=str, dest='schema_dir', required=True,
+                        help='Path to the directory with the schema to be'
+                             'synced.')
 
     parser.add_argument('--cores', type=int, required=False, dest='core_num', 
-                        default=1, help='')
+                        default=1, help='Number of CPU cores to use to construct'
+                        ' the complete schema based on the synced/updated loci'
+                        ' files.')
 
-    parser.add_argument('--ns_url', type=float, required=False, dest='ns_url', 
-                        default='http://127.0.0.1:5000/NS/api/', help='')
+    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url', 
+                        default='http://127.0.0.1:5000/NS/api/',
+                        help='The base URI for the NS endpoints.')
 
-    parser.add_argument('--submit', type=str, required=False, dest='submit', 
-                        default='no', help='')
+    parser.add_argument('--sub', type=str, required=False, dest='submit', 
+                        default='no',
+                        help='If the process should detect new alleles'
+                        'in the local schema and send them to the NS. (only'
+                        ' authorized users can submit new alleles).')
 
     args = parser.parse_args()
 
-    return [args.schema_id, args.species_id, args.download_folder,
-            args.core_num, args.blast_score_ratio, args.ns_url]
+    return [args.schema_dir, args.core_num, args.ns_url,
+            args.submit]
 
 
-bsr = 0.6
-core_num = 6
-submit = True
-schema_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/ypestis_testsync2_schema/ypestis_testsync2_schema'
-temp_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema'
-ns_url = 'http://127.0.0.1:5000/NS/api/'
+#bsr = 0.6
+#core_num = 6
+#submit = True
+#schema_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/test_schema/ypestis_testsync2_schema'
+#temp_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/test_schema/temp'
+#ns_url = 'http://127.0.0.1:5000/NS/api/'
 
 
 def main(schema_dir, core_num, ns_url, submit):
@@ -846,6 +833,7 @@ def main(schema_dir, core_num, ns_url, submit):
     last_sync_date = '2019-09-07T13:31:04.677308'
 
     # Create an intermediate dir for the new alleles
+    temp_dir = os.path.join(os.path.dirname(schema_dir), 'temp')
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
@@ -853,13 +841,12 @@ def main(schema_dir, core_num, ns_url, submit):
                                                                schema_uri,
                                                                schema_dir,
                                                                temp_dir,
-                                                               core_num,
                                                                bsr,
                                                                ns_url,
                                                                headers_get,
                                                                headers_post)
 
-    if submit:
+    if submit == 'yes':
 
         # verify user role to check permission
         user_info = simple_get_request(ns_url, headers_get,
@@ -872,7 +859,7 @@ def main(schema_dir, core_num, ns_url, submit):
             print('\n403: Current user has no Administrator '
                   'or Contributor permissions.\n'
                   'Not allowed to upload schemas.')
-            return 403
+            #return 403
 
         user_id = str(user_info['id'])
         headers_post['user_id'] = user_id
@@ -888,9 +875,7 @@ def main(schema_dir, core_num, ns_url, submit):
                                                                     species_name))
         else:
             print('\nThere is no species with the provided identifier in the NS.')
-            return 1
-
-#######################################################################
+            #return 1
 
         # compare list of genes, if they do not intersect, halt process
         # get list of loci for schema in the NS
@@ -917,51 +902,53 @@ def main(schema_dir, core_num, ns_url, submit):
                     incomplete.append(locus)
                 else:
                     completed.append(locus)
+        
+        if len(incomplete) > 0:
 
-        uniq_local = {k:v for k, v in not_in_ns.items() if k in incomplete}
-        loci_uris = {k:v for k, v in ns_schema_locid_map.items() if k in incomplete}
+            uniq_local = {k:v for k, v in not_in_ns.items() if k in incomplete}
+            loci_uris = {k:v for k, v in ns_schema_locid_map.items() if k in incomplete}
+    
+            # determine sequences that are not in the NS
+            # we synced before so we just need to go to each file and
+            # identify the alleles with '*' as the alleles to be added!
+            # we have to submit them and alter locally too...
+            upload, comp = determine_upload(uniq_local, incomplete,
+                                            loci_uris, schema_dir,
+                                            temp_dir, ns_url, headers_get)
 
-        # determine sequences that are not in the NS
-        # we synced before so we just need to go to each file and
-        # identify the alleles with '*' as the alleles to be added!
-        # we have to submit them and alter locally too...
-        upload, comp = determine_upload(uniq_local, incomplete,
-                                        loci_uris, schema_dir,
-                                        temp_dir, ns_url, headers_get)
+            completed.extend(comp)
 
-        if len(upload) == 0:
-            print('Local and NS schemas are identical. Nothing left to do!')
-            return 'I am such a happy tato!'
+            # add sequences to the NS
+            # use multiprocessing
+            alleles_data = []
+            for locus, info in upload.items():
+                allele_seq_list = info
+                post_data = create_allele_data(allele_seq_list,
+                                               species_name,
+                                               True,
+                                               headers_post,
+                                               user_id)
+                alleles_data.append(post_data)
 
-        completed.extend(comp)
+            for inlist in alleles_data:
+                post_results = []
+                total_inserted = 0
+                total_alleles = len(inlist)
 
-        # add sequences to the NS
-        # use multiprocessing
-        alleles_data = []
-        for locus, info in upload.items():
-            allele_seq_list = info
-            post_data = create_allele_data(allele_seq_list,
-                                           species_name,
-                                           True,
-                                           headers_post,
-                                           user_id)
-            alleles_data.append(post_data)
+                workers = 10
 
-        for inlist in alleles_data:
-            post_results = []
-            total_inserted = 0
-            total_alleles = len(inlist)
-
-            workers = 10
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-                # Start the load operations and mark each future with its URL
-                for res in executor.map(post_allele, inlist):
-                    post_results.append(res)
-                    total_inserted += 1
-                    print('\r', 'Processed {0}/{1} alleles.'.format(total_inserted, total_alleles), end='')
-
-#######################################################################
+                with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+                    # Start the load operations and mark each future with its URL
+                    for res in executor.map(post_allele, inlist):
+                        post_results.append(res)
+                        total_inserted += 1
+                        print('\r',
+                              'Processed {0}/{1} alleles.'.format(total_inserted,
+                                                                  total_alleles),
+                              end='')
+        else:
+            print('There are no new alleles in the local schema that '
+                  'need to be sent to the NS.')
 
     # change profiles in the master file so that local
     # profiles have updated allele identifiers
@@ -993,20 +980,26 @@ def main(schema_dir, core_num, ns_url, submit):
                             core_num, bsr)
 
     # delete invalid alleles and genes files
-    parent_dir = os.path.dirname(temp_dir)
-    files = [os.path.join(parent_dir, file) for file in os.listdir(parent_dir) if 'invalid' in file]
+    parent_dir = os.path.dirname(schema_dir)
+    files = [os.path.join(parent_dir, file)
+             for file in os.listdir(parent_dir)
+             if 'invalid' in file]
+
     for f in files:
         os.remove(f)
 
-    schemapath_config = os.path.join(path2schema, ".config.txt")
-    try:
-        with open(schemapath_config, "w") as fp:
-            fp.write(newserverTime + "\n" + schemaUri)
-    except:
-        print ("your schema has no config file")
-        raise
+    # delete temp directory
+    shutil.rmtree(temp_dir)
+
+    # update NS config file with latest server time
+    ns_configs = os.path.join(schema_dir, '.ns_config')
+    with open(ns_configs, 'wb') as nc:
+        pickle.dump([server_time, schema_uri], nc)
+
+    print('Done!')
 
 
 if __name__ == "__main__":
 
-    main()
+    args = parse_arguments()
+    main(args[0], args[1], args[2], args[3])

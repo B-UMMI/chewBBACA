@@ -1,40 +1,20 @@
 #!/usr/bin/env python3
 
-import sys
+
 import os
-<<<<<<< HEAD
-=======
+import sys
 import platform
->>>>>>> master_cp
 import argparse
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 
-try:
-    from allelecall import BBACA
-<<<<<<< HEAD
-    from SchemaEvaluator import ValidateSchema
-    from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
-except ImportError:
-    from CHEWBBACA_NS.allelecall import BBACA
-    from CHEWBBACA_NS.SchemaEvaluator import ValidateSchema
-    from CHEWBBACA_NS.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
+from allelecall import BBACA
+from createschema import PPanGen
+from SchemaEvaluator import ValidateSchema
+from PrepExternalSchema import PrepExternalSchema
+from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
 
 import CHEWBBACA_NS
-=======
-    from createschema import PPanGen
-    from SchemaEvaluator import ValidateSchema
-    from PrepExternalSchema import PrepExternalSchema
-    from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
-except ImportError:
-    from CHEWBBACA.allelecall import BBACA
-    from CHEWBBACA.createschema import PPanGen
-    from CHEWBBACA.SchemaEvaluator import ValidateSchema
-    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes
-
-import CHEWBBACA
->>>>>>> master_cp
 
 
 def check_if_list_or_folder(folder_or_list):
@@ -45,7 +25,6 @@ def check_if_list_or_folder(folder_or_list):
         f.close()
         list_files = folder_or_list
     except IOError:
-<<<<<<< HEAD
 
         for gene in os.listdir(folder_or_list):
             try:
@@ -54,45 +33,16 @@ def check_if_list_or_folder(folder_or_list):
                 if os.path.isdir(genepath):
                     continue
 
-=======
-		
-        for gene in os.listdir(folder_or_list):
-			
-            try:
-                genepath = os.path.join(folder_or_list, gene)
-                
-                if os.path.isdir(genepath):
-                    continue
-                
->>>>>>> master_cp
                 for allele in SeqIO.parse(genepath, "fasta", generic_dna):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
-<<<<<<< HEAD
-                print (e)
-=======
                 print(e)
->>>>>>> master_cp
                 pass
 
     return list_files
 
 
-<<<<<<< HEAD
-def allele_call():
-
-    def msg(name=None):
-        return ''' chewBBACA.py AlleleCall [AlleleCall ...][-h] -i [I] -g [G] -o [O] --cpu [CPU] [-v] [-b [B]][--bsr [BSR]] [-t [T]] [--fc] [--fr] [--json]
-			'''
-
-    parser = argparse.ArgumentParser(
-        description="This program call alleles for a set of genomes when provided a schema", usage=msg())
-    parser.add_argument('AlleleCall', nargs='+', help='do allele call')
-    parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="prefix for the output directory", required=True)
-=======
 def create_schema():
 
     def msg(name=None):                                                            
@@ -107,7 +57,6 @@ def create_schema():
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument("--CDS", help="use a fasta file, one gene per entry, to call alleles", required=False, action="store_true", default=False)
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
@@ -144,7 +93,7 @@ def create_schema():
         
     if os.path.isfile(chosenTrainingFile):
         pass
-	
+    
     elif os.path.isfile(chosenTrainingFileLocal):
         chosenTrainingFile=chosenTrainingFileLocal
         pass
@@ -175,7 +124,6 @@ def allele_call():
     parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
     parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
     parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
->>>>>>> master_cp
     parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
                         required=True)
     parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
@@ -184,17 +132,11 @@ def allele_call():
                         default=False)
     parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
     parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
-<<<<<<< HEAD
     parser.add_argument('--st', nargs='?', type=float,
                         help="size threshold, default at 0.2 means alleles with size variation +-20 percent will be tagged as ASM/ALM",
                         required=False, default=0.2)
     parser.add_argument('--ptf', nargs='?', type=str, help="provide the prodigal training file (ptf) path",
                         required=False, default=False)
-=======
-    parser.add_argument('--st', nargs='?', type=float, help="size threshold, default at 0.2 means alleles with size variation of +-20 percent will be tagged as ASM/ALM", required=False, default=0.2)
-    #parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    parser.add_argument('--ptf', nargs='?', type=str, help="provide the prodigal training file (ptf) path", required=False, default=False)
->>>>>>> master_cp
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
@@ -224,7 +166,23 @@ def allele_call():
             for genome in genes2call:
                 f.write(genome + "\n")
         genes2call = "listGenes2Call.txt"
-<<<<<<< HEAD
+
+    try:
+        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
+    except:
+        chosenTrainingFileLocal=False
+        pass
+
+    if os.path.isfile(chosenTrainingFile):
+        pass
+    elif os.path.isfile(chosenTrainingFileLocal):
+        chosenTrainingFile=chosenTrainingFileLocal
+        pass
+    elif not chosenTrainingFileLocal:
+        pass
+    else:
+        print(str(chosenTrainingFile) + " file not found")
+        return
 
     # try to open as a fasta
     fasta = SeqIO.parse(genomeFiles, "fasta", generic_dna)
@@ -245,68 +203,8 @@ def allele_call():
                 f.write(genome + "\n")
         genomes2call = "listGenomes2Call.txt"
 
-    try:
-        chosenTrainingFileLocal = os.path.join(os.path.dirname(CHEWBBACA_NS.__file__), "prodigal_training_files",
-                                               chosenTrainingFile)
-    except:
-        chosenTrainingFileLocal = False
-=======
-	
-    try:
-        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
-    except:
-        chosenTrainingFileLocal=False
->>>>>>> master_cp
-        pass
-
-    if os.path.isfile(chosenTrainingFile):
-        pass
-<<<<<<< HEAD
-
-    elif os.path.isfile(chosenTrainingFileLocal):
-        chosenTrainingFile = chosenTrainingFileLocal
-=======
-	
-    elif os.path.isfile(chosenTrainingFileLocal):
-        chosenTrainingFile=chosenTrainingFileLocal
->>>>>>> master_cp
-        pass
-    elif not chosenTrainingFileLocal:
-        pass
-    else:
-<<<<<<< HEAD
-        print(str(chosenTrainingFile) + " file not found")
-        return
-
     BBACA.main(genomes2call, genes2call, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceContinue, jsonReport, verbose,
                forceReset, contained, chosenTaxon, chosenTrainingFile, inputCDS, sizeTresh)
-=======
-        print( str(chosenTrainingFile)+ " file not found")
-        return
-    
-    #try to open as a fasta
-    fasta = SeqIO.parse(genomeFiles, "fasta", generic_dna)
-    try:
-        isFasta=(any(fasta))
-    except:
-        isFasta=False
-    
-    #if is a fasta pass as a list of genomes with a single genome, if not check if is a folder or a txt with a list of paths
-    if isFasta==True:
-        genomes2call=[os.path.abspath(genomeFiles)]
-    else:
-        genomes2call = check_if_list_or_folder(genomeFiles)
-    
-    if isinstance(genomes2call, list):
-        with open("listGenomes2Call.txt", "w") as f:
-            for genome in genomes2call:
-                f.write(genome + "\n")
-        genomes2call = "listGenomes2Call.txt"
-
-    
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
-
->>>>>>> master_cp
 
     try:
         os.remove("listGenes2Call.txt")
@@ -319,7 +217,6 @@ def allele_call():
 
 def evaluate_schema():
 
-<<<<<<< HEAD
     def msg(name=None):
         return ''' chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h] -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]] [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]
 			'''
@@ -327,14 +224,7 @@ def evaluate_schema():
     parser = argparse.ArgumentParser(
         description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene",
         usage=msg())
-=======
-    def msg(name=None):                                                            
-        return ''' chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h] -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]] [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]
-            '''
 
-    parser = argparse.ArgumentParser(
-        description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene",usage=msg())
->>>>>>> master_cp
     parser.add_argument('SchemaEvaluator', nargs='+', help='evaluation of a schema')
     parser.add_argument('-i', nargs='?', type=str, help='list genes, directory or .txt file with the full path',
                         required=True)
@@ -351,14 +241,9 @@ def evaluate_schema():
     parser.add_argument('-s', nargs='?', type=int,
                         help='number of boxplots per page (more than 500 can make the page very slow)', required=False,
                         default=500)
-<<<<<<< HEAD
     parser.add_argument('--light', help="skip clustal and mafft run", required=False, action="store_true",
                         default=False)
 
-=======
-    parser.add_argument('--light', help="skip clustal and mafft run", required=False, action="store_true", default=False)
-    
->>>>>>> master_cp
     args = parser.parse_args()
     genes = args.i
     transTable = args.ta
@@ -371,7 +256,6 @@ def evaluate_schema():
     light = args.light
     title = str(args.title)
 
-<<<<<<< HEAD
     ValidateSchema.main(genes, cpuToUse, outputpath, transTable, threshold, splited, title, logScale,
                         OneBadGeneNotConserved, light)
 
@@ -382,26 +266,10 @@ def test_schema():
         return ''' chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h] -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]
                     '''
 
-    def msg(name=None):
-=======
-    ValidateSchema.main(genes,cpuToUse,outputpath,transTable,threshold,splited,title,logScale,OneBadGeneNotConserved,light)
-
-
-
-def test_schema():
-
-    def msg(name=None):                                                            
->>>>>>> master_cp
-        return ''' chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h] -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]
-                    '''
-
     parser = argparse.ArgumentParser(
-<<<<<<< HEAD
         description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss",
         usage=msg())
-=======
-        description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss",usage=msg())
->>>>>>> master_cp
+
     parser.add_argument('TestGenomeQuality', nargs='+', help='test the quality of the genomes on the allele call')
     parser.add_argument('-i', nargs='?', type=str, help='raw allele call matrix file', required=True)
     parser.add_argument('-n', nargs='?', type=int, help='maximum number of iterations', required=True)
@@ -421,21 +289,13 @@ def test_schema():
     out_folder = args.o
     verbose = args.verbose
 
-<<<<<<< HEAD
     TestGenomeQuality.main(pathOutputfile, iterationNumber, thresholdBadCalls, step, out_folder, verbose)
-=======
-    TestGenomeQuality.main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbose)
-
->>>>>>> master_cp
 
 
 def extract_cgmlst():
 
-<<<<<<< HEAD
-    def msg(name=None):
-=======
     def msg(name=None):                                                            
->>>>>>> master_cp
+
         return ''' chewBBACA.py ExtractCgMLST [ExtractCgMLST ...] [-h] -i [I] -o [O] [-r [R]] [-g [G]]
                     '''
 
@@ -457,7 +317,7 @@ def extract_cgmlst():
 
     Extract_cgAlleles.main(pathOutputfile,newfile,cgMLSTpercent,genes2remove,genomes2remove)
 
-<<<<<<< HEAD
+
 def remove_genes():
 
     def msg(name=None):
@@ -465,16 +325,6 @@ def remove_genes():
                     '''
 
     parser = argparse.ArgumentParser(description="This program removes genes from a tab separated allele profile file",usage=msg())
-=======
-
-def remove_genes():
-
-    def msg(name=None):                                                            
-        return ''' chewBBACA.py RemoveGenes [RemoveGenes ...][-h] -i [I] -g [G] -o [O] [--inverse]
-                    '''
-
-    parser = argparse.ArgumentParser(description="This program removes gens from a tab separated allele profile file",usage=msg())
->>>>>>> master_cp
     parser.add_argument('RemoveGenes', nargs='+', help='remove loci from a chewBBACA profile')
     parser.add_argument('-i', nargs='?', type=str, help='main matrix file from which to remove', required=True)
     parser.add_argument('-g', nargs='?', type=str, help='list of genes to remove', required=True)
@@ -483,24 +333,13 @@ def remove_genes():
                         action="store_true", default=False)
 
     args = parser.parse_args()
-<<<<<<< HEAD
-=======
-
-    args = parser.parse_args()
->>>>>>> master_cp
     mainListFile = args.i
     toRemoveListFile = args.g
     outputfileName = args.o
     inverse = args.inverse
-<<<<<<< HEAD
 
     RemoveGenes.main(mainListFile, toRemoveListFile, outputfileName, inverse)
-=======
-    
-    
-    RemoveGenes.main(mainListFile,toRemoveListFile,outputfileName,inverse)
 
->>>>>>> master_cp
 
 def join_profiles():
 
@@ -512,11 +351,7 @@ def join_profiles():
     parser.add_argument('JoinProfiles', nargs='+', help='join profiles')
     parser.add_argument('-p1', nargs='?', type=str, help='profile 1', required=True)
     parser.add_argument('-p2', nargs='?', type=str, help='profile 2', required=True)
-<<<<<<< HEAD
     parser.add_argument('-o', nargs='?', type=str, help='output file name', required=True)
-=======
-    parser.add_argument('-o', nargs='?', type=str, help='outut file name', required=True)
->>>>>>> master_cp
 
     args = parser.parse_args()
     profile1 = args.p1
@@ -525,170 +360,6 @@ def join_profiles():
 
     profile_joiner.main(profile1, profile2, outputFile)
 
-<<<<<<< HEAD
-def prep_schema():
-
-    def msg(name=None):
-        return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v]
-                    '''
-
-    parser = argparse.ArgumentParser(
-        description="This program prepares a schema for a chewBBACA allele call, creating a short version of each fast with only the 1st allele",usage=msg())
-    parser.add_argument('PrepExternalSchema', nargs='+', help='prepare a schema for chewbbaca')
-    parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-    args = parser.parse_args()
-
-    geneFiles = args.i
-    cpu2use = args.cpu
-
-    init_schema_4_bbaca.main(geneFiles, cpu2use)
-
-def download_schema_NS():
-
-    def msg(name=None):
-        return ''' chewBBACA.py DownloadSchema [DownloadSchema ...][-h] -i [I] --cpu [CPU] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(
-        description="This program downloads a schema from NS",usage=msg())
-    parser.add_argument('DownloadSchema', nargs='+', help='This program downloads a schema from the nomenclature server to be used, it is advised to use the compressed uri insteado of this program as it may be slow')
-    parser.add_argument('-i', nargs='?', type=str, help='uri to NS schema', required=True)
-    parser.add_argument('-p', nargs='?', type=str, help='path where to down', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('--bsr', nargs='?', type=float, help="maximum BSR score to consider as short, close to 1 all alleles will be on short making blast slower", required=False, default=0.6)
-
-    args = parser.parse_args()
-
-    uri2schema = args.i
-    path2down = args.p
-    cpu2use = args.cpu
-    maxBsrShort = args.bsr
-
-    #check if path to down is direcotry
-    if not os.path.isdir(path2down):
-        print(path2down+" is not a folder")
-        return
-    if os.listdir(path2down):
-        print(path2down+" is not a folder")
-        return
-    down_schema.main(uri2schema, path2down,cpu2use,maxBsrShort)
-
-def sync_schema_NS():
-
-    def msg(name=None):
-        return ''' chewBBACA.py SyncSchema [SyncSchema ...][-h] -i [I] --cpu [CPU] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(
-        description="This program syncs a local schema with NS",usage=msg())
-    parser.add_argument('SyncSchema', nargs='+', help='Syncronize a local schema with the NS')
-    parser.add_argument('-p', nargs='?', type=str, help='path of schema', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
-
-    args = parser.parse_args()
-
-    path2schema = args.p
-    cpu2use = args.cpu
-    bsrTresh= args.bsr
-    try:
-        sync_schema.main(path2schema,cpu2use,bsrTresh)
-    except Exception as e:
-        print (e)
-
-def send_NS():
-
-    def msg(name=None):
-        return ''' chewBBACA.py Send2NS [Send2NS ...][-h] -s [S] -t [T] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(description="Send local profile and respective alleles to NS",usage=msg())
-    parser.add_argument('Send2NS', nargs='+', help='send profiles and local alleles to NS')
-    parser.add_argument('-s', nargs='?', type=str, help='path to schema folder', required=True)
-    parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
-    parser.add_argument('--mdr', nargs='?', type=str, help='maximum missing data allowed to fail, default 0.5 (50 percent missing data allowed). 1 == all profiles are uploaded even with 100 percent missing data', required=False, default=0.5)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-    args = parser.parse_args()
-
-    profileFile = args.p
-    pathSchema = args.s
-    token= args.t
-    metadata = args.m
-    cpu2use = args.cpu
-    percentMDallowed=args.mdr
-
-    send2NS.main(profileFile,pathSchema,token,metadata,percentMDallowed,cpu2use)
-
-def send_meta():
-
-    def msg(name=None):
-        return ''' chewBBACA.py SendMetadata [SendMetadata ...][-h] -s [S] -t [T] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(description="send metadata to isolates on the NS",usage=msg())
-    parser.add_argument('SendMetadata', nargs='+', help='send metadata to isolates on the NS')
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-    args = parser.parse_args()
-
-    token= args.t
-    metadata = args.m
-    cpu2use = args.cpu
-
-    send_metadata.main(metadata,cpu2use,token)
-
-
-def down_prof():
-
-    def msg(name=None):
-        return ''' chewBBACA.py DownloadProfiles [DownloadProfiles ...][-h] --sp [SP] --sc [SC] --cpu [CPU]
-                    '''
-
-    parser = argparse.ArgumentParser(
-        description="Download profiles from the NS",usage=msg())
-    parser.add_argument('DownloadProfiles', nargs='+', help='download profiles from NS')
-    parser.add_argument('--sp', nargs='?', type=str, help='species uri', required=True)
-    parser.add_argument('--sc', nargs='?', type=str, help='schema id', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('-r', nargs='?', type=str, help='genomes to down profile', required=False, default=None)
-    parser.add_argument('-p', nargs='?', type=str, help='profile with already downloaded profiles for that schema', required=False, default=None)
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-
-
-    args = parser.parse_args()
-
-    species = args.sp
-    schema = args.sc
-    cpu2use = args.cpu
-    genomes2Down = args.r
-    inputProfile = args.p
-    token = args.t
-
-    down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down,token)
-
-
-def main():
-
-    functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles',
-                      'DownloadSchema',"SyncSchema",'Send2NS','DownloadProfiles','SendMetadata']
-    desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes',
-                 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas',
-                 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output',
-                 'prepare an external schema to be used by chewBBACA','join two profiles in a single profile file', 'Download schema from NS',
-                 'Syncronize a local schema (downloaded from NS) with NS','Send local profile and respective alleles to NS','Download all profiles of a given species for a given schema','send metadata to isolates on the NS']
-
-    version="1.0.1"
-    createdBy="Mickael Silva"
-    rep="https://github.com/B-UMMI/chewBBACA/tree/chewie_NS"
-    contact="mickaelsilva@medicina.ulisboa.pt"
-=======
 
 def prep_schema():
 
@@ -750,11 +421,11 @@ def prep_schema():
 
 
 def find_uniprot():
-	
+    
     def msg(name=None):                                                            
         return ''' chewBBACA.py UniprotFinder [UniprotFinder ...][-h] -i [I] -t [T] --cpu [CPU]
                     '''
-	
+    
     parser = argparse.ArgumentParser(
         description="This program gets information of each locus created on the schema creation, based on the uniprot database")
     parser.add_argument('UniprotFinder', nargs='+',
@@ -775,10 +446,143 @@ def find_uniprot():
     uniprot_find.main(geneFiles, tsvFile, cpu2use)
 
 
+def download_schema_NS():
+
+    def msg(name=None):
+        return ''' chewBBACA.py DownloadSchema [DownloadSchema ...][-h] -i [I] --cpu [CPU] -p [P]
+                    '''
+
+    parser = argparse.ArgumentParser(
+        description="This program downloads a schema from NS",usage=msg())
+    parser.add_argument('DownloadSchema', nargs='+', help='This program downloads a schema from the nomenclature server to be used, it is advised to use the compressed uri insteado of this program as it may be slow')
+    parser.add_argument('-i', nargs='?', type=str, help='uri to NS schema', required=True)
+    parser.add_argument('-p', nargs='?', type=str, help='path where to down', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    parser.add_argument('--bsr', nargs='?', type=float, help="maximum BSR score to consider as short, close to 1 all alleles will be on short making blast slower", required=False, default=0.6)
+
+    args = parser.parse_args()
+
+    uri2schema = args.i
+    path2down = args.p
+    cpu2use = args.cpu
+    maxBsrShort = args.bsr
+
+    #check if path to down is direcotry
+    if not os.path.isdir(path2down):
+        print(path2down+" is not a folder")
+        return
+    if os.listdir(path2down):
+        print(path2down+" is not a folder")
+        return
+    down_schema.main(uri2schema, path2down,cpu2use,maxBsrShort)
+
+
+def sync_schema_NS():
+
+    def msg(name=None):
+        return ''' chewBBACA.py SyncSchema [SyncSchema ...][-h] -i [I] --cpu [CPU] -p [P]
+                    '''
+
+    parser = argparse.ArgumentParser(
+        description="This program syncs a local schema with NS",usage=msg())
+    parser.add_argument('SyncSchema', nargs='+', help='Syncronize a local schema with the NS')
+    parser.add_argument('-p', nargs='?', type=str, help='path of schema', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+
+    args = parser.parse_args()
+
+    path2schema = args.p
+    cpu2use = args.cpu
+    bsrTresh= args.bsr
+    try:
+        sync_schema.main(path2schema,cpu2use,bsrTresh)
+    except Exception as e:
+        print (e)
+
+
+def send_NS():
+
+    def msg(name=None):
+        return ''' chewBBACA.py Send2NS [Send2NS ...][-h] -s [S] -t [T] -p [P]
+                    '''
+
+    parser = argparse.ArgumentParser(description="Send local profile and respective alleles to NS",usage=msg())
+    parser.add_argument('Send2NS', nargs='+', help='send profiles and local alleles to NS')
+    parser.add_argument('-s', nargs='?', type=str, help='path to schema folder', required=True)
+    parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
+    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
+    parser.add_argument('--mdr', nargs='?', type=str, help='maximum missing data allowed to fail, default 0.5 (50 percent missing data allowed). 1 == all profiles are uploaded even with 100 percent missing data', required=False, default=0.5)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+
+    args = parser.parse_args()
+
+    profileFile = args.p
+    pathSchema = args.s
+    token= args.t
+    metadata = args.m
+    cpu2use = args.cpu
+    percentMDallowed=args.mdr
+
+    send2NS.main(profileFile,pathSchema,token,metadata,percentMDallowed,cpu2use)
+
+
+def send_meta():
+
+    def msg(name=None):
+        return ''' chewBBACA.py SendMetadata [SendMetadata ...][-h] -s [S] -t [T] -p [P]
+                    '''
+
+    parser = argparse.ArgumentParser(description="send metadata to isolates on the NS",usage=msg())
+    parser.add_argument('SendMetadata', nargs='+', help='send metadata to isolates on the NS')
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
+    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+
+    args = parser.parse_args()
+
+    token= args.t
+    metadata = args.m
+    cpu2use = args.cpu
+
+    send_metadata.main(metadata,cpu2use,token)
+
+
+def down_prof():
+
+    def msg(name=None):
+        return ''' chewBBACA.py DownloadProfiles [DownloadProfiles ...][-h] --sp [SP] --sc [SC] --cpu [CPU]
+                    '''
+
+    parser = argparse.ArgumentParser(
+        description="Download profiles from the NS",usage=msg())
+    parser.add_argument('DownloadProfiles', nargs='+', help='download profiles from NS')
+    parser.add_argument('--sp', nargs='?', type=str, help='species uri', required=True)
+    parser.add_argument('--sc', nargs='?', type=str, help='schema id', required=True)
+    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
+    parser.add_argument('-r', nargs='?', type=str, help='genomes to down profile', required=False, default=None)
+    parser.add_argument('-p', nargs='?', type=str, help='profile with already downloaded profiles for that schema', required=False, default=None)
+    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
+
+    args = parser.parse_args()
+
+    species = args.sp
+    schema = args.sc
+    cpu2use = args.cpu
+    genomes2Down = args.r
+    inputProfile = args.p
+    token = args.t
+
+    down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down,token)
+
+
 def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator',
                       'TestGenomeQuality', 'ExtractCgMLST', 'RemoveGenes',
-                      'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder']
+                      'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder',
+                      'DownloadSchema','SyncSchema','Send2NS','DownloadProfiles',
+                      'SendMetadata']
 
     desc_list = ['Create a gene by gene schema based on genomes',
                  'Perform allele call for target genomes',
@@ -788,15 +592,19 @@ def main():
                  'Remove a provided list of loci from your allele call output',
                  'Adapt an external schema to be used with chewBBACA.',
                  'join two profiles in a single profile file',
-                 'get info about a schema created with chewBBACA']
+                 'get info about a schema created with chewBBACA',
+                 'Download schema from NS',
+                 'Syncronize a local schema (downloaded from NS) with NS',
+                 'Send local profile and respective alleles to NS',
+                 'Download all profiles of a given species for a given schema',
+                 'send metadata to isolates on the NS']
 
     version = "2.1.0"
-    createdBy = "Mickael Silva"
+    createdBy = "Mickael Silva, Pedro Cerqueira, Rafael Mamede"
     rep = "https://github.com/B-UMMI/chewBBACA"
-    contact = "mickaelsilva@medicina.ulisboa.pt"
+    contact = "rmamede@medicina.ulisboa.pt\npedro.cerqueira@medicina.ulisboa.pt"
 
     # Check python version, if fail, exist with message
-
     try:
         python_version = platform.python_version()
         assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
@@ -815,20 +623,10 @@ def main():
             print(functions_list[i] + " : " + desc_list[i])
             i += 1
         sys.exit(0)
->>>>>>> master_cp
 
     if len(sys.argv) > 1 and "version" in sys.argv[1]:
         print(version)
         return
-<<<<<<< HEAD
-
-
-    print ("chewBBACA version "+version+" by "+ createdBy+ " at "+ rep+ "\nemail contact: "+ contact)
-
-    try:
-        print ("\n")
-        if sys.argv[1] == functions_list[1]:
-=======
       
     print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
 
@@ -836,7 +634,6 @@ def main():
         if sys.argv[1] == functions_list[0]:
             create_schema()
         elif sys.argv[1] == functions_list[1]:
->>>>>>> master_cp
             allele_call()
         elif sys.argv[1] == functions_list[2]:
             evaluate_schema()
@@ -851,15 +648,16 @@ def main():
         elif sys.argv[1] == functions_list[7]:
             join_profiles()
         elif sys.argv[1] == functions_list[8]:
-<<<<<<< HEAD
-            download_schema_NS()
+            find_uniprot()
         elif sys.argv[1] == functions_list[9]:
-            sync_schema_NS()
+            download_schema_NS()
         elif sys.argv[1] == functions_list[10]:
-            send_NS()
+            sync_schema_NS()
         elif sys.argv[1] == functions_list[11]:
-            down_prof()
+            send_NS()
         elif sys.argv[1] == functions_list[12]:
+            down_prof()
+        elif sys.argv[1] == functions_list[13]:
             send_meta()
         else:
             print('\n\tUSAGE : chewBBACA.py [module] -h \n')
@@ -868,23 +666,6 @@ def main():
             while i<len(functions_list):
                 print (functions_list[i] +" : "+desc_list[i])
                 i+=1
-    except Exception as e:
-        print (e)
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-        print('Select one of the following functions :\n')
-        i=1
-        while i<len(functions_list):
-            print (functions_list[i] +" : "+desc_list[i])
-            i+=1
-=======
-            find_uniprot()
-        else:
-            print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-            print('Select one of the following functions :\n')
-            i = 0
-            while i<len(functions_list):
-                print (functions_list[i] + " : " + desc_list[i])
-                i += 1
 
     except Exception as e:
         print(e)  # CHECK THIS
@@ -894,7 +675,7 @@ def main():
         while i < len(functions_list):
             print(functions_list[i] + " : " + desc_list[i])
             i += 1
->>>>>>> master_cp
+
 
 if __name__ == "__main__":
     main()

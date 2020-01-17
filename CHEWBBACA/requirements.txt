@@ -3,9 +3,6 @@ scipy>=0.13.3
 biopython>=1.70
 plotly>=1.12.9
 SPARQLWrapper>=1.8.0
-<<<<<<< HEAD
 requests>=2.2.1
 pandas>=0.22.0
-=======
-pandas>=0.22.0
->>>>>>> master_cp
+

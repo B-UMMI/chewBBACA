@@ -12,11 +12,19 @@ import subprocess
 import json
 import re
 try:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
     from allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
     from utils import ParalogPrunning
 except ImportError:
     from CHEWBBACA_NS.allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
     from CHEWBBACA_NS.utils import ParalogPrunning
+=======
+    from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+    from utils import ParalogPrunning
+except ImportError:
+    from CHEWBBACA.allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
+    from CHEWBBACA.utils import ParalogPrunning
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
 def which(program):
     import os
@@ -44,7 +52,7 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
         def verboseprint(*args):
             for arg in args:
                 print (arg),
-            print
+            print()
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
@@ -54,7 +62,11 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
     currentGenomeDict = {}
 
     j = 0
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
     if inputCDS == False:
+=======
+    if inputCDS==False:
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
         filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF.txt")
         with open(filepath, 'rb') as f:
@@ -64,8 +76,14 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
             sequence = str(contig.seq.upper())
             currentGenomeDict[contig.id] = sequence
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
         for contigTag, value in currentCDSDict.items():
 
+=======
+
+        for contigTag, value in currentCDSDict.items():
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
             for protein in value:
                 try:
                     seq = currentGenomeDict[contigTag][protein[0]:protein[1]].upper()
@@ -97,10 +115,17 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
                 listOfCDS[idstr] = seq
                 genomeProts += str(protseq) + "\n"
             except:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
                 print(contig.id + " is not translatable to protein, sequence ignored")
                 pass
 
     if j < 2:
+=======
+                print (contig.id+" is not translatable to protein, sequence ignored")
+                pass
+
+    if j<2:
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
         raise ValueError("your genome has something wrong, are you using a genome as a CDS fasta file or vice versa?")
 
     filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF_Protein.txt")
@@ -231,15 +256,74 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 # ================================================ MAIN ================================================ #
 
 def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
+=======
+
+    #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
+    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
+    #~ parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
+    #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
+    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
+    #~ required=True)
+    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
+    #~ default=False)
+    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
+    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+    #~ parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
+    #~ default=False)
+    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
+    #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
+    #~ parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
+    #~ parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
+    #~ parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
+    #~ parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+    #~
+    #~ args = parser.parse_args()
+    #~
+    #~ genomeFiles = args.i
+    #~ genes = args.g
+    #~ cpuToUse = args.cpu
+    #~ BSRTresh = args.bsr
+    #~ verbose = args.verbose
+    #~ BlastpPath = args.b
+    #~ divideOutput = args.divideOutput
+    #~ gOutFile = args.o
+    #~ chosenTaxon = args.t
+    #~ chosenTrainingFile = args.ptf
+    #~ forceContinue = args.fc
+    #~ forceReset = args.fr
+    #~ jsonReport = args.json
+    #~ contained = args.contained
+    divideOutput=False
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
     divideOutput=False
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
         print("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
 
 
     if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+=======
+        print ("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
+
+    taxonList = {'Campylobacter jejuni': 'trained_campyJejuni.trn',
+                 'Acinetobacter baumannii': 'trained_acinetoBaumannii.trn',
+                 'Streptococcus agalactiae': 'trained_strepAgalactiae.trn',
+                 'Haemophilus influenzae': 'trained_haemoInfluenzae_A.trn',
+                 'Yersinia enterocolitica': 'trained_yersiniaEnterocolitica.trn',
+                 'Escherichia coli': 'trained_eColi.trn',
+                 'Enterococcus faecium': 'trained_enteroFaecium.trn',
+                 'Staphylococcus haemolyticus': 'trained_staphHaemolyticus.trn',
+                 'Salmonella enterica': 'trained_salmonellaEnterica_enteritidis.trn',
+                 'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
+                 'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
+                 }
+    if isinstance(chosenTaxon, str):
+        trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
         try:
             chosenTaxon = trainingFolderPAth
 
@@ -249,10 +333,32 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 print("training file don't exist " + chosenTaxon)
                 return "retry"
         except:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
             print("The training file you provided doesn't exist:")
             print(chosenTaxon)
             return "retry"
 
+=======
+            print("Your chosen taxon is not attributed, select one from:")
+            for elem in taxonList.keys():
+                print (elem)
+            return "retry"
+
+    if isinstance(chosenTrainingFile, str):
+        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
+        try:
+            chosenTaxon = trainingFolderPAth
+
+            if os.path.isfile(chosenTaxon):
+                print ("will use this training file : " + chosenTaxon)
+            else:
+                print ("training file don't exist "+chosenTaxon)
+                return "retry"
+        except:
+            print("The training file you provided doesn't exist:")
+            print (chosenTaxon)
+            return "retry"
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
     print(BlastpPath)
 
@@ -270,6 +376,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     stdout, stderr = proc.communicate()
     version_string = stdout.decode('utf8')
     blast_version_pat = re.compile(r'2.[5-9]')
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
     if not blast_version_pat.search(version_string):
         m = blast_version_pat.search(version_string).group()
         print("your blast version is " + str(version_string))
@@ -277,6 +384,19 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         sys.exit()
     else:
         print("blast version is up to date, the program will continue")
+=======
+    try:
+        if not blast_version_pat.search(version_string):
+            m = blast_version_pat.search(version_string).group()
+            print ("your blast version is " + str(version_string))
+            print ("update your blast to 2.5.0 or above, will exit program")
+            sys.exit()
+        else:
+            print ("blast version is up to date, the program will continue")
+    except:
+        print("Something went wrong. Your blast version is " + str(version_string))
+        print("update your blast to 2.5.0 or above, will exit program")
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
     print(starttime)
@@ -319,7 +439,11 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     if len(lGenesFiles) == 0:
         raise ValueError('ERROR! No usable gene files in ' + str(genes))
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
     #sort the genomes and genes list for an ordered output 
+=======
+    #sort the genomes and genes list for an ordered output
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
     listOfGenomes.sort(key=lambda y: os.path.basename(y).lower())
     listOfGenomesBasename.sort(key=lambda y: y.lower())
     lGenesFiles.sort(key=lambda y: y.lower())
@@ -338,8 +462,13 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         if os.path.isdir(basepath):
             continueRun = True
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
     if forceReset:
         continueRun = True
+=======
+        if forceReset:
+            continueRun = True
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
     if continueRun:
         print("You chose to continue the allele call")
@@ -385,6 +514,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             #           RUN PRODIGAL OVER ALL GENOMES           #
             # ------------------------------------------------- #
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
             if inputCDS==False:
                 print("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -404,15 +534,46 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                     if orffile.endswith("_ORF.txt"):
                         listOfORFCreated.append(orffile)
 
+=======
+            #if the input is a draft genome
+            if inputCDS==False:
+
+                print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+
+                # Prodigal run on the genomes, one genome per core using n-2 cores (n number of cores)
+
+                pool = multiprocessing.Pool(cpuToUse)
+                for genome in listOfGenomes:
+                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
+
+                pool.close()
+                pool.join()
+
+                print ("\nChecking all prodigal processes created the necessary files...")
+
+                listOfORFCreated = []
+                for orffile in os.listdir(basepath):
+                    if orffile.endswith("_ORF.txt"):
+                        listOfORFCreated.append(orffile)
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
                 if len(listOfGenomes) > len(listOfORFCreated):
                     message = "Missing some files from prodigal. " + str(
                         (len(listOfGenomes)) - (len(listOfORFCreated))) + " missing files out of " + str(len(listOfGenomes))
                     shutil.rmtree(basepath)
                     raise ValueError(message)
                 else:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
                     print("All prodigal files necessary were created\n")
 
                 print("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+=======
+                    print ("All prodigal files necessary were created\n")
+
+                print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
             # ---CDS to protein---#
 
@@ -434,9 +595,14 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
                 pool.apply_async(Create_Genome_Blastdb.main, (
                     filepath, os.path.join(basepath, str(os.path.basename(genomeFile))), str(os.path.basename(genomeFile)),
                     False))
+=======
+                pool.apply_async(Create_Genome_Blastdb.main,(filepath,os.path.join(basepath, str(os.path.basename(genomeFile))),str(os.path.basename(genomeFile)),False))
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
             pool.close()
             pool.join()
@@ -467,8 +633,14 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
         pool.apply_async(callAlleles_protein3.main,
                          (str(argList), basepath, str(BlastpPath), str(verbose), str(BSRTresh),str(sizeTresh)))
+=======
+        #~ print (argList)
+        #~ asdasd
+        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh),str(sizeTresh)))
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
     pool.close()
     pool.join()
@@ -687,9 +859,15 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 f.write("\nused this number of cpus: " + str(cpuToUse))
                 f.write("\nused a bsr of : " + str(BSRTresh))
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/BBACA.py
             print("checking the existance of paralog genes...")
 
             ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"),outputfolder)
+=======
+            print ("checking the existance of paralog genes...")
+            ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"), outputfolder)
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/BBACA.py
 
         else:
             for genome in listOfGenomesBasename:

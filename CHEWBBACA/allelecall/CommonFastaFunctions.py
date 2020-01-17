@@ -40,7 +40,11 @@ def Create_Blastdb(questionDB, overwrite, dbtypeProt):
                 "makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
 
     else:
+<<<<<<< HEAD:CHEWBBACA/allelecall/CommonFastaFunctions.py
         print ("BLAST DB files found. Using existing DBs..")
+=======
+        print("BLAST DB files found. Using existing DBs..")
+>>>>>>> master_cp:CHEWBBACA/allelecall/CommonFastaFunctions.py
     return name
 
 def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
@@ -72,7 +76,6 @@ def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
     else:
         print ("BLAST DB files found. Using existing DBs..")
     return name
-
 
 def runBlast(cline, bOutFile, locus_sbjct):
     os.system(str(cline))

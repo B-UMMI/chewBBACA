@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+<<<<<<< HEAD:CHEWBBACA/allelecall/Create_Genome_Blastdb.py
+=======
+import sys
+>>>>>>> master_cp:CHEWBBACA/allelecall/Create_Genome_Blastdb.py
 import os
 
 

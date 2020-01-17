@@ -4,14 +4,21 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import sys
 from Bio.Seq import Seq
-from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
 from collections import Counter
 import os
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
 try:
     from allelecall import CommonFastaFunctions
 except ImportError:
     from CHEWBBACA_NS.allelecall import CommonFastaFunctions
+=======
+from Bio.Blast import NCBIXML
+try:
+	from allelecall import CommonFastaFunctions
+except ImportError:
+	from CHEWBBACA.allelecall import CommonFastaFunctions
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
 import time
 import pickle
 import shutil
@@ -56,7 +63,11 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
         alleleIlist.append(alleleI)
         alleleList.append(str(allele.seq.upper()))
         listAllelesNames.append(allele.id)
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
         translatedSequence, x, y = translateSeq(str(allele.seq.upper()))
+=======
+        translatedSequence, x = translateSeq(str(allele.seq.upper()))
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
 
         if translatedSequence == '':
             print ("cannot translate allele on bsr calculation")
@@ -69,29 +80,43 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein2.fasta'))
 
             # new db for each allele to blast it against himself
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
             #~ with open(proteinfastaPath, "wb") as f:
             #~ f.write(alleleProt)
             #~ Gene_Blast_DB_name = Create_Blastdb(proteinfastaPath, 1, True)
+=======
+
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
             Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(proteinfastaPath, 1, True,alleleProt)
 
             # if bsr hasn't been calculated, do the BLAST
             if doAll:
 
-                blast_out_file = os.path.join(basepath, 'blastdbs/temp.xml')
+                #~ blast_out_file = os.path.join(basepath, 'blastdbs/temp.xml')
                 verboseprint("Starting Blast alleles at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
                 # --- get BLAST score ratio --- #
                 #~ cline = NcbiblastpCommandline(cmd=blastPath, query=proteinfastaPath, db=Gene_Blast_DB_name,
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
                 #~ evalue=0.001, out=blast_out_file, outfmt=5, num_threads=1)
 
+=======
+                                              #~ evalue=0.001, out=blast_out_file, outfmt=5, num_threads=1)
+                                              
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
                 cline = NcbiblastpCommandline(cmd=blastPath, db=Gene_Blast_DB_name, evalue=0.001, outfmt=5,num_threads=1)
                 out, err = cline(stdin=alleleProt)
                 psiblast_xml = StringIO(out)
                 blast_records = NCBIXML.parse(psiblast_xml)
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
 
+=======
+                
+                
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
                 allelescore = 0
 
-                #~ blast_records = runBlastParser(cline, blast_out_file)
+                #~ blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
 
                 verboseprint("Blasted alleles at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -214,27 +239,41 @@ def translateSeq(DNASeq):
                     print ("translation error")
                     print (e)
                     protseq = ""
-    return protseq, seq, reversedSeq
+    return protseq, seq
 
 
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
 def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
     #try:
     #    input_file = sys.argv[1]
     #    temppath = sys.argv[2]
     #    blastPath = sys.argv[3]
     #    verbose = sys.argv[4]
     #    bsrTresh = sys.argv[5]
+=======
+    #~ try:
+        #~ input_file = sys.argv[1]
+        #~ temppath = sys.argv[2]
+        #~ blastPath = sys.argv[3]
+        #~ verbose = sys.argv[4]
+        #~ bsrTresh = sys.argv[5]
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
 
     if verbose == 'True':
         verbose = True
     else:
         verbose = False
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
     #except IndexError:
     #    print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
+=======
+    #~ except IndexError:
+        #~ print ("Error starting the callAlleleles_protein3 script. usage: list_pickle_obj")
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
 
     bsrTresh = float(bsrTresh)
     sizeTresh = float(sizeTresh)
@@ -276,8 +315,13 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
     proteinFastaString=''
 
     print (
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
         "\rProcessing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
             locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.", end='')
+=======
+    "\rProcessing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
+        locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.", end="")
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
 
     if not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -292,8 +336,12 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
             alleleI = int(aux[0].replace("*",""))
             alleleI = aux[0]
         else:
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
             alleleI = int(aux[-1].replace("*",""))
             alleleI = aux[-1]
+=======
+            alleleI = int(aux[-1])
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
         fullAlleleList.append(str(allele.seq.upper()))
         fullAlleleNameList.append(allele.id)
 
@@ -426,7 +474,10 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
             # blast the genome CDS against the translated locus
             # cline = NcbiblastpCommandline(query=proteinfastaPath, db=Gene_Blast_DB_name, evalue=0.001, out=blast_out_file, outfmt=5,max_target_seqs=10,max_hsps_per_subject=10)
             # 2.2.28 up
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
 
+=======
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
             cline = NcbiblastpCommandline(cmd=blastPath, db=Gene_Blast_DB_name, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1)
 
             out, err = cline(stdin=proteinFastaString)
@@ -436,8 +487,13 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
             #~ out, err = cline()
             psiblast_xml = StringIO(out)
             blast_records = NCBIXML.parse(psiblast_xml)
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
 
             #~ blast_records = runBlastParser(cline, blast_out_file)
+=======
+            
+            #~ blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
             verboseprint("Blasted alleles on genome at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
             alleleSizes = []
@@ -484,6 +540,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                             #DNAstr = str(currentCDSDict[">" + cdsStrName])
 
                             AlleleDNAstr = alleleList[int(alleleMatchid) - 1]
+                            verboseprint("BSR : " + str(scoreRatio))
 
                             if scoreRatio >= bsrTresh:
                                 locationcontigs.append(cdsStrName)
@@ -538,6 +595,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                 else:
 
                     # load the contig info of the genome to a dictionary
+                    #g_fp = HTSeq.FastaReader(genomeFile)
                     for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
                         currentGenomeDict[contig.id] = len(str(contig.seq.upper()))
 
@@ -554,13 +612,14 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
 
                     bestMatchContigLen = currentGenomeDict[contigname]
 
-                    protSeq, alleleStr, Reversed = translateSeq(alleleStr)
-
+                    protSeq, alleleStr = translateSeq(alleleStr)
                     # get extra space to the right and left between the allele and match and check if it's still inside the contig
 
                     rightmatchAllele = geneLen - ((int(match.query_end) + 1) * 3)
                     leftmatchAllele = ((int(match.query_start) - 1) * 3)
 
+                    
+                    Reversed=False
                     # ~ if Reversed swap left and right contig extra
                     Reversed=False
                     if int(matchLocation[1]) < int(matchLocation[0]):
@@ -574,6 +633,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                     else:
                         rightmatchContig = bestMatchContigLen - int(matchLocation[1])
                         leftmatchContig = int(matchLocation[0])
+                        
 
                     ###########################
                     # LOCUS ON THE CONTIG TIP #
@@ -690,11 +750,25 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                             # --- add the new allele to the gene fasta --- #
                             appendAllele = '>' + str((((os.path.basename(geneFile)).split("."))[0]).replace("_",
                                                                                                             "-")) + "_" + tagAuxC + "_" + (
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
                                                str(os.path.basename(genomeFile))).replace("_", "-") + "_" + time.strftime("%d/%m/%YT%H:%M:%S") + '_' + str(
                                 alleleIaux)
 
                             newDNAAlleles2Add2Fasta+=appendAllele+"\n"+alleleStr + '\n'
 
+=======
+                                           str(os.path.basename(genomeFile))).replace("_", "-") +"_"+time.strftime("%d/%m/%YT%H:%M:%S") + "_" + str(
+                                alleleI) + '\n'
+                            
+                            
+                            #~ fG = open(geneFile, 'a')
+                            #~ fG.write(appendAllele)
+                            #~ fG.write(alleleStr + '\n')
+                            #~ fG.close()
+                            
+                            newDNAAlleles2Add2Fasta+=appendAllele+alleleStr + '\n'
+                            
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
                             fullAlleleList.append(alleleStr)
                             fullAlleleNameList.append(appendAllele)
 
@@ -709,17 +783,30 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
 
 
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
                                 proteinFastaString+='>' + alleleIaux + '\n' + str(protSeq) + '\n'
+=======
+                                #~ proteinFastaString+='>' + alleleIaux + '\n' + str(protSeq) + '\n'
+                                proteinFastaString+='>' + str(alleleI) + '\n' + str(protSeq) + '\n'
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
                                 match = bestmatch[5]
 
                                 # --- remake blast DB and recalculate the BSR for the locus --- #
                                 alleleList.append(alleleStr)
                                 listShortAllelesNames.append(appendAllele)
 
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
                                 sequence_2_blast='>' + alleleIaux + '\n' + str(protSeq)
                                 Gene_Blast_DB_name2 = CommonFastaFunctions.Create_Blastdb_no_fasta(geneTransalatedPath2, 1, True,sequence_2_blast)
 
 
+=======
+                                #~ sequence_2_blast='>' + alleleIaux + '\n' + str(protSeq)
+                                sequence_2_blast='>' + str(alleleI) + '\n' + str(protSeq)
+                                Gene_Blast_DB_name2 = CommonFastaFunctions.Create_Blastdb_no_fasta(geneTransalatedPath2, 1, True,sequence_2_blast)
+                                
+                                
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
                                 verboseprint("Re-calculating BSR at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
                                 allelescores, alleleList, listShortAllelesNames = reDogetBlastScoreRatios(sequence_2_blast,
                                                                                                           basepath,
@@ -743,6 +830,7 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                 perfectMatchIdAllele.append("ERROR")
 
     #add new alleles to the locus fasta file
+<<<<<<< HEAD:CHEWBBACA/allelecall/callAlleles_protein3.py
 
     with open(geneFile, 'a') as fG:
         fG.write(newDNAAlleles2Add2Fasta)
@@ -750,6 +838,16 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
     with open(shortgeneFile, 'a') as fG:
         fG.write(newDNAAlleles2Add2shortFasta)
 
+=======
+    
+    if len(newDNAAlleles2Add2Fasta)>5:
+        with open(geneFile, 'a') as fG:
+            fG.write(newDNAAlleles2Add2Fasta)
+    if len(newDNAAlleles2Add2shortFasta)>5:
+        with open(shortgeneFile, 'a') as fG:
+            fG.write(newDNAAlleles2Add2shortFasta)
+    
+>>>>>>> master_cp:CHEWBBACA/allelecall/callAlleles_protein3.py
     final = (resultsList, perfectMatchIdAllele)
     verboseprint("Finished allele calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
     filepath = os.path.join(temppath, os.path.basename(geneFile) + "_result.txt")

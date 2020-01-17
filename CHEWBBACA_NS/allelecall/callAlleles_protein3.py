@@ -20,6 +20,11 @@ from Bio import BiopythonWarning
 warnings.simplefilter('ignore', BiopythonWarning)
 
 
+######
+# We have to check if pickles with BSR values for representatives have keys with type str
+# if the keys are int the version of AlleleCall for the NS will not work well
+
+
 def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
     if verbose:
         def verboseprint(*args):
@@ -40,13 +45,11 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
     # calculate bsr for each allele
     for allele in SeqIO.parse(genefile, "fasta", generic_dna):
 
-        # usually first allele name is just >1 and after that it has >gene_id_genome
+        # usually first allele name is just > 1 and after that it has > gene_id_genome
         aux = allele.id.split("_")
         if len(aux) < 2:
-            # alleleI = int(aux[0].replace("*",""))
             alleleI = str(aux[0])
         else:
-            # alleleI = int(aux[-1].replace("*",""))
             alleleI = str(aux[-1])
 
         # try to translate the allele
@@ -111,7 +114,9 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
                 geneScorePickle = os.path.abspath(genefile) + '_bsr.txt'
                 with open(geneScorePickle, 'rb') as f:
                     var = pickle.load(f)
-                    # ~ allelescores=var[1]
+                # needs to convert dictionaries that have integer keys
+                # to string keys
+                var = {str(k):v for k, v in var.items()}
 
     proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein.fasta'))
     with open(proteinfastaPath, "w") as f:
@@ -270,15 +275,12 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
     newDNAAlleles2Add2shortFasta=''
     proteinFastaString=''
 
-
     print (
-        "Processing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
-            locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.")
+        "\rProcessing " + os.path.basename(geneFile) + ". Start " + time.strftime("%H:%M:%S-%d/%m/%Y") + " Locus " + str(
+            locusnumber) + " of " + str(totalocusnumber) + ". Done " + str(int(statusbar * 100)) + "%.", end='')
 
     if not os.path.exists(basepath):
         os.makedirs(basepath)
-
-    #gene_fp = HTSeq.FastaReader(geneFile)
 
     fullAlleleList = []
     fullAlleleNameList = []
@@ -435,7 +437,6 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
             psiblast_xml = StringIO(out)
             blast_records = NCBIXML.parse(psiblast_xml)
 
-
             #~ blast_records = runBlastParser(cline, blast_out_file)
             verboseprint("Blasted alleles on genome at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -466,16 +467,17 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                         for match in alignment.hsps:
 
                             # query id comes with query_id, not name of the allele
+                            # the query will always be a representative allele
+                            # we get the index of the representative sequence
                             alleleMatchid = int((blast_record.query_id.split("_"))[-1])
 
-
-                            # ~ scoreRatio=float(match.score)/float(allelescores[int(alleleMatchid)-1])
-                            # query_id starts with 1
+                            # query_id starts with 1 and we have to subtract 1 to get index 0
+                            # we get the identifier of the representative (including '*') with the int index
                             alleleMatchid2 = (((listShortAllelesNames[alleleMatchid - 1]).split("_"))[-1])
-
+                            #print(type(alleleMatchid2), alleleMatchid2)
+                            #print(type(list(allelescores.keys())[0]), allelescores)
 
                             scoreRatio = float(match.score) / float(allelescores[alleleMatchid2])
-
 
                             cdsStrName = (alignment.title.split(" "))[1]
 
@@ -686,12 +688,10 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
                                 "New allele! Adding allele " + tagAux + str(alleleIaux) + " to the database\n")
 
                             # --- add the new allele to the gene fasta --- #
-
                             appendAllele = '>' + str((((os.path.basename(geneFile)).split("."))[0]).replace("_",
                                                                                                             "-")) + "_" + tagAuxC + "_" + (
-                                               str(os.path.basename(genomeFile))).replace("_", "-") + "_" + str(
+                                               str(os.path.basename(genomeFile))).replace("_", "-") + "_" + time.strftime("%d/%m/%YT%H:%M:%S") + '_' + str(
                                 alleleIaux)
-
 
                             newDNAAlleles2Add2Fasta+=appendAllele+"\n"+alleleStr + '\n'
 

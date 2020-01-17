@@ -499,7 +499,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     for gene in output:
         for gAllele in gene[1]:
             try:
-                int(gAllele)
+                allele_id = int(gAllele) if '*' not in gAllele else int(gAllele.replace('*', ''))
                 numberexactmatches += 1
             except:
                 pass

@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-<<<<<<< HEAD:CHEWBBACA/allelecall/Create_Genome_Blastdb.py
-=======
 import sys
->>>>>>> master_cp:CHEWBBACA/allelecall/Create_Genome_Blastdb.py
 import os
 
 
-def main(questionDB,directory,genomeFile,nucleotide):
+def main(questionDB, directory, genomeFile, nucleotide):
 
     name = directory + "/" + genomeFile + "_db"
 
-    if nucleotide==True:
+    if nucleotide == True:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype nucl -logfile " + name + "_blast.log")
     else:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")

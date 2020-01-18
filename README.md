@@ -1,13 +1,13 @@
-# chewBBACA_NS: Quick Usage
+# chewBBACA: Quick Usage
 
-chewBBACA_NS is a special chewBBACA version (see https://github.com/B-UMMI/chewBBACA) that features special functions to communicate with a nomenclature server instance.
+**chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
+but at this point still it needs a bit of work to make that claim so we just add "chew" to add extra coolness to the software name. BSR stands for 
+BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2) 
 
-It's utilization comprehends two kind of users, authenticated and not authenticated. Authenticated users are allowed to send and store their data (profiles and alleles) on the server, while
-non authenticated users are able to fetch all data but not to store. 
+chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence 
+Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
+settings and a set of functions to visualize and validate allele variation in the loci.
 
-<<<<<<< HEAD
-Users with sensible data can be matched to non authenticated users.
-=======
 chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
 
 The code contained in this repository concerning release v2.0.5. has been published in Microbial Genomics under the title:  
@@ -80,23 +80,10 @@ Below you can find a list of commands for a quick usage of the software.
  automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
  - All the referenced lists of files *must contain full path* for the files.
  - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](http://linuxcommand.org/man_pages/dos2unix1.html).
->>>>>>> master_cp
 
+## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial) ...
+...is available as example on how to run an analysis pipeline using chewBBACA. 
 
-<<<<<<< HEAD
-----------  
-## 0. Setting up software
-
-**Installing chewBBACA**
-
-
-Install using pip:
-
-```
-pip3 install chewbbaca_nserver
-```
-
-=======
 ## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/) ...
 ...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
 
@@ -118,7 +105,6 @@ pip3 install chewbbaca
 
 You need to install the following dependencies. Prodigal and BLAST must be added to the PATH variables.
 
->>>>>>> master_cp
 
 Python dependencies:
 * numpy>=1.14.0
@@ -127,20 +113,10 @@ Python dependencies:
 * plotly>=1.12.9
 * SPARQLWrapper>=1.8.0
 * pandas>=0.22.0
-<<<<<<< HEAD
-* requests==2.2.1
-
-**Docker image**
-
-```
-docker pull mickaelsilva/chewbbaca_nserver
-```
-=======
 
 Main dependencies:
 * BLAST 2.5.0+ ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.5.0/ or above
 * [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/) or above
->>>>>>> master_cp
 
 Other dependencies (for schema evaluation only):
 * [ClustalW2](http://www.clustal.org/download/current/)
@@ -149,49 +125,30 @@ Other dependencies (for schema evaluation only):
 
 ----------
 
-## 1. Download a schema from NS
+## 1. wgMLST schema creation
 
-Download a schema from NS with the DownloadSchema. Schemas are associated to species, each species has its own schemas.
-To check the schemas of species 1 you go to http://chewbbaca.online/app/v1/NS/species/1/schemas. The URI that defines the schema should be used
-for the -i input.
+Create your own wgMLST schema based on a set of genomes fasta files. The command is the following:
 
-**Note:**
-Downloading a schema with thousands of loci and thousands of alleles from the server is fast, however
-due to the need of some calculations for chewBBACA software usage (BSR scores), it may take a while to complete the process.
-In order to mitigate this issue we have compressed versions of the schemas available that, even if outdated, are easily
-updatable locally through the SyncSchema function (see step 4). The compressed versions can be downloaded from a
-browser e.g. http://chewbbaca.online/app/v1/NS/species/1/schemas/2/compressed
-
-The command is the following:
-
-`chewie_ns DownloadSchema -i http://chewbbaca.online/app/v1/NS/species/1/schemas/2 -p my_schema/ --cpu 6`
+`chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --cpu 4`
 
 **Parameters**
 
-`-i` url to schema
+`-i` Folder containing the genomes from which schema will be created. Alternatively a file 
+ containing the path to the list of genomes. One file path (must be full path) 
+ to any fasta/multifasta file containing all the complete or draft genomes you want to call alleles for.
 
-`-p` folder where to download the schema fastas
+`-o` prefix for the output folder for the schema
 
 `--cpu` Number of cpus to use
 
-<<<<<<< HEAD
-`--BSR` (optional) default: 0.6 - BSR value to consider the same allele, see (https://github.com/B-UMMI/chewBBACA/wiki/2.-Allele-Calling for further info)
-
-=======
 `--bsr` (Optional) Minimum BSR for defining locus similarity. Default at 0.6. 
->>>>>>> master_cp
 
 `--ptf` (Optional but recommended, contact for new species) path to file of prodigal training file to use.
 
 **Outputs:** 
 
-<<<<<<< HEAD
-One fasta file per gene in the `-o`directory that is created. A short folder, the content of the folder is
-used on the chewBBACA allele call.
-=======
 One fasta file per gene in the `-o` directory that is created. 
 The fasta file names are the given according the FASTA annotation for each coding sequence. 
->>>>>>> master_cp
 
 **Optional:** 
 
@@ -214,20 +171,17 @@ A tsv file with the information of each fasta (new_protids.tsv), location on the
 
 ----------
 
-## 2.  Allele call using the schema 
+## 2.  Allele call using the wgMLST schema 
 
-The AlleleCall function is to be used on a schema downloaded from the nomenclature server. Local
-alleles will be present both on the fastas from the schema and the profile results with an *.
 
 Then run is the following:
 
-`chewie_ns AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
+`chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
 
 **Parameters** 
 
 `-i` Folder containing the query genomes. Alternatively a file
  containing the list with the full path of the location of the query genomes.
-
 `-g` Folder containing the reference genes of the schema. Alternatively a file
  containing the list with the full path of the location of the reference genes.  
 
@@ -235,11 +189,6 @@ Then run is the following:
 
 `--cpu` Number of cpus to use 
 
-<<<<<<< HEAD
-`--ptf` (Optional but recommended, contact for new species) provide the prodigal training file (ptf) path. It will call the taxon-specific file to be used for training prodigal
-
-=======
->>>>>>> master_cp
 `-b` (optional)Blastp full path. In case of slurm system BLAST version being outdated it may 
 be hard to use a different one, use this option using the full path of the updated blastp executable
 
@@ -258,123 +207,45 @@ be hard to use a different one, use this option using the full path of the updat
 
 ----------
 
-## 3. Push a local profile and it's respective alleles to the NS
-
-This function is to be used to send alleles and profiles to the Nomenclature server. Only the alleles
-with a * present in the profile will be uploaded to the server. The new alleles and profiles will only
-be submitted if the authentication token is provided, else they are queried against the server alleles database and will return
-the allele server number if it has already been attributed
+## 3. Evaluate wgMLST call quality per genome
 
 
 Usage:
 
 
-`chewie_ns Send2NS -s my_schema/ -p results/results_20171220T154443/results_alleles.tsv`
+`chewBBACA.py TestGenomeQuality -i alleles.tsv -n 12 -t 200 -s 5 -o OutFolder`  
 	
-`-s` path to folder where the schema is
+`-i` raw output file from an allele calling (i.e. results_Alleles.txt)
 
-`-p` profile result from the allele call (results_alleles.tsv)
+`-n` maximum number of iterations. Each iteration removes a set of genomes over the defined threshold (-t) and recalculates all loci presence percentages.
 
-`-t` (optional) private authentication token
+`-t` maximum threshold, will start at 5. This threshold represents the maximum number of missing loci allowed, for each genome independently, before removing it (genome).
 
-`--cpu` Number of cpus to use 
+`-s` step to add to each threshold (suggested 5)
 
-`-m` (optional) metadata file
+`-o` Folder for the analysis files
 
+The output consists in a plot with all thresholds and a removedGenomes.txt file where its 
+informed of which genomes are removed per threshold when it reaches a stable point (no more genomes are removed).
 
-**NOTICE** metadata may be sent later with another function, see 7.
-
-Metadata file should be a tsv file with the following headers:
-```
-FILE	ST	ACCESSION	COUNTRY	STRAIN	collection_date	host	host_disease	lat	long	isol_source
-```
-
-Metadata fields with no info should be completed with NA.
-
-**FILE** column must have the same name as the genome given in `-p`.
-
-**Country** should be one of the present on the DBpedia list:
-http://dbpedia.org/class/yago/WikicatMemberStatesOfTheUnitedNations
-
-**STRAIN** is free text .
-
-**ACCESSION** needs to be found either on ENA or SRA.
-
-**collection_date** needs to be on the YYYY-MM-DD format.
-
-**host** needs to be an acceptable taxon name of common name found at https://www.uniprot.org/taxonomy/ . Common names such as 'pig' 'human' will also work.
-
-**host_disease** needs to be a disease ID found at http://www.disease-ontology.org/ . e.g salmonellosis will be 0060859
-
-**lat** needs to be a float number.
-
-**long** needs to be a float number.
-
-**isol_source** is free text.
-
-All metadata fields are optional except FILE.
-
-**Outputs files**:
-The output will be a new modified file with the new modified profile (newProfile.tsv). Alleles id with an * are only present locally.
+Example of an output can be seen [here](http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html) . This example uses an 
+original set of 714 genomes and a scheme consisting of 3266 loci, using a parameter `-n 12`,`-s 5` and `-t 300`.
 
 ----------
-## 4. Sync local schema with NS schema
+## 4. Defining the cgMLST schema
 
-This function is to be used to get alleles new alleles from the Nomenclature server. This will allow to
-update your local schema.
+ **Creating a clean allelic profile for PHYLOViZ** 
+ 
+Clean a raw output file from an allele calling to a phyloviz readable file.
+
 
 Basic usage:
 
-`chewie_ns SyncSchema -p my_schema/ --cpu 6`
-	
-`-p` path to schema folder
-
-`--cpu` number of cpu to use
-
-----------
-
-## 5. Download profiles from a given species for a given schema
-
-This function is to be used to get profiles from the Nomenclature server. Given a species id and a
-schema id from that species, get a tsv with all the profiles. Due to the way the nomenclature server is built,
-getting a profile is costly to the server, for that reason, downloading all the profiles may take a while. It
-is advised to specify a list of genomes you are mostly interested in (-r option) or to keep a file where you update
-new profiles (-p option)
-
-Basic usage:
-
-`chewie_ns DownloadProfiles --sp http://chewbbaca.online/app/v1/NS/species/2 --sc 1 --cpu 6`
-	
-`--sp` species uri
-
-`--sc` schema id
-
-`--cpu` number of cpu to use
-
-`-r` (optional) list of specific genomes to download profiles
-
-`-p` (optional) profile with already downloaded profiles for that schema.
-
-`-t` (optional) private authentication token. If given, will download only the isolates that belong to the user.
-
-The output will be a new file with all the profiles (profiles.tsv)
-
-
-----------
-
-## 6. Manipulating the profile
-
-This function is to be used to clean a raw output 
-file from an allele calling to a PhyloViz readable file. Alleles that are only present locally (*alleles)
-will be replaced by a high allele number (e.g. 99999)
-
-Basic usage:
-
-`chewie_ns ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
+`chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
 	
 `-i` raw output file from an allele calling
 
-`-o` output folder (created by the script if not existent yet)
+`-o` output folder (created by the script if not existant yet)
 
 `-r` (optional) list of genes to remove, one per line (e.g. the list of gene detected by ParalogPrunning.py)
 
@@ -383,57 +254,27 @@ Basic usage:
 `-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
 
 ----------
+## 5. Visualize your schema
 
-## 7. Send metadata to isolates already on the Nomenclature server
+ **Create an html to help visualize your schema** 
+ 
+ See an example [here](http://im.fm.ul.pt/chewBBACA/SchemaEval/rms/RmS.html)
 
-This function is to be used to send metadata to isolates that are already on the Nomenclature server.
-Metadata that were already uploaded to the server will not be updated.
-
-
-Usage:
+Basic usage:
 
 
-`chewie_ns SendMetadata -t qweqweasd -m info.tsv --cpu 3`
+`chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"`
+	
+`-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line
 
-`-t` private authentication token
+`-ta` (optional) which translation table to use (Default: 11 in case of bacteria)
 
-`--cpu` Number of cpus to use
+`--title` (optional) title to appear on the final html.
 
-<<<<<<< HEAD
-`-m` metadata file
+`-l` Location/name of the final html output
 
-Metadata file should be a tsv file with the following headers:
-```
-FILE	ST	ACCESSION	COUNTRY	STRAIN	collection_date	host	host_disease	lat	long	isol_source
-```
+`--cpu` number of cpu to use, will be used for mafft and clustalw2
 
-Metadata fields with no info should be completed with NA.
-
-**FILE** column must have the **isolate URI**.
-
-**Country** should be one of the present on the DBpedia list:
-http://dbpedia.org/class/yago/WikicatMemberStatesOfTheUnitedNations
-
-**STRAIN** is free text .
-
-**ACCESSION** needs to be found either on ENA or SRA.
-
-**collection_date** needs to be on the YYYY-MM-DD format.
-
-**host** needs to be an acceptable taxon name of common name found at https://www.uniprot.org/taxonomy/ . Common names such as 'pig' 'human' will also work.
-
-**host_disease** needs to be a disease ID found at http://www.disease-ontology.org/ . e.g salmonellosis will be 0060859
-
-**lat** needs to be a float number.
-
-**long** needs to be a float number.
-
-**isol_source** is free text.
-
-All metadata fields are optional except FILE.
-
-See the info.tsv file for an example.
-=======
 ----------
 ## FAQ
 
@@ -481,4 +322,3 @@ files. To create a training file do:
  
 ## Citation
 Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
->>>>>>> master_cp

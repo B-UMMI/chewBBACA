@@ -1,10 +1,27 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+AUTHORS
+
+    Mickael Silva
+    github: @
+
+    Pedro Cerqueira
+    github: @pedrorvc
+
+    Rafael Mamede
+    github: @rfm-targa
+
+DESCRIPTION
+
+"""
 
 
 import os
 import sys
 import platform
 import argparse
+
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 
@@ -12,237 +29,290 @@ from allelecall import BBACA
 from createschema import PPanGen
 from SchemaEvaluator import ValidateSchema
 from PrepExternalSchema import PrepExternalSchema
-from utils import TestGenomeQuality,profile_joiner,init_schema_4_bbaca,uniprot_find,Extract_cgAlleles,RemoveGenes,down_schema,down_profiles,send2NS,sync_schema,send_metadata
+from utils import (TestGenomeQuality, profile_joiner,
+                   uniprot_find, Extract_cgAlleles,
+                   RemoveGenes, auxiliary_functions as aux)
 
-import CHEWBBACA_NS
+from CHEWBBACA_NS import (down_schema, load_schema,
+                          sync_schema, down_profiles,
+                          send2NS, send_metadata)
 
-
-def check_if_list_or_folder(folder_or_list):
-    list_files = []
-    # check if given a list of genomes paths or a folder to create schema
-    try:
-        f = open(folder_or_list, 'r')
-        f.close()
-        list_files = folder_or_list
-    except IOError:
-
-        for gene in os.listdir(folder_or_list):
-            try:
-                genepath = os.path.join(folder_or_list, gene)
-
-                if os.path.isdir(genepath):
-                    continue
-
-                for allele in SeqIO.parse(genepath, "fasta", generic_dna):
-                    break
-                list_files.append(os.path.abspath(genepath))
-            except Exception as e:
-                print(e)
-                pass
-
-    return list_files
+import CHEWBBACA
 
 
 def create_schema():
 
-    def msg(name=None):                                                            
-        return ''' chewBBACA.py CreateSchema [CreateSchema ...] [-h] -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] [-v] [-l [L]]'''
+    def msg(name=None):
+        return '''chewBBACA.py CreateSchema [CreateSchema ...] [-h] '
+                 '-i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]] '
+                 '[--ptf [PTF]] [-v] [-l [L]]'''
 
-    parser = argparse.ArgumentParser(description="This program creates a schema when provided the genomes",usage=msg())
-    parser.add_argument('CreateSchema', nargs='+', help='create a schema')
-    parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output folder", required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        required=True)
-    parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    parser.add_argument("--CDS", help="use a fasta file, one gene per entry, to call alleles", required=False, action="store_true", default=False)
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    parser.add_argument('--ptf', nargs='?', type=str, help="provide your own prodigal training file (ptf) path", required=False, default=False)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
-    parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=201)
+    parser = argparse.ArgumentParser(description='Creates a wgMLST '
+                                                 'schema based on a '
+                                                 'set of input genomes.',
+                                     usage=msg())
+
+    parser.add_argument('CreateSchema', nargs='+',
+                        help='')
+
+    parser.add_argument('-i', nargs='?', type=str, required=True,
+                        dest='input_files',
+                        help='Path to the directory with the genomes FASTA '
+                             'files or to a file with a list of paths to '
+                             'the FASTA files, one per line.')
+
+    parser.add_argument('-o', nargs='?', type=str, required=True,
+                        dest='schema_dir',
+                        help='Output folder where the schema will be created.')
+
+    parser.add_argument('--cpu', nargs='?', type=int, required=True,
+                        dest='cpu_num',
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the CreateSchema process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads).')
+
+    parser.add_argument('-b', nargs='?', type=str, required=False,
+                        default='blastp', dest='blastp_path',
+                        help='Path to the BLASTp executables.')
+
+    parser.add_argument('--CDS', required=False, action='store_true',
+                        default=False, dest='cds_input',
+                        help='Input is a FASTA file with one representative '
+                             'sequence per gene in the schema.')
+
+    parser.add_argument('--bsr', nargs='?', type=float, required=False,
+                        default=0.6, dest='bsr_value',
+                        help='BLAST Score Ratio value. Sequences with '
+                             'alignments with a BSR value equal to or '
+                             'greater than this value will be considered '
+                             'as sequences from the same gene.')
+
+    parser.add_argument('--ptf', nargs='?', type=str, required=False,
+                        default=False, dest='ptf_path',
+                        help='Path to the Prodigal training file.')
+
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        default=False, dest='verbose',
+                        help='Increased output verbosity during execution.')
+
+    parser.add_argument('-l', nargs='?', type=int, required=False,
+                        default=201, dest='min_seq_len',
+                        help='Minimum sequence length accepted for a '
+                             'coding sequence to be included in the schema.')
 
     args = parser.parse_args()
 
-    genomeFiles = args.i
-    cpuToUse = args.cpu
-    outputFile = args.o
-    BlastpPath = args.b
+    input_files = args.input_files
+    schema_dir = args.schema_dir
+    cpu_num = args.cpu_num
+    blastp_path = args.blastp_path
+    cds_input = args.cds_input
     bsr = args.bsr
-    #~ chosenTaxon = args.t
-    chosenTrainingFile = args.ptf
+    ptf_path = args.ptf_path
     verbose = args.verbose
-    min_length = args.l
-    inputCDS = args.CDS
+    min_length = args.min_seq_len
 
-    if inputCDS==True:
-        genomeFiles=[os.path.abspath(genomeFiles)]
+    if cds_input is True:
+        input_files = [os.path.abspath(input_files)]
     else:
-        genomeFiles = check_if_list_or_folder(genomeFiles)
+        input_files = aux.check_input_type(input_files)
 
-    if isinstance(genomeFiles, list):
-        with open("listGenomes2Call.txt", "w") as f:
-            for genome in genomeFiles:
-                f.write(genome + "\n")
-        genomeFiles = "listGenomes2Call.txt"
-    try:
-        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
-    except:
-        chosenTrainingFileLocal=False
-        pass
-        
-    if os.path.isfile(chosenTrainingFile):
-        pass
-    
-    elif os.path.isfile(chosenTrainingFileLocal):
-        chosenTrainingFile=chosenTrainingFileLocal
-        pass
-    elif not chosenTrainingFileLocal:
-        pass
-    else:
-        print( chosenTrainingFile+ " file not found")
-        return
-    
-    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS)
+    # determine if user provided training file
+    # if not, try to find species training file included in chewBBACA
+    ptf_path = aux.check_ptf(ptf_path, CHEWBBACA.__file__)
 
-    
-    
-    try:
-        os.remove("listGenomes2Call.txt")
-    except:
-        pass
+    if ptf_path is False:
+        print('Could not find a valid Prodigal training file.')
+        return 1
+
+    # start CreateSchema process
+    PPanGen.main(input_files, cpu_num, schema_dir,
+                 bsr, blastp_path, min_length,
+                 verbose, ptf_path, cds_input)
+
+    # remove temporary file with paths
+    # to genome files
+    if os.path.isfile(input_files):
+        os.remove(input_files)
 
 
 def allele_call():
 
-    def msg(name=None):                                                            
-        return ''' chewBBACA.py AlleleCall [AlleleCall ...][-h] -i [I] -g [G] -o [O] --cpu [CPU] [-v] [-b [B]][--bsr [BSR]] [--ptf [PTF]] [--fc] [--fr] [--json]
-            '''
+    def msg(name=None):
+        return '''chewBBACA.py AlleleCall [AlleleCall ...][-h] '
+                 '-i [I] -g [G] -o [O] --cpu [CPU] [-v] [-b [B]] '
+                 '[--bsr [BSR]] [--st] [--ptf [PTF]] [--fc] '
+                 '[--fr] [--json] '''
 
-    parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes when provided a schema",usage=msg())
-    parser.add_argument('AlleleCall', nargs='+', help='do allele call')
-    parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
-    parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        required=True)
-    parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
-    parser.add_argument("--CDS", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        default=False)
-    parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
-    parser.add_argument('--st', nargs='?', type=float,
-                        help="size threshold, default at 0.2 means alleles with size variation +-20 percent will be tagged as ASM/ALM",
-                        required=False, default=0.2)
-    parser.add_argument('--ptf', nargs='?', type=str, help="provide the prodigal training file (ptf) path",
-                        required=False, default=False)
-    parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
-    parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
-    parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+    parser = argparse.ArgumentParser(description='Performs allele calling '
+                                                 'on a set of input genomes.',
+                                     usage=msg())
+
+    parser.add_argument('AlleleCall', nargs='+', help='')
+    parser.add_argument('-i', nargs='?', type=str, required=True,
+                        dest='input_files',
+                        help='Path to the directory with the genomes FASTA '
+                             'files or to a file with a list of paths to '
+                             'the FASTA files, one per line.')
+    parser.add_argument('-g', nargs='?', type=str, required=True,
+                        dest='schema_dir',
+                        help='Path to the schema directory with the'
+                             ' genes FASTA files.')
+    parser.add_argument('-o', nargs='?', type=str, required=True,
+                        dest='output_dir',
+                        help='Output directory where the allele '
+                             'calling results will be stored.')
+    parser.add_argument('--cpu', nargs='?', type=int, required=True,
+                        dest='cpu_num',
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the CreateSchema process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads).')
+    parser.add_argument('--contained', action='store_true', required=False,
+                        default=False, dest='contained',
+                        help=argparse.SUPPRESS)
+    parser.add_argument('--CDS', action='store_true', required=False,
+                        default=False, dest='cds_input',
+                        help=argparse.SUPPRESS)
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        dest='verbose',
+                        help='Increased output verbosity during execution.')
+    parser.add_argument('-b', nargs='?', type=str, required=False,
+                        default='blastp', dest='blastp_path',
+                        help='Path to the BLASTp executables.')
+    parser.add_argument('--bsr', nargs='?', type=float, required=False,
+                        default=0.6, dest='bsr_value',
+                        help='BLAST Score Ratio value. Sequences with '
+                             'alignments with a BSR value equal to or '
+                             'greater than this value will be considered '
+                             'as sequences from the same gene.')
+    parser.add_argument('--st', nargs='?', type=float, required=False,
+                        default=0.2, dest='size_threshold',
+                        help='CDS size variation threshold. At the default '
+                             'value of 0.2, alleles with size variation '
+                             '+-20 percent will be classified as ASM/ALM')
+    parser.add_argument('--ptf', nargs='?', type=str, required=False,
+                        default=False, dest='ptf_path',
+                        help='Path to the Prodigal training file.')
+    parser.add_argument('--fc', action='store_true', required=False,
+                        default=False, dest='force_continue',
+                        help='Continue allele call process that '
+                             'was interrupted.')
+    parser.add_argument('--fr', action='store_true', required=False,
+                        default=False, dest='force_reset',
+                        help='Force process reset even if there '
+                             'are temporary files from a previous '
+                             'process that was interrupted.')
+    parser.add_argument('--json', action='store_true', required=False,
+                        default=False, dest='json_report',
+                        help='Output report in JSON format.')
 
     args = parser.parse_args()
 
-    genomeFiles = args.i
-    genes = args.g
-    cpuToUse = args.cpu
-    BSRTresh = args.bsr
-    sizeTresh = args.st
+    input_files = args.input_files
+    schema_dir = args.schema_dir
+    cpu_num = args.cpu_num
+    bsr = args.bsr
+    size_threshold = args.size_threshold
     verbose = args.verbose
-    BlastpPath = args.b
-    gOutFile = args.o
-    chosenTaxon = False
-    chosenTrainingFile = args.ptf
-    forceContinue = args.fc
-    forceReset = args.fr
+    blastp_path = args.blastp_path
+    output_dir = args.output_dir
+    ptf_path = args.ptf_path
+    force_continue = args.force_continue
+    force_reset = args.force_reset
     contained = args.contained
-    inputCDS = args.CDS
-    jsonReport = args.json
+    cds_input = args.cds_input
+    json_report = args.json_report
+    chosen_taxon = False
 
-    genes2call = check_if_list_or_folder(genes)
+    schema_genes = aux.check_input_type(schema_dir)
 
-    if isinstance(genes2call, list):
-        with open("listGenes2Call.txt", "w") as f:
-            for genome in genes2call:
-                f.write(genome + "\n")
-        genes2call = "listGenes2Call.txt"
+    ptf_path = aux.check_ptf(ptf_path, CHEWBBACA.__file__)
 
-    try:
-        chosenTrainingFileLocal=os.path.join(os.path.dirname(CHEWBBACA.__file__), "prodigal_training_files",chosenTrainingFile)
-    except:
-        chosenTrainingFileLocal=False
-        pass
+    if ptf_path is False:
+        print('Could not find a valid Prodigal training file.')
+        return 1
 
-    if os.path.isfile(chosenTrainingFile):
-        pass
-    elif os.path.isfile(chosenTrainingFileLocal):
-        chosenTrainingFile=chosenTrainingFileLocal
-        pass
-    elif not chosenTrainingFileLocal:
-        pass
-    else:
-        print(str(chosenTrainingFile) + " file not found")
-        return
+    # if is a fasta pass as a list of genomes with a single genome,
+    # if not check if is a folder or a txt with a list of paths
+    genomes_files = aux.check_input_type(input_files)
 
-    # try to open as a fasta
-    fasta = SeqIO.parse(genomeFiles, "fasta", generic_dna)
-    try:
-        isFasta = (any(fasta))
-    except:
-        isFasta = False
+    BBACA.main(genomes_files, schema_genes, cpu_num,
+               output_dir, bsr, blastp_path,
+               force_continue, json_report, verbose,
+               force_reset, contained, chosen_taxon,
+               ptf_path, cds_input, size_threshold)
 
-    # if is a fasta pass as a list of genomes with a single genome, if not check if is a folder or a txt with a list of paths
-    if isFasta == True:
-        genomes2call = [os.path.abspath(genomeFiles)]
-    else:
-        genomes2call = check_if_list_or_folder(genomeFiles)
+    # remove temporary files with paths to genomes
+    # and schema files files
+    if os.path.isfile(schema_genes) is True:
+        os.remove(schema_genes)
+    if os.path.isfile(genomes_files):
+        os.remove(genomes_files)
 
-    if isinstance(genomes2call, list):
-        with open("listGenomes2Call.txt", "w") as f:
-            for genome in genomes2call:
-                f.write(genome + "\n")
-        genomes2call = "listGenomes2Call.txt"
-
-    BBACA.main(genomes2call, genes2call, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceContinue, jsonReport, verbose,
-               forceReset, contained, chosenTaxon, chosenTrainingFile, inputCDS, sizeTresh)
-
-    try:
-        os.remove("listGenes2Call.txt")
-    except:
-        pass
-    try:
-        os.remove("listGenomes2Call.txt")
-    except:
-        pass
 
 def evaluate_schema():
 
     def msg(name=None):
-        return ''' chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h] -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]] [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]
-			'''
+        return '''chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h]
+                 -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]]
+                 [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]'''
 
-    parser = argparse.ArgumentParser(
-        description="This program analyses a set of gene files, analyzing the alleles CDS and the length of the alleles per gene",
-        usage=msg())
+    parser = argparse.ArgumentParser(description='This program analyses a '
+                                                 'set of gene files, '
+                                                 'analyzing the alleles '
+                                                 'CDS and the length of '
+                                                 'the alleles per gene',
+                                     usage=msg())
 
-    parser.add_argument('SchemaEvaluator', nargs='+', help='evaluation of a schema')
-    parser.add_argument('-i', nargs='?', type=str, help='list genes, directory or .txt file with the full path',
-                        required=True)
-    parser.add_argument('-p', dest='conserved', action='store_true', help='One bad allele still makes gene conserved',
-                        required=False,
-                        default=False)
-    parser.add_argument('--log', dest='logScale', action='store_true', default=False)
-    parser.add_argument('-l', nargs='?', type=str, help='name/location main html file', required=True)
-    parser.add_argument('-ta', nargs='?', type=int, help='ncbi translation table', required=False, default=11)
-    parser.add_argument('-t', nargs='?', type=float, help='Threshold', required=False, default=0.05)
-    parser.add_argument('--title', nargs='?', type=str, help='title on the html', required=False,
-                        default="My Analyzed wg/cg MLST Schema - Rate My Schema")
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu to use', required=True)
-    parser.add_argument('-s', nargs='?', type=int,
-                        help='number of boxplots per page (more than 500 can make the page very slow)', required=False,
-                        default=500)
-    parser.add_argument('--light', help="skip clustal and mafft run", required=False, action="store_true",
-                        default=False)
+    parser.add_argument('SchemaEvaluator', nargs='+',
+                        help='evaluation of a schema')
+
+    parser.add_argument('-i', nargs='?', type=str, required=True,
+                        dest='',
+                        help='list genes, directory or .txt file '
+                             'with the full path')
+
+    parser.add_argument('-p', action='store_true', required=False,
+                        default=False, dest='conserved',
+                        help='One bad allele still makes gene conserved.')
+
+    parser.add_argument('--log', action='store_true', default=False,
+                        dest='logScale',
+                        help='')
+
+    parser.add_argument('-l', nargs='?', type=str, required=True,
+                        dest='',
+                        help='name/location main html file')
+
+    parser.add_argument('-ta', nargs='?', type=int, required=False,
+                        default=11, dest='',
+                        help='ncbi translation table')
+
+    parser.add_argument('-t', nargs='?', type=float, required=False,
+                        default=0.05, dest='',
+                        help='Threshold')
+
+    parser.add_argument('--title', nargs='?', type=str, required=False,
+                        default='My Analyzed wg/cg MLST Schema - Rate My Schema',
+                        dest='',
+                        help='title on the html')
+
+    parser.add_argument('--cpu', nargs='?', type=int, required=True,
+                        dest='',
+                        help='number of cpu to use')
+
+    parser.add_argument('-s', nargs='?', type=int, required=False,
+                        default=500, dest='',
+                        help='number of boxplots per page (more than '
+                        '500 can make the page very slow).')
+
+    parser.add_argument('--light', action='store_true', required=False,
+                        default=False, dest='',
+                        help='skip clustal and mafft run')
 
     args = parser.parse_args()
     genes = args.i
@@ -256,15 +326,17 @@ def evaluate_schema():
     light = args.light
     title = str(args.title)
 
-    ValidateSchema.main(genes, cpuToUse, outputpath, transTable, threshold, splited, title, logScale,
-                        OneBadGeneNotConserved, light)
+    ValidateSchema.main(genes, cpuToUse, outputpath,
+                        transTable, threshold, splited,
+                        title, logScale, OneBadGeneNotConserved,
+                        light)
 
 
 def test_schema():
 
     def msg(name=None):
-        return ''' chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h] -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]
-                    '''
+        return '''chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h] 
+                 -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]'''
 
     parser = argparse.ArgumentParser(
         description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss",
@@ -364,14 +436,22 @@ def join_profiles():
 def prep_schema():
 
     def msg(name=None):
-        return ''' chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] -i [I] --cpu [CPU] [-v] '''
+        return '''chewBBACA.py PrepExternalSchema [PrepExternalSchema ...][-h] '
+                 '-i [I] --cpu [CPU] [-v]'''
 
-    parser = argparse.ArgumentParser(description='This script enables the adaptation of external schemas so that '
-                                                 'the loci and alleles present in those schemas can be used with '
-                                                 'chewBBACA. During the process, alleles that do not correspond to '
-                                                 'a complete CDS or that cannot be translated are discarded from the '
-                                                 'final schema. One or more alleles of each gene/locus will be chosen '
-                                                 'as representatives and included in the "short" directory.')
+    parser = argparse.ArgumentParser(description='This script enables the '
+                                                 'adaptation of external schemas '
+                                                 'so that the loci and alleles '
+                                                 'present in those schemas can '
+                                                 'be used with chewBBACA. During '
+                                                 'the process, alleles that do '
+                                                 'not correspond to a complete '
+                                                 'CDS or that cannot be translated '
+                                                 'are discarded from the final '
+                                                 'schema. One or more alleles '
+                                                 'of each gene/locus will be '
+                                                 'chosen as representatives and '
+                                                 'included in the "short" directory.')
 
     parser.add_argument('PrepExternalSchema', nargs='+',
                         help='Adapt an external schema to be used with '
@@ -421,11 +501,11 @@ def prep_schema():
 
 
 def find_uniprot():
-    
+
     def msg(name=None):                                                            
         return ''' chewBBACA.py UniprotFinder [UniprotFinder ...][-h] -i [I] -t [T] --cpu [CPU]
                     '''
-    
+
     parser = argparse.ArgumentParser(
         description="This program gets information of each locus created on the schema creation, based on the uniprot database")
     parser.add_argument('UniprotFinder', nargs='+',
@@ -449,32 +529,116 @@ def find_uniprot():
 def download_schema_NS():
 
     def msg(name=None):
-        return ''' chewBBACA.py DownloadSchema [DownloadSchema ...][-h] -i [I] --cpu [CPU] -p [P]
-                    '''
+        return '''chewBBACA.py Download_NS_Schema [Download_NS_Schema ...][-h]
+                 -ns_schema [NS_SCHEMA] -ns_species [NS_SPECIES]
+                 -down_folder [DOWN_FOLDER] --cpu [CPU] --bsr [BSR]
+                 --ns_url [NS_URL]'''
 
-    parser = argparse.ArgumentParser(
-        description="This program downloads a schema from NS",usage=msg())
-    parser.add_argument('DownloadSchema', nargs='+', help='This program downloads a schema from the nomenclature server to be used, it is advised to use the compressed uri insteado of this program as it may be slow')
-    parser.add_argument('-i', nargs='?', type=str, help='uri to NS schema', required=True)
-    parser.add_argument('-p', nargs='?', type=str, help='path where to down', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('--bsr', nargs='?', type=float, help="maximum BSR score to consider as short, close to 1 all alleles will be on short making blast slower", required=False, default=0.6)
+    parser = argparse.ArgumentParser(description='This program downloads '
+                                                 'a schema from the NS.',
+                                     usage=msg())
+
+    parser.add_argument('Download_NS_Schema', nargs='+',
+                        help='This program downloads a schema from '
+                             'the NS.')
+
+    parser.add_argument('-ns_schema', nargs='?', type=str, required=True,
+                        dest='ns_schema',
+                        help='The URI, integer identifier or description of '
+                             'the schema to download from the NS.')
+
+    parser.add_argument('-ns_species', nargs='?', type=str, required=True,
+                        dest='ns_species',
+                        help='The integer identifier or name of the species '
+                             'that the schema is associated to in the NS.')
+
+    parser.add_argument('-down_folder', type=str, required=True, dest='',
+                        help='Output folder to which the schema will '
+                             'be saved.')
+
+    parser.add_argument('--cpu', nargs='?', type=int, required=False,
+                        default=1, dest='cpu_num',
+                        help='Number of CPU cores/threads that will '
+                             'be passed to the PrepExternalSchema to '
+                             'determine representatives and create the '
+                             'final schema.')
+
+    parser.add_argument('--bsr', nargs='?', type=float, required=False,
+                        default=0.6, dest='',
+                        help='The BLAST Score Ratio value used to determine '
+                             'representative sequences.')
+
+    parser.add_argument('--ns_url', type=str, required=False,
+                        default='http://127.0.0.1:5000/NS/api/',
+                        dest='ns_url',
+                        help='The base URL for the Nomenclature Server.')
 
     args = parser.parse_args()
 
-    uri2schema = args.i
-    path2down = args.p
-    cpu2use = args.cpu
-    maxBsrShort = args.bsr
+    ns_schema = args.ns_schema
+    ns_species = args.ns_species
+    down_folder = args.down_folder
+    cpu_num = args.cpu_num
+    bsr = args.bsr
+    ns_url = args.ns_url
 
-    #check if path to down is direcotry
-    if not os.path.isdir(path2down):
-        print(path2down+" is not a folder")
-        return
-    if os.listdir(path2down):
-        print(path2down+" is not a folder")
-        return
-    down_schema.main(uri2schema, path2down,cpu2use,maxBsrShort)
+    down_schema.main(ns_schema, ns_species, down_folder,
+                     cpu_num, bsr, ns_url)
+
+
+def load_schema_NS():
+
+    def msg(name=None):
+        return '''chewBBACA.py Load_NS_Schema [Load_NS_Schema ...][-h]
+                 -i [I] --cpu [CPU] -p [P]'''
+
+    parser = argparse.ArgumentParser(description='This program uploads '
+                                                 'a schema to the NS.',
+                                     usage=msg())
+
+    parser.add_argument('Load_NS_Schema', nargs='+',
+                        help='')
+
+    parser.add_argument('-schema', nargs='?', type=str, required=True,
+                        dest='schema',
+                        help='')
+
+    parser.add_argument('-ns_species', nargs='?', type=str, required=True,
+                        dest='ns_species',
+                        help='')
+
+    parser.add_argument('-schema_desc', type=str, required=True,
+                        dest='schema_desc',
+                        help='')
+
+    parser.add_argument('--loci_prefix', nargs='?', type=str, required=False,
+                        default=1, dest='loci_prefix',
+                        help='')
+
+    parser.add_argument('--thr', nargs='?', type=float, required=False,
+                        default=0.6, dest='threads',
+                        help='')
+
+    parser.add_argument('--ns_url', type=str, required=False,
+                        default='http://127.0.0.1:5000/NS/api/',
+                        dest='ns_url',
+                        help='The base URL for the Nomenclature Server.')
+
+    parser.add_argument('--continue', required=False, default=False,
+                        dest='continue',
+                        help='')
+
+    args = parser.parse_args()
+
+    ns_schema = args.ns_schema
+    ns_species = args.ns_species
+    down_folder = args.down_folder
+    cpu_num = args.cpu_num
+    bsr = args.bsr
+    ns_url = args.ns_url
+
+    load_schema.main(ns_schema, ns_species, down_folder,
+                     cpu_num, bsr, ns_url)
 
 
 def sync_schema_NS():

@@ -24,9 +24,9 @@ import urllib.request
 import concurrent.futures
 from getpass import getpass
 from itertools import repeat
-import ns_constants as const
-import extra_scripts.utils as ut
-from extra_scripts import PrepExternalSchema
+
+from utils import auxiliary_functions as aux
+from PrepExternalSchema import PrepExternalSchema
 
 
 def species_list(base_url, headers_get, endpoint_list):
@@ -64,7 +64,7 @@ def simple_get_request(base_url, headers, endpoint_list):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = ut.make_url(base_url, *endpoint_list)
+    url = aux.make_url(base_url, *endpoint_list)
     res = requests.get(url, headers=headers, timeout=30)
 
     return res
@@ -179,8 +179,7 @@ def get_fasta_seqs(headers_get, url):
     return (url.rstrip('/fasta'), res)
 
 
-def get_schema(schema_uri, download_folder, core_num, bsr,
-               headers_get, schema_desc):
+def get_schema(schema_uri, download_folder, headers_get, schema_desc):
     """ Downloads, builds a writes a schema from NS
 
         Args:
@@ -193,7 +192,7 @@ def get_schema(schema_uri, download_folder, core_num, bsr,
         Returns:
     """
 
-    schema_loci_uri = ut.make_url(schema_uri, 'loci')
+    schema_loci_uri = aux.make_url(schema_uri, 'loci')
 
     # get list of loci and build dictionary locus_id --> gene_name
     loci_res = requests.get(schema_loci_uri, headers=headers_get)
@@ -217,9 +216,10 @@ def get_schema(schema_uri, download_folder, core_num, bsr,
         loci_names[str(locus['locus']['value'])] = f"{locus['name']['value']}.fasta"
 
     # build the list of urls to get
-    fasta_urls = [ut.make_url(locus, 'fasta') for locus in loci_names]
+    fasta_urls = [aux.make_url(locus, 'fasta') for locus in loci_names]
 
     # multithread the requests
+    # must write files or this will go into RAM and explode
     print('Downloading schema files...\n')
     responses = {}
     downloaded = 0
@@ -228,7 +228,8 @@ def get_schema(schema_uri, download_folder, core_num, bsr,
         for result in executor.map(get_fasta_seqs, repeat(headers_get), fasta_urls):
             responses[result[0]] = result[1]
             downloaded += 1
-            print('\r', 'Downloaded: {0}/{1}'.format(downloaded, total_files), end='')
+            print('\r', 'Downloaded: '
+                  '{0}/{1}'.format(downloaded, total_files), end='')
 
     # Build a dict with fasta_file ----> response
     res_dict = {loci_names[locus]: responses[locus] for locus in responses}
@@ -237,36 +238,20 @@ def get_schema(schema_uri, download_folder, core_num, bsr,
     print('\nWriting fasta files...\n')
     failed_loci = build_fasta_files(res_dict, download_folder)
     successful_loci = len(res_dict) - len(failed_loci)
-    print('Downloaded and wrote FASTA files for {0}/{1} loci'.format(successful_loci, len(res_dict)))
+    print('Downloaded and wrote FASTA files for '
+          '{0}/{1} loci'.format(successful_loci, len(res_dict)))
     print('Failed for {0} loci.'.format(len(failed_loci)))
 
     # output dir for the result of PrepExternalSchema
     local_schema_name = '{0}_schema'.format(schema_desc)
     local_schema_path = os.path.join(download_folder, local_schema_name)
 
-    PrepExternalSchema.main(download_folder,
-                            local_schema_path,
-                            core_num,
-                            bsr)
+    ns_files = list(res_dict.keys())
 
-    # copy .config.txt to output
-    shutil.copy(ns_config, local_schema_path)
-
-    # remove FASTA files with sequences from the NS
-    for file in res_dict:
-        os.remove(os.path.join(download_folder, file))
-
-    return local_schema_path
+    return [local_schema_path, ns_files, ns_config]
 
 
-#base_url = 'http://127.0.0.1:5000/NS/api/'
-#species_id = 'Yersinia pestis'
-#schema_id = 'gre9'
-#core_num = 6
-#bsr = 0.6
-#download_folder = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/down_tests'
-
-def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
+def main(schema_id, species_id, download_folder, core_num, base_url):
 
     # login with master key
     login_key = False
@@ -280,7 +265,7 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
         password = getpass('PASSWORD: ')
         print()
         # get token
-        token = ut.login_user_to_NS(base_url, user, password)
+        token = aux.login_user_to_NS(base_url, user, password)
         # if login was not successful, stop the program
         if token is False:
             message = '403: Invalid credentials.'
@@ -314,7 +299,8 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
                                        headers=headers_get,
                                        timeout=5)
         if schema_response.status_code > 201:
-            print('There is no schema with URI "{0}" for {1}.'.format(species_name))
+            print('There is no schema with URI "{0}" for '
+                  '{1}.'.format(species_name))
         else:
             schema_uri = schema_uri[0]
             schema_id = schema_uri.split('/')[0]
@@ -353,7 +339,7 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
         else:
             print('\nCould not retrieve schemas for current species.')
 
-    # create downlaod folder if it does not exist
+    # create download folder if it does not exist
     if not os.path.exists(download_folder):
         os.mkdir(download_folder)
     else:
@@ -363,21 +349,14 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
         if len(download_folder_files) > 0:
             print('Download folder is not empty.\n'
                   'Please ensure that folder is empty to guarantee proper\n'
-                  'schema creation or provide a valid path for a new folder that'
-                  ' will be created.')
+                  'schema creation or provide a valid path for a new folder '
+                  'that will be created.')
             return 1
 
     print('Schema info:\nID: {0}\nURI: {1}\nSpecies: {2}\nDownload directory: {3}'.format(schema_id,
                                                                                           schema_uri,
                                                                                           species_name,
                                                                                           download_folder))
-    print('Downloading schema...')
-
-    start = time.time()
-
-    schema_path = get_schema(schema_uri, download_folder,
-                             core_num, bsr, headers_get,
-                             schema_file_desc)
 
     # get schema parameters
     schema_params = requests.get(schema_uri, headers=headers_get)
@@ -387,6 +366,35 @@ def main(schema_id, species_id, download_folder, core_num, bsr, base_url):
     schema_params_dict = {k: schema_params[k]['value']
                           for k in schema_params.keys()
                           if k != 'name'}
+
+    #print(schema_params_dict)
+
+    print('Downloading schema...')
+
+    start = time.time()
+
+    schema_path, ns_files, ns_config = get_schema(schema_uri,
+                                                  download_folder,
+                                                  headers_get,
+                                                  schema_file_desc)
+
+    # determine representatives and create schema
+    #print(download_folder)
+    PrepExternalSchema.main(download_folder,
+                            schema_path,
+                            core_num,
+                            float(schema_params_dict['bsr']),
+                            int(schema_params_dict['minimum_locus_length']),
+                            int(schema_params_dict['translation_table']))
+
+    # copy ns_config file
+    shutil.copy(ns_config, schema_path)
+    if os.path.isfile(ns_config):
+        os.remove(ns_config)
+
+    # remove FASTA files with sequences from the NS
+    for file in ns_files:
+        os.remove(os.path.join(download_folder, file))
 
     # write hidden schema config file
     schema_config = os.path.join(schema_path, '.schema_config')
@@ -423,26 +431,26 @@ def parse_arguments():
                         'the NS. Can be the species name or the integer '
                         'identifier for that species in the NS.')
 
-    parser.add_argument('-out', type=str, dest='download_folder', required=True,
+    parser.add_argument('-out', type=str, required=True,
+                        dest='download_folder',
                         help='')
 
-    parser.add_argument('--cores', type=int, required=False, dest='core_num', 
-                        default=1, help='')
+    parser.add_argument('--cores', type=int, required=False, dest='core_num',
+                        default=1,
+                        help='')
 
-    parser.add_argument('--bsr', type=float, required=False, dest='blast_score_ratio', 
-                        default=0.6, help='')
-
-    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url', 
-                        default='http://127.0.0.1:5000/NS/api/', help='')
+    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url',
+                        default='http://127.0.0.1:5000/NS/api/',
+                        help='')
 
     args = parser.parse_args()
 
     return [args.schema_id, args.species_id, args.download_folder,
-            args.core_num, args.blast_score_ratio, args.ns_url]
+            args.core_num, args.ns_url]
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
     main(args[0], args[1], args[2],
-         args[3], args[4], args[5])
+         args[3], args[4])

@@ -26,14 +26,16 @@ from copy import deepcopy
 import concurrent.futures
 from getpass import getpass
 from itertools import repeat
-import extra_scripts.utils as ut
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper, JSON
-from extra_scripts import PrepExternalSchema
 
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Data.CodonTable import TranslationError
+
+from utils import auxiliary_functions as aux
+from PrepExternalSchema import PrepExternalSchema
+
 
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
@@ -47,7 +49,7 @@ def determine_upload(local_schema_loci, ns_schema_loci,
     local_uniq = {}
     comp = []
     for locus in local_schema_loci:
-        #updated_locus = []
+
         local_locus = locus
         locus_id = local_locus.rstrip('.fasta')
         pickled_file = os.path.join(temp_path, '{0}_pickled'.format(locus_id))

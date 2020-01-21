@@ -19,12 +19,19 @@ DESCRIPTION
 
 import os
 import re
+import json
 import shutil
+import requests
 import itertools
 import multiprocessing
+from SPARQLWrapper import SPARQLWrapper, JSON
+from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 
+UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 
 def verify_cpu_usage(cpu_to_use):
     """ Verify the cpu usage for chewBBACA.
@@ -325,3 +332,319 @@ def threads_for_blast(files_to_blast, cpu_to_apply):
         proc = len(blast_threads)
 
     return blast_threads, proc
+
+
+def isListEmpty(inList):
+    """ Checks if a nested list is empty
+    """
+    if isinstance(inList, list): # Is a list
+        return all(map(isListEmpty, inList)) if isinstance(inList, list) else False
+
+
+def reverseComplement(strDNA):
+
+    basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+    strDNArevC = ''
+    for l in strDNA:
+        strDNArevC += basecomplement[l]
+
+    return strDNArevC[::-1]
+
+
+def translateSeq(DNASeq):
+
+    seq = DNASeq
+    tableid = 11
+    try:
+        myseq = Seq(seq)
+        protseq = Seq.translate(myseq, table=tableid, cds=True)
+    except:
+        try:
+            seq = reverseComplement(seq)
+            myseq = Seq(seq)
+            protseq = Seq.translate(myseq, table=tableid, cds=True)
+        except:
+            try:
+                seq = seq[::-1]
+                myseq = Seq(seq)
+                protseq = Seq.translate(myseq, table=tableid, cds=True)
+            except:
+                try:
+                    seq = seq[::-1]
+                    seq = reverseComplement(seq)
+                    myseq = Seq(seq)
+                    protseq = Seq.translate(myseq, table=tableid, cds=True)
+                except Exception as e:
+                    # print("translation error")
+                    # print(e)
+                    raise
+
+    return protseq
+
+
+def translate_sequence(dna_str, table_id):
+    """ Translate a DNA sequence using the BioPython package.
+
+        Args:
+            dna_str (str): DNA sequence as string type.
+            table_id (int): translation table identifier.
+
+        Returns:
+            protseq (str): protein sequence created by translating
+            the input DNA sequence.
+    """
+
+    myseq_obj = Seq(dna_str)
+    protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
+
+    return protseq
+
+
+def is_url(url):
+    """ Checks if a url is valid
+    
+        Args: 
+        url (str): the url to be checked
+
+        Returns:
+        True if url is valid, False otherwise.
+    
+    """
+    
+    try:
+        
+        result = urlparse(url)
+        return all([result.scheme, result.netloc, result.path])
+    
+    except:
+        return False
+
+
+def make_url(base_url , *res, **params):
+    """ Creates a url. 
+    
+        Args: 
+            base_url (str): the base url
+            res (str): endpoint(s) to add to the base url
+            params (str): addtional parameters (WIP)
+
+        Returns:
+            url (str) with the provided parameters.
+            Otherwise, returns base_url.
+
+    """
+    
+    url = base_url
+    
+    # Check if the url is valid
+    if is_url(url):
+        
+        if url[-1] == "/":
+            url = url[:-1]
+    
+        # Add the endpoints
+        for r in res:
+    #        url = '{}/{}'.format(url, r)
+            url = f'{url}/{r}'
+        
+        # Add params if they are provided
+        if params:
+    #        url = '{}?{}'.format(url, urllib.urlencode(params))
+            url = f'{url}?{urlencode(params)}'
+        
+        return url
+    
+    else:
+        return "An invalid URL was provided."
+
+
+def get_sequence_from_url(url):
+    """
+    """
+    
+    seq = parse_qs(urlsplit(url).query)["sequence"][0]
+    
+    return seq
+
+
+def login_user_to_NS(server_url, email, password):
+    """ Logs a user in Nomenclature Server
+    
+        Args:
+            server_url (str): url of Nomeclature Server API
+            email (str): email of the user in NS
+            password (str): password of the user in NS
+            
+        Returns:
+            token (str): authorization token to perform requests to NS
+    """
+    
+    auth_params = {}
+    auth_params["email"] = email 
+    auth_params["password"] = password
+    
+    auth_headers = {}
+    auth_headers["Content-Type"] = "application/json"
+    auth_headers["accepts"] = "application/json"
+    
+    auth_url = make_url(server_url, "auth", "login")
+    
+    auth_r = requests.post(auth_url, data=json.dumps(auth_params), headers=auth_headers)
+    
+    auth_result = auth_r.json() 
+
+    token = auth_result["access_token"]
+    
+    return token
+    
+
+def send_data(sparql_query, url_send_local_virtuoso, virtuoso_user, virtuoso_pass):
+    """ Sends data to virtuoso.
+    
+        Args: 
+            sparql_query (str): the sparql query to use
+            url_send_local_virtuoso (str): the url for the local Virtuoso folder
+            virtuoso_user (str): the Virtuoso user
+            virtuoso_pass (str): the Virtuoso password
+
+        Returns:
+            r (Response) of the Virtuoso server
+    """
+    
+    url = url_send_local_virtuoso
+    headers = {'content-type': 'application/sparql-query'}
+    r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass))
+
+    #sometimes virtuoso returns 405 God knows why ¯\_(ツ)_/¯ retry in 2 sec
+    if r.status_code >201:
+        time.sleep(2)
+        r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass))
+        
+    return r
+
+
+def send_post(loci_uri, sequence, token, noCDSCheck):
+    """ """
+
+    params = {}
+    params['sequence'] = sequence
+
+    if not noCDSCheck:
+        params['enforceCDS'] = "False"
+    
+    headers = {'X-API-KEY': token,
+               'Content-type': 'application/json',
+               'accept': 'application/json'}
+    
+#    url = loci_uri + "/alleles"
+    
+    url = make_url(loci_uri, "alleles")
+
+    req_success = False
+    sleepfactor = 4
+    while not req_success:
+        try:
+            r = requests.post(url, data=json.dumps(params), headers=headers, timeout=30)
+            
+            if r.status_code == 418:
+                print("Sequence is already attributed to a loci/allele")
+            
+            elif r.status_code > 201:
+                print(r)
+                print("failed sending sequence, retrying in seconds "
+                      + str(sleepfactor))
+                time.sleep(sleepfactor)
+                sleepfactor = sleepfactor * 2
+            else:
+                req_success = True
+        except:
+            time.sleep(sleepfactor)
+            sleepfactor = sleepfactor * 2
+            pass
+
+    req_code = int(r.status_code)
+    # allele_url=((r.content).decode("utf-8")).replace('"', '').strip()
+
+    return req_code
+
+
+def send_sequence(token, sequence, loci_uri, noCDSCheck):
+    """ """
+
+    req_success = False
+    sleepfactor = 4
+    while not req_success:
+
+        reqCode = send_post(loci_uri, sequence, token, noCDSCheck)
+        if reqCode > 201:
+            print("failed, retrying in seconds "+str(sleepfactor))
+            time.sleep(sleepfactor)
+            sleepfactor = sleepfactor * 2
+
+        else:
+            req_success = True
+    
+    # if reqCode==401:
+        # print ("Token is not valid")
+    # elif reqCode>201:
+        #
+        # try:
+            #~ allele_url,reqCode=send_post(loci_uri,sequence,token)
+        # except:
+            #~ print ("Server returned code "+str(reqCode))
+            #~ print(loci_uri)
+    # else:
+        # new_allele_id=str(int(allele_url.split("/")[-1]))
+        
+    return reqCode
+
+
+def process_locus(gene, token, loci_url, auxBar, noCDSCheck):
+    """ """
+
+    for allele in SeqIO.parse(gene, "fasta", generic_dna):
+
+        sequence = (str(allele.seq)).upper()
+        try:
+            sequence = translateSeq(sequence)
+            sequence = str(sequence)
+
+        except:
+            continue
+
+        #reqCode = send_sequence(token, sequence, loci_url, noCDSCheck)
+        reqCode = send_post(loci_url, sequence, token, noCDSCheck)
+        
+#    if reqCode == 418:
+#        print(gene)
+
+    if gene in auxBar:
+        auxlen = len(auxBar)
+        index = auxBar.index(gene)
+        print("[" + "=" * index + ">" +
+                " " * (auxlen - index) +
+                "] Sending alleles " +
+                    str(int((index / auxlen) * 100)) + "%")
+
+    return reqCode
+
+
+def get_data(sparql_query):
+    """ Gets data from Virtuoso """
+    
+    try:
+        UNIPROT_SERVER.setQuery(sparql_query)
+        UNIPROT_SERVER.setReturnFormat(JSON)
+        UNIPROT_SERVER.setTimeout(20)
+        result = UNIPROT_SERVER.query().convert()
+    except Exception as e:
+        time.sleep(5)
+        try:
+            UNIPROT_SERVER.setQuery(sparql_query)
+            UNIPROT_SERVER.setReturnFormat(JSON)
+            UNIPROT_SERVER.setTimeout(20)
+            result = UNIPROT_SERVER.query().convert()
+        except Exception as e:
+            result = e
+            
+    return result

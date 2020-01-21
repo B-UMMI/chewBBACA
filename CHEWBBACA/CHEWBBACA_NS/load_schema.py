@@ -29,8 +29,8 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Data.CodonTable import TranslationError
 
-import ns_constants as const
-import extra_scripts.utils as ut
+from utils import constants as cnst
+from utils import auxiliary_functions as aux
 
 
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
@@ -56,13 +56,12 @@ def species_list(base_url, headers_get, endpoint_list):
 def species_ids(species_id, base_url, headers_get):
     """
     """
-    
+
     try:
         int(species_id)
         species_info = simple_get_request(base_url, headers_get,
                                           ['species', species_id])
-        #print(species_info)
-        #print(species_info.json())
+
         if species_info.status_code == 200:
             species_name = species_info.json()[0]['name']['value']
             return [species_id, species_name]
@@ -81,7 +80,7 @@ def species_ids(species_id, base_url, headers_get):
 def retrieve_schema_info(schemas_list, schema_desc):
     """
     """
-    
+
     schema_exists = False
     for s in schemas_list:
         current_desc = s['name']['value']
@@ -89,7 +88,7 @@ def retrieve_schema_info(schemas_list, schema_desc):
             schema_exists = True
             schema_url = s['schemas']['value']
             schema_id = schema_url.split('/')[-1]
-    
+
     if schema_exists:
         return [schema_url, schema_id]
     else:
@@ -109,13 +108,15 @@ def determine_upload(local_schema_loci, ns_schema_loci,
 
         if local_locus in ns_schema_loci:
             local_file = os.path.join(local_path, locus)
-            local_sequences = [str(rec.seq) for rec in SeqIO.parse(local_file, 'fasta')]
+            local_sequences = [str(rec.seq)
+                               for rec in SeqIO.parse(local_file, 'fasta')]
 
             ns_uri = ns_schema_locid_map[locus][0]
             ns_locus_id = ns_uri.split('/')[-1]
             ns_info = simple_get_request(base_url, headers_get,
                                          ['loci', ns_locus_id, 'fasta'])
-            ns_sequences = [seq['nucSeq']['value'] for seq in ns_info.json()['Fasta']]
+            ns_sequences = [seq['nucSeq']['value']
+                            for seq in ns_info.json()['Fasta']]
 
             local_set = set(local_sequences)
             ns_set = set(ns_sequences)
@@ -230,7 +231,7 @@ def check_configs(file_path, input_path, schema_desc):
         # Load configs dictionary
         with open(file_path, 'rb') as cf:
             configs = pickle.load(cf)
-        #print(configs)
+
         params['name'] = schema_desc
         # Determine if the configs are valid
         # Prodigal training file
@@ -263,24 +264,25 @@ def check_configs(file_path, input_path, schema_desc):
             messages.append(message)
         # translation table
         schema_gen_code = int(configs.get('translation_table', 'not_found'))
-        #print(const.GENETIC_CODES)
-        if schema_gen_code in const.GENETIC_CODES:
-            genetic_code_desc = const.GENETIC_CODES[schema_gen_code]
-            print('Schema genes were predicted with genetic code {0} ({1}).'.format(schema_gen_code, genetic_code_desc))
+
+        if schema_gen_code in cnst.GENETIC_CODES:
+            genetic_code_desc = cnst.GENETIC_CODES[schema_gen_code]
+            print('Schema genes were predicted with genetic code '
+                  '{0} ({1}).'.format(schema_gen_code, genetic_code_desc))
             params['translation_table'] = str(schema_gen_code)
         else:
             message = ('Genetic code used to create schema is not valid.')
             messages.append(message)
         # chewie version
         schema_chewie_version = configs.get('chewBBACA_version', 'not_found')
-        print(schema_chewie_version)
-        print(const.CHEWIE_VERSIONS)
-        if schema_chewie_version in const.CHEWIE_VERSIONS:
-            chewie_version = const.CHEWIE_VERSIONS[const.CHEWIE_VERSIONS.index(schema_chewie_version)]
+
+        if schema_chewie_version in cnst.CHEWIE_VERSIONS:
+            chewie_version = cnst.CHEWIE_VERSIONS[cnst.CHEWIE_VERSIONS.index(schema_chewie_version)]
             print('Schema created with chewBBACA v{0}.'.format(chewie_version))
             params['chewBBACA_version'] = schema_chewie_version
         else:
-            message = ('Schema created with chewBBACA version that was not suitable to work with the NS.')
+            message = ('Schema created with chewBBACA version that '
+                       'was not suitable to work with the NS.')
             messages.append(message)
 
         if 'message' not in locals():
@@ -356,7 +358,7 @@ def simple_get_request(base_url, headers, endpoint_list):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = ut.make_url(base_url, *endpoint_list)
+    url = aux.make_url(base_url, *endpoint_list)
     res = requests.get(url, headers=headers, timeout=30)
 
     return res
@@ -380,7 +382,7 @@ def simple_post_request(base_url, headers, endpoint_list, data):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = ut.make_url(base_url, *endpoint_list)
+    url = aux.make_url(base_url, *endpoint_list)
     res = requests.post(url, data=json.dumps(data), headers=headers)
 
     return res
@@ -403,7 +405,7 @@ def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene):
     """
 
     # Build the url for loci/list
-    url_loci = ut.make_url(base_url, 'loci', 'list')
+    url_loci = aux.make_url(base_url, 'loci', 'list')
 
     # Define POST request parameters
     params = {}
@@ -422,9 +424,11 @@ def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene):
     elif res_status == 404:
         message = '{0}: Species not found.'.format(res_status)
     elif res_status == 403:
-        message = '{0}: Unauthorized. No permission to add new locus.'.format(res_status)
+        message = ('{0}: Unauthorized. No permission to add '
+                   'new locus.'.format(res_status))
     elif res_status == 400:
-        message = '{0}: Please provide a valid locus prefix.'.format(res_status)
+        message = ('{0}: Please provide a valid locus '
+                   'prefix.'.format(res_status))
 
     if 'message' in locals():
         return [False, message]
@@ -655,7 +659,7 @@ def post_allele(input_stuff):
     user_id = input_stuff[9]
 
     # Build the url for loci/loci_id/alleles
-    url = ut.make_url(loci_url, 'alleles')
+    url = aux.make_url(loci_url, 'alleles')
 
     params = {}
     params['sequence'] = sequence
@@ -694,14 +698,15 @@ def post_species_loci(url, species_id, locus_id, headers_post):
     params['locus_id'] = locus_id
 
     # Build the url for the loci of the new schema
-    url_species_loci = ut.make_url(url, 'species', species_id, 'loci')
+    url_species_loci = aux.make_url(url, 'species', species_id, 'loci')
 
     # insert new locus
     res = requests.post(url_species_loci, data=json.dumps(params),
                         headers=headers_post, timeout=30)
 
     if res.status_code > 201:
-        message = '{0}: Failed to link locus to species.'.format(res.status_code)
+        message = ('{0}: Failed to link locus to '
+                   'species.'.format(res.status_code))
 
     if 'message' in locals():
         return [False, message]
@@ -731,13 +736,14 @@ def post_schema_loci(loci_url, schema_url, headers_post):
     params['loci_id'] = new_loci_id
 
     # Build the url for the loci of the new schema
-    url_schema_loci = ut.make_url(schema_url, 'loci')
+    url_schema_loci = aux.make_url(schema_url, 'loci')
 
     res = requests.post(url_schema_loci, data=json.dumps(params),
-                      headers=headers_post, timeout=30)
+                        headers=headers_post, timeout=30)
 
     if res.status_code > 201:
-        message = '{0}: Failed to link locus to schema.'.format(res.status_code)
+        message = ('{0}: Failed to link locus to '
+                   'schema.'.format(res.status_code))
 
     if 'message' in locals():
         return [False, message]
@@ -752,9 +758,9 @@ def parse_arguments():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('-i', type=str, dest='input_files', required=True,
-                        help='Path to folder containing the schema fasta files '
-                        '(alternatively, a file with a list of paths to '
-                        'fasta files).')
+                        help='Path to folder containing the schema fasta '
+                        'files (alternatively, a file with a list of paths '
+                        'to fasta files).')
 
     parser.add_argument('-sp', type=str, dest='species_id', required=True,
                         help='The identifier for the schemas species in '
@@ -765,16 +771,18 @@ def parse_arguments():
                         help='A brief description for the schema. It is '
                         'important to pass a meaningful value')
 
-    parser.add_argument('-lprefix', type=str, dest='loci_prefix', required=True,
-                        help='Prefix added to the identifier of each schema gene.'
-                        ' For instance, ACIBA will produce ACIBA00001.fasta.')
+    parser.add_argument('-lprefix', type=str, dest='loci_prefix',
+                        required=True,
+                        help='Prefix added to the identifier of each schema '
+                        'gene. For instance, ACIBA will produce '
+                        'ACIBA00001.fasta.')
 
-    parser.add_argument('--thr', type=int, required=False, dest='threads', 
+    parser.add_argument('--thr', type=int, required=False, dest='threads',
                         default=1, help='The number of threads to use. '
                         'The process will use multithreading to search for '
                         'annotations on UniProt and to send data to the NS '
                         '(default=30).')
-    
+
     # change this so that it gets default from config file
     parser.add_argument('--url', type=str, required=False, dest='base_url',
                         default='http://127.0.0.1:5000/NS/api/',
@@ -782,9 +790,10 @@ def parse_arguments():
                         'to create endpoints URLs.')
 
     parser.add_argument('--cont', type=str, dest='continue_up', required=False,
-                        default='no', choices=['no', 'yes'], help='Flag used to '
-                        'indicate if the process should try to continue a schema '
-                        'upload that crashed (default=no.')
+                        default='no', choices=['no', 'yes'],
+                        help='Flag used to indicate if the process should '
+                        'try to continue a schema upload that crashed '
+                        '(default=no.')
 
     args = parser.parse_args()
 
@@ -793,18 +802,8 @@ def parse_arguments():
             args.continue_up]
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_small_loci'
-#species_id = 1
-#schema_desc = 'gre99'
-#loci_prefix = 'gre99'
-#threads = 30
-#base_url = 'http://127.0.0.1:5000/NS/api/'
-#continue_up = 'no'
-
-
 def main(input_files, species_id, schema_desc, loci_prefix, threads,
          base_url, continue_up):
-
 
     check_cds = True
 
@@ -820,7 +819,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         password = getpass('PASSWORD: ')
         print()
         # get token
-        token = ut.login_user_to_NS(base_url, user, password)
+        token = aux.login_user_to_NS(base_url, user, password)
         # if login was not successful, stop the program
         if token is False:
             message = '403: Invalid credentials.'
@@ -894,8 +893,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         for res in executor.map(get_annotation, queries_files):
             results.append(res)
             total_found += 1
-            print('\r', 'Found annotations for {0}/{1} loci.'.format(total_found,
-                                                                     total_loci), end='')
+            print('\r', 'Found annotations for '
+                  '{0}/{1} loci.'.format(total_found, total_loci), end='')
 
     # delete binary files with queries
     for file in queries_files:
@@ -923,7 +922,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             schema_info = retrieve_schema_info(species_schemas, schema_desc)
 
             if isinstance(schema_info, int):
-                print('\nCannot continue uploading to a schema that does not exist.')
+                print('\nCannot continue uploading to a schema that '
+                      'does not exist.')
                 return 404
             else:
                 schema_url, schema_id = schema_info
@@ -953,7 +953,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         local_loci_set = set(local_schema_loci)
         ns_loci_set = set(ns_schema_loci)
 
-        # verify that the number of loci in NS is not greater than in the local schema
+        # verify that the number of loci in NS is not greater than
+        # in the local schema
         ns_loci_diff = ns_loci_set - local_loci_set
         if len(ns_loci_diff) > 0:
             print('NS schema has loci that are not in the local schema.')
@@ -971,7 +972,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             print('NS and local schemas have same number of loci.')
 
         # if the set of loci is equal, check sequences in each locus
-        # if a locus in the NS has more sequences than one in the local set, halt process
+        # if a locus in the NS has more sequences than one in the local
+        # set, halt process
         upload = determine_upload(local_schema_loci, ns_schema_loci,
                                   ns_schema_locid_map, input_files,
                                   base_url, headers_get)
@@ -982,7 +984,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             print('Local and NS schemas are identical. Nothing left to do!')
             return 'I am such a happy tato'
 
-        results = [list(res) for res in results if any(locus in res[0] for locus in upload)]
+        results = [list(res) for res in results if
+                   any(locus in res[0] for locus in upload)]
 
         for r in range(len(results)):
             lfile = (results[r][0]).split('/')[-1]
@@ -994,7 +997,9 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     # check status code
     # add other prints for cases that fail so that users see a print explaining
     upload_type = 'de novo' if continue_up == 'no' else 'continue'
-    schema_insert = check_schema_status(schema_status, species_name, upload_type)
+    schema_insert = check_schema_status(schema_status,
+                                        species_name,
+                                        upload_type)
     if schema_status in [200, 201]:
         print('{0}'.format(schema_insert))
     else:
@@ -1026,7 +1031,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         name = locus[1]
         label = locus[2]
         url = locus[3]
-        allele_seq_list = [str(rec.seq) for rec in SeqIO.parse(locus_file, 'fasta')]
+        allele_seq_list = [str(rec.seq)
+                           for rec in SeqIO.parse(locus_file, 'fasta')]
         locus_basename = os.path.basename(locus_file)
 
         if len(locus) == 5:
@@ -1057,7 +1063,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                 print('{0}'.format(species_link_url))
                 continue
             elif species_link_status is True:
-                print('Linked new locus to species: {0}'.format(species_link_url))
+                print('Linked new locus to species: '
+                      '{0}'.format(species_link_url))
 
             # Associate the new loci id to the new schema
             schema_loci_status, schema_link_url = post_schema_loci(new_loci_url,
@@ -1067,12 +1074,14 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                 print('{0}'.format(schema_link_url))
                 continue
             elif schema_loci_status is True:
-                print('Linked new locus to schema: {0}'.format(schema_link_url))
+                print('Linked new locus to schema: '
+                      '{0}'.format(schema_link_url))
 
         # create inputs
-        post_inputs = create_allele_data(allele_seq_list, new_loci_url, name, label,
-                                         url, species_name, check_cds, headers_post,
-                                         user_id, 1)
+        post_inputs = create_allele_data(allele_seq_list, new_loci_url,
+                                         name, label, url, species_name,
+                                         check_cds, headers_post, user_id,
+                                         1)
 
         post_results = []
         total_inserted = 0
@@ -1090,7 +1099,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             for res in executor.map(post_allele, post_inputs):
                 post_results.append(res)
                 total_inserted += 1
-                print('\r', 'Processed {0}/{1} alleles.'.format(total_inserted, total_alleles), end='')
+                print('\r', 'Processed {0}/{1} '
+                      'alleles.'.format(total_inserted, total_alleles), end='')
 
         requests_res = [r.json() for r in post_results]
         res_definitions = [list(r.keys())[0] for r in requests_res]

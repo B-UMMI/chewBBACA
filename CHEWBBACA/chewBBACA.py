@@ -22,9 +22,6 @@ import sys
 import platform
 import argparse
 
-from Bio import SeqIO
-from Bio.Alphabet import generic_dna
-
 from allelecall import BBACA
 from createschema import PPanGen
 from SchemaEvaluator import ValidateSchema
@@ -531,8 +528,7 @@ def download_schema_NS():
     def msg(name=None):
         return '''chewBBACA.py Download_NS_Schema [Download_NS_Schema ...][-h]
                  -ns_schema [NS_SCHEMA] -ns_species [NS_SPECIES]
-                 -down_folder [DOWN_FOLDER] --cpu [CPU] --bsr [BSR]
-                 --ns_url [NS_URL]'''
+                 -down_folder [DOWN_FOLDER] --cpu [CPU] --ns_url [NS_URL]'''
 
     parser = argparse.ArgumentParser(description='This program downloads '
                                                  'a schema from the NS.',
@@ -552,7 +548,8 @@ def download_schema_NS():
                         help='The integer identifier or name of the species '
                              'that the schema is associated to in the NS.')
 
-    parser.add_argument('-down_folder', type=str, required=True, dest='',
+    parser.add_argument('-down_folder', type=str, required=True,
+                        dest='down_folder',
                         help='Output folder to which the schema will '
                              'be saved.')
 
@@ -563,11 +560,6 @@ def download_schema_NS():
                              'determine representatives and create the '
                              'final schema.')
 
-    parser.add_argument('--bsr', nargs='?', type=float, required=False,
-                        default=0.6, dest='',
-                        help='The BLAST Score Ratio value used to determine '
-                             'representative sequences.')
-
     parser.add_argument('--ns_url', type=str, required=False,
                         default='http://127.0.0.1:5000/NS/api/',
                         dest='ns_url',
@@ -579,90 +571,128 @@ def download_schema_NS():
     ns_species = args.ns_species
     down_folder = args.down_folder
     cpu_num = args.cpu_num
-    bsr = args.bsr
     ns_url = args.ns_url
 
     down_schema.main(ns_schema, ns_species, down_folder,
-                     cpu_num, bsr, ns_url)
+                     cpu_num, ns_url)
 
 
 def load_schema_NS():
 
     def msg(name=None):
         return '''chewBBACA.py Load_NS_Schema [Load_NS_Schema ...][-h]
-                 -i [I] --cpu [CPU] -p [P]'''
+                 -schema [SCHEMA] -ns_species [NS_SPECIES]
+                 -schema_desc [SCHEMA_DESC] -loci_prefix [LOCI_PREFIX]
+                 --thr [THREADS] --ns_url [NS_URL]
+                 --continue_up [CONTINUE_UP]'''
 
     parser = argparse.ArgumentParser(description='This program uploads '
                                                  'a schema to the NS.',
                                      usage=msg())
 
     parser.add_argument('Load_NS_Schema', nargs='+',
-                        help='')
+                        help='This program loads a schema to '
+                             'the NS.')
 
     parser.add_argument('-schema', nargs='?', type=str, required=True,
                         dest='schema',
-                        help='')
+                        help='Path to the directory with the local schema '
+                             'files.')
 
     parser.add_argument('-ns_species', nargs='?', type=str, required=True,
                         dest='ns_species',
-                        help='')
+                        help='The integer identifier or name of the species '
+                             'that the schema will be associated to in '
+                             'the NS.')
 
     parser.add_argument('-schema_desc', type=str, required=True,
                         dest='schema_desc',
-                        help='')
+                        help='A brief and meaningful description that '
+                             'should help understand the type and content '
+                             'of the schema.')
 
-    parser.add_argument('--loci_prefix', nargs='?', type=str, required=False,
-                        default=1, dest='loci_prefix',
-                        help='')
+    parser.add_argument('-loci_prefix', nargs='?', type=str, required=True,
+                        dest='loci_prefix',
+                        help='Prefix included in the name of each locus of '
+                             'the schema.')
 
-    parser.add_argument('--thr', nargs='?', type=float, required=False,
-                        default=0.6, dest='threads',
-                        help='')
+    parser.add_argument('--thr', nargs='?', type=int, required=False,
+                        default=20, dest='threads',
+                        help='Number of threads to use to upload the alleles '
+                             'of the schema.')
 
     parser.add_argument('--ns_url', type=str, required=False,
                         default='http://127.0.0.1:5000/NS/api/',
                         dest='ns_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--continue', required=False, default=False,
-                        dest='continue',
-                        help='')
+    parser.add_argument('--continue_up', required=False, default='no',
+                        dest='continue_up', choices=['no', 'yes'],
+                        help='If the process should check if the schema '
+                             'upload was interrupted and try to finish it.')
 
     args = parser.parse_args()
 
-    ns_schema = args.ns_schema
+    schema = args.schema
     ns_species = args.ns_species
-    down_folder = args.down_folder
-    cpu_num = args.cpu_num
-    bsr = args.bsr
+    schema_desc = args.schema_desc
+    loci_prefix = args.loci_prefix
+    thr = args.threads
     ns_url = args.ns_url
+    continue_up = args.continue_up
 
-    load_schema.main(ns_schema, ns_species, down_folder,
-                     cpu_num, bsr, ns_url)
+    load_schema.main(schema, ns_species, schema_desc,
+                     loci_prefix, thr, ns_url,
+                     continue_up)
 
 
 def sync_schema_NS():
 
     def msg(name=None):
-        return ''' chewBBACA.py SyncSchema [SyncSchema ...][-h] -i [I] --cpu [CPU] -p [P]
-                    '''
+        return '''chewBBACA.py Sync_NS_Schema [Sync_NS_Schema ...][-h]
+                  -schema_dir [SCHEMA_DIR] --cpu [CPU] --ns_url [NS_URL]
+                  --submit [SUBMIT]'''
 
-    parser = argparse.ArgumentParser(
-        description="This program syncs a local schema with NS",usage=msg())
-    parser.add_argument('SyncSchema', nargs='+', help='Syncronize a local schema with the NS')
-    parser.add_argument('-p', nargs='?', type=str, help='path of schema', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
+    parser = argparse.ArgumentParser(description='This program syncs a local '
+                                                 'schema with NS',
+                                     usage=msg())
+
+    parser.add_argument('Sync_NS_Schema', nargs='+',
+                        help='Synchronize a local schema, previously '
+                             'downloaded from the NS, with its latest '
+                             'version in the NS.')
+
+    parser.add_argument('-schema_dir', nargs='?', type=str, required=True,
+                        dest='schema_dir',
+                        help='Path to the directory with the local schema '
+                             'files.')
+
+    parser.add_argument('--cpu', nargs='?', type=int, required=False,
+                        default=1, dest='cpu_num',
+                        help='Number of CPU cores/threads that will '
+                             'be passed to the PrepExternalSchema to '
+                             'determine representatives for the '
+                             'updated version of the schema.')
+
+    parser.add_argument('--ns_url', nargs='?', type=str, required=False,
+                        default='http://127.0.0.1:5000/NS/api/',
+                        dest='ns_url',
+                        help='The base URL for the Nomenclature Server.')
+
+    parser.add_argument('--submit', nargs='?', type=float, required=False,
+                        default=False, dest='submit',
+                        help='If the local alleles that are not in the NS '
+                             'should be uploaded to update the NS schema.')
 
     args = parser.parse_args()
 
-    path2schema = args.p
-    cpu2use = args.cpu
-    bsrTresh= args.bsr
-    try:
-        sync_schema.main(path2schema,cpu2use,bsrTresh)
-    except Exception as e:
-        print (e)
+    schema_dir = args.schema_dir
+    cpu_num = args.cpu_num
+    ns_url = args.ns_url
+    submit = args.submit
+
+    sync_schema.main(schema_dir, cpu_num,
+                     ns_url, submit)
 
 
 def send_NS():
@@ -742,11 +772,12 @@ def down_prof():
 
 
 def main():
+
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator',
                       'TestGenomeQuality', 'ExtractCgMLST', 'RemoveGenes',
                       'PrepExternalSchema', 'JoinProfiles', 'UniprotFinder',
-                      'DownloadSchema','SyncSchema','Send2NS','DownloadProfiles',
-                      'SendMetadata']
+                      'DownloadSchema', 'LoadSchema', 'SyncSchema',
+                      'Send2NS', 'DownloadProfiles', 'SendMetadata']
 
     desc_list = ['Create a gene by gene schema based on genomes',
                  'Perform allele call for target genomes',
@@ -758,15 +789,17 @@ def main():
                  'join two profiles in a single profile file',
                  'get info about a schema created with chewBBACA',
                  'Download schema from NS',
+                 'Upload a schema to the NS',
                  'Syncronize a local schema (downloaded from NS) with NS',
                  'Send local profile and respective alleles to NS',
                  'Download all profiles of a given species for a given schema',
                  'send metadata to isolates on the NS']
 
-    version = "2.1.0"
-    createdBy = "Mickael Silva, Pedro Cerqueira, Rafael Mamede"
-    rep = "https://github.com/B-UMMI/chewBBACA"
-    contact = "rmamede@medicina.ulisboa.pt\npedro.cerqueira@medicina.ulisboa.pt"
+    version = '2.1.0'
+    authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
+    repository = 'https://github.com/B-UMMI/chewBBACA'
+    contacts = ('rmamede@medicina.ulisboa.pt, '
+                'pedro.cerqueira@medicina.ulisboa.pt')
 
     # Check python version, if fail, exist with message
     try:
@@ -774,8 +807,8 @@ def main():
         assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
 
     except AssertionError:
-        print("Python version found: {} ".format(platform.python_version()))
-        print("Please use version Python >= 3.4")
+        print('Python version found: {} '.format(platform.python_version()))
+        print('Please use version Python >= 3.4')
         sys.exit(0)
 
     # print help if no command is passed
@@ -791,8 +824,11 @@ def main():
     if len(sys.argv) > 1 and "version" in sys.argv[1]:
         print(version)
         return
-      
-    print("chewBBACA version " + version + " by " + createdBy + " at " + rep + "\nemail contact: " + contact)
+
+    print('chewBBACA version: {0}'.format(version))
+    print('authors: {0}'.format(authors))
+    print('github: {0}'.format(repository))
+    print('contacts: {0}'.format(contacts))
 
     try:
         if sys.argv[1] == functions_list[0]:
@@ -816,28 +852,31 @@ def main():
         elif sys.argv[1] == functions_list[9]:
             download_schema_NS()
         elif sys.argv[1] == functions_list[10]:
-            sync_schema_NS()
+            load_schema_NS()
         elif sys.argv[1] == functions_list[11]:
-            send_NS()
+            sync_schema_NS()
         elif sys.argv[1] == functions_list[12]:
-            down_prof()
+            send_NS()
         elif sys.argv[1] == functions_list[13]:
+            down_prof()
+        elif sys.argv[1] == functions_list[14]:
             send_meta()
         else:
-            print('\n\tUSAGE : chewBBACA.py [module] -h \n')
-            print('Select one of the following functions :\n')
+            print('\n\tUSAGE: chewBBACA.py [module] -h \n')
+            print('Select one of the following functions:\n')
+            
             i=0
             while i<len(functions_list):
-                print (functions_list[i] +" : "+desc_list[i])
+                print ('{0}: {1}'.format(functions_list[i], desc_list[i]))
                 i+=1
 
     except Exception as e:
         print(e)  # CHECK THIS
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('\n\tUSAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         i = 0
         while i < len(functions_list):
-            print(functions_list[i] + " : " + desc_list[i])
+            print(functions_list[i] + ": " + desc_list[i])
             i += 1
 
 

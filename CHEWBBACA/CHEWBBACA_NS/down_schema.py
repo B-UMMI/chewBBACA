@@ -367,8 +367,6 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                           for k in schema_params.keys()
                           if k != 'name'}
 
-    #print(schema_params_dict)
-
     print('Downloading schema...')
 
     start = time.time()
@@ -379,7 +377,6 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                                                   schema_file_desc)
 
     # determine representatives and create schema
-    #print(download_folder)
     PrepExternalSchema.main(download_folder,
                             schema_path,
                             core_num,

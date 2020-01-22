@@ -84,11 +84,11 @@ def check_ptf(ptf_path, main_dir):
 
         ptfs = os.listdir(ptfs_dir)
         if ptf_basename in ptfs:
-            chosenTrainingFile = os.path.join(ptfs_dir, ptf_basename)
+            ptf_path = os.path.join(ptfs_dir, ptf_basename)
         else:
-            chosenTrainingFile = False
+            ptf_path = False
 
-    return chosenTrainingFile
+    return ptf_path
 
 
 def check_prodigal_output_files(path_to_temp, list_of_genomes):
@@ -136,15 +136,19 @@ def is_fasta(filename):
             True if FASTA file,
             False otherwise
     """
-
+    #print(filename)
     with open(filename, 'r') as handle:
-        fasta = SeqIO.parse(handle, 'fasta')
+        try:
+            fasta = SeqIO.parse(handle, 'fasta')
+        except:
+            fasta = [False]
+        #print(fasta)
 
         # returns True if FASTA file, False otherwise
         return any(fasta)
 
 
-def check_input_type(input_path):
+def check_input_type(input_path, output_file):
     """ Checks if the input is a file or a directory.
 
         Args:
@@ -164,7 +168,12 @@ def check_input_type(input_path):
 
         fasta_files = []
 
-        for genome in os.listdir(input_path):
+        # we need to get only files with FASTA extension
+        # hidden files will raise errors
+        files = [file for file in os.listdir(input_path)
+                 if '.fasta' in file]
+
+        for genome in files:
 
             genepath = os.path.join(input_path, genome)
 
@@ -179,7 +188,7 @@ def check_input_type(input_path):
         # if there are FASTA files
         if fasta_files:
             # store full paths to FASTA files
-            with open('listGenomes2Call.txt', 'w') as f:
+            with open(output_file, 'w') as f:
                 for genome in fasta_files:
                     f.write(genome + '\n')
         else:
@@ -188,7 +197,7 @@ def check_input_type(input_path):
                             'with FASTA files or a file with the '
                             'list of full paths to the FASTA files.')
 
-        list_files = 'listGenomes2Call.txt'
+        list_files = output_file
 
     else:
         raise Exception('Input argument is not a valid directory or '

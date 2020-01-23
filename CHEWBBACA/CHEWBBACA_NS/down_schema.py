@@ -29,88 +29,6 @@ from utils import auxiliary_functions as aux
 from PrepExternalSchema import PrepExternalSchema
 
 
-def species_list(base_url, headers_get, endpoint_list):
-    """
-    """
-
-    res = simple_get_request(base_url, headers_get, endpoint_list)
-    res = res.json()
-    species_lst = {}
-    for sp in res:
-        species = sp['name']['value']
-        species_url = sp['species']['value']
-        species_id = species_url.split('/')[-1]
-
-        species_lst[species] = species_id
-
-    return species_lst
-
-
-def simple_get_request(base_url, headers, endpoint_list):
-    """ Constructs an endpoint URI and uses a GET method to retrive
-        information from the endpoint.
-
-        Args:
-            base_url (str): the base URI for the NS, used to concatenate
-            with a list of elements and obtain endpoints URL.
-            headers (dict): headers for the GET method used to
-            get data from the API endpoints.
-            endpoint_list (list): list with elements that will be
-            concatenated to the base URL to obtain the URL for
-            the API endpoint.
-        Returns:
-            res (requests.models.Response): response object from
-            the GET method.
-    """
-
-    # unpack list of sequential endpoints and pass to create URI
-    url = aux.make_url(base_url, *endpoint_list)
-    res = requests.get(url, headers=headers, timeout=30)
-
-    return res
-
-
-def species_ids(species_id, base_url, headers_get):
-    """
-    """
-
-    try:
-        int(species_id)
-        species_info = simple_get_request(base_url, headers_get,
-                                          ['species', species_id])
-        if species_info.status_code == 200:
-            species_name = species_info.json()[0]['name']['value']
-            return [species_id, species_name]
-        else:
-            return 404
-    except ValueError:
-        species_name = species_id
-        ns_species = species_list(base_url, headers_get, ['species', 'list'])
-        species_id = ns_species.get(species_name, 'not_found')
-        if species_id != 'not_found':
-            return [species_id, species_name]
-        else:
-            return 404
-
-
-def retrieve_schema_info(schemas_list, schema_desc):
-    """
-    """
-
-    schema_exists = False
-    for s in schemas_list:
-        current_desc = s['name']['value']
-        if current_desc == schema_desc:
-            schema_exists = True
-            schema_url = s['schemas']['value']
-            schema_id = schema_url.split('/')[-1]
-
-    if schema_exists:
-        return [schema_url, schema_id]
-    else:
-        return 404
-
-
 def build_fasta(locus_id, locus_info, download_folder):
     """ Write fasta files from get request responses
 
@@ -273,7 +191,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = species_ids(species_id, base_url, headers_get)
+    species_info = aux.species_ids(species_id, base_url, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
         print('\nNS species with identifier {0} is {1}.'.format(species_id,
@@ -302,8 +220,8 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
     # check if user provided schema identifier or schema description
     elif len(schema_uri) == 0:
         # get info about all the species schemas
-        schema_get = simple_get_request(base_url, headers_get,
-                                        ['species', species_id, 'schemas'])
+        schema_get = aux.simple_get_request(base_url, headers_get,
+                                            ['species', species_id, 'schemas'])
         schema_get_status = schema_get.status_code
         if schema_get_status in [200, 201]:
             species_schemas = schema_get.json()

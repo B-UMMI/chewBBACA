@@ -64,12 +64,16 @@ def determine_upload(local_schema_loci, ns_schema_loci,
             ns_uri = ns_schema_locid_map[local_locus][0]
             ns_locus_id = ns_uri.split('/')[-1]
 
-            ns_uniprot = simple_get_request(base_url, headers_get,
-                                            ['loci', ns_locus_id, 'uniprot'])
+            ns_uniprot = aux.simple_get_request(base_url, headers_get,
+                                                ['loci', ns_locus_id, 'uniprot'])
             locus_name = ns_uniprot.json()['UniprotInfo'][0]['UniprotSName']['value']
             locus_label = ns_uniprot.json()['UniprotInfo'][0]['UniprotLabel']['value']
             locus_annotation = ns_uniprot.json()['UniprotInfo'][0]['UniprotURI']['value']
 
+            local_uniq[local_locus].append(ns_uri)
+            local_uniq[local_locus].append(locus_name)
+            local_uniq[local_locus].append(locus_label)
+            local_uniq[local_locus].append(locus_annotation)
             # after sync, the allele identifiers of the sequences
             # exclusive to the local schema should be ok to use
             # as identifiers for new alleles in the NS
@@ -78,12 +82,8 @@ def determine_upload(local_schema_loci, ns_schema_loci,
                 seqid = seqid.replace('*', '')
                 seq = rec[1]
 
-                local_uniq[local_locus].append([ns_uri,
-                                               locus_name,
-                                               locus_label,
-                                               locus_annotation,
-                                               seqid,
-                                               seq])
+                local_uniq[local_locus].append([seqid,
+                                                seq])
 
                 # delete entry with '*'
                 allele_id = int(seqid.split('_')[-1])
@@ -102,130 +102,6 @@ def determine_upload(local_schema_loci, ns_schema_loci,
     return [local_uniq, comp]
 
 
-def species_ids(species_id, base_url, headers_get):
-    """
-    """
-    
-    try:
-        int(species_id)
-        species_info = simple_get_request(base_url, headers_get,
-                                          ['species', species_id])
-        if species_info.status_code == 200:
-            species_name = species_info.json()[0]['name']['value']
-            return [species_id, species_name]
-        else:
-            return 404
-    except ValueError:
-        species_name = species_id
-        ns_species = species_list(base_url, headers_get, ['species', 'list'])
-        species_id = ns_species.get(species_name, 'not_found')
-        if species_id != 'not_found':
-            return [species_id, species_name]
-        else:
-            return 404
-
-
-def simple_get_request(base_url, headers, endpoint_list):
-    """ Constructs an endpoint URI and uses a GET method to retrive
-        information from the endpoint.
-
-        Args:
-            base_url (str): the base URI for the NS, used to concatenate
-            with a list of elements and obtain endpoints URL.
-            headers (dict): headers for the GET method used to
-            get data from the API endpoints.
-            endpoint_list (list): list with elements that will be
-            concatenated to the base URL to obtain the URL for
-            the API endpoint.
-        Returns:
-            res (requests.models.Response): response object from
-            the GET method.
-    """
-
-    # unpack list of sequential endpoints and pass to create URI
-    url = ut.make_url(base_url, *endpoint_list)
-
-    res = requests.get(url, headers=headers, timeout=30)
-
-    return res
-
-
-def select_name(result):
-    """
-    """
-    
-    name = ''
-    url = ''
-    label = ''
-
-    aux = result["results"]["bindings"]
-    
-    for elem in aux:
-        if 'fname' in elem.keys():
-            name = str(elem['fname']['value'])
-        elif 'sname2' in elem.keys():
-            name = str(elem['sname2']['value'])
-        elif 'label' in elem.keys():
-            name = str(elem['label']['value'])
-            
-        if 'label' in elem.keys():
-            label = str(elem['label']['value'])
-
-        url = str(elem['seq']['value'])
-        
-        break
-        
-    return [name, url, label]
-    
-
-def get_data(sparql_query):
-    """ Retrieve annotations from uniprot
-    """
-    
-    virtuoso_server.setReturnFormat(JSON)
-    virtuoso_server.setTimeout(10)
-
-    url = ''
-    name = ''
-    prev_name = ''
-    label = ''
-    found = False
-    unpreferred_names = ['Uncharacterized protein', 'hypothetical protein', 'DUF']
-
-    # implement more than 1 retry!!!
-    alleles = len(sparql_query)
-    a = 0
-    while found is False:
-        virtuoso_server.setQuery(sparql_query)
-
-        try:
-            result = virtuoso_server.query().convert()
-            # Slowing the requests down so that Uniprot doesn't blacklist us :)
-            time.sleep(random.randint(1, 3))
-
-            name, url, label = select_name(result)
-
-            if prev_name == '' and not any([n in name for n in unpreferred_names]):
-                prev_name = name
-                found = True
-
-        except:
-            #print("A request to uniprot timed out, trying new request")
-            time.sleep(5)
-            result = virtuoso_server.query().convert()
-            name, url, label = select_name(result)
-            if prev_name == '' and not any([n in name for n in unpreferred_names]):
-                prev_name = name
-                found = True
-
-        a += 1
-        if a == alleles:
-            found = True
-        
-
-    return (prev_name, label, url)
-
-
 def translate_sequence(dna_str, table_id):
     """ Translate a DNA sequence using the BioPython package.
 
@@ -241,69 +117,11 @@ def translate_sequence(dna_str, table_id):
     myseq_obj = Seq(dna_str)
     try:
         protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
-        
+
         return protseq
-   
+
     except TranslationError as e:
         return e
-        
-
-
-def uniprot_query(sequence):
-    """
-    """
-        
-    query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
-             'PREFIX up: <http://purl.uniprot.org/core/> '
-             'select ?seq ?fname ?sname2 ?label  where {'
-             '{?b a up:Simple_Sequence; rdf:value '
-             '"'+sequence+'". ?seq up:sequence ?b. '
-             'OPTIONAL{?seq up:submittedName ?sname. ?sname up:fullName ?sname2} '
-             'OPTIONAL{?seq up:recommendedName ?rname.?rname up:fullName ?fname} }'
-             'UNION{?seq a up:Sequence; rdf:value "'+sequence+'"; '
-             'rdfs:label ?label. }}')
-
-
-    return query
-
-
-def check_seq_req(headers_get, url):
-    """
-    """
-    
-    url_req = url[0]
-    
-    res = requests.get(url_req, headers = headers_get, timeout = 30)
-    
-    return (res, url[1])
-
-
-def check_seq2(fasta, URL, headers_get, cpu):
-    """ Checks if a sequence already exists in NS
-    """
-    
-    cpu = 30
-    
-    # Get the sequences of each record from the fasta file
-    sequences = [(str(rec.seq), rec.id) for rec in SeqIO.parse(fasta, "fasta")]
-    
-    responses = {}
-    
-    responses[fasta] = []
-    
-    urls = []
-    
-    for seq in sequences:
-        
-        url_seq_info = ut.make_url(URL, "sequences", "seq_info", sequence=seq[0])
-        urls.append((url_seq_info, seq[1]))
-    
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=cpu) as executor:
-        for result in executor.map(check_seq_req, repeat(headers_get), urls):
-            responses[fasta].append(result)
-    
-    return responses
 
 
 def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
@@ -359,7 +177,7 @@ def retrieve_latest_alleles(loci_new_alleles, server_time, schema_uri, new_count
     """
 
     # request the new alleles starting on the date given
-    uri = ut.make_url(schema_uri, 'loci', date=server_time)
+    uri = aux.make_url(schema_uri, 'loci', date=server_time)
 
     # get the new alleles
     response = requests.get(uri, headers=headers_get)
@@ -419,7 +237,7 @@ def get_allele_seq(headers_get, uri):
 
     seq_hash = uri.split('/sequences/')[1]
 
-    url = ut.make_url(uri.split(seq_hash)[0], 'seq_info', seq_id=seq_hash)
+    url = aux.make_url(uri.split(seq_hash)[0], 'seq_info', seq_id=seq_hash)
 
     r = requests.get(url, headers=headers_get, timeout=30)
 
@@ -667,73 +485,6 @@ def load_binary(parent_dir, file_name):
         return False
 
 
-def create_allele_data(allele_seq_list, species_name, check_cds,
-                       headers_post, user_id):
-    """
-    """
-
-    post_inputs = []
-    for allele in allele_seq_list:
-        allele_uri = '{0}/alleles/{1}'.format(allele[0], (allele[4]).split('_')[-1])
-        post_inputs.append((allele[-1], allele[1], allele[2], allele[3],
-                            allele[0], species_name,
-                            check_cds, headers_post, allele_uri, user_id))
-
-    return post_inputs
-
-
-def post_allele(input_stuff):
-    """ Adds a new allele to the NS.
-
-        Args:
-            A tuple with 8 elements:
-                - sequence (str): the DNA sequence to send to NS.
-                - name (str): protein annotation name.
-                - label (str): protein annotation label.
-                - uniprot_url (str): URL to the UniProt entry.
-                - loci_url (str): URI of the locus in NS.
-                - species_name (str): name of the species the allele
-                belongs to.
-                - cds_check (bool): if the sequence must be a complete CDS.
-                - headers_post (dict): headers for the POST method used to
-                insert data into the NS.
-        Returns:
-            response (requests.models.Response): response object from
-            the POST method.
-    """
-
-    # getting inputs from multithreading
-    sequence = input_stuff[0]
-    name = input_stuff[1]
-    label = input_stuff[2]
-    uniprot_url = input_stuff[3]
-    loci_url = input_stuff[4]
-    species_name = input_stuff[5]
-    cds_check = input_stuff[6]
-    headers_post = input_stuff[7]
-    allele_uri = input_stuff[8]
-    user_id = input_stuff[9]
-
-    # Build the url for loci/loci_id/alleles
-    url = ut.make_url(loci_url, 'alleles')
-
-    params = {}
-    params['sequence'] = sequence
-    params['species_name'] = species_name
-    params['enforceCDS'] = cds_check
-    params['uniprot_url'] = uniprot_url
-    params['uniprot_label'] = label
-    params['uniprot_sname'] = name
-    params['input'] = 'auto'
-    params['sequence_uri'] = allele_uri
-    params['user_id'] = user_id
-
-    response = requests.post(url, data=json.dumps(params),
-                             headers=headers_post, timeout=30)
-
-    return response
-
-
 def parse_arguments():
 
     parser = argparse.ArgumentParser(description=__doc__,
@@ -764,14 +515,6 @@ def parse_arguments():
             args.submit]
 
 
-#bsr = 0.6
-#core_num = 6
-#submit = True
-#schema_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/test_schema/ypestis_testsync2_schema'
-#temp_dir = '/home/rfm/Desktop/rfm/Lab_Software/Chewie_NS/NS_tests/test_sync_schema/test_schema/temp'
-#ns_url = 'http://127.0.0.1:5000/NS/api/'
-
-
 def main(schema_dir, core_num, ns_url, submit):
 
     # login with master key
@@ -786,7 +529,7 @@ def main(schema_dir, core_num, ns_url, submit):
         password = getpass('PASSWORD: ')
         print()
         # get token
-        token = ut.login_user_to_NS(ns_url, user, password)
+        token = aux.login_user_to_NS(ns_url, user, password)
         # if login was not successful, stop the program
         if token is False:
             message = '403: Invalid credentials.'
@@ -851,7 +594,7 @@ def main(schema_dir, core_num, ns_url, submit):
     if submit == 'yes':
 
         # verify user role to check permission
-        user_info = simple_get_request(ns_url, headers_get,
+        user_info = aux.simple_get_request(ns_url, headers_get,
                                        ['user', 'current_user'])
         user_info = user_info.json()
         user_role = any(role in user_info['roles']
@@ -870,7 +613,7 @@ def main(schema_dir, core_num, ns_url, submit):
 
         # Get the name of the species from the provided id
         # or vice-versa
-        species_info = species_ids(species_id, ns_url, headers_get)
+        species_info = aux.species_ids(species_id, ns_url, headers_get)
         if isinstance(species_info, list):
             species_id, species_name = species_info
             print('\nNS species with identifier {0} is {1}.'.format(species_id,
@@ -882,10 +625,10 @@ def main(schema_dir, core_num, ns_url, submit):
         # compare list of genes, if they do not intersect, halt process
         # get list of loci for schema in the NS
         schema_id = schema_uri.split('/')[-1]
-        ns_loci_get = simple_get_request(ns_url, headers_get,
-                                         ['species', species_id,
-                                          'schemas', schema_id,
-                                          'loci'])
+        ns_loci_get = aux.simple_get_request(ns_url, headers_get,
+                                             ['species', species_id,
+                                              'schemas', schema_id,
+                                              'loci'])
         # get loci files names from response
         ns_schema_loci = []
         ns_schema_locid_map = {}
@@ -904,12 +647,12 @@ def main(schema_dir, core_num, ns_url, submit):
                     incomplete.append(locus)
                 else:
                     completed.append(locus)
-        
+
         if len(incomplete) > 0:
 
             uniq_local = {k:v for k, v in not_in_ns.items() if k in incomplete}
             loci_uris = {k:v for k, v in ns_schema_locid_map.items() if k in incomplete}
-    
+
             # determine sequences that are not in the NS
             # we synced before so we just need to go to each file and
             # identify the alleles with '*' as the alleles to be added!
@@ -924,12 +667,22 @@ def main(schema_dir, core_num, ns_url, submit):
             # use multiprocessing
             alleles_data = []
             for locus, info in upload.items():
-                allele_seq_list = info
-                post_data = create_allele_data(allele_seq_list,
-                                               species_name,
-                                               True,
-                                               headers_post,
-                                               user_id)
+                new_loci_url = info[0]
+                name = info[1]
+                label = info[2]
+                url = info[3]
+                allele_seq_list = [rec[1] for rec in info[4:]]
+                start_id = min([int(rec[0].split('_')[-1]) for rec in info[4:]])
+                post_data = aux.create_allele_data(allele_seq_list,
+                                                   new_loci_url,
+                                                   name,
+                                                   label,
+                                                   url,
+                                                   species_name,
+                                                   True,
+                                                   headers_post,
+                                                   user_id,
+                                                   start_id)
                 alleles_data.append(post_data)
 
             for inlist in alleles_data:
@@ -941,7 +694,7 @@ def main(schema_dir, core_num, ns_url, submit):
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                     # Start the load operations and mark each future with its URL
-                    for res in executor.map(post_allele, inlist):
+                    for res in executor.map(aux.post_allele, inlist):
                         post_results.append(res)
                         total_inserted += 1
                         print('\r',

@@ -865,6 +865,8 @@ def ns_stats():
     parser = argparse.ArgumentParser(description='',
                                      usage=msg())
 
+    parser.add_argument('NSStats', nargs='+', help='')
+
     parser.add_argument('-m', type=str, required=True, dest='stats_mode',
                         help='')
 

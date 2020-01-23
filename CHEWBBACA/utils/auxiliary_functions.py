@@ -31,7 +31,252 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 
+
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
+
+
+def simple_get_request(base_url, headers, endpoint_list):
+    """ Constructs an endpoint URI and uses a GET method to retrive
+        information from the endpoint.
+
+        Args:
+            base_url (str): the base URI for the NS, used to concatenate
+            with a list of elements and obtain endpoints URL.
+            headers (dict): headers for the GET method used to
+            get data from the API endpoints.
+            endpoint_list (list): list with elements that will be
+            concatenated to the base URL to obtain the URL for
+            the API endpoint.
+        Returns:
+            res (requests.models.Response): response object from
+            the GET method.
+    """
+
+    # unpack list of sequential endpoints and pass to create URI
+    url = make_url(base_url, *endpoint_list)
+
+    res = requests.get(url, headers=headers, timeout=30)
+
+    return res
+
+
+def simple_post_request(base_url, headers, endpoint_list, data):
+    """ Constructs an endpoint URI and uses a POST method to insert
+        information into the NS structure.
+
+        Args:
+            base_url (str): the base URL for the NS, used to concatenate
+            with a list of elements and obtain endpoints URL.
+            headers (dict): headers for the POST method used to
+            insert data into the NS.
+            endpoint_list (list): list with elements that will be
+            concatenated to the base URL to obtain the URL for
+            the API endpoint.
+        Returns:
+            res (requests.models.Response): response object from
+            the POST method.
+    """
+
+    # unpack list of sequential endpoints and pass to create URI
+    url = aux.make_url(base_url, *endpoint_list)
+    res = requests.post(url, data=json.dumps(data), headers=headers)
+
+    return res
+
+
+def post_allele(input_stuff):
+    """ Adds a new allele to the NS.
+
+        Args:
+            A tuple with 8 elements:
+                - sequence (str): the DNA sequence to send to NS.
+                - name (str): protein annotation name.
+                - label (str): protein annotation label.
+                - uniprot_url (str): URL to the UniProt entry.
+                - loci_url (str): URI of the locus in NS.
+                - species_name (str): name of the species the allele
+                belongs to.
+                - cds_check (bool): if the sequence must be a complete CDS.
+                - headers_post (dict): headers for the POST method used to
+                insert data into the NS.
+        Returns:
+            response (requests.models.Response): response object from
+            the POST method.
+    """
+
+    # getting inputs from multithreading
+    sequence = input_stuff[0]
+    name = input_stuff[1]
+    label = input_stuff[2]
+    uniprot_url = input_stuff[3]
+    loci_url = input_stuff[4]
+    species_name = input_stuff[5]
+    cds_check = input_stuff[6]
+    headers_post = input_stuff[7]
+    allele_uri = input_stuff[8]
+    user_id = input_stuff[9]
+
+    # Build the url for loci/loci_id/alleles
+    url = make_url(loci_url, 'alleles')
+
+    params = {}
+    params['sequence'] = sequence
+    params['species_name'] = species_name
+    params['enforceCDS'] = cds_check
+    params['uniprot_url'] = uniprot_url
+    params['uniprot_label'] = label
+    params['uniprot_sname'] = name
+    params['input'] = 'auto'
+    params['sequence_uri'] = allele_uri
+    params['user_id'] = user_id
+
+    response = requests.post(url, data=json.dumps(params),
+                             headers=headers_post, timeout=30)
+
+    return response
+
+
+def select_name(result):
+    """ Extracts the annotation description from the result
+        of a query to the UniProt SPARQL endpoint.
+
+        Args:
+            result (dict): a dictionary with the results
+            from querying the UniProt SPARQL endpoint.
+        Returns:
+            A list with the following elements:
+                - the annotation descrition;
+                - the URI to the UniProt page for the protein;
+                - a label that has descriptive value.
+    """
+
+    url = ''
+    name = ''
+    label = ''
+
+    i = 1
+    found = False
+    # get the entries with results
+    aux = result['results']['bindings']
+    total_res = len(aux)
+    # only check results that are not empty
+    if total_res > 0:
+        # iterate over all results to find suitable
+        while found is False:
+            current_res = aux[i]
+            res_keys = aux[i].keys()
+
+            # annotation name can be associated
+            # to different keys
+            if 'fname' in res_keys:
+                name = str(current_res['fname']['value'])
+                found = True
+            elif 'sname2' in res_keys:
+                name = str(current_res['sname2']['value'])
+                found = True
+            elif 'label' in res_keys:
+                name = str(current_res['label']['value'])
+                found = True
+
+            if 'label' in res_keys:
+                label = str(current_res['label']['value'])
+            else:
+                label = name
+
+            # get UniProt URL
+            if 'uri' in res_keys:
+                url = str(current_res['seq']['value'])
+            elif 'seq' in res_keys:
+                url = str(current_res['seq']['value'])
+
+            if i == total_res:
+                found = True
+
+    return [name, url, label]
+
+
+def uniprot_query(sequence):
+    """ Constructs a SPARQL query to search for exact matches in the
+        UniProt endpoint.
+
+        Args:
+            sequence (str): the Protein sequence that will be added
+            to the query.
+        Returns:
+            query (str): the SPARQL query that will allow to seaarch for
+            exact matches in the UniProt database.
+    """
+
+    query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
+             'PREFIX up: <http://purl.uniprot.org/core/> '
+             'select ?seq ?fname ?sname2 ?label  where {'
+             '{?b a up:Simple_Sequence; rdf:value '
+             '"'+sequence+'". ?seq up:sequence ?b. '
+             'OPTIONAL{?seq up:submittedName ?sname. ?sname up:fullName ?sname2} '
+             'OPTIONAL{?seq up:recommendedName ?rname.?rname up:fullName ?fname} }'
+             'UNION{?seq a up:Sequence; rdf:value "'+sequence+'"; '
+             'rdfs:label ?label. }}')
+
+    return query
+
+
+def species_ids(species_id, base_url, headers_get):
+    """
+    """
+    
+    try:
+        int(species_id)
+        species_info = simple_get_request(base_url, headers_get,
+                                          ['species', species_id])
+        if species_info.status_code == 200:
+            species_name = species_info.json()[0]['name']['value']
+            return [species_id, species_name]
+        else:
+            return 404
+    except ValueError:
+        species_name = species_id
+        ns_species = species_list(base_url, headers_get, ['species', 'list'])
+        species_id = ns_species.get(species_name, 'not_found')
+        if species_id != 'not_found':
+            return [species_id, species_name]
+        else:
+            return 404
+
+
+def create_allele_data(allele_seq_list, new_loci_url, name, label,
+                       url, species_name, check_cds, headers_post,
+                       user_id, start_id):
+    """
+    """
+
+    allele_id = start_id
+    post_inputs = []
+    for allele in allele_seq_list:
+        allele_uri = '{0}/alleles/{1}'.format(new_loci_url, allele_id)
+        post_inputs.append((allele, name, label, url,
+                            new_loci_url, species_name,
+                            True, headers_post, allele_uri, user_id))
+        allele_id += 1
+
+    return post_inputs
+
+
+def species_list(base_url, headers_get, endpoint_list):
+    """
+    """
+
+    res = simple_get_request(base_url, headers_get, endpoint_list)
+    res = res.json()
+    species_lst = {}
+    for sp in res:
+        species = sp['name']['value']
+        species_url = sp['species']['value']
+        species_id = species_url.split('/')[-1]
+
+        species_lst[species] = species_id
+
+    return species_lst
+
 
 def verify_cpu_usage(cpu_to_use):
     """ Verify the cpu usage for chewBBACA.

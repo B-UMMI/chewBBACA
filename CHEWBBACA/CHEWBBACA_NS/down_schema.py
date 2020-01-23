@@ -111,7 +111,7 @@ def retrieve_schema_info(schemas_list, schema_desc):
         return 404
 
 
-def build_fasta_files(response_dict, download_folder):
+def build_fasta(locus_id, locus_info, download_folder):
     """ Write fasta files from get request responses
 
         Args:
@@ -124,42 +124,37 @@ def build_fasta_files(response_dict, download_folder):
             failed_downloads (list): Contains the names.
     """
 
-    failed_downloads = []
-    for locus, response in response_dict.items():
+    # if the fasta already exists, stop beep boop
+    locus_file = os.path.join(download_folder, locus_id)
+    if locus_info.status_code > 200:
+        result = [locus_id, 1]
+    else:
+        locus_name = locus_id.rstrip('.fasta')
+        ns_data = locus_info.json()['Fasta']
 
-        # if the fasta already exists, stop beep boop
-        locus_file = os.path.join(download_folder, locus)
-        if os.path.exists(locus_file):
-            continue
+        # allele identifier to DNA sequence
+        locus_alleles = []
+        for allele in ns_data:
+            allele_id = int(allele['allele_id']['value'])
+            allele_seq = f"{allele['nucSeq']['value']}"
+            locus_alleles.append((allele_id, allele_seq))
 
-        if response.status_code > 200:
-            failed_downloads.append([locus, response])
-            continue
-        else:
-            locus_name = locus.rstrip('.fasta')
-            ns_data = response.json()['Fasta']
+        # write sequences to FASTA file
+        records = []
+        for allele in locus_alleles:
+            record = '>{0}_{1}\n{2}'.format(locus_name,
+                                            allele[0],
+                                            allele[1])
+            records.append(record)
 
-            # allele identifier to DNA sequence
-            locus_alleles = []
-            for allele in ns_data:
-                allele_id = int(allele['allele_id']['value'])
-                allele_seq = f"{allele['nucSeq']['value']}"
-                locus_alleles.append((allele_id, allele_seq))
+        locus_file = os.path.join(download_folder, locus_id)
+        with open(locus_file, 'w') as lf:
+            concat_records = '\n'.join(records)
+            lf.write(concat_records)
 
-            # write sequences to FASTA file
-            records = []
-            for allele in locus_alleles:
-                record = '>{0}_{1}\n{2}'.format(locus_name,
-                                                allele[0],
-                                                allele[1])
-                records.append(record)
+        result = [locus_id, 0]
 
-            locus_file = os.path.join(download_folder, locus)
-            with open(locus_file, 'w') as lf:
-                concat_records = '\n'.join(records)
-                lf.write(concat_records)
-
-    return failed_downloads
+    return result
 
 
 def get_fasta_seqs(headers_get, url):
@@ -220,33 +215,33 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc):
 
     # multithread the requests
     # must write files or this will go into RAM and explode
-    print('Downloading schema files...\n')
-    responses = {}
+    print('Downloading schema files...')
+    total = 0
+    failed = 0
     downloaded = 0
+    ns_files = []
     total_files = len(fasta_urls)
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         for result in executor.map(get_fasta_seqs, repeat(headers_get), fasta_urls):
-            responses[result[0]] = result[1]
-            downloaded += 1
+            locus_id = loci_names[result[0]]
+            locus_info = result[1]
+            locus_file = build_fasta(locus_id, locus_info, download_folder)
+            if locus_file[1] == 0:
+                downloaded += 1
+                ns_files.append(locus_id)
+            else:
+                failed += 1
+            total += 1
             print('\r', 'Downloaded: '
                   '{0}/{1}'.format(downloaded, total_files), end='')
 
-    # Build a dict with fasta_file ----> response
-    res_dict = {loci_names[locus]: responses[locus] for locus in responses}
-
-    # Build the fasta files
-    print('\nWriting fasta files...\n')
-    failed_loci = build_fasta_files(res_dict, download_folder)
-    successful_loci = len(res_dict) - len(failed_loci)
-    print('Downloaded and wrote FASTA files for '
-          '{0}/{1} loci'.format(successful_loci, len(res_dict)))
-    print('Failed for {0} loci.'.format(len(failed_loci)))
+    print('\nDownloaded and wrote FASTA files for '
+          '{0}/{1} loci'.format(downloaded, total))
+    print('Failed for {0} loci.'.format(failed))
 
     # output dir for the result of PrepExternalSchema
     local_schema_name = '{0}_schema'.format(schema_desc)
     local_schema_path = os.path.join(download_folder, local_schema_name)
-
-    ns_files = list(res_dict.keys())
 
     return [local_schema_path, ns_files, ns_config]
 

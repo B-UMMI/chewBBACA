@@ -32,7 +32,8 @@ from utils import (TestGenomeQuality, profile_joiner,
 
 from CHEWBBACA_NS import (down_schema, load_schema,
                           sync_schema, down_profiles,
-                          send2NS, send_metadata)
+                          send2NS, send_metadata,
+                          stats_requests)
 
 import CHEWBBACA
 
@@ -855,6 +856,34 @@ def down_prof():
     down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down,token)
 
 
+def ns_stats():
+
+    def msg(name=None):
+        return '''chewBBACA.py NSStats [NSStats ...][-h] -m [MODE]
+                  --url [URL] --taxon [TAXON]'''
+
+    parser = argparse.ArgumentParser(description='',
+                                     usage=msg())
+
+    parser.add_argument('-m', type=str, required=True, dest='stats_mode',
+                        help='')
+
+    parser.add_argument('--url', type=str, required=False, dest='base_url',
+                        default='http://127.0.0.1:5000/NS/api/',
+                        help='')
+
+    parser.add_argument('--taxon', type=str, required=False, dest='taxon',
+                        default='0', help='')
+
+    args = parser.parse_args()
+
+    mode = args.stats_mode
+    ns_url = args.base_url
+    species = args.taxon
+
+    stats_requests.main(mode, ns_url, species)
+
+
 def main():
 
     functions_info = {'CreateSchema': ['Create a gene by gene schema based on '
@@ -899,7 +928,9 @@ def main():
                                            'species for a given schema',
                                            down_prof],
                       'SendMetadata': ['send metadata to isolates on the NS',
-                                       send_meta]}
+                                       send_meta],
+                      'NSStats': ['',
+                                  ns_stats]}
 
     version = '2.1.0'
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'

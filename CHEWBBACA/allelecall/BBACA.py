@@ -594,7 +594,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         genesHeader = "FILE" + "\t" + ('\t'.join(map(str, genesnames)))
         finalphylovinput = genesHeader
         finalphylovinput2 = genesHeader
-        new_profiles = [genesHeader]
 
         if divideOutput:
             allelesDict = {}
@@ -630,7 +629,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             finalphylovinput += ('\t'.join(map(str, auxList)))
             # append genome profile to list with new profiles to append
             # to schema profiles master file
-            new_profiles.append('{0}\t{1}'.format(currentGenome, '\t'.join(map(str, auxList))))
             genome += 1
             statistics.append(statsaux)
 
@@ -713,20 +711,11 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
             # write all profiles to master file
             schema_profiles = os.path.join(genepath, 'profiles_master.txt')
-            if os.path.isfile(schema_profiles) is True:
-                # if the file already exists, simply append without header
-                with open(schema_profiles, 'a') as pf:
-                    # determine current time
-                    current_time = time.strftime("%Y%m%dT%H%M%S")
-                    new_profiles = '\n'.join(new_profiles[1:])
-                    pf.write('{0}\n{1}\n'.format(current_time, new_profiles))
-            else:
-                # create file if it's the first AlleleCall
-                with open(schema_profiles, 'w') as pf:
-                    # determine current time
-                    current_time = time.strftime("%Y%m%dT%H%M%S")
-                    new_profiles = '\n'.join(new_profiles)
-                    pf.write('{0}\n{1}\n'.format(current_time, new_profiles))
+            # will create file in first AlleleCall with schema
+            with open(schema_profiles, 'a') as pf:
+                # determine current time
+                current_time = time.strftime("%Y%m%dT%H%M%S")
+                pf.write('{0}\n{1}\n'.format(current_time, finalphylovinput))
 
             with open(os.path.join(outputfolder, "results_statistics.tsv"), 'w') as f:
                 f.write(str(statswrite))

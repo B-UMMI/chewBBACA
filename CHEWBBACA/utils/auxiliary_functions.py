@@ -21,6 +21,7 @@ import os
 import re
 import json
 import shutil
+import pysftp
 import requests
 import itertools
 import multiprocessing
@@ -78,7 +79,7 @@ def simple_post_request(base_url, headers, endpoint_list, data):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = aux.make_url(base_url, *endpoint_list)
+    url = make_url(base_url, *endpoint_list)
     res = requests.post(url, data=json.dumps(data), headers=headers)
 
     return res
@@ -902,3 +903,25 @@ def get_data(sparql_query):
             result = e
             
     return result
+
+
+def upload_sftp(host, username, password, local_path, remote_path):
+    """
+    """
+
+    with pysftp.Connection(host=host, username=username, password=password) as sftp:
+        print('Connection succesfully established ...')
+
+        print('Sending file...')
+        sftp.put(local_path, remote_path)
+
+
+def download_sftp(host, username, password, local_path, remote_path):
+    """
+    """
+
+    with pysftp.Connection(host=host, username=username, password=password) as sftp:
+        print('Connection succesfully established ...')
+
+        print('Downloading file...')
+        sftp.get(remote_path, local_path)

@@ -20,11 +20,11 @@ import pickle
 import shutil
 import requests
 import argparse
-import urllib.request
 import concurrent.futures
 from getpass import getpass
 from itertools import repeat
 
+from utils import constants as cnst
 from utils import auxiliary_functions as aux
 from PrepExternalSchema import PrepExternalSchema
 
@@ -312,10 +312,13 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         pickle.dump(schema_params_dict, scf)
 
     # Download prodigal training file
-#    ptf_url = schema_params_dict['prodigal_training_file']
-#    ptf_name = ptf_url.split('/')[-1]
-#    local_ptf = os.path.join(schema_path, ptf_name)
-#    urllib.request.urlretrieve(ptf_url, local_ptf)
+    print('\nDownloading Prodigal training file...')
+    ptf_basename = schema_params_dict['prodigal_training_file'].split('/')[-1]
+    aux.download_sftp(cnst.HOST_NS,
+                      user.split('@')[0],
+                      password,
+                      os.path.join(schema_path, ptf_basename),
+                      schema_params_dict['prodigal_training_file'])
 
     print('Schema is now available at: {0}'.format(schema_path))
 

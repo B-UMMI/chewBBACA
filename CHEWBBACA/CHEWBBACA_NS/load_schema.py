@@ -180,7 +180,7 @@ def check_configs(file_path, input_path, schema_desc):
         schema_ptf_path = os.path.join(input_path, schema_ptf_name)
         if os.path.isfile(schema_ptf_path):
             print('Found valid training file in schema directory.')
-            params['ptf'] = schema_ptf_path
+            params['prodigal_training_file'] = schema_ptf_path
         else:
             message = 'Could not find valid training file in schema directory.'
             messages.append(message)
@@ -198,7 +198,7 @@ def check_configs(file_path, input_path, schema_desc):
         if schema_ml >= 0:
             print('Schema created with a minimum sequence length '
                   'parameter of {0}.'.format(schema_ml))
-            params['min_locus_len'] = str(schema_ml)
+            params['minimum_locus_length'] = str(schema_ml)
         else:
             message = ('Invalid minimum sequence length value used to '
                        'create schema. Value must be a positive integer.')
@@ -535,7 +535,7 @@ def parse_arguments():
                         'ACIBA00001.fasta.')
 
     parser.add_argument('--thr', type=int, required=False, dest='threads',
-                        default=1, help='The number of threads to use. '
+                        default=30, help='The number of threads to use. '
                         'The process will use multithreading to search for '
                         'annotations on UniProt and to send data to the NS '
                         '(default=30).')
@@ -557,6 +557,15 @@ def parse_arguments():
     return [args.input_files, args.species_id, args.schema_desc,
             args.loci_prefix, args.threads, args.base_url,
             args.continue_up]
+
+
+input_files = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/GBS_CC1_schema'
+species_id = '1'
+schema_desc = 'test_sftp'
+loci_prefix = 'test_sftp'
+threads = 30
+base_url = 'http://127.0.0.1:5000/NS/api/'
+continue_up = 'no'
 
 
 def main(input_files, species_id, schema_desc, loci_prefix, threads,
@@ -591,7 +600,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # verify user role to check permission
     user_info = aux.simple_get_request(base_url, headers_get,
-                                   ['user', 'current_user'])
+                                       ['user', 'current_user'])
     user_info = user_info.json()
     user_role = any(role in user_info['roles']
                     for role in ['Admin', 'Contributor'])
@@ -660,6 +669,13 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     # start sending data
     print('\n\nSending data to NS...')
 
+    # schema parameters to send to NS have sftp path
+    # for the Prodigal training file
+    print(params)
+    ptf_basename = params['prodigal_training_file'].split('/')[-1]
+    params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
+                                                    ptf_basename.rstrip('.trn'))
+
     # Build the new schema URL and POST to NS
     if continue_up == 'no':
         print('\nCreating new schema...')
@@ -670,7 +686,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     elif continue_up == 'yes':
         print('\nChecking if schema already exists...')
         schema_get = aux.simple_get_request(base_url, headers_get,
-                                        ['species', species_id, 'schemas'])
+                                            ['species', species_id, 'schemas'])
         schema_get_status = schema_get.status_code
         species_schemas = schema_get.json()
         if schema_get_status in [200, 201]:
@@ -691,9 +707,9 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         # compare list of genes, if they do not intersect, halt process
         # get list of loci for schema in NS
         ns_loci_get = aux.simple_get_request(base_url, headers_get,
-                                         ['species', species_id,
-                                          'schemas', schema_id,
-                                          'loci'])
+                                             ['species', species_id,
+                                              'schemas', schema_id,
+                                              'loci'])
         # get loci files names from response
         ns_schema_loci = []
         ns_schema_locid_map = {}
@@ -765,6 +781,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     if continue_up == 'no':
         schema_url = schema_post.json()['url']
+        schema_id = schema_url.split('/')[-1]
 
     # Get the new schema url from the response
     print('Schema description: {0}'.format(schema_desc))
@@ -893,9 +910,17 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                            hash_collisions),
           end='\r')
 
-    # create endpoint for training file
-    # send training file to folder in server
-    # save location in server to config file
+    # send training file to sftp folder
+    print('\nUploading Prodigal training file...')
+    # add schema identifier to training file name
+    # same training file can be uploaded more than once with different name
+    # but this redundancy simplifies the process of maintaining training files
+    ptf_nsid = '{0}_{1}.trn'.format(ptf_basename.rstrip('.trn'), schema_id)
+    aux.upload_sftp(cnst.HOST_NS,
+                    user.split('@')[0],
+                    password,
+                    os.path.join(input_files, ptf_basename),
+                    os.path.join(cnst.SFTP_PTF_TEMP, ptf_nsid))
 
     end = time.time()
     delta = end - start

@@ -671,7 +671,6 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # schema parameters to send to NS have sftp path
     # for the Prodigal training file
-    print(params)
     ptf_basename = params['prodigal_training_file'].split('/')[-1]
     params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
                                                     ptf_basename.rstrip('.trn'))

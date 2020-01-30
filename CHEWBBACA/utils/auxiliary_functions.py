@@ -886,7 +886,7 @@ def process_locus(gene, token, loci_url, auxBar, noCDSCheck):
 
 def get_data(sparql_query):
     """ Gets data from Virtuoso """
-    
+
     try:
         UNIPROT_SERVER.setQuery(sparql_query)
         UNIPROT_SERVER.setReturnFormat(JSON)
@@ -901,7 +901,7 @@ def get_data(sparql_query):
             result = UNIPROT_SERVER.query().convert()
         except Exception as e:
             result = e
-            
+
     return result
 
 

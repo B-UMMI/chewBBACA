@@ -216,7 +216,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                   '{1}.'.format(species_name))
         else:
             schema_uri = schema_uri[0]
-            schema_id = schema_uri.split('/')[0]
+            schema_id = schema_uri.split('/')[-1]
     # check if user provided schema identifier or schema description
     elif len(schema_uri) == 0:
         # get info about all the species schemas
@@ -252,6 +252,24 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         else:
             print('\nCould not retrieve schemas for current species.')
 
+    # get schema parameters
+    schema_params = requests.get(schema_uri, headers=headers_get)
+    schema_params = schema_params.json()[0]
+
+    # create parameters dict
+    schema_params_dict = {k: schema_params[k]['value']
+                          for k in schema_params.keys()
+                          if k != 'name'}
+
+    # check if schema is locked
+    lock_status = schema_params_dict['Schema_lock']
+    if lock_status != 'Unlocked':
+        print('403: schema is locked. This might be because it '
+              'is being uploaded, updated or compressed.'
+              ' Please try again later and contact the Administrator '
+              'if the schema stays locked for a long period of time.')
+        return 403
+
     # create download folder if it does not exist
     if not os.path.exists(download_folder):
         os.mkdir(download_folder)
@@ -270,15 +288,6 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                                                                                           schema_uri,
                                                                                           species_name,
                                                                                           download_folder))
-
-    # get schema parameters
-    schema_params = requests.get(schema_uri, headers=headers_get)
-    schema_params = schema_params.json()[0]
-
-    # create parameters dict
-    schema_params_dict = {k: schema_params[k]['value']
-                          for k in schema_params.keys()
-                          if k != 'name'}
 
     print('Downloading schema...')
 

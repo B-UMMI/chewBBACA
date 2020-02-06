@@ -18,6 +18,7 @@ import os
 import json
 import time
 import pickle
+import hashlib
 import argparse
 import requests
 import concurrent.futures
@@ -101,8 +102,9 @@ def determine_upload(local_schema_loci, ns_schema_loci,
             missing.append(locus)
 
     upload = missing + incomplete
-    incomplete_text = ', '.join(incomplete)
-    print('Incomplete: {0}'.format(incomplete_text))
+    # incomplete_text = ', '.join(incomplete)
+    # print('Incomplete: {0}'.format(incomplete_text))
+    print('Incomplete: {0}'.format(len(upload)))
 
     return upload
 
@@ -176,7 +178,7 @@ def check_configs(file_path, input_path, schema_desc):
         params['name'] = schema_desc
         # Determine if the configs are valid
         # Prodigal training file
-        schema_ptf_name = configs.get('prodigal_training_file', 'not_found')
+        schema_ptf_name = configs.get('prodigal_training_file', 'na')
         schema_ptf_path = os.path.join(input_path, schema_ptf_name)
         if os.path.isfile(schema_ptf_path):
             print('Found valid training file in schema directory.')
@@ -184,28 +186,41 @@ def check_configs(file_path, input_path, schema_desc):
         else:
             message = 'Could not find valid training file in schema directory.'
             messages.append(message)
+
         # BSR value
-        schema_bsr = float(configs.get('bsr', 'not_found'))
-        if schema_bsr > 0.0 and schema_bsr < 1.0:
-            print('Schema created with BSR value of {0}.'.format(schema_bsr))
-            params['bsr'] = str(schema_bsr)
-        else:
+        schema_bsr = configs.get('bsr', 'na')
+        try:
+            schema_bsr = float(schema_bsr)
+            if schema_bsr > 0.0 and schema_bsr < 1.0:
+                print('Schema created with BSR value of '
+                      '{0}.'.format(schema_bsr))
+                params['bsr'] = str(schema_bsr)
+            else:
+                raise ValueError('Value is not contained in the '
+                                 '[0.0, 1.0] range.')
+        except ValueError:
             message = ('Invalid BSR value of {0}. BSR value must be contained'
-                       'in the [0.0,1.0] interval.'.format(schema_bsr))
+                       ' in the [0.0, 1.0] interval.'.format(schema_bsr))
             messages.append(message)
+
         # Minimum sequence length
-        schema_ml = int(configs.get('minimum_locus_length', 'not_found'))
-        if schema_ml >= 0:
-            print('Schema created with a minimum sequence length '
-                  'parameter of {0}.'.format(schema_ml))
-            params['minimum_locus_length'] = str(schema_ml)
-        else:
+        schema_ml = int(configs.get('minimum_locus_length', 'na'))
+        try:
+            schema_ml = int(schema_ml)
+            if schema_ml >= 0:
+                print('Schema created with a minimum sequence length '
+                      'parameter of {0}.'.format(schema_ml))
+                params['minimum_locus_length'] = str(schema_ml)
+            else:
+                raise ValueError('Invalid minimum sequence length value. '
+                                 'Must be equal or greater than 0.')
+        except ValueError:
             message = ('Invalid minimum sequence length value used to '
                        'create schema. Value must be a positive integer.')
             messages.append(message)
-        # translation table
-        schema_gen_code = int(configs.get('translation_table', 'not_found'))
 
+        # translation table
+        schema_gen_code = int(configs.get('translation_table', 'na'))
         if schema_gen_code in cnst.GENETIC_CODES:
             genetic_code_desc = cnst.GENETIC_CODES[schema_gen_code]
             print('Schema genes were predicted with genetic code '
@@ -214,16 +229,98 @@ def check_configs(file_path, input_path, schema_desc):
         else:
             message = ('Genetic code used to create schema is not valid.')
             messages.append(message)
-        # chewie version
-        schema_chewie_version = configs.get('chewBBACA_version', 'not_found')
 
+        # chewie version
+        schema_chewie_version = configs.get('chewBBACA_version', 'na')
         if schema_chewie_version in cnst.CHEWIE_VERSIONS:
             chewie_version = cnst.CHEWIE_VERSIONS[cnst.CHEWIE_VERSIONS.index(schema_chewie_version)]
             print('Schema created with chewBBACA v{0}.'.format(chewie_version))
             params['chewBBACA_version'] = schema_chewie_version
         else:
             message = ('Schema created with chewBBACA version that '
-                       'was not suitable to work with the NS.')
+                       'is not suitable to work with the NS.')
+            messages.append(message)
+
+        # clustering word_size
+        word_size = configs.get('word_size', 'na')
+        try:
+            if word_size == 'na':
+                print('Schema created with a chewBBACA version '
+                      'that did not use clustering.')
+            else:
+                word_size = int(word_size)
+                if word_size >= 4:
+                    print('Schema created with a clustering word size '
+                          'value of {0}.'.format(word_size))
+                else:
+                    raise ValueError('Word size for the clustering step '
+                                     'must be equal or greater than 4.')
+            params['word_size'] = str(word_size)
+        except ValueError:
+            message = ('Schema created with invalid clustering word '
+                       'size value.')
+            messages.append(message)
+
+        # clustering similarity threshold
+        cluster_sim = configs.get('cluster_sim', 'na')
+        try:
+            if cluster_sim == 'na':
+                print('Schema created with a chewBBACA version '
+                      'that did not use clustering.')
+            else:
+                cluster_sim = float(cluster_sim)
+                if cluster_sim >= 0.0:
+                    print('Schema created with a clustering threshold '
+                          'value of {0}.'.format(cluster_sim))
+                else:
+                    raise ValueError('Clustering similarity threshold value '
+                                     'must be contained in the [0.0, 1.0] '
+                                     'interval.')
+            params['cluster_sim'] = str(cluster_sim)
+        except ValueError:
+            message = ('Schema created with invalid clustering '
+                       'threshold value.')
+            messages.append(message)
+
+        # representative_filter
+        representative_filter = configs.get('representative_filter', 'na')
+        try:
+            if representative_filter == 'na':
+                print('Schema created with a chewBBACA version '
+                      'that did not use clustering.')
+            else:
+                representative_filter = float(representative_filter)
+                if representative_filter >= 0.0 and representative_filter <= 1.0:
+                    print('Schema created with a representative filter '
+                          'value of {0}.'.format(representative_filter))
+                else:
+                    raise ValueError('Representative filter threshold value '
+                                     'must be contained in the [0.0, 1.0] '
+                                     'interval.')
+            params['representative_filter'] = str(representative_filter)
+        except ValueError:
+            message = ('Schema created with invalid representative filter value.')
+            messages.append(message)
+
+        # intraCluster_filter
+        intraCluster_filter = configs.get('intraCluster_filter', 'na')
+        try:
+            if intraCluster_filter == 'na':
+                print('Schema created with a chewBBACA version '
+                      'that did not use clustering.')
+            else:
+                intraCluster_filter = float(intraCluster_filter)
+                if intraCluster_filter >= 0.0 and intraCluster_filter <= 1.0:
+                    print('Schema created with a intraCluster filter '
+                          'value of {0}.'.format(intraCluster_filter))
+                else:
+                    raise ValueError('intraCluster filter threshold value '
+                                     'must be contained in the [0.0, 1.0] '
+                                     'interval.')
+            params['intraCluster_filter'] = str(intraCluster_filter)
+        except ValueError:
+            message = ('Schema created with invalid intraCluster filter '
+                       'value.')
             messages.append(message)
 
         if 'message' not in locals():
@@ -408,7 +505,7 @@ def get_annotation(sparql_queries):
     if prev_label == '':
         prev_label = 'not found'
     if prev_url == '':
-        # test URL to see if virtuoso forces field to have URL
+        # virtuoso needs a string that looks like an URL
         prev_url = 'http://not.found.org'
 
     return (locus, prev_name, prev_label, prev_url)
@@ -561,8 +658,8 @@ def parse_arguments():
 
 input_files = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/GBS_CC1_schema'
 species_id = '1'
-schema_desc = 'test_sftp'
-loci_prefix = 'test_sftp'
+schema_desc = 'test_sftpdwwddw'
+loci_prefix = 'test_sftpdwwddw'
 threads = 30
 base_url = 'http://127.0.0.1:5000/NS/api/'
 continue_up = 'no'
@@ -920,6 +1017,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                     password,
                     os.path.join(input_files, ptf_basename),
                     os.path.join(cnst.SFTP_PTF_TEMP, ptf_nsid))
+
+    # unlock schema
+    schema_unlock = aux.simple_post_request(base_url, headers_post,
+                                            ['species', species_id,
+                                             'schemas', schema_id, 'lock'],
+                                            {'action': 'unlock'})
 
     end = time.time()
     delta = end - start

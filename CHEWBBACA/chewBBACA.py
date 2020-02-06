@@ -764,8 +764,8 @@ def sync_schema_NS():
                         dest='ns_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--submit', nargs='?', type=float, required=False,
-                        default=False, dest='submit',
+    parser.add_argument('--submit', nargs='?', type=str, required=False,
+                        default='no', dest='submit',
                         help='If the local alleles that are not in the NS '
                              'should be uploaded to update the NS schema.')
 

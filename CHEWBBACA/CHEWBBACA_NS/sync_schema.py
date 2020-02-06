@@ -15,6 +15,7 @@ DESCRIPTION
 
 
 import os
+import sys
 import json
 import time
 import shutil
@@ -161,12 +162,11 @@ def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
             # Schema dir
             with open(os.path.join(path2schema, name), 'w') as f1:
                 f1.write(auxString)
-            
+
             # New alleles dir
             with open(os.path.join(path_new_alleles, name), 'w') as f2:
                 f2.write(auxString)
-                
-    
+
     print(f"{len(new_allele_seq_dict)} files have been written")
 
     return True
@@ -271,6 +271,10 @@ def get_new_alleles_seqs(alleles_info, headers_get):
     return new_alleles
 
 
+#new_alleles = fasta_response
+#local_loci = schema_fasta_files
+
+
 def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
     """
     """
@@ -278,11 +282,8 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
     # Check if new alleles are already on schema
     not_in_ns = {}
     pickled_loci = {}
-    #print(new_alleles.keys())
     for locus in new_alleles:
-        #print(locus)
         not_in_ns[locus] = []
-        pickled_loci[locus] = ''
         if locus in local_loci:
             # get locus file identifier without '.fasta'
             locus_id = locus.rstrip('.fasta')
@@ -301,6 +302,15 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
                 # read sequences in local file
                 records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
                            for rec in SeqIO.parse(sf, 'fasta')}
+
+            # check if the NS and local schema have the same set of
+            # sequence identifiers
+            ns_ids = set(list(locus_ns_seqs.values()))
+            local_ids = set([recinfo[0] for recid, recinfo in records.items()])
+            # if the set of identifiers is equal, do not create a pickled file
+            if ns_ids == local_ids:
+                del not_in_ns[locus]
+                continue
 
             # deepcopy records to alter and sync with the NS locus
             altered_locus = deepcopy(records)
@@ -423,6 +433,8 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
             pickle.dump(updated_records, pl)
 
         pickled_loci[locus] = temp_file
+        if len(not_in_ns[locus]) == 0:
+            del not_in_ns[locus]
 
     return [not_in_ns, pickled_loci]
 
@@ -503,7 +515,7 @@ def parse_arguments():
                         default='http://127.0.0.1:5000/NS/api/',
                         help='The base URI for the NS endpoints.')
 
-    parser.add_argument('--sub', type=str, required=False, dest='submit', 
+    parser.add_argument('--submit', type=str, required=False, dest='submit', 
                         default='no',
                         help='If the process should detect new alleles'
                         'in the local schema and send them to the NS. (only'
@@ -515,8 +527,14 @@ def parse_arguments():
             args.submit]
 
 
-def main(schema_dir, core_num, ns_url, submit):
+#schema_dir = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/lol/sagalactiae_catch224_schema'
+#core_num = 6
+#ns_url = 'http://127.0.0.1:5000/NS/api/'
+#submit = 'yes'
 
+
+def main(schema_dir, core_num, ns_url, submit):
+    print(submit)
     # login with master key
     login_key = False
     if login_key:
@@ -568,6 +586,16 @@ def main(schema_dir, core_num, ns_url, submit):
         print('There is no schema with URI "{0}" in the NS.')
         return 1
 
+    # check if schema is locked
+    schema_info = schema_response.json()[0]
+    lock_status = schema_info['Schema_lock']['value']
+    if lock_status != 'Unlocked':
+        print('403: schema is locked. This might be because it '
+              'is being uploaded, updated or compressed.'
+              ' Please try again later and contact the Administrator '
+              'if the schema stays locked for a long period of time.')
+        return 403
+
     # check if list of loci is the same in local and NS schemas
 
     # update local schema
@@ -591,11 +619,19 @@ def main(schema_dir, core_num, ns_url, submit):
                                                                headers_get,
                                                                headers_post)
 
+    # check if there are any changes to make
+    if len(pickled_loci) == 0:
+        print('Retrieved alleles are common to local and NS schema. '
+              'Local schema is up to date.')
+        shutil.rmtree(temp_dir)
+        sys.exit(0)
+
     if submit == 'yes':
+        print('Determining local alleles to submit...')
 
         # verify user role to check permission
         user_info = aux.simple_get_request(ns_url, headers_get,
-                                       ['user', 'current_user'])
+                                           ['user', 'current_user'])
         user_info = user_info.json()
         user_role = any(role in user_info['roles']
                         for role in ['Admin', 'Contributor'])
@@ -639,14 +675,15 @@ def main(schema_dir, core_num, ns_url, submit):
             locus_uri = l['locus']['value']
             ns_schema_locid_map[locus_name] = (locus_uri, locus_file)
 
-        completed = []
+        completed = list(pickled_loci.keys())
         incomplete = []
         for locus in not_in_ns:
             if locus in ns_schema_loci:
                 if len(not_in_ns[locus]) > 0:
                     incomplete.append(locus)
                 else:
-                    completed.append(locus)
+                    if locus not in completed:
+                        completed.append(locus)
 
         if len(incomplete) > 0:
 
@@ -662,6 +699,7 @@ def main(schema_dir, core_num, ns_url, submit):
                                             temp_dir, ns_url, headers_get)
 
             completed.extend(comp)
+            completed = list(set(completed))
 
             # add sequences to the NS
             # use multiprocessing
@@ -705,10 +743,17 @@ def main(schema_dir, core_num, ns_url, submit):
             print('There are no new alleles in the local schema that '
                   'need to be sent to the NS.')
 
+    elif submit == 'no':
+        completed = list(not_in_ns.keys())
+#        print(not_in_ns)
+#        print(completed)
+
     # change profiles in the master file so that local
     # profiles have updated allele identifiers
 
     # change pickled files to FASTA files
+#    print(completed)
+#    print(set(completed))
     for locus in completed:
         locus_id = locus.rstrip('.fasta')
         pickled_file = pickled_loci[locus]
@@ -732,7 +777,7 @@ def main(schema_dir, core_num, ns_url, submit):
 
     # Re-determine the representative sequences
     PrepExternalSchema.main(temp_dir, schema_dir,
-                            core_num, bsr)
+                            core_num, bsr, 0, 11)
 
     # delete invalid alleles and genes files
     parent_dir = os.path.dirname(schema_dir)

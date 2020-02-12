@@ -453,14 +453,16 @@ def update_local_schema(last_sync_date, schema_uri, schema_dir, temp_dir,
 	# get all sequences until the number of new sequences is less than 100k, the maximum the server return is 100k
     # start getting new sequences that were added to the server and that are not in local schema
     print('Determining if there are new sequences in the NS...')
-    print('Getting new alleles added to the NS since {0}'.format(str(server_time)))
+    print('Getting new alleles added to the NS since '
+          '{0}'.format(str(server_time)))
     while not new_seqs:
         loci_new_alleles, new_seqs, server_time, new_count = retrieve_latest_alleles(loci_new_alleles,
                                                                                      server_time,
                                                                                      schema_uri,
                                                                                      new_count,
                                                                                      headers_get)
-    print('Retrieved {0} new alleles added since {1}'.format(new_count, last_sync_date))
+    print('Retrieved {0} new alleles added since '
+          '{1}'.format(new_count, last_sync_date))
 
     # if new_alleles dict has no entries
     # there are no new alleles
@@ -479,7 +481,7 @@ def update_local_schema(last_sync_date, schema_uri, schema_dir, temp_dir,
                                                 schema_dir,
                                                 temp_dir)
 
-    return [not_in_ns, pickled_loci, server_time]
+    return [not_in_ns, pickled_loci, server_time, new_count]
 
 
 def load_binary(parent_dir, file_name):
@@ -506,16 +508,16 @@ def parse_arguments():
                         help='Path to the directory with the schema to be'
                              'synced.')
 
-    parser.add_argument('--cores', type=int, required=False, dest='core_num', 
-                        default=1, help='Number of CPU cores to use to construct'
-                        ' the complete schema based on the synced/updated loci'
-                        ' files.')
+    parser.add_argument('--cores', type=int, required=False, dest='core_num',
+                        default=1, help='Number of CPU cores to use to '
+                        'construct the complete schema based on the '
+                        'synced/updated loci files.')
 
-    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url', 
+    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url',
                         default='http://127.0.0.1:5000/NS/api/',
                         help='The base URI for the NS endpoints.')
 
-    parser.add_argument('--submit', type=str, required=False, dest='submit', 
+    parser.add_argument('--submit', type=str, required=False, dest='submit',
                         default='no',
                         help='If the process should detect new alleles'
                         'in the local schema and send them to the NS. (only'
@@ -534,7 +536,7 @@ def parse_arguments():
 
 
 def main(schema_dir, core_num, ns_url, submit):
-    print(submit)
+
     # login with master key
     login_key = False
     if login_key:
@@ -586,6 +588,15 @@ def main(schema_dir, core_num, ns_url, submit):
         print('There is no schema with URI "{0}" in the NS.')
         return 1
 
+    # get information about user
+    user_info = aux.simple_get_request(ns_url, headers_get,
+                                       ['user', 'current_user'])
+    user_info = user_info.json()
+    user_role = any(role in user_info['roles']
+                    for role in ['Admin', 'Contributor'])
+
+    user_id = str(user_info['id'])
+
     # check if schema is locked
     schema_info = schema_response.json()[0]
     lock_status = schema_info['Schema_lock']['value']
@@ -595,6 +606,25 @@ def main(schema_dir, core_num, ns_url, submit):
               ' Please try again later and contact the Administrator '
               'if the schema stays locked for a long period of time.')
         return 403
+
+    # get schema and species identifiers
+    schema_id = schema_uri.split('/')[-1]
+    species_id = schema_uri.split('/')[-3]
+
+    # if submit, lock schema
+    locked = False
+    if user_role is True and submit == 'yes':
+        schema_lock = aux.simple_post_request(base_url, headers_post,
+                                              ['species', species_id,
+                                               'schemas', schema_id, 'lock'],
+                                              {'action': 'lock'})
+        locked = True
+    elif user_role is False and submit == 'yes':
+        print('Current user has no permission to submit new data. '
+              'Local schema will be updated but novel alleles will '
+              'not be sent to the NS.')
+    else:
+        print('Updating local schema...')
 
     # check if list of loci is the same in local and NS schemas
 
@@ -610,14 +640,14 @@ def main(schema_dir, core_num, ns_url, submit):
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
-    not_in_ns, pickled_loci, server_time = update_local_schema(last_sync_date,
-                                                               schema_uri,
-                                                               schema_dir,
-                                                               temp_dir,
-                                                               bsr,
-                                                               ns_url,
-                                                               headers_get,
-                                                               headers_post)
+    not_in_ns, pickled_loci, server_time, new_count = update_local_schema(last_sync_date,
+                                                                          schema_uri,
+                                                                          schema_dir,
+                                                                          temp_dir,
+                                                                          bsr,
+                                                                          ns_url,
+                                                                          headers_get,
+                                                                          headers_post)
 
     # check if there are any changes to make
     if len(pickled_loci) == 0:
@@ -626,41 +656,27 @@ def main(schema_dir, core_num, ns_url, submit):
         shutil.rmtree(temp_dir)
         sys.exit(0)
 
-    if submit == 'yes':
-        print('Determining local alleles to submit...')
+    if submit == 'yes' and user_role is True:
 
-        # verify user role to check permission
-        user_info = aux.simple_get_request(ns_url, headers_get,
-                                           ['user', 'current_user'])
-        user_info = user_info.json()
-        user_role = any(role in user_info['roles']
-                        for role in ['Admin', 'Contributor'])
-
-        if not user_role:
-            print('\n403: Current user has no Administrator '
-                  'or Contributor permissions.\n'
-                  'Not allowed to upload schemas.')
-            #return 403
-
-        user_id = str(user_info['id'])
         headers_post['user_id'] = user_id
 
-        species_id = schema_uri.split('/')[-3]
+        print('Determining local alleles to submit...')
 
         # Get the name of the species from the provided id
         # or vice-versa
         species_info = aux.species_ids(species_id, ns_url, headers_get)
         if isinstance(species_info, list):
             species_id, species_name = species_info
-            print('\nNS species with identifier {0} is {1}.'.format(species_id,
-                                                                    species_name))
+            print('\nNS species with identifier {0} '
+                  'is {1}.'.format(species_id,
+                                   species_name))
         else:
-            print('\nThere is no species with the provided identifier in the NS.')
+            print('\nThere is no species with the provided '
+                  'identifier in the NS.')
             #return 1
 
         # compare list of genes, if they do not intersect, halt process
         # get list of loci for schema in the NS
-        schema_id = schema_uri.split('/')[-1]
         ns_loci_get = aux.simple_get_request(ns_url, headers_get,
                                              ['species', species_id,
                                               'schemas', schema_id,
@@ -687,8 +703,10 @@ def main(schema_dir, core_num, ns_url, submit):
 
         if len(incomplete) > 0:
 
-            uniq_local = {k:v for k, v in not_in_ns.items() if k in incomplete}
-            loci_uris = {k:v for k, v in ns_schema_locid_map.items() if k in incomplete}
+            uniq_local = {k: v for k, v in not_in_ns.items()
+                          if k in incomplete}
+            loci_uris = {k: v for k, v in ns_schema_locid_map.items()
+                         if k in incomplete}
 
             # determine sequences that are not in the NS
             # we synced before so we just need to go to each file and
@@ -710,7 +728,8 @@ def main(schema_dir, core_num, ns_url, submit):
                 label = info[2]
                 url = info[3]
                 allele_seq_list = [rec[1] for rec in info[4:]]
-                start_id = min([int(rec[0].split('_')[-1]) for rec in info[4:]])
+                start_id = min([int(rec[0].split('_')[-1])
+                                for rec in info[4:]])
                 post_data = aux.create_allele_data(allele_seq_list,
                                                    new_loci_url,
                                                    name,
@@ -731,13 +750,15 @@ def main(schema_dir, core_num, ns_url, submit):
                 workers = 10
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-                    # Start the load operations and mark each future with its URL
+                    # Start the load operations and mark each future
+                    # with its URL
                     for res in executor.map(aux.post_allele, inlist):
                         post_results.append(res)
                         total_inserted += 1
                         print('\r',
-                              'Processed {0}/{1} alleles.'.format(total_inserted,
-                                                                  total_alleles),
+                              'Processed {0}/{1} '
+                              'alleles.'.format(total_inserted,
+                                                total_alleles),
                               end='')
         else:
             print('There are no new alleles in the local schema that '
@@ -795,6 +816,20 @@ def main(schema_dir, core_num, ns_url, submit):
     ns_configs = os.path.join(schema_dir, '.ns_config')
     with open(ns_configs, 'wb') as nc:
         pickle.dump([server_time, schema_uri], nc)
+
+    if user_role is True and submit == 'yes':
+        print('Updated local schema with {0} alleles '
+              'and sent {1} novel alleles to the '
+              'NS.'.format(new_count, len(alleles_data)))
+    else:
+        print('Updated local schema with {0} alleles.'.format(new_count))
+
+    # unlock schema if it was locked
+    if locked is True:
+        schema_unlock = aux.simple_post_request(base_url, headers_post,
+                                                ['species', species_id,
+                                                 'schemas', schema_id, 'lock'],
+                                                {'action': 'unlock'})
 
     print('Done!')
 

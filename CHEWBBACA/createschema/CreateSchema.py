@@ -410,11 +410,18 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     ptf_name = os.path.basename(prodigal_training_file)
 
     # create dictionary with parameters values
+    # create values as lists to append new values when schema is
+    # used with parameters values that differ from parameters
+    # values used for its creation
     parameters = {'bsr': blast_score_ratio,
                   'prodigal_training_file': ptf_name,
                   'translation_table': 11,
                   'minimum_locus_length': minimum_cds_length,
-                  'chewBBACA_version': '2.1.0'}
+                  'chewBBACA_version': '2.1.0',
+                  'word_size': word_size,
+                  'cluster_sim': clustering_sim,
+                  'representative_filter': rep_filter,
+                  'intraCluster_filter': intra_filter}
 
     with open(config_file, 'wb') as cf:
         pickle.dump(parameters, cf)
@@ -424,7 +431,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     schema_list_file = os.path.join(schema_dir, '.genes_list')
     with open(schema_list_file, 'wb') as sl:
         pickle.dump(schema_files, sl)
-    
+
     # remove temporary files
     if cleanup == 'yes':
         shutil.rmtree(temp_directory)
@@ -477,20 +484,17 @@ def parse_arguments():
 
     parser.add_argument('--cm', '--clustering_mode', type=str, required=False, dest='clustering_mode',
                         default='greedy', help='')
-
-    parser.add_argument('--wf', '--word_filter', type=int, required=False, dest='word_filter',
-                        default=4, help='')
     
-    parser.add_argument('--fs', '--filtering_sim', type=float, required=False, dest='filtering_sim',
-                        default=0.15, help='')
+    parser.add_argument('--ws', '--word_size', type=int, required=False, dest='word_size',
+                        default=4, help='')
 
     parser.add_argument('--cs', '--clustering_sim', type=float, required=False, dest='clustering_sim',
                         default=0.20, help='')
 
-    parser.add_argument('--ws', '--word_size', type=int, required=False, dest='word_size',
-                        default=4, help='')
-
-    parser.add_argument('--cf', '--cluster_filter', type=float, required=False, dest='cluster_filter',
+    parser.add_argument('--rf', '--rep_filter', type=float, required=False, dest='representative_filter',
+                        default=0.80, help='')
+    
+    parser.add_argument('--if', '--intra_filter', type=float, required=False, dest='intra_filter',
                         default=0.80, help='')
 
     parser.add_argument('--c', '--cleanup', type=str, required=False, dest='cleanup',
@@ -501,9 +505,9 @@ def parse_arguments():
 
     return [args.input_files, args.output_directory, args.prodigal_training_file,
             args.schema_name, args.cpu_count, args.blastp_path, args.blast_score_ratio,
-            args.minimum_cds_length, args.translation_table, args.clustering_mode, args.word_filter,
-            args.filtering_sim, args.clustering_sim, args.word_size,
-            args.cluster_filter, args.cleanup]
+            args.minimum_cds_length, args.translation_table, args.clustering_mode,
+            args.word_size, args.clustering_sim, args.representative_filter,
+            args.intra_filter, args.cleanup]
 
 
 if __name__ == '__main__':
@@ -511,5 +515,4 @@ if __name__ == '__main__':
     args = parse_arguments()
     main(args[0], args[1], args[2], args[3], args[4],
          args[5], args[6], args[7], args[8], args[9],
-         args[10], args[11], args[12], args[13], args[14],
-         args[15])
+         args[10], args[11], args[12], args[13], args[14])

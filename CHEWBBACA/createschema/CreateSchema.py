@@ -38,7 +38,6 @@ import CreateSchema_aux as rfm
 #cleanup = 'yes'
 ## cluster parameters
 #clustering_mode = 'greedy'
-#word_filter = 4
 #filtering_sim = 0.15
 #word_size = 4
 #clustering_sim = 0.20
@@ -47,13 +46,12 @@ import CreateSchema_aux as rfm
 
 def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count,
          blastp_path, blast_score_ratio, minimum_cds_length, translation_table, clustering_mode,
-         word_filter, filtering_sim, clustering_sim, word_size, cluster_filter, cleanup):
-
+         word_size, clustering_sim, rep_filter, intra_filter, cleanup):
 
     global_start = time.time()
 
     cpu_to_apply = new_utils.verify_cpu_usage(cpu_count)
-    
+
     chosen_taxon = os.path.abspath(prodigal_training_file)
 
     print('\nCreating schema based on the genomes '
@@ -64,11 +62,10 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     print('Translation table: {0}'.format(translation_table))
     print('Minimum accepted sequence length: {0}'.format(minimum_cds_length))
     print('Clustering mode: {0}'.format(clustering_mode))
-    print('Word filter: {0}'.format(word_filter))
-    print('Filtering similarity: {0}'.format(filtering_sim))
-    print('Clustering similarity: {0}'.format(clustering_sim))
     print('Word size: {0}'.format(word_size))
-    print('Cluster filter: {0}'.format(cluster_filter))
+    print('Clustering similarity: {0}'.format(clustering_sim))
+    print('Representative filter: {0}'.format(rep_filter))
+    print('Intra filter: {0}'.format(intra_filter))
 
     # path to directory with genomes FASTA files
     genomes_path = input_files
@@ -245,8 +242,8 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # cluster proteins
     cluster_start = time.time()
-    clusters = rfm.cluster_sequences(sorted_prots, word_filter, filtering_sim,
-                                     word_size, clustering_sim, clustering_mode)
+    clusters = rfm.cluster_sequences(sorted_prots, word_size,
+                                     clustering_sim, clustering_mode)
     print('Clustered proteins into {0} clusters'.format(len(clusters)))
     cluster_end = time.time()
     cluster_delta = cluster_end - cluster_start
@@ -254,7 +251,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # remove sequences that are very similar to representatives
     prunned_clusters, excluded_alleles = rfm.cluster_prunner(clusters,
-                                                             cluster_filter)
+                                                             rep_filter)
     excluded_alleles = [e[0] for e in excluded_alleles]
     # determine clusters that only have the representative
     singletons = rfm.determine_singletons(prunned_clusters)
@@ -277,7 +274,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # create kmer profile for each cluster and determine similarity
     indexed_prots = SeqIO.index(protein_file, 'fasta')
 
-    excluded_dict = rfm.intra_cluster_sim(intra_clusters, indexed_prots)
+    excluded_dict = rfm.intra_cluster_sim(intra_clusters, indexed_prots, word_size, intra_filter)
 
     intra_excluded = [v[0] for k, v in excluded_dict.items()]
     intra_excluded = list(itertools.chain.from_iterable(intra_excluded))

@@ -814,8 +814,8 @@ def sequence_kmerizer(sequence, k_value):
     return kmers
 
 
-def cluster_sequences(sorted_sequences, word_filter, filtering_sim,
-                      word_size, clustering_sim, mode):
+def cluster_sequences(sorted_sequences, word_size,
+                      clustering_sim, mode):
     """
     """
 
@@ -824,20 +824,17 @@ def cluster_sequences(sorted_sequences, word_filter, filtering_sim,
     for prot in sorted_sequences:
         protid = prot[0]
         protein = prot[1]
+        kmers = sequence_kmerizer(protein, word_size)
         if len(clusters) == 0:
             clusters[protid] = [(protid, 1.0)]
-            kmers = sequence_kmerizer(protein, word_size)
-            longmers = sequence_kmerizer(protein, word_filter)
-            for k in longmers:
+            for k in kmers:
                 # initiallize as set to avoid duplication of
                 # ids per kmer that will lead to overestimation
                 # of similarity
                 reps_groups[k] = set([protid])
         else:
-            kmers = sequence_kmerizer(protein, word_size)
-            longmers = sequence_kmerizer(protein, word_filter)
             current_reps = []
-            for k in longmers:
+            for k in kmers:
                 if k in reps_groups:
                     current_reps.extend(list(reps_groups[k]))
 
@@ -863,7 +860,7 @@ def cluster_sequences(sorted_sequences, word_filter, filtering_sim,
                     for s in sims:
                         clusters[s[0]].append((protid, s[1]))
             else:
-                for k in longmers:
+                for k in kmers:
                     if k in reps_groups:
                         reps_groups[k].add(protid)
                     else:
@@ -905,26 +902,31 @@ def remove_clusters(clusters, cluster_ids):
     return new_clusters
 
 
-def intra_cluster_sim(clusters, protein_file):
+def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
     """
     """
 
     excluded_dict = {}
     for k, v in clusters.items():
+        # get identifiers of sequences in the cluster
         cluster_ids = v
 
-        # get sequences
+        # get protein sequences
         cluster_sequences = {}
         for seqid in cluster_ids:
+            # get sequences through indexed FASTA file
             cluster_sequences[seqid[0]] = str(protein_file[seqid[0]].seq)
 
         # get all kmers per sequence
         kmers_mapping = {}
         cluster_kmers = {}
         for seqid, prot in cluster_sequences.items():
-            prot_kmers = sequence_kmerizer(prot, 4)
+            prot_kmers = sequence_kmerizer(prot, word_size)
+            # dict with sequence indentifiers and kmers
             cluster_kmers[seqid] = prot_kmers
             
+            # create dict with kmers as keys and list
+            # of sequences with given kmers as values
             for kmer in prot_kmers:
                 if kmer in kmers_mapping:
                     kmers_mapping[kmer].add(seqid)
@@ -933,30 +935,37 @@ def intra_cluster_sim(clusters, protein_file):
 
         sims_cases = {}
         excluded = []
+        # for each sequence in the cluster
         for seqid, kmers in cluster_kmers.items():
             if seqid not in excluded:
                 query_kmers = kmers
                 current_reps = []
+                # determine sequences that also have the same kmers
                 for kmer in query_kmers:
                     if kmer in kmers_mapping:
                         current_reps.extend(list(kmers_mapping[kmer]))
                 
+                # count number of common kmers with other sequences
                 counts = Counter(current_reps)
-                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= 0.8]
-                
+                # determine sequences that are equal or above a similarty threshold
+                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= intra_filter]
+                # sort to get most similar first
                 sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
                 
                 if len(sims) > 1:
+                    # exclude current sequence
                     candidates = [s for s in sims if s[0] != seqid]
                     for c in candidates:
-                    
+                        # if query sequence is longer, keep it and exclude candidate
                         if len(query_kmers) >= len(cluster_kmers[c[0]]):
                             sims_cases[c[0]] = (seqid, c[1])
                             excluded.append(c[0])
+                        # otherwise, exclude query sequence
                         elif len(cluster_kmers[c[0]]) > len(query_kmers):
                             sims_cases[seqid] = (c[0], c[1])
                             excluded.append(seqid)
 
+        # convert into set first to remove possible duplicates
         excluded_dict[k] = [list(set(excluded)), sims_cases]
 
     return excluded_dict

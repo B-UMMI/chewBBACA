@@ -413,15 +413,15 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # create values as lists to append new values when schema is
     # used with parameters values that differ from parameters
     # values used for its creation
-    parameters = {'bsr': blast_score_ratio,
-                  'prodigal_training_file': ptf_name,
-                  'translation_table': 11,
-                  'minimum_locus_length': minimum_cds_length,
-                  'chewBBACA_version': '2.1.0',
-                  'word_size': word_size,
-                  'cluster_sim': clustering_sim,
-                  'representative_filter': rep_filter,
-                  'intraCluster_filter': intra_filter}
+    parameters = {'bsr': [blast_score_ratio],
+                  'prodigal_training_file': [ptf_name],
+                  'translation_table': [11],
+                  'minimum_locus_length': [minimum_cds_length],
+                  'chewBBACA_version': ['2.1.0'],
+                  'word_size': [word_size],
+                  'cluster_sim': [clustering_sim],
+                  'representative_filter': [rep_filter],
+                  'intraCluster_filter': [intra_filter]}
 
     with open(config_file, 'wb') as cf:
         pickle.dump(parameters, cf)

@@ -415,7 +415,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # values used for its creation
     parameters = {'bsr': [blast_score_ratio],
                   'prodigal_training_file': [ptf_name],
-                  'translation_table': [11],
+                  'translation_table': [translation_table],
                   'minimum_locus_length': [minimum_cds_length],
                   'chewBBACA_version': ['2.1.0'],
                   'word_size': [word_size],

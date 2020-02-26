@@ -322,30 +322,6 @@ def call_proc(cmd):
 # ================================================ MAIN ================================================ #
 
 def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS):
-    #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
-    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-    #~ required=True)
-    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    #~ parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=200)
-    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
-    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-    #~ default=False)
-    #~
-    #~ args = parser.parse_args()
-    #~
-    #~ genomeFiles = args.i
-    #~ cpuToUse = args.cpu
-    #~ outputFile = args.o
-    #~ BlastpPath = args.b
-    #~ bsr = args.bsr
-    #~ chosenTaxon = args.t
-    #~ chosenTrainingFile = args.ptf
-    #~ verbose = args.verbose
-    #~ min_length = args.l
 
     if verbose:
         def verboseprint(*args):
@@ -359,35 +335,6 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
         print("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
-
-    taxonList = {'Campylobacter jejuni': 'trained_campyJejuni.trn',
-                 'Acinetobacter baumannii': 'trained_acinetoBaumannii.trn',
-                 'Streptococcus agalactiae': 'trained_strepAgalactiae.trn',
-                 'Haemophilus influenzae': 'trained_haemoInfluenzae_A.trn',
-                 'Yersinia enterocolitica': 'trained_yersiniaEnterocolitica.trn',
-                 'Escherichia coli': 'trained_eColi.trn',
-                 'Enterococcus faecium': 'trained_enteroFaecium.trn',
-                 'Staphylococcus haemolyticus': 'trained_staphHaemolyticus.trn',
-                 'Salmonella enterica': 'trained_salmonellaEnterica_enteritidis.trn',
-                 'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
-                 'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
-                 }
-    #~ if isinstance(chosenTaxon, str):
-        #~ trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
-        #~ try:
-            #~ chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
-#~ 
-            #~ if os.path.isfile(chosenTaxon):
-                #~ print("will use this training file : " + chosenTaxon)
-            #~ else:
-                #~ print("training file don't exist")
-                #~ print(chosenTaxon)
-                #~ return "retry"
-        #~ except:
-            #~ print("Your chosen taxon "+chosenTaxon+" is not attributed, select one from:")
-            #~ for elem in taxonList.keys():
-                #~ print(elem)
-            #~ return "retry"
 
     if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-from Bio.Seq import Seq
-from Bio import SeqIO
-from Bio.Alphabet import generic_dna
-import argparse
+
+import pickle
+import shutil
 import os.path
+import argparse
+import collections
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
-import collections
-import shutil
+
 try:
 	from createschema import init_schema_4_bbaca,CommonFastaFunctions
 except ImportError:
@@ -81,29 +85,7 @@ def translateSeq(DNASeq, genename):
     return protseq, seq, inverted
 
 
-def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose):
-    #~ parser = argparse.ArgumentParser(
-        #~ description="Given an ffn file, recovers the genes that are not paralogs and have a size bigger than the g parameter provided")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='ffn file', required=True)
-    #~ parser.add_argument('-l', nargs='?', type=int, help='int minimum length', required=True)
-    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        #~ required=False)
-    #~ parser.add_argument('-p', nargs='?', type=str, help="file with protein", required=False, default=False)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="output filename", required=False, default=False)
-    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        #~ default=False)
-#~ 
-    #~ args = parser.parse_args()
-    #~ genes = args.i
-    #~ sizethresh = args.l
-    #~ cpuToUse = args.cpu
-    #~ proteinFIlePath = args.p
-    #~ outputFIlePath = args.o
-    #~ BlastpPath = args.b
-    #~ bsr = args.bsr
-    #~ verbose = args.verbose
+def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose,params):
 
     if verbose:
         def verboseprint(*args):
@@ -420,15 +402,30 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
 
     # create short folder
     else:
-        # ~ with open("schemacreation.log", "wb") as f:
-        # ~ for elem in log:
-        # ~ f.write(str(elem)+"\n")
         init_schema_4_bbaca.get_Short(listfiles)
         verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
         print ("Total of "+str(rest)+" loci that constitute the schema")
         os.remove(proteinfile)
 
     shutil.rmtree(os.path.join(pathfiles, 'blastdbs'))
+
+    # write hidden config files and genes list
+    # write hidden config file with parameters
+    config_file = os.path.join(outputFIlePath, '.schema_config')
+    shutil.copy(params['prodigal_training_file'][0], outputFIlePath)
+
+    # create dictionary with parameters values
+    # create values as lists to append new values when schema is
+    # used with parameters values that differ from parameters
+    # values used for its creation
+    with open(config_file, 'wb') as cf:
+        pickle.dump(params, cf)
+
+    # create hidden file with genes/loci list
+    schema_files = [file for file in os.listdir(outputFIlePath) if '.fasta' in file]
+    schema_list_file = os.path.join(outputFIlePath, '.genes_list')
+    with open(schema_list_file, 'wb') as sl:
+        pickle.dump(schema_files, sl)
 
     os.remove(blast_out_file)
 

@@ -481,18 +481,25 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
 
         pool.close()
         pool.join()
-        verboseprint( "finished running pair analysis")
+        verboseprint("finished running pair analysis")
 
         if len(listOfGenomes) == 1:
 
-            verboseprint( "___________________\nFinal step : creating the schema")
+            verboseprint("___________________\nFinal step : creating the schema")
             lastFile = listOfGenomes.pop()
-            CreateSchema.main(lastFile,min_length,cpuToUse,False,outputFile,BlastpPath,bsr,verbose)
-            #~ proc = subprocess.Popen(
-            #~ [createSchemaPath, '-i', lastFile, '-l', str(min_length), '--cpu', str(cpuToUse), "-b", BlastpPath, "-o",
-            #~ outputFile, "--bsr", str(bsr)])
-            #~ p_status = proc.wait()
-            verboseprint( "Schema Created sucessfully")
+            # create dict with parameters
+            params = {}
+            params['bsr'] = [bsr]
+            params['prodigal_training_file'] = [trainingFolderPAth]
+            # translation table is hardcoded in this chewie version
+            params['translation_table'] = [11]
+            params['minimum_locus_length'] = [min_length]
+            params['chewBBACA_version'] = ['2.1.0']
+
+            CreateSchema.main(lastFile, min_length, cpuToUse, False,
+                              outputFile, BlastpPath, bsr, verbose, params)
+
+            verboseprint("Schema Created sucessfully")
 
     shutil.rmtree(basepath)
 

@@ -107,7 +107,7 @@ def create_schema():
     cpu_num = args.cpu_num
     blastp_path = args.blastp_path
     cds_input = args.cds_input
-    bsr = args.bsr
+    bsr = args.bsr_value
     ptf_path = args.ptf_path
     verbose = args.verbose
     min_length = args.min_seq_len
@@ -115,7 +115,7 @@ def create_schema():
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
     else:
-        input_files = aux.check_input_type(input_files)
+        input_files = aux.check_input_type(input_files, 'listGenomes2Call')
 
     # determine if user provided training file
     # if not, try to find species training file included in chewBBACA

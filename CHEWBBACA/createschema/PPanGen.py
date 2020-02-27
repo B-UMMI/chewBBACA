@@ -487,17 +487,9 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
 
             verboseprint("___________________\nFinal step : creating the schema")
             lastFile = listOfGenomes.pop()
-            # create dict with parameters
-            params = {}
-            params['bsr'] = [bsr]
-            params['prodigal_training_file'] = [trainingFolderPAth]
-            # translation table is hardcoded in this chewie version
-            params['translation_table'] = [11]
-            params['minimum_locus_length'] = [min_length]
-            params['chewBBACA_version'] = ['2.1.0']
 
             CreateSchema.main(lastFile, min_length, cpuToUse, False,
-                              outputFile, BlastpPath, bsr, verbose, params)
+                              outputFile, BlastpPath, bsr, verbose)
 
             verboseprint("Schema Created sucessfully")
 

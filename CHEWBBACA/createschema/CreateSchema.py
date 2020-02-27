@@ -85,7 +85,7 @@ def translateSeq(DNASeq, genename):
     return protseq, seq, inverted
 
 
-def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose,params):
+def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose):
 
     if verbose:
         def verboseprint(*args):
@@ -408,24 +408,6 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
         os.remove(proteinfile)
 
     shutil.rmtree(os.path.join(pathfiles, 'blastdbs'))
-
-    # write hidden config files and genes list
-    # write hidden config file with parameters
-    config_file = os.path.join(outputFIlePath, '.schema_config')
-    shutil.copy(params['prodigal_training_file'][0], outputFIlePath)
-
-    # create dictionary with parameters values
-    # create values as lists to append new values when schema is
-    # used with parameters values that differ from parameters
-    # values used for its creation
-    with open(config_file, 'wb') as cf:
-        pickle.dump(params, cf)
-
-    # create hidden file with genes/loci list
-    schema_files = [file for file in os.listdir(outputFIlePath) if '.fasta' in file]
-    schema_list_file = os.path.join(outputFIlePath, '.genes_list')
-    with open(schema_list_file, 'wb') as sl:
-        pickle.dump(schema_files, sl)
 
     os.remove(blast_out_file)
 

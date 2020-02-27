@@ -66,15 +66,15 @@ def create_schema():
                         dest='schema_dir',
                         help='Output folder where the schema will be created.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=True,
-                        dest='cpu_num',
+    parser.add_argument('--cpu', nargs='?', type=int, required=False,
+                        default=1, dest='cpu_num',
                         help='Number of CPU cores/threads that will be '
                              'used to run the CreateSchema process '
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
 
-    parser.add_argument('-b', nargs='?', type=str, required=False,
+    parser.add_argument('--b', nargs='?', type=str, required=False,
                         default='blastp', dest='blastp_path',
                         help='Path to the BLASTp executables.')
 
@@ -94,14 +94,25 @@ def create_schema():
                         default=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
-    parser.add_argument('-v', '--verbose', action='store_true',
+    parser.add_argument('--v', '--verbose', action='store_true',
                         default=False, dest='verbose',
                         help='Increased output verbosity during execution.')
 
-    parser.add_argument('-l', nargs='?', type=int, required=False,
+    parser.add_argument('--l', nargs='?', type=int, required=False,
                         default=201, dest='min_seq_len',
                         help='Minimum sequence length accepted for a '
                              'coding sequence to be included in the schema.')
+
+    parser.add_argument('--t', nargs='?', type=int, required=False,
+                        default=11, dest='translation_table',
+                        help='Genetic code used to predict genes and'
+                             ' to translate coding sequences.')
+
+    parser.add_argument('--st', nargs='?', type=float, required=False,
+                        default=0.2, dest='size_threshold',
+                        help='CDS size variation threshold. At the default '
+                             'value of 0.2, alleles with size variation '
+                             '+-20 percent will be classified as ASM/ALM')
 
     args = parser.parse_args()
 
@@ -114,6 +125,8 @@ def create_schema():
     ptf_path = args.ptf_path
     verbose = args.verbose
     min_length = args.min_seq_len
+    translation_table = args.translation_table
+    st = args.size_threshold
 
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
@@ -132,6 +145,25 @@ def create_schema():
     PPanGen.main(input_files, cpu_num, schema_dir,
                  bsr, blastp_path, min_length,
                  verbose, ptf_path, cds_input)
+
+    # copy training file to schema directory
+    shutil.copy(ptf_path, schema_dir)
+    ptf_file = os.path.join(schema_dir, os.path.basename(ptf_path))
+
+    # write schema config file
+    params = {}
+    params['bsr'] = [bsr]
+    params['prodigal_training_file'] = [ptf_file]
+    params['translation_table'] = [translation_table]
+    params['minimum_locus_length'] = [min_seq_len]
+    params['chewBBACA_version'] = [current_version]
+    params['size_threshold'] = [st]
+
+    # create hidden file with genes/loci list
+    schema_files = [file for file in os.listdir(outputFIlePath) if '.fasta' in file]
+    schema_list_file = os.path.join(outputFIlePath, '.genes_list')
+    with open(schema_list_file, 'wb') as sl:
+        pickle.dump(schema_files, sl)
 
     # remove temporary file with paths
     # to genome files

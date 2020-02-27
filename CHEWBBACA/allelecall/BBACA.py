@@ -769,25 +769,8 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             print(e)
             print(lineno)
 
-    # check parameters values in config file and alter if needed
-    config_file = os.path.join(genepath, '.schema_config')
-    with open(config_file, 'rb') as pf:
-        params = pickle.load(pf)
-
-    print(params)
-
-    # check bsr
-    if BSRTresh not in params['bsr']:
-        params['bsr'].append(BSRTresh)
-    # check training file
-    if trainingFolderPAth not in params['prodigal_training_file']:
-        params['prodigal_training_file'].append(trainingFolderPAth)
-
-    with open(config_file, 'wb') as pf:
-        pickle.dump(params, pf)    
-
     print(starttime)
-    print("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    print("Finished Script at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
 
 if __name__ == "__main__":

@@ -38,6 +38,9 @@ from CHEWBBACA_NS import (down_schema, load_schema,
 import CHEWBBACA
 
 
+current_version = '2.1.0'
+
+
 def create_schema():
 
     def msg(name=None):
@@ -243,6 +246,25 @@ def allele_call():
                force_continue, json_report, verbose,
                force_reset, contained, chosen_taxon,
                ptf_path, cds_input, size_threshold)
+
+    # check parameters values in config file and alter if needed
+    config_file = os.path.join(schema_dir, '.schema_config')
+    with open(config_file, 'rb') as pf:
+        params = pickle.load(pf)
+
+    # check bsr
+    if bsr not in params['bsr']:
+        params['bsr'].append(bsr)
+    # check training file
+    if ptf_path not in params['prodigal_training_file']:
+        params['prodigal_training_file'].append(ptf_path)
+    # check chewie version
+    if current_version not in params['chewBBACA_version']:
+        params['chewBBACA_version'].append(current_version)
+
+    # save updated schema config file
+    with open(config_file, 'wb') as pf:
+        pickle.dump(params, pf)    
 
     # remove temporary files with paths to genomes
     # and schema files files

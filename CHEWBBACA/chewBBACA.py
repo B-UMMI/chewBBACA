@@ -115,7 +115,7 @@ def create_schema():
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
     else:
-        input_files = aux.check_input_type(input_files, 'listGenomes2Call')
+        input_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
     # determine if user provided training file
     # if not, try to find species training file included in chewBBACA

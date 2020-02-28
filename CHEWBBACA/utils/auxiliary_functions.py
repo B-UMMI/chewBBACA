@@ -318,25 +318,6 @@ def verify_cpu_usage(cpu_to_use):
     return cpu_to_use
 
 
-def check_ptf(ptf_path, main_dir):
-    """
-    """
-
-    if os.path.isfile(ptf_path) is False:
-        ptf_basename = os.path.basename(ptf_path)
-        chewie_dir = main_dir
-        ptfs_dir = os.path.join(os.path.dirname(chewie_dir),
-                                'prodigal_training_files')
-
-        ptfs = os.listdir(ptfs_dir)
-        if ptf_basename in ptfs:
-            ptf_path = os.path.join(ptfs_dir, ptf_basename)
-        else:
-            ptf_path = False
-
-    return ptf_path
-
-
 def check_prodigal_output_files(path_to_temp, list_of_genomes):
     """ Checks if Prodigal created ORF files
         equal to the number of genome files provided.

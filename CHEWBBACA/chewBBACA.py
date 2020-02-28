@@ -101,18 +101,21 @@ def create_schema():
     parser.add_argument('--l', nargs='?', type=int, required=False,
                         default=201, dest='min_seq_len',
                         help='Minimum sequence length accepted for a '
-                             'coding sequence to be included in the schema.')
+                             'coding sequence to be included in the schema '
+                             '(default=201).')
 
     parser.add_argument('--t', nargs='?', type=int, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
-                             ' to translate coding sequences.')
+                             ' to translate coding sequences '
+                             '(default=11).')
 
     parser.add_argument('--st', nargs='?', type=float, required=False,
                         default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM')
+                             '+-20 percent will be classified as ASM/ALM'
+                             ' (default=0.2).')
 
     args = parser.parse_args()
 
@@ -144,7 +147,8 @@ def create_schema():
     # start CreateSchema process
     PPanGen.main(input_files, cpu_num, schema_dir,
                  bsr, blastp_path, min_length,
-                 verbose, ptf_path, cds_input)
+                 verbose, ptf_path, cds_input,
+                 translation_table)
 
     # copy training file to schema directory
     shutil.copy(ptf_path, schema_dir)
@@ -155,13 +159,13 @@ def create_schema():
     params['bsr'] = [bsr]
     params['prodigal_training_file'] = [ptf_file]
     params['translation_table'] = [translation_table]
-    params['minimum_locus_length'] = [min_seq_len]
+    params['minimum_locus_length'] = [min_length]
     params['chewBBACA_version'] = [current_version]
     params['size_threshold'] = [st]
 
     # create hidden file with genes/loci list
-    schema_files = [file for file in os.listdir(outputFIlePath) if '.fasta' in file]
-    schema_list_file = os.path.join(outputFIlePath, '.genes_list')
+    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
+    schema_list_file = os.path.join(schema_dir, '.genes_list')
     with open(schema_list_file, 'wb') as sl:
         pickle.dump(schema_files, sl)
 
@@ -229,7 +233,9 @@ def allele_call():
                              '+-20 percent will be classified as ASM/ALM')
     parser.add_argument('--ptf', nargs='?', type=str, required=False,
                         default=False, dest='ptf_path',
-                        help='Path to the Prodigal training file.')
+                        help='Path to the Prodigal training file. '
+                             'Default is to get training file in '
+                             'schema directory.')
     parser.add_argument('--fc', action='store_true', required=False,
                         default=False, dest='force_continue',
                         help='Continue allele call process that '
@@ -263,11 +269,52 @@ def allele_call():
 
     schema_genes = aux.check_input_type(schema_dir, 'listGenes2Call.txt')
 
-    ptf_path = aux.check_ptf(ptf_path, CHEWBBACA.__file__)
-
+    # default is to get the training file in schema directory
     if ptf_path is False:
-        print('Could not find a valid Prodigal training file.')
-        return 1
+        for file in os.listdir(schema_dir):
+            if file.endswith('.trn'):
+                ptf_path = os.path.join(schema_dir, file)
+        if os.path.isfile(ptf_path) is False:
+            sys.exit('There is no valid training file in schema directory.')
+    # if user provides a training file
+    else:
+        if os.path.isfile(ptf_path) is False:
+            sys.exit('Provided Prodigal training file does not exist.')
+
+    # check parameters values in config file and alter if needed
+    config_file = os.path.join(schema_dir, '.schema_config')
+    with open(config_file, 'rb') as pf:
+        params = pickle.load(pf)
+
+    unmatch_params = []
+    # check bsr
+    if bsr not in params['bsr']:
+        unmatch_params.append('bsr: {0}'.format(bsr))
+    # check training file - need to work with training file checksum
+    if ptf_path not in params['prodigal_training_file']:
+        unmatch_params.append('prodigal_training_file: {0}'.format(ptf_path))
+    # check chewie version
+    if current_version not in params['chewBBACA_version']:
+        unmatch_params.append('chewBBACA_version: {0}'.format(current_version))
+    # check size threshold value
+    if size_threshold not in params['size_threshold']:
+        unmatch_params.append('size_threshold: {0}'.format(size_threshold))
+
+    if len(unmatch_params) > 0:
+        print('Provided arguments values differ from arguments values used for schema creation:')
+        print('\n'.join(unmatch_params))
+        answer = input('Proceeding will invalidate schema. Continue?\n')
+        if answer.lower() not in ['y', 'yes']:
+            sys.exit(0)
+        else:
+            params['bsr'].append(bsr)
+            params['prodigal_training_file'].append(ptf_path)
+            params['chewBBACA_version'].append(current_version)
+            params['size_threshold'].append(current_version)
+
+        # save updated schema config file
+        with open(config_file, 'wb') as cf:
+            pickle.dump(params, cf)
 
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
@@ -278,25 +325,6 @@ def allele_call():
                force_continue, json_report, verbose,
                force_reset, contained, chosen_taxon,
                ptf_path, cds_input, size_threshold)
-
-    # check parameters values in config file and alter if needed
-    config_file = os.path.join(schema_dir, '.schema_config')
-    with open(config_file, 'rb') as pf:
-        params = pickle.load(pf)
-
-    # check bsr
-    if bsr not in params['bsr']:
-        params['bsr'].append(bsr)
-    # check training file
-    if ptf_path not in params['prodigal_training_file']:
-        params['prodigal_training_file'].append(ptf_path)
-    # check chewie version
-    if current_version not in params['chewBBACA_version']:
-        params['chewBBACA_version'].append(current_version)
-
-    # save updated schema config file
-    with open(config_file, 'wb') as pf:
-        pickle.dump(params, pf)    
 
     # remove temporary files with paths to genomes
     # and schema files files

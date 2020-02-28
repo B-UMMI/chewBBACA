@@ -321,7 +321,7 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS):
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,translation_table):
 
     if verbose:
         def verboseprint(*args):
@@ -398,7 +398,7 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
         print ("chosen taxon :" + str(chosenTaxon))
         pool = multiprocessing.Pool(cpuToUse)
         for genome in listOfGenomes:
-            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon)))
+            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon), translation_table))
 
         pool.close()
         pool.join()

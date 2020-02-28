@@ -29,7 +29,8 @@ from SchemaEvaluator import ValidateSchema
 from PrepExternalSchema import PrepExternalSchema
 from utils import (TestGenomeQuality, profile_joiner,
                    uniprot_find, Extract_cgAlleles,
-                   RemoveGenes, auxiliary_functions as aux)
+                   RemoveGenes, auxiliary_functions as aux,
+                   constants as cnts)
 
 from CHEWBBACA_NS import (down_schema, load_schema,
                           sync_schema, down_profiles,
@@ -40,6 +41,74 @@ import CHEWBBACA
 
 
 current_version = '2.1.0'
+
+
+# custom functions to validate arguments type and value
+def validate_bsr_range(arg, min_value=0.0, max_value=1.0):
+    """
+    """
+
+    try:
+        farg = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError('')
+
+    if farg < min_value or farg > max_value:
+        raise argparse.ArgumentTypeError('value must be > {0} '
+                                         'and <= {1}.'.format(min_value, max_value))
+
+    return farg
+
+
+def validate_minimum_sequence_value(arg, min_value=0):#, max_value=1.0):
+    """
+    """
+
+    try:
+        iarg = int(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError('')
+
+    if iarg < min_value:
+        raise argparse.ArgumentTypeError('value must '
+                                         'be > {0}.'.format(min_value))
+
+    return iarg
+
+
+def validate_size_threshold_value(arg, min_value=0.0, max_value=1.0):
+    """
+    """
+
+    try:
+        farg = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError('')
+
+    if farg < min_value:
+        raise argparse.ArgumentTypeError('value must be > {0} '
+                                         'and <= {1}.'.format(min_value, max_value))
+
+    return farg
+
+
+def validate_translation_table_value(arg):
+    """
+    """
+
+    try:
+        iarg = int(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError('')
+
+    gc_list = list(cnts.GENETIC_CODES.keys())
+    if arg not in cnts.GENETIC_CODES:
+        raise argparse.ArgumentTypeError('value must correspond to '
+                                         'one of the accepted genetic '
+                                         'codes {0}'.format(gc_list))
+
+    return arg
+
 
 
 def create_schema():
@@ -84,8 +153,8 @@ def create_schema():
                         help='Input is a FASTA file with one representative '
                              'sequence per gene in the schema.')
 
-    parser.add_argument('--bsr', nargs='?', type=float, required=False,
-                        default=0.6, dest='bsr_value',
+    parser.add_argument('--bsr', nargs='?', type=validate_bsr_range,
+                        required=False, default=0.6, dest='bsr_value',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
@@ -99,20 +168,20 @@ def create_schema():
                         default=False, dest='verbose',
                         help='Increased output verbosity during execution.')
 
-    parser.add_argument('--l', nargs='?', type=int, required=False,
-                        default=201, dest='min_seq_len',
+    parser.add_argument('--l', nargs='?', type=validate_minimum_sequence_value,
+                        required=False, default=201, dest='min_seq_len',
                         help='Minimum sequence length accepted for a '
                              'coding sequence to be included in the schema '
                              '(default=201).')
 
-    parser.add_argument('--t', nargs='?', type=int, required=False,
-                        default=11, dest='translation_table',
+    parser.add_argument('--t', nargs='?', type=validate_translation_table_value,
+                        required=False, default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
                              ' to translate coding sequences '
                              '(default=11).')
 
-    parser.add_argument('--st', nargs='?', type=float, required=False,
-                        default=0.2, dest='size_threshold',
+    parser.add_argument('--st', nargs='?', type=validate_size_threshold_value,
+                        required=False, default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM'

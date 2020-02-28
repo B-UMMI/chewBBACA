@@ -1020,7 +1020,7 @@ def adapt_external_schema(genes_list):
     return [invalid_alleles, invalid_genes, summary_stats]
 
 
-def main(external_schema, output_schema, cpu_threads, bsr, min_len, trans_tbl):
+def main(external_schema, output_schema, cpu_threads, bsr, min_len, trans_tbl, ptf_path, size_threshold):
 
     start = time.time()
 
@@ -1217,11 +1217,24 @@ def parse_arguments():
                         help='Genetic code to use for CDS translation.'
                         ' (default=11, for Bacteria and Archaea)')
 
+    parser.add_argument('--ptf', nargs='?', type=str, required=False,
+                        default=False, dest='ptf_path',
+                        help='Path to the Prodigal training file. '
+                             'Default is to get training file in '
+                             'schema directory.')
+
+    parser.add_argument('--st', nargs='?', type=float, required=False,
+                        default=0.0, dest='size_threshold',
+                        help='CDS size variation threshold. At the default '
+                             'value no alleles will be discarded ue to size '
+                             'variation.')
+
     args = parser.parse_args()
 
     return [args.input_files, args.output_directory,
             args.core_count, args.blast_score_ratio,
-            args.minimum_length, args.translation_table]
+            args.minimum_length, args.translation_table,
+            args.ptf_path, args.size_threshold]
 
 
 if __name__ == '__main__':

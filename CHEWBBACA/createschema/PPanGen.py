@@ -321,7 +321,7 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,translation_table):
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,translation_table,st):
 
     if verbose:
         def verboseprint(*args):

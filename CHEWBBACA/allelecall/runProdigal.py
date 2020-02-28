@@ -4,7 +4,7 @@ import pickle
 import subprocess
 
 
-def main(input_file,tempPath,choosenTaxon):
+def main(input_file,tempPath,choosenTaxon,translation_table):
 
     contigsFasta = input_file
 
@@ -18,11 +18,11 @@ def main(input_file,tempPath,choosenTaxon):
     if choosenTaxon == "False":
 
         proc = subprocess.Popen(
-            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', '11', '-p', 'single', '-f', 'sco', '-q'],
+            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', str(translation_table), '-p', 'single', '-f', 'sco', '-q'],
             stdout=subprocess.PIPE)
     else:
         proc = subprocess.Popen(
-            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', '11', '-p', 'single', '-f', 'sco', '-q', '-t',
+            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', str(translation_table), '-p', 'single', '-f', 'sco', '-q', '-t',
              choosenTaxon], stdout=subprocess.PIPE)
 
     cdsDict = {}

@@ -231,7 +231,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,translation_table):
 
     divideOutput=False
 
@@ -420,7 +420,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             # ------------------------------------------------- #
 
             #if the input is a draft genome
-            if inputCDS==False:
+            if inputCDS == False:
 
                 print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -428,7 +428,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
                 pool = multiprocessing.Pool(cpuToUse)
                 for genome in listOfGenomes:
-                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
+                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon), translation_table))
 
                 pool.close()
                 pool.join()

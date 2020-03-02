@@ -13,7 +13,7 @@ import json
 import re
 try:
     from allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
-    from utils import ParalogPrunning
+    from utils import ParalogPrunning, sqlite_functions
 except ImportError:
     from CHEWBBACA_NS.allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
     from CHEWBBACA_NS.utils import ParalogPrunning
@@ -250,7 +250,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                  'Salmonella enterica': 'trained_salmonellaEnterica_enteritidis.trn',
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
-                 }
+                }
 
     if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
@@ -709,8 +709,23 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             with open(os.path.join(outputfolder, "results_alleles.tsv"), 'w') as f:
                 f.write(finalphylovinput)
 
-            # write all profiles to master file
-            schema_profiles = os.path.join(genepath, 'profiles_master.txt')
+            # add profiles to SQLite database
+            profiles_db_dir = os.path.join(genepath, '.sqlite_profiles')
+            profiles_db_file = os.path.join(profiles_db_dir, 'profiles.db')
+            # check if SQLite database directory exists
+            # create if it does not exist
+            if os.path.isdir(profiles_db_dir) is False:
+                os.makedirs(profiles_db_dir)
+
+                # create database file
+                create_database(profiles_db_file)
+
+                # create connection
+                conn = create_connection(profiles_db_file)
+
+                # create tables
+                
+
             # will create file in first AlleleCall with schema
             with open(schema_profiles, 'a') as pf:
                 # determine current time

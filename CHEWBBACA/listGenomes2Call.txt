@@ -1,0 +1,3 @@
+/home/rfm/Desktop/rfm/Lab_Software/sagalactiae_3genomes/GCA_000007265.1_ASM726v1_genomic.fasta
+/home/rfm/Desktop/rfm/Lab_Software/sagalactiae_3genomes/GCA_000196055.1_ASM19605v1_genomic.fasta
+/home/rfm/Desktop/rfm/Lab_Software/sagalactiae_3genomes/GCA_000012705.1_ASM1270v1_genomic.fasta

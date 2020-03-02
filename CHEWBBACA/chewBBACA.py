@@ -19,6 +19,8 @@ DESCRIPTION
 
 import os
 import sys
+import pickle
+import shutil
 import hashlib
 import platform
 import argparse
@@ -44,14 +46,14 @@ current_version = '2.1.0'
 
 
 # custom functions to validate arguments type and value
-def validate_bsr_range(arg, min_value=0.0, max_value=1.0):
+def bsr_type(arg, min_value=cnts.BSR_MIN, max_value=cnts.BSR_MAX):
     """
     """
 
     try:
         farg = float(arg)
     except ValueError:
-        raise argparse.ArgumentTypeError('')
+        raise argparse.ArgumentTypeError('invalid float value: {0}'.format(arg))
 
     if farg < min_value or farg > max_value:
         raise argparse.ArgumentTypeError('value must be > {0} '
@@ -60,30 +62,30 @@ def validate_bsr_range(arg, min_value=0.0, max_value=1.0):
     return farg
 
 
-def validate_minimum_sequence_value(arg, min_value=0):#, max_value=1.0):
+def minimum_sequence_length_type(arg, min_value=cnts.MSL_MIN, max_value=cnts.MSL_MAX):
     """
     """
 
     try:
         iarg = int(arg)
     except ValueError:
-        raise argparse.ArgumentTypeError('')
+        raise argparse.ArgumentTypeError('invalid int value: {0}'.format(arg))
 
-    if iarg < min_value:
-        raise argparse.ArgumentTypeError('value must '
-                                         'be > {0}.'.format(min_value))
+    if iarg < min_value or iarg > max_value:
+        raise argparse.ArgumentTypeError('value must be > {0} '
+                                         'and <= {1}.'.format(min_value, max_value))
 
     return iarg
 
 
-def validate_size_threshold_value(arg, min_value=0.0, max_value=1.0):
+def size_threshold_type(arg, min_value=cnts.ST_MIN, max_value=cnts.ST_MAX):
     """
     """
 
     try:
         farg = float(arg)
     except ValueError:
-        raise argparse.ArgumentTypeError('')
+        raise argparse.ArgumentTypeError('invalid float value: {0}'.format(arg))
 
     if farg < min_value:
         raise argparse.ArgumentTypeError('value must be > {0} '
@@ -92,158 +94,235 @@ def validate_size_threshold_value(arg, min_value=0.0, max_value=1.0):
     return farg
 
 
-def validate_translation_table_value(arg):
+def translation_table_type(arg, genetic_codes=cnts.GENETIC_CODES):
     """
     """
 
     try:
         iarg = int(arg)
     except ValueError:
-        raise argparse.ArgumentTypeError('')
+        raise argparse.ArgumentTypeError('invalid int value: {0}'.format(arg))
 
-    gc_list = list(cnts.GENETIC_CODES.keys())
-    if arg not in cnts.GENETIC_CODES:
+    gc_list = list(genetic_codes.keys())
+    if arg not in gc_list:
+        # format available genetic codes into list
+        lines = []
+        for k, v in genetic_codes.items():
+            new_line = '\t{0}: {1}'.format(k, v)
+            lines.append(new_line)
+
+        gc_table = '\n{0}\n'.format('\n'.join(lines))
+
         raise argparse.ArgumentTypeError('value must correspond to '
                                          'one of the accepted genetic '
-                                         'codes {0}'.format(gc_list))
+                                         'codes\n\nAccepted genetic codes:\n{0}'.format(gc_table))
 
     return arg
 
+
+def binary_file_hash(binary_file):
+    """
+    """
+
+    with open(binary_file, 'rb') as bf:
+        file_hash = hashlib.blake2b()
+        file_text = bf.read()
+        file_hash.update(file_text)
+        file_hash = file_hash.hexdigest()
+
+    return file_hash
+
+
+def write_schema_config(blast_score_ratio, ptf_hash,
+                        translation_table, minimum_sequence_length,
+                        chewie_version, size_threshold, output_directory):
+    """
+    """
+
+    params = {}
+    params['bsr'] = [blast_score_ratio]
+    params['prodigal_training_file'] = [ptf_hash]
+    params['translation_table'] = [translation_table]
+    params['minimum_locus_length'] = [minimum_sequence_length]
+    params['chewBBACA_version'] = [chewie_version]
+    params['size_threshold'] = [size_threshold]
+
+    config_file = os.path.join(output_directory, '.schema_config')
+    with open(config_file, 'wb') as cf:
+        pickle.dump(params, cf)
+
+    return [os.path.isfile(config_file), config_file]
+
+
+def write_gene_list(schema_dir):
+    """
+    """
+
+    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
+    schema_list_file = os.path.join(schema_dir, '.genes_list')
+    with open(schema_list_file, 'wb') as sl:
+        pickle.dump(schema_files, sl)
+
+    return [os.path.isfile(schema_list_file), schema_list_file]
+
+
+class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+
+    # prog is the name of the program 'chewBBACA.py'
+    def __init__(self, prog, indent_increment=2, max_help_position=56, width=None):
+        super().__init__(prog, indent_increment, max_help_position, width)
+
+    # override split lines method
+    def _split_lines(self, text, width):
+        lines = super()._split_lines(text, width) + ['']
+        return lines
 
 
 def create_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py CreateSchema [CreateSchema ...] [-h]
-                 -i [I] -o [O] --cpu [CPU] [-b [B]] [--bsr [BSR]]
-                 [--ptf [PTF]] [-v] [-l [L]]'''
+        # simple command to create schema from genomes
+        simple_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
+                                                '-o <output_directory> '
+                                                '--ptf <ptf_path>')
+        # command to create schema from genomes with non-default parameters
+        params_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
+                                                '-o <output_directory> '
+                                                '--ptf <ptf_path>\n'
+                                                '\t\t\t    --cpu <cpu_cores> '
+                                                '--bsr <blast_score_ratio> '
+                                                '--l <minimum_length>\n'
+                                                '\t\t\t    --t <translation_table> '
+                                                '--st <size_threshold>')
+        # command to create schema from single FASTA
+        cds_cmd = ('chewBBACA.py CreateSchema -i <input_file> '
+                                             '-o <output_directory> '
+                                             '--ptf <ptf_path> '
+                                             '--CDS')
 
-    parser = argparse.ArgumentParser(description='Creates a wgMLST '
+        usage_msg = ('\nCreate schema from input genomes:\n  {0}\n'
+                     '\nCreate schema from input genomes with non-default parameters:\n  {1}\n'
+                     '\nCreate schema from single FASTA file:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='CreateSchema',
+                                     description='Creates a wgMLST '
                                                  'schema based on a '
                                                  'set of input genomes.',
-                                     usage=msg())
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('CreateSchema', nargs='+',
                         help='')
 
     parser.add_argument('-i', nargs='?', type=str, required=True,
                         dest='input_files',
-                        help='Path to the directory with the genomes FASTA '
-                             'files or to a file with a list of paths to '
-                             'the FASTA files, one per line.')
+                        help='Path to the directory that contains the input '
+                             'FASTA files. Alternatively, a single file with '
+                             'a list of paths to FASTA files, one per line')
 
-    parser.add_argument('-o', nargs='?', type=str, required=True,
-                        dest='schema_dir',
-                        help='Output folder where the schema will be created.')
+    parser.add_argument('-o', type=str, required=True,
+                        dest='output_directory',
+                        help='Output directory where the schema will be created.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=False,
-                        default=1, dest='cpu_num',
-                        help='Number of CPU cores/threads that will be '
-                             'used to run the CreateSchema process '
-                             '(will be redefined to a lower value '
-                             'if it is equal to or exceeds the total'
-                             'number of available CPU cores/threads).')
+    parser.add_argument('-ptf', type=str, required=True,
+                        dest='ptf_path',
+                        help='Path to the Prodigal training file.')
 
-    parser.add_argument('--b', nargs='?', type=str, required=False,
-                        default='blastp', dest='blastp_path',
-                        help='Path to the BLASTp executables.')
-
-    parser.add_argument('--CDS', required=False, action='store_true',
-                        default=False, dest='cds_input',
-                        help='Input is a FASTA file with one representative '
-                             'sequence per gene in the schema.')
-
-    parser.add_argument('--bsr', nargs='?', type=validate_bsr_range,
-                        required=False, default=0.6, dest='bsr_value',
+    parser.add_argument('--bsr', type=bsr_type,
+                        required=False, default=0.6, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
                              'as sequences from the same gene.')
 
-    parser.add_argument('--ptf', nargs='?', type=str, required=False,
-                        default=False, dest='ptf_path',
-                        help='Path to the Prodigal training file.')
-
-    parser.add_argument('--v', '--verbose', action='store_true',
-                        default=False, dest='verbose',
-                        help='Increased output verbosity during execution.')
-
-    parser.add_argument('--l', nargs='?', type=validate_minimum_sequence_value,
-                        required=False, default=201, dest='min_seq_len',
+    parser.add_argument('--l', type=minimum_sequence_length_type,
+                        required=False, default=201, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
-                             'coding sequence to be included in the schema '
-                             '(default=201).')
+                             'coding sequence to be included in the schema.')
 
-    parser.add_argument('--t', nargs='?', type=validate_translation_table_value,
+    parser.add_argument('--t', type=translation_table_type,
                         required=False, default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
-                             ' to translate coding sequences '
-                             '(default=11).')
+                             ' to translate coding sequences.')
 
-    parser.add_argument('--st', nargs='?', type=validate_size_threshold_value,
+    parser.add_argument('--st', type=size_threshold_type,
                         required=False, default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM'
-                             ' (default=0.2).')
+                             '+-20 percent will be classified as ASM/ALM.')
+
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
+                        help='Number of CPU cores that will be '
+                             'used to run the CreateSchema process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores).')
+
+    parser.add_argument('--b', type=str, required=False,
+                        default='blastp', dest='blastp_path',
+                        help='Path to the BLASTp executables.')
+
+    parser.add_argument('--CDS', required=False, action='store_true',
+                        dest='cds_input',
+                        help='Input is a FASTA file with one representative '
+                             'sequence per gene in the schema.')
+
+    parser.add_argument('--v', required=False, action='store_true',
+                        dest='verbose',
+                        help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
 
     input_files = args.input_files
-    schema_dir = args.schema_dir
-    cpu_num = args.cpu_num
+    output_directory = args.output_directory
+    ptf_path = args.ptf_path
+    blast_score_ratio = args.blast_score_ratio
+    minimum_length = args.minimum_length
+    translation_table = args.translation_table
+    size_threshold = args.size_threshold
+    cpu_cores = args.cpu_cores
     blastp_path = args.blastp_path
     cds_input = args.cds_input
-    bsr = args.bsr_value
-    ptf_path = args.ptf_path
     verbose = args.verbose
-    min_length = args.min_seq_len
-    translation_table = args.translation_table
-    st = args.size_threshold
+
+    # check if ptf exists
+    if os.path.isfile(ptf_path) is False:
+        message = ('Cannot find specified Prodigal training file.\nPlease provide a '
+                   'valid training file.\n\nYou can create a training '
+                   'file for a species of interest with the following command:\n  '
+                   'prodigal -i <reference_genome> -t <training_file.trn> -p single\n\n'
+                   'It is strongly advised to provide a high-quality and closed genome '
+                   'for the training process.')
+        sys.exit(message)
 
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
     else:
         input_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
-    # check if ptf exists
-    if os.path.isfile(ptf_path) is False:
-        sys.exit('Cannot find specified Prodigal training file.')
-
     # start CreateSchema process
-    PPanGen.main(input_files, cpu_num, schema_dir,
-                 bsr, blastp_path, min_length,
+    PPanGen.main(input_files, cpu_cores, output_directory,
+                 blast_score_ratio, blastp_path, minimum_length,
                  verbose, ptf_path, cds_input,
-                 translation_table, st)
+                 translation_table, size_threshold)
 
     # copy training file to schema directory
-    shutil.copy(ptf_path, schema_dir)
+    shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    with open(ptf_path, 'rb') as ptf:
-        file_hash = hashlib.blake2b()
-        file_text = ptf.read()
-        file_hash.update(file_text)
-        file_hash = file_hash.hexdigest()
+    ptf_hash = binary_file_hash(ptf_path)
 
     # write schema config file
-    params = {}
-    params['bsr'] = [bsr]
-    params['prodigal_training_file'] = [file_hash]
-    params['translation_table'] = [translation_table]
-    params['minimum_locus_length'] = [min_length]
-    params['chewBBACA_version'] = [current_version]
-    params['size_threshold'] = [st]
-
-    config_file = os.path.join(schema_dir, '.schema_config')
-    with open(config_file, 'wb') as cf:
-        pickle.dump(params, cf)
+    schema_config = write_schema_config(blast_score_ratio, ptf_hash,
+                                        translation_table, minimum_length,
+                                        current_version, size_threshold,
+                                        output_directory)
 
     # create hidden file with genes/loci list
-    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = os.path.join(schema_dir, '.genes_list')
-    with open(schema_list_file, 'wb') as sl:
-        pickle.dump(schema_files, sl)
+    genes_list_file = write_gene_list(output_directory)
 
     # remove temporary file with paths
     # to genome files
@@ -254,99 +333,137 @@ def create_schema():
 def allele_call():
 
     def msg(name=None):
-        return '''chewBBACA.py AlleleCall [AlleleCall ...][-h]
-                 -i [I] -g [G] -o [O] --cpu [CPU] [-v] [-b [B]]
-                 [--bsr [BSR]] [--st] [--ptf [PTF]] [--fc] '
-                 [--fr] [--json]'''
+        # simple command to perform AlleleCall with schema deafult parameters
+        simple_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
+                                              '-g <schema_directory> '
+                                              '-o <output_directory> ')
+        # command to perform AlleleCall with non-default parameters
+        params_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
+                                              '-g <schema_directory> '
+                                              '-o <output_directory> '
+                                              '--ptf <ptf_path>\n'
+                                              '\t\t\t    --cpu <cpu_cores> '
+                                              '--bsr <blast_score_ratio> '
+                                              '--l <minimum_length>\n'
+                                              '\t\t\t    --t <translation_table> '
+                                              '--st <size_threshold>')
+        # command to create schema from single FASTA
+        cds_cmd = ('chewBBACA.py AlleleCall -i <input_file> '
+                                             '-o <output_directory> '
+                                             '--ptf <ptf_path> '
+                                             '--CDS')
 
-    parser = argparse.ArgumentParser(description='Performs allele calling '
+        usage_msg = ('\nPerform AlleleCall with schema default parameters:\n  {0}\n'
+                     '\nCreate schema from input genomes with non-default parameters:\n  {1}\n'
+                     '\nCreate schema from single FASTA file:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='AlleleCall',
+                                     description='Performs allele calling '
                                                  'on a set of input genomes.',
-                                     usage=msg())
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('AlleleCall', nargs='+', help='')
+
     parser.add_argument('-i', nargs='?', type=str, required=True,
                         dest='input_files',
                         help='Path to the directory with the genomes FASTA '
                              'files or to a file with a list of paths to '
                              'the FASTA files, one per line.')
-    parser.add_argument('-g', nargs='?', type=str, required=True,
-                        dest='schema_dir',
+
+    parser.add_argument('-g', type=str, required=True,
+                        dest='schema_directory',
                         help='Path to the schema directory with the'
                              ' genes FASTA files.')
-    parser.add_argument('-o', nargs='?', type=str, required=True,
-                        dest='output_dir',
+
+    parser.add_argument('-o', type=str, required=True,
+                        dest='output_directory',
                         help='Output directory where the allele '
                              'calling results will be stored.')
-    parser.add_argument('--cpu', nargs='?', type=int, required=True,
-                        dest='cpu_num',
+
+    parser.add_argument('--ptf', type=str, required=False,
+                        default=False, dest='ptf_path',
+                        help='Path to the Prodigal training file. '
+                             'Default is to get training file from '
+                             'schema directory.')
+
+    parser.add_argument('--bsr', type=bsr_type, required=False,
+                        default=0.6, dest='blast_score_ratio',
+                        help='BLAST Score Ratio value. Sequences with '
+                             'alignments with a BSR value equal to or '
+                             'greater than this value will be considered '
+                             'as sequences from the same gene.')
+
+    parser.add_argument('--t', type=translation_table_type, required=False,
+                        default=11, dest='translation_table',
+                        help='Genetic code used to predict genes and'
+                             ' to translate coding sequences '
+                             '(default=11).')
+
+    parser.add_argument('--st', type=size_threshold_type, required=False,
+                        default=0.2, dest='size_threshold',
+                        help='CDS size variation threshold. At the default '
+                             'value of 0.2, alleles with size variation '
+                             '+-20 percent will be classified as ASM/ALM')
+
+    parser.add_argument('--cpu', type=int, required=False, default=1,
+                        dest='cpu_cores',
                         help='Number of CPU cores/threads that will be '
                              'used to run the CreateSchema process '
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
+
+    parser.add_argument('--b', type=str, required=False,
+                        default='blastp', dest='blastp_path',
+                        help='Path to the BLASTp executables.')
+
     parser.add_argument('--contained', action='store_true', required=False,
                         default=False, dest='contained',
                         help=argparse.SUPPRESS)
+
     parser.add_argument('--CDS', action='store_true', required=False,
                         default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
-    parser.add_argument('-v', '--verbose', action='store_true', default=False,
-                        dest='verbose',
-                        help='Increased output verbosity during execution.')
-    parser.add_argument('-b', nargs='?', type=str, required=False,
-                        default='blastp', dest='blastp_path',
-                        help='Path to the BLASTp executables.')
-    parser.add_argument('--bsr', nargs='?', type=float, required=False,
-                        default=0.6, dest='bsr_value',
-                        help='BLAST Score Ratio value. Sequences with '
-                             'alignments with a BSR value equal to or '
-                             'greater than this value will be considered '
-                             'as sequences from the same gene.')
-    parser.add_argument('--st', nargs='?', type=float, required=False,
-                        default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM')
-    parser.add_argument('--ptf', nargs='?', type=str, required=False,
-                        default=False, dest='ptf_path',
-                        help='Path to the Prodigal training file. '
-                             'Default is to get training file in '
-                             'schema directory.')
-    parser.add_argument('--t', nargs='?', type=int, required=False,
-                        default=11, dest='translation_table',
-                        help='Genetic code used to predict genes and'
-                             ' to translate coding sequences '
-                             '(default=11).')
+
+    parser.add_argument('--json', action='store_true', required=False,
+                        dest='json_report',
+                        help='Output report in JSON format.')
+
     parser.add_argument('--fc', action='store_true', required=False,
-                        default=False, dest='force_continue',
+                        dest='force_continue',
                         help='Continue allele call process that '
                              'was interrupted.')
+
     parser.add_argument('--fr', action='store_true', required=False,
-                        default=False, dest='force_reset',
+                        dest='force_reset',
                         help='Force process reset even if there '
                              'are temporary files from a previous '
                              'process that was interrupted.')
-    parser.add_argument('--json', action='store_true', required=False,
-                        default=False, dest='json_report',
-                        help='Output report in JSON format.')
+
+    parser.add_argument('--v', action='store_true',
+                        dest='verbose',
+                        help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
 
     input_files = args.input_files
-    schema_dir = args.schema_dir
-    cpu_num = args.cpu_num
-    bsr = args.bsr_value
-    size_threshold = args.size_threshold
-    verbose = args.verbose
-    blastp_path = args.blastp_path
-    output_dir = args.output_dir
+    schema_directory = args.schema_directory
+    output_directory = args.output_directory
     ptf_path = args.ptf_path
+    blast_score_ratio = args.blast_score_ratio
     translation_table = args.translation_table
-    force_continue = args.force_continue
-    force_reset = args.force_reset
+    size_threshold = args.size_threshold
+    cpu_cores = args.cpu_cores
+    blastp_path = args.blastp_path
     contained = args.contained
     cds_input = args.cds_input
     json_report = args.json_report
+    force_continue = args.force_continue
+    force_reset = args.force_reset
+    verbose = args.verbose
     chosen_taxon = False
 
     schema_genes = aux.check_input_type(schema_dir, 'listGenes2Call.txt')
@@ -371,7 +488,7 @@ def allele_call():
 
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments values used for schema creation:')
-        print('\n'.join(list(unmatch_params.values())))
+        print('\n'.join(map(str, list(unmatch_params.values()))))
         params_answer = input('Continuing might invalidate the schema. Continue?\n')
         if params_answer.lower() not in ['y', 'yes']:
             sys.exit(0) 
@@ -393,11 +510,7 @@ def allele_call():
             sys.exit('Provided Prodigal training file does not exist.')
 
     # determine PTF checksum
-    with open(ptf_path, 'rb') as ptf:
-        file_hash = hashlib.blake2b()
-        file_text = ptf.read()
-        file_hash.update(file_text)
-        file_hash = file_hash.hexdigest()
+    ptf_hash = binary_file_hash(ptf_path)
 
     if file_hash not in params['prodigal_training_file']:
         ptf_num = len(params['prodigal_training_file'])
@@ -424,10 +537,10 @@ def allele_call():
     # if not check if is a folder or a txt with a list of paths
     genomes_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
-    BBACA.main(genomes_files, schema_genes, cpu_num,
-               output_dir, bsr, blastp_path,
-               force_continue, json_report, verbose,
-               force_reset, contained, chosen_taxon,
+    BBACA.main(genomes_files, schema_genes, cpu_cores,
+               output_directory, blast_score_ratio,
+               blastp_path, force_continue, json_report,
+               verbose, force_reset, contained, chosen_taxon,
                ptf_path, cds_input, size_threshold,
                translation_table)
 
@@ -740,7 +853,7 @@ def prep_schema():
                         ' a length value smaller than the value passed to this'
                         ' argument will be discarded (default=0).')
 
-    parser.add_argument('--tbl', type=int, required=False, default=11,
+    parser.add_argument('--t', type=int, required=False, default=11,
                         dest='translation_table',
                         help='Genetic code to use for CDS translation.'
                         ' (default=11, for Bacteria and Archaea)')
@@ -1172,6 +1285,8 @@ def main():
     version = '2.1.0'
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
     repository = 'https://github.com/B-UMMI/chewBBACA'
+    wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
+    tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
     contacts = ('rmamede@medicina.ulisboa.pt, '
                 'pedro.cerqueira@medicina.ulisboa.pt')
 
@@ -1187,7 +1302,7 @@ def main():
 
     # print help if no command is passed
     if len(sys.argv) == 1:
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('\n\tUSAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))
@@ -1197,16 +1312,18 @@ def main():
         print(version)
         return
 
-    print('chewBBACA version: {0}'.format(version))
-    print('authors: {0}'.format(authors))
-    print('github: {0}'.format(repository))
-    print('contacts: {0}'.format(contacts))
+    print('\nchewBBACA version: {0}'.format(version))
+    print('Authors: {0}'.format(authors))
+    print('Github: {0}'.format(repository))
+    print('Wiki: {0}'.format(wiki))
+    print('Tutorial: {0}'.format(tutorial))
+    print('Contacts: {0}\n'.format(contacts))
 
     process = sys.argv[1]
     if process in functions_info:
         functions_info[process][1]()
     else:
-        print('\n\tUSAGE : chewBBACA.py [module] -h \n')
+        print('\n\tUSAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following functions:\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))

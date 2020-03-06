@@ -709,29 +709,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             with open(os.path.join(outputfolder, "results_alleles.tsv"), 'w') as f:
                 f.write(finalphylovinput)
 
-            # add profiles to SQLite database
-            profiles_db_dir = os.path.join(genepath, '.sqlite_profiles')
-            profiles_db_file = os.path.join(profiles_db_dir, 'profiles.db')
-            # check if SQLite database directory exists
-            # create if it does not exist
-            if os.path.isdir(profiles_db_dir) is False:
-                os.makedirs(profiles_db_dir)
-
-                # create database file
-                create_database(profiles_db_file)
-
-                # create connection
-                conn = create_connection(profiles_db_file)
-
-                # create tables
-                
-
-            # will create file in first AlleleCall with schema
-            with open(schema_profiles, 'a') as pf:
-                # determine current time
-                current_time = time.strftime("%Y%m%dT%H%M%S")
-                pf.write('{0}\n{1}\n'.format(current_time, finalphylovinput))
-
             with open(os.path.join(outputfolder, "results_statistics.tsv"), 'w') as f:
                 f.write(str(statswrite))
 

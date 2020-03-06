@@ -31,7 +31,8 @@ from SchemaEvaluator import ValidateSchema
 from PrepExternalSchema import PrepExternalSchema
 from utils import (TestGenomeQuality, profile_joiner,
                    uniprot_find, Extract_cgAlleles,
-                   RemoveGenes, auxiliary_functions as aux,
+                   RemoveGenes, sqlite_functions as sq,
+                   auxiliary_functions as aux,
                    constants as cnts)
 
 from CHEWBBACA_NS import (down_schema, load_schema,
@@ -472,17 +473,17 @@ def allele_call():
     verbose = args.verbose
     chosen_taxon = False
 
-    schema_genes = aux.check_input_type(schema_dir, 'listGenes2Call.txt')
+    schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
 
     # check parameters values in config file and alter if needed
-    config_file = os.path.join(schema_dir, '.schema_config')
+    config_file = os.path.join(schema_directory, '.schema_config')
     with open(config_file, 'rb') as pf:
         params = pickle.load(pf)
 
     unmatch_params = {}
     # check bsr
-    if bsr not in params['bsr']:
-        unmatch_params['bsr'] = bsr
+    if blast_score_ratio not in params['bsr']:
+        unmatch_params['bsr'] = blast_score_ratio
     # check chewie version
     if current_version not in params['chewBBACA_version']:
         unmatch_params['chewBBACA_version'] = current_version
@@ -505,9 +506,9 @@ def allele_call():
     # default is to get the training file in schema directory
     print(ptf_path)
     if ptf_path is False:
-        for file in os.listdir(schema_dir):
+        for file in os.listdir(schema_directory):
             if file.endswith('.trn'):
-                ptf_path = os.path.join(schema_dir, file)
+                ptf_path = os.path.join(schema_directory, file)
         if os.path.isfile(ptf_path) is False:
             sys.exit('There is no valid training file in schema directory.')
     # if user provides a training file
@@ -518,7 +519,7 @@ def allele_call():
     # determine PTF checksum
     ptf_hash = binary_file_hash(ptf_path)
 
-    if file_hash not in params['prodigal_training_file']:
+    if ptf_hash not in params['prodigal_training_file']:
         ptf_num = len(params['prodigal_training_file'])
         if ptf_num == 1:
             print('Prodigal training file is not the one used to create the schema.')
@@ -530,8 +531,8 @@ def allele_call():
         if ptf_answer.lower() not in ['y', 'yes']:
             sys.exit(0)
         else:
-            params['prodigal_training_file'].append(file_hash)
-            unmatch_params['prodigal_training_file'] = file_hash
+            params['prodigal_training_file'].append(ptf_hash)
+            unmatch_params['prodigal_training_file'] = ptf_hash
     print(ptf_path)
 
     # save updated schema config file
@@ -549,6 +550,27 @@ def allele_call():
                verbose, force_reset, contained, chosen_taxon,
                ptf_path, cds_input, size_threshold,
                translation_table)
+
+    # add profiles to SQLite database
+    results_folder = os.path.join(output_directory, [f for f in os.listdir(output_directory) if 'results' in f][0])
+    results_matrix = os.path.join(results_folder, 'results_alleles.tsv')
+    insert_date = results_folder.split('_')[-1]
+
+    # verify that database directory exists
+    database_directory = os.path.join(schema_directory, 'profiles_database')
+    # create if it does not exist
+    if os.path.isdir(database_directory) is False:
+        os.mkdir(database_directory)
+
+    # also need to check for database file
+    database_file = os.path.join(database_directory, 'profiles.db')
+    if os.path.isfile(database_file) is False:
+        sq.create_database_structure(database_file)
+        # insert loci list into loci table
+        sq.insert_loci(database_file, results_matrix)
+    
+    # insert whole matrix
+    a = sq.insert_allelecall_matrix(results_matrix, database_file)
 
     # remove temporary files with paths to genomes
     # and schema files files

@@ -1240,4 +1240,5 @@ def parse_arguments():
 if __name__ == '__main__':
 
     args = parse_arguments()
-    main(args[0], args[1], args[2], args[3], args[4], args[5])
+    main(args[0], args[1], args[2], args[3],
+         args[4], args[5], args[6], args[7])

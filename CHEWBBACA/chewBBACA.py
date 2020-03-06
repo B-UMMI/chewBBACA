@@ -450,7 +450,13 @@ def allele_call():
                              'are temporary files from a previous '
                              'process that was interrupted.')
 
-    parser.add_argument('--v', action='store_true',
+    parser.add_argument('--db', required=False, action='store_false',
+                        dest='store_profiles',
+                        help='If the profiles in the output matrix '
+                             'should be stored in the local SQLite '
+                             'database.')
+
+    parser.add_argument('--v', required=False, action='store_true',
                         dest='verbose',
                         help='Increased output verbosity during execution.')
 
@@ -470,6 +476,7 @@ def allele_call():
     json_report = args.json_report
     force_continue = args.force_continue
     force_reset = args.force_reset
+    store_profiles = args.store_profiles
     verbose = args.verbose
     chosen_taxon = False
 
@@ -551,26 +558,27 @@ def allele_call():
                ptf_path, cds_input, size_threshold,
                translation_table)
 
-    # add profiles to SQLite database
-    results_folder = os.path.join(output_directory, [f for f in os.listdir(output_directory) if 'results' in f][0])
-    results_matrix = os.path.join(results_folder, 'results_alleles.tsv')
-    insert_date = results_folder.split('_')[-1]
+    if store_profiles is True:
+        # add profiles to SQLite database
+        results_folder = os.path.join(output_directory, [f for f in os.listdir(output_directory) if 'results' in f][0])
+        results_matrix = os.path.join(results_folder, 'results_alleles.tsv')
+        insert_date = results_folder.split('_')[-1]
 
-    # verify that database directory exists
-    database_directory = os.path.join(schema_directory, 'profiles_database')
-    # create if it does not exist
-    if os.path.isdir(database_directory) is False:
-        os.mkdir(database_directory)
+        # verify that database directory exists
+        database_directory = os.path.join(schema_directory, 'profiles_database')
+        # create if it does not exist
+        if os.path.isdir(database_directory) is False:
+            os.mkdir(database_directory)
 
-    # also need to check for database file
-    database_file = os.path.join(database_directory, 'profiles.db')
-    if os.path.isfile(database_file) is False:
-        sq.create_database_structure(database_file)
-        # insert loci list into loci table
-        sq.insert_loci(database_file, results_matrix)
-    
-    # insert whole matrix
-    a = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+        # also need to check for database file
+        database_file = os.path.join(database_directory, 'profiles.db')
+        if os.path.isfile(database_file) is False:
+            sq.create_database_structure(database_file)
+            # insert loci list into loci table
+            sq.insert_loci(database_file, results_matrix)
+        
+        # insert whole matrix
+        a = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
 
     # remove temporary files with paths to genomes
     # and schema files files

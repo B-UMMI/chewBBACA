@@ -218,8 +218,16 @@ def create_database_structure(db_file):
                               'profile_id TEXT PRIMARY KEY,'
                               'type TEXT,'
                               'date TEXT,'
-                              'profile_json JSON'
+                              'profile_json JSON,'
+                              'subschema_id TEXT,'
+                              'FOREIGN KEY (subschema_id) REFERENCES subschemas (subschema_id)'
                               ');')
+
+    # subschemas table
+    sql_subschemas_table = ('CREATE TABLE IF NOT EXISTS subschemas ('
+                                'subschema_id TEXT PRIMARY KEY,'
+                                'loci JSON' # JSON with subset of the schema that was used
+                                ');')
 
     # create tables
     conn = create_connection(db_file)
@@ -228,6 +236,7 @@ def create_database_structure(db_file):
         row = create_table(conn, sql_samples_table)
         row = create_table(conn, sql_loci_table)
         row = create_table(conn, sql_profiles_table)
+        row = create_table(conn, sql_subschemas_table)
     else:
         print('No database connection.')
 
@@ -258,7 +267,7 @@ def get_sample_ids(matrix_lines):
     """
     """
 
-    sample_ids = [l[0] for l in matrix_lines[1:]]
+    sample_ids = [l[0].rstrip('.fasta') for l in matrix_lines[1:]]
 
     return sample_ids
 
@@ -267,7 +276,12 @@ def get_profiles(matrix_lines):
     """
     """
 
-    profiles = [l[1:] for l in matrix_lines[1:]]
+    profiles = []
+    loci_ids = matrix_lines[0][1:]
+    for l in matrix_lines[1:]:
+        lp = l[1:]
+        profile = {loci_ids[i].rstrip('.fasta'): lp[i] for i in range(len(lp))}
+        profiles.append(profile)
 
     return profiles
 
@@ -309,7 +323,9 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # get profiles
     profiles = get_profiles(matrix_lines)
 
-    profiles = [remove_inf(p) for p in profiles]
+    #profiles = [remove_inf(p) for p in profiles]
+
+    # insert into subschemas table
 
     # insert profiles
     # create JSON format of each profile
@@ -317,30 +333,45 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # create a cursor
     c = conn.cursor()
     profiles_hashes = []
+    subschemas_hashes = []
+    subschemas_loci = []
     for p in profiles:
-        # add first entry to JSON only if locus value is not LNF
-        i = 1
-        not_lnf = False
-        while not_lnf is False:
-            if p[i-1] != 'LNF':
-                json_profile = '{{"{0}":"{1}"'.format(i, p[i-1])
-                not_lnf = True
+        loci = [str(loci_map[locus]) for locus in p.keys()]
+        loci_join = ','.join(loci)
+        loci_hash = hashlib.sha256(loci_join.encode('utf-8')).hexdigest()
+        if loci_join not in subschemas_loci:
+            subschemas_loci.append(loci_join)
+        if loci_hash not in subschemas_hashes:
+            subschemas_hashes.append(loci_hash)
+        json_profile = ''
+        for k, v in p.items():
+            # add first entry to JSON only if locus value is not LNF
+            locus = k
+            locus_id = loci_map[locus]
+            allele_id = v
+            if len(json_profile) == 0:
+                if allele_id != 'LNF':
+                    json_profile += '{{"{0}":"{1}"'.format(locus_id, allele_id)
             else:
-                i += 1
-        # start adding entries to JSON from index after non-LNF value
-        for l in range(i, len(loci_map)):
-            # only had if value is not LNF
-            if p[l] != 'LNF':
-                json_profile += ', "{0}":"{1}"'.format(l+1, p[l])
+                if allele_id != 'LNF':
+                    json_profile += ', "{0}":"{1}"'.format(locus_id, allele_id)
+            
         json_profile += '}'
-
+    
         profile_hash = hashlib.sha256(json_profile.encode('utf-8')).hexdigest()
         profiles_hashes.append(profile_hash)
-
-        c.execute("INSERT OR IGNORE INTO profiles (profile_id, date, profile_json) VALUES (?, ?, json(?));", (profile_hash, insert_date, json_profile))
+    
+        c.execute("INSERT OR IGNORE INTO profiles (profile_id, date, profile_json, subschema_id) VALUES (?, ?, json(?), ?);", (profile_hash, insert_date, json_profile, loci_hash))
 
     conn.commit()
     conn.close()
+
+    # insert subschemas
+    subschema_statement = create_insert_statement('subschemas', ['subschema_id', 'loci'])
+    subschema_data = [(subschemas_hashes[i], subschemas_loci[i]) for i in range(len(subschemas_hashes))]
+    
+    # insert all subschemas
+    insert_multiple(db_file, subschema_statement, subschema_data)
 
     # insert samples
     sample_statement = create_insert_statement('samples', ['name', 'date', 'profile_id'])
@@ -354,32 +385,29 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 
 # database file
 #db_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/campy_schema/campy_test/.profiles_sqlite/profiles.db'
-#### maximum number of columns is 2000
+##### maximum number of columns is 2000
 #create_database_structure(db_file)
-###
+####
 #matrix_file = '/home/rfm/Desktop/rfm/Lab_Analyses/Bacgentrack_data/7676_sagalactiae_allelecall_results/results_alleles_ns_version.tsv'
-###
-#### insert all loci identifiers into loci table
+####
+##### insert all loci identifiers into loci table
 #insert_loci(db_file, matrix_file)
-##
-### test inserting whole AlleleCall matrix
-### it is safer to import final matrix from file and insert into database
-#a = insert_allelecall_matrix(matrix_file, db_file)
-#
-#
-#
-#
+###
+#### test inserting whole AlleleCall matrix
+#### it is safer to import final matrix from file and insert into database
+#a = insert_allelecall_matrix(matrix_file, db_file, 'FAKEDATE')
 #
 ## we need to check which profiles from our matrix already are in the database
 ## remove those from data and only insert the new ones
 ## also insert samples and that's it!
 #
 #
-## select all rows from tables
-#db_file = '/home/rfm/Desktop/ns_test/sagalactiae_test_schema/profiles_database/profiles.db'
-#loci_list_db = select_all_rows(db_file, 'loci')
-#profiles_list_db = select_all_rows(db_file, 'profiles')
-#samples_list_db = select_all_rows(db_file, 'samples')
+# select all rows from tables
+db_file = '/home/rfm/Desktop/ns_test/sagalactiae_test_schema/profiles_database/profiles.db'
+loci_list_db = select_all_rows(db_file, 'loci')
+profiles_list_db = select_all_rows(db_file, 'profiles')
+samples_list_db = select_all_rows(db_file, 'samples')
+subschemas_list_db = select_all_rows(db_file, 'subschemas')
 #
 ## select single field of profiles data
 #conn = sqlite3.connect(db_file)
@@ -388,7 +416,7 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 #c = conn.cursor()
 #
 ## json_extract is SQL function from JSON1 extension
-#c.execute("select json_extract(profiles.profile_json, '$.1') from profiles;")
+#c.execute("select json_extract(profiles.profile_json, '$.2138') from profiles;")
 #
 #rows = c.fetchall()
 #

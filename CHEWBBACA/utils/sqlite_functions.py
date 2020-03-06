@@ -293,7 +293,7 @@ def remove_inf(profile):
     return new_profile
 
 
-def insert_allelecall_matrix(matrix_file, db_file):
+def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     """
     """
 
@@ -337,14 +337,14 @@ def insert_allelecall_matrix(matrix_file, db_file):
         profile_hash = hashlib.sha256(json_profile.encode('utf-8')).hexdigest()
         profiles_hashes.append(profile_hash)
 
-        c.execute("INSERT OR IGNORE INTO profiles (profile_id, profile_json) VALUES (?, json(?));", (profile_hash, json_profile))
+        c.execute("INSERT OR IGNORE INTO profiles (profile_id, date, profile_json) VALUES (?, ?, json(?));", (profile_hash, insert_date, json_profile))
 
     conn.commit()
     conn.close()
 
     # insert samples
     sample_statement = create_insert_statement('samples', ['name', 'date', 'profile_id'])
-    samples_data = [(sample_ids[i], 'FAKEDATE', profiles_hashes[i]) for i in range(len(sample_ids))]
+    samples_data = [(sample_ids[i], insert_date, profiles_hashes[i]) for i in range(len(sample_ids))]
 
     # insert all samples - it checks PK uniqueness condition
     insert_multiple(db_file, sample_statement, samples_data)
@@ -354,16 +354,16 @@ def insert_allelecall_matrix(matrix_file, db_file):
 
 # database file
 #db_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/campy_schema/campy_test/.profiles_sqlite/profiles.db'
-### maximum number of columns is 2000
+#### maximum number of columns is 2000
 #create_database_structure(db_file)
-##
+###
 #matrix_file = '/home/rfm/Desktop/rfm/Lab_Analyses/Bacgentrack_data/7676_sagalactiae_allelecall_results/results_alleles_ns_version.tsv'
-##
-### insert all loci identifiers into loci table
+###
+#### insert all loci identifiers into loci table
 #insert_loci(db_file, matrix_file)
-#
-## test inserting whole AlleleCall matrix
-## it is safer to import final matrix from file and insert into database
+##
+### test inserting whole AlleleCall matrix
+### it is safer to import final matrix from file and insert into database
 #a = insert_allelecall_matrix(matrix_file, db_file)
 #
 #

@@ -570,7 +570,7 @@ def allele_call():
         sq.insert_loci(database_file, results_matrix)
     
     # insert whole matrix
-    a = sq.insert_allelecall_matrix(results_matrix, database_file)
+    a = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
 
     # remove temporary files with paths to genomes
     # and schema files files

@@ -18,26 +18,16 @@ DESCRIPTION
         (this was only implemented in SQLite 3.6.19). We have to be
         sensible of that when altering the data in the database.
 
-        - json_extract is SQL function from JSON1 extension that is
+        - json_extract is a SQL function from JSON1 extension that is
         included in the SQL statements. It can be used to extract single
         values from a full JSON that has been inserted into a single table
         field/cell.
-        - Changing special cases to shorter strings probably won't help
-        because SQL has a fixed size for each table cell according to data
-        type, and in the best scenario based on text length. Profiles are really
-        big strings so it might be hard to lower space disk usage...
-        
-        TRY TO REMOVE LOCI THAT ARE LNF TO CONSIDERABLY REDUCE STRING LENGTH???
-        
 """
 
 
 import csv
-import json
-import pickle
 import hashlib
 import sqlite3
-import sqlalchemy
 from sqlite3 import Error
 
 
@@ -323,10 +313,6 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # get profiles
     profiles = get_profiles(matrix_lines)
 
-    #profiles = [remove_inf(p) for p in profiles]
-
-    # insert into subschemas table
-
     # insert profiles
     # create JSON format of each profile
     conn = sqlite3.connect(db_file)
@@ -383,32 +369,14 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     return True
 
 
-# database file
-#db_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/campy_schema/campy_test/.profiles_sqlite/profiles.db'
-##### maximum number of columns is 2000
-#create_database_structure(db_file)
-####
-#matrix_file = '/home/rfm/Desktop/rfm/Lab_Analyses/Bacgentrack_data/7676_sagalactiae_allelecall_results/results_alleles_ns_version.tsv'
-####
-##### insert all loci identifiers into loci table
-#insert_loci(db_file, matrix_file)
-###
-#### test inserting whole AlleleCall matrix
-#### it is safer to import final matrix from file and insert into database
-#a = insert_allelecall_matrix(matrix_file, db_file, 'FAKEDATE')
-#
-## we need to check which profiles from our matrix already are in the database
-## remove those from data and only insert the new ones
-## also insert samples and that's it!
-#
-#
+
 # select all rows from tables
-db_file = '/home/rfm/Desktop/ns_test/sagalactiae_test_schema/profiles_database/profiles.db'
-loci_list_db = select_all_rows(db_file, 'loci')
-profiles_list_db = select_all_rows(db_file, 'profiles')
-samples_list_db = select_all_rows(db_file, 'samples')
-subschemas_list_db = select_all_rows(db_file, 'subschemas')
-#
+#db_file = ''
+#loci_list_db = select_all_rows(db_file, 'loci')
+#profiles_list_db = select_all_rows(db_file, 'profiles')
+#samples_list_db = select_all_rows(db_file, 'samples')
+#subschemas_list_db = select_all_rows(db_file, 'subschemas')
+
 ## select single field of profiles data
 #conn = sqlite3.connect(db_file)
 #

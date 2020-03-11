@@ -857,6 +857,7 @@ def adapt_external_schema(genes_list):
     invalid_genes = []
     summary_stats = []
     for gene in genes:
+        #print(gene)
 
         representatives = []
 
@@ -892,108 +893,112 @@ def adapt_external_schema(genes_list):
             summary_stats.append([gene_id, str(total_sequences), '0', '0'])
             continue
 
-        # create dictionary to store protein sequences and sequence
-        # identifiers with the same protein sequence
-        equal_prots = determine_duplicated_prots(prot_seqs)
+        if len(gene_seqs) > 1:
+            # create dictionary to store protein sequences and sequence
+            # identifiers with the same protein sequence
+            equal_prots = determine_duplicated_prots(prot_seqs)
 
-        # get only one identifier per protein
-        ids_to_blast = []
-        for protein, protids in equal_prots.items():
-            ids_to_blast.append(protids[0])
+            # get only one identifier per protein
+            ids_to_blast = []
+            for protein, protids in equal_prots.items():
+                ids_to_blast.append(protids[0])
 
-        # get longest sequence as first representative
-        longest = determine_longest(ids_to_blast, prot_seqs)
-        representatives.append(longest)
+            # get longest sequence as first representative
+            longest = determine_longest(ids_to_blast, prot_seqs)
+            representatives.append(longest)
 
-        # create FASTA file with distinct protein sequences
-        # create with only one representative per protein
-        protein_file = join_paths(gene_temp_dir,
-                                  '{0}_protein.fasta'.format(gene_id))
-        protein_lines = fasta_lines(ids_to_blast, prot_seqs)
-        write_list(protein_lines, protein_file)
+            # create FASTA file with distinct protein sequences
+            # create with only one representative per protein
+            protein_file = join_paths(gene_temp_dir,
+                                      '{0}_protein.fasta'.format(gene_id))
+            protein_lines = fasta_lines(ids_to_blast, prot_seqs)
+            write_list(protein_lines, protein_file)
 
-        # create blastdb with all distinct proteins
-        blastp_db = os.path.join(gene_temp_dir, gene_id)
-        make_blast_db(protein_file, blastp_db, 'prot')
+            # create blastdb with all distinct proteins
+            blastp_db = os.path.join(gene_temp_dir, gene_id)
+            make_blast_db(protein_file, blastp_db, 'prot')
 
-        # determine if sequences are shorter than 30aa and choose
-        # appropriate blastp task
-        blastp_task = determine_blast_task(protein_file)
+            # determine if sequences are shorter than 30aa and choose
+            # appropriate blastp task
+            blastp_task = determine_blast_task(protein_file)
 
-        # BLAST representative against all proteins, determine if any hit
-        # can be a candidate and keep applying the same process until only
-        # the representatives remain in the ids_to_blast list
-        while len(ids_to_blast) > len(representatives):
+            # BLAST representative against all proteins, determine if any hit
+            # can be a candidate and keep applying the same process until only
+            # the representatives remain in the ids_to_blast list
+            while len(ids_to_blast) > len(representatives):
 
-            # create FASTA file with representative sequences
-            rep_file = join_paths(gene_temp_dir,
-                                  '{0}_rep_protein.fasta'.format(gene_id))
-            rep_protein_lines = fasta_lines(representatives, prot_seqs)
-            write_list(rep_protein_lines, rep_file)
+                # create FASTA file with representative sequences
+                rep_file = join_paths(gene_temp_dir,
+                                      '{0}_rep_protein.fasta'.format(gene_id))
+                rep_protein_lines = fasta_lines(representatives, prot_seqs)
+                write_list(rep_protein_lines, rep_file)
 
-            # create file with seqids to BLAST against
-            ids_str = concatenate_list([str(i) for i in ids_to_blast], '\n')
-            ids_file = join_paths(gene_temp_dir,
-                                  '{0}_ids.txt'.format(gene_id))
-            write_text_chunk(ids_file, ids_str)
+                # create file with seqids to BLAST against
+                ids_str = concatenate_list([str(i) for i in ids_to_blast], '\n')
+                ids_file = join_paths(gene_temp_dir,
+                                      '{0}_ids.txt'.format(gene_id))
+                write_text_chunk(ids_file, ids_str)
 
-            # BLAST representatives against all sequences that
-            # still have no representative
-            blast_output = join_paths(gene_temp_dir,
-                                      '{0}_blast_out.tsv'.format(gene_id))
-            # set max_target_seqs to huge number because BLAST only
-            # returns 500 hits by default
-            blast_command = ('blastp -task {0} -db {1} -query {2} -out {3} '
-                             '-outfmt "6 qseqid sseqid score" -max_hsps 1 '
-                             '-num_threads {4} -max_target_seqs 100000 '
-                             '-seqidlist {5}'.format(blastp_task, blastp_db,
-                                                     rep_file, blast_output,
-                                                     1, ids_file))
-            os.system(blast_command)
+                # BLAST representatives against all sequences that
+                # still have no representative
+                blast_output = join_paths(gene_temp_dir,
+                                          '{0}_blast_out.tsv'.format(gene_id))
+                # set max_target_seqs to huge number because BLAST only
+                # returns 500 hits by default
+                blast_command = ('blastp -task {0} -db {1} -query {2} -out {3} '
+                                 '-outfmt "6 qseqid sseqid score" -max_hsps 1 '
+                                 '-num_threads {4} -max_target_seqs 100000 '
+                                 '-seqidlist {5}'.format(blastp_task, blastp_db,
+                                                         rep_file, blast_output,
+                                                         1, ids_file))
+                os.system(blast_command)
 
-            # get path to file with BLAST results
-            blastout_file = filter_files(os.listdir(gene_temp_dir),
-                                         ['blast_out.tsv'])[0]
-            blastout_file = os.path.join(gene_temp_dir, blastout_file)
+                # get path to file with BLAST results
+                blastout_file = filter_files(os.listdir(gene_temp_dir),
+                                             ['blast_out.tsv'])[0]
+                blastout_file = os.path.join(gene_temp_dir, blastout_file)
 
-            # import BLAST results
-            blast_results = read_blast_tabular(blastout_file)
+                # import BLAST results
+                blast_results = read_blast_tabular(blastout_file)
 
-            # get self-score for representatives
-            rep_self_scores = {res[1]: res[2] for res in blast_results
-                               if res[0] == res[1]}
+                # get self-score for representatives
+                rep_self_scores = {res[1]: res[2] for res in blast_results
+                                   if res[0] == res[1]}
 
-            # find representative candidates
-            hitting_high, hitting_low, hotspots = \
-                determine_high_low_bsr(blast_results, representatives,
-                                       rep_self_scores, bsr, bsr+0.1)
+                # find representative candidates
+                hitting_high, hitting_low, hotspots = \
+                    determine_high_low_bsr(blast_results, representatives,
+                                           rep_self_scores, bsr, bsr+0.1)
 
-            # determine alleles that only had hits with low BSR
-            hitting_low = list(set(hitting_low) - set(hitting_high))
+                # determine alleles that only had hits with low BSR
+                hitting_low = list(set(hitting_low) - set(hitting_high))
 
-            # remove seqids that had high BSR hits because
-            # those alleles are already represented
-            hitting_high = list(set(hitting_high))
-            ids_to_blast = [seqid for seqid in ids_to_blast
-                            if seqid not in hitting_high]
+                # remove seqids that had high BSR hits because
+                # those alleles are already represented
+                hitting_high = list(set(hitting_high))
+                ids_to_blast = [seqid for seqid in ids_to_blast
+                                if seqid not in hitting_high]
 
-            # determine candidates, alleles that only had hit with BSR
-            # between 0.6 and 0.7
-            rep_candidates = list(set(hotspots) - set(hitting_high))
-            # remove representatives
-            rep_candidates = [seqid for seqid in rep_candidates
-                              if seqid not in representatives]
+                # determine candidates, alleles that only had hit with BSR
+                # between 0.6 and 0.7
+                rep_candidates = list(set(hotspots) - set(hitting_high))
+                # remove representatives
+                rep_candidates = [seqid for seqid in rep_candidates
+                                  if seqid not in representatives]
 
-            # decide which candidate to add as representative
-            representatives = determine_new_representative(rep_candidates,
-                                                           prot_seqs,
-                                                           ids_to_blast,
-                                                           representatives)
+                # decide which candidate to add as representative
+                representatives = determine_new_representative(rep_candidates,
+                                                               prot_seqs,
+                                                               ids_to_blast,
+                                                               representatives)
 
-            # remove files created for current gene iteration
-            os.remove(rep_file)
-            os.remove(blast_output)
-            os.remove(ids_file)
+                # remove files created for current gene iteration
+                os.remove(rep_file)
+                os.remove(blast_output)
+                os.remove(ids_file)
+
+        else:
+            representatives = list(prot_seqs.keys())
 
         # write schema file with all alleles
         gene_lines = fasta_lines(list(gene_seqs.keys()), gene_seqs)
@@ -1052,7 +1057,7 @@ def main(external_schema, output_schema, cpu_threads, bsr, min_len, trans_tbl, p
                         'listed in the input file. Please provide '
                         'a directory with Fasta files, one per gene, '
                         'or a file with a list of paths to Fasta files, '
-                        'one per line.\n')
+                        'one per line (valid prefixes: .fasta, .fna, .ffn).\n')
 
     print('Number of genes to adapt: {0}\n'.format(len(genes_list)))
 

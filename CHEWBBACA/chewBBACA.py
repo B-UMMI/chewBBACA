@@ -892,9 +892,8 @@ def prep_schema():
 
     parser.add_argument('-ptf', type=str, required=True,
                         dest='ptf_path',
-                        help='Path to the Prodigal training file. '
-                             'Default is to get training file in '
-                             'schema directory.')
+                        help='Path to the Prodigal training file that '
+                             'will be associated with the adapted schema.')
 
     parser.add_argument('--bsr', type=bsr_type,
                         required=False, default=0.6, dest='blast_score_ratio',
@@ -915,7 +914,8 @@ def prep_schema():
                         required=False, default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM.')
+                             '+-20 percent when compared to the representative '
+                             'will not be included in the final schema.')
 
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',

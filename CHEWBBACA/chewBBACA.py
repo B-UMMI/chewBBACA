@@ -1000,176 +1000,219 @@ def find_uniprot():
     uniprot_find.main(geneFiles, tsvFile, cpu2use)
 
 
-def download_schema_NS():
+def download_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py Download_NS_Schema [Download_NS_Schema ...][-h]
-                 -ns_schema [NS_SCHEMA] -ns_species [NS_SPECIES]
-                 -down_folder [DOWN_FOLDER] --cpu [CPU] --ns_url [NS_URL]'''
+        # simple command to download a schema from the NS
+        simple_cmd = ('chewBBACA.py DownloadSchema -sc <schema_id> '
+                                                  '-sp <species_id> '
+                                                  '-o <download_folder> ')
 
-    parser = argparse.ArgumentParser(description='This program downloads '
+        # command to download a schema from the NS with non-default arguments values
+        params_cmd = ('chewBBACA.py DownloadSchema -sc <schema_id> '
+                                                  '-sp <species_id> '
+                                                  '-o <download_folder>\n'
+                                                  '\t\t\t\t--cpu <cpu_cores> '
+                                                  '--ns_url <nomenclature_server_url> ')
+
+        usage_msg = ('\nDownload schema:\n{0}\n'
+                     '\nDownload schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='DownloadSchema',
+                                     description='This program downloads '
                                                  'a schema from the NS.',
-                                     usage=msg())
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('Download_NS_Schema', nargs='+',
+    parser.add_argument('DownloadSchema', nargs='+',
                         help='This program downloads a schema from '
                              'the NS.')
 
-    parser.add_argument('-ns_schema', nargs='?', type=str, required=True,
-                        dest='ns_schema',
+    parser.add_argument('-sc', type=str, required=True,
+                        dest='schema_id',
                         help='The URI, integer identifier or description of '
                              'the schema to download from the NS.')
 
-    parser.add_argument('-ns_species', nargs='?', type=str, required=True,
-                        dest='ns_species',
+    parser.add_argument('-sp', type=str, required=True,
+                        dest='species_id',
                         help='The integer identifier or name of the species '
                              'that the schema is associated to in the NS.')
 
-    parser.add_argument('-down_folder', type=str, required=True,
-                        dest='down_folder',
+    parser.add_argument('-o', type=str, required=True,
+                        dest='download_folder',
                         help='Output folder to which the schema will '
                              'be saved.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=False,
-                        default=1, dest='cpu_num',
-                        help='Number of CPU cores/threads that will '
-                             'be passed to the PrepExternalSchema to '
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
+                        help='Number of CPU cores that will '
+                             'be passed to the PrepExternalSchema process to '
                              'determine representatives and create the '
                              'final schema.')
 
     parser.add_argument('--ns_url', type=str, required=False,
-                        default='http://127.0.0.1:5000/NS/api/',
-                        dest='ns_url',
+                        default=cnts.HOST_NS,
+                        dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
     args = parser.parse_args()
 
-    ns_schema = args.ns_schema
-    ns_species = args.ns_species
-    down_folder = args.down_folder
-    cpu_num = args.cpu_num
-    ns_url = args.ns_url
+    ns_schema = args.schema_id
+    ns_species = args.species_id
+    download_folder = args.download_folder
+    cpu_cores = args.cpu_cores
+    nomenclature_server_url = args.nomenclature_server_url
 
-    down_schema.main(ns_schema, ns_species, down_folder,
-                     cpu_num, ns_url)
+    down_schema.main(ns_schema, ns_species, download_folder,
+                     cpu_cores, nomenclature_server_url)
 
 
-def load_schema_NS():
+def upload_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py Load_NS_Schema [Load_NS_Schema ...][-h]
-                 -schema [SCHEMA] -ns_species [NS_SPECIES]
-                 -schema_desc [SCHEMA_DESC] -loci_prefix [LOCI_PREFIX]
-                 --thr [THREADS] --ns_url [NS_URL]
-                 --continue_up [CONTINUE_UP]'''
+        # simple command to load a schema to the NS
+        simple_cmd = ('chewBBACA.py LoadSchema -sc <schema_id> '
+                                                  '-sp <species_id> '
+                                                  '-o <download_folder> ')
 
-    parser = argparse.ArgumentParser(description='This program uploads '
+        # command to load a schema to the NS with non-default arguments values
+        params_cmd = ('chewBBACA.py LoadSchema -sc <schema_id> '
+                                              '-sp <species_id> '
+                                              '-o <download_folder>\n'
+                                              '\t\t\t--cpu <cpu_cores> '
+                                              '--ns_url <nomenclature_server_url> ')
+
+        usage_msg = ('\nLoad schema:\n{0}\n'
+                     '\nLoad schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='LoadSchema',
+                                     description='This program uploads '
                                                  'a schema to the NS.',
-                                     usage=msg())
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('Load_NS_Schema', nargs='+',
                         help='This program loads a schema to '
                              'the NS.')
 
-    parser.add_argument('-schema', nargs='?', type=str, required=True,
-                        dest='schema',
+    parser.add_argument('-i', type=str, required=True,
+                        dest='schema_directory',
                         help='Path to the directory with the local schema '
                              'files.')
 
-    parser.add_argument('-ns_species', nargs='?', type=str, required=True,
-                        dest='ns_species',
+    parser.add_argument('-sp', type=str, required=True,
+                        dest='species_id',
                         help='The integer identifier or name of the species '
                              'that the schema will be associated to in '
                              'the NS.')
 
-    parser.add_argument('-schema_desc', type=str, required=True,
-                        dest='schema_desc',
+    parser.add_argument('-sd', type=str, required=True,
+                        dest='schema_description',
                         help='A brief and meaningful description that '
                              'should help understand the type and content '
                              'of the schema.')
 
-    parser.add_argument('-loci_prefix', nargs='?', type=str, required=True,
+    parser.add_argument('-lp', type=str, required=True,
                         dest='loci_prefix',
                         help='Prefix included in the name of each locus of '
                              'the schema.')
 
-    parser.add_argument('--thr', nargs='?', type=int, required=False,
+    parser.add_argument('--thr', type=int, required=False,
                         default=20, dest='threads',
                         help='Number of threads to use to upload the alleles '
                              'of the schema.')
 
     parser.add_argument('--ns_url', type=str, required=False,
-                        default='http://127.0.0.1:5000/NS/api/',
-                        dest='ns_url',
+                        default=cnts.HOST_NS,
+                        dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--continue_up', required=False, default='no',
-                        dest='continue_up', choices=['no', 'yes'],
+    parser.add_argument('--continue_up', required=False, action='store_true',
+                        dest='continue_up',
                         help='If the process should check if the schema '
                              'upload was interrupted and try to finish it.')
 
     args = parser.parse_args()
 
-    schema = args.schema
-    ns_species = args.ns_species
-    schema_desc = args.schema_desc
+    schema_directory = args.schema_directory
+    species_id = args.species_id
+    schema_description = args.schema_description
     loci_prefix = args.loci_prefix
-    thr = args.threads
-    ns_url = args.ns_url
+    threads = args.threads
+    nomenclature_server_url = args.nomenclature_server_url
     continue_up = args.continue_up
 
-    load_schema.main(schema, ns_species, schema_desc,
-                     loci_prefix, thr, ns_url,
+    load_schema.main(schema_directory, species_id, schema_description,
+                     loci_prefix, threads, nomenclature_server_url,
                      continue_up)
 
 
-def sync_schema_NS():
+def synchronize_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py Sync_NS_Schema [Sync_NS_Schema ...][-h]
-                  -schema_dir [SCHEMA_DIR] --cpu [CPU] --ns_url [NS_URL]
-                  --submit [SUBMIT]'''
+        # simple command to synchronize a schema with its NS version
+        simple_cmd = ('chewBBACA.py SyncSchema -sc <schema_id> '
+                                                  '-sp <species_id> '
+                                                  '-o <download_folder> ')
 
-    parser = argparse.ArgumentParser(description='This program syncs a local '
+        # command to synchronize a schema with its NS version with non-default arguments values
+        params_cmd = ('chewBBACA.py SyncSchema -sc <schema_id> '
+                                              '-sp <species_id> '
+                                              '-o <download_folder>\n'
+                                              '\t\t\t--cpu <cpu_cores> '
+                                              '--ns_url <nomenclature_server_url> ')
+
+        usage_msg = ('\nSync schema:\n{0}\n'
+                     '\nSync schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='SyncSchema',
+                                     description='This program syncs a local '
                                                  'schema with NS',
-                                     usage=msg())
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('Sync_NS_Schema', nargs='+',
+    parser.add_argument('SyncSchema', nargs='+',
                         help='Synchronize a local schema, previously '
                              'downloaded from the NS, with its latest '
                              'version in the NS.')
 
-    parser.add_argument('-schema_dir', nargs='?', type=str, required=True,
-                        dest='schema_dir',
+    parser.add_argument('-i', type=str, required=True,
+                        dest='schema_directory',
                         help='Path to the directory with the local schema '
                              'files.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=False,
-                        default=1, dest='cpu_num',
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
                         help='Number of CPU cores/threads that will '
                              'be passed to the PrepExternalSchema to '
                              'determine representatives for the '
                              'updated version of the schema.')
 
-    parser.add_argument('--ns_url', nargs='?', type=str, required=False,
-                        default='http://127.0.0.1:5000/NS/api/',
-                        dest='ns_url',
+    parser.add_argument('--ns_url', type=str, required=False,
+                        default=cnts.HOST_NS,
+                        dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--submit', nargs='?', type=str, required=False,
-                        default='no', dest='submit',
+    parser.add_argument('--submit', required=False, action='store_true',
+                        dest='submit',
                         help='If the local alleles that are not in the NS '
                              'should be uploaded to update the NS schema.')
 
     args = parser.parse_args()
 
-    schema_dir = args.schema_dir
-    cpu_num = args.cpu_num
-    ns_url = args.ns_url
+    schema_directory = args.schema_directory
+    cpu_cores = args.cpu_cores
+    nomenclature_server_url = args.nomenclature_server_url
     submit = args.submit
 
-    sync_schema.main(schema_dir, cpu_num,
-                     ns_url, submit)
+    sync_schema.main(schema_directory, cpu_cores,
+                     nomenclature_server_url, submit)
 
 
 def send_NS():
@@ -1309,12 +1352,12 @@ def main():
                                         'chewBBACA',
                                         find_uniprot],
                       'DownloadSchema': ['Download schema from NS',
-                                         download_schema_NS],
+                                         download_schema],
                       'LoadSchema': ['Upload a schema to the NS',
-                                     load_schema_NS],
-                      'SyncSchema': ['Syncronize a local schema (downloaded '
+                                     upload_schema],
+                      'SyncSchema': ['Synchronize a local schema (downloaded '
                                      'from NS) with NS',
-                                     sync_schema_NS],
+                                     synchronize_schema],
                       'Send2NS': ['Send local profile and respective alleles '
                                   'to NS',
                                   send_NS],

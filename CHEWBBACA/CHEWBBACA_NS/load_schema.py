@@ -37,6 +37,19 @@ from utils import auxiliary_functions as aux
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
 
+def binary_file_hash(binary_file):
+    """
+    """
+
+    with open(binary_file, 'rb') as bf:
+        file_hash = hashlib.blake2b()
+        file_text = bf.read()
+        file_hash.update(file_text)
+        file_hash = file_hash.hexdigest()
+
+    return file_hash
+
+
 def retrieve_schema_info(schemas_list, schema_desc):
     """
     """
@@ -423,7 +436,7 @@ def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene):
     if 'message' in locals():
         return [False, message]
     else:
-        loci_url = res.json()['url']
+        loci_url = res.json()['uri']
         return [True, loci_url]
 
 
@@ -656,13 +669,13 @@ def parse_arguments():
             args.continue_up]
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/GBS_CC1_schema'
-species_id = '1'
-schema_desc = 'test_sftpdwwddw'
-loci_prefix = 'test_sftpdwwddw'
-threads = 30
-base_url = 'http://127.0.0.1:5000/NS/api/'
-continue_up = 'no'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/GBS_CC1_schema'
+#species_id = '1'
+#schema_desc = 'test_latest999'
+#loci_prefix = 'test_latest999'
+#threads = 30
+#base_url = 'http://127.0.0.1:5000/NS/api/'
+#continue_up = 'no'
 
 
 def main(input_files, species_id, schema_desc, loci_prefix, threads,
@@ -768,13 +781,13 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # schema parameters to send to NS have sftp path
     # for the Prodigal training file
-    ptf_basename = params['prodigal_training_file'].split('/')[-1]
     params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
-                                                    ptf_basename.rstrip('.trn'))
+                                                    params['prodigal_training_file'])
 
     # Build the new schema URL and POST to NS
     if continue_up == 'no':
         print('\nCreating new schema...')
+        # schema is created in locked state
         schema_post = aux.simple_post_request(base_url, headers_post,
                                               ['species', species_id, 'schemas'],
                                               params)
@@ -807,14 +820,16 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                               'schemas', schema_id,
                                               'loci'])
         # get loci files names from response
+        print(ns_loci_get.json())
         ns_schema_loci = []
         ns_schema_locid_map = {}
-        for l in ns_loci_get.json()['Loci']:
-            locus_file = l['original_name']['value']
-            ns_schema_loci.append(locus_file)
-            locus_uri = l['locus']['value']
-            locus_name = l['name']['value']
-            ns_schema_locid_map[locus_file] = (locus_uri, locus_name)
+        if 'message' not in ns_loci_get.json():
+            for l in ns_loci_get.json()['Loci']:
+                locus_file = l['original_name']['value']
+                ns_schema_loci.append(locus_file)
+                locus_uri = l['locus']['value']
+                locus_name = l['name']['value']
+                ns_schema_locid_map[locus_file] = (locus_uri, locus_name)
 
         # get list of loci for schema to upload
         local_schema_loci = [l[0].split('/')[-1] for l in results]
@@ -835,10 +850,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         elif len(ns_loci_set) < len(local_loci_set):
             print('NS schema has less loci than local schema.')
             absent_loci = list(local_loci_set-ns_loci_set)
-            absent_text = ', '.join(absent_loci)
-            print('Absent loci: {0}'.format(absent_text))
+            absent_text = [absent_loci[i:i+4] for i in range(0, len(absent_loci), 4)]
+            absent_text = [('{:30} '*len(g)).format(*g) for g in absent_text]
+            absent_text = '\n'.join(absent_text)
+            print('Absent loci: \n{0}'.format(absent_text))
         elif len(ns_loci_set) == len(local_loci_set):
-            print('NS and local schemas have same number of loci.')
+            print('NS and local schemas have the same number of loci.')
 
         # if the set of loci is equal, check sequences in each locus
         # if a locus in the NS has more sequences than one in the local
@@ -1011,12 +1028,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     # add schema identifier to training file name
     # same training file can be uploaded more than once with different name
     # but this redundancy simplifies the process of maintaining training files
-    ptf_nsid = '{0}_{1}.trn'.format(ptf_basename.rstrip('.trn'), schema_id)
-    aux.upload_sftp(cnst.HOST_NS,
-                    user.split('@')[0],
-                    password,
-                    os.path.join(input_files, ptf_basename),
-                    os.path.join(cnst.SFTP_PTF_TEMP, ptf_nsid))
+#    ptf_nsid = '{0}_{1}.trn'.format(ptf_basename.rstrip('.trn'), schema_id)
+#    aux.upload_sftp(cnst.HOST_NS,
+#                    user.split('@')[0],
+#                    password,
+#                    os.path.join(input_files, ptf_basename),
+#                    os.path.join(cnst.SFTP_PTF_TEMP, ptf_nsid))
 
     # unlock schema
     schema_unlock = aux.simple_post_request(base_url, headers_post,

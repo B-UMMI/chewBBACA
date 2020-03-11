@@ -669,15 +669,6 @@ def parse_arguments():
             args.continue_up]
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/GBS_CC1_schema'
-#species_id = '1'
-#schema_desc = 'test_latest999'
-#loci_prefix = 'test_latest999'
-#threads = 30
-#base_url = 'http://127.0.0.1:5000/NS/api/'
-#continue_up = 'no'
-
-
 def main(input_files, species_id, schema_desc, loci_prefix, threads,
          base_url, continue_up):
 

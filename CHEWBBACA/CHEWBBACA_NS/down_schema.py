@@ -321,13 +321,13 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         pickle.dump(schema_params_dict, scf)
 
     # Download prodigal training file
-    print('\nDownloading Prodigal training file...')
-    ptf_basename = schema_params_dict['prodigal_training_file'].split('/')[-1]
-    aux.download_sftp(cnst.HOST_NS,
-                      user.split('@')[0],
-                      password,
-                      os.path.join(schema_path, ptf_basename),
-                      schema_params_dict['prodigal_training_file'])
+#    print('\nDownloading Prodigal training file...')
+#    ptf_basename = schema_params_dict['prodigal_training_file'].split('/')[-1]
+#    aux.download_sftp(cnst.HOST_NS,
+#                      user.split('@')[0],
+#                      password,
+#                      os.path.join(schema_path, ptf_basename),
+#                      schema_params_dict['prodigal_training_file'])
 
     print('Schema is now available at: {0}'.format(schema_path))
 

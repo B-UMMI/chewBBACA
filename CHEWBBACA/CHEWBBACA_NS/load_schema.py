@@ -191,67 +191,89 @@ def check_configs(file_path, input_path, schema_desc):
         params['name'] = schema_desc
         # Determine if the configs are valid
         # Prodigal training file
-        schema_ptf_name = configs.get('prodigal_training_file', 'na')
-        schema_ptf_path = os.path.join(input_path, schema_ptf_name)
-        if os.path.isfile(schema_ptf_path):
-            print('Found valid training file in schema directory.')
-            params['prodigal_training_file'] = schema_ptf_path
+        schema_ptfs = configs.get('prodigal_training_file', 'na')
+        if len(schema_ptfs) == 1 and schema_ptfs != 'na':
+            schema_ptf_path = [os.path.join(input_path, file)
+                               for file in os.listdir(input_path) if '.trn' in file][0]
+            if os.path.isfile(schema_ptf_path):
+                print('Found valid training file in schema directory.')
+                params['prodigal_training_file'] = schema_ptf_path
+            else:
+                message = 'Could not find valid training file in schema directory.'
+                messages.append(message)
         else:
             message = 'Could not find valid training file in schema directory.'
             messages.append(message)
 
         # BSR value
-        schema_bsr = configs.get('bsr', 'na')
-        try:
-            schema_bsr = float(schema_bsr)
-            if schema_bsr > 0.0 and schema_bsr < 1.0:
-                print('Schema created with BSR value of '
-                      '{0}.'.format(schema_bsr))
-                params['bsr'] = str(schema_bsr)
-            else:
-                raise ValueError('Value is not contained in the '
-                                 '[0.0, 1.0] range.')
-        except ValueError:
-            message = ('Invalid BSR value of {0}. BSR value must be contained'
-                       ' in the [0.0, 1.0] interval.'.format(schema_bsr))
+        schema_bsrs = configs.get('bsr', 'na')
+        if len(schema_bsrs) == 1 and schema_bsrs != 'na':
+            try:
+                schema_bsr = float(schema_bsrs[0])
+                if schema_bsr > 0.0 and schema_bsr < 1.0:
+                    print('Schema created with BSR value of '
+                          '{0}.'.format(schema_bsr))
+                    params['bsr'] = str(schema_bsr)
+                else:
+                    raise ValueError('Value is not contained in the '
+                                     '[0.0, 1.0] range.')
+            except ValueError:
+                message = ('Invalid BSR value of {0}. BSR value must be contained'
+                           ' in the [0.0, 1.0] interval.'.format(schema_bsrs[0]))
+                messages.append(message)
+        else:
+            message = ('Invalid BSR value.')
             messages.append(message)
 
         # Minimum sequence length
-        schema_ml = int(configs.get('minimum_locus_length', 'na'))
-        try:
-            schema_ml = int(schema_ml)
-            if schema_ml >= 0:
-                print('Schema created with a minimum sequence length '
-                      'parameter of {0}.'.format(schema_ml))
-                params['minimum_locus_length'] = str(schema_ml)
-            else:
-                raise ValueError('Invalid minimum sequence length value. '
-                                 'Must be equal or greater than 0.')
-        except ValueError:
-            message = ('Invalid minimum sequence length value used to '
-                       'create schema. Value must be a positive integer.')
+        schema_mls = configs.get('minimum_locus_length', 'na')
+        if len(schema_mls) == 1 and schema_mls != 'na':
+            try:
+                schema_ml = int(schema_mls[0])
+                if schema_ml >= 0:
+                    print('Schema created with a minimum sequence length '
+                          'parameter of {0}.'.format(schema_ml))
+                    params['minimum_locus_length'] = str(schema_ml)
+                else:
+                    raise ValueError('Invalid minimum sequence length value. '
+                                     'Must be equal or greater than 0.')
+            except ValueError:
+                message = ('Invalid minimum sequence length value used to '
+                           'create schema. Value must be a positive integer.')
+                messages.append(message)
+        else:
+            message = ('Invalid minimum seuqnce length value.')
             messages.append(message)
 
         # translation table
-        schema_gen_code = int(configs.get('translation_table', 'na'))
-        if schema_gen_code in cnst.GENETIC_CODES:
-            genetic_code_desc = cnst.GENETIC_CODES[schema_gen_code]
-            print('Schema genes were predicted with genetic code '
-                  '{0} ({1}).'.format(schema_gen_code, genetic_code_desc))
-            params['translation_table'] = str(schema_gen_code)
+        schema_gen_codes = configs.get('translation_table', 'na')
+        if len(schema_gen_codes) == 1 and schema_gen_codes != 'na':
+            schema_gen_code = int(schema_gen_codes[0])
+            if schema_gen_code in cnst.GENETIC_CODES:
+                genetic_code_desc = cnst.GENETIC_CODES[schema_gen_code]
+                print('Schema genes were predicted with genetic code '
+                      '{0} ({1}).'.format(schema_gen_code, genetic_code_desc))
+                params['translation_table'] = str(schema_gen_code)
+            else:
+                message = ('Genetic code used to create schema is not valid.')
+                messages.append(message)
         else:
-            message = ('Genetic code used to create schema is not valid.')
+            message = ('Invalid genetic code.')
             messages.append(message)
 
         # chewie version
-        schema_chewie_version = configs.get('chewBBACA_version', 'na')
-        if schema_chewie_version in cnst.CHEWIE_VERSIONS:
-            chewie_version = cnst.CHEWIE_VERSIONS[cnst.CHEWIE_VERSIONS.index(schema_chewie_version)]
-            print('Schema created with chewBBACA v{0}.'.format(chewie_version))
-            params['chewBBACA_version'] = schema_chewie_version
+        schema_chewie_versions = configs.get('chewBBACA_version', 'na')
+        if len(schema_chewie_versions) == 1 and schema_chewie_versions != 'na':
+            chewie_version = cnst.CHEWIE_VERSIONS[cnst.CHEWIE_VERSIONS.index(schema_chewie_versions[0])]
+            if chewie_version in cnst.CHEWIE_VERSIONS:
+                print('Schema created with chewBBACA v{0}.'.format(chewie_version))
+                params['chewBBACA_version'] = chewie_version
+            else:
+                message = ('Schema created with chewBBACA version that '
+                           'is not suitable to work with the NS.')
+                messages.append(message)
         else:
-            message = ('Schema created with chewBBACA version that '
-                       'is not suitable to work with the NS.')
+            message = ('Invalid Chewie version.')
             messages.append(message)
 
         # clustering word_size
@@ -656,8 +678,8 @@ def parse_arguments():
                         help='The base URL for the NS server. Will be used '
                         'to create endpoints URLs.')
 
-    parser.add_argument('--cont', type=str, dest='continue_up', required=False,
-                        default='no', choices=['no', 'yes'],
+    parser.add_argument('--cont', required=False, action='store_true',
+                        dest='continue_up',
                         help='Flag used to indicate if the process should '
                         'try to continue a schema upload that crashed '
                         '(default=no.')
@@ -776,14 +798,14 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                                     params['prodigal_training_file'])
 
     # Build the new schema URL and POST to NS
-    if continue_up == 'no':
+    if continue_up is False:
         print('\nCreating new schema...')
         # schema is created in locked state
         schema_post = aux.simple_post_request(base_url, headers_post,
                                               ['species', species_id, 'schemas'],
                                               params)
         schema_status = schema_post.status_code
-    elif continue_up == 'yes':
+    elif continue_up is True:
         print('\nChecking if schema already exists...')
         schema_get = aux.simple_get_request(base_url, headers_get,
                                             ['species', species_id, 'schemas'])
@@ -873,7 +895,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # check status code
     # add other prints for cases that fail so that users see a print explaining
-    upload_type = 'de novo' if continue_up == 'no' else 'continue'
+    upload_type = 'de novo' if continue_up is False else 'continue'
     schema_insert = check_schema_status(schema_status,
                                         species_name,
                                         upload_type)
@@ -883,7 +905,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         print('{0}'.format(schema_insert))
         return schema_insert
 
-    if continue_up == 'no':
+    if continue_up is False:
         schema_url = schema_post.json()['url']
         schema_id = schema_url.split('/')[-1]
 

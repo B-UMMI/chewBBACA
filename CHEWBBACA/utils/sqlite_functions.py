@@ -164,7 +164,7 @@ def insert_loci(db_file, matrix_file):
     conn.commit()
     conn.close()
 
-    print('Inserted {0} loci.'.format(len(loci_list)))
+    return len(loci_list)
 
 
 def insert_multiple(db_file, base_statement, data):
@@ -321,6 +321,7 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     profiles_hashes = []
     subschemas_hashes = []
     subschemas_loci = []
+    inserted_profiles = 0
     for p in profiles:
         loci = [str(loci_map[locus]) for locus in p.keys()]
         loci_join = ','.join(loci)
@@ -346,8 +347,13 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     
         profile_hash = hashlib.sha256(json_profile.encode('utf-8')).hexdigest()
         profiles_hashes.append(profile_hash)
-    
+        
+        previous_rcount = c.execute("SELECT COUNT(*) FROM profiles;").fetchone()[0]
         c.execute("INSERT OR IGNORE INTO profiles (profile_id, date, profile_json, subschema_id) VALUES (?, ?, json(?), ?);", (profile_hash, insert_date, json_profile, loci_hash))
+        posterior_rcount = c.execute("SELECT COUNT(*) FROM profiles;").fetchone()[0]
+
+        if posterior_rcount > previous_rcount:
+            inserted_profiles += 1
 
     conn.commit()
     conn.close()
@@ -366,7 +372,7 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # insert all samples - it checks PK uniqueness condition
     insert_multiple(db_file, sample_statement, samples_data)
 
-    return True
+    return [inserted_profiles, len(profiles), len(set(profiles_hashes))]
 
 
 

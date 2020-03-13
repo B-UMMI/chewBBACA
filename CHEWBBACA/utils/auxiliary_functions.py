@@ -406,6 +406,8 @@ def check_input_type(input_path, output_file):
             Raises Exception otherwise
     """
 
+    suffixes = ['.fasta', '.fna', '.ffn']
+
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
         list_files = input_path
@@ -417,7 +419,7 @@ def check_input_type(input_path, output_file):
         # we need to get only files with FASTA extension
         # hidden files will raise errors
         files = [file for file in os.listdir(input_path)
-                 if '.fasta' in file]
+                 if any([True for suffix in suffixes if suffix in file])]
 
         for genome in files:
 

@@ -22,6 +22,7 @@ import sys
 import pickle
 import shutil
 import hashlib
+import datetime
 import platform
 import argparse
 
@@ -104,8 +105,7 @@ def translation_table_type(arg, genetic_codes=cnts.GENETIC_CODES):
     except ValueError:
         raise argparse.ArgumentTypeError('invalid int value: {0}'.format(arg))
 
-    gc_list = list(genetic_codes.keys())
-    if arg not in gc_list:
+    if iarg not in genetic_codes:
         # format available genetic codes into list
         lines = []
         for k, v in genetic_codes.items():
@@ -118,7 +118,7 @@ def translation_table_type(arg, genetic_codes=cnts.GENETIC_CODES):
                                          'one of the accepted genetic '
                                          'codes\n\nAccepted genetic codes:\n{0}'.format(gc_table))
 
-    return arg
+    return iarg
 
 
 def binary_file_hash(binary_file):
@@ -185,11 +185,11 @@ def create_schema():
         # simple command to create schema from genomes
         simple_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
                                                 '-o <output_directory> '
-                                                '--ptf <ptf_path>')
+                                                '-ptf <ptf_path>')
         # command to create schema from genomes with non-default parameters
         params_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
                                                 '-o <output_directory> '
-                                                '--ptf <ptf_path>\n'
+                                                '-ptf <ptf_path>\n'
                                                 '\t\t\t    --cpu <cpu_cores> '
                                                 '--bsr <blast_score_ratio> '
                                                 '--l <minimum_length>\n'
@@ -198,7 +198,7 @@ def create_schema():
         # command to create schema from single FASTA
         cds_cmd = ('chewBBACA.py CreateSchema -i <input_file> '
                                              '-o <output_directory> '
-                                             '--ptf <ptf_path> '
+                                             '-ptf <ptf_path> '
                                              '--CDS')
 
         usage_msg = ('\nCreate schema from input genomes:\n  {0}\n'
@@ -480,8 +480,6 @@ def allele_call():
     verbose = args.verbose
     chosen_taxon = False
 
-    schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
-
     # check parameters values in config file and alter if needed
     config_file = os.path.join(schema_directory, '.schema_config')
     with open(config_file, 'rb') as pf:
@@ -499,19 +497,24 @@ def allele_call():
         unmatch_params['size_threshold'] = size_threshold
     if translation_table not in params['translation_table']:
         unmatch_params['translation_table'] = translation_table
+    # this needs to be added as argument
+    # if minimum_length not in params['minimum_locus_length']:
+    #     unmatch_params['minimum_length'] = minimum_length
 
     if len(unmatch_params) > 0:
-        print('Provided arguments values differ from arguments values used for schema creation:')
-        print('\n'.join(map(str, list(unmatch_params.values()))))
-        params_answer = input('Continuing might invalidate the schema. Continue?\n')
+        print('Provided arguments values differ from arguments values used for schema creation:\n')
+        params_diffs = [[p, ':'.join(map(str, params[p])), unmatch_params[p]] for p in unmatch_params]
+        params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
+        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
+        print('\n'.join(params_diffs_text))
+        params_answer = input('\nContinuing might invalidate the schema. Continue?\n')
         if params_answer.lower() not in ['y', 'yes']:
-            sys.exit(0) 
+            sys.exit(0)
         else:
             for p in unmatch_params:
                 params[p].append(unmatch_params[p])
 
     # default is to get the training file in schema directory
-    print(ptf_path)
     if ptf_path is False:
         for file in os.listdir(schema_directory):
             if file.endswith('.trn'):
@@ -540,7 +543,6 @@ def allele_call():
         else:
             params['prodigal_training_file'].append(ptf_hash)
             unmatch_params['prodigal_training_file'] = ptf_hash
-    print(ptf_path)
 
     # save updated schema config file
     if len(unmatch_params) > 0:
@@ -549,6 +551,7 @@ def allele_call():
 
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
+    schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
     genomes_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
     BBACA.main(genomes_files, schema_genes, cpu_cores,
@@ -560,9 +563,15 @@ def allele_call():
 
     if store_profiles is True:
         # add profiles to SQLite database
-        results_folder = os.path.join(output_directory, [f for f in os.listdir(output_directory) if 'results' in f][0])
-        results_matrix = os.path.join(results_folder, 'results_alleles.tsv')
-        insert_date = results_folder.split('_')[-1]
+        # parent results folder might have several results folders
+        results_folders = [os.path.join(output_directory, file)
+                           for file in os.listdir(output_directory) if 'results' in file]
+        # create datetime objects and sort to get latest
+        insert_dates = [(file, datetime.datetime.strptime(file.split('_')[-1], '%Y%m%dT%H%M%S'))
+                        for file in results_folders]
+        sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
+        results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')
+        insert_date = sorted_insert_dates[0][0].split('_')[-1]
 
         # verify that database directory exists
         database_directory = os.path.join(schema_directory, 'profiles_database')
@@ -573,12 +582,25 @@ def allele_call():
         # also need to check for database file
         database_file = os.path.join(database_directory, 'profiles.db')
         if os.path.isfile(database_file) is False:
-            sq.create_database_structure(database_file)
-            # insert loci list into loci table
-            sq.insert_loci(database_file, results_matrix)
+            print('\nCreating SQLite database to store profiles...', end='')
+            try:
+                sq.create_database_structure(database_file)
+                # insert loci list into loci table
+                total_loci = sq.insert_loci(database_file, results_matrix)
+                print('done.')
+                print('Inserted {0} loci into database.'.format(total_loci))
+            except Exception:
+                print('WARNING: Could not create database file. Will not store profiles.')
         
         # insert whole matrix
-        a = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+        if os.path.isfile(database_file) is not False:
+            print('\nSending allelic profiles to SQLite database...', end='')
+            try:
+                total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+                print('done.')
+                print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
+            except Exception:
+                print('WARNING: Could not store profiles in local database.')
 
     # remove temporary files with paths to genomes
     # and schema files files

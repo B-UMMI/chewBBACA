@@ -298,13 +298,32 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                                                   headers_get,
                                                   schema_file_desc)
 
+    # download Prodigal training file
+    ptf_hash = schema_params_dict['prodigal_training_file']
+
+    payload = {'species_id':species_id, 'schema_id': schema_id}
+
+    ptf_uri = aux.make_url(base_url, *['species', species_id, 'schemas', schema_id, 'ptf'])
+
+    ptf_response = requests.get(ptf_uri, headers=headers_get, params=payload)
+
+    ptf_file = os.path.join(download_folder, '{0}.trn'.format('_'.join(species_name.split(' '))))
+
+    open(ptf_file ,'wb').write(ptf_response.content)
+
     # determine representatives and create schema
     PrepExternalSchema.main(download_folder,
                             schema_path,
                             core_num,
                             float(schema_params_dict['bsr']),
                             int(schema_params_dict['minimum_locus_length']),
-                            int(schema_params_dict['translation_table']))
+                            int(schema_params_dict['translation_table']),
+                            ptf_file,
+                            float(schema_params_dict['size_threshold']))
+
+    # copy Prodigal training file to schema directory
+    shutil.copy(ptf_file, schema_path)
+    os.remove(ptf_file)
 
     # copy ns_config file
     shutil.copy(ns_config, schema_path)
@@ -316,18 +335,10 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         os.remove(os.path.join(download_folder, file))
 
     # write hidden schema config file
+    del(schema_params_dict['Schema_lock'])
     schema_config = os.path.join(schema_path, '.schema_config')
     with open(schema_config, 'wb') as scf:
         pickle.dump(schema_params_dict, scf)
-
-    # Download prodigal training file
-#    print('\nDownloading Prodigal training file...')
-#    ptf_basename = schema_params_dict['prodigal_training_file'].split('/')[-1]
-#    aux.download_sftp(cnst.HOST_NS,
-#                      user.split('@')[0],
-#                      password,
-#                      os.path.join(schema_path, ptf_basename),
-#                      schema_params_dict['prodigal_training_file'])
 
     print('Schema is now available at: {0}'.format(schema_path))
 

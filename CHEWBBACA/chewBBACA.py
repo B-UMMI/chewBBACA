@@ -871,7 +871,12 @@ def prep_schema():
         # command to adapt external schema with non-default arguments values
         params_cmd = ('chewBBACA.py PrepExternalSchema -i <input_files> '
                                                       '-o <output_directory> '
-                                                      '-ptf <ptf_path> ')
+                                                      '-ptf <ptf_path>\n'
+                                                      '\t\t\t\t--cpu <cpu_cores> '
+                                                      '--bsr <blast_score_ratio> '
+                                                      '--l <minimum_length>\n'
+                                                      '\t\t\t\t--t <translation_table> '
+                                                      '--st <size_threshold>')
 
         usage_msg = ('\nAdapt external schema (one FASTA file per schema gene):\n{0}\n'
                      '\nAdapt external schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
@@ -1034,7 +1039,7 @@ def download_schema():
         params_cmd = ('chewBBACA.py DownloadSchema -sc <schema_id> '
                                                   '-sp <species_id> '
                                                   '-o <download_folder>\n'
-                                                  '\t\t\t\t--cpu <cpu_cores> '
+                                                  '\t\t\t    --cpu <cpu_cores> '
                                                   '--ns_url <nomenclature_server_url> ')
 
         usage_msg = ('\nDownload schema:\n{0}\n'
@@ -1095,19 +1100,28 @@ def upload_schema():
 
     def msg(name=None):
         # simple command to load a schema to the NS
-        simple_cmd = ('chewBBACA.py LoadSchema -sc <schema_id> '
-                                                  '-sp <species_id> '
-                                                  '-o <download_folder> ')
+        simple_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
+                                              '-sp <species_id> '
+                                              '-sd <schema_description>\n'
+                                              '\t\t\t-lp <loci_prefix> ')
 
         # command to load a schema to the NS with non-default arguments values
-        params_cmd = ('chewBBACA.py LoadSchema -sc <schema_id> '
+        params_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
                                               '-sp <species_id> '
-                                              '-o <download_folder>\n'
-                                              '\t\t\t--cpu <cpu_cores> '
-                                              '--ns_url <nomenclature_server_url> ')
+                                              '-sd <schema_description>\n'
+                                              '\t\t\t-lp <loci_prefix> '
+                                              '--thr <threads> '
+                                              '--ns_url <nomenclature_server_url>')
+
+        # command to continue schema upload that was interrupted or aborted
+        continue_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
+                                                '-sp <species_id> '
+                                                '-sd <schema_description>\n'
+                                                '\t\t\t--continue_up')
 
         usage_msg = ('\nLoad schema:\n{0}\n'
-                     '\nLoad schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+                     '\nLoad schema with non-default parameters:\n{1}\n'
+                     '\nContinue schema upload that was interrupted or aborted:\n{2}\n'.format(simple_cmd, params_cmd, continue_cmd))
 
         return usage_msg
 
@@ -1177,19 +1191,19 @@ def synchronize_schema():
 
     def msg(name=None):
         # simple command to synchronize a schema with its NS version
-        simple_cmd = ('chewBBACA.py SyncSchema -sc <schema_id> '
-                                                  '-sp <species_id> '
-                                                  '-o <download_folder> ')
+        simple_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> ')
 
         # command to synchronize a schema with its NS version with non-default arguments values
-        params_cmd = ('chewBBACA.py SyncSchema -sc <schema_id> '
-                                              '-sp <species_id> '
-                                              '-o <download_folder>\n'
-                                              '\t\t\t--cpu <cpu_cores> '
-                                              '--ns_url <nomenclature_server_url> ')
+        params_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> '
+                                              '--cpu <cpu_cores> '
+                                              '-ns_url <nomenclature_server_url>')
+
+        # command to submit novel local alleles
+        submit_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> --submit')
 
         usage_msg = ('\nSync schema:\n{0}\n'
-                     '\nSync schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+                     '\nSync schema with non-default parameters:\n{1}\n'
+                     '\nSync schema and send novel local alleles to the NS:\n{2}\n'.format(simple_cmd, params_cmd, submit_cmd))
 
         return usage_msg
 

@@ -194,12 +194,21 @@ def check_configs(file_path, input_path, schema_desc):
         schema_ptfs = configs.get('prodigal_training_file', 'na')
         if len(schema_ptfs) == 1 and schema_ptfs != 'na':
             schema_ptf_path = [os.path.join(input_path, file)
-                               for file in os.listdir(input_path) if '.trn' in file][0]
-            if os.path.isfile(schema_ptf_path):
-                print('Found valid training file in schema directory.')
-                params['prodigal_training_file'] = schema_ptf_path
+                               for file in os.listdir(input_path) if '.trn' in file]
+            if len(schema_ptf_path) == 1:
+                ptf_hash = binary_file_hash(schema_ptf_path[0])
+                if ptf_hash == schema_ptfs[0]:
+                    if os.path.isfile(schema_ptf_path[0]):
+                        print('Found valid training file in schema directory.')
+                        params['prodigal_training_file'] = schema_ptfs[0]
+                    else:
+                        message = 'Could not find training file in schema directory.'
+                        messages.append(message)
+                else:
+                    message = 'Training file in schema directory is not the original.'
+                    messages.append(message)
             else:
-                message = 'Could not find valid training file in schema directory.'
+                message = 'More than one training file in schema directory.'
                 messages.append(message)
         else:
             message = 'Could not find valid training file in schema directory.'
@@ -243,6 +252,26 @@ def check_configs(file_path, input_path, schema_desc):
                 messages.append(message)
         else:
             message = ('Invalid minimum seuqnce length value.')
+            messages.append(message)
+
+        # Size threshold
+        schema_sts = configs.get('size_threshold', 'na')
+        if len(schema_sts) == 1 and schema_sts != 'na':
+            try:
+                schema_st = float(schema_sts[0])
+                if schema_st >= 0:
+                    print('Schema created with a size threshold '
+                          'parameter of {0}.'.format(schema_st))
+                    params['size_threshold'] = str(schema_st)
+                else:
+                    raise ValueError('Invalid size threshold value. '
+                                     'Must be contained in the [0.0, 1.0] interval.')
+            except ValueError:
+                message = ('Invalid size threshold value used to '
+                           'create schema. Value must be a positive float.')
+                messages.append(message)
+        else:
+            message = ('Multiple size threshold values.')
             messages.append(message)
 
         # translation table
@@ -361,7 +390,7 @@ def check_configs(file_path, input_path, schema_desc):
         if 'message' not in locals():
             message = 'All configurations successfully validated.'
             print(message)
-            return [True, params]
+            return [True, params, schema_ptf_path[0], ptf_hash]
         else:
             for m in messages:
                 print(m)
@@ -748,6 +777,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         return configs_validation
     else:
         params = configs_validation[1]
+        ptf_file = configs_validation[2]
+        ptf_hash = configs_validation[3]
 
     # Check if user provided a list of genes or a folder
     fasta_paths = [os.path.join(input_files, file)
@@ -790,12 +821,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         os.remove(file[1])
 
     # start sending data
-    print('\n\nSending data to NS...')
+    print('\n\nSending data to the NS...')
 
     # schema parameters to send to NS have sftp path
     # for the Prodigal training file
-    params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
-                                                    params['prodigal_training_file'])
+    #params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
+    #                                                params['prodigal_training_file'])
 
     # Build the new schema URL and POST to NS
     if continue_up is False:
@@ -1038,15 +1069,22 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # send training file to sftp folder
     print('\nUploading Prodigal training file...')
-    # add schema identifier to training file name
-    # same training file can be uploaded more than once with different name
-    # but this redundancy simplifies the process of maintaining training files
-#    ptf_nsid = '{0}_{1}.trn'.format(ptf_basename.rstrip('.trn'), schema_id)
-#    aux.upload_sftp(cnst.HOST_NS,
-#                    user.split('@')[0],
-#                    password,
-#                    os.path.join(input_files, ptf_basename),
-#                    os.path.join(cnst.SFTP_PTF_TEMP, ptf_nsid))
+
+    with open(ptf_file, 'rb') as p:
+        ptf_content = p.read()
+        # json.dumps cannot serialize objects of type bytes
+        # training file contents cannot be decoded with 'utf-8'
+        # decoding is successful with ISO-8859-1
+        ptf_content = ptf_content.decode(encoding='ISO-8859-1')
+
+    ptf_url = '{0}species/{1}/schemas/{2}/ptf'.format(base_url, species_id, schema_id)
+
+    response = requests.post(ptf_url,
+                             headers=headers_post,
+                             data=json.dumps({'filename': ptf_hash, 'content': ptf_content}))
+
+
+    print(list(response.json().values())[0])
 
     # unlock schema
     schema_unlock = aux.simple_post_request(base_url, headers_post,

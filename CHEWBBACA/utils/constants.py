@@ -33,6 +33,8 @@ GENETIC_CODES = {1: 'Standard',
 				 11: 'The Bacterial, Archaeal and Plant Plastid code',
 				 25: 'Candidate division SR1 and gracilibacteria code'}
 
+FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn']
+
 # NS related constants
 
 #HOST_NS = '194.210.120.209'

@@ -21,7 +21,6 @@ import os
 import sys
 import pickle
 import shutil
-import hashlib
 import datetime
 import platform
 import argparse
@@ -34,7 +33,10 @@ from utils import (TestGenomeQuality, profile_joiner,
                    uniprot_find, Extract_cgAlleles,
                    RemoveGenes, sqlite_functions as sq,
                    auxiliary_functions as aux,
-                   constants as cnts)
+                   constants as cnts,
+                   parameters_validation as pv)
+
+from utils.parameters_validation import ModifiedHelpFormatter
 
 from CHEWBBACA_NS import (down_schema, load_schema,
                           sync_schema, down_profiles,
@@ -45,138 +47,6 @@ import CHEWBBACA
 
 
 current_version = '2.1.0'
-
-
-# custom functions to validate arguments type and value
-def bsr_type(arg, min_value=cnts.BSR_MIN, max_value=cnts.BSR_MAX):
-    """
-    """
-
-    try:
-        farg = float(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError('invalid float value: {0}'.format(arg))
-
-    if farg < min_value or farg > max_value:
-        raise argparse.ArgumentTypeError('value must be > {0} '
-                                         'and <= {1}.'.format(min_value, max_value))
-
-    return farg
-
-
-def minimum_sequence_length_type(arg, min_value=cnts.MSL_MIN, max_value=cnts.MSL_MAX):
-    """
-    """
-
-    try:
-        iarg = int(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError('invalid int value: {0}'.format(arg))
-
-    if iarg < min_value or iarg > max_value:
-        raise argparse.ArgumentTypeError('value must be > {0} '
-                                         'and <= {1}.'.format(min_value, max_value))
-
-    return iarg
-
-
-def size_threshold_type(arg, min_value=cnts.ST_MIN, max_value=cnts.ST_MAX):
-    """
-    """
-
-    try:
-        farg = float(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError('invalid float value: {0}'.format(arg))
-
-    if farg < min_value:
-        raise argparse.ArgumentTypeError('value must be > {0} '
-                                         'and <= {1}.'.format(min_value, max_value))
-
-    return farg
-
-
-def translation_table_type(arg, genetic_codes=cnts.GENETIC_CODES):
-    """
-    """
-
-    try:
-        iarg = int(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError('invalid int value: {0}'.format(arg))
-
-    if iarg not in genetic_codes:
-        # format available genetic codes into list
-        lines = []
-        for k, v in genetic_codes.items():
-            new_line = '\t{0}: {1}'.format(k, v)
-            lines.append(new_line)
-
-        gc_table = '\n{0}\n'.format('\n'.join(lines))
-
-        raise argparse.ArgumentTypeError('value must correspond to '
-                                         'one of the accepted genetic '
-                                         'codes\n\nAccepted genetic codes:\n{0}'.format(gc_table))
-
-    return iarg
-
-
-def binary_file_hash(binary_file):
-    """
-    """
-
-    with open(binary_file, 'rb') as bf:
-        file_hash = hashlib.blake2b()
-        file_text = bf.read()
-        file_hash.update(file_text)
-        file_hash = file_hash.hexdigest()
-
-    return file_hash
-
-
-def write_schema_config(blast_score_ratio, ptf_hash,
-                        translation_table, minimum_sequence_length,
-                        chewie_version, size_threshold, output_directory):
-    """
-    """
-
-    params = {}
-    params['bsr'] = [blast_score_ratio]
-    params['prodigal_training_file'] = [ptf_hash]
-    params['translation_table'] = [translation_table]
-    params['minimum_locus_length'] = [minimum_sequence_length]
-    params['chewBBACA_version'] = [chewie_version]
-    params['size_threshold'] = [size_threshold]
-
-    config_file = os.path.join(output_directory, '.schema_config')
-    with open(config_file, 'wb') as cf:
-        pickle.dump(params, cf)
-
-    return [os.path.isfile(config_file), config_file]
-
-
-def write_gene_list(schema_dir):
-    """
-    """
-
-    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = os.path.join(schema_dir, '.genes_list')
-    with open(schema_list_file, 'wb') as sl:
-        pickle.dump(schema_files, sl)
-
-    return [os.path.isfile(schema_list_file), schema_list_file]
-
-
-class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
-
-    # prog is the name of the program 'chewBBACA.py'
-    def __init__(self, prog, indent_increment=2, max_help_position=56, width=None):
-        super().__init__(prog, indent_increment, max_help_position, width)
-
-    # override split lines method
-    def _split_lines(self, text, width):
-        lines = super()._split_lines(text, width) + ['']
-        return lines
 
 
 def create_schema():
@@ -231,24 +101,24 @@ def create_schema():
                         dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
-    parser.add_argument('--bsr', type=bsr_type,
+    parser.add_argument('--bsr', type=pv.bsr_type,
                         required=False, default=0.6, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
                              'as sequences from the same gene.')
 
-    parser.add_argument('--l', type=minimum_sequence_length_type,
+    parser.add_argument('--l', type=pv.minimum_sequence_length_type,
                         required=False, default=201, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
                              'coding sequence to be included in the schema.')
 
-    parser.add_argument('--t', type=translation_table_type,
+    parser.add_argument('--t', type=pv.translation_table_type,
                         required=False, default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
                              ' to translate coding sequences.')
 
-    parser.add_argument('--st', type=size_threshold_type,
+    parser.add_argument('--st', type=pv.size_threshold_type,
                         required=False, default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
@@ -290,14 +160,9 @@ def create_schema():
     verbose = args.verbose
 
     # check if ptf exists
-    if os.path.isfile(ptf_path) is False:
-        message = ('Cannot find specified Prodigal training file.\nPlease provide a '
-                   'valid training file.\n\nYou can create a training '
-                   'file for a species of interest with the following command:\n  '
-                   'prodigal -i <reference_genome> -t <training_file.trn> -p single\n\n'
-                   'It is strongly advised to provide a high-quality and closed genome '
-                   'for the training process.')
-        sys.exit(message)
+    ptf_val = aux.check_ptf(ptf_path)
+    if ptf_val[0] is False:
+        sys.exit(ptf_val[1])
 
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
@@ -314,16 +179,16 @@ def create_schema():
     shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    ptf_hash = binary_file_hash(ptf_path)
+    ptf_hash = aux.binary_file_hash(ptf_path)
 
     # write schema config file
-    schema_config = write_schema_config(blast_score_ratio, ptf_hash,
-                                        translation_table, minimum_length,
-                                        current_version, size_threshold,
-                                        output_directory)
+    schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
+                                            translation_table, minimum_length,
+                                            current_version, size_threshold,
+                                            output_directory)
 
     # create hidden file with genes/loci list
-    genes_list_file = write_gene_list(output_directory)
+    genes_list_file = aux.write_gene_list(output_directory)
 
     # remove temporary file with paths
     # to genome files
@@ -396,20 +261,20 @@ def allele_call():
                              'Default is to get training file from '
                              'schema directory.')
 
-    parser.add_argument('--bsr', type=bsr_type, required=False,
+    parser.add_argument('--bsr', type=pv.bsr_type, required=False,
                         default=0.6, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
                              'as sequences from the same gene.')
 
-    parser.add_argument('--t', type=translation_table_type, required=False,
+    parser.add_argument('--t', type=pv.translation_table_type, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
                              ' to translate coding sequences '
                              '(default=11).')
 
-    parser.add_argument('--st', type=size_threshold_type, required=False,
+    parser.add_argument('--st', type=pv.size_threshold_type, required=False,
                         default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
@@ -479,75 +344,81 @@ def allele_call():
     store_profiles = args.store_profiles
     verbose = args.verbose
     chosen_taxon = False
+    # need to add this argument!
+    # minimum_length = ...
 
     # check parameters values in config file and alter if needed
     config_file = os.path.join(schema_directory, '.schema_config')
     with open(config_file, 'rb') as pf:
-        params = pickle.load(pf)
+        schema_params = pickle.load(pf)
 
-    unmatch_params = {}
-    # check bsr
-    if blast_score_ratio not in params['bsr']:
-        unmatch_params['bsr'] = blast_score_ratio
-    # check chewie version
-    if current_version not in params['chewBBACA_version']:
-        unmatch_params['chewBBACA_version'] = current_version
-    # check size threshold value
-    if size_threshold not in params['size_threshold']:
-        unmatch_params['size_threshold'] = size_threshold
-    if translation_table not in params['translation_table']:
-        unmatch_params['translation_table'] = translation_table
-    # this needs to be added as argument
-    # if minimum_length not in params['minimum_locus_length']:
-    #     unmatch_params['minimum_length'] = minimum_length
+    # run parameters values
+    run_params = {'bsr': blast_score_ratio,
+                  'chewBBACA_version': current_version,
+                  'prodigal_training_file': ptf_path,
+                  'translation_table': translation_table,
+                  'size_threshold': size_threshold}
+
+    # mismatched schema and run parameters values
+    unmatch_params = {k: v for k, v in run_params.items()
+                      if v not in schema_params[k] and k != 'prodigal_training_file'}
 
     if len(unmatch_params) > 0:
-        print('Provided arguments values differ from arguments values used for schema creation:\n')
-        params_diffs = [[p, ':'.join(map(str, params[p])), unmatch_params[p]] for p in unmatch_params]
+        print('Provided arguments values differ from arguments '
+              'values used for schema creation:\n')
+        params_diffs = [[p, ':'.join(map(str, schema_params[p])), unmatch_params[p]] for p in unmatch_params]
         params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
         params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
         print('\n'.join(params_diffs_text))
-        params_answer = input('\nContinuing might invalidate the schema. Continue?\n')
+        params_answer = input('\nContinuing might lead to results '
+                              'not consistent with previous runs.\n'
+                              'Providing parameters values that '
+                              'differ from the ones used for schema creation '
+                              'will also invalidate the schema for '
+                              'uploading and synchronization with the NS.\nContinue?\n')
         if params_answer.lower() not in ['y', 'yes']:
-            sys.exit(0)
+            sys.exit('Exited.')
         else:
             for p in unmatch_params:
-                params[p].append(unmatch_params[p])
+                schema_params[p].append(unmatch_params[p])
 
     # default is to get the training file in schema directory
-    if ptf_path is False:
-        for file in os.listdir(schema_directory):
-            if file.endswith('.trn'):
-                ptf_path = os.path.join(schema_directory, file)
-        if os.path.isfile(ptf_path) is False:
-            sys.exit('There is no valid training file in schema directory.')
+    if run_params['prodigal_training_file'] is False:
+        # deal with multiple training files
+        schema_ptfs = [file for file in os.listdir(schema_directory) if file.endswith('.trn')]
+        if len(schema_ptfs) > 1:
+            sys.exit('Found more than one Prodigal training file in schema directory.\n'
+                     'Please maintain only the training file used in the schema creation process.')
+        else:
+            ptf_path = os.path.join(schema_directory, schema_ptfs[0])
     # if user provides a training file
     else:
         if os.path.isfile(ptf_path) is False:
             sys.exit('Provided Prodigal training file does not exist.')
 
     # determine PTF checksum
-    ptf_hash = binary_file_hash(ptf_path)
-
-    if ptf_hash not in params['prodigal_training_file']:
-        ptf_num = len(params['prodigal_training_file'])
+    ptf_hash = aux.binary_file_hash(ptf_path)
+    if ptf_hash not in schema_params['prodigal_training_file']:
+        ptf_num = len(schema_params['prodigal_training_file'])
         if ptf_num == 1:
             print('Prodigal training file is not the one used to create the schema.')
-            ptf_answer = input('Using this training file will invalidate the schema.\nContinue process?\n')
+            ptf_answer = input('Using this training file might lead to results not '
+                               'consistent with previous runs and invalidate the '
+                               'schema for usage with the NS.\nContinue process?\n')
         if ptf_num > 1:
             print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
             ptf_answer = input('Continue?\n')
 
         if ptf_answer.lower() not in ['y', 'yes']:
-            sys.exit(0)
+            sys.exit('Exited.')
         else:
-            params['prodigal_training_file'].append(ptf_hash)
+            schema_params['prodigal_training_file'].append(ptf_hash)
             unmatch_params['prodigal_training_file'] = ptf_hash
 
     # save updated schema config file
     if len(unmatch_params) > 0:
         with open(config_file, 'wb') as cf:
-            pickle.dump(params, cf)
+            pickle.dump(schema_params, cf)
 
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
@@ -591,7 +462,7 @@ def allele_call():
                 print('Inserted {0} loci into database.'.format(total_loci))
             except Exception:
                 print('WARNING: Could not create database file. Will not store profiles.')
-        
+
         # insert whole matrix
         if os.path.isfile(database_file) is not False:
             print('\nSending allelic profiles to SQLite database...', end='')
@@ -922,23 +793,23 @@ def prep_schema():
                         help='Path to the Prodigal training file that '
                              'will be associated with the adapted schema.')
 
-    parser.add_argument('--bsr', type=bsr_type,
+    parser.add_argument('--bsr', type=pv.bsr_type,
                         required=False, default=0.6, dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be '
                         'used to adapt the external schema.')
 
-    parser.add_argument('--l', type=minimum_sequence_length_type,
+    parser.add_argument('--l', type=pv.minimum_sequence_length_type,
                         required=False, default=0, dest='minimum_length',
                         help='Minimum sequence length accepted. Sequences with'
                         ' a length value smaller than the value passed to this'
                         ' argument will be discarded.')
 
-    parser.add_argument('--t', type=translation_table_type,
+    parser.add_argument('--t', type=pv.translation_table_type,
                         required=False, default=11, dest='translation_table',
                         help='Genetic code to use for CDS translation.')
 
-    parser.add_argument('--st', type=size_threshold_type,
-                        required=False, default=0.2, dest='size_threshold',
+    parser.add_argument('--st', type=pv.size_threshold_type,
+                        required=False, default=None, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '
@@ -960,14 +831,9 @@ def prep_schema():
     cpu_cores = args.cpu_cores
 
     # check if ptf exists
-    if os.path.isfile(ptf_path) is False:
-        message = ('Cannot find specified Prodigal training file.\nPlease provide a '
-                   'valid training file.\n\nYou can create a training '
-                   'file for a species of interest with the following command:\n  '
-                   'prodigal -i <reference_genome> -t <training_file.trn> -p single\n\n'
-                   'It is strongly advised to provide a high-quality and closed genome '
-                   'for the training process.')
-        sys.exit(message)
+    ptf_val = aux.check_ptf(ptf_path)
+    if ptf_val[0] is False:
+        sys.exit(ptf_val[1])
 
     PrepExternalSchema.main(input_files, output_directory, cpu_cores,
                             blast_score_ratio, minimum_length,
@@ -978,16 +844,16 @@ def prep_schema():
     shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    ptf_hash = binary_file_hash(ptf_path)
+    ptf_hash = aux.binary_file_hash(ptf_path)
 
     # write schema config file
-    schema_config = write_schema_config(blast_score_ratio, ptf_hash,
+    schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
                                         translation_table, minimum_length,
                                         current_version, size_threshold,
                                         output_directory)
 
     # create hidden file with genes/loci list
-    genes_list_file = write_gene_list(output_directory)
+    genes_list_file = aux.write_gene_list(output_directory)
 
 
 def find_uniprot():

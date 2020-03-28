@@ -735,22 +735,22 @@ def prep_schema():
     def msg(name=None):
 
         # simple command to adapt external schema with default arguments values
-        simple_cmd = ('chewBBACA.py PrepExternalSchema -i <input_files> '
+        simple_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
                                                       '-o <output_directory> '
                                                       '-ptf <ptf_path> ')
 
         # command to adapt external schema with non-default arguments values
-        params_cmd = ('chewBBACA.py PrepExternalSchema -i <input_files> '
+        params_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
                                                       '-o <output_directory> '
                                                       '-ptf <ptf_path>\n'
-                                                      '\t\t\t\t--cpu <cpu_cores> '
+                                                      '\t\t\t\t  --cpu <cpu_cores> '
                                                       '--bsr <blast_score_ratio> '
                                                       '--l <minimum_length>\n'
-                                                      '\t\t\t\t--t <translation_table> '
+                                                      '\t\t\t\t  --t <translation_table> '
                                                       '--st <size_threshold>')
 
-        usage_msg = ('\nAdapt external schema (one FASTA file per schema gene):\n{0}\n'
-                     '\nAdapt external schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
+        usage_msg = ('\nAdapt external schema (one FASTA file per schema gene):\n\n{0}\n'
+                     '\nAdapt external schema with non-default parameters:\n\n{1}\n'.format(simple_cmd, params_cmd))
 
         return usage_msg
 
@@ -848,9 +848,9 @@ def prep_schema():
 
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
-                                        translation_table, minimum_length,
-                                        current_version, size_threshold,
-                                        output_directory)
+                                            translation_table, minimum_length,
+                                            current_version, size_threshold,
+                                            output_directory)
 
     # create hidden file with genes/loci list
     genes_list_file = aux.write_gene_list(output_directory)
@@ -950,6 +950,12 @@ def download_schema():
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
+    parser.add_argument('--d', type=str, required=False,
+                        default=None,
+                        dest='date',
+                        help='Download schema with state from specified date. '
+                             'Must be in the format "Y-m-dTH:M:S".')
+
     args = parser.parse_args()
 
     ns_schema = args.schema_id
@@ -957,9 +963,10 @@ def download_schema():
     download_folder = args.download_folder
     cpu_cores = args.cpu_cores
     nomenclature_server_url = args.nomenclature_server_url
+    date = args.date
 
     down_schema.main(ns_schema, ns_species, download_folder,
-                     cpu_cores, nomenclature_server_url)
+                     cpu_cores, nomenclature_server_url, date)
 
 
 def upload_schema():

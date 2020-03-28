@@ -22,6 +22,7 @@ import pickle
 import hashlib
 import argparse
 import requests
+import datetime as dt
 import concurrent.futures
 from getpass import getpass
 from collections import Counter
@@ -297,14 +298,14 @@ def validate_ws(configs):
     """
     
     valid = False
-    word_size = configs.get('word_size', 'na')
+    word_sizes = configs.get('word_size', 'na')
     try:
-        if word_size == 'na':
+        if word_sizes == 'na':
             message = ('Schema created with a chewBBACA version '
                        'that did not use clustering.')
-            valid = True
+            valid = 'None'
         else:
-            word_size = int(word_size)
+            word_size = int(word_sizes[0])
             if word_size >= 4:
                 message = ('Schema created with a clustering word size '
                            'value of {0}.'.format(word_size))
@@ -324,14 +325,14 @@ def validate_cs(configs):
     """
 
     valid = False
-    cluster_sim = configs.get('cluster_sim', 'na')
+    cluster_sims = configs.get('cluster_sim', 'na')
     try:
-        if cluster_sim == 'na':
+        if cluster_sims == 'na':
             message = ('Schema created with a chewBBACA version '
                        'that did not use clustering.')
-            valid = True
+            valid = 'None'
         else:
-            cluster_sim = float(cluster_sim)
+            cluster_sim = float(cluster_sims[0])
             if cluster_sim >= 0.0:
                 message = ('Schema created with a clustering threshold '
                            'value of {0}.'.format(cluster_sim))
@@ -352,14 +353,14 @@ def validate_rf(configs):
     """
 
     valid = False
-    representative_filter = configs.get('representative_filter', 'na')
+    representative_filters = configs.get('representative_filter', 'na')
     try:
-        if representative_filter == 'na':
+        if representative_filters == 'na':
             message = ('Schema created with a chewBBACA version '
                        'that did not use clustering.')
-            valid = True
+            valid = 'None'
         else:
-            representative_filter = float(representative_filter)
+            representative_filter = float(representative_filters[0])
             if representative_filter >= 0.0 and representative_filter <= 1.0:
                 message = ('Schema created with a representative filter '
                            'value of {0}.'.format(representative_filter))
@@ -379,14 +380,14 @@ def validate_if(configs):
     """
 
     valid = False
-    intraCluster_filter = configs.get('intraCluster_filter', 'na')
+    intraCluster_filters = configs.get('intraCluster_filter', 'na')
     try:
-        if intraCluster_filter == 'na':
+        if intraCluster_filters == 'na':
             message = ('Schema created with a chewBBACA version '
                        'that did not use clustering.')
-            valid = True
+            valid = 'None'
         else:
-            intraCluster_filter = float(intraCluster_filter)
+            intraCluster_filter = float(intraCluster_filters[0])
             if intraCluster_filter >= 0.0 and intraCluster_filter <= 1.0:
                 message = ('Schema created with a intraCluster filter '
                            'value of {0}.'.format(intraCluster_filter))
@@ -784,7 +785,11 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         sys.exit('Found invalid parameters values and exited.')
     else:
         print('All configurations successfully validated.')
-        params = configs
+        params = {'bsr': bsr_val[0], 'prodigal_training_file': ptf_val[0],
+                  'translation_table': tt_val[0], 'minimum_locus_length': msl_val[0],
+                  'chewBBACA_version': cv_val[0], 'size_threshold': st_val[0],
+                  'word_size': ws_val[0], 'cluster_sim': cs_val[0],
+                  'representative_filter': rf_val[0], 'intraCluster_filter': if_val[0]}
         params['name'] = schema_desc
         ptf_file = ptf_val[2]
         ptf_hash = ptf_val[3]
@@ -831,11 +836,6 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     # start sending data
     print('\n\nSending data to the NS...')
 
-    # schema parameters to send to NS have sftp path
-    # for the Prodigal training file
-    #params['prodigal_training_file'] = os.path.join(cnst.SFTP_PTF_AVAI,
-    #                                                params['prodigal_training_file'])
-
     # Build the new schema URL and POST to NS
     if continue_up is False:
         print('\nCreating new schema...')
@@ -872,7 +872,6 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                               'schemas', schema_id,
                                               'loci'])
         # get loci files names from response
-        print(ns_loci_get.json())
         ns_schema_loci = []
         ns_schema_locid_map = {}
         if 'message' not in ns_loci_get.json():
@@ -1074,6 +1073,16 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                            repeated,
                                            hash_collisions),
           end='\r')
+
+    # alter schema modification date to date after last allele was added
+    modification_date = str(dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f'))
+    schema_mod = aux.simple_post_request(base_url, headers_post,
+                                            ['species', species_id,
+                                             'schemas', schema_id, 'modified'],
+                                            {'date': modification_date})
+
+    # alter schema insertion date to the date where it had its first full structure
+    # we need this to be able to get the schema as it was inserted
 
     # send training file to sftp folder
     print('\nUploading Prodigal training file...')

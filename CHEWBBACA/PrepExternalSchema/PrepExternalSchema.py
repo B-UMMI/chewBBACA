@@ -533,8 +533,14 @@ def parse_arguments():
                         'saved (will create the directory if it does not '
                         'exist).')
 
+    parser.add_argument('-ptf', type=str, required=True,
+                        dest='ptf_path',
+                        help='Path to the Prodigal training file. '
+                             'Default is to get training file in '
+                             'schema directory.')
+
     parser.add_argument('--cpu', type=int, required=False, default=1,
-                        dest='core_count',
+                        dest='cpu_cores',
                         help='The number of CPU cores to use (default=1).')
 
     parser.add_argument('--bsr', type=float, required=False, default=0.6,
@@ -542,25 +548,19 @@ def parse_arguments():
                         help='The BLAST Score Ratio value that will be '
                         'used to adapt the external schema (default=0.6).')
 
-    parser.add_argument('--len', type=int, required=False, default=0,
+    parser.add_argument('--l', type=int, required=False, default=0,
                         dest='minimum_length',
                         help='Minimum sequence length accepted. Sequences with'
                         ' a length value smaller than the value passed to this'
                         ' argument will be discarded (default=0).')
 
-    parser.add_argument('--tbl', type=int, required=False, default=11,
+    parser.add_argument('--t', type=int, required=False, default=11,
                         dest='translation_table',
                         help='Genetic code to use for CDS translation.'
                         ' (default=11, for Bacteria and Archaea)')
 
-    parser.add_argument('--ptf', nargs='?', type=str, required=False,
-                        default=False, dest='ptf_path',
-                        help='Path to the Prodigal training file. '
-                             'Default is to get training file in '
-                             'schema directory.')
-
-    parser.add_argument('--st', nargs='?', type=float, required=False,
-                        default=0.0, dest='size_threshold',
+    parser.add_argument('--st', type=float, required=True,
+                        default=None, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value no alleles will be discarded ue to size '
                              'variation.')
@@ -568,7 +568,7 @@ def parse_arguments():
     args = parser.parse_args()
 
     return [args.input_files, args.output_directory,
-            args.core_count, args.blast_score_ratio,
+            args.cpu_cores, args.blast_score_ratio,
             args.minimum_length, args.translation_table,
             args.ptf_path, args.size_threshold]
 

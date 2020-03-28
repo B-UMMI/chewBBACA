@@ -20,6 +20,7 @@ import pickle
 import shutil
 import requests
 import argparse
+import datetime as dt
 import concurrent.futures
 from getpass import getpass
 from itertools import repeat
@@ -75,7 +76,7 @@ def build_fasta(locus_id, locus_info, download_folder):
     return result
 
 
-def get_fasta_seqs(headers_get, url):
+def get_fasta_seqs(headers_get, schema_date, url):
     """ Perform get requests to the NS
 
         Args:
@@ -87,12 +88,13 @@ def get_fasta_seqs(headers_get, url):
             fasta sequences
     """
 
-    res = requests.get(url, headers=headers_get, timeout=30)
+    payload = {'date':schema_date}
+    res = requests.get(url, headers=headers_get, timeout=30, params=payload)
 
     return (url.rstrip('/fasta'), res)
 
 
-def get_schema(schema_uri, download_folder, headers_get, schema_desc):
+def get_schema(schema_uri, download_folder, headers_get, schema_desc, schema_date):
     """ Downloads, builds a writes a schema from NS
 
         Args:
@@ -111,15 +113,6 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc):
     loci_res = requests.get(schema_loci_uri, headers=headers_get)
     loci_list = loci_res.json()
     loci_list = loci_list['Loci']
-    server_time = loci_res.headers['Server-Date']
-
-    # get server time and save on config before starting to download
-    # useful for further sync function
-    ns_config = os.path.join(download_folder, '.ns_config')
-    if not os.path.exists(ns_config):
-        with open(ns_config, 'wb') as nc:
-            download_info = [server_time, schema_uri]
-            pickle.dump(download_info, nc)
 
     # Total number of loci
     total_loci = len(loci_list)
@@ -132,7 +125,6 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc):
     fasta_urls = [aux.make_url(locus, 'fasta') for locus in loci_names]
 
     # multithread the requests
-    # must write files or this will go into RAM and explode
     print('Downloading schema files...')
     total = 0
     failed = 0
@@ -140,7 +132,7 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc):
     ns_files = []
     total_files = len(fasta_urls)
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        for result in executor.map(get_fasta_seqs, repeat(headers_get), fasta_urls):
+        for result in executor.map(get_fasta_seqs, repeat(headers_get), repeat(schema_date), fasta_urls):
             locus_id = loci_names[result[0]]
             locus_info = result[1]
             locus_file = build_fasta(locus_id, locus_info, download_folder)
@@ -155,16 +147,16 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc):
 
     print('\nDownloaded and wrote FASTA files for '
           '{0}/{1} loci'.format(downloaded, total))
-    print('Failed for {0} loci.'.format(failed))
+    print('Failed download for {0} loci.\n'.format(failed))
 
     # output dir for the result of PrepExternalSchema
     local_schema_name = '{0}_schema'.format(schema_desc)
     local_schema_path = os.path.join(download_folder, local_schema_name)
 
-    return [local_schema_path, ns_files, ns_config]
+    return [local_schema_path, ns_files]
 
 
-def main(schema_id, species_id, download_folder, core_num, base_url):
+def main(schema_id, species_id, download_folder, core_num, base_url, date):
 
     # login with master key
     login_key = False
@@ -182,8 +174,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         # if login was not successful, stop the program
         if token is False:
             message = '403: Invalid credentials.'
-            print(message)
-            return message
+            sys.exit(message)
 
     # Define the headers of the requests
     headers_get = {'Authorization': token,
@@ -194,11 +185,10 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
     species_info = aux.species_ids(species_id, base_url, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
-        print('\nNS species with identifier {0} is {1}.'.format(species_id,
+        print('NS species with identifier {0} is {1}.'.format(species_id,
                                                                 species_name))
     else:
-        print('\nThere is no species with the provided identifier in the NS.')
-        return 1
+        sys.exit('There is no species with the provided identifier in the NS.')
 
     print('\nChecking if schema exists...')
 
@@ -264,11 +254,10 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
     # check if schema is locked
     lock_status = schema_params_dict['Schema_lock']
     if lock_status != 'Unlocked':
-        print('403: schema is locked. This might be because it '
-              'is being uploaded, updated or compressed.'
-              ' Please try again later and contact the Administrator '
-              'if the schema stays locked for a long period of time.')
-        return 403
+        sys.exit('403: schema is locked. This might be because it '
+                 'is being uploaded, updated or compressed.'
+                 ' Please try again later and contact the Administrator '
+                 'if the schema stays locked for a long period of time.')
 
     # create download folder if it does not exist
     if not os.path.exists(download_folder):
@@ -278,25 +267,45 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
         print('Download folder already exists...')
         download_folder_files = os.listdir(download_folder)
         if len(download_folder_files) > 0:
-            print('Download folder is not empty.\n'
-                  'Please ensure that folder is empty to guarantee proper\n'
-                  'schema creation or provide a valid path for a new folder '
-                  'that will be created.')
-            return 1
+            sys.exit('Download folder is not empty.\n'
+                     'Please ensure that folder is empty to guarantee proper\n'
+                     'schema creation or provide a valid path for a new folder '
+                     'that will be created.')
 
-    print('Schema info:\nID: {0}\nURI: {1}\nSpecies: {2}\nDownload directory: {3}'.format(schema_id,
-                                                                                          schema_uri,
-                                                                                          species_name,
-                                                                                          download_folder))
+    # get server time and save on config before starting to download
+    # useful for further sync function
+    if date is not None:
+        insertion_date = schema_params_dict['dateEntered']
+        insertion_date_obj = dt.strptime(insertion_date, '%Y-%m-%dT%H:%M:%S')
+        user_date = dt.strptime(date, '%Y-%m-%dT%H:%M:%S')
+        if user_date >= insertion_date_obj:
+            schema_date = date
+        elif user_date < insertion_date_obj:
+            sys.exit('Provided date is prior to the date of schema insertion. '
+                     'Please provide a date later than schema insertion date ({0}).'.format(insertion_date))
+    else:
+        schema_date = schema_params_dict['last_modified']
 
-    print('Downloading schema...')
+    ns_config = os.path.join(download_folder, '.ns_config')
+    if not os.path.exists(ns_config):
+        with open(ns_config, 'wb') as nc:
+            download_info = [schema_date, schema_uri]
+            pickle.dump(download_info, nc)
+
+    print('\nSchema info:\n  ID: {0}\n  URI: {1}\n  Species: {2}\n  Download directory: {3}'.format(schema_id,
+                                                                                                   schema_uri,
+                                                                                                   species_name,
+                                                                                                   download_folder))
+
+    print('\nDownloading schema...')
 
     start = time.time()
 
-    schema_path, ns_files, ns_config = get_schema(schema_uri,
-                                                  download_folder,
-                                                  headers_get,
-                                                  schema_file_desc)
+    schema_path, ns_files = get_schema(schema_uri,
+                                       download_folder,
+                                       headers_get,
+                                       schema_file_desc,
+                                       schema_date)
 
     # download Prodigal training file
     ptf_hash = schema_params_dict['prodigal_training_file']
@@ -319,7 +328,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url):
                             int(schema_params_dict['minimum_locus_length']),
                             int(schema_params_dict['translation_table']),
                             ptf_file,
-                            float(schema_params_dict['size_threshold']))
+                            None)
 
     # copy Prodigal training file to schema directory
     shutil.copy(ptf_file, schema_path)
@@ -376,14 +385,20 @@ def parse_arguments():
                         default='http://127.0.0.1:5000/NS/api/',
                         help='')
 
+    parser.add_argument('--d', type=str, required=False,
+                        default=None,
+                        dest='date',
+                        help='Download schema with state from specified date. '
+                             'Must be in the format "Y-m-dTH:M:S".')
+
     args = parser.parse_args()
 
     return [args.schema_id, args.species_id, args.download_folder,
-            args.core_num, args.ns_url]
+            args.core_num, args.ns_url, args.date]
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
     main(args[0], args[1], args[2],
-         args[3], args[4])
+         args[3], args[4], args[5])

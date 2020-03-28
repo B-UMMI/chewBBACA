@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-import sys
 import os
-import subprocess
 import pickle
+import subprocess
 
 
 def main(input_file,tempPath,choosenTaxon,translation_table):

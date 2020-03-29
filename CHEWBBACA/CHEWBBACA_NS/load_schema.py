@@ -1100,6 +1100,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                              headers=headers_post,
                              data=json.dumps({'filename': ptf_hash, 'content': ptf_content}))
 
+    # call endpoint to generate json file for frontend
+
 
     print(list(response.json().values())[0])
 

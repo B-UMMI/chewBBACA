@@ -956,6 +956,12 @@ def download_schema():
                         help='Download schema with state from specified date. '
                              'Must be in the format "Y-m-dTH:M:S".')
 
+    parser.add_argument('--latest', required=False, action='store_true',
+                        dest='latest',
+                        help='If the compressed version that is available is '
+                             'not the latest, downloads all loci and constructs '
+                             'schema locally.')
+
     args = parser.parse_args()
 
     ns_schema = args.schema_id
@@ -964,9 +970,11 @@ def download_schema():
     cpu_cores = args.cpu_cores
     nomenclature_server_url = args.nomenclature_server_url
     date = args.date
+    latest = args.latest
 
     down_schema.main(ns_schema, ns_species, download_folder,
-                     cpu_cores, nomenclature_server_url, date)
+                     cpu_cores, nomenclature_server_url, date,
+                     latest)
 
 
 def upload_schema():

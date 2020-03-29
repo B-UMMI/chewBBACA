@@ -15,6 +15,7 @@ DESCRIPTION
 
 import os
 import re
+import sys
 import time
 import pickle
 import shutil
@@ -156,7 +157,7 @@ def get_schema(schema_uri, download_folder, headers_get, schema_desc, schema_dat
     return [local_schema_path, ns_files]
 
 
-def main(schema_id, species_id, download_folder, core_num, base_url, date):
+def main(schema_id, species_id, download_folder, core_num, base_url, date, latest):
 
     # login with master key
     login_key = False
@@ -250,6 +251,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date):
     schema_params_dict = {k: schema_params[k]['value']
                           for k in schema_params.keys()
                           if k != 'name'}
+    schema_desc = schema_params['name']['value']
 
     # check if schema is locked
     lock_status = schema_params_dict['Schema_lock']
@@ -259,6 +261,40 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date):
                  ' Please try again later and contact the Administrator '
                  'if the schema stays locked for a long period of time.')
 
+    # get zip information
+    zip_uri = '{0}/zip'.format(schema_uri)
+    zip_response = requests.get(zip_uri, headers=headers_get, params={'request_type': 'check'})
+    zip_info = zip_response.json()
+    if 'zip' in zip_info:
+        zip_file = zip_info['zip'][0]
+        zip_date = zip_file.split('_')[-1].split('.zip')[0]
+    else:
+        zip_date = None
+
+    if date is not None and latest is not True:
+        insertion_date = schema_params_dict['dateEntered']
+        modification_date = schema_params_dict['last_modified']
+        insertion_date_obj = dt.datetime.strptime(insertion_date, '%Y-%m-%dT%H:%M:%S.%f')
+        modification_date_obj = dt.datetime.strptime(modification_date, '%Y-%m-%dT%H:%M:%S.%f')
+        user_date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+        if user_date >= insertion_date_obj and user_date <= modification_date_obj:
+            schema_date = date
+        elif user_date < insertion_date_obj:
+            sys.exit('Provided date is prior to the date of schema insertion. '
+                     'Please provide a date later than schema insertion date ({0}).'.format(insertion_date))
+        elif user_date > modification_date_obj:
+            sys.exit('Provided date is greater than the last modification date. '
+                     'Please provide a date equal or prior to the schema modification date ({0}).'.format(insertion_date))
+    elif latest is True:
+        schema_date = schema_params_dict['last_modified']
+    else:
+        schema_date = None
+
+    if schema_date is None and zip_date is not None:
+        schema_date = zip_date
+    elif schema_date is None and zip_date is None:
+        schema_date = schema_params_dict['last_modified']
+
     # create download folder if it does not exist
     if not os.path.exists(download_folder):
         os.mkdir(download_folder)
@@ -267,87 +303,82 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date):
         print('Download folder already exists...')
         download_folder_files = os.listdir(download_folder)
         if len(download_folder_files) > 0:
-            sys.exit('Download folder is not empty.\n'
-                     'Please ensure that folder is empty to guarantee proper\n'
+            sys.exit('Download folder is not empty. '
+                     'Please ensure that folder is empty to guarantee proper '
                      'schema creation or provide a valid path for a new folder '
                      'that will be created.')
 
-    # get server time and save on config before starting to download
-    # useful for further sync function
-    if date is not None:
-        insertion_date = schema_params_dict['dateEntered']
-        insertion_date_obj = dt.strptime(insertion_date, '%Y-%m-%dT%H:%M:%S')
-        user_date = dt.strptime(date, '%Y-%m-%dT%H:%M:%S')
-        if user_date >= insertion_date_obj:
-            schema_date = date
-        elif user_date < insertion_date_obj:
-            sys.exit('Provided date is prior to the date of schema insertion. '
-                     'Please provide a date later than schema insertion date ({0}).'.format(insertion_date))
-    else:
-        schema_date = schema_params_dict['last_modified']
+    print('\nSchema info:\n  ID: {0}\n  URI: {1}\n  Species: {2}\n  Download directory: {3}'.format(schema_id,
+                                                                                                    schema_uri,
+                                                                                                    species_name,
+                                                                                                    download_folder))
 
-    ns_config = os.path.join(download_folder, '.ns_config')
+    start = time.time()
+
+    # download compressed version if date matches compression version
+    if schema_date == zip_date:
+        print('\nDownloading schema archive...')
+        zip_name = '{0}{1}_{2}.zip'.format(species_name[0].lower(), species_name.split(' ')[-1], schema_desc)
+        schema_path = os.path.join(download_folder, zip_name.split('.zip')[0])
+        os.mkdir(schema_path)
+        zip_response = requests.get(zip_uri, headers=headers_get, params={'request_type': 'download'})
+        zip_path = os.path.join(schema_path, zip_name)
+        open(zip_path, 'wb').write(zip_response.content)
+        shutil.unpack_archive(zip_path, extract_dir=schema_path)
+        os.remove(zip_path)
+    # user wants schema at specific time point or latest
+    # version that has yet to be compressed
+    else:
+        print('\nDownloading loci files for local construction...')
+        schema_path, ns_files = get_schema(schema_uri,
+                                           download_folder,
+                                           headers_get,
+                                           schema_file_desc,
+                                           schema_date)
+
+        # download Prodigal training file
+        ptf_hash = schema_params_dict['prodigal_training_file']
+
+        #payload = {'species_id':species_id, 'schema_id': schema_id}
+
+        ptf_uri = aux.make_url(base_url, *['species', species_id, 'schemas', schema_id, 'ptf'])
+
+        ptf_response = requests.get(ptf_uri, headers=headers_get)#, params=payload)
+
+        ptf_file = os.path.join(download_folder, '{0}.trn'.format('_'.join(species_name.split(' '))))
+
+        open(ptf_file ,'wb').write(ptf_response.content)
+
+        # determine representatives and create schema
+        PrepExternalSchema.main(download_folder,
+                                schema_path,
+                                core_num,
+                                float(schema_params_dict['bsr']),
+                                int(schema_params_dict['minimum_locus_length']),
+                                int(schema_params_dict['translation_table']),
+                                ptf_file,
+                                None)
+
+        # copy Prodigal training file to schema directory
+        shutil.copy(ptf_file, schema_path)
+        os.remove(ptf_file)
+
+        # remove FASTA files with sequences from the NS
+        for file in ns_files:
+            os.remove(os.path.join(download_folder, file))
+
+        # write hidden schema config file
+        del(schema_params_dict['Schema_lock'])
+        schema_config = os.path.join(schema_path, '.schema_config')
+        with open(schema_config, 'wb') as scf:
+            pickle.dump(schema_params_dict, scf)
+
+    # create ns_config file
+    ns_config = os.path.join(schema_path, '.ns_config')
     if not os.path.exists(ns_config):
         with open(ns_config, 'wb') as nc:
             download_info = [schema_date, schema_uri]
             pickle.dump(download_info, nc)
-
-    print('\nSchema info:\n  ID: {0}\n  URI: {1}\n  Species: {2}\n  Download directory: {3}'.format(schema_id,
-                                                                                                   schema_uri,
-                                                                                                   species_name,
-                                                                                                   download_folder))
-
-    print('\nDownloading schema...')
-
-    start = time.time()
-
-    schema_path, ns_files = get_schema(schema_uri,
-                                       download_folder,
-                                       headers_get,
-                                       schema_file_desc,
-                                       schema_date)
-
-    # download Prodigal training file
-    ptf_hash = schema_params_dict['prodigal_training_file']
-
-    payload = {'species_id':species_id, 'schema_id': schema_id}
-
-    ptf_uri = aux.make_url(base_url, *['species', species_id, 'schemas', schema_id, 'ptf'])
-
-    ptf_response = requests.get(ptf_uri, headers=headers_get, params=payload)
-
-    ptf_file = os.path.join(download_folder, '{0}.trn'.format('_'.join(species_name.split(' '))))
-
-    open(ptf_file ,'wb').write(ptf_response.content)
-
-    # determine representatives and create schema
-    PrepExternalSchema.main(download_folder,
-                            schema_path,
-                            core_num,
-                            float(schema_params_dict['bsr']),
-                            int(schema_params_dict['minimum_locus_length']),
-                            int(schema_params_dict['translation_table']),
-                            ptf_file,
-                            None)
-
-    # copy Prodigal training file to schema directory
-    shutil.copy(ptf_file, schema_path)
-    os.remove(ptf_file)
-
-    # copy ns_config file
-    shutil.copy(ns_config, schema_path)
-    if os.path.isfile(ns_config):
-        os.remove(ns_config)
-
-    # remove FASTA files with sequences from the NS
-    for file in ns_files:
-        os.remove(os.path.join(download_folder, file))
-
-    # write hidden schema config file
-    del(schema_params_dict['Schema_lock'])
-    schema_config = os.path.join(schema_path, '.schema_config')
-    with open(schema_config, 'wb') as scf:
-        pickle.dump(schema_params_dict, scf)
 
     print('Schema is now available at: {0}'.format(schema_path))
 
@@ -391,14 +422,21 @@ def parse_arguments():
                         help='Download schema with state from specified date. '
                              'Must be in the format "Y-m-dTH:M:S".')
 
+    parser.add_argument('--latest', required=False, action='store_true',
+                        dest='latest',
+                        help='If the compressed version that is available is '
+                             'not the latest, downloads all loci and constructs '
+                             'schema locally.')
+
     args = parser.parse_args()
 
     return [args.schema_id, args.species_id, args.download_folder,
-            args.core_num, args.ns_url, args.date]
+            args.core_num, args.ns_url, args.date, args.latest]
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
     main(args[0], args[1], args[2],
-         args[3], args[4], args[5])
+         args[3], args[4], args[5],
+         args[6])

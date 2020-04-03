@@ -226,7 +226,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,noSubDir):
 
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
@@ -246,6 +246,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     #~ parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     #~ parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
     #~ parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+    #~ parser.add_argument("--nosubdir", help="No subdirectories in ouput directory", required=False, action="store_true", default=False)
     #~
     #~ args = parser.parse_args()
     #~
@@ -688,8 +689,10 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
         if not os.path.exists(gOutFile):
             os.makedirs(gOutFile)
-        # outputpath=os.path.dirname(gOutFile)
-        outputfolder = os.path.join(gOutFile, "results_" + str(time.strftime("%Y%m%dT%H%M%S")))
+        if(noSubDir):
+            outputpath = os.path.dirname(gOutFile)
+        else: 
+            outputfolder = os.path.join(gOutFile, "results_" + str(time.strftime("%Y%m%dT%H%M%S")))
         os.makedirs(outputfolder)
         print (statswrite)
         # ~ print

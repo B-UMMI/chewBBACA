@@ -690,7 +690,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         if not os.path.exists(gOutFile):
             os.makedirs(gOutFile)
         if(noSubDir):
-            outputpath = os.path.dirname(gOutFile)
+            outputfolder = os.path.dirname(gOutFile)
         else: 
             outputfolder = os.path.join(gOutFile, "results_" + str(time.strftime("%Y%m%dT%H%M%S")))
         os.makedirs(outputfolder)

@@ -146,7 +146,6 @@ def allele_call():
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
-    parser.add_argument("--nosubdir", help="No subdirectories in ouput directory", required=False, action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -165,7 +164,6 @@ def allele_call():
     contained = args.contained
     inputCDS = args.CDS
     jsonReport = args.json
-    noSubDir = args.nosubdir
 
     genes2call = check_if_list_or_folder(genes)
 
@@ -213,7 +211,7 @@ def allele_call():
         genomes2call = "listGenomes2Call.txt"
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,noSubDir)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
 
 
     try:

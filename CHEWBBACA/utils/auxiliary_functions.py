@@ -26,8 +26,10 @@ import shutil
 import pickle
 import hashlib
 import requests
+import threading
 import itertools
 import multiprocessing
+import concurrent.futures
 from collections import Counter
 from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
@@ -135,57 +137,44 @@ def write_schema_config(blast_score_ratio, ptf_hash,
 
     return [os.path.isfile(config_file), config_file]
 
+################################
+# code to send alleles to the NS
+thread_local = threading.local()
 
-def post_allele(input_stuff):
-    """ Adds a new allele to the NS.
 
-        Args:
-            A tuple with 8 elements:
-                - sequence (str): the DNA sequence to send to NS.
-                - name (str): protein annotation name.
-                - label (str): protein annotation label.
-                - uniprot_url (str): URL to the UniProt entry.
-                - loci_url (str): URI of the locus in NS.
-                - species_name (str): name of the species the allele
-                belongs to.
-                - cds_check (bool): if the sequence must be a complete CDS.
-                - headers_post (dict): headers for the POST method used to
-                insert data into the NS.
-        Returns:
-            response (requests.models.Response): response object from
-            the POST method.
+def get_session():
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+    return thread_local.session
+
+
+def post_alleles(input_file):
+    """
     """
 
-    # getting inputs from multithreading
-    sequence = input_stuff[0]
-    name = input_stuff[1]
-    label = input_stuff[2]
-    uniprot_url = input_stuff[3]
-    loci_url = input_stuff[4]
-    species_name = input_stuff[5]
-    cds_check = input_stuff[6]
-    headers_post = input_stuff[7]
-    allele_uri = input_stuff[8]
-    user_id = input_stuff[9]
+    with open(input_file, 'rb') as f:
+        data = pickle.load(f)
 
-    # Build the url for loci/loci_id/alleles
-    url = make_url(loci_url, 'alleles')
+    responses = []
+    session = get_session()
+    for d in data:
+        with session.post(d[0], data=d[1], headers=d[2], timeout=360) as response:
+            responses.append(list(response))
 
-    params = {}
-    params['sequence'] = sequence
-    params['species_name'] = species_name
-    params['enforceCDS'] = cds_check
-    params['uniprot_url'] = uniprot_url
-    params['uniprot_label'] = label
-    params['uniprot_sname'] = name
-    params['input'] = 'auto'
-    params['sequence_uri'] = allele_uri
-    params['user_id'] = user_id
+    return responses
 
-    response = requests.post(url, data=json.dumps(params),
-                             headers=headers_post, timeout=30)
 
-    return response
+def send_alleles(post_files):
+
+    responses = []
+    total = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        for res in executor.map(post_alleles, post_files):
+            total += 1
+            print('\r', total, end='')
+            responses.append(res)
+
+    return responses
 
 
 def select_name(result):
@@ -295,22 +284,34 @@ def species_ids(species_id, base_url, headers_get):
             return 404
 
 
-def create_allele_data(allele_seq_list, new_loci_url, name, label,
-                       url, species_name, check_cds, headers_post,
+def create_allele_data(allele_seq_list, locus_url,
+                       species_name, base_url,
                        user_id, start_id):
     """
     """
 
-    allele_id = start_id
-    post_inputs = []
-    for allele in allele_seq_list:
-        allele_uri = '{0}/alleles/{1}'.format(new_loci_url, allele_id)
-        post_inputs.append((allele, name, label, url,
-                            new_loci_url, species_name,
-                            True, headers_post, allele_uri, user_id))
-        allele_id += 1
+    #allele_id = start_id
+    post_data = []
 
-    return post_inputs
+        #allele_uri = '{0}/alleles/{1}'.format(locus_url, allele_id)
+        #seq_hash = hashlib.sha256(allele.encode('utf-8')).hexdigest()
+        #seq_url = '{0}sequences/{1}'.format(base_url, seq_hash)
+    user_url = '{0}users/{1}'.format(base_url, user_id)
+        
+    params = [locus_url, species_name, user_url, tuple(allele_seq_list)]
+        # params['locus_url'] = locus_url
+        # params['sequence'] = allele
+        # params['species_name'] = species_name
+        # params['sequence_uri'] = allele_uri
+        # params['user_url'] = user_url
+        # params['seq_url'] = seq_url
+        # params['allele_id'] = allele_id
+
+        #post_data.append(params)
+
+        #allele_id += 1
+
+    return params
 
 
 def species_list(base_url, headers_get, endpoint_list):

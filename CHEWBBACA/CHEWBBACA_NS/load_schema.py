@@ -19,10 +19,13 @@ import sys
 import json
 import time
 import pickle
+import zipfile
 import hashlib
 import argparse
 import requests
+import itertools
 import datetime as dt
+import multiprocessing
 import concurrent.futures
 from getpass import getpass
 from collections import Counter
@@ -84,17 +87,15 @@ def determine_upload(local_schema_loci, ns_schema_loci,
             ns_set = set(ns_sequences)
 
             if len(ns_set) > len(local_set):
-                message = ('A locus in the NS has more sequences '
-                           'than the local locus.\nLocal schema '
-                           'is not the original.')
-                return (400, message)
+                sys.exit('A locus in the NS has more sequences '
+                         'than the local locus.\nLocal schema '
+                         'is not the original.')
 
             ns_diff = ns_set - local_set
             if len(ns_diff) > 0:
-                message = ('A locus in the NS has sequences '
-                           'that are not in the local locus.'
-                           '\nLocal schema is not the original.')
-                return (401, message)
+                sys.exit('A locus in the NS has sequences '
+                         'that are not in the local locus.'
+                         '\nLocal schema is not the original.')
 
             local_diff = local_set - ns_set
             if len(local_diff) > 0:
@@ -110,7 +111,7 @@ def determine_upload(local_schema_loci, ns_schema_loci,
     return upload
 
 
-def create_uniprot_queries(fasta_paths):
+def create_uniprot_queries(file):
     """ Create queries to search for protein annotations
         on UniProt and save the queries in a binary file.
 
@@ -122,30 +123,20 @@ def create_uniprot_queries(fasta_paths):
             UniProt.
     """
 
-    queries_files = []
-    for file in fasta_paths:
+    # create queries
+    # do not create duplicated queries with same protein
+    with open(file[1], 'rb') as pb:
+        protein_seqs = pickle.load(pb)
 
-        dna_seqs = [(record.id, str(record.seq))
-                    for record in SeqIO.parse(file, 'fasta')]
-        protein_seqs = [str(aux.translate_sequence(rec[1], 11))
-                        for rec in dna_seqs]
+    unique_prots = set(list(protein_seqs.values()))
 
-        # create queries
-        # do not create duplicated queries with same protein
-        unique_prots = []
-        for prot in protein_seqs:
-            if prot not in unique_prots:
-                unique_prots.append(prot)
+    queries = [aux.uniprot_query(prot) for prot in unique_prots]
+    # save in binary file
+    queries_file = '{0}_up'.format(file[1])
+    with open(queries_file, 'wb') as bup:
+        pickle.dump(queries, bup)
 
-        queries = [aux.uniprot_query(prot) for prot in unique_prots]
-        # save in binary file
-        binary_file = '{0}_up'.format(file.split('.fasta')[0])
-        with open(binary_file, 'wb') as bup:
-            pickle.dump(queries, bup)
-
-        queries_files.append((file, binary_file))
-
-    return queries_files
+    return [file[0], queries_file]
 
 
 def validate_ptf(configs, input_path):
@@ -402,7 +393,8 @@ def validate_if(configs):
 
     return [valid, message]
 
-def check_schema_status(status_code, species_name, upload_type):
+
+def check_schema_status(status_code, species_name):
     """ Checks the schema post status and determines
         if the schema was successfully created in the NS.
 
@@ -415,33 +407,27 @@ def check_schema_status(status_code, species_name, upload_type):
     """
 
     if status_code in [200, 201]:
-        if upload_type == 'de novo':
-            message = ('A new schema for {0} was created '
-                       'succesfully.'.format(species_name))
-        elif upload_type == 'continue':
-            message = ('Schema exists. Will try to continue upload.')
+        message = ('A new schema for {0} was created '
+                   'succesfully.'.format(species_name))
     else:
-        if upload_type == 'de novo':
-            if status_code == 403:
-                message = ('{0}: No permission to load '
-                           'schema.'.format(status_code))
-            elif status_code == 404:
-                message = ('{0}: Cannot upload a schema for a species '
-                           'that is not in NS.'.format(status_code))
-            elif status_code == 409:
-                message = ('{0}: Cannot upload a schema with the same '
-                           'description as a schema that is in the '
-                           'NS.'.format(status_code))
-            else:
-                message = '{0}: Could not insert schema.'.format(status_code)
-        elif upload_type == 'continue':
-            message = ('{0}: Cannot continue uploading data for a schema that '
-                       'does not exist.'.format(status_code))
+        if status_code == 403:
+            message = ('{0}: No permission to load '
+                       'schema.'.format(status_code))
+        elif status_code == 404:
+            message = ('{0}: Cannot upload a schema for a species '
+                       'that is not in NS.'.format(status_code))
+        elif status_code == 409:
+            message = ('{0}: Cannot upload a schema with the same '
+                       'description as a schema that is in the '
+                       'NS.'.format(status_code))
+        else:
+            message = '{0}: Could not insert schema.'.format(status_code)
 
     return message
 
 
-def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene):
+def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene,
+               uniprot_name, uniprot_label, uniprot_uri):
     """ Adds a new locus to the NS.
 
         Args:
@@ -463,11 +449,14 @@ def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene):
     # Define POST request parameters
     params = {}
     params['prefix'] = locus_prefix
+    params['UniprotName'] = uniprot_name
+    params['UniprotLabel'] = uniprot_label
+    params['UniprotURI'] = uniprot_uri
 
     if keep_file_name:
         params['locus_ori_name'] = gene
 
-    # Add locus to species
+    # Add locus to NS
     res = requests.post(url_loci, data=json.dumps(params),
                         headers=headers_post, timeout=30)
 
@@ -648,6 +637,23 @@ def post_schema_loci(loci_url, schema_url, headers_post):
         return [True, schema_loci_url]
 
 
+def quality_control(inputs):
+    """
+    """
+
+    size_threshold = float(inputs[4]) if inputs[4] is not None else None
+    res = aux.get_seqs_dicts(inputs[0], inputs[1], int(inputs[2]), int(inputs[3]), size_threshold)
+
+    prots_file = '{0}_prots'.format(inputs[0].split('.fasta')[0])
+    with open(prots_file, 'wb') as pb:
+        pickle.dump(res[1], pb)
+
+    if len(res[2]) > 0:
+        print('Found {0} invalid alleles for locus {1}.'.format(len(res[2]), inputs[1]))
+
+    return [inputs[0], prots_file, res[2]]
+
+
 def parse_arguments():
 
     parser = argparse.ArgumentParser(description=__doc__,
@@ -673,6 +679,11 @@ def parse_arguments():
                         'gene. For instance, ACIBA will produce '
                         'ACIBA00001.fasta.')
 
+    parser.add_argument('--cpu', type=int, required=False,
+                        dest='cpu_cores', default=1,
+                        help='Number of CPU cores that will '
+                             'be used in multiprocessing steps.')
+
     parser.add_argument('--thr', type=int, required=False, dest='threads',
                         default=30, help='The number of threads to use. '
                         'The process will use multithreading to search for '
@@ -694,14 +705,21 @@ def parse_arguments():
     args = parser.parse_args()
 
     return [args.input_files, args.species_id, args.schema_desc,
-            args.loci_prefix, args.threads, args.base_url,
-            args.continue_up]
+            args.loci_prefix, args.cpu_cores, args.threads,
+            args.base_url, args.continue_up]
 
 
-def main(input_files, species_id, schema_desc, loci_prefix, threads,
-         base_url, continue_up):
+#input_files = '/home/rfm/Desktop/ns_test/test_ns_createschema'
+#species_id = 1
+#schema_desc = 'test88'
+#loci_prefix = 'test88'
+#cpu_cores = 6
+#threads = 10
+#base_url = 'http://127.0.0.1:5000/NS/api/'
+#continue_up = False
 
-    check_cds = True
+def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
+         threads, base_url, continue_up):
 
     # login with master key
     login_key = False
@@ -719,10 +737,9 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         # if login was not successful, stop the program
         if token is False:
             message = '403: Invalid credentials.'
-            print(message)
-            return message
+            sys.exit(message)
 
-    start = time.time()
+    total_start = time.time()
 
     # Define the headers of the requests
     headers_get = {'Authorization': token,
@@ -736,10 +753,9 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                     for role in ['Admin', 'Contributor'])
 
     if not user_role:
-        print('\n403: Current user has no Administrator '
-              'or Contributor permissions.\n'
-              'Not allowed to upload schemas.')
-        return 403
+        sys.exit('\nCurrent user has no Administrator '
+                 'or Contributor permissions.\n'
+                 'Not allowed to upload schemas.')
 
     user_id = str(user_info['id'])
     headers_post = {'Authorization': token,
@@ -809,33 +825,109 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     else:
         sys.exit('\nThere is no species with the provided identifier in the NS.')
 
-    # translate loci sequences and contruct SPARQL queries to query UniProt
-    # create queries for each file and save in binary with pickle
+    # check if schema already exists
+    schema_get = aux.simple_get_request(base_url, headers_get,
+                                        ['species', species_id, 'schemas'])
+    schema_get_status = schema_get.status_code
+    species_schemas = schema_get.json()
+    if schema_get_status in [200, 201]:
+        # determine if there is a schema for current
+        # species with same description
+        schema_info = retrieve_schema_info(species_schemas, schema_desc)
+
+        if isinstance(schema_info, int):
+            if continue_up is False:
+                print('Will create a new schema with description {0}.'.format(schema_desc))
+            elif continue_up is True: 
+                sys.exit('\nCannot continue uploading to a schema that '
+                         'does not exist.')
+        else:
+            if continue_up is False:
+                sys.exit('A schema with provided description already exists.')
+            elif continue_up is True:
+                print('Schema exists. Checking if it was not fully uploaded...')
+                schema_url, schema_id = schema_info
+                schema_get = aux.simple_get_request(base_url, headers_get,
+                                        ['species', species_id, 'schemas', schema_id])
+                current_schema = schema_get.json()[0]
+                schema_date = current_schema['dateEntered']['value']
+                if schema_date != 'singularity':
+                    sys.exit('Schema finished uploading. Cannot proceed.')
+                # determine if user was the one that started the upload
+                ask_admin = aux.simple_get_request(base_url, headers_get,
+                                        ['species', species_id, 'schemas', schema_id, 'administrated'])
+                schema_admin = ask_admin.json()
+                if schema_admin is False:
+                    sys.exit('Current user is not the user that started schema upload.')
+    elif 'NOT FOUND' in species_schemas:
+        print('Species still has no schemas.')
+    else:
+        print('\nCould not retrieve schemas for current species.')
+        sys.exit(1)
+
+    # start validating and processing schema files
+    # translate alleles and save results
+    inputs = [(file,
+               file.split('/')[-1].split('.fasta')[0],
+               params['translation_table'],
+               params['minimum_locus_length'],
+               None) for file in fasta_paths]
+
+    start = time.time()
+    qc_results = []
+    genes_pools = multiprocessing.Pool(processes=cpu_cores)
+    rawr = genes_pools.map_async(quality_control, inputs,
+                                 callback=qc_results.extend)
+    rawr.wait()
+    end = time.time()
+    delta = end - start
+    print(delta/60)
+
+    invalid_alleles = [r[2] for r in qc_results]
+    invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
+    invalid_identifiers = set([r[0] for r in invalid_alleles])
+
+    loci_files = [r[:2] for r in qc_results]
+
     print('\nCreating queries to search UniProt for annotations...')
-    # we have to verify if all sequences can be translated!!!
-    queries_files = create_uniprot_queries(fasta_paths)
+    start = time.time()
+    queries_files = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        for res in executor.map(create_uniprot_queries, loci_files):
+            queries_files.append(res)
+    end = time.time()
+    delta = end - start
+    print(delta/60)
     print('Done.')
 
     # find annotations for all loci with multithreading
     print('\nSearching for annotations on UniProt...')
-    results = []
+    loci_annotations = []
     total_found = 0
     total_loci = len(queries_files)
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         # Start the load operations and mark each future with its URL
         for res in executor.map(get_annotation, queries_files):
-            results.append(res)
+            loci_annotations.append(res)
             total_found += 1
             print('\r', 'Found annotations for '
                   '{0}/{1} loci.'.format(total_found, total_loci), end='')
 
-    # delete binary files with queries
-    for file in queries_files:
-        os.remove(file[1])
+    # determine lengths of all alleles per locus
+    length_files = []
+    for l in loci_annotations:
+        file = l[0]
+        locus = os.path.basename(file)
+        locus_lengths = {locus: {hashlib.sha256(str(rec.seq).encode('utf-8')).hexdigest(): len(rec.seq) for rec in SeqIO.parse(file, 'fasta')}}
+        lengths_file = os.path.join(input_files, '{0}_lengths'.format(locus.split('.fasta')[0]))
+        with open(lengths_file, 'wb') as lf:
+            pickle.dump(locus_lengths, lf)
+        length_files.append(lengths_file)
 
     # start sending data
     print('\n\nSending data to the NS...')
-
+    
+    params['SchemaDescription'] = 'This is a very long description that I could not make any longer.'
     # Build the new schema URL and POST to NS
     if continue_up is False:
         print('\nCreating new schema...')
@@ -845,26 +937,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                               params)
         schema_status = schema_post.status_code
     elif continue_up is True:
-        print('\nChecking if schema already exists...')
-        schema_get = aux.simple_get_request(base_url, headers_get,
-                                            ['species', species_id, 'schemas'])
-        schema_get_status = schema_get.status_code
-        species_schemas = schema_get.json()
-        if schema_get_status in [200, 201]:
-            # determine if there is a schema for current
-            # species with same description
-            schema_info = retrieve_schema_info(species_schemas, schema_desc)
-
-            if isinstance(schema_info, int):
-                print('\nCannot continue uploading to a schema that '
-                      'does not exist.')
-                return 404
-            else:
-                schema_url, schema_id = schema_info
-        else:
-            print('\nCould not retrieve schemas for current species.')
-            return 404
-
+        print('Determining loci absent from NS schema...')
         # compare list of genes, if they do not intersect, halt process
         # get list of loci for schema in NS
         ns_loci_get = aux.simple_get_request(base_url, headers_get,
@@ -883,7 +956,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                 ns_schema_locid_map[locus_file] = (locus_uri, locus_name)
 
         # get list of loci for schema to upload
-        local_schema_loci = [l[0].split('/')[-1] for l in results]
+        local_schema_loci = [l[0].split('/')[-1] for l in loci_annotations]
 
         local_loci_set = set(local_schema_loci)
         ns_loci_set = set(ns_schema_loci)
@@ -892,12 +965,9 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
         # in the local schema
         ns_loci_diff = ns_loci_set - local_loci_set
         if len(ns_loci_diff) > 0:
-            print('NS schema has loci that are not in the local schema.')
-            return 400
-
+            sys.exit('NS schema has loci that are not in the local schema.')
         if len(ns_loci_set) > len(local_loci_set):
-            print('NS schema has more loci than the local schema.')
-            return 400
+            sys.exit('NS schema has more loci than the local schema.')
         elif len(ns_loci_set) < len(local_loci_set):
             print('NS schema has less loci than local schema.')
             absent_loci = list(local_loci_set-ns_loci_set)
@@ -916,34 +986,27 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
                                   base_url, headers_get)
 
         if isinstance(upload, tuple):
-            return upload[0]
+            sys.exit(upload[0])
         elif len(upload) == 0:
-            print('Local and NS schemas are identical. Nothing left to do!')
-            return 'I am such a happy tato'
+            sys.exit('Local and NS schemas are identical. Nothing left to do.')
 
-        results = [list(res) for res in results if
-                   any(locus in res[0] for locus in upload)]
+        loci_annotations = [list(res) for res in loci_annotations if
+                            any(locus in res[0] for locus in upload)]
 
-        for r in range(len(results)):
-            lfile = (results[r][0]).split('/')[-1]
+        for r in range(len(loci_annotations)):
+            lfile = (loci_annotations[r][0]).split('/')[-1]
             if lfile in ns_schema_locid_map:
-                results[r].append(ns_schema_locid_map[lfile][0])
-
-        schema_status = 200
+                loci_annotations[r].append(ns_schema_locid_map[lfile][0])
 
     # check status code
     # add other prints for cases that fail so that users see a print explaining
-    upload_type = 'de novo' if continue_up is False else 'continue'
-    schema_insert = check_schema_status(schema_status,
-                                        species_name,
-                                        upload_type)
-    if schema_status in [200, 201]:
-        print('{0}'.format(schema_insert))
-    else:
-        print('{0}'.format(schema_insert))
-        return schema_insert
-
     if continue_up is False:
+        schema_insert = check_schema_status(schema_status,
+                                            species_name)
+        print(schema_insert)
+        if schema_status not in [200, 201]:
+            sys.exit(1)
+
         schema_url = schema_post.json()['url']
         schema_id = schema_url.split('/')[-1]
 
@@ -953,41 +1016,43 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
 
     # start creating new loci and adding/linking alleles
     print('Creating loci and adding/linking alleles...\n')
-
-    # create new loci, link them to species and to new schema and add alleles
-    failed = 0
-    repeated = 0
-    invalid_cds = 0
-    new_alleles = 0
+    start = time.time()
+    # create new loci, link them to species and to new schema
+    ns_ids = {}
+    loci_urls = {}
     inserted_loci = 0
-    linked_alleles = 0
-    hash_collisions = 0
-    total_loci = len(results)
-    for locus in results:
-
+    schema_linked = 0
+    species_linked = 0
+    total_loci = len(loci_annotations)
+    for locus in loci_annotations:
         locus_file = locus[0]
-        name = locus[1]
-        label = locus[2]
-        url = locus[3]
-        allele_seq_list = [str(rec.seq)
-                           for rec in SeqIO.parse(locus_file, 'fasta')]
         locus_basename = os.path.basename(locus_file)
+
+        uniprot_name = locus[1]
+        uniprot_label = locus[2]
+        uniprot_uri = locus[3]
+        # still need to add user annotation and custom annotation
 
         if len(locus) == 5:
             # re-upload alleles to existing locus
             new_loci_url = locus[4]
+            new_loci_id = new_loci_url.split('/')[-1]
             print('Re-uploading locus: {0}'.format(new_loci_url))
 
         else:
             # Create a new locus
             new_loci_status, new_loci_url = post_locus(base_url, headers_post,
                                                        loci_prefix, True,
-                                                       locus_basename)
+                                                       locus_basename,
+                                                       uniprot_name,
+                                                       uniprot_label,
+                                                       uniprot_uri)
             if new_loci_status is False:
                 print('{0}'.format(new_loci_url))
                 continue
             elif new_loci_status is True:
                 print('Created new locus: {0}'.format(new_loci_url))
+                inserted_loci += 1
 
             # Get the new loci ID
             new_loci_id = new_loci_url.split('/')[-1]
@@ -1003,6 +1068,7 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             elif species_link_status is True:
                 print('Linked new locus to species: '
                       '{0}'.format(species_link_url))
+                species_linked += 1
 
             # Associate the new loci id to the new schema
             schema_loci_status, schema_link_url = post_schema_loci(new_loci_url,
@@ -1014,75 +1080,81 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
             elif schema_loci_status is True:
                 print('Linked new locus to schema: '
                       '{0}'.format(schema_link_url))
+                schema_linked += 1
 
-        # create inputs
-        post_inputs = aux.create_allele_data(allele_seq_list, new_loci_url,
-                                             name, label, url, species_name,
-                                             check_cds, headers_post, user_id,
-                                             1)
+        loci_urls[locus_file] = new_loci_url
+        ns_id = '{0}-{1}'.format(loci_prefix, '%06d' % (int(new_loci_id),))
+        ns_ids[locus_basename.split('.fasta')[0]] = ns_id
 
-        post_results = []
-        total_inserted = 0
-        total_alleles = len(allele_seq_list)
-        # if the locus has a big number of sequences, use multithreading
-        # do not use too much workers as it will make the process hang
-        # between the end of each
-        if total_alleles > 20:
-            workers = threads
-        else:
-            workers = 1
+    print('Inserted {0}/{1} new loci.'.format(inserted_loci, total_loci))
+    print('Linked {0}/{1} new loci to species "{2}"'.format(species_linked, total_loci, species_name))
+    print('Linked {0}/{1} new loci to schema "{2}"'.format(species_linked, total_loci, schema_desc))
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            # Start the load operations and mark each future with its URL
-            for res in executor.map(aux.post_allele, post_inputs):
-                post_results.append(res)
-                total_inserted += 1
-                print('\r', 'Processed {0}/{1} '
-                      'alleles.'.format(total_inserted, total_alleles), end='')
+    end = time.time()
+    delta = end - start
+    print(delta/60)
 
-        requests_res = [r.json() for r in post_results]
-        res_definitions = [list(r.keys())[0] for r in requests_res]
-        res_collisions = [r for r in requests_res if 'HASH COLLISION' in r]
-        if len(res_collisions) > 0:
-            print(res_collisions)
-        res_counts = Counter(res_definitions)
+################
 
-        inserted_loci += 1
-        failed += res_counts.get('FAIL', 0)
-        new_alleles += res_counts.get('ADD', 0)
-        linked_alleles += res_counts.get('LINK', 0)
-        invalid_cds += res_counts.get('INVALID CDS', 0)
-        repeated += res_counts.get('REPEATED ALLELE', 0)
-        hash_collisions += res_counts.get('HASH COLLISION', 0)
+    # create files with info for posting alleles
+    post_files = []
+    for locus in loci_annotations:
+        locus_file = locus[0]
+        locus_basename = locus_file.split('/')[-1]
+        allele_seq_list = [str(rec.seq)
+                           for rec in SeqIO.parse(locus_file, 'fasta') if rec.id not in invalid_identifiers]
+        post_inputs = aux.create_allele_data(allele_seq_list, loci_urls[locus_file],
+                                             species_name, base_url, user_id, 1)
 
-        successful = res_counts.get('ADD', 0)+res_counts.get('LINK', 0)
-        print('\nSuccessfully sent {0} alleles.'.format(successful))
-        print('Could not insert {0} alleles.'.format(total_alleles-successful))
-        print('Inserted {0}/{1} loci.\n'.format(inserted_loci, total_loci))
+        locus_id = loci_urls[locus_file].split('/')[-1]
+        alleles_file = os.path.join(input_files, '{0}_{1}_{2}'.format(species_id, schema_id, locus_id))
+        with open(alleles_file, 'wb') as af:
+            pickle.dump(post_inputs, af)
 
-    # print final statistics
-    print('\tNew alleles: {0}\n'
-          '\tLinked alleles: {1}\n'
-          '\tFailed: {2}\n'
-          '\tInvalid CDS: {3}\n'
-          '\tRepeated allele: {4}\n'
-          '\tHash collision: {5}\n'.format(new_alleles,
-                                           linked_alleles,
-                                           failed,
-                                           invalid_cds,
-                                           repeated,
-                                           hash_collisions),
-          end='\r')
+        post_files.append(alleles_file)
 
-    # alter schema modification date to date after last allele was added
-    modification_date = str(dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f'))
-    schema_mod = aux.simple_post_request(base_url, headers_post,
-                                            ['species', species_id,
-                                             'schemas', schema_id, 'modified'],
-                                            {'date': modification_date})
+    # zip all files
+    zipped_files = []
+    for file in post_files:
+        zip_file = '{0}.zip'.format(file)
+        with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.write(file, os.path.basename(file))
+        zipped_files.append(zip_file)
 
-    # alter schema insertion date to the date where it had its first full structure
-    # we need this to be able to get the schema as it was inserted
+    # send POST with file contents and process each file in the NS
+    uploaded = 0
+    for file in zipped_files:
+        with open(file, 'rb') as p:
+            zip_content = p.read()
+            zip_content = zip_content.decode(encoding='ISO-8859-1')
+
+            locus_id = file.split('_')[-1].split('.zip')[0]
+            zip_url = '{0}species/{1}/schemas/{2}/loci/{3}/data'.format(base_url, species_id, schema_id, locus_id)
+
+            response = requests.post(zip_url,
+                                     headers=headers_post,
+                                     data=json.dumps({'filename': os.path.basename(file), 'content': zip_content}))
+            uploaded += 1
+            print('\r', uploaded, end='')
+
+    # send files with alleles length values
+    uploaded = 0
+    for file in length_files:
+        with open(file, 'rb')as f:
+            data = pickle.load(f)
+        
+        file_basename = file.split('/')[-1]
+        locus = ns_ids[file_basename.split('_lengths')[0]]
+        locus_id = locus.split('-')[-1].lstrip('0')
+        data = {locus_id: data[list(data.keys())[0]]}
+        send_url = '{0}species/{1}/schemas/{2}/loci/{3}/lengths'.format(base_url, species_id, schema_id, locus_id)
+
+        response = requests.post(send_url,
+                                 headers=headers_post,
+                                 data=json.dumps({'content': data}))
+        uploaded += 1
+        print('\r', uploaded, end='')
+
 
     # send training file to sftp folder
     print('\nUploading Prodigal training file...')
@@ -1099,24 +1171,22 @@ def main(input_files, species_id, schema_desc, loci_prefix, threads,
     response = requests.post(ptf_url,
                              headers=headers_post,
                              data=json.dumps({'filename': ptf_hash, 'content': ptf_content}))
-
-    # call endpoint to generate json file for frontend
-
-
     print(list(response.json().values())[0])
 
-    # unlock schema
-    schema_unlock = aux.simple_post_request(base_url, headers_post,
-                                            ['species', species_id,
-                                             'schemas', schema_id, 'lock'],
-                                            {'action': 'unlock'})
+    # delete all intermediate files
+    for i in range(len(queries_files)):
+        os.remove(loci_files[i][1])
+        os.remove(queries_files[i][1])
+        os.remove(length_files[i])
+        os.remove(post_files[i])
+        os.remove(zipped_files[i])
 
-    end = time.time()
-    delta = end - start
+    total_end = time.time()
+    total_delta = total_end - total_start
 
     # determine elapsed time in minutes
-    minutes = int(delta / 60)
-    seconds = int(delta % 60)
+    minutes = int(total_delta / 60)
+    seconds = int(total_delta % 60)
     print('\nElapsed time: {0}m{1}s'.format(minutes, seconds))
 
 

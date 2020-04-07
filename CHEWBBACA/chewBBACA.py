@@ -1038,6 +1038,11 @@ def upload_schema():
                         help='Prefix included in the name of each locus of '
                              'the schema.')
 
+    parser.add_argument('--cpu', type=int, required=False,
+                        dest='cpu_cores', default=1,
+                        help='Number of CPU cores that will '
+                             'be used in multiprocessing steps.')
+
     parser.add_argument('--thr', type=int, required=False,
                         default=20, dest='threads',
                         help='Number of threads to use to upload the alleles '
@@ -1059,12 +1064,13 @@ def upload_schema():
     species_id = args.species_id
     schema_description = args.schema_description
     loci_prefix = args.loci_prefix
+    cpu_cores = args.cpu_cores
     threads = args.threads
     nomenclature_server_url = args.nomenclature_server_url
     continue_up = args.continue_up
 
     load_schema.main(schema_directory, species_id, schema_description,
-                     loci_prefix, threads, nomenclature_server_url,
+                     loci_prefix, cpu_cores, threads, nomenclature_server_url,
                      continue_up)
 
 

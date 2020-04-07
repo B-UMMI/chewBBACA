@@ -373,12 +373,12 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
         with open(schema_config, 'wb') as scf:
             pickle.dump(schema_params_dict, scf)
 
-    # create ns_config file
-    ns_config = os.path.join(schema_path, '.ns_config')
-    if not os.path.exists(ns_config):
-        with open(ns_config, 'wb') as nc:
-            download_info = [schema_date, schema_uri]
-            pickle.dump(download_info, nc)
+        # create ns_config file
+        ns_config = os.path.join(schema_path, '.ns_config')
+        if not os.path.exists(ns_config):
+            with open(ns_config, 'wb') as nc:
+                download_info = [schema_date, schema_uri]
+                pickle.dump(download_info, nc)
 
     print('Schema is now available at: {0}'.format(schema_path))
 

@@ -63,7 +63,7 @@ def simple_get_request(base_url, headers, endpoint_list):
     # unpack list of sequential endpoints and pass to create URI
     url = make_url(base_url, *endpoint_list)
 
-    res = requests.get(url, headers=headers, timeout=30)
+    res = requests.get(url, headers=headers, timeout=30, verify=False)
 
     return res
 
@@ -87,7 +87,7 @@ def simple_post_request(base_url, headers, endpoint_list, data):
 
     # unpack list of sequential endpoints and pass to create URI
     url = make_url(base_url, *endpoint_list)
-    res = requests.post(url, data=json.dumps(data), headers=headers)
+    res = requests.post(url, data=json.dumps(data), headers=headers, verify=False)
 
     return res
 
@@ -158,7 +158,7 @@ def post_alleles(input_file):
     responses = []
     session = get_session()
     for d in data:
-        with session.post(d[0], data=d[1], headers=d[2], timeout=360) as response:
+        with session.post(d[0], data=d[1], headers=d[2], timeout=360, verify=False) as response:
             responses.append(list(response))
 
     return responses
@@ -1408,7 +1408,7 @@ def login_user_to_NS(server_url, email, password):
     
     auth_url = make_url(server_url, "auth", "login")
     
-    auth_r = requests.post(auth_url, data=json.dumps(auth_params), headers=auth_headers)
+    auth_r = requests.post(auth_url, data=json.dumps(auth_params), headers=auth_headers, verify=False)
     
     auth_result = auth_r.json() 
     if auth_result['status'] == 'success':
@@ -1434,12 +1434,12 @@ def send_data(sparql_query, url_send_local_virtuoso, virtuoso_user, virtuoso_pas
     
     url = url_send_local_virtuoso
     headers = {'content-type': 'application/sparql-query'}
-    r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass))
+    r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass), verify=False)
 
     #sometimes virtuoso returns 405 God knows why ¯\_(ツ)_/¯ retry in 2 sec
     if r.status_code >201:
         time.sleep(2)
-        r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass))
+        r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass), verify=False)
         
     return r
 
@@ -1465,7 +1465,7 @@ def send_post(loci_uri, sequence, token, noCDSCheck):
     sleepfactor = 4
     while not req_success:
         try:
-            r = requests.post(url, data=json.dumps(params), headers=headers, timeout=30)
+            r = requests.post(url, data=json.dumps(params), headers=headers, timeout=30, verify=False)
             
             if r.status_code == 418:
                 print("Sequence is already attributed to a loci/allele")

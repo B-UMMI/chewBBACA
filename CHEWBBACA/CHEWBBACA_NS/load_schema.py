@@ -38,6 +38,11 @@ from Bio.Data.CodonTable import TranslationError
 from utils import constants as cnst
 from utils import auxiliary_functions as aux
 
+from urllib3.exceptions import InsecureRequestWarning
+
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
 
 virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
 
@@ -464,7 +469,7 @@ def post_locus(base_url, headers_post, locus_prefix, keep_file_name, gene,
 
     # Add locus to NS
     res = requests.post(url_loci, data=json.dumps(params),
-                        headers=headers_post, timeout=30)
+                        headers=headers_post, timeout=30, verify=False)
 
     res_status = res.status_code
     if res_status == 409:
@@ -593,7 +598,7 @@ def post_species_loci(url, species_id, locus_id, headers_post):
 
     # insert new locus
     res = requests.post(url_species_loci, data=json.dumps(params),
-                        headers=headers_post, timeout=30)
+                        headers=headers_post, timeout=30, verify=False)
 
     if res.status_code > 201:
         message = ('{0}: Failed to link locus to '
@@ -630,7 +635,7 @@ def post_schema_loci(loci_url, schema_url, headers_post):
     url_schema_loci = aux.make_url(schema_url, 'loci')
 
     res = requests.post(url_schema_loci, data=json.dumps(params),
-                        headers=headers_post, timeout=30)
+                        headers=headers_post, timeout=30, verify=False)
 
     if res.status_code > 201:
         message = ('{0}: Failed to link locus to '
@@ -1146,7 +1151,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
 
             response = requests.post(zip_url,
                                      headers=headers_post,
-                                     data=json.dumps({'filename': os.path.basename(file), 'content': zip_content}))
+                                     data=json.dumps({'filename': os.path.basename(file), 'content': zip_content}),
+                                     verify=False)
             uploaded += 1
             print('\r', uploaded, end='')
 
@@ -1164,7 +1170,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
 
         response = requests.post(send_url,
                                  headers=headers_post,
-                                 data=json.dumps({'content': data}))
+                                 data=json.dumps({'content': data}),
+                                 verify=False)
         uploaded += 1
         print('\r', uploaded, end='')
 
@@ -1183,7 +1190,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
 
     response = requests.post(ptf_url,
                              headers=headers_post,
-                             data=json.dumps({'filename': ptf_hash, 'content': ptf_content}))
+                             data=json.dumps({'filename': ptf_hash, 'content': ptf_content}),
+                             verify=False)
     print(list(response.json().values())[0])
 
     # delete all intermediate files

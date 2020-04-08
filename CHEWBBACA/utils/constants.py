@@ -37,7 +37,7 @@ FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn']
 
 # NS related constants
 
-#HOST_NS = '194.210.120.209'
+#HOST_NS = 'https://194.210.120.209/api/NS/api/'
 HOST_NS = 'http://127.0.0.1:5000/NS/api/'
 
 SFTP_PTF_TEMP = '/prodigal_training_files/upload_temp'

@@ -730,11 +730,11 @@ def parse_arguments():
 
 #input_files = '/home/rfm/Desktop/ns_test/test_ns_createschema/'
 #species_id = 1
-#schema_desc = 'sagalactiae3'
-#loci_prefix = 'sagalactiae3'
+#schema_desc = 'sagalactiae9'
+#loci_prefix = 'sagalactiae9'
 #cpu_cores = 6
 #threads = 10
-#base_url = 'http://127.0.0.1:5000/NS/api/'
+#base_url = 'https://194.210.120.209/api/NS/api/'
 #continue_up = False
 
 def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
@@ -1141,28 +1141,26 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
 
     # send POST with file contents and process each file in the NS
     uploaded = 0
-    for file in zipped_files:
-        with open(file, 'rb') as p:
+    for i in range(len(zipped_files)):
+        
+        current_zip = zipped_files[i]
+        with open(current_zip, 'rb') as p:
             zip_content = p.read()
             zip_content = zip_content.decode(encoding='ISO-8859-1')
 
-            locus_id = file.split('_')[-1].split('.zip')[0]
-            zip_url = '{0}species/{1}/schemas/{2}/loci/{3}/data'.format(base_url, species_id, schema_id, locus_id)
+        locus_id = current_zip.split('_')[-1].split('.zip')[0]
+        zip_url = '{0}species/{1}/schemas/{2}/loci/{3}/data'.format(base_url, species_id, schema_id, locus_id)
 
-            response = requests.post(zip_url,
-                                     headers=headers_post,
-                                     data=json.dumps({'filename': os.path.basename(file), 'content': zip_content}),
-                                     verify=False)
-            uploaded += 1
-            print('\r', uploaded, end='')
+        response = requests.post(zip_url,
+                                 headers=headers_post,
+                                 data=json.dumps({'filename': os.path.basename(current_zip), 'content': zip_content}),
+                                 verify=False)
 
-    # send files with alleles length values
-    uploaded = 0
-    for file in length_files:
-        with open(file, 'rb')as f:
+        current_len = length_files[i]
+        with open(current_len, 'rb')as f:
             data = pickle.load(f)
         
-        file_basename = file.split('/')[-1]
+        file_basename = current_len.split('/')[-1]
         locus = ns_ids[file_basename.split('_lengths')[0]]
         locus_id = locus.split('-')[-1].lstrip('0')
         data = {locus_id: data[list(data.keys())[0]]}
@@ -1172,8 +1170,10 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
                                  headers=headers_post,
                                  data=json.dumps({'content': data}),
                                  verify=False)
+        
         uploaded += 1
         print('\r', uploaded, end='')
+      
 
 
     # send training file to sftp folder
@@ -1195,12 +1195,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
     print(list(response.json().values())[0])
 
     # delete all intermediate files
-    # for i in range(len(queries_files)):
-    #     os.remove(loci_files[i][1])
-    #     os.remove(queries_files[i][1])
-    #     os.remove(length_files[i])
-    #     os.remove(post_files[i])
-    #     os.remove(zipped_files[i])
+    for i in range(len(queries_files)):
+        os.remove(loci_files[i][1])
+        os.remove(queries_files[i][1])
+        os.remove(length_files[i])
+        os.remove(post_files[i])
+        os.remove(zipped_files[i])
 
     total_end = time.time()
     total_delta = total_end - total_start

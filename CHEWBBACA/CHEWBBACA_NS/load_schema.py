@@ -225,8 +225,9 @@ def validate_st(configs):
     valid = False
     schema_sts = configs.get('size_threshold', 'na')
     if len(schema_sts) == 1:
+        st_value = schema_sts[0]
         try:
-            schema_st = float(schema_sts[0])
+            schema_st = float(st_value)
             if schema_st >= 0:
                 message = ('Schema created with a size threshold '
                            'parameter of {0}.'.format(schema_st))
@@ -234,9 +235,14 @@ def validate_st(configs):
             else:
                 raise ValueError('Invalid size threshold value. '
                                  'Must be contained in the [0.0, 1.0] interval.')
-        except ValueError:
-            message = ('Invalid size threshold value used to '
-                       'create schema. Value must be a positive float.')
+        except Exception:
+            if st_value is None:
+                message = ('Schema was created without a size_threshold value.')
+                valid = 'None'
+            else:
+                message = ('Invalid size threshold value used to '
+                           'create schema. Value must be None or a '
+                           'positive float in the [0.0, 1.0] interval.')
     else:
         message = ('Multiple size threshold values.')
 
@@ -659,60 +665,68 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-i', type=str, dest='input_files', required=True,
-                        help='Path to folder containing the schema fasta '
-                        'files (alternatively, a file with a list of paths '
-                        'to fasta files).')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='schema_directory',
+                        help='Path to the directory with the local schema '
+                             'files.')
 
-    parser.add_argument('-sp', type=str, dest='species_id', required=True,
-                        help='The identifier for the schemas species in '
-                        'the NS. Can be the species name of the integer '
-                        'identifier for that species in the NS.')
+    parser.add_argument('-sp', type=str, required=True,
+                        dest='species_id',
+                        help='The integer identifier or name of the species '
+                             'that the schema will be associated to in '
+                             'the NS.')
 
-    parser.add_argument('-sdesc', type=str, dest='schema_desc', required=True,
-                        help='A brief description for the schema. It is '
-                        'important to pass a meaningful value')
+    parser.add_argument('-sd', type=str, required=True,
+                        dest='schema_description',
+                        help='A brief and meaningful description that '
+                             'should help understand the type and content '
+                             'of the schema.')
 
-    parser.add_argument('-lprefix', type=str, dest='loci_prefix',
-                        required=True,
-                        help='Prefix added to the identifier of each schema '
-                        'gene. For instance, ACIBA will produce '
-                        'ACIBA00001.fasta.')
+    parser.add_argument('-lp', type=str, required=True,
+                        dest='loci_prefix',
+                        help='Prefix included in the name of each locus of '
+                             'the schema.')
 
     parser.add_argument('--cpu', type=int, required=False,
                         dest='cpu_cores', default=1,
                         help='Number of CPU cores that will '
                              'be used in multiprocessing steps.')
 
-    parser.add_argument('--thr', type=int, required=False, dest='threads',
-                        default=30, help='The number of threads to use. '
-                        'The process will use multithreading to search for '
-                        'annotations on UniProt and to send data to the NS '
-                        '(default=30).')
+    parser.add_argument('--thr', type=int, required=False,
+                        default=20, dest='threads',
+                        help='Number of threads to use to upload the alleles '
+                             'of the schema.')
 
-    # change this so that it gets default from config file
-    parser.add_argument('--url', type=str, required=False, dest='base_url',
-                        default='http://127.0.0.1:5000/NS/api/',
-                        help='The base URL for the NS server. Will be used '
-                        'to create endpoints URLs.')
+    parser.add_argument('--ns_url', type=str, required=False,
+                        default=cnts.HOST_NS,
+                        dest='nomenclature_server_url',
+                        help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--cont', required=False, action='store_true',
+    parser.add_argument('--continue_up', required=False, action='store_true',
                         dest='continue_up',
-                        help='Flag used to indicate if the process should '
-                        'try to continue a schema upload that crashed '
-                        '(default=no.')
+                        help='If the process should check if the schema '
+                             'upload was interrupted and try to finish it.')
 
     args = parser.parse_args()
 
-    return [args.input_files, args.species_id, args.schema_desc,
-            args.loci_prefix, args.cpu_cores, args.threads,
-            args.base_url, args.continue_up]
+    schema_directory = args.schema_directory
+    species_id = args.species_id
+    schema_description = args.schema_description
+    loci_prefix = args.loci_prefix
+    cpu_cores = args.cpu_cores
+    threads = args.threads
+    nomenclature_server_url = args.nomenclature_server_url
+    continue_up = args.continue_up
+
+    return [schema_directory, species_id, schema_description,
+            loci_prefix, cpu_cores, threads,
+            nomenclature_server_url, continue_up]
 
 
-#input_files = '/home/rfm/Desktop/ns_test/test_ns_createschema'
+#input_files = '/home/rfm/Desktop/ns_test/test_ns_createschema/'
 #species_id = 1
-#schema_desc = 'test88'
-#loci_prefix = 'test88'
+#schema_desc = 'sagalactiae3'
+#loci_prefix = 'sagalactiae3'
 #cpu_cores = 6
 #threads = 10
 #base_url = 'http://127.0.0.1:5000/NS/api/'
@@ -786,9 +800,8 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
     rf_val = validate_rf(configs)
     if_val = validate_if(configs)
 
-    valid_list = [ptf_val[0], bsr_val[0], msl_val[0], tt_val[0],
-                  st_val[0], cv_val[0], ws_val[0], cs_val[0],
-                  rf_val[0], if_val[0]]
+    valid_list = [ptf_val[0], bsr_val[0], msl_val[0], tt_val[0], st_val[0],
+                  cv_val[0], ws_val[0], cs_val[0], rf_val[0], if_val[0]]
 
     messages_list = [ptf_val[1], bsr_val[1], msl_val[1], tt_val[1],
                      st_val[1], cv_val[1], ws_val[1], cs_val[1],
@@ -1174,12 +1187,12 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
     print(list(response.json().values())[0])
 
     # delete all intermediate files
-    for i in range(len(queries_files)):
-        os.remove(loci_files[i][1])
-        os.remove(queries_files[i][1])
-        os.remove(length_files[i])
-        os.remove(post_files[i])
-        os.remove(zipped_files[i])
+    # for i in range(len(queries_files)):
+    #     os.remove(loci_files[i][1])
+    #     os.remove(queries_files[i][1])
+    #     os.remove(length_files[i])
+    #     os.remove(post_files[i])
+    #     os.remove(zipped_files[i])
 
     total_end = time.time()
     total_delta = total_end - total_start
@@ -1193,5 +1206,5 @@ def main(input_files, species_id, schema_desc, loci_prefix, cpu_cores,
 if __name__ == "__main__":
 
     args = parse_arguments()
-    main(args[0], args[1], args[2],
-         args[3], args[4], args[5], args[6])
+    main(args[0], args[1], args[2], args[3],
+    	 args[4], args[5], args[6], args[7])

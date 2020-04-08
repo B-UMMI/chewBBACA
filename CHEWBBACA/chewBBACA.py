@@ -1012,7 +1012,7 @@ def upload_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('Load_NS_Schema', nargs='+',
+    parser.add_argument('LoadSchema', nargs='+',
                         help='This program loads a schema to '
                              'the NS.')
 

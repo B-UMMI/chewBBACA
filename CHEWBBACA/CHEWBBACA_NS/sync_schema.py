@@ -460,12 +460,6 @@ def parse_arguments():
             args.nomenclature_server_url, args.submit]
 
 
-schema_dir = '/home/rfm/Desktop/ns_test/test_download/sagalactiae_sagalactiae3'
-core_num = 6
-base_url = 'http://127.0.0.1:5000/NS/api/'
-submit = 'yes'
-
-
 def main(schema_dir, core_num, base_url, submit):
 
     token = aux.capture_login_credentials(base_url)

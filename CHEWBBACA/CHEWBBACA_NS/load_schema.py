@@ -995,18 +995,6 @@ def parse_arguments():
             continue_up]
 
 
-#input_files = '/home/rfm/Desktop/ns_test/test_ns'
-#species_id = 1
-#schema_name = 'sagalactiae2'
-#loci_prefix = 'sagalactiae2'
-#description_file = ''
-#annotations = ''
-#cpu_cores = 6
-#threads = 20
-#base_url = cnst.HOST_NS
-#continue_up = False
-
-
 def main(input_files, species_id, schema_name, loci_prefix, description_file,
          annotations, cpu_cores, threads, base_url, continue_up):
 

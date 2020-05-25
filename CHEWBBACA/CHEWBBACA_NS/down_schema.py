@@ -461,16 +461,6 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-#schema_id = '1'
-#species_id = '1'
-#download_folder = '/home/rfm/Desktop/ns_test/test_down'
-#core_num = 6
-#base_url = cnst.HOST_NS
-#date = None
-#latest = True
-#base_url = 'https://194.210.120.209/api/NS/api/'
-#base_url = 'https://chewbbaca.online/NS/api/'
-
 def main(schema_id, species_id, download_folder, core_num, base_url, date, latest):
 
     token = aux.capture_login_credentials(base_url)

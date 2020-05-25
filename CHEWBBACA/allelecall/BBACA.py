@@ -15,8 +15,8 @@ try:
     from allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
     from utils import ParalogPrunning
 except ImportError:
-    from CHEWBBACA_NS.allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
-    from CHEWBBACA_NS.utils import ParalogPrunning
+    from CHEWBBACA.allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
+    from CHEWBBACA.utils import ParalogPrunning
 
 
 def which(program):

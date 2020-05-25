@@ -1,44 +1,94 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHOR
+Purpose
+-------
 
-    Pedro Cerqueira
-    github: @pedrorvc
+This module enables the download of chewBBACA's schemas from the
+Chewie-NS.
 
-    Rafael Mamede
-    github: @rfm-targa
+The process enables the download of ZIP archives that contain ready-to-use
+versions of any schema in the Chewie-NS. It also allows users to download
+any schema with the structure it had at a specific time point.
 
-DESCRIPTION
 
+
+Expected input
+--------------
+
+The process expects the following variables wheter through command line
+execution or invocation of the :py:func:`main` function:
+
+- ``-sc``, ``schema_id`` : The schema identifier in the Chewie-NS.
+
+    - e.g.: ``1``
+
+- ``-sp``, ``species_id`` : The integer identifier or name of the species
+  that the schema will be associated to in the Chewie-NS.
+
+    - e.g.: ``1`` or ``'Yersinia pestis'``
+
+- ``-o``, ``download_folder`` : Path to the parent directory of the folder
+  that will store the downloaded schema. The process will create a folder
+  with the schema's name inside the directory specified through this argument.
+
+    - e.g.: ``/home/user/chewie_schemas``
+
+- ``--cpu``, ``cpu_cores`` : Number of CPU cores that will be used to
+  construct the schema if the process downloads FASTA files instead of
+  the compressed version.
+
+    - e.g.: ``4``
+
+- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
+  Nomenclature Server.
+
+    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (local host)
+
+- ``--d``, ``date`` : Download schema with structure it had at
+  specified date. Must be in the format "Y-m-dTH:M:S" or "Y-m-dTH:M:S.f".
+
+    - e.g.: ``2020-03-27T11:38:00`` or ``2020-03-27T11:38:01.100``
+
+- ``--latest`` : If the compressed version that is available is not the
+  latest, downloads all loci and constructs schema locally.
+
+Code documentation
+------------------
 """
 
 
 import os
 import sys
-import json
-import time
 import shutil
 import pickle
-import random
 import argparse
 import requests
+import datetime as dt
 from copy import deepcopy
 import concurrent.futures
-from getpass import getpass
 from itertools import repeat
 from collections import defaultdict
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper
+from urllib3.exceptions import InsecureRequestWarning
 
 from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.Data.CodonTable import TranslationError
 
-from utils import auxiliary_functions as aux
-from PrepExternalSchema import PrepExternalSchema
+try:
+    from utils import constants as cnst
+    from utils import auxiliary_functions as aux
+    from PrepExternalSchema import PrepExternalSchema
+except ImportError:
+    from CHEWBBACA.utils import constants as cnst
+    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
 
 
-virtuoso_server = SPARQLWrapper('http://sparql.uniprot.org/sparql')
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
+
+uniprot_sparql = SPARQLWrapper(cnst.UNIPROT_SPARQL)
 
 
 def determine_upload(local_schema_loci, ns_schema_loci,
@@ -63,18 +113,9 @@ def determine_upload(local_schema_loci, ns_schema_loci,
 
             # get uniprot info for locus
             ns_uri = ns_schema_locid_map[local_locus][0]
-            ns_locus_id = ns_uri.split('/')[-1]
-
-            ns_uniprot = aux.simple_get_request(base_url, headers_get,
-                                                ['loci', ns_locus_id, 'uniprot'])
-            locus_name = ns_uniprot.json()['UniprotInfo'][0]['UniprotSName']['value']
-            locus_label = ns_uniprot.json()['UniprotInfo'][0]['UniprotLabel']['value']
-            locus_annotation = ns_uniprot.json()['UniprotInfo'][0]['UniprotURI']['value']
 
             local_uniq[local_locus].append(ns_uri)
-            local_uniq[local_locus].append(locus_name)
-            local_uniq[local_locus].append(locus_label)
-            local_uniq[local_locus].append(locus_annotation)
+
             # after sync, the allele identifiers of the sequences
             # exclusive to the local schema should be ok to use
             # as identifiers for new alleles in the NS
@@ -84,7 +125,7 @@ def determine_upload(local_schema_loci, ns_schema_loci,
                 seq = rec[1]
 
                 local_uniq[local_locus].append([seqid,
-                                                seq])
+                                                seq, len(seq)])
 
                 # delete entry with '*'
                 allele_id = int(seqid.split('_')[-1])
@@ -101,28 +142,6 @@ def determine_upload(local_schema_loci, ns_schema_loci,
           ' local schema.'.format(len(local_uniq)))
 
     return [local_uniq, comp]
-
-
-def translate_sequence(dna_str, table_id):
-    """ Translate a DNA sequence using the BioPython package.
-
-        Args:
-            dna_str (str): DNA sequence as string type.
-            table_id (int): translation table identifier.
-
-        Returns:
-            protseq (str): protein sequence created by translating
-            the input DNA sequence.
-    """
-
-    myseq_obj = Seq(dna_str)
-    try:
-        protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
-
-        return protseq
-
-    except TranslationError as e:
-        return e
 
 
 def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
@@ -172,124 +191,61 @@ def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
     return True
 
 
-def retrieve_latest_alleles(loci_new_alleles, server_time, schema_uri, new_count, headers_get):
+def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
+                     count, headers_get, ns_date):
     """
     """
 
     # request the new alleles starting on the date given
-    uri = aux.make_url(schema_uri, 'loci', date=server_time)
-
+    url = aux.make_url(schema_uri, 'loci')
+    payload = {'local_date': server_time, 'ns_date': ns_date}
     # get the new alleles
-    response = requests.get(uri, headers=headers_get)
+    response = requests.get(url, headers=headers_get,
+                            timeout=30, params=payload)
 
     response_content = response.json()
-    # get headers info with 
-    response_headers = response.headers
     # get info about sequences that were added since last date
-    new_ns_alleles = response_content['newAlleles']
+    new_alleles = response_content['newAlleles']
 
-    if len(new_ns_alleles) > 0:
-        previous_server_time = server_time
+    # get headers info
+    response_headers = response.headers
+    print('Got {0}'.format(len(new_alleles)))
+    if len(new_alleles) > 0:
         # get date of last added allele
         server_time = response_headers['Last-Allele']
+        # group retrieved alleles by locus
+        for allele in new_alleles:
+            locus = '{0}{1}'.format(allele['locus_name']['value'], '.fasta')
+            allele_id = allele['allele_id']['value']
+            sequence = allele['nucSeq']['value']
+
+            loci_new_alleles[locus][allele_id] = sequence
+
+        # keep count of the number of retrieved alleles
+        count += len(new_alleles)
     else:
-        # get current server date if no sequence were added
+        # get current server date if no alleles were added
         # since last server time
         server_time = response_headers['Server-Date']
-        return (loci_new_alleles, True, server_time, new_count)
 
-    # group retrieved alleles by locus
-    already = 0
-    for allele in new_ns_alleles:
-
-        locus = '{0}{1}'.format(allele['locus_name']['value'], '.fasta')
-        allele_id = allele['allele_id']['value']
-        sequence_uri = allele['sequence']['value']
-
-        if locus in loci_new_alleles:
-            if allele_id in loci_new_alleles[locus]:
-                if loci_new_alleles[locus][allele_id] == sequence_uri:
-                    print('This was already here!')
-                    already += 1
-
-        loci_new_alleles[locus][allele_id] = sequence_uri
-
-    # keep count of the number of retrieved alleles
-    new_count += len(response_content['newAlleles']) - already
-
-    # if we got the maximum number of alleles that can be returned
-    # in one pass, return False to re-run the function until we get all
-    # new alleles
-    if 'All-Alleles-Returned' in response_headers:
-        returned = response_headers['All-Alleles-Returned']
-        all_retrieved = False if returned == 'False' else True
-        if all_retrieved == True:
-            server_time = response_headers['Server-Date']
-        return (loci_new_alleles, all_retrieved, server_time, new_count)
-    # return True to stop since there are no more new alleles
-    elif 'Server-Date' in response_headers:
-        return (loci_new_alleles, True, server_time, new_count)
+    return (loci_new_alleles, server_time, count)
 
 
-def get_allele_seq(headers_get, uri):
-    """
-    """
-
-    seq_hash = uri.split('/sequences/')[1]
-
-    url = aux.make_url(uri.split(seq_hash)[0], 'seq_info', seq_id=seq_hash)
-
-    r = requests.get(url, headers=headers_get, timeout=30)
-
-    r_content = r.json()
-
-    allele_seq = r_content['sequence']['value']
-
-    return [uri, allele_seq]
-
-
-def get_new_alleles_seqs(alleles_info, headers_get):
-    """
-    """
-    
-    new_alleles = {}
-    for locus in alleles_info.keys():
-        allele_dict = alleles_info[locus]
-        # invert locus dictionary to get mapping from allele
-        # sequence hash to allele identifier
-        allele_hash_map = {v:k for k, v in allele_dict.items()}
-        # get all endpoints for the new sequences
-        sequence_uri_list = list(allele_dict.values())
-        
-        new_alleles[locus] = {}
-
-        # get allele DNA sequences
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            for result in executor.map(get_allele_seq, repeat(headers_get), sequence_uri_list):
-                new_alleles[locus][allele_hash_map[result[0]]] = result[1]
-
-    return new_alleles
-
-
-#new_alleles = fasta_response
-#local_loci = schema_fasta_files
-
-
-def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
+def update_loci_files(loci, local_loci, schema_dir, temp_dir):
     """
     """
 
     # Check if new alleles are already on schema
     not_in_ns = {}
     pickled_loci = {}
-    for locus in new_alleles:
+    for locus, alleles in loci.items():
         not_in_ns[locus] = []
         if locus in local_loci:
             # get locus file identifier without '.fasta'
             locus_id = locus.rstrip('.fasta')
             # get latest locus alleles retrieved from the NS
             locus_ns_seqs = {seq: seqid
-                             for seqid, seq in new_alleles[locus].items()}
+                             for seqid, seq in alleles.items()}
 
             # full path for local locus file
             locus_file = os.path.join(schema_dir, locus)
@@ -306,13 +262,13 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
             # check if the NS and local schema have the same set of
             # sequence identifiers
             ns_ids = set(list(locus_ns_seqs.values()))
-            local_ids = set([recinfo[0] for recid, recinfo in records.items()])
+            local_ids = set([rec[0] for seqid, rec in records.items()])
             # if the set of identifiers is equal, do not create a pickled file
             if ns_ids == local_ids:
                 del not_in_ns[locus]
                 continue
 
-            # deepcopy records to alter and sync with the NS locus
+            # deepcopy local records to alter and sync with the NS locus
             altered_locus = deepcopy(records)
             id_map = {}
             for seqid, seq in altered_locus.items():
@@ -322,7 +278,8 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
                     id_map[int(seq[0])] = seqid
 
             # determine max integer identifier to later increment
-            max_id = max(list(id_map.keys()))
+            #max_id = max(id_map.keys())
+            max_id = max([int(i) for i in ns_ids])
 
             # initalize list
             switched = []
@@ -342,7 +299,7 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
                     # allele has the same integer identifier
                     # in local and NS schemas
                     if ns_id == allele_id:
-                        # simple '*' replace suffices
+                        # simply remove '*'
                         new_id = current_seqid.replace('*', '')
                         # add record without '*'
                         altered_locus[new_id] = [str(allele_id), seq[1]]
@@ -405,8 +362,8 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
 
                         # store info about sequences that are not in the NS
                         not_in_ns[locus].append(('{0}_*{1}'.format(locus_id,
-                                                                  max_id),
-                                                                  current_seq))
+                                                                   max_id),
+                                                                   current_seq))
                     # local sequence has an identifier that is not attributed
                     # to any sequence in the NS
                     else:
@@ -439,64 +396,32 @@ def update_loci_files(new_alleles, local_loci, schema_dir, temp_dir):
     return [not_in_ns, pickled_loci]
 
 
-def update_local_schema(last_sync_date, schema_uri, schema_dir, temp_dir,
-                        bsr, ns_url, headers_get, headers_post):
+def retrieve_latest(local_date, schema_uri, schema_dir, temp_dir,
+                    ns_url, headers_get, ns_date):
     """
     """
 
     # get list of sequences that are new considering the last date
-    new_count = 0
-    new_seqs = False
-    server_time = last_sync_date
-    loci_new_alleles = defaultdict(dict)
+    count = 0
+    server_time = local_date
+    new_alleles = defaultdict(dict)
 
-	# get all sequences until the number of new sequences is less than 100k, the maximum the server return is 100k
-    # start getting new sequences that were added to the server and that are not in local schema
+    # get new alleles from Chewie-NS, maximum of 10k at a time
     print('Determining if there are new sequences in the NS...')
     print('Getting new alleles added to the NS since '
           '{0}'.format(str(server_time)))
-    while not new_seqs:
-        loci_new_alleles, new_seqs, server_time, new_count = retrieve_latest_alleles(loci_new_alleles,
-                                                                                     server_time,
-                                                                                     schema_uri,
-                                                                                     new_count,
-                                                                                     headers_get)
+    while server_time != ns_date:
+        new_alleles, server_time, count = retrieve_alleles(new_alleles,
+                                                           server_time,
+                                                           schema_uri,
+                                                           count,
+                                                           headers_get,
+                                                           ns_date)
+
     print('Retrieved {0} new alleles added since '
-          '{1}'.format(new_count, last_sync_date))
+          '{1}'.format(count, local_date))
 
-    # if new_alleles dict has no entries
-    # there are no new alleles
-    if not bool(loci_new_alleles):
-        return 'There were no new alleles to retrieve...'
-
-    # get DNA sequences for retrieved alleles
-    print('Getting DNA sequences of latest alleles...')
-    fasta_response = get_new_alleles_seqs(loci_new_alleles, headers_get)
-
-    # get list of local schema files
-    schema_fasta_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-
-    not_in_ns, pickled_loci = update_loci_files(fasta_response,
-                                                schema_fasta_files,
-                                                schema_dir,
-                                                temp_dir)
-
-    return [not_in_ns, pickled_loci, server_time, new_count]
-
-
-def load_binary(parent_dir, file_name):
-    """
-    """
-
-    binary_file = os.path.join(parent_dir,
-                               file_name)
-
-    if os.path.exists(binary_file):
-        with open(binary_file, 'rb') as bf:
-            content = pickle.load(bf)
-        return content
-    else:
-        return False
+    return [new_alleles, server_time, count]
 
 
 def parse_arguments():
@@ -504,277 +429,273 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-schema', type=str, dest='schema_dir', required=True,
+    parser.add_argument('-sc', type=str, dest='schema_dir', required=True,
                         help='Path to the directory with the schema to be'
                              'synced.')
 
-    parser.add_argument('--cores', type=int, required=False, dest='core_num',
-                        default=1, help='Number of CPU cores to use to '
-                        'construct the complete schema based on the '
-                        'synced/updated loci files.')
+    parser.add_argument('--cpu', type=int, required=False,
+                        dest='cpu_cores', default=1,
+                        help='Number of CPU cores that will '
+                             'be used to determine new representatives '
+                             'if the process downloads new alleles from '
+                             'the Chewie-NS.')
 
-    parser.add_argument('--ns_url', type=str, required=False, dest='ns_url',
-                        default='http://127.0.0.1:5000/NS/api/',
-                        help='The base URI for the NS endpoints.')
+    parser.add_argument('--ns_url', type=str, required=False,
+                        dest='nomenclature_server_url',
+                        default=cnst.HOST_NS,
+                        help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--submit', type=str, required=False, dest='submit',
-                        default='no',
-                        help='If the process should detect new alleles'
-                        'in the local schema and send them to the NS. (only'
-                        ' authorized users can submit new alleles).')
+    parser.add_argument('--submit', required=False,
+                        action='store_true', dest='submit',
+                        help='If the process should identify new alleles '
+                             'in the local schema and send them to the '
+                             'NS. (only users with permissons level of '
+                             'Contributor can submit new alleles).')
+
+    # add waiting time for the step that adds alleles to the NS? If schema is locked wait this time.
 
     args = parser.parse_args()
 
-    return [args.schema_dir, args.core_num, args.ns_url,
-            args.submit]
+    return [args.schema_dir, args.cpu_cores,
+            args.nomenclature_server_url, args.submit]
 
 
-#schema_dir = '/home/rfm/Desktop/rfm/Lab_Analyses/GBS_CC1/CC1_chewie/lol/sagalactiae_catch224_schema'
-#core_num = 6
-#ns_url = 'http://127.0.0.1:5000/NS/api/'
-#submit = 'yes'
+schema_dir = '/home/rfm/Desktop/ns_test/test_download/sagalactiae_sagalactiae3'
+core_num = 6
+base_url = 'http://127.0.0.1:5000/NS/api/'
+submit = 'yes'
 
 
-def main(schema_dir, core_num, ns_url, submit):
+def main(schema_dir, core_num, base_url, submit):
 
-    # login with master key
-    login_key = False
-    if login_key:
-        pass
-    # if the login key is not found ask for credentials
-    else:
-        print('\nCould not find private key.')
-        print('\nPlease provide login credentials:')
-        user = input('USERNAME: ')
-        password = getpass('PASSWORD: ')
-        print()
-        # get token
-        token = aux.login_user_to_NS(ns_url, user, password)
-        # if login was not successful, stop the program
-        if token is False:
-            message = '403: Invalid credentials.'
-            print(message)
-            return message
+    token = aux.capture_login_credentials(base_url)
 
-    # Define the headers of the requests
-    headers_get = {'Authorization': token,
-                   'accept': 'application/json'}
+    start_date = dt.datetime.now()
+    start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
+    print('Started at: {0}\n'.format(start_date_str))
 
-    headers_post = {'Authorization': token,
-                    'Content-type': 'application/json',
-                    'accept': 'application/json'}
+    # GET request headers
+    headers_get = cnst.HEADERS_GET_JSON
+    headers_get['Authorization'] = token
+
+    # determine current user ID and Role
+    user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
+    print('User id: {0}'.format(user_id))
+    print('User role: {0}'.format(user_role))
+
+    # POST requests headers
+    headers_post = cnst.HEADERS_POST_JSON
+    headers_post['Authorization'] = token
+    headers_post['user_id'] = user_id
+    # POST headers to send binary data
+    headers_post_bytes = cnst.HEADERS_POST
+    headers_post_bytes['Authorization'] = token
+    headers_post_bytes['user_id'] = user_id
 
     # get schema configs
-    ns_vars = load_binary(schema_dir, '.ns_config')
-    if ns_vars is not False:
-        last_sync_date, schema_uri = ns_vars
-    else:
-        print('Could not find schema NS variables.\n'
-              'Cannot sync schema.')
-        return 1
-
-    schema_params = load_binary(schema_dir, '.schema_config')
-    if schema_params is False:
-        print('Could not find schema configurations file.\n'
-              'Cannot sync schema')
-        return 1
-
-    # check if schema exists in the NS
-    schema_response = requests.get(schema_uri,
-                                   headers=headers_get,
-                                   timeout=5)
-
-    if schema_response.status_code > 201:
-        print('There is no schema with URI "{0}" in the NS.')
-        return 1
-
-    # get information about user
-    user_info = aux.simple_get_request(ns_url, headers_get,
-                                       ['user', 'current_user'])
-    user_info = user_info.json()
-    user_role = any(role in user_info['roles']
-                    for role in ['Admin', 'Contributor'])
-
-    user_id = str(user_info['id'])
-
-    # check if schema is locked
-    schema_info = schema_response.json()[0]
-    lock_status = schema_info['Schema_lock']['value']
-    if lock_status != 'Unlocked':
-        print('403: schema is locked. This might be because it '
-              'is being uploaded, updated or compressed.'
-              ' Please try again later and contact the Administrator '
-              'if the schema stays locked for a long period of time.')
-        return 403
-
+    local_date, schema_uri = aux.read_configs(schema_dir, '.ns_config')
     # get schema and species identifiers
     schema_id = schema_uri.split('/')[-1]
     species_id = schema_uri.split('/')[-3]
 
-    # if submit, lock schema
-    locked = False
-    if user_role is True and submit == 'yes':
-        schema_lock = aux.simple_post_request(base_url, headers_post,
-                                              ['species', species_id,
-                                               'schemas', schema_id, 'lock'],
-                                              {'action': 'lock'})
-        locked = True
-    elif user_role is False and submit == 'yes':
-        print('Current user has no permission to submit new data. '
-              'Local schema will be updated but novel alleles will '
-              'not be sent to the NS.')
-    else:
-        print('Updating local schema...')
+    schema_params = aux.read_configs(schema_dir, '.schema_config')
 
-    # check if list of loci is the same in local and NS schemas
+    # check if schema exists in the NS
+    schema_name, ns_params = aux.get_species_schemas(schema_id,
+                                                     species_id,
+                                                     base_url,
+                                                     headers_get)[2:]
 
-    # update local schema
-    # download new sequences and change local identifiers
-    bsr = float(schema_params['bsr'])
+    # get last modification date
+    # setting syncing date to last modification date will allow
+    # all users to sync even when the schema is locked and being
+    # updated by another user
+    ns_date = ns_params['last_modified']['value']
 
-    #### change last_sync_date just to be able to test
-    last_sync_date = '2019-09-07T13:31:04.677308'
-
-    # Create an intermediate dir for the new alleles
+    # Create a temporary dir for the new alleles
     temp_dir = os.path.join(os.path.dirname(schema_dir), 'temp')
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
-    not_in_ns, pickled_loci, server_time, new_count = update_local_schema(last_sync_date,
-                                                                          schema_uri,
-                                                                          schema_dir,
-                                                                          temp_dir,
-                                                                          bsr,
-                                                                          ns_url,
-                                                                          headers_get,
-                                                                          headers_post)
+    # change for testing!!!
+    local_date = '2020-05-20T21:44:31.08'
+    #local_date = '2020-05-24T19:06:17.408700'
+
+    # retrieve alleles added to schema after last sync date
+    loci_alleles, server_time, count = retrieve_latest(local_date, schema_uri,
+                                                       schema_dir, temp_dir,
+                                                       base_url, headers_get,
+                                                       ns_date)
+
+    # Get schema files from genes list file
+    genes_list = os.path.join(schema_dir, '.genes_list')
+    with open(genes_list, 'rb') as gl:
+        genes = pickle.load(gl)
+
+    # update loci structure
+    not_in_ns, pickled_loci = update_loci_files(loci_alleles,
+                                                genes,
+                                                schema_dir,
+                                                temp_dir)
 
     # check if there are any changes to make
     if len(pickled_loci) == 0:
-        print('Retrieved alleles are common to local and NS schema. '
-              'Local schema is up to date.')
         shutil.rmtree(temp_dir)
-        sys.exit(0)
+        sys.exit('Retrieved alleles are common to local and NS schema. '
+                 'Local schema is up to date.')
 
-    if submit == 'yes' and user_role is True:
+    if submit == 'yes' and user_auth is True:
 
-        headers_post['user_id'] = user_id
-
-        print('Determining local alleles to submit...')
-
-        # Get the name of the species from the provided id
-        # or vice-versa
-        species_info = aux.species_ids(species_id, ns_url, headers_get)
-        if isinstance(species_info, list):
-            species_id, species_name = species_info
-            print('\nNS species with identifier {0} '
-                  'is {1}.'.format(species_id,
-                                   species_name))
+        # attempt to lock schema
+        lock_res = aux.simple_post_request(base_url, headers_post,
+                                           ['species', species_id,
+                                            'schemas', schema_id,
+                                            'lock'], {'action': 'lock'})
+        # if schema is already locked user cannot send alleles
+        lock_status = lock_res.status_code
+        if lock_status == 403:
+            print('Schema is already locked. Another user '
+                  'might be updating the schema. Please repeat '
+                  'the syncing process after a while to add your '
+                  'new alleles to the Chewie-NS.\n The process '
+                  'will now update your local schema with the '
+                  'alleles retrieved from the Chewie-NS.')
         else:
-            print('\nThere is no species with the provided '
-                  'identifier in the NS.')
-            #return 1
 
-        # compare list of genes, if they do not intersect, halt process
-        # get list of loci for schema in the NS
-        ns_loci_get = aux.simple_get_request(ns_url, headers_get,
-                                             ['species', species_id,
-                                              'schemas', schema_id,
-                                              'loci'])
-        # get loci files names from response
-        ns_schema_loci = []
-        ns_schema_locid_map = {}
-        for l in ns_loci_get.json()['Loci']:
-            locus_file = l['original_name']['value']
-            locus_name = l['name']['value'] + '.fasta'
-            ns_schema_loci.append(locus_name)
-            locus_uri = l['locus']['value']
-            ns_schema_locid_map[locus_name] = (locus_uri, locus_file)
+            # after locking, check if date matches ns_date
+            date_res = aux.simple_get_request(base_url, headers_get,
+                                              ['species', species_id,
+                                               'schemas', schema_id,
+                                               'modified'])
 
-        completed = list(pickled_loci.keys())
-        incomplete = []
-        for locus in not_in_ns:
-            if locus in ns_schema_loci:
-                if len(not_in_ns[locus]) > 0:
-                    incomplete.append(locus)
-                else:
-                    if locus not in completed:
-                        completed.append(locus)
+            date_value = (date_res.json()).split(' ')[-1]
 
-        if len(incomplete) > 0:
+            if date_value != ns_date:
+                print('Data retrieved from the Chewie-NS has an '
+                      'older timestamp than current schema timestamp. '
+                      'Schema might have been updated before this '
+                      'syncing process. Please repeat the syncing '
+                      'process in order to add your new alleles to the '
+                      'schema. The process will now update your '
+                      'local schema with the alleles retrieved '
+                      'from the Chewie-NS.')
 
-            uniq_local = {k: v for k, v in not_in_ns.items()
-                          if k in incomplete}
-            loci_uris = {k: v for k, v in ns_schema_locid_map.items()
-                         if k in incomplete}
+                # unlock schema
+                lock_res = aux.simple_post_request(base_url, headers_post,
+                                                   ['species', species_id,
+                                                    'schemas', schema_id,
+                                                    'lock'],
+                                                   {'action': 'unlock'})
+            else:
 
-            # determine sequences that are not in the NS
-            # we synced before so we just need to go to each file and
-            # identify the alleles with '*' as the alleles to be added!
-            # we have to submit them and alter locally too...
-            upload, comp = determine_upload(uniq_local, incomplete,
-                                            loci_uris, schema_dir,
-                                            temp_dir, ns_url, headers_get)
+                print('Determining local alleles to submit...')
 
-            completed.extend(comp)
-            completed = list(set(completed))
+                # Get the name of the species from the provided id
+                # or vice-versa
+                species_info = aux.species_ids(species_id, base_url, headers_get)
+                species_id, species_name = species_info
+                print('\nNS species with identifier {0} '
+                      'is {1}.'.format(species_id, species_name))
 
-            # add sequences to the NS
-            # use multiprocessing
-            alleles_data = []
-            for locus, info in upload.items():
-                new_loci_url = info[0]
-                name = info[1]
-                label = info[2]
-                url = info[3]
-                allele_seq_list = [rec[1] for rec in info[4:]]
-                start_id = min([int(rec[0].split('_')[-1])
-                                for rec in info[4:]])
-                post_data = aux.create_allele_data(allele_seq_list,
-                                                   new_loci_url,
-                                                   name,
-                                                   label,
-                                                   url,
-                                                   species_name,
-                                                   True,
-                                                   headers_post,
-                                                   user_id,
-                                                   start_id)
-                alleles_data.append(post_data)
+                # compare list of genes, if they do not intersect, halt process
+                # get list of loci for schema in the NS
+                ns_loci_get = aux.simple_get_request(base_url, headers_get,
+                                                     ['species', species_id,
+                                                      'schemas', schema_id,
+                                                      'loci'])
+                # get loci files names from response
+                ns_schema_loci = []
+                ns_schema_locid_map = {}
+                for l in ns_loci_get.json()['Loci']:
+                    locus_file = l['original_name']['value']
+                    locus_name = l['name']['value'] + '.fasta'
+                    ns_schema_loci.append(locus_name)
+                    locus_uri = l['locus']['value']
+                    ns_schema_locid_map[locus_name] = (locus_uri, locus_file)
+        
+                completed = list(pickled_loci.keys())
+                incomplete = []
+                for locus in not_in_ns:
+                    if locus in ns_schema_loci:
+                        if len(not_in_ns[locus]) > 0:
+                            incomplete.append(locus)
+                        else:
+                            if locus not in completed:
+                                completed.append(locus)
+        
+                if len(incomplete) > 0:
+        
+                    uniq_local = {k: v for k, v in not_in_ns.items()
+                                  if k in incomplete}
+                    loci_uris = {k: v for k, v in ns_schema_locid_map.items()
+                                 if k in incomplete}
+        
+                    # determine sequences that are not in the NS
+                    # we synced before so we just need to go to each file and
+                    # identify the alleles with '*' as the alleles to be added!
+                    # we have to submit them and alter locally too...
+                    upload, comp = determine_upload(uniq_local, incomplete,
+                                                    loci_uris, schema_dir,
+                                                    temp_dir, base_url, headers_get)
+        
+                    completed.extend(comp)
+                    completed = list(set(completed))
 
-            for inlist in alleles_data:
-                post_results = []
-                total_inserted = 0
-                total_alleles = len(inlist)
+                    # create files with length values to send!
+                    # create an endpooint to send new alleles, it receives files
+                    # and calls a script that inserts the new alleles and updates
+                    # the pre-computed files!
 
-                workers = 10
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-                    # Start the load operations and mark each future
-                    # with its URL
-                    for res in executor.map(aux.post_allele, inlist):
-                        post_results.append(res)
-                        total_inserted += 1
-                        print('\r',
-                              'Processed {0}/{1} '
-                              'alleles.'.format(total_inserted,
-                                                total_alleles),
-                              end='')
-        else:
-            print('There are no new alleles in the local schema that '
-                  'need to be sent to the NS.')
+                    # add sequences to the NS
+                    # use multiprocessing
+                    alleles_data = []
+                    for locus, info in upload.items():
+                        new_loci_url = info[0]
+                        name = info[1]
+                        label = info[2]
+                        url = info[3]
+                        allele_seq_list = [rec[1] for rec in info[4:]]
+                        start_id = min([int(rec[0].split('_')[-1])
+                                        for rec in info[4:]])
+                        post_data = aux.create_allele_data(allele_seq_list,
+                                                           new_loci_url,
+                                                           name,
+                                                           label,
+                                                           url,
+                                                           species_name,
+                                                           True,
+                                                           headers_post,
+                                                           user_id,
+                                                           start_id)
+                        alleles_data.append(post_data)
+        
+                    for inlist in alleles_data:
+                        post_results = []
+                        total_inserted = 0
+                        total_alleles = len(inlist)
+        
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                            # Start the load operations and mark each future
+                            # with its URL
+                            for res in executor.map(aux.post_allele, inlist):
+                                post_results.append(res)
+                                total_inserted += 1
+                                print('\r',
+                                      'Processed {0}/{1} '
+                                      'alleles.'.format(total_inserted,
+                                                        total_alleles),
+                                      end='')
+#        else:
+#            print('There are no new alleles in the local schema that '
+#                  'need to be sent to the NS.')
 
     elif submit == 'no':
         completed = list(not_in_ns.keys())
-#        print(not_in_ns)
-#        print(completed)
 
     # change profiles in the master file so that local
     # profiles have updated allele identifiers
 
     # change pickled files to FASTA files
-#    print(completed)
-#    print(set(completed))
     for locus in completed:
         locus_id = locus.rstrip('.fasta')
         pickled_file = pickled_loci[locus]

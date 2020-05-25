@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHORS
+Purpose
+-------
+This module enables the adaptation of external schemas so that the loci and
+alleles present in those schemas can be used with chewBBACA. During the
+process, alleles that do not correspond to a complete CDS or that cannot be
+translated are discarded from the final schema. One or more alleles of each
+gene/locus will be chosen as representatives and included in the 'short'
+directory.
 
-    Pedro Cerqueira
-    github: @pedrorvc
-
-    Rafael Mamede
-    github: @rfm-targa
-
-DESCRIPTION
-
-    This script enables the adaptation of external schemas so that the loci and
-    alleles present in those schemas can be used with chewBBACA. During the
-    process, alleles that do not correspond to a complete CDS or that cannot be
-    translated are discarded from the final schema. One or more alleles of each
-    gene/locus will be chosen as representatives and included in the 'short'
-    directory.
+Code documentation
+------------------
 """
 
 import os
@@ -32,8 +27,12 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 
-from utils import constants as cnst
-from utils import auxiliary_functions as aux
+try:
+    from utils import constants as cnst
+    from utils import auxiliary_functions as aux
+except ImportError:
+    from CHEWBBACA.utils import constants as cnst
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
 
 def bsr_categorizer(blast_results, representatives,
@@ -65,14 +64,14 @@ def bsr_categorizer(blast_results, representatives,
     high_bsr = []
     hotspot_bsr = []
     low_bsr = []
-    
+
     high_reps = {}
     hot_reps = {}
     low_reps = {}
 
-    filtered_results = [res for res in blast_results 
+    filtered_results = [res for res in blast_results
                         if res[0] != res[1] and res[1] not in representatives]
-    bsr_values = [float(res[2])/float(representatives_scores[res[0]]) 
+    bsr_values = [float(res[2])/float(representatives_scores[res[0]])
                   for res in filtered_results]
 
     high_bsr = [res[1] for ind, res in enumerate(filtered_results)
@@ -96,9 +95,8 @@ def bsr_categorizer(blast_results, representatives,
     return [high_bsr, low_bsr, hotspot_bsr, high_reps, low_reps, hot_reps]
 
 
-def select_candidate(candidates, proteins,
-                                 seqids, representatives,
-                                 final_representatives):
+def select_candidate(candidates, proteins, seqids,
+                     representatives, final_representatives):
     """ Chooses a new representative sequence.
 
         Args:
@@ -202,14 +200,14 @@ def adapt_loci(genes_list):
 
         # create paths to gene files in new schema
         gene_file = aux.join_paths(schema_path,
-                               '{0}{1}'.format(gene_id, '.fasta'))
+                                   '{0}{1}'.format(gene_id, '.fasta'))
 
         gene_short_file = aux.join_paths(schema_short_path,
-                                     '{0}{1}'.format(gene_id, '_short.fasta'))
+                                         '{0}{1}'.format(gene_id, '_short.fasta'))
 
         # create path to temp working directory for current gene
         gene_temp_dir = aux.join_paths(schema_path,
-                                   '{0}{1}'.format(gene_id, '_temp'))
+                                       '{0}{1}'.format(gene_id, '_temp'))
 
         # create temp directory for the current gene
         aux.create_directory(gene_temp_dir)
@@ -259,7 +257,7 @@ def adapt_loci(genes_list):
 
                 # create FASTA file with representative sequences
                 rep_file = aux.join_paths(gene_temp_dir,
-                                      '{0}_rep_protein.fasta'.format(gene_id))
+                                          '{0}_rep_protein.fasta'.format(gene_id))
                 rep_protein_lines = aux.fasta_lines(representatives, prot_seqs)
                 aux.write_list(rep_protein_lines, rep_file)
 
@@ -327,12 +325,12 @@ def adapt_loci(genes_list):
                 # determine next representative from candidates
                 rep_candidates = list(set(hotspots) - hitting_high)
                 # sort to guarantee reproducible results with same datasets
-                rep_candidates = sorted(rep_candidates, key= lambda x: int(x))
+                rep_candidates = sorted(rep_candidates, key=lambda x: int(x))
                 representatives, final_representatives = select_candidate(rep_candidates,
-                                                               prot_seqs,
-                                                               ids_to_blast,
-                                                               representatives,
-                                                               final_representatives)
+                                                                          prot_seqs,
+                                                                          ids_to_blast,
+                                                                          representatives,
+                                                                          final_representatives)
 
                 # remove files created for current gene iteration
                 os.remove(rep_file)

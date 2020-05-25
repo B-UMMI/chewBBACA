@@ -19,17 +19,21 @@ DESCRIPTION
 
 import os
 import re
+import sys
 import csv
 import time
 import json
 import shutil
 import pickle
 import hashlib
+import zipfile
 import requests
 import threading
 import itertools
+import datetime as dt
 import multiprocessing
 import concurrent.futures
+from getpass import getpass
 from collections import Counter
 from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
@@ -41,6 +45,52 @@ from Bio.Alphabet import generic_dna
 from utils import constants as cnst
 
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
+
+
+def pickle_dumper(pickle_out, content):
+    """
+    """
+
+    with open(pickle_out, 'wb') as po:
+        pickle.dump(content, po)
+
+
+def pickle_loader(pickle_in):
+    """
+    """
+
+    with open(pickle_in, 'rb') as pi:
+        data = pickle.load(pi)
+
+    return data
+
+
+def file_zipper(ori_file, zip_file):
+    """
+    """
+
+    with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.write(ori_file, os.path.basename(ori_file))
+
+    return zip_file
+
+
+def remove_files(files):
+    """
+    """
+        
+    for f in files:
+        os.remove(f)
+
+
+def count_sequences(fasta_file):
+    """
+    """
+
+    records = SeqIO.parse(fasta_file, 'fasta')
+    total_seqs = len(list(records))
+
+    return total_seqs
 
 
 def simple_get_request(base_url, headers, endpoint_list):
@@ -92,17 +142,32 @@ def simple_post_request(base_url, headers, endpoint_list, data):
     return res
 
 
-def binary_file_hash(binary_file):
+def hash_file(file, read_mode):
     """
     """
 
-    with open(binary_file, 'rb') as bf:
-        file_hash = hashlib.blake2b()
-        file_text = bf.read()
-        file_hash.update(file_text)
-        file_hash = file_hash.hexdigest()
+    with open(file, read_mode) as f:
+        hash_obj = hashlib.blake2b()
+        file_content = f.read()
+        hash_obj.update(file_content)
+        hash_str = hash_obj.hexdigest()
 
-    return file_hash
+    return hash_str
+
+
+def validate_date(date):
+    """
+    """
+
+    valid = False
+    try:
+        date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
+        valid = date
+    except ValueError:
+        date = dt.datetime.strptime(date+'.0', '%Y-%m-%dT%H:%M:%S.%f')
+        valid = date
+
+    return valid
 
 
 def write_gene_list(schema_dir):
@@ -111,8 +176,7 @@ def write_gene_list(schema_dir):
 
     schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
     schema_list_file = os.path.join(schema_dir, '.genes_list')
-    with open(schema_list_file, 'wb') as sl:
-        pickle.dump(schema_files, sl)
+    pickle_dumper(schema_list_file, schema_files)
 
     return [os.path.isfile(schema_list_file), schema_list_file]
 
@@ -132,8 +196,7 @@ def write_schema_config(blast_score_ratio, ptf_hash,
     params['size_threshold'] = [size_threshold]
 
     config_file = os.path.join(output_directory, '.schema_config')
-    with open(config_file, 'wb') as cf:
-        pickle.dump(params, cf)
+    pickle_dumper(config_file, params)
 
     return [os.path.isfile(config_file), config_file]
 
@@ -152,8 +215,7 @@ def post_alleles(input_file):
     """
     """
 
-    with open(input_file, 'rb') as f:
-        data = pickle.load(f)
+    data = pickle_loader(input_file)
 
     responses = []
     session = get_session()
@@ -261,15 +323,31 @@ def uniprot_query(sequence):
     return query
 
 
+def user_info(base_url, headers_get):
+    """
+    """
+
+    # verify user role to check permission
+    user_info = simple_get_request(base_url, headers_get,
+                                       ['user', 'current_user'])
+    user_info = user_info.json()
+
+    user_id = str(user_info['id'])
+    user_role = user_info['roles'].split(' ')[-1][:-1]
+    permission = any(role in user_role for role in ['Admin', 'Contributor'])
+
+    return [user_id, user_role, permission]
+
+
 def species_ids(species_id, base_url, headers_get):
     """
     """
-    
+
     try:
         int(species_id)
         species_info = simple_get_request(base_url, headers_get,
                                           ['species', species_id])
-        if species_info.status_code == 200:
+        if species_info.status_code in [200, 201]:
             species_name = species_info.json()[0]['name']['value']
             return [species_id, species_name]
         else:
@@ -282,36 +360,6 @@ def species_ids(species_id, base_url, headers_get):
             return [species_id, species_name]
         else:
             return 404
-
-
-def create_allele_data(allele_seq_list, locus_url,
-                       species_name, base_url,
-                       user_id, start_id):
-    """
-    """
-
-    #allele_id = start_id
-    post_data = []
-
-        #allele_uri = '{0}/alleles/{1}'.format(locus_url, allele_id)
-        #seq_hash = hashlib.sha256(allele.encode('utf-8')).hexdigest()
-        #seq_url = '{0}sequences/{1}'.format(base_url, seq_hash)
-    user_url = '{0}users/{1}'.format(base_url, user_id)
-        
-    params = [locus_url, species_name, user_url, tuple(allele_seq_list)]
-        # params['locus_url'] = locus_url
-        # params['sequence'] = allele
-        # params['species_name'] = species_name
-        # params['sequence_uri'] = allele_uri
-        # params['user_url'] = user_url
-        # params['seq_url'] = seq_url
-        # params['allele_id'] = allele_id
-
-        #post_data.append(params)
-
-        #allele_id += 1
-
-    return params
 
 
 def species_list(base_url, headers_get, endpoint_list):
@@ -816,7 +864,8 @@ def determine_duplicated_prots(proteins):
             sequence identifiers that are associated with each protein sequence
             as values.
     """
-
+    # use sequences hashes as keys and protids as values
+    # read file and process generator to save memory???
     equal_prots = {}
     for protid, protein in proteins.items():
         # if protein sequence was already added as key
@@ -829,6 +878,29 @@ def determine_duplicated_prots(proteins):
             equal_prots[protein] = [protid]
 
     return equal_prots
+
+
+def sequences_lengths(fasta_file):
+    """ Determines the length of all DNA sequences in a FASTA file.
+
+        Parameters
+        ----------
+        fasta_file : str
+            Path to a FASTA file with DNA sequences.
+
+        Returns
+        -------
+        lengths : dict
+            Dictionary with the `fasta_file` basename as key and
+            a nested dictionary with sequences hashes as keys and
+            sequences lengths as values.
+    """
+
+    basename = os.path.basename(fasta_file)
+    lengths = {basename: {hashlib.sha256(str(rec.seq).encode('utf-8')).hexdigest(): len(rec.seq)
+                          for rec in SeqIO.parse(fasta_file, 'fasta')}}
+
+    return lengths
 
 
 def determine_longest(seqids, proteins):
@@ -1339,7 +1411,7 @@ def is_url(url):
         return False
 
 
-def make_url(base_url , *res, **params):
+def make_url(base_url, *res, **params):
     """ Creates a url. 
     
         Args: 
@@ -1410,14 +1482,173 @@ def login_user_to_NS(server_url, email, password):
     
     auth_r = requests.post(auth_url, data=json.dumps(auth_params), headers=auth_headers, verify=False)
     
-    auth_result = auth_r.json() 
+    auth_result = auth_r.json()
     if auth_result['status'] == 'success':
         token = auth_result["access_token"]
     else:
         token = False
     
     return token
-    
+
+
+def capture_login_credentials(base_url):
+    """
+    """
+
+    print('\nPlease provide login credentials:')
+    user = input('USERNAME: ')
+    password = getpass('PASSWORD: ')
+    print()
+    # get token
+    token = login_user_to_NS(base_url, user, password)
+    # if login was not successful, stop the program
+    if token is False:
+        sys.exit('Invalid credentials.')
+
+    return token
+
+
+def read_configs(schema_path, filename):
+    """
+    """
+
+    config_file = os.path.join(schema_path, filename)
+    if os.path.isfile(config_file):
+        # Load configs dictionary
+        configs = pickle_loader(config_file)
+    else:
+        sys.exit('Could not find a valid config file.')
+
+    return configs
+
+
+def get_species_schemas(schema_id, species_id, base_url, headers_get):
+    """ Determines if a species in the Chewie-NS has a schema
+        with specified identifier.
+
+        Parameters
+        ----------
+        schema_id : str
+            The identifier of the schema in the Chewie-NS.
+        species_id : str
+            The identifier of the schema's species in the
+            Chewie-NS.
+        base_url : str
+            Base URL of the Chewie Nomenclature server.
+        headers_get : dict
+            HTTP headers for GET requests.
+
+        Returns
+        -------
+        list
+            A list with the following elements:
+
+            - The schema id (str).
+            - The schema URI (str).
+            - The schema name (str).
+
+        Raises
+        ------
+        SystemExit
+            - If the schema with the specified identifier does
+              not exist.
+            - If the process cannot retrieve the list of schemas
+              for the species.
+    """
+
+    # get the list of schemas for the species
+    schema_get = simple_get_request(base_url, headers_get,
+                                    ['species', species_id, 'schemas'])
+    schema_get_status = schema_get.status_code
+    if schema_get_status in [200, 201]:
+        species_schemas = schema_get.json()
+
+        # extract schemas identifiers, URIs and names from response
+        schemas_info = []
+        for s in species_schemas:
+            schema_uri = s['schemas']['value']
+            scid = schema_uri.split('/')[-1]
+            schema_name = s['name']['value']
+            schemas_info.append([scid, schema_uri, schema_name])
+
+        # select schema with specified identifier
+        schema = [s for s in schemas_info if schema_id in s]
+        if len(schema) > 0:
+            # get schema parameters
+            schema = schema[0]
+            schema_params = requests.get(schema[1], headers=headers_get, verify=False)
+            schema_params = schema_params.json()[0]
+            schema.append(schema_params)
+            return schema
+        else:
+            sys.exit('\nCould not find a schema with such description.')
+    else:
+        sys.exit('\nCould not retrieve schemas for current species.')
+
+
+def upload_file(file, filename, url, headers, verify_ssl):
+    """ Uploads a file to the NS.
+
+        Parameters
+        ----------
+        file : str
+            Path to the file to upload.
+        filename : str
+            Name used to save the file in the NS.
+        url : str
+            Endpoint URL that receives the POST request.
+        headers : dict
+            HTTP POST request headers.
+        verify_sll : bool
+            If the SSL certificates should be verified in
+            HTTPS requests (False for no verification, True otherwise).
+
+        Returns
+        -------
+        response : requests.models.Response
+            Response object from the 'requests' module.
+    """
+
+    file_handle = open(file, 'rb')
+    files = {'file': (filename, file_handle)}
+    response = requests.post(url,
+                             headers=headers,
+                             files=files,
+                             verify=verify_ssl)
+    file_handle.close()
+
+    return response
+
+
+def upload_data(data, url, headers, verify_ssl):
+    """ Uploads data to the NS.
+
+        Parameters
+        ----------
+        data
+            The data that will be sent to the NS (any data
+            type accepted by requests 'data' argument).
+        url : str
+            Endpoint URL that receives the POST request.
+        headers : dict
+            HTTP POST request headers.
+        verify_sll : bool
+            If the SSL certificates should be verified in
+            HTTPS requests (False for no verification, True otherwise).
+
+        Returns
+        -------
+        response : requests.models.Response
+            Response object from the 'requests' module.
+    """
+
+    response = requests.post(url,
+                             headers=headers,
+                             data=data,
+                             verify=verify_ssl)
+
+    return response
+
 
 def send_data(sparql_query, url_send_local_virtuoso, virtuoso_user, virtuoso_pass):
     """ Sends data to virtuoso.
@@ -1504,18 +1735,6 @@ def send_sequence(token, sequence, loci_uri, noCDSCheck):
 
         else:
             req_success = True
-    
-    # if reqCode==401:
-        # print ("Token is not valid")
-    # elif reqCode>201:
-        #
-        # try:
-            #~ allele_url,reqCode=send_post(loci_uri,sequence,token)
-        # except:
-            #~ print ("Server returned code "+str(reqCode))
-            #~ print(loci_uri)
-    # else:
-        # new_allele_id=str(int(allele_url.split("/")[-1]))
         
     return reqCode
 
@@ -1535,9 +1754,6 @@ def process_locus(gene, token, loci_url, auxBar, noCDSCheck):
 
         #reqCode = send_sequence(token, sequence, loci_url, noCDSCheck)
         reqCode = send_post(loci_url, sequence, token, noCDSCheck)
-        
-#    if reqCode == 418:
-#        print(gene)
 
     if gene in auxBar:
         auxlen = len(auxBar)

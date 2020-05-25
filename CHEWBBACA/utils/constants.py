@@ -27,6 +27,18 @@ MSL_MAX = 99999
 ST_MIN = 0.0
 ST_MAX = 1.0
 
+WS_MIN = 0.0
+WS_MAX = 1.0
+
+CS_MIN = 0.0
+CS_MAX = 1.0
+
+RF_MIN = 0.0
+RF_MAX = 1.0
+
+IF_MIN = 0.0
+IF_MAX = 1.0
+
 # genetic codes/translation tables
 GENETIC_CODES = {1: 'Standard',
 				 4: 'The mold, protozoan, and coelenterate mitochondrial code and the mycoplasma/spiroplasma code',
@@ -37,8 +49,23 @@ FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn']
 
 # NS related constants
 
+HEADERS_GET_ = {'Authorization': None,
+			   	'accept': 'application/octet-stream'}
+
+HEADERS_GET_JSON = {'Authorization': None,
+			   		'accept': 'application/json'}
+
+HEADERS_POST = {'Authorization': None,
+				'user_id': None}
+
+HEADERS_POST_JSON = {'Authorization': None,
+					 'Content-type': 'application/json',
+					 'accept': 'application/json',
+					 'user_id': None}
+
 #HOST_NS = 'https://194.210.120.209/api/NS/api/'
 HOST_NS = 'http://127.0.0.1:5000/NS/api/'
 
-SFTP_PTF_TEMP = '/prodigal_training_files/upload_temp'
-SFTP_PTF_AVAI = '/prodigal_training_files/available'
+# UniProt SPARQL endpoint
+UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
+MAX_QUERIES = 10

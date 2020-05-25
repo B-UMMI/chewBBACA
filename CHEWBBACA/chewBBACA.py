@@ -147,6 +147,10 @@ def create_schema():
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - CreateSchema'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     input_files = args.input_files
     output_directory = args.output_directory
     ptf_path = args.ptf_path
@@ -179,7 +183,7 @@ def create_schema():
     shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    ptf_hash = aux.binary_file_hash(ptf_path)
+    ptf_hash = aux.hash_file(ptf_path, 'rb')
 
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
@@ -327,6 +331,10 @@ def allele_call():
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - AlleleCall'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     input_files = args.input_files
     schema_directory = args.schema_directory
     output_directory = args.output_directory
@@ -397,7 +405,7 @@ def allele_call():
             sys.exit('Provided Prodigal training file does not exist.')
 
     # determine PTF checksum
-    ptf_hash = aux.binary_file_hash(ptf_path)
+    ptf_hash = aux.hash_file(ptf_path, 'rb')
     if ptf_hash not in schema_params['prodigal_training_file']:
         ptf_num = len(schema_params['prodigal_training_file'])
         if ptf_num == 1:
@@ -821,6 +829,10 @@ def prep_schema():
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - PrepExternalSchema'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     input_files = args.input_files
     output_directory = args.output_directory
     ptf_path = args.ptf_path
@@ -844,7 +856,7 @@ def prep_schema():
     shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    ptf_hash = aux.binary_file_hash(ptf_path)
+    ptf_hash = aux.hash_file(ptf_path, 'rb')
 
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
@@ -964,6 +976,10 @@ def download_schema():
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - DownloadSchema'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     ns_schema = args.schema_id
     ns_species = args.species_id
     download_folder = args.download_folder
@@ -1018,8 +1034,7 @@ def upload_schema():
 
     parser.add_argument('-i', type=str, required=True,
                         dest='schema_directory',
-                        help='Path to the directory with the local schema '
-                             'files.')
+                        help='Path to the directory of the schema to upload.')
 
     parser.add_argument('-sp', type=str, required=True,
                         dest='species_id',
@@ -1027,9 +1042,9 @@ def upload_schema():
                              'that the schema will be associated to in '
                              'the NS.')
 
-    parser.add_argument('-sd', type=str, required=True,
-                        dest='schema_description',
-                        help='A brief and meaningful description that '
+    parser.add_argument('-sn', type=str, required=True,
+                        dest='schema_name',
+                        help='A brief and meaningful name that '
                              'should help understand the type and content '
                              'of the schema.')
 
@@ -1038,15 +1053,31 @@ def upload_schema():
                         help='Prefix included in the name of each locus of '
                              'the schema.')
 
+    parser.add_argument('--df', type=str, required=False,
+                        dest='description_file', default='',
+                        help='Path to a text file with a description '
+                             'about the schema. Markdown syntax is '
+                             'supported in order to allow greater '
+                             'customizability of the rendered description '
+                             'in the Frontend')
+
+    parser.add_argument('--a', type=str, required=False,
+                        dest='annotations', default=None,
+                        help='Path to a TSV file with loci annotations. '
+                             'The first column has loci identifiers '
+                             '(w/o .fasta extension), the second has user '
+                             'annotations and the third has custom '
+                             'annotations.')
+
     parser.add_argument('--cpu', type=int, required=False,
                         dest='cpu_cores', default=1,
                         help='Number of CPU cores that will '
-                             'be used in multiprocessing steps.')
+                             'be used in the Schema Pre-processing step.')
 
     parser.add_argument('--thr', type=int, required=False,
                         default=20, dest='threads',
-                        help='Number of threads to use to upload the alleles '
-                             'of the schema.')
+                        help='Number of threads to use to search for '
+                             'annotations on UniProt')
 
     parser.add_argument('--ns_url', type=str, required=False,
                         default=cnts.HOST_NS,
@@ -1060,17 +1091,24 @@ def upload_schema():
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - LoadSchema'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     schema_directory = args.schema_directory
     species_id = args.species_id
-    schema_description = args.schema_description
+    schema_name = args.schema_name
     loci_prefix = args.loci_prefix
+    description_file = args.description_file
+    annotations = args.annotations
     cpu_cores = args.cpu_cores
     threads = args.threads
     nomenclature_server_url = args.nomenclature_server_url
     continue_up = args.continue_up
 
-    load_schema.main(schema_directory, species_id, schema_description,
-                     loci_prefix, cpu_cores, threads, nomenclature_server_url,
+    load_schema.main(schema_directory, species_id, schema_name,
+                     loci_prefix, description_file, annotations,
+                     cpu_cores, threads, nomenclature_server_url,
                      continue_up)
 
 
@@ -1128,6 +1166,10 @@ def synchronize_schema():
                              'should be uploaded to update the NS schema.')
 
     args = parser.parse_args()
+
+    header = 'chewBBACA - SyncSchema'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
     schema_directory = args.schema_directory
     cpu_cores = args.cpu_cores
@@ -1297,8 +1339,7 @@ def main():
     repository = 'https://github.com/B-UMMI/chewBBACA'
     wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
     tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
-    contacts = ('rmamede@medicina.ulisboa.pt, '
-                'pedro.cerqueira@medicina.ulisboa.pt')
+    contacts = 'imm-bioinfo@medicina.ulisboa.pt'
 
     # Check python version, if fail, exit with message
     try:

@@ -18,8 +18,12 @@ import os
 import sys
 import argparse
 
-from utils import constants as cnts
-from utils import auxiliary_functions as aux
+try:
+    from utils import constants as cnts
+    from utils import auxiliary_functions as aux
+except:
+    from CHEWBBACA.utils import constants as cnts
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):

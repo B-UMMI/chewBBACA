@@ -23,7 +23,10 @@ from getpass import getpass
 
 from SPARQLWrapper import SPARQLWrapper
 
-from utils import auxiliary_functions as aux
+try:
+    from utils import auxiliary_functions as aux
+except:
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
 
 # virtuoso_server = SPARQLWrapper(app.config['LOCAL_SPARQL'])

@@ -8,8 +8,8 @@ from ast import literal_eval
 
 try:
 	from utils import CommonFastaFunctions
-except ImportError:
-	from CHEWBBACA_NS.utils import CommonFastaFunctions
+except:
+	from CHEWBBACA.utils import CommonFastaFunctions
 
 try:
 	from StringIO import StringIO

@@ -43,7 +43,7 @@ try:
                               sync_schema, down_profiles,
                               send2NS, send_metadata,
                               stats_requests)
-except ImportError:
+except:
     from CHEWBBACA.allelecall import BBACA
     from CHEWBBACA.createschema import PPanGen
     from CHEWBBACA.SchemaEvaluator import ValidateSchema

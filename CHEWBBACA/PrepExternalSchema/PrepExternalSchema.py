@@ -30,7 +30,7 @@ from Bio.Alphabet import generic_dna
 try:
     from utils import constants as cnst
     from utils import auxiliary_functions as aux
-except ImportError:
+except:
     from CHEWBBACA.utils import constants as cnst
     from CHEWBBACA.utils import auxiliary_functions as aux
 

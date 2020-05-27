@@ -10,7 +10,7 @@ import os
 from Bio.Blast import NCBIXML
 try:
 	from allelecall import CommonFastaFunctions
-except ImportError:
+except:
 	from CHEWBBACA.allelecall import CommonFastaFunctions
 import time
 import pickle

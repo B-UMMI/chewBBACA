@@ -11,8 +11,9 @@ import time
 
 try:
     from utils import send_metadata
-except ImportError:
-    from CHEWBBACA_NS import send_metadata
+except:
+    from CHEWBBACA.CHEWBBACA_NS import send_metadata
+
 
 class Result():
 	def __init__(self):

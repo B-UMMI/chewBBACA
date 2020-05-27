@@ -14,8 +14,9 @@ from Bio.Blast.Applications import NcbiblastpCommandline
 
 try:
 	from createschema import init_schema_4_bbaca,CommonFastaFunctions
-except ImportError:
+except:
 	from CHEWBBACA.createschema import init_schema_4_bbaca,CommonFastaFunctions
+
 import time
 
 

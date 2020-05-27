@@ -78,7 +78,7 @@ try:
     from utils import constants as cnst
     from utils import auxiliary_functions as aux
     from PrepExternalSchema import PrepExternalSchema
-except ImportError:
+except:
     from CHEWBBACA.utils import constants as cnst
     from CHEWBBACA.utils import auxiliary_functions as aux
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema

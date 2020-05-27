@@ -11,7 +11,7 @@ import multiprocessing
 import subprocess
 try:
     from createschema import CreateSchema,runProdigal
-except ImportError:
+except:
     from CHEWBBACA.createschema import CreateSchema,runProdigal
 
 

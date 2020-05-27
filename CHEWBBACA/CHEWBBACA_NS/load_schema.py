@@ -547,12 +547,11 @@ def schema_completedness(base_url, species_id, schema_id, headers_get,
             last element is the BLAKE2 hash of the locus file.
     """
 
-    data_uri = aux.make_url(base_url, 'species', species_id,
-                            'schemas', schema_id, 'loci',
-                            'data')
-
     # get info about loci and alleles upload
-    schema_loci = requests.get(data_uri, headers=headers_get)
+    schema_loci = aux.simple_get_request(base_url, headers_get,
+                                         ['species', species_id,
+                                          'schemas', schema_id,
+                                          'loci', 'data'])
     schema_loci = schema_loci.json()
     schema_loci = schema_loci['message']
 

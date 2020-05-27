@@ -274,7 +274,7 @@ def get_fasta_seqs(url, headers_get, schema_date):
 
     payload = {'date': schema_date}
     res = requests.get(url, headers=headers_get, timeout=30,
-                       params=payload)
+                       params=payload, verify=False)
 
     return (url.rstrip('/fasta'), res)
 
@@ -298,7 +298,7 @@ def schema_loci(schema_uri, headers_get):
 
     # get the list of loci
     loci_uri = aux.make_url(schema_uri, 'loci')
-    loci_res = requests.get(loci_uri, headers=headers_get)
+    loci_res = requests.get(loci_uri, headers=headers_get, verify=False)
     loci_res = loci_res.json()['Loci']
 
     # locus URI to locus name
@@ -451,7 +451,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     ptf_uri = aux.make_url(base_url, *['species', species_id,
                                        'schemas', schema_id, 'ptf'])
 
-    ptf_response = requests.get(ptf_uri, headers=headers_get)
+    ptf_response = requests.get(ptf_uri, headers=headers_get, verify=False)
 
     ptf_file = os.path.join(download_folder,
                             '{0}.trn'.format(species_name.replace(' ', '_')))
@@ -562,7 +562,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
 
         # remove FASTA files with sequences from the NS
         for file in ns_files:
-            os.remove(os.path.join(schema_path, file))
+            os.remove( file)
 
         # write hidden schema config file
         del(schema_params_dict['Schema_lock'])

@@ -369,7 +369,7 @@ def allele_call():
 
     # mismatched schema and run parameters values
     unmatch_params = {k: v for k, v in run_params.items()
-                      if v not in schema_params[k] and k != 'prodigal_training_file'}
+                      if str(v) not in schema_params[k] and k != 'prodigal_training_file'}
 
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments '
@@ -1143,27 +1143,29 @@ def synchronize_schema():
                              'downloaded from the NS, with its latest '
                              'version in the NS.')
 
-    parser.add_argument('-i', type=str, required=True,
+    parser.add_argument('-sc', type=str, required=True,
                         dest='schema_directory',
-                        help='Path to the directory with the local schema '
-                             'files.')
+                        help='Path to the directory with the schema to be'
+                             'synced.')
 
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
-                        help='Number of CPU cores/threads that will '
-                             'be passed to the PrepExternalSchema to '
-                             'determine representatives for the '
-                             'updated version of the schema.')
+                        help='Number of CPU cores that will '
+                             'be used to determine new representatives '
+                             'if the process downloads new alleles from '
+                             'the Chewie-NS.')
 
     parser.add_argument('--ns_url', type=str, required=False,
                         default=cnts.HOST_NS,
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--submit', required=False, action='store_true',
-                        dest='submit',
-                        help='If the local alleles that are not in the NS '
-                             'should be uploaded to update the NS schema.')
+    parser.add_argument('--submit', required=False,
+                        action='store_true', dest='submit',
+                        help='If the process should identify new alleles '
+                             'in the local schema and send them to the '
+                             'NS. (only users with permissons level of '
+                             'Contributor can submit new alleles).')
 
     args = parser.parse_args()
 

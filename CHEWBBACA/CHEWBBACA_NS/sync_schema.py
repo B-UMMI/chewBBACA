@@ -60,14 +60,14 @@ Code documentation
 
 import os
 import sys
+import json
 import shutil
 import pickle
+import hashlib
 import argparse
 import requests
 import datetime as dt
 from copy import deepcopy
-import concurrent.futures
-from itertools import repeat
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper
 from urllib3.exceptions import InsecureRequestWarning
@@ -91,104 +91,46 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 uniprot_sparql = SPARQLWrapper(cnst.UNIPROT_SPARQL)
 
 
-def determine_upload(local_schema_loci, ns_schema_loci,
-                     ns_schema_locid_map, schema_path,
-                     temp_path, base_url, headers_get):
+def determine_upload(ns_loci, schema_path, temp_path,
+                     base_url, headers_get):
     """
     """
 
+    complete = []
     local_uniq = {}
-    comp = []
-    for locus in local_schema_loci:
+    total_seqs = 0
+    for locus, url in ns_loci.items():
 
-        local_locus = locus
-        locus_id = local_locus.rstrip('.fasta')
+        locus_id = locus.rstrip('.fasta')
         pickled_file = os.path.join(temp_path, '{0}_pickled'.format(locus_id))
         with open(pickled_file, 'rb') as pf:
             locus_sequences = pickle.load(pf)
-        local_sequences = local_schema_loci[locus]
 
-        if local_locus in ns_schema_loci:
-            local_uniq[locus] = []
+        local_uniq[locus] = []
+        local_uniq[locus].append(url)
 
-            # get uniprot info for locus
-            ns_uri = ns_schema_locid_map[local_locus][0]
+        # after sync, the allele identifiers of the sequences
+        # exclusive to the local schema should be ok to use
+        # as identifiers for new alleles in the NS
+        local_sequences = {k: v for k, v in locus_sequences.items()
+                           if '*' in v[0]}
+        for seqid, rec in local_sequences.items():
+            local_uniq[locus].append([seqid, rec[1], len(rec[1])])
+            # delete entry with '*'
+            locus_sequences[seqid] = (str(seqid), rec[1])
+            total_seqs += 1
 
-            local_uniq[local_locus].append(ns_uri)
+        # save updated pickle
+        os.remove(pickled_file)
+        with open(pickled_file, 'wb') as pf:
+            pickle.dump(locus_sequences, pf)
 
-            # after sync, the allele identifiers of the sequences
-            # exclusive to the local schema should be ok to use
-            # as identifiers for new alleles in the NS
-            for rec in local_sequences:
-                seqid = rec[0]
-                seqid = seqid.replace('*', '')
-                seq = rec[1]
-
-                local_uniq[local_locus].append([seqid,
-                                                seq, len(seq)])
-
-                # delete entry with '*'
-                allele_id = int(seqid.split('_')[-1])
-                locus_sequences[allele_id] = (str(allele_id), locus_sequences[allele_id][1])
-            
-            # save updated pickle
-            os.remove(pickled_file)
-            with open(pickled_file, 'wb') as pf:
-                pickle.dump(locus_sequences, pf)
-            
-            comp.append(locus)
+        complete.append(locus)
 
     print('Found a total of {0} new sequences in'
-          ' local schema.'.format(len(local_uniq)))
+          ' local schema.'.format(total_seqs))
 
-    return [local_uniq, comp]
-
-
-def build_fasta_files(new_allele_seq_dict, path2schema, path_new_alleles):
-    """
-    """
-    
-    for name, allele_dict in new_allele_seq_dict.items():
-        
-        for allele_id, seq in allele_dict.items():
-            
-            auxDict = {}
-            auxname = name.split(".")
-            listIndexAux = []
-
-		# create a dictionary with the info from fasta to build the fasta file; {id:sequence}
-        listIndexAux.append(int(allele_id))
-        auxDict[int(allele_id)] = f"{seq}"
-
-		# sort by allele id, create the fasta string and write the file
-        listIndexAux.sort()
-        auxString = ''
-        for index in listIndexAux:
-            auxString += f">{auxname[0]}_{index}\n{auxDict[index]}\n"
-        
-        # if the fasta already exists, add new allele
-        if os.path.exists(os.path.join(path2schema, name)):
-            
-            with open(os.path.join(path2schema, name), 'a') as f:
-                f.write(auxString)
-            
-            # Copy the updated file to new_alleles dir 
-            new_alleles_path = shutil.copy(os.path.join(path2schema, name), path_new_alleles)
-        
-        # write new file to schema dir and new_alleles dir
-        else:
-            
-            # Schema dir
-            with open(os.path.join(path2schema, name), 'w') as f1:
-                f1.write(auxString)
-
-            # New alleles dir
-            with open(os.path.join(path_new_alleles, name), 'w') as f2:
-                f2.write(auxString)
-
-    print(f"{len(new_allele_seq_dict)} files have been written")
-
-    return True
+    return [local_uniq, complete]
 
 
 def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
@@ -238,9 +180,13 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
     # Check if new alleles are already on schema
     not_in_ns = {}
     pickled_loci = {}
-    for locus, alleles in loci.items():
-        not_in_ns[locus] = []
-        if locus in local_loci:
+    for gene in local_loci:
+        if gene in loci:
+            locus = gene
+            alleles = loci[locus]
+
+            not_in_ns[locus] = []
+
             # get locus file identifier without '.fasta'
             locus_id = locus.rstrip('.fasta')
             # get latest locus alleles retrieved from the NS
@@ -264,6 +210,7 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
             ns_ids = set(list(locus_ns_seqs.values()))
             local_ids = set([rec[0] for seqid, rec in records.items()])
             # if the set of identifiers is equal, do not create a pickled file
+
             if ns_ids == local_ids:
                 del not_in_ns[locus]
                 continue
@@ -283,6 +230,7 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
 
             # initalize list
             switched = []
+            pre = 0
             # for each local record
             for seqid, seq in records.items():
                 # get full sequence idetifier
@@ -371,27 +319,52 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
                 # local sequence was previously synced
                 elif current_seq in locus_ns_seqs and '*' not in current_seqid:
                     del locus_ns_seqs[current_seq]
+                    pre += 1
 
-        # get local records that were synced in terms of identifiers
-        updated_records = {}
-        for seqid, seq in altered_locus.items():
-            int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
-            updated_records[int_seqid] = (seq[0], seq[1])
+            # get local records that were synced in terms of identifiers
+            updated_records = {}
+            for seqid, seq in altered_locus.items():
+                int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
+                updated_records[int_seqid] = (seq[0], seq[1])
 
-        # check if there are any completely new sequences that are only present in the NS
-        if len(locus_ns_seqs) > 0:
-            ns_rest = {int(seqid): (seqid, seq) for seq, seqid in locus_ns_seqs.items()}
-            updated_records = {**updated_records, **ns_rest}
+            # check if there are any completely new sequences that are only present in the NS
+            if len(locus_ns_seqs) > 0:
+                ns_rest = {int(seqid): (seqid, seq) for seq, seqid in locus_ns_seqs.items()}
+                updated_records = {**updated_records, **ns_rest}
 
-        # sort by integer identifier
-        #updated_records = sorted(updated_records, key=lambda x: x[0])
+            with open(temp_file, 'wb') as pl:
+                pickle.dump(updated_records, pl)
 
-        with open(temp_file, 'wb') as pl:
-            pickle.dump(updated_records, pl)
+            pickled_loci[locus] = temp_file
+            if len(not_in_ns[locus]) == 0:
+                del not_in_ns[locus]
+        else:
+            # there are no new alleles in the NS for this locus
+            # check if local schema has new alleles
+            locus_file = os.path.join(schema_dir, gene)
+            # get local locus sequences
+            with open(locus_file, 'r') as sf:
+                # read sequences in local file
+                records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
+                           for rec in SeqIO.parse(sf, 'fasta')}
 
-        pickled_loci[locus] = temp_file
-        if len(not_in_ns[locus]) == 0:
-            del not_in_ns[locus]
+            # determine if there are sequences with '*'
+            not_in_ns[gene] = [(v[0], v[1]) for k, v in records.items() if '*' in v[0]]
+
+            if len(not_in_ns[gene]) > 0:
+                updated_records = {}
+                for seqid, seq in records.items():
+                    int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
+                    updated_records[int_seqid] = (seq[0], seq[1])
+
+                locus_id = gene.rstrip('.fasta')
+                temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
+                with open(temp_file, 'wb') as pl:
+                    pickle.dump(updated_records, pl)
+
+                pickled_loci[gene] = temp_file
+            else:
+                del not_in_ns[gene]
 
     return [not_in_ns, pickled_loci]
 
@@ -429,7 +402,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-sc', type=str, dest='schema_dir', required=True,
+    parser.add_argument('-sc', type=str, dest='schema_directory', required=True,
                         help='Path to the directory with the schema to be'
                              'synced.')
 
@@ -452,12 +425,16 @@ def parse_arguments():
                              'NS. (only users with permissons level of '
                              'Contributor can submit new alleles).')
 
-    # add waiting time for the step that adds alleles to the NS? If schema is locked wait this time.
-
     args = parser.parse_args()
 
-    return [args.schema_dir, args.cpu_cores,
+    return [args.schema_directory, args.cpu_cores,
             args.nomenclature_server_url, args.submit]
+
+
+#schema_dir = '/home/rfm/Desktop/ns_test/full_test_download/sagalactiae_full_test4'
+#core_num = 6
+#base_url = cnst.HOST_NS
+#submit = True
 
 
 def main(schema_dir, core_num, base_url, submit):
@@ -499,6 +476,13 @@ def main(schema_dir, core_num, base_url, submit):
                                                      species_id,
                                                      base_url,
                                                      headers_get)[2:]
+    
+    # Get the name of the species from the provided id
+    # or vice-versa
+    species_info = aux.species_ids(species_id, base_url, headers_get)
+    species_id, species_name = species_info
+    print('\nNS species with identifier {0} '
+          'is {1}.'.format(species_id, species_name))
 
     # get last modification date
     # setting syncing date to last modification date will allow
@@ -510,10 +494,6 @@ def main(schema_dir, core_num, base_url, submit):
     temp_dir = os.path.join(os.path.dirname(schema_dir), 'temp')
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
-
-    # change for testing!!!
-    local_date = '2020-05-20T21:44:31.08'
-    #local_date = '2020-05-24T19:06:17.408700'
 
     # retrieve alleles added to schema after last sync date
     loci_alleles, server_time, count = retrieve_latest(local_date, schema_uri,
@@ -537,8 +517,10 @@ def main(schema_dir, core_num, base_url, submit):
         shutil.rmtree(temp_dir)
         sys.exit('Retrieved alleles are common to local and NS schema. '
                  'Local schema is up to date.')
-
-    if submit == 'yes' and user_auth is True:
+    print(submit is True)
+    print(user_auth)
+    print(len(not_in_ns), len(pickled_loci))
+    if submit is True and user_auth is True and len(not_in_ns) > 0:
 
         # attempt to lock schema
         lock_res = aux.simple_post_request(base_url, headers_post,
@@ -584,115 +566,140 @@ def main(schema_dir, core_num, base_url, submit):
 
                 print('Determining local alleles to submit...')
 
-                # Get the name of the species from the provided id
-                # or vice-versa
-                species_info = aux.species_ids(species_id, base_url, headers_get)
-                species_id, species_name = species_info
-                print('\nNS species with identifier {0} '
-                      'is {1}.'.format(species_id, species_name))
-
                 # compare list of genes, if they do not intersect, halt process
                 # get list of loci for schema in the NS
-                ns_loci_get = aux.simple_get_request(base_url, headers_get,
-                                                     ['species', species_id,
-                                                      'schemas', schema_id,
-                                                      'loci'])
+                loci_res = aux.simple_get_request(base_url, headers_get,
+                                                  ['species', species_id,
+                                                   'schemas', schema_id,
+                                                   'loci'])
                 # get loci files names from response
-                ns_schema_loci = []
-                ns_schema_locid_map = {}
-                for l in ns_loci_get.json()['Loci']:
-                    locus_file = l['original_name']['value']
+                ns_loci = {}
+                for l in loci_res.json()['Loci']:
                     locus_name = l['name']['value'] + '.fasta'
-                    ns_schema_loci.append(locus_name)
                     locus_uri = l['locus']['value']
-                    ns_schema_locid_map[locus_name] = (locus_uri, locus_file)
-        
-                completed = list(pickled_loci.keys())
-                incomplete = []
-                for locus in not_in_ns:
-                    if locus in ns_schema_loci:
-                        if len(not_in_ns[locus]) > 0:
-                            incomplete.append(locus)
-                        else:
-                            if locus not in completed:
-                                completed.append(locus)
-        
-                if len(incomplete) > 0:
-        
-                    uniq_local = {k: v for k, v in not_in_ns.items()
-                                  if k in incomplete}
-                    loci_uris = {k: v for k, v in ns_schema_locid_map.items()
-                                 if k in incomplete}
-        
-                    # determine sequences that are not in the NS
-                    # we synced before so we just need to go to each file and
-                    # identify the alleles with '*' as the alleles to be added!
-                    # we have to submit them and alter locally too...
-                    upload, comp = determine_upload(uniq_local, incomplete,
-                                                    loci_uris, schema_dir,
-                                                    temp_dir, base_url, headers_get)
-        
-                    completed.extend(comp)
-                    completed = list(set(completed))
+                    if locus_name in not_in_ns:
+                        ns_loci[locus_name] = locus_uri
 
-                    # create files with length values to send!
-                    # create an endpooint to send new alleles, it receives files
-                    # and calls a script that inserts the new alleles and updates
-                    # the pre-computed files!
+                # determine sequences that are not in the NS
+                # we synced before so we just need to go to each file and
+                # identify the alleles with '*' as the alleles to be added!
+                # we have to submit them and alter locally too...
+                upload, completed = determine_upload(ns_loci, schema_dir,
+                                                     temp_dir, base_url,
+                                                     headers_get)
 
-                    # add sequences to the NS
-                    # use multiprocessing
-                    alleles_data = []
-                    for locus, info in upload.items():
-                        new_loci_url = info[0]
-                        name = info[1]
-                        label = info[2]
-                        url = info[3]
-                        allele_seq_list = [rec[1] for rec in info[4:]]
-                        start_id = min([int(rec[0].split('_')[-1])
-                                        for rec in info[4:]])
-                        post_data = aux.create_allele_data(allele_seq_list,
-                                                           new_loci_url,
-                                                           name,
-                                                           label,
-                                                           url,
-                                                           species_name,
-                                                           True,
-                                                           headers_post,
-                                                           user_id,
-                                                           start_id)
-                        alleles_data.append(post_data)
-        
-                    for inlist in alleles_data:
-                        post_results = []
-                        total_inserted = 0
-                        total_alleles = len(inlist)
-        
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                            # Start the load operations and mark each future
-                            # with its URL
-                            for res in executor.map(aux.post_allele, inlist):
-                                post_results.append(res)
-                                total_inserted += 1
-                                print('\r',
-                                      'Processed {0}/{1} '
-                                      'alleles.'.format(total_inserted,
-                                                        total_alleles),
-                                      end='')
-#        else:
-#            print('There are no new alleles in the local schema that '
-#                  'need to be sent to the NS.')
+                # create files with length values to send!
+                # create an endpooint to send new alleles, it receives files
+                # and calls a script that inserts the new alleles and updates
+                # the pre-computed files!
+                length_files = []
+                for locus, recs in upload.items():
+                    lengths = {locus: {hashlib.sha256(rec[1].encode('utf-8')).hexdigest(): rec[2]
+                               for rec in recs[1:]}}
+                    lengths_file = os.path.join(temp_dir,
+                                                '{0}_lengths'.format(locus.rstrip('.fasta')))
 
-    elif submit == 'no':
-        completed = list(not_in_ns.keys())
+                    aux.pickle_dumper(lengths_file, lengths)
+                    length_files.append(lengths_file)
+
+                # create new alleles data
+                loci_ids = []
+                loci_names = []
+                alleles_files = []
+                user_uri = '{0}users/{1}'.format(base_url, user_id)
+                for locus, recs in upload.items():
+                    locus_uri = recs[0]
+                    alleles_sequences = [r[1] for r in recs[1:]]
+
+                    post_inputs = [locus_uri, species_name,
+                                   user_uri, tuple(alleles_sequences)]
+
+                    locus_id = locus_uri.split('/')[-1]
+                    loci_ids.append(locus_id)
+
+                    locus_name = locus.rstrip('.fasta')
+                    loci_names.append(locus_name)
+
+                    alleles_file = os.path.join(temp_dir,
+                                                '{0}_{1}_{2}'.format(species_id,
+                                                                     schema_id,
+                                                                     locus_id))
+                    alleles_files.append(alleles_file)
+
+                    aux.pickle_dumper(alleles_file, post_inputs)
+
+                # compress files with new alleles
+                zipped_files = ['{0}.zip'.format(file) for file in alleles_files]
+                list(map(aux.file_zipper, alleles_files, zipped_files))
+                alleles_data = list(zip(zipped_files, loci_ids, loci_names))
+
+                # send data
+                failed = []
+                uploaded = 0
+                print('Sending and inserting new alleles...')
+                for i, a in enumerate(alleles_data):
+
+                    locus_id = a[1]
+
+                    # get length of alleles from current locus
+                    current_len = length_files[i]
+                    data = aux.pickle_loader(current_len)
+                    data = {locus_id: data[next(iter(data))]}
+                    data = json.dumps({'content': data})
+
+                    # send data to the NS
+                    send_url = aux.make_url(base_url, 'species', species_id,
+                                            'schemas', schema_id, 'loci',
+                                            locus_id, 'lengths')
+
+                    lengths_res = aux.upload_data(data, send_url, headers_post, False)
+                    length_status = lengths_res.status_code
+
+                    # get path to ZIP archive with data to insert alleles
+                    current_zip = a[0]
+
+                    # send data to insert alleles in the NS
+                    zip_url = aux.make_url(base_url, 'species', species_id,
+                                           'schemas', schema_id, 'loci',
+                                           locus_id, 'update')
+
+                    if alleles_data[i] == alleles_data[-1]:
+                        print(True)
+                        headers_post_bytes['complete'] = 'True'
+
+                    zip_res = aux.upload_file(current_zip, os.path.basename(current_zip),
+                                              zip_url, headers_post_bytes,
+                                              False)
+                    zip_status = zip_res.status_code
+
+                    # determine if upload was successful
+                    if length_status not in [200, 201] or zip_status not in [200, 201]:
+                        failed.append(locus_id)
+                    elif length_status in [200, 201] and zip_status in [200, 201]:
+                        uploaded += 1
+                        #print('\r', '    Sent data for alleles of '
+                        #      '{0} loci.'.format(uploaded), end='')
+
+                # get last modification date
+                last_modified = aux.simple_get_request(base_url, headers_get,
+                                                       ['species', species_id,
+                                                        'schemas', schema_id,
+                                                        'modified'])
+                last_modified = (last_modified.json()).split(' ')[-1]
+                server_time = last_modified
 
     # change profiles in the master file so that local
     # profiles have updated allele identifiers
 
+                # remove files in temp folder
+                aux.remove_files(length_files)
+                aux.remove_files(alleles_files)
+                aux.remove_files(zipped_files)
+
     # change pickled files to FASTA files
-    for locus in completed:
+    for locus, pick in pickled_loci.items():
         locus_id = locus.rstrip('.fasta')
-        pickled_file = pickled_loci[locus]
+        pickled_file = pick
         with open(pickled_file, 'rb') as pf:
             locus_sequences = pickle.load(pf)
 
@@ -713,7 +720,9 @@ def main(schema_dir, core_num, base_url, submit):
 
     # Re-determine the representative sequences
     PrepExternalSchema.main(temp_dir, schema_dir,
-                            core_num, bsr, 0, 11)
+                            core_num, float(schema_params['bsr'][0]),
+                            int(schema_params['minimum_locus_length'][0]),
+                            11, '', None)
 
     # delete invalid alleles and genes files
     parent_dir = os.path.dirname(schema_dir)
@@ -727,26 +736,24 @@ def main(schema_dir, core_num, base_url, submit):
     # delete temp directory
     shutil.rmtree(temp_dir)
 
+    num_sent = sum([len(v) for k, v in not_in_ns.items()])
     # update NS config file with latest server time
     ns_configs = os.path.join(schema_dir, '.ns_config')
     with open(ns_configs, 'wb') as nc:
         pickle.dump([server_time, schema_uri], nc)
 
-    if user_role is True and submit == 'yes':
-        print('Updated local schema with {0} alleles '
-              'and sent {1} novel alleles to the '
-              'NS.'.format(new_count, len(alleles_data)))
-    else:
-        print('Updated local schema with {0} alleles.'.format(new_count))
+    print('Received {0} new alleles for {1} loci and sent '
+          '{2} for {3} loci. '.format(count, len(pickled_loci),
+                                      num_sent, len(not_in_ns)))
 
-    # unlock schema if it was locked
-    if locked is True:
-        schema_unlock = aux.simple_post_request(base_url, headers_post,
-                                                ['species', species_id,
-                                                 'schemas', schema_id, 'lock'],
-                                                {'action': 'unlock'})
+    end_date = dt.datetime.now()
+    end_date_str = dt.datetime.strftime(end_date, '%Y-%m-%dT%H:%M:%S')
 
-    print('Done!')
+    delta = end_date - start_date
+    minutes, seconds = divmod(delta.total_seconds(), 60)
+
+    print('\nFinished at: {0}'.format(end_date_str))
+    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 if __name__ == "__main__":

@@ -155,19 +155,19 @@ def import_annotations(tsv_file):
             with user and custom annotations as values.
     """
 
-    # read file and fill missing values with NA
+    # read file and fill missing values with N/A
     with open(tsv_file, 'r') as tf:
         lines = csv.reader(tf, delimiter='\t')
-        lines = [l + ['NA']*(3-len(l)) for l in lines]
+        lines = [l + ['N/A']*(3-len(l)) for l in lines]
 
     annotations = {}
     for l in lines:
         locus = l[0]
         # do not keep blank values
-        a = ['NA' if i.strip() == '' else i for i in l[1:]]
+        a = ['N/A' if i.strip() == '' else i for i in l[1:]]
 
         # only keep cases that have at least one non-NA field
-        if a[0] != 'NA' or a[1] != 'NA':
+        if a[0] != 'N/A' or a[1] != 'N/A':
             annotations[locus] = a
 
     return annotations
@@ -289,7 +289,11 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
                              'started schema upload. Exited.')
                 upload_type = 'incomplete'
     else:
-        upload_type = 'novel'
+        if continue_up is True:
+            sys.exit('Cannot continue uploading a schema that '
+                     'does not exist.')
+        else:
+            upload_type = 'novel'
 
     return [upload_type, schema_id]
 
@@ -369,9 +373,9 @@ def get_annotation(queries_file, max_queries=cnst.MAX_QUERIES):
     uniprot_sparql.setReturnFormat(JSON)
     uniprot_sparql.setTimeout(10)
 
-    prev_url = 'NA'
-    prev_name = 'NA'
-    prev_label = 'NA'
+    prev_url = 'N/A'
+    prev_name = 'N/A'
+    prev_label = 'N/A'
     uninformative = ['Uncharacterized protein',
                      'hypothetical protein',
                      'DUF']
@@ -389,7 +393,7 @@ def get_annotation(queries_file, max_queries=cnst.MAX_QUERIES):
             name, url, label = aux.select_name(result)
 
             if name != '':
-                if prev_name == 'NA':
+                if prev_name == 'N/A':
                     prev_name = name
                     prev_label = label
                     prev_url = url
@@ -1206,14 +1210,14 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
                         loci_annotations[a].extend(user_annotations[a])
                         valid += 1
                     else:
-                        loci_annotations[a].extend(['NA', 'NA'])
+                        loci_annotations[a].extend(['N/A', 'N/A'])
                 print('\nUser provided annotations for {0} '
                       'loci.'.format(valid))
             else:
-                loci_annotations = {locus: loci_annotations[locus]+['NA', 'NA'] for locus in loci_annotations}
+                loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
                 print('\nInvalid annotations file value.')
         else:
-            loci_annotations = {locus: loci_annotations[locus]+['NA', 'NA'] for locus in loci_annotations}
+            loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
             print('\nUser did not provide annotations.')
 
     params['schema_hashes'] = list(hashed_files.keys())

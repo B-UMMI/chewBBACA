@@ -431,12 +431,6 @@ def parse_arguments():
             args.nomenclature_server_url, args.submit]
 
 
-#schema_dir = '/home/rfm/Desktop/ns_test/full_test_download/sagalactiae_full_test4'
-#core_num = 6
-#base_url = cnst.HOST_NS
-#submit = True
-
-
 def main(schema_dir, core_num, base_url, submit):
 
     token = aux.capture_login_credentials(base_url)
@@ -517,9 +511,9 @@ def main(schema_dir, core_num, base_url, submit):
         shutil.rmtree(temp_dir)
         sys.exit('Retrieved alleles are common to local and NS schema. '
                  'Local schema is up to date.')
-    print(submit is True)
-    print(user_auth)
-    print(len(not_in_ns), len(pickled_loci))
+    #print(submit is True)
+    #print(user_auth)
+    #print(len(not_in_ns), len(pickled_loci))
     if submit is True and user_auth is True and len(not_in_ns) > 0:
 
         # attempt to lock schema
@@ -664,7 +658,7 @@ def main(schema_dir, core_num, base_url, submit):
                                            locus_id, 'update')
 
                     if alleles_data[i] == alleles_data[-1]:
-                        print(True)
+                        #print(True)
                         headers_post_bytes['complete'] = 'True'
 
                     zip_res = aux.upload_file(current_zip, os.path.basename(current_zip),

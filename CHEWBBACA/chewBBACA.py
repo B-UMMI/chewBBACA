@@ -25,23 +25,42 @@ import datetime
 import platform
 import argparse
 
-from allelecall import BBACA
-from createschema import PPanGen
-from SchemaEvaluator import ValidateSchema
-from PrepExternalSchema import PrepExternalSchema
-from utils import (TestGenomeQuality, profile_joiner,
-                   uniprot_find, Extract_cgAlleles,
-                   RemoveGenes, sqlite_functions as sq,
-                   auxiliary_functions as aux,
-                   constants as cnts,
-                   parameters_validation as pv)
+try:
+    from allelecall import BBACA
+    from createschema import PPanGen
+    from SchemaEvaluator import ValidateSchema
+    from PrepExternalSchema import PrepExternalSchema
+    from utils import (TestGenomeQuality, profile_joiner,
+                       uniprot_find, Extract_cgAlleles,
+                       RemoveGenes, sqlite_functions as sq,
+                       auxiliary_functions as aux,
+                       constants as cnts,
+                       parameters_validation as pv)
 
-from utils.parameters_validation import ModifiedHelpFormatter
+    from utils.parameters_validation import ModifiedHelpFormatter
 
-from CHEWBBACA_NS import (down_schema, load_schema,
-                          sync_schema, down_profiles,
-                          send2NS, send_metadata,
-                          stats_requests)
+    from CHEWBBACA_NS import (down_schema, load_schema,
+                              sync_schema, down_profiles,
+                              send2NS, send_metadata,
+                              stats_requests)
+except ImportError:
+    from CHEWBBACA.allelecall import BBACA
+    from CHEWBBACA.createschema import PPanGen
+    from CHEWBBACA.SchemaEvaluator import ValidateSchema
+    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
+                                 uniprot_find, Extract_cgAlleles,
+                                 RemoveGenes, sqlite_functions as sq,
+                                 auxiliary_functions as aux,
+                                 constants as cnts,
+                                 parameters_validation as pv)
+
+    from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
+
+    from CHEWBBACA.CHEWBBACA_NS import (down_schema, load_schema,
+                                        sync_schema, down_profiles,
+                                        send2NS, send_metadata,
+                                        stats_requests)
 
 import CHEWBBACA
 

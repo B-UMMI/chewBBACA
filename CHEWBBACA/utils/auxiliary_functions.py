@@ -42,7 +42,10 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 
-from utils import constants as cnst
+try:
+    from utils import constants as cnst
+except:
+    from CHEWBBACA.utils import constants as cnst
 
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 

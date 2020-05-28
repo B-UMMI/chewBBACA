@@ -9,10 +9,10 @@ from Bio import SeqIO
 from Bio.Alphabet import generic_dna
 import time
 
-try:
-    from utils import send_metadata
-except:
-    from CHEWBBACA.CHEWBBACA_NS import send_metadata
+#try:
+#    from utils import send_metadata
+#except:
+#    from CHEWBBACA.CHEWBBACA_NS import send_metadata
 
 
 class Result():

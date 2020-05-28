@@ -273,8 +273,16 @@ def get_fasta_seqs(url, headers_get, schema_date):
     """
 
     payload = {'date': schema_date}
-    res = requests.get(url, headers=headers_get, timeout=30,
-                       params=payload, verify=False)
+    tries = 0
+    max_tries = 3
+    downloaded = False
+    while downloaded is False:
+        res = requests.get(url, headers=headers_get, timeout=180,
+                           params=payload, verify=False)
+
+        tries += 1
+        if res.status_code in [200, 201] or tries == max_tries:
+            downloaded = True
 
     return (url.rstrip('/fasta'), res)
 
@@ -347,7 +355,7 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     failed = []
     downloaded = 0
     ns_files = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for result in executor.map(get_fasta_seqs, fasta_urls,
                                    repeat(headers_get), repeat(schema_date)):
             locus_id = loci[result[0]]
@@ -365,6 +373,11 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     print('\nDownloaded and wrote FASTA files for '
           '{0}/{1} loci'.format(downloaded, total))
     print('Failed download for {0} loci.\n'.format(len(failed)))
+    if len(failed) > 0:
+        sys.exit('Failed download for following loci: {0}\n'
+                 'Please download files for failed loci '
+                 'through the API or retry full schema '
+                 'download'.format(','.join(failed)))
 
     return ns_files
 
@@ -554,7 +567,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
                                 int(schema_params_dict['minimum_locus_length']),
                                 int(schema_params_dict['translation_table']),
                                 ptf_file,
-                                float(schema_params_dict['size_threshold']))
+                                None)
 
         # copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)

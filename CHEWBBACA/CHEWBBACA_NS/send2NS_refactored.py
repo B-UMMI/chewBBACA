@@ -12,7 +12,7 @@ import json
 import time
 import requests
 from collections import defaultdict
-import extra_scripts.utils as ut
+#import extra_scripts.utils as ut
 
 def process_genome(genome, schemaURI, profile, listHeaders, headers_post):
 

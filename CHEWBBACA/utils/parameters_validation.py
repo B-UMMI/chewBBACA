@@ -44,7 +44,7 @@ def arg_list(arg, arg_name):
 
     if isinstance(arg, list) is True:
         if len(arg) > 1:
-            sys.exit('\nMultiple {0} values.'.format())
+            sys.exit('\nMultiple {0} values.'.format(arg_name))
         else:
             arg = arg[0]
 
@@ -61,7 +61,7 @@ def bsr_type(arg, min_value=cnts.BSR_MIN, max_value=cnts.BSR_MAX):
     try:
         schema_bsr = float(arg)
         if schema_bsr >= min_value and schema_bsr <= max_value:
-            valid = str(schema_bsr)
+            valid = schema_bsr
         elif schema_bsr < min_value or schema_bsr > max_value:
             sys.exit('\nBSR value is not contained in the '
                      '[0.0, 1.0] interval.')
@@ -81,7 +81,7 @@ def minimum_sequence_length_type(arg, min_value=cnts.MSL_MIN, max_value=cnts.MSL
     try:
         schema_ml = int(arg)
         if schema_ml >= min_value and schema_ml <= max_value:
-            valid = str(schema_ml)
+            valid = schema_ml
         elif schema_ml < min_value or schema_ml > max_value:
             sys.exit('\nInvalid minimum sequence length value. '
                      'Must be equal or greater than 0.')
@@ -101,7 +101,7 @@ def size_threshold_type(arg, min_value=cnts.ST_MIN, max_value=cnts.ST_MAX):
     try:
         schema_st = float(arg)
         if schema_st >= min_value and schema_st <= max_value:
-            valid = str(schema_st)
+            valid = schema_st
         elif schema_st < min_value or schema_st > max_value:
             sys.exit('\nInvalid size threshold value. '
                      'Must be contained in the [0.0, 1.0] interval.')
@@ -125,7 +125,7 @@ def translation_table_type(arg, genetic_codes=cnts.GENETIC_CODES):
     try:
         schema_gen_code = int(arg)
         if schema_gen_code in genetic_codes:
-            valid = str(schema_gen_code)
+            valid = schema_gen_code
         else:
             valid = False
     except Exception:
@@ -170,7 +170,7 @@ def validate_ws(arg, min_value=cnts.WS_MIN, max_value=cnts.WS_MAX):
         else:
             word_size = int(arg)
             if word_size >= min_value and word_size <= max_value:
-                valid = str(word_size)
+                valid = word_size
             else:
                 sys.exit('\nWord size for the clustering step '
                          'must be equal or greater than {0} and '
@@ -194,7 +194,7 @@ def validate_cs(arg, min_value=cnts.CS_MIN, max_value=cnts.CS_MAX):
         else:
             cluster_sim = float(arg)
             if cluster_sim >= min_value and cluster_sim <= max_value:
-                valid = str(cluster_sim)
+                valid = cluster_sim
             else:
                 sys.exit('\nClustering similarity threshold value '
                          'must be contained in the [0.0, 1.0] '
@@ -218,7 +218,7 @@ def validate_rf(arg, min_value=cnts.RF_MIN, max_value=cnts.RF_MAX):
         else:
             representative_filter = float(arg)
             if representative_filter >= min_value and representative_filter <= max_value:
-                valid = str(representative_filter)
+                valid = representative_filter
             else:
                 sys.exit('\nRepresentative filter threshold value '
                          'must be contained in the [0.0, 1.0] '
@@ -241,7 +241,7 @@ def validate_if(arg, min_value=cnts.IF_MIN, max_value=cnts.IF_MAX):
         else:
             intraCluster_filter = float(arg)
             if intraCluster_filter >= min_value and intraCluster_filter <= max_value:
-                valid = str(intraCluster_filter)
+                valid = intraCluster_filter
             else:
                 sys.exit('\nIntra-cluster filter value '
                          'must be contained in the [0.0, 1.0] '

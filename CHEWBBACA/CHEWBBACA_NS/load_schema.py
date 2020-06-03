@@ -456,7 +456,7 @@ def quality_control(locus_input):
               (list of str).
     """
 
-    res = aux.get_seqs_dicts(*locus_input)
+    res = aux.get_seqs_dicts(*locus_input, max_proteins=cnst.MAX_QUERIES)
 
     prots_file = '{0}_prots'.format(locus_input[0].split('.fasta')[0])
     aux.pickle_dumper(prots_file, res[1])
@@ -1087,7 +1087,8 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
               'representative_filter': rf_val, 'intraCluster_filter': if_val}
 
     params_values = list(params.values())
-    if all(params_values) is not True:
+
+    if None in params_values:
         sys.exit('Found invalid parameters values and exited.')
     else:
         params_lines = ['  {0}: {1}'.format(k, v) for k, v in params.items() if k not in ['prodigal_training_file', 'name']]
@@ -1219,6 +1220,9 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
             loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
             print('\nUser did not provide annotations.')
 
+    # convert parameters to string type because the Chewie-NS
+    # expects strings
+    params = {k: str(v) for k, v in params.items()}
     params['schema_hashes'] = list(hashed_files.keys())
 
     # start sending data

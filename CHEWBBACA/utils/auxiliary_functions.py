@@ -203,44 +203,6 @@ def write_schema_config(blast_score_ratio, ptf_hash,
 
     return [os.path.isfile(config_file), config_file]
 
-################################
-# code to send alleles to the NS
-thread_local = threading.local()
-
-
-def get_session():
-    if not hasattr(thread_local, "session"):
-        thread_local.session = requests.Session()
-    return thread_local.session
-
-
-def post_alleles(input_file):
-    """
-    """
-
-    data = pickle_loader(input_file)
-
-    responses = []
-    session = get_session()
-    for d in data:
-        with session.post(d[0], data=d[1], headers=d[2], timeout=360, verify=False) as response:
-            responses.append(list(response))
-
-    return responses
-
-
-def send_alleles(post_files):
-
-    responses = []
-    total = 0
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        for res in executor.map(post_alleles, post_files):
-            total += 1
-            print('\r', total, end='')
-            responses.append(res)
-
-    return responses
-
 
 def select_name(result):
     """ Extracts the annotation description from the result
@@ -979,7 +941,7 @@ def mode_filter(alleles, size_threshold):
     return [modes, alm, asm, alleles_lengths]
 
 
-def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold):
+def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_proteins=None):
     """ Creates a dictionary mapping seqids to DNA sequences and
         another dictionary mapping protids to protein sequences.
 
@@ -1005,9 +967,30 @@ def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold):
     seqids_map = {}
     invalid_alleles = []
     seq_generator = SeqIO.parse(gene_file, 'fasta', generic_dna)
-    translated_seqs = [(rec.id, translate_dna(str(rec.seq), table_id, min_len)) for rec in seq_generator]
-    total_seqs = len(translated_seqs)
+    if max_proteins is None:
+        translated_seqs = [(rec.id, translate_dna(str(rec.seq), table_id, min_len)) for rec in seq_generator]
+    else:
+        translated_seqs = []
+        exausted = False
+        invalid = 0
+        seen = []
+        while (len(translated_seqs)-invalid) < max_proteins and exausted is False:
+            current_rec = next(seq_generator, None)
+            if current_rec is not None:
+                recid = current_rec.id
+                sequence = str(current_rec.seq)
+                prot = (recid, translate_dna(sequence, table_id, min_len))
+                if isinstance(prot[1], str) is True:
+                    invalid += 1
+                    translated_seqs.append(prot)
+                else:
+                    if prot[1] not in seen:
+                        translated_seqs.append(prot)
+                        seen.append(prot[1])
+            else:
+                exausted = True
 
+    total_seqs = len(translated_seqs)
     for rec in translated_seqs:
         # if the allele identifier is just an integer
         # add gene identifier as prefix
@@ -1653,139 +1636,23 @@ def upload_data(data, url, headers, verify_ssl):
     return response
 
 
-def send_data(sparql_query, url_send_local_virtuoso, virtuoso_user, virtuoso_pass):
-    """ Sends data to virtuoso.
-    
-        Args: 
-            sparql_query (str): the sparql query to use
-            url_send_local_virtuoso (str): the url for the local Virtuoso folder
-            virtuoso_user (str): the Virtuoso user
-            virtuoso_pass (str): the Virtuoso password
-
-        Returns:
-            r (Response) of the Virtuoso server
-    """
-    
-    url = url_send_local_virtuoso
-    headers = {'content-type': 'application/sparql-query'}
-    r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass), verify=False)
-
-    #sometimes virtuoso returns 405 God knows why ¯\_(ツ)_/¯ retry in 2 sec
-    if r.status_code >201:
-        time.sleep(2)
-        r = requests.post(url, data=sparql_query, headers=headers, auth=requests.auth.HTTPBasicAuth(virtuoso_user, virtuoso_pass), verify=False)
-        
-    return r
-
-
-def send_post(loci_uri, sequence, token, noCDSCheck):
-    """ """
-
-    params = {}
-    params['sequence'] = sequence
-
-    if not noCDSCheck:
-        params['enforceCDS'] = "False"
-    
-    headers = {'X-API-KEY': token,
-               'Content-type': 'application/json',
-               'accept': 'application/json'}
-    
-#    url = loci_uri + "/alleles"
-    
-    url = make_url(loci_uri, "alleles")
-
-    req_success = False
-    sleepfactor = 4
-    while not req_success:
-        try:
-            r = requests.post(url, data=json.dumps(params), headers=headers, timeout=30, verify=False)
-            
-            if r.status_code == 418:
-                print("Sequence is already attributed to a loci/allele")
-            
-            elif r.status_code > 201:
-                print(r)
-                print("failed sending sequence, retrying in seconds "
-                      + str(sleepfactor))
-                time.sleep(sleepfactor)
-                sleepfactor = sleepfactor * 2
-            else:
-                req_success = True
-        except:
-            time.sleep(sleepfactor)
-            sleepfactor = sleepfactor * 2
-            pass
-
-    req_code = int(r.status_code)
-    # allele_url=((r.content).decode("utf-8")).replace('"', '').strip()
-
-    return req_code
-
-
-def send_sequence(token, sequence, loci_uri, noCDSCheck):
-    """ """
-
-    req_success = False
-    sleepfactor = 4
-    while not req_success:
-
-        reqCode = send_post(loci_uri, sequence, token, noCDSCheck)
-        if reqCode > 201:
-            print("failed, retrying in seconds "+str(sleepfactor))
-            time.sleep(sleepfactor)
-            sleepfactor = sleepfactor * 2
-
-        else:
-            req_success = True
-        
-    return reqCode
-
-
-def process_locus(gene, token, loci_url, auxBar, noCDSCheck):
-    """ """
-
-    for allele in SeqIO.parse(gene, "fasta", generic_dna):
-
-        sequence = (str(allele.seq)).upper()
-        try:
-            sequence = translate_sequence(sequence)
-            sequence = str(sequence)
-
-        except:
-            continue
-
-        #reqCode = send_sequence(token, sequence, loci_url, noCDSCheck)
-        reqCode = send_post(loci_url, sequence, token, noCDSCheck)
-
-    if gene in auxBar:
-        auxlen = len(auxBar)
-        index = auxBar.index(gene)
-        print("[" + "=" * index + ">" +
-                " " * (auxlen - index) +
-                "] Sending alleles " +
-                    str(int((index / auxlen) * 100)) + "%")
-
-    return reqCode
-
-
 def get_data(sparql_query):
     """ Gets data from Virtuoso """
 
-    try:
-        UNIPROT_SERVER.setQuery(sparql_query)
-        UNIPROT_SERVER.setReturnFormat(JSON)
-        UNIPROT_SERVER.setTimeout(20)
-        result = UNIPROT_SERVER.query().convert()
-    except Exception as e:
-        time.sleep(5)
+    tries = 0
+    max_tries = 5
+    success = False
+    while success is False and tries < max_tries:
         try:
             UNIPROT_SERVER.setQuery(sparql_query)
             UNIPROT_SERVER.setReturnFormat(JSON)
-            UNIPROT_SERVER.setTimeout(20)
+            UNIPROT_SERVER.setTimeout(60)
             result = UNIPROT_SERVER.query().convert()
+            success = True
         except Exception as e:
+            tries += 1
             result = e
+            time.sleep(1)
 
     return result
 

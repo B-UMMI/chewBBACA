@@ -65,7 +65,7 @@ except:
 import CHEWBBACA
 
 
-current_version = '2.1.0'
+current_version = '2.5.0'
 
 
 def create_schema():
@@ -1355,7 +1355,7 @@ def main():
                       'NSStats': ['',
                                   ns_stats]}
 
-    version = '2.1.0'
+    version = '2.5.0'
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
     repository = 'https://github.com/B-UMMI/chewBBACA'
     wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'

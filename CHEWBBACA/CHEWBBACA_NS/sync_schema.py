@@ -422,7 +422,7 @@ def parse_arguments():
                         action='store_true', dest='submit',
                         help='If the process should identify new alleles '
                              'in the local schema and send them to the '
-                             'NS. (only users with permissons level of '
+                             'NS. (only users with permissions level of '
                              'Contributor can submit new alleles).')
 
     args = parser.parse_args()
@@ -511,9 +511,8 @@ def main(schema_dir, core_num, base_url, submit):
         shutil.rmtree(temp_dir)
         sys.exit('Retrieved alleles are common to local and NS schema. '
                  'Local schema is up to date.')
-    #print(submit is True)
-    #print(user_auth)
-    #print(len(not_in_ns), len(pickled_loci))
+
+    num_sent = 0
     if submit is True and user_auth is True and len(not_in_ns) > 0:
 
         # attempt to lock schema
@@ -658,7 +657,6 @@ def main(schema_dir, core_num, base_url, submit):
                                            locus_id, 'update')
 
                     if alleles_data[i] == alleles_data[-1]:
-                        #print(True)
                         headers_post_bytes['complete'] = 'True'
 
                     zip_res = aux.upload_file(current_zip, os.path.basename(current_zip),
@@ -671,8 +669,6 @@ def main(schema_dir, core_num, base_url, submit):
                         failed.append(locus_id)
                     elif length_status in [200, 201] and zip_status in [200, 201]:
                         uploaded += 1
-                        #print('\r', '    Sent data for alleles of '
-                        #      '{0} loci.'.format(uploaded), end='')
 
                 # get last modification date
                 last_modified = aux.simple_get_request(base_url, headers_get,
@@ -681,6 +677,8 @@ def main(schema_dir, core_num, base_url, submit):
                                                         'modified'])
                 last_modified = (last_modified.json()).split(' ')[-1]
                 server_time = last_modified
+
+                num_sent = sum([len(v) for k, v in not_in_ns.items()])
 
     # change profiles in the master file so that local
     # profiles have updated allele identifiers
@@ -713,32 +711,32 @@ def main(schema_dir, core_num, base_url, submit):
         os.remove(pickled_file)
 
     # Re-determine the representative sequences
-    PrepExternalSchema.main(temp_dir, schema_dir,
-                            core_num, float(schema_params['bsr'][0]),
-                            int(schema_params['minimum_locus_length'][0]),
-                            11, '', None)
+    if num_sent > 0 or count > 0:
+        PrepExternalSchema.main(temp_dir, schema_dir,
+                                core_num, float(schema_params['bsr'][0]),
+                                int(schema_params['minimum_locus_length'][0]),
+                                11, '', None)
 
-    # delete invalid alleles and genes files
-    parent_dir = os.path.dirname(schema_dir)
-    files = [os.path.join(parent_dir, file)
-             for file in os.listdir(parent_dir)
-             if 'invalid' in file]
+        # delete invalid alleles and genes files
+        parent_dir = os.path.dirname(schema_dir)
+        files = [os.path.join(parent_dir, file)
+                 for file in os.listdir(parent_dir)
+                 if 'invalid' in file]
 
-    for f in files:
-        os.remove(f)
+        for f in files:
+            os.remove(f)
 
-    # delete temp directory
-    shutil.rmtree(temp_dir)
-
-    num_sent = sum([len(v) for k, v in not_in_ns.items()])
-    # update NS config file with latest server time
-    ns_configs = os.path.join(schema_dir, '.ns_config')
-    with open(ns_configs, 'wb') as nc:
-        pickle.dump([server_time, schema_uri], nc)
+        # update NS config file with latest server time
+        ns_configs = os.path.join(schema_dir, '.ns_config')
+        with open(ns_configs, 'wb') as nc:
+            pickle.dump([server_time, schema_uri], nc)
 
     print('Received {0} new alleles for {1} loci and sent '
           '{2} for {3} loci. '.format(count, len(pickled_loci),
                                       num_sent, len(not_in_ns)))
+
+    # delete temp directory
+    shutil.rmtree(temp_dir)
 
     end_date = dt.datetime.now()
     end_date_str = dt.datetime.strftime(end_date, '%Y-%m-%dT%H:%M:%S')

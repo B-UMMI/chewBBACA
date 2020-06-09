@@ -17,7 +17,7 @@ The process for schema upload has four stages:
       with the schema. Only schemas that have been used with a single valid
       value per parameter can be uploaded. Invalid or multiple values
       for a single parameter can lead to inconsistent results; thus,
-      it is stronlgy advised to always perform allele calling with
+      it is strongly advised to always perform allele calling with
       the same set of parameters and refrain from altering the initial
       set of parameters values defined in the schema creation or
       adaptation processes.

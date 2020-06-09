@@ -9,9 +9,14 @@ Chewie-NS.
 
 The process enables the download of ZIP archives that contain ready-to-use
 versions of any schema in the Chewie-NS. It also allows users to download
-any schema with the structure it had at a specific time point.
-
-
+any schema with the structure it had at a specific time point. It is also
+possible to download the latest version of the schema through requests to
+the Chewie-NS API, if the compressed version that is available does not
+match the latest version of the schema. An alternative approach that can
+be applied to get the latest version of the schema, if the compressed version
+does not provide it, is to download the compressed version that is available
+and run the SyncSchema process to retrieve the alleles that were added to the
+schema after the compression date.
 
 Expected input
 --------------

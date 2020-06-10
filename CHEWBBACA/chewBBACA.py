@@ -928,15 +928,15 @@ def download_schema():
 
     def msg(name=None):
         # simple command to download a schema from the NS
-        simple_cmd = ('chewBBACA.py DownloadSchema -sc <schema_id> '
+        simple_cmd = ('  chewBBACA.py DownloadSchema -sc <schema_id> '
                                                   '-sp <species_id> '
                                                   '-o <download_folder> ')
 
         # command to download a schema from the NS with non-default arguments values
-        params_cmd = ('chewBBACA.py DownloadSchema -sc <schema_id> '
+        params_cmd = ('  chewBBACA.py DownloadSchema -sc <schema_id> '
                                                   '-sp <species_id> '
                                                   '-o <download_folder>\n'
-                                                  '\t\t\t    --cpu <cpu_cores> '
+                                                  '\t\t\t      --cpu <cpu_cores> '
                                                   '--ns_url <nomenclature_server_url> ')
 
         usage_msg = ('\nDownload schema:\n{0}\n'
@@ -1016,24 +1016,24 @@ def upload_schema():
 
     def msg(name=None):
         # simple command to load a schema to the NS
-        simple_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
+        simple_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
                                               '-sp <species_id> '
-                                              '-sd <schema_description>\n'
-                                              '\t\t\t-lp <loci_prefix> ')
+                                              '-sn <schema_name>\n'
+                                              '\t\t\t  -lp <loci_prefix> ')
 
         # command to load a schema to the NS with non-default arguments values
-        params_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
+        params_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
                                               '-sp <species_id> '
-                                              '-sd <schema_description>\n'
-                                              '\t\t\t-lp <loci_prefix> '
+                                              '-sn <schema_name>\n'
+                                              '\t\t\t  -lp <loci_prefix> '
                                               '--thr <threads> '
                                               '--ns_url <nomenclature_server_url>')
 
         # command to continue schema upload that was interrupted or aborted
-        continue_cmd = ('chewBBACA.py LoadSchema -i <schema_directory> '
+        continue_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
                                                 '-sp <species_id> '
-                                                '-sd <schema_description>\n'
-                                                '\t\t\t--continue_up')
+                                                '-sn <schema_name>\n'
+                                                '\t\t\t  --continue_up')
 
         usage_msg = ('\nLoad schema:\n{0}\n'
                      '\nLoad schema with non-default parameters:\n{1}\n'
@@ -1135,15 +1135,15 @@ def synchronize_schema():
 
     def msg(name=None):
         # simple command to synchronize a schema with its NS version
-        simple_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> ')
+        simple_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> ')
 
         # command to synchronize a schema with its NS version with non-default arguments values
-        params_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> '
+        params_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> '
                                               '--cpu <cpu_cores> '
                                               '-ns_url <nomenclature_server_url>')
 
         # command to submit novel local alleles
-        submit_cmd = ('chewBBACA.py SyncSchema -i <schema_directory> --submit')
+        submit_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> --submit')
 
         usage_msg = ('\nSync schema:\n{0}\n'
                      '\nSync schema with non-default parameters:\n{1}\n'

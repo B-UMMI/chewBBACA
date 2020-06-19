@@ -13,9 +13,11 @@ from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
 
 try:
-	from createschema import init_schema_4_bbaca,CommonFastaFunctions
+    from createschema import init_schema_4_bbaca
+    from utils import CommonFastaFunctions
 except:
-	from CHEWBBACA.createschema import init_schema_4_bbaca,CommonFastaFunctions
+    from CHEWBBACA.createschema import init_schema_4_bbaca
+    from CHEWBBACA.utils import CommonFastaFunctions
 
 import time
 

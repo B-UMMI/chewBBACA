@@ -342,12 +342,12 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
             else:
                 if allele_id != 'LNF':
                     json_profile += ', "{0}":"{1}"'.format(locus_id, allele_id)
-            
+
         json_profile += '}'
-    
+
         profile_hash = hashlib.sha256(json_profile.encode('utf-8')).hexdigest()
         profiles_hashes.append(profile_hash)
-        
+
         previous_rcount = c.execute("SELECT COUNT(*) FROM profiles;").fetchone()[0]
         c.execute("INSERT OR IGNORE INTO profiles (profile_id, date, profile_json, subschema_id) VALUES (?, ?, json(?), ?);", (profile_hash, insert_date, json_profile, loci_hash))
         posterior_rcount = c.execute("SELECT COUNT(*) FROM profiles;").fetchone()[0]
@@ -361,7 +361,7 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # insert subschemas
     subschema_statement = create_insert_statement('subschemas', ['subschema_id', 'loci'])
     subschema_data = [(subschemas_hashes[i], subschemas_loci[i]) for i in range(len(subschemas_hashes))]
-    
+
     # insert all subschemas
     insert_multiple(db_file, subschema_statement, subschema_data)
 
@@ -377,12 +377,12 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 
 
 # select all rows from tables
-#db_file = ''
+#db_file = '/home/rfm/Desktop/test_full_chewie/arco_seed2/profiles_database/profiles.db'
 #loci_list_db = select_all_rows(db_file, 'loci')
 #profiles_list_db = select_all_rows(db_file, 'profiles')
 #samples_list_db = select_all_rows(db_file, 'samples')
 #subschemas_list_db = select_all_rows(db_file, 'subschemas')
-
+#
 ## select single field of profiles data
 #conn = sqlite3.connect(db_file)
 #
@@ -390,7 +390,14 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 #c = conn.cursor()
 #
 ## json_extract is SQL function from JSON1 extension
-#c.execute("select json_extract(profiles.profile_json, '$.2138') from profiles;")
+## enables extraction of single JSON field
+#
+## get profile identifiers that have column with a certain value
+#query = "select profiles.profile_id, json_extract(profiles.profile_json, '$.{0}') AS poop from profiles where poop = '{1}';".format(2138, 99)
+#
+## get profile identifiers and full JSON profiles
+##query = "select profiles.profile_id, profiles.profile_json from profiles where json_extract(profiles.profile_json, '$.{0}') = '{1}';".format(2138, 99)
+#c.execute(query)
 #
 #rows = c.fetchall()
 #
@@ -399,4 +406,28 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 #    rows_list.append(row)
 #
 #conn.close()
+#
+## change single field in profiles based on value on that field
+#conn = sqlite3.connect(db_file)
+#c = conn.cursor()
+#
+## change single field in JSON
+##query = "update profiles set profile_json =(select json_replace(profiles.profile_json, '$.2138', '99') from profiles);"
+#
+## This does not seem to work properly, changing identifiers for a lot of loci?
+##query = "update profiles set profile_json =(select json_replace(profiles.profile_json, '$.2138', '99') from profiles) where json_extract(profiles.profile_json, '$.2138') = '1';"
+#c.execute(query)
+#
+#rows = c.fetchall()
+#
+#rows_list = []
+#for row in rows:
+#    rows_list.append(row)
+#
+#conn.commit()
+#conn.close()
+
+
+
+
 

@@ -10,9 +10,11 @@ import shutil
 import multiprocessing
 import subprocess
 try:
-    from createschema import CreateSchema,runProdigal
+    from createschema import CreateSchema
+    from utils import runProdigal
 except:
-    from CHEWBBACA.createschema import CreateSchema,runProdigal
+    from CHEWBBACA.createschema import CreateSchema
+    from CHEWBBACA.utils import runProdigal
 
 
 def which(program):

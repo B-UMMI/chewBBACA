@@ -81,7 +81,7 @@ execution or invocation of the :py:func:`main` function:
 - ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
   Nomenclature Server.
 
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (local host)
+    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
 
 - ``--continue_up`` : If the process should check if the schema upload was
   interrupted and try to resume it. ``True`` if provided, ``False`` otherwise.
@@ -1201,24 +1201,20 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
                       '{0}/{1} loci'.format(total_found, total_loci), end='')
 
         # get user and custom annotations
-        if annotations is not None:
-            if os.path.isfile(annotations) is True:
-                user_annotations = import_annotations(annotations)
-                valid = 0
-                for a in loci_annotations:
-                    if a in user_annotations:
-                        loci_annotations[a].extend(user_annotations[a])
-                        valid += 1
-                    else:
-                        loci_annotations[a].extend(['N/A', 'N/A'])
-                print('\nUser provided annotations for {0} '
-                      'loci.'.format(valid))
-            else:
-                loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
-                print('\nInvalid annotations file value.')
+        if os.path.isfile(str(annotations)) is True:
+            user_annotations = import_annotations(annotations)
+            valid = 0
+            for a in loci_annotations:
+                if a in user_annotations:
+                    loci_annotations[a].extend(user_annotations[a])
+                    valid += 1
+                else:
+                    loci_annotations[a].extend(['N/A', 'N/A'])
+            print('\nUser provided valid annotations for {0} '
+                  'loci.'.format(valid))
         else:
             loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
-            print('\nUser did not provide annotations.')
+            print('\nInvalid annotations file value.')
 
     # convert parameters to string type because the Chewie-NS
     # expects strings

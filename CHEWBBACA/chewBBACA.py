@@ -26,6 +26,7 @@ import platform
 import argparse
 
 try:
+    from __init__ import __version__
     from allelecall import BBACA
     from createschema import PPanGen
     from SchemaEvaluator import ValidateSchema
@@ -44,6 +45,7 @@ try:
                               send2NS, send_metadata,
                               stats_requests)
 except:
+    from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
     from CHEWBBACA.createschema import PPanGen
     from CHEWBBACA.SchemaEvaluator import ValidateSchema
@@ -62,10 +64,8 @@ except:
                                         send2NS, send_metadata,
                                         stats_requests)
 
-import CHEWBBACA
 
-
-current_version = '2.5.0'
+version = __version__
 
 
 def create_schema():
@@ -207,7 +207,7 @@ def create_schema():
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
                                             translation_table, minimum_length,
-                                            current_version, size_threshold,
+                                            version, size_threshold,
                                             output_directory)
 
     # create hidden file with genes/loci list
@@ -381,7 +381,7 @@ def allele_call():
 
     # run parameters values
     run_params = {'bsr': blast_score_ratio,
-                  'chewBBACA_version': current_version,
+                  'chewBBACA_version': version,
                   'prodigal_training_file': ptf_path,
                   'translation_table': translation_table,
                   'size_threshold': size_threshold}
@@ -880,7 +880,7 @@ def prep_schema():
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
                                             translation_table, minimum_length,
-                                            current_version, size_threshold,
+                                            version, size_threshold,
                                             output_directory)
 
     # create hidden file with genes/loci list
@@ -1291,9 +1291,10 @@ def ns_stats():
     parser.add_argument('-m', type=str, required=True, dest='stats_mode',
                         help='')
 
-    parser.add_argument('--url', type=str, required=False, dest='base_url',
-                        default='http://127.0.0.1:5000/NS/api/',
-                        help='')
+    parser.add_argument('--ns_url', type=str, required=False,
+                        default=cnts.HOST_NS,
+                        dest='nomenclature_server_url',
+                        help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--taxon', type=str, required=False, dest='taxon',
                         default='0', help='')
@@ -1301,7 +1302,7 @@ def ns_stats():
     args = parser.parse_args()
 
     mode = args.stats_mode
-    ns_url = args.base_url
+    ns_url = args.nomenclature_server_url
     species = args.taxon
 
     stats_requests.main(mode, ns_url, species)
@@ -1309,53 +1310,53 @@ def ns_stats():
 
 def main():
 
-    functions_info = {'CreateSchema': ['Create a gene by gene schema based on '
-                                       'genomes',
+    functions_info = {'CreateSchema': ['Create a gene-by-gene schema based on '
+                                       'a set of input genomes.',
                                        create_schema],
-                      'AlleleCall': ['Perform allele call for target genomes',
+                      'AlleleCall': ['Determine the allelic profiles of a set of '
+                                     'input genomes based on a schema.',
                                      allele_call],
                       'SchemaEvaluator': ['Tool that builds an html output '
                                           'to better navigate/visualize '
-                                          'your schema',
+                                          'your schema.',
                                           evaluate_schema],
                       'TestGenomeQuality': ['Analyze your allele call output '
-                                            'to refine schemas',
+                                            'to refine schemas.',
                                             test_schema],
                       'ExtractCgMLST': ['Select a subset of loci without '
-                                        'missing data (to be used as '
-                                        'PHYLOViZ input)',
+                                        'missing data (can be used as '
+                                        'PHYLOViZ input).',
                                         extract_cgmlst],
                       'RemoveGenes': ['Remove a provided list of loci from '
-                                      'your allele call output',
+                                      'your allele call output.',
                                       remove_genes],
                       'PrepExternalSchema': ['Adapt an external schema to be '
                                              'used with chewBBACA.',
                                              prep_schema],
-                      'JoinProfiles': ['join two profiles in a single profile '
-                                       'file',
+                      'JoinProfiles': ['Join two profiles in a single profile '
+                                       'file.',
                                        join_profiles],
-                      'UniprotFinder': ['get info about a schema created with '
-                                        'chewBBACA',
+                      'UniprotFinder': ['Retrieve annotations for loci in a schema.',
                                         find_uniprot],
-                      'DownloadSchema': ['Download schema from NS',
+                      'DownloadSchema': ['Download a schema from the Chewie-NS.',
                                          download_schema],
-                      'LoadSchema': ['Upload a schema to the NS',
+                      'LoadSchema': ['Upload a schema to the Chewie-NS.',
                                      upload_schema],
-                      'SyncSchema': ['Synchronize a local schema (downloaded '
-                                     'from NS) with NS',
+                      'SyncSchema': ['Synchronize a schema with its remote version '
+                                     'in the Chewie-NS.',
                                      synchronize_schema],
-                      'Send2NS': ['Send local profile and respective alleles '
-                                  'to NS',
-                                  send_NS],
-                      'DownloadProfiles': ['Download all profiles of a given '
-                                           'species for a given schema',
-                                           down_prof],
-                      'SendMetadata': ['send metadata to isolates on the NS',
-                                       send_meta],
-                      'NSStats': ['',
+                      # 'Send2NS': ['Send local profile and respective alleles '
+                      #             'to NS',
+                      #             send_NS],
+                      # 'DownloadProfiles': ['Download all profiles of a given '
+                      #                      'species for a given schema',
+                      #                      down_prof],
+                      # 'SendMetadata': ['send metadata to isolates on the NS',
+                      #                  send_meta],
+                      'ChewieNSStats': ['Retrieve basic information about schemas '
+                                        'in the Chewie-NS.',
                                   ns_stats]}
 
-    version = '2.5.0'
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
     repository = 'https://github.com/B-UMMI/chewBBACA'
     wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'

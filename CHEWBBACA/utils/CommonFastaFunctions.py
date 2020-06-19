@@ -40,10 +40,13 @@ def Create_Blastdb(questionDB, overwrite, dbtypeProt):
                 "makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
 
     else:
-        print ("BLAST DB files found. Using existing DBs..")
+        print("BLAST DB files found. Using existing DBs..")
+
     return name
 
+
 def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
+
     base = os.path.basename(questionDB)
     dirname = os.path.dirname(questionDB)
     isProt = dbtypeProt
@@ -53,7 +56,6 @@ def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
     basename = os.path.splitext(base)[0]
     ensure_dir(dirname + "/blastdbs")
     name = dirname + "/blastdbs/" + basename + "_db"
-
 
     if not os.path.isfile(name + ".nin") and not os.path.isfile(name + ".nhr") and not os.path.isfile(name + ".nsq"):
 
@@ -70,7 +72,8 @@ def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
             os.system('echo "'+sequence+'" | makeblastdb -in - -title titulo -out ' + name + ' -dbtype prot -logfile ' + name + '_blast.log')
 
     else:
-        print ("BLAST DB files found. Using existing DBs..")
+        print("BLAST DB files found. Using existing DBs..")
+
     return name
 
 

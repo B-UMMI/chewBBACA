@@ -190,11 +190,13 @@ def write_schema_config(blast_score_ratio, ptf_hash,
     """
     """
 
+    size_threshold = None if size_threshold in [None, 'None'] else float(size_threshold)
+
     params = {}
-    params['bsr'] = [blast_score_ratio]
+    params['bsr'] = [float(blast_score_ratio)]
     params['prodigal_training_file'] = [ptf_hash]
-    params['translation_table'] = [translation_table]
-    params['minimum_locus_length'] = [minimum_sequence_length]
+    params['translation_table'] = [int(translation_table)]
+    params['minimum_locus_length'] = [int(minimum_sequence_length)]
     params['chewBBACA_version'] = [chewie_version]
     params['size_threshold'] = [size_threshold]
 
@@ -294,7 +296,7 @@ def user_info(base_url, headers_get):
 
     # verify user role to check permission
     user_info = simple_get_request(base_url, headers_get,
-                                       ['user', 'current_user'])
+                                   ['user', 'current_user'])
     user_info = user_info.json()
 
     user_id = str(user_info['id'])
@@ -1567,9 +1569,9 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
             schema.append(schema_params)
             return schema
         else:
-            sys.exit('\nCould not find a schema with such description.')
+            sys.exit('Could not find a schema with provided identifier.')
     else:
-        sys.exit('\nCould not retrieve schemas for current species.')
+        sys.exit('Could not retrieve schemas for current species.')
 
 
 def upload_file(file, filename, url, headers, verify_ssl):

@@ -9,9 +9,9 @@ from collections import Counter
 import os
 from Bio.Blast import NCBIXML
 try:
-	from allelecall import CommonFastaFunctions
+	from utils import CommonFastaFunctions
 except:
-	from CHEWBBACA.allelecall import CommonFastaFunctions
+	from CHEWBBACA.utils import CommonFastaFunctions
 import time
 import pickle
 import shutil
@@ -65,7 +65,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein2.fasta'))
 
             # new db for each allele to blast it against himself
-            Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(proteinfastaPath, 1, True,alleleProt)
+            Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(proteinfastaPath, 1, True, alleleProt)
 
             # if bsr hasn't been calculated, do the BLAST
             if doAll:

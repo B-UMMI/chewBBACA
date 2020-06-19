@@ -12,11 +12,11 @@ import subprocess
 import json
 import re
 try:
-    from allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
-    from utils import ParalogPrunning
+    from allelecall import callAlleles_protein3
+    from utils import ParalogPrunning, runProdigal, Create_Genome_Blastdb
 except:
-    from CHEWBBACA.allelecall import callAlleles_protein3, runProdigal, Create_Genome_Blastdb
-    from CHEWBBACA.utils import ParalogPrunning
+    from CHEWBBACA.allelecall import callAlleles_protein3
+    from CHEWBBACA.utils import ParalogPrunning, runProdigal, Create_Genome_Blastdb
 
 
 def which(program):

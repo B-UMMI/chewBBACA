@@ -481,27 +481,21 @@ def download_ptf(ptf_hash, download_folder, schema_id,
 
 def main(schema_id, species_id, download_folder, core_num, base_url, date, latest):
 
-    token = aux.capture_login_credentials(base_url)
-
     start_date = dt.datetime.now()
     start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
     print('Started at: {0}\n'.format(start_date_str))
 
     # GET request headers
     headers_get = cnst.HEADERS_GET_JSON
-    headers_get['Authorization'] = token
 
     # Get the name of the species from the provided id
     # or vice-versa
     species_info = aux.species_ids(species_id, base_url, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
-        print("Schema's species: {0} "
-              "(id={1})".format(species_name, species_id))
     else:
-        sys.exit('There is no species with the provided identifier in the NS.')
-
-    print('\nChecking if schema exists...')
+        sys.exit('There is no species with the provided '
+                 'identifier in the Chewie-NS.')
 
     # check if user provided schema identifier or schema description
     # get info about all the species schemas
@@ -510,6 +504,11 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
                                                              species_id,
                                                              base_url,
                                                              headers_get)
+
+    print('Schema id: {0}'.format(schema_id))
+    print('Schema name: {0}'.format(schema_name))
+    print("Schema's species: {0} "
+          "(id={1})".format(species_name, species_id))
 
     # create parameters dict
     schema_params_dict = {k: schema_params[k]['value']
@@ -536,7 +535,6 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
         os.mkdir(download_folder)
     else:
         # verify that folder is empty and abort if it is not
-        print('Download folder already exists...')
         download_folder_files = os.listdir(download_folder)
         if len(download_folder_files) > 0:
             sys.exit('Download folder is not empty. Please ensure '
@@ -545,12 +543,12 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
                      'a new folder that will be created.')
 
     if schema_date == zip_date:
-        print('Downloading compressed version...')
+        print('\nDownloading compressed version...')
         schema_path = download_compressed(zip_uri, species_name, schema_name,
                                           download_folder, headers_get)
     else:
-        print('Downloading schema FASTA files...')
-        # download FASTA files        
+        print('\nDownloading schema FASTA files...')
+        # download FASTA files
         loci = schema_loci(schema_uri, headers_get)
         ns_files = download_fastas(loci, download_folder, headers_get,
                                    schema_date)
@@ -580,7 +578,7 @@ def main(schema_id, species_id, download_folder, core_num, base_url, date, lates
 
         # remove FASTA files with sequences from the NS
         for file in ns_files:
-            os.remove( file)
+            os.remove(file)
 
         # write hidden schema config file
         del(schema_params_dict['Schema_lock'])

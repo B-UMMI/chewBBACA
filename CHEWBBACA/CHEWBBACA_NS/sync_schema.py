@@ -910,9 +910,6 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
 
     return [pickled_loci, not_in_ns]
 
-loci = loci_alleles
-local_loci = genes
-
 
 def update_loci_files(loci, local_loci, schema_dir, temp_dir):
     """ Determines which loci were or were not updated in the

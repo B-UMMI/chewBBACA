@@ -1427,7 +1427,7 @@ def make_url(base_url, *res, **params):
         
         # Add params if they are provided
         if params:
-            url = '{0}?{1}'.format(url, urllib.urlencode(params))
+            url = '{0}?{1}'.format(url, urlencode(params))
         
         return url
     

@@ -977,6 +977,13 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
                                                        pickled_loci, not_in_ns,
                                                        temp_dir, rearranged)
 
+    # rearranged2 = {}
+    # not_in_ns2 = {}
+    # pickled_loci2 = {}
+    # pickled_loci2, not_in_ns2, rearranged2 = alternative_alter(updated, schema_dir,
+    #                                                            pickled_loci2, not_in_ns2,
+    #                                                            temp_dir, rearranged2)
+
     # determine loci that were not altered in the Chewie-NS but
     # have been altered locally
     pickled_loci, not_in_ns = unaltered_loci(not_updated, schema_dir,
@@ -1262,14 +1269,6 @@ def main(schema_dir, core_num, base_url, submit):
                 print('The Chewie-NS inserted {0} new alleles and detected '
                       '{1} repeated alleles.'.format(attributed, repeated))
 
-                # get last modification date
-                last_modified = aux.simple_get_request(base_url, headers_get,
-                                                       ['species', species_id,
-                                                        'schemas', schema_id,
-                                                        'modified'])
-                last_modified = (last_modified.json()).split(' ')[-1]
-                server_time = last_modified
-
                 # remove files in temp folder
                 aux.remove_files(length_files)
                 aux.remove_files(alleles_files)
@@ -1294,6 +1293,14 @@ def main(schema_dir, core_num, base_url, submit):
 
         for f in files:
             os.remove(f)
+
+        # get last modification date
+        last_modified = aux.simple_get_request(base_url, headers_get,
+                                               ['species', species_id,
+                                                'schemas', schema_id,
+                                                'modified'])
+        last_modified = (last_modified.json()).split(' ')[-1]
+        server_time = last_modified
 
         # update NS config file with latest server time
         ns_configs = os.path.join(schema_dir, '.ns_config')

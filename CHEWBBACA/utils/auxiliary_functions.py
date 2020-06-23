@@ -1423,13 +1423,11 @@ def make_url(base_url, *res, **params):
     
         # Add the endpoints
         for r in res:
-    #        url = '{}/{}'.format(url, r)
-            url = f'{url}/{r}'
+            url = '{0}/{1}'.format(url, r)
         
         # Add params if they are provided
         if params:
-    #        url = '{}?{}'.format(url, urllib.urlencode(params))
-            url = f'{url}?{urlencode(params)}'
+            url = '{0}?{1}'.format(url, urllib.urlencode(params))
         
         return url
     

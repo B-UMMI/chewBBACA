@@ -998,6 +998,9 @@ def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_pr
         # add gene identifier as prefix
         try:
             int_seqid = int(rec[0])
+            # Python converts '2_1' to 21
+            if '_' in rec[0]:
+                int_seqid = int(rec[0].split('_')[-1])
             new_seqid = '{0}_{1}'.format(gene_id, int_seqid)
         except Exception:
             new_seqid = rec[0]

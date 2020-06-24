@@ -468,82 +468,82 @@ def cluster_blaster(inputs):
         os.system(blast_command)
 
 
-schema_short_dir = '/home/rfm/Desktop/ns_test/test_prep_schema2/short'
-# get schema gene list
-schema_genes = [os.path.join(schema_short_dir, file) for file in os.listdir(schema_short_dir) if '.fasta' in file]
+# schema_short_dir = ''
+# # get schema gene list
+# schema_genes = [os.path.join(schema_short_dir, file) for file in os.listdir(schema_short_dir) if '.fasta' in file]
 
-# import all sequences
-protein_file = 'all_proteins.fasta'
-with open(protein_file, 'a') as pf:
-    proteins = []
-    for locus in schema_genes:
-        for record in SeqIO.parse(locus, 'fasta', generic_dna):
-            dna_seq = str(record.seq)
-            prot = translate_dna(dna_seq, 11, 0)
-            prot = str(prot[0][0])
-            protid = record.id
-            proteins.append('>{0}\n{1}'.format(protid, prot))
+# # import all sequences
+# protein_file = 'all_proteins.fasta'
+# with open(protein_file, 'a') as pf:
+#     proteins = []
+#     for locus in schema_genes:
+#         for record in SeqIO.parse(locus, 'fasta', generic_dna):
+#             dna_seq = str(record.seq)
+#             prot = translate_dna(dna_seq, 11, 0)
+#             prot = str(prot[0][0])
+#             protid = record.id
+#             proteins.append('>{0}\n{1}'.format(protid, prot))
 
-    proteins_text = '\n'.join(proteins)
-    pf.write(proteins_text)
-
-
-prots = {}
-for record in SeqIO.parse(protein_file, 'fasta'):
-    seqid = record.id
-    prot_seq = str(record.seq)
-    prots[seqid] = prot_seq
-
-# sort proteins by length and alphabetically
-sorted_prots = sorted(list(prots.items()),
-                      key=lambda x: (-len(x[1]), x[0]))
-
-clusters = cluster_sequences(sorted_prots, 4, 0.20, 'greedy')
-
-# remove singletons
-non_singletons = {k: v for k, v in clusters.items() if len(v) > 1}
-
-# remove clustered sequences that do not reach a certain threshold
-prunned_clusters = cluster_prunner(non_singletons, 0.70)[0]
-
-# remove clusters that only have representative
-final_clusters = {k: v for k, v in prunned_clusters.items() if len(v) > 1}
-
-# we have to BLAST the sequences in the remaining clusters
-
-# write all proteins to a file
-indexed_prots = SeqIO.index(protein_file, 'fasta')
-
-seqids = [[e[0] for e in v] for v in list(final_clusters.values())]
-seqids = list(itertools.chain.from_iterable(seqids))
-
-get_sequences_by_id(indexed_prots, seqids, 'test_paralog_out')
-
-makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format('test_paralog_out')
-os.system(makedb_cmd)
-
-# BLAST necessary sequences against only the sequences from the same cluster
-blast_db = os.path.join('test_paralog_out')
-
-blast_results_dir = os.path.join('blast_results')
-os.mkdir(blast_results_dir)
-
-seqids_to_blast = blast_inputs(final_clusters, blast_results_dir)
-
-# distribute clusters per available cores, try to group inputs into
-# even groups in terms of number of clusters and sum of number of sequences
-# per inputs group
-splitted_seqids = split_blast_inputs_by_core(seqids_to_blast,
-                                             6,
-                                             blast_results_dir)
-
-for s in range(len(splitted_seqids)):
-    splitted_seqids[s].append('blastp')
-    splitted_seqids[s].append(blast_db)
-    splitted_seqids[s].append(blast_results_dir)
-    splitted_seqids[s].append('test_paralog_out')
+#     proteins_text = '\n'.join(proteins)
+#     pf.write(proteins_text)
 
 
-p = Pool(processes = 6)
-r = p.map_async(cluster_blaster, splitted_seqids)
-r.wait()
+# prots = {}
+# for record in SeqIO.parse(protein_file, 'fasta'):
+#     seqid = record.id
+#     prot_seq = str(record.seq)
+#     prots[seqid] = prot_seq
+
+# # sort proteins by length and alphabetically
+# sorted_prots = sorted(list(prots.items()),
+#                       key=lambda x: (-len(x[1]), x[0]))
+
+# clusters = cluster_sequences(sorted_prots, 4, 0.20, 'greedy')
+
+# # remove singletons
+# non_singletons = {k: v for k, v in clusters.items() if len(v) > 1}
+
+# # remove clustered sequences that do not reach a certain threshold
+# prunned_clusters = cluster_prunner(non_singletons, 0.70)[0]
+
+# # remove clusters that only have representative
+# final_clusters = {k: v for k, v in prunned_clusters.items() if len(v) > 1}
+
+# # we have to BLAST the sequences in the remaining clusters
+
+# # write all proteins to a file
+# indexed_prots = SeqIO.index(protein_file, 'fasta')
+
+# seqids = [[e[0] for e in v] for v in list(final_clusters.values())]
+# seqids = list(itertools.chain.from_iterable(seqids))
+
+# get_sequences_by_id(indexed_prots, seqids, 'test_paralog_out')
+
+# makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format('test_paralog_out')
+# os.system(makedb_cmd)
+
+# # BLAST necessary sequences against only the sequences from the same cluster
+# blast_db = os.path.join('test_paralog_out')
+
+# blast_results_dir = os.path.join('blast_results')
+# os.mkdir(blast_results_dir)
+
+# seqids_to_blast = blast_inputs(final_clusters, blast_results_dir)
+
+# # distribute clusters per available cores, try to group inputs into
+# # even groups in terms of number of clusters and sum of number of sequences
+# # per inputs group
+# splitted_seqids = split_blast_inputs_by_core(seqids_to_blast,
+#                                              6,
+#                                              blast_results_dir)
+
+# for s in range(len(splitted_seqids)):
+#     splitted_seqids[s].append('blastp')
+#     splitted_seqids[s].append(blast_db)
+#     splitted_seqids[s].append(blast_results_dir)
+#     splitted_seqids[s].append('test_paralog_out')
+
+
+# p = Pool(processes = 6)
+# r = p.map_async(cluster_blaster, splitted_seqids)
+# r.wait()

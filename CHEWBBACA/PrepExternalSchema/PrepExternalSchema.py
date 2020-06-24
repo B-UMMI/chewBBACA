@@ -10,6 +10,54 @@ translated are discarded from the final schema. One or more alleles of each
 gene/locus will be chosen as representatives and included in the 'short'
 directory.
 
+Expected input
+--------------
+
+The process expects the following variables wheter through command line
+execution or invocation of the :py:func:`main` function:
+
+- ``-i``, ``input_files`` : Path to the folder containing the fasta files,
+  one fasta file per gene/locus (alternatively, a file with a list of paths
+  can be given).
+
+    - e.g.: ``/home/user/chewie_schemas/schema_dir``
+
+- ``-o``, ``output_directory`` : The directory where the output files will
+  be saved (will create the directory if it does not exist).
+
+    - e.g.: ``/home/user/adapted_schema``
+
+- ``ptf``, ``ptf_path`` : Path to the Prodigal training file that will
+  be associated with the adapted schema.
+
+    - e.g.: ``/home/user/training_files/training_file``
+
+- ``--cpu``, ``cpu_cores`` : The number of CPU cores to use (default=1).
+
+    - e.g.: ``4``
+
+- ``--bsr``, ``blast_score_ratio`` : The BLAST Score Ratio value that
+  will be used to adapt the external schema (default=0.6).
+
+    - e.g.: ``0.6``
+
+- ``--l``, ``minimum_length`` : Minimum sequence length accepted.
+  Sequences with a length value smaller than the value passed to this
+  argument will be discarded (default=0).
+
+    - e.g.: ``201``
+
+- ``--t``, ``translation_table`` : Genetic code to use for CDS
+  translation (default=11, for Bacteria and Archaea).
+
+    - e.g.: ``11``
+
+- ``--st``, ``size_threshold`` : CDS size variation threshold. At the
+  default value of 0.2, alleles with size variation +-20 percent when
+  compared to the representative will not be included in the final schema.
+
+    - e.g.: ``0.2``
+
 Code documentation
 ------------------
 """
@@ -40,25 +88,35 @@ def bsr_categorizer(blast_results, representatives,
     """ Determines the BLAST hits that have a BSR below a minimum threshold
         and the BLAST hits that have a BSR above a maximum threshold.
 
-        Args:
-            blast_results (list): a list with sublists, each sublist contains
-            information about a BLAST hit.
-            representatives (list): list with sequence identifiers of
-            representative sequences.
-            representatives_scores (dict): dictionary with self BLAST raw score
-            for every representative.
-            min_bsr (float): minimum BSR value accepted to consider a sequence
-            as a possible new representative.
-            max_bsr (float): maximum BSR value accepted to consider a sequence
-            as a possible new representative.
-        Returns:
-            List with following elements:
-                high_bsr (list): list with all sequence identifiers of subject
-                sequences that had hits with a BSR higher than the maximum
-                defined threshold.
-                low_bsr (list): list with all sequence identifiers of subject
-                sequences that had hits with a BSR lower than the minimum
-                defined threshold.
+        Parameters
+        ----------
+        blast_results : list of list
+            A list with sublists, each sublist contains information
+            about a BLAST hit.
+        representatives : list
+            List with sequence identifiers of representative
+            sequences.
+        representatives_scores : dict
+            Dictionary with self BLAST raw score for every
+            representative.
+        min_bsr : float
+            Minimum BSR value accepted to consider a sequence as
+            a possible new representative.
+        max_bsr : float
+            Maximum BSR value accepted to consider a sequence as
+            a possible new representative.
+
+        Returns
+        -------
+        List with the following elements:
+            high_bsr : list
+                list with all sequence identifiers of subject
+                sequences that had hits with a BSR higher than the
+                maximum defined threshold.
+            low_bsr : list
+                list with all sequence identifiers of subject
+                sequences that had hits with a BSR lower than the
+                minimum defined threshold.
     """
 
     high_bsr = []
@@ -99,21 +157,26 @@ def select_candidate(candidates, proteins, seqids,
                      representatives, final_representatives):
     """ Chooses a new representative sequence.
 
-        Args:
-            candidates (list): list with the sequence identifiers
-            of all candidates.
-            proteins (dict): a dictionary with protein identifiers
-            as keys and protein sequences as values.
-            seqids (list): a list with the sequence identifiers that
-            still have no representative (representatives identifiers
-            are included because they have to be BLASTed in order to
+        Parameters
+        ----------
+        candidates : list
+            List with the sequence identifiers of all candidates.
+        proteins : dict
+            A dictionary with protein identifiers as keys and
+            protein sequences as values.
+        seqids : list
+            A list with the sequence identifiers that still have
+            no representative (representatives identifiers are
+            included because they have to be BLASTed in order to
             determine their self score).
-            representatives (list): the sequence identifiers of all
-            representatives.
+        representatives : list
+            The sequence identifiers of all representatives.
 
-        Returns:
-            representatives (list): the set of all representatives,
-            including the new repsentative that was chosen by the function.
+        Returns
+        -------
+        representatives : list
+            The set of all representatives, including the new
+            representative that was chosen by the function.
     """
 
     # with more than one sequence as candidate, select longest
@@ -131,7 +194,7 @@ def select_candidate(candidates, proteins, seqids,
         representatives.append(candidates_len[0][0])
         final_representatives.append(candidates_len[0][0])
 
-    # if tere is only one candidate, keep that
+    # if there is only one candidate, keep that
     elif len(candidates) == 1:
 
         representatives.append(candidates[0])
@@ -160,22 +223,42 @@ def select_candidate(candidates, proteins, seqids,
 
 
 def adapt_loci(genes_list):
-    """ Adapts a set of genes/loci from as external schema to be
-        used with chewBBACA. Removes invalid alleles and selects
-        representative alleles to include in the "short" directory.
+    """ Adapts a set of genes/loci from an external schema so that
+        that schema  can be used with chewBBACA. Removes invalid alleles
+        and selects representative alleles to include in the "short" directory.
 
-        Args:
-            genes_list (list): a list with the paths for the files
-            to be processed, the path to the schema directory, the path
-            to the "short" directory and the BLAST Score Ratio value.
+        Parameters
+        ----------
+        genes_list : list
+            A list with the following elements:
 
-        Returns:
-            invalid_alleles (list): list with the identifiers of the alleles
-            that were determined to be invalid.
-            invalid_genes (list): list with the identifiers of the genes
-            that had no valid alleles.
-            After determining representatives for a gene/locus, writes the
-            schema files.
+            - List with paths to the files to be processed.
+            - Path to the schema directory.
+            - Path to the "short" directory.
+            - BLAST Score Ratio value.
+            - Minimum sequence length value.
+            - Genetic code.
+            - Sequence size variation threshold.
+
+        Returns
+        -------
+        invalid_alleles : list
+            List with the identifiers of the alleles that were
+            determined to be invalid.
+        invalid_genes : list
+            List with the identifiers of the genes that had no
+            valid alleles.
+        summary_stats : list of list
+            List with one sublist per processed locus. Each
+            sublist has four elements:
+
+            - The identifier of the locus.
+            - The number of alleles in the external file.
+            - The number of alleles that were a valid CDS.
+            - The number of representatives determined determined
+              by the process.
+
+        The function writes the schema files .
     """
 
     # divide input list into variables
@@ -528,14 +611,13 @@ def parse_arguments():
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
                         help='The directory where the output files will be '
-                        'saved (will create the directory if it does not '
-                        'exist).')
+                             'saved (will create the directory if it does not '
+                             'exist).')
 
     parser.add_argument('-ptf', type=str, required=True,
                         dest='ptf_path',
-                        help='Path to the Prodigal training file. '
-                             'Default is to get training file in '
-                             'schema directory.')
+                        help='Path to the Prodigal training file that '
+                             'will be associated with the adapted schema.')
 
     parser.add_argument('--cpu', type=int, required=False, default=1,
                         dest='cpu_cores',
@@ -544,7 +626,7 @@ def parse_arguments():
     parser.add_argument('--bsr', type=float, required=False, default=0.6,
                         dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be '
-                        'used to adapt the external schema (default=0.6).')
+                             'used to adapt the external schema (default=0.6).')
 
     parser.add_argument('--l', type=int, required=False, default=0,
                         dest='minimum_length',
@@ -560,8 +642,9 @@ def parse_arguments():
     parser.add_argument('--st', type=float, required=True,
                         default=None, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
-                             'value no alleles will be discarded ue to size '
-                             'variation.')
+                             'value of 0.2, alleles with size variation '
+                             '+-20 percent when compared to the representative '
+                             'will not be included in the final schema.')
 
     args = parser.parse_args()
 

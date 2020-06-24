@@ -12,7 +12,7 @@ setup(
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification',
   author = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede',
-  author_email = 'rmamede@medicina.ulisboa.pt\npedro.cerqueira@medicina.ulisboa.pt',
+  author_email = 'imm-bioinfo@medicina.ulisboa.pt',
   url = 'https://github.com/B-UMMI/chewBBACA', 
   keywords = ['cgMLST', 'bacterial typing', 'nomenclature server'],
   install_requires = ['numpy>=1.14.0', 'scipy>=0.13.3', 'biopython>=1.70',

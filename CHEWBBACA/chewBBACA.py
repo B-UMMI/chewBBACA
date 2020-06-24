@@ -41,9 +41,7 @@ try:
     from utils.parameters_validation import ModifiedHelpFormatter
 
     from CHEWBBACA_NS import (down_schema, load_schema,
-                              sync_schema, down_profiles,
-                              send2NS, send_metadata,
-                              stats_requests)
+                              sync_schema, stats_requests)
 except:
     from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
@@ -60,9 +58,7 @@ except:
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
     from CHEWBBACA.CHEWBBACA_NS import (down_schema, load_schema,
-                                        sync_schema, down_profiles,
-                                        send2NS, send_metadata,
-                                        stats_requests)
+                                        sync_schema, stats_requests)
 
 
 version = __version__
@@ -371,11 +367,31 @@ def allele_call():
     store_profiles = args.store_profiles
     verbose = args.verbose
     chosen_taxon = False
-    # need to add this argument!
     # minimum_length = ...
 
     # check parameters values in config file and alter if needed
     config_file = os.path.join(schema_directory, '.schema_config')
+
+    # legacy schemas do not have config file, create one
+    if os.path.isfile(config_file) is False:
+        ptf_val = check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
+        # copy training file to schema directory
+        shutil.copy(ptf_path, schema_directory)
+        # determine PTF checksum
+        ptf_hash = aux.hash_file(ptf_path, 'rb')
+
+        # write schema config file
+        schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
+                                                translation_table, minimum_length,
+                                                version, size_threshold,
+                                                schema_directory)
+
+        # create hidden file with genes/loci list
+        genes_list_file = aux.write_gene_list(schema_directory)
+
+    # read schema configs
     with open(config_file, 'rb') as pf:
         schema_params = pickle.load(pf)
 
@@ -420,8 +436,9 @@ def allele_call():
             ptf_path = os.path.join(schema_directory, schema_ptfs[0])
     # if user provides a training file
     else:
-        if os.path.isfile(ptf_path) is False:
-            sys.exit('Provided Prodigal training file does not exist.')
+        ptf_val = check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
 
     # determine PTF checksum
     ptf_hash = aux.hash_file(ptf_path, 'rb')
@@ -812,8 +829,8 @@ def prep_schema():
 
     parser.add_argument('-o', type=str, required=True, dest='output_directory',
                         help='The directory where the output files will be '
-                        'saved (will create the directory if it does not '
-                        'exist).')
+                             'saved (will create the directory if it does not '
+                             'exist).')
 
     parser.add_argument('-ptf', type=str, required=True,
                         dest='ptf_path',
@@ -823,17 +840,18 @@ def prep_schema():
     parser.add_argument('--bsr', type=pv.bsr_type,
                         required=False, default=0.6, dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be '
-                        'used to adapt the external schema.')
+                             'used to adapt the external schema (default=0.6).')
 
     parser.add_argument('--l', type=pv.minimum_sequence_length_type,
                         required=False, default=0, dest='minimum_length',
                         help='Minimum sequence length accepted. Sequences with'
-                        ' a length value smaller than the value passed to this'
-                        ' argument will be discarded.')
+                             ' a length value smaller than the value passed to this'
+                             ' argument will be discarded (default=0).')
 
     parser.add_argument('--t', type=pv.translation_table_type,
                         required=False, default=11, dest='translation_table',
-                        help='Genetic code to use for CDS translation.')
+                        help='Genetic code to use for CDS translation.'
+                             ' (default=11, for Bacteria and Archaea)')
 
     parser.add_argument('--st', type=pv.size_threshold_type,
                         required=False, default=None, dest='size_threshold',
@@ -844,7 +862,7 @@ def prep_schema():
 
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
-                        help='The number of CPU cores to use.')
+                        help='The number of CPU cores to use (default=1).')
 
     args = parser.parse_args()
 
@@ -1201,82 +1219,6 @@ def synchronize_schema():
                      nomenclature_server_url, submit)
 
 
-def send_NS():
-
-    def msg(name=None):
-        return ''' chewBBACA.py Send2NS [Send2NS ...][-h] -s [S] -t [T] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(description="Send local profile and respective alleles to NS",usage=msg())
-    parser.add_argument('Send2NS', nargs='+', help='send profiles and local alleles to NS')
-    parser.add_argument('-s', nargs='?', type=str, help='path to schema folder', required=True)
-    parser.add_argument('-p', nargs='?', type=str, help='tsv with profile', required=True)
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
-    parser.add_argument('--mdr', nargs='?', type=str, help='maximum missing data allowed to fail, default 0.5 (50 percent missing data allowed). 1 == all profiles are uploaded even with 100 percent missing data', required=False, default=0.5)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-    args = parser.parse_args()
-
-    profileFile = args.p
-    pathSchema = args.s
-    token= args.t
-    metadata = args.m
-    cpu2use = args.cpu
-    percentMDallowed=args.mdr
-
-    send2NS.main(profileFile,pathSchema,token,metadata,percentMDallowed,cpu2use)
-
-
-def send_meta():
-
-    def msg(name=None):
-        return ''' chewBBACA.py SendMetadata [SendMetadata ...][-h] -s [S] -t [T] -p [P]
-                    '''
-
-    parser = argparse.ArgumentParser(description="send metadata to isolates on the NS",usage=msg())
-    parser.add_argument('SendMetadata', nargs='+', help='send metadata to isolates on the NS')
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-    parser.add_argument('-m', nargs='?', type=str, help='tsv with metadata', required=False, default=False)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-
-    args = parser.parse_args()
-
-    token= args.t
-    metadata = args.m
-    cpu2use = args.cpu
-
-    send_metadata.main(metadata,cpu2use,token)
-
-
-def down_prof():
-
-    def msg(name=None):
-        return ''' chewBBACA.py DownloadProfiles [DownloadProfiles ...][-h] --sp [SP] --sc [SC] --cpu [CPU]
-                    '''
-
-    parser = argparse.ArgumentParser(
-        description="Download profiles from the NS",usage=msg())
-    parser.add_argument('DownloadProfiles', nargs='+', help='download profiles from NS')
-    parser.add_argument('--sp', nargs='?', type=str, help='species uri', required=True)
-    parser.add_argument('--sc', nargs='?', type=str, help='schema id', required=True)
-    parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    parser.add_argument('-r', nargs='?', type=str, help='genomes to down profile', required=False, default=None)
-    parser.add_argument('-p', nargs='?', type=str, help='profile with already downloaded profiles for that schema', required=False, default=None)
-    parser.add_argument('-t', nargs='?', type=str, help='private token', required=False, default=False)
-
-    args = parser.parse_args()
-
-    species = args.sp
-    schema = args.sc
-    cpu2use = args.cpu
-    genomes2Down = args.r
-    inputProfile = args.p
-    token = args.t
-
-    down_profiles.main(species,schema,cpu2use,inputProfile,genomes2Down,token)
-
-
 def ns_stats():
 
     def msg(name=None):
@@ -1345,17 +1287,9 @@ def main():
                       'SyncSchema': ['Synchronize a schema with its remote version '
                                      'in the Chewie-NS.',
                                      synchronize_schema],
-                      # 'Send2NS': ['Send local profile and respective alleles '
-                      #             'to NS',
-                      #             send_NS],
-                      # 'DownloadProfiles': ['Download all profiles of a given '
-                      #                      'species for a given schema',
-                      #                      down_prof],
-                      # 'SendMetadata': ['send metadata to isolates on the NS',
-                      #                  send_meta],
                       'ChewieNSStats': ['Retrieve basic information about schemas '
                                         'in the Chewie-NS.',
-                                  ns_stats]}
+                                        ns_stats]}
 
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
     repository = 'https://github.com/B-UMMI/chewBBACA'

@@ -21,7 +21,7 @@ schema after the compression date.
 Expected input
 --------------
 
-The process expects the following variables wheter through command line
+The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
 - ``-sc``, ``schema_id`` : The schema identifier in the Chewie-NS.

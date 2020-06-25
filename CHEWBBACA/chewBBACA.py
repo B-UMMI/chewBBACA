@@ -19,6 +19,7 @@ DESCRIPTION
 
 import os
 import sys
+import time
 import pickle
 import shutil
 import datetime
@@ -35,7 +36,7 @@ try:
                        uniprot_find, Extract_cgAlleles,
                        RemoveGenes, sqlite_functions as sq,
                        auxiliary_functions as aux,
-                       constants as cnts,
+                       constants as cnst,
                        parameters_validation as pv)
 
     from utils.parameters_validation import ModifiedHelpFormatter
@@ -52,7 +53,7 @@ except:
                                  uniprot_find, Extract_cgAlleles,
                                  RemoveGenes, sqlite_functions as sq,
                                  auxiliary_functions as aux,
-                                 constants as cnts,
+                                 constants as cnst,
                                  parameters_validation as pv)
 
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
@@ -287,6 +288,11 @@ def allele_call():
                              'greater than this value will be considered '
                              'as sequences from the same gene.')
 
+    parser.add_argument('--l', type=pv.minimum_sequence_length_type,
+                        required=False, default=201, dest='minimum_length',
+                        help='Minimum sequence length accepted for a '
+                             'coding sequence to be included in the schema.')
+
     parser.add_argument('--t', type=pv.translation_table_type, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
@@ -367,29 +373,49 @@ def allele_call():
     store_profiles = args.store_profiles
     verbose = args.verbose
     chosen_taxon = False
-    # minimum_length = ...
+    minimum_length = args.minimum_length
+
+    timeout = 30
 
     # check parameters values in config file and alter if needed
     config_file = os.path.join(schema_directory, '.schema_config')
 
-    # legacy schemas do not have config file, create one
+    # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
-        ptf_val = check_ptf(ptf_path)
-        if ptf_val[0] is False:
-            sys.exit(ptf_val[1])
-        # copy training file to schema directory
-        shutil.copy(ptf_path, schema_directory)
-        # determine PTF checksum
-        ptf_hash = aux.hash_file(ptf_path, 'rb')
+        prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
+                  'It is highly recommended that you run the PrepExternalSchema '
+                  'process to guarantee full compatibility with the new chewBBACA '
+                  'version.\nDo you wish to proceed?\n')
+        proceed = aux.input_timeout(prompt, timeout)
 
-        # write schema config file
-        schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
-                                                translation_table, minimum_length,
-                                                version, size_threshold,
-                                                schema_directory)
+        if proceed.lower() not in ['y', 'yes']:
+            sys.exit('Exited.')
+        else:
+            print('\nAdding Prodigal training file to schema...')
+            ptf_val = aux.check_ptf(ptf_path)
+            if ptf_val[0] is False:
+                sys.exit(ptf_val[1])
+            # copy training file to schema directory
+            shutil.copy(ptf_path, schema_directory)
+            print('Created {0}'.format(os.path.join(schema_directory,
+                                                    os.path.basename(ptf_path))))
 
-        # create hidden file with genes/loci list
-        genes_list_file = aux.write_gene_list(schema_directory)
+            # determine PTF checksum
+            ptf_hash = aux.hash_file(ptf_path, 'rb')
+            print('\nCreating file with schema configs...')
+            # write schema config file
+            schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
+                                                    translation_table, minimum_length,
+                                                    version, size_threshold,
+                                                    schema_directory)
+            print('Created {0}'.format(os.path.join(schema_directory,
+                                                    '.schema_config')))
+
+            print('\nCreating file with list of genes...')
+            # create hidden file with genes/loci list
+            genes_list_file = aux.write_gene_list(schema_directory)
+            print('Created {0}\n'.format(os.path.join(schema_directory,
+                                                    '.genes_list')))
 
     # read schema configs
     with open(config_file, 'rb') as pf:
@@ -413,12 +439,12 @@ def allele_call():
         params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
         params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
         print('\n'.join(params_diffs_text))
-        params_answer = input('\nContinuing might lead to results '
-                              'not consistent with previous runs.\n'
-                              'Providing parameters values that '
-                              'differ from the ones used for schema creation '
-                              'will also invalidate the schema for '
-                              'uploading and synchronization with the NS.\nContinue?\n')
+        prompt = ('\nContinuing might lead to results not consistent with '
+                  'previous runs.\nProviding parameters values that differ '
+                  'from the ones used for schema creation will also '
+                  'invalidate the schema for uploading and synchronization '
+                  'with the NS.\nContinue?\n')
+        params_answer = aux.input_timeout(prompt, timeout)
         if params_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
@@ -436,7 +462,7 @@ def allele_call():
             ptf_path = os.path.join(schema_directory, schema_ptfs[0])
     # if user provides a training file
     else:
-        ptf_val = check_ptf(ptf_path)
+        ptf_val = aux.check_ptf(ptf_path)
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
@@ -446,12 +472,14 @@ def allele_call():
         ptf_num = len(schema_params['prodigal_training_file'])
         if ptf_num == 1:
             print('Prodigal training file is not the one used to create the schema.')
-            ptf_answer = input('Using this training file might lead to results not '
-                               'consistent with previous runs and invalidate the '
-                               'schema for usage with the NS.\nContinue process?\n')
+            prompt = ('Using this training file might lead to results not '
+                      'consistent with previous runs and invalidate the '
+                      'schema for usage with the NS.\nContinue process?\n')
+            ptf_answer = aux.input_timeout(prompt, timeout)
         if ptf_num > 1:
             print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
-            ptf_answer = input('Continue?\n')
+            prompt = ('Continue?\n')
+            ptf_answer = aux.input_timeout(prompt, timeout)
 
         if ptf_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
@@ -469,12 +497,18 @@ def allele_call():
     schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
     genomes_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
+    # determine if schema was downloaded from the Chewie-NS
+    ns_config = os.path.join(schema_directory, '.ns_config')
+    ns = True if os.path.isfile(ns_config) is True else False
+    print(ns)
+    time.sleep(2)
+
     BBACA.main(genomes_files, schema_genes, cpu_cores,
                output_directory, blast_score_ratio,
                blastp_path, force_continue, json_report,
                verbose, force_reset, contained, chosen_taxon,
                ptf_path, cds_input, size_threshold,
-               translation_table)
+               translation_table, ns)
 
     if store_profiles is True:
         # add profiles to SQLite database
@@ -995,7 +1029,7 @@ def download_schema():
                              'final schema.')
 
     parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnts.HOST_NS,
+                        default=cnst.HOST_NS,
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
@@ -1117,7 +1151,7 @@ def upload_schema():
                              'annotations on UniProt')
 
     parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnts.HOST_NS,
+                        default=cnst.HOST_NS,
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
@@ -1193,7 +1227,7 @@ def synchronize_schema():
                              'the Chewie-NS.')
 
     parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnts.HOST_NS,
+                        default=cnst.HOST_NS,
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
@@ -1222,32 +1256,52 @@ def synchronize_schema():
 def ns_stats():
 
     def msg(name=None):
-        return '''chewBBACA.py NSStats [NSStats ...][-h] -m [MODE]
-                  --url [URL] --taxon [TAXON]'''
+        return 'Stats.'
 
-    parser = argparse.ArgumentParser(description='',
-                                     usage=msg())
+    parser = argparse.ArgumentParser(prog='NSStats',
+                                     description='Retrieve basic information '
+                                                 'about the species and schemas in '
+                                                 'the Chewie-NS.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('NSStats', nargs='+', help='')
-
-    parser.add_argument('-m', type=str, required=True, dest='stats_mode',
+    parser.add_argument('NSStats', nargs='+',
                         help='')
 
+    parser.add_argument('-m', type=str, required=True,
+                        dest='stats_mode', choices=['species', 'schemas'],
+                        help='The process can retrieve the list of species '
+                             '("species" option) in the Chewie-NS or the '
+                             'list of schemas for a species '
+                             '("schemas" option).')
+
     parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnts.HOST_NS,
+                        default=cnst.HOST_NS,
                         dest='nomenclature_server_url',
                         help='The base URL for the Nomenclature Server.')
 
-    parser.add_argument('--taxon', type=str, required=False, dest='taxon',
-                        default='0', help='')
+    parser.add_argument('--sp', type=str, required=False,
+                        dest='species_id', default=None,
+                        help='The integer identifier of a '
+                             'species in the Chewie-NS.')
+
+    parser.add_argument('--sc', type=str, required=False,
+                        dest='schema_id', default=None,
+                        help='The integer identifier of a schema in '
+                             'the Chewie-NS.')
 
     args = parser.parse_args()
 
+    header = 'chewBBACA - NSStats'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     mode = args.stats_mode
     ns_url = args.nomenclature_server_url
-    species = args.taxon
+    species_id = args.species_id
+    schema_id = args.schema_id
 
-    stats_requests.main(mode, ns_url, species)
+    stats_requests.main(mode, ns_url, species_id, schema_id)
 
 
 def main():
@@ -1287,9 +1341,9 @@ def main():
                       'SyncSchema': ['Synchronize a schema with its remote version '
                                      'in the Chewie-NS.',
                                      synchronize_schema],
-                      'ChewieNSStats': ['Retrieve basic information about schemas '
-                                        'in the Chewie-NS.',
-                                        ns_stats]}
+                      'NSStats': ['Retrieve basic information about the species '
+                                  'and schemas in the Chewie-NS.',
+                                  ns_stats]}
 
     authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
     repository = 'https://github.com/B-UMMI/chewBBACA'

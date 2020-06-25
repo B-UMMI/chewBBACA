@@ -207,7 +207,7 @@ def translateSeq(DNASeq):
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
-def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
+def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
 
     if verbose == 'True':
         verbose = True
@@ -627,15 +627,25 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
 
                         wasContained = False
                         tagAuxC = 'S'
-                        alleleIaux="*"+str(int(alleleI.replace("*",""))+1)
-                        alleleI=alleleIaux
-                        for alleleaux in fullAlleleList:
+                        if ns is True:
+                            alleleIaux="*"+str(int(alleleI.replace("*",""))+1)
+                            alleleI=alleleIaux
+                        else:
+                            alleleI = str(int(alleleI)+1)
+                            alleleIaux = alleleI
+                            #print(alleleI, alleleIaux)
+                            #time.sleep(3)
 
+                        for alleleaux in fullAlleleList:
+                            #print(alleleaux, fullAlleleList)
                             if alleleStr in alleleaux:
+                                #print(True, alleleStr, alleleaux)
                                 alleleName = fullAlleleNameList[fullAlleleList.index(alleleaux)]
                                 alleleMatchid = (alleleName.split("_"))[-1]
                                 tagAuxC = 'CD' + alleleMatchid.rstrip()
                                 resultsList.append([(os.path.basename(genomeFile)), str(alleleIaux), tagAuxC])
+                                #print(alleleName, alleleMatchid, tagAuxC, resultsList)
+                                #time.sleep(5)
                                 break
                             elif alleleaux in alleleStr:
                                 alleleName = fullAlleleNameList[fullAlleleList.index(alleleaux)]

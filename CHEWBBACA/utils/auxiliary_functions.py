@@ -35,6 +35,8 @@ import multiprocessing
 import concurrent.futures
 from getpass import getpass
 from collections import Counter
+from multiprocessing import TimeoutError
+from multiprocessing.pool import ThreadPool
 from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
@@ -1687,3 +1689,16 @@ def progress_bar(process, total, tickval, ticknum, completed):
     time.sleep(0.5)
 
     return completed
+
+
+def input_timeout(prompt, timeout):
+    """
+    """
+
+    pool = ThreadPool(processes=1)
+    answer = pool.apply_async(input, args=[prompt])
+
+    try:
+        return answer.get(timeout=timeout)
+    except TimeoutError as e:
+        sys.exit('Timed out.')

@@ -11,12 +11,11 @@ AUTHOR
 
 DESCRIPTION
 
-
     Important comments:
         - the SQLite included with Python distribution (3.29.0)
         might be old and will not enforce the FOREIGN KEY constraint
-        (this was only implemented in SQLite 3.6.19). We have to be
-        sensible of that when altering the data in the database.
+        (this was only implemented in SQLite 3.6.19). We need to take
+        that into account when altering the data in the database.
 
         - json_extract is a SQL function from JSON1 extension that is
         included in the SQL statements. It can be used to extract single
@@ -306,6 +305,8 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 
     # read matrix
     matrix_lines = read_matrix(matrix_file)
+    matrix_lines = [remove_inf(l) for l in matrix_lines]
+    print(matrix_lines)
 
     # get sample identifiers
     sample_ids = get_sample_ids(matrix_lines)

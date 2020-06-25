@@ -16,7 +16,7 @@ schema. Novel alleles that are not submitted keep a '*' in the identifier.
 Expected input
 --------------
 
-The process expects the following variables wheter through command line
+The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
 - ``-sc``, ``schema_directory`` : Path to the directory with the schema to be

@@ -13,7 +13,7 @@ directory.
 Expected input
 --------------
 
-The process expects the following variables wheter through command line
+The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
 - ``-i``, ``input_files`` : Path to the folder containing the fasta files,

@@ -231,7 +231,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,translation_table):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,translation_table, ns):
 
     divideOutput=False
 
@@ -504,7 +504,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
         pool.apply_async(callAlleles_protein3.main,
-                         (str(argList), basepath, str(BlastpPath), str(verbose), str(BSRTresh),str(sizeTresh)))
+                         (str(argList), basepath, str(BlastpPath), str(verbose), str(BSRTresh), str(sizeTresh), ns))
 
     pool.close()
     pool.join()
@@ -632,7 +632,9 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             genome += 1
             statistics.append(statsaux)
 
-        finalphylovinput= finalphylovinput.replace("INF-","")
+        #########################
+        # This is removing INF from all matrix???
+        #finalphylovinput= finalphylovinput.replace("INF-","")
 
         genome = 0
         while genome < len(listOfGenomes):

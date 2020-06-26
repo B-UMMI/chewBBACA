@@ -9,7 +9,7 @@ Chewie-NS. Its main objective is to provide information about
 the list of species and schemas in the Chewie-NS, so that users
 can quickly identify a schema of interest and download it (this
 process generates tables with species and schemas identifiers that
-can be passed to the `-sc` and `-sp` arguments).
+can be passed to the `-sc` and `-sp` arguments of DownloadSchema).
 
 Expected input
 --------------

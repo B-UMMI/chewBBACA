@@ -306,7 +306,6 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     # read matrix
     matrix_lines = read_matrix(matrix_file)
     matrix_lines = [remove_inf(l) for l in matrix_lines]
-    print(matrix_lines)
 
     # get sample identifiers
     sample_ids = get_sample_ids(matrix_lines)

@@ -382,11 +382,14 @@ def allele_call():
 
     # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
-        prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
-                  'It is highly recommended that you run the PrepExternalSchema '
-                  'process to guarantee full compatibility with the new chewBBACA '
-                  'version.\nDo you wish to proceed?\n')
-        proceed = aux.input_timeout(prompt, timeout)
+        if force_continue is False:
+            prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
+                      'It is highly recommended that you run the PrepExternalSchema '
+                      'process to guarantee full compatibility with the new chewBBACA '
+                      'version.\nDo you wish to proceed?\n')
+            proceed = aux.input_timeout(prompt, timeout)
+        else:
+            proceed = 'yes'
 
         if proceed.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
@@ -439,12 +442,16 @@ def allele_call():
         params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
         params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
         print('\n'.join(params_diffs_text))
-        prompt = ('\nContinuing might lead to results not consistent with '
-                  'previous runs.\nProviding parameters values that differ '
-                  'from the ones used for schema creation will also '
-                  'invalidate the schema for uploading and synchronization '
-                  'with the NS.\nContinue?\n')
-        params_answer = aux.input_timeout(prompt, timeout)
+        if force_continue is False:
+            prompt = ('\nContinuing might lead to results not consistent with '
+                      'previous runs.\nProviding parameters values that differ '
+                      'from the ones used for schema creation will also '
+                      'invalidate the schema for uploading and synchronization '
+                      'with the NS.\nContinue?\n')
+            params_answer = aux.input_timeout(prompt, timeout)
+        else:
+            params_answer = 'yes'
+
         if params_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
@@ -470,16 +477,19 @@ def allele_call():
     ptf_hash = aux.hash_file(ptf_path, 'rb')
     if ptf_hash not in schema_params['prodigal_training_file']:
         ptf_num = len(schema_params['prodigal_training_file'])
-        if ptf_num == 1:
-            print('Prodigal training file is not the one used to create the schema.')
-            prompt = ('Using this training file might lead to results not '
-                      'consistent with previous runs and invalidate the '
-                      'schema for usage with the NS.\nContinue process?\n')
-            ptf_answer = aux.input_timeout(prompt, timeout)
-        if ptf_num > 1:
-            print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
-            prompt = ('Continue?\n')
-            ptf_answer = aux.input_timeout(prompt, timeout)
+        if force_continue is False:
+            if ptf_num == 1:
+                print('Prodigal training file is not the one used to create the schema.')
+                prompt = ('Using this training file might lead to results not '
+                          'consistent with previous runs and invalidate the '
+                          'schema for usage with the NS.\nContinue process?\n')
+                ptf_answer = aux.input_timeout(prompt, timeout)
+            if ptf_num > 1:
+                print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
+                prompt = ('Continue?\n')
+                ptf_answer = aux.input_timeout(prompt, timeout)
+        else:
+            ptf_answer = 'yes'
 
         if ptf_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
@@ -499,9 +509,8 @@ def allele_call():
 
     # determine if schema was downloaded from the Chewie-NS
     ns_config = os.path.join(schema_directory, '.ns_config')
-    ns = True if os.path.isfile(ns_config) is True else False
+    ns = os.path.isfile(ns_config)
     print(ns)
-    time.sleep(2)
 
     BBACA.main(genomes_files, schema_genes, cpu_cores,
                output_directory, blast_score_ratio,
@@ -696,47 +705,84 @@ def test_schema():
 def extract_cgmlst():
 
     def msg(name=None):
-        return '''chewBBACA.py ExtractCgMLST [ExtractCgMLST ...] [-h]
-                  -i [I] -o [O] [-r [R]] [-g [G]]'''
+        # simple command to determine loci that constitute cgMLST
+        simple_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
+                                                   '-o <output_directory> ')
 
-    parser = argparse.ArgumentParser(description='This program cleans an '
-                                                 'output file for phyloviz',
-                                     usage=msg())
+        # command to determine cgMLST with custom threshold
+        threshold_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
+                                                   '-o <output_directory> '
+                                                   '\n\t\t\t     --p <threshold>')
+
+        # command to get information about a single schema
+        remove_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
+                                                   '-o <output_directory> '
+                                                   '\n\t\t\t     --r <genes2remove> '
+                                                   '--g <genomes2remove>')
+
+        usage_msg = ('\nDetermine cgMLST:\n{0}\n'
+                     '\nDetermine cgMLST based on non-default threshold:\n{1}\n'
+                     '\nRemove genes and genomes from matrix:\n{2}\n'
+                     ''.format(simple_cmd, threshold_cmd, remove_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='ExtractCgMLST',
+                                     description='Determines the set of '
+                                                 'loci that constitute the '
+                                                 'core genome based on a '
+                                                 'threshold.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('ExtractCgMLST', nargs='+',
-                        help='clean chewBBACA output')
+                        help='Determines the set of '
+                             'loci that constitute the '
+                             'core genome based on a '
+                             'threshold.')
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='',
-                        help='input file to clean')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='input_file',
+                        help='Path to input file containing a matrix with '
+                             'allelic profiles.')
 
-    parser.add_argument('-o', nargs='?', type=str, required=True,
-                        dest='',
-                        help='output folder')
+    parser.add_argument('-o', type=str, required=True,
+                        dest='output_directory',
+                        help='Path to the directory where the process '
+                             'will store output files.')
 
-    parser.add_argument('-r', nargs='?', type=str, required=False,
-                        default=False, dest='',
-                        help='listgenes to remove')
+    parser.add_argument('--p', type=float, required=False,
+                        default=1, dest='threshold',
+                        help='Genes that constitute the core genome '
+                             'must be in a proportion of genomes that is '
+                             'at least equal to this value.')
 
-    parser.add_argument('-g', nargs='?', type=str, required=False,
-                        default=False, dest='',
-                        help='listgenomes to remove')
+    parser.add_argument('--r', type=str, required=False,
+                        default=False, dest='genes2remove',
+                        help='Path to file with a list of genes/columns to '
+                             'remove from the matrix (one gene identifier '
+                             'per line).')
 
-    parser.add_argument('-p', nargs='?', type=float, required=False,
-                        default=1, dest='',
-                        help='maximum presence (e.g 0.95)')
+    parser.add_argument('--g', type=str, required=False,
+                        default=False, dest='genomes2remove',
+                        help='Path to file with a list of genomes/rows to '
+                             'remove from the matrix (one genome identifier '
+                             'per line).')
 
     args = parser.parse_args()
 
-    pathOutputfile = args.i
-    newfile = args.o
-    genes2remove = args.r
-    genomes2remove = args.g
-    cgMLSTpercent = args.p
+    header = 'chewBBACA - ExtractCgMLST'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
-    Extract_cgAlleles.main(pathOutputfile, newfile,
-                           cgMLSTpercent, genes2remove,
-                           genomes2remove)
+    input_file = args.input_file
+    output_directory = args.output_directory
+    threshold = args.threshold
+    genes2remove = args.genes2remove
+    genomes2remove = args.genomes2remove
+
+    Extract_cgAlleles.main(input_file, output_directory, threshold,
+                           genes2remove, genomes2remove)
 
 
 def remove_genes():
@@ -1191,8 +1237,8 @@ def synchronize_schema():
 
         # command to synchronize a schema with its NS version with non-default arguments values
         params_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> '
-                                              '--cpu <cpu_cores> '
-                                              '-ns_url <nomenclature_server_url>')
+                                                '--cpu <cpu_cores> '
+                                                '-ns_url <nomenclature_server_url>')
 
         # command to submit novel local alleles
         submit_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> --submit')
@@ -1256,7 +1302,22 @@ def synchronize_schema():
 def ns_stats():
 
     def msg(name=None):
-        return 'Stats.'
+        # simple command to list species and totals
+        simple_cmd = ('  chewBBACA.py NSStats -m species ')
+
+        # command to list all schemas for a species
+        schemas_cmd = ('  chewBBACA.py NSStats -m schemas --sp <species_id> ')
+
+        # command to get information about a single schema
+        schema_cmd = ('  chewBBACA.py NSStats -m schemas --sp <species_id> '
+                                             '--sc <schema_id>')
+
+        usage_msg = ('\nList species and totals:\n{0}\n'
+                     '\nList all schemas for a species:\n{1}\n'
+                     '\nGet information about a single schema:\n{2}\n'
+                     ''.format(simple_cmd, schemas_cmd, schema_cmd))
+
+        return usage_msg
 
     parser = argparse.ArgumentParser(prog='NSStats',
                                      description='Retrieve basic information '
@@ -1319,9 +1380,10 @@ def main():
                       'TestGenomeQuality': ['Analyze your allele call output '
                                             'to refine schemas.',
                                             test_schema],
-                      'ExtractCgMLST': ['Select a subset of loci without '
-                                        'missing data (can be used as '
-                                        'PHYLOViZ input).',
+                      'ExtractCgMLST': ['Determines the set of '
+                                        'loci that constitute the '
+                                        'core genome based on a '
+                                        'threshold.',
                                         extract_cgmlst],
                       'RemoveGenes': ['Remove a provided list of loci from '
                                       'your allele call output.',

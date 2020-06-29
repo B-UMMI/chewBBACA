@@ -542,7 +542,7 @@ def allele_call():
         if os.path.isfile(database_file) is False:
             print('\nCreating SQLite database to store profiles...', end='')
             try:
-                sq.create_database_structure(database_file)
+                sq.create_database(database_file)
                 # insert loci list into loci table
                 total_loci = sq.insert_loci(database_file, results_matrix)
                 print('done.')
@@ -557,7 +557,8 @@ def allele_call():
                 total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
                 print('done.')
                 print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
-            except Exception:
+            except Exception as e:
+                print(e)
                 print('WARNING: Could not store profiles in local database.')
 
     # remove temporary files with paths to genomes

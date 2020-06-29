@@ -52,6 +52,23 @@ except:
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 
 
+def check_connection(headers):
+    """
+    """
+
+    url = make_url(cnst.HOST_NS, *['stats', 'summary'])
+
+    res = requests.get(url, headers=headers, timeout=30, verify=False)
+
+    server_status = res.status_code
+    if server_status in [200, 201]:
+        conn = True
+    else:
+        conn = False
+
+    return conn
+
+
 def pickle_dumper(pickle_out, content):
     """
     """

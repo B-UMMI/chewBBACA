@@ -48,7 +48,6 @@ GENETIC_CODES = {1: 'Standard',
 FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn']
 
 # NS related constants
-
 HEADERS_GET_ = {'Authorization': None,
 			   	'accept': 'application/octet-stream'}
 

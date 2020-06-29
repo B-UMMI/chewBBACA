@@ -53,7 +53,6 @@ import hashlib
 import argparse
 import requests
 import datetime as dt
-from copy import deepcopy
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper
 from urllib3.exceptions import InsecureRequestWarning
@@ -62,10 +61,12 @@ from Bio import SeqIO
 
 try:
     from utils import constants as cnst
+    from utils import sqlite_functions as sq
     from utils import auxiliary_functions as aux
     from PrepExternalSchema import PrepExternalSchema
 except:
     from CHEWBBACA.utils import constants as cnst
+    from CHEWBBACA.utils import sqlite_functions as sq
     from CHEWBBACA.utils import auxiliary_functions as aux
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
 
@@ -274,7 +275,7 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
     return [failed, zip_res.json()]
 
 
-def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers):
+def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
     """ Creates FASTA files with the information contained in
         a pickled file.
 
@@ -293,9 +294,10 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers):
             Path to the directory where the output FASTA file will
             be created.
         identifiers : dict
-            The `zip_res` variable returned by the :py:func:`upload_alleles_data`
-            function. It will be used to change allele identifiers that were
-            successfully inserted into the Cewie-NS.
+            The `zip_res` variable returned by the
+            :py:func:`upload_alleles_data` function. It will be used
+            to change allele identifiers that were successfully
+            inserted into the Cewie-NS.
 
         Returns
         -------
@@ -312,6 +314,10 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers):
         repeated = {}
         attributed = {}
 
+    inv_reassigned = {}
+    if locus in reassigned:
+        inv_reassigned = {v: k for k, v in reassigned[locus].items()}
+
     locus_sequences = aux.pickle_loader(pickled_file)
 
     natsorted_locus = sorted(locus_sequences)
@@ -324,9 +330,27 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers):
         seq_hash = hashlib.sha256(seq.encode('utf-8')).hexdigest()
         # switch by the identifier attributed by the Chewie-NS
         if seq_hash in attributed:
-            recid = attributed[seq_hash]
+            new_recid = attributed[seq_hash]
+            if recid in inv_reassigned:
+                old_id = inv_reassigned[recid]
+                reassigned[locus][old_id] = new_recid
+            else:
+                if locus not in reassigned:
+                    reassigned[locus] = {recid: new_recid}
+                else:
+                    reassigned[locus][recid] = new_recid
+            recid = new_recid
         elif seq_hash in repeated:
-            recid = repeated[seq_hash]
+            new_recid = repeated[seq_hash]
+            if recid in inv_reassigned:
+                old_id = inv_reassigned[recid]
+                reassigned[locus][old_id] = new_recid
+            else:
+                if locus not in reassigned:
+                    reassigned[locus] = {recid: new_recid}
+                else:
+                    reassigned[locus][recid] = new_recid
+            recid = new_recid
 
         record = '>{0}_{1}\n{2}'.format(locus_id, recid, seq)
         records.append(record)
@@ -338,7 +362,7 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers):
 
     os.remove(pickled_file)
 
-    return fasta_path
+    return reassigned
 
 
 def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
@@ -416,291 +440,8 @@ def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
     return (loci_new_alleles, server_time, count)
 
 
-def process_common(ns_id, local_id, local_seqid, seq, local_seqs,
-                   ns_seqs, id_map, locus_id, switched):
-    """ Determines the integer identifier that must be attributed
-        to a local allele that has been added to the schema through
-        allele calling and is in the Chewie-NS.
-
-        Parameters
-        ----------
-        ns_id : int
-            The integer identifier of the allele in the remote schema.
-        local_id : int
-            The integer identifier of the allele in the local schema.
-        local_seqid : str
-            The full identifier (locus prefix plus integer identifier)
-            of the allele in the local schema.
-        seq : str
-            The DNA sequence of the allele.
-        local_seqs : dict
-            A dictionary with alleles full identifiers as keys and lists,
-            that contain integer identifiers and DNA sequences, as values.
-        ns_seqs : dict
-            A dictionary with DNA sequences as keys and alleles full
-            identifiers as values.
-        id_map : dict
-            A dictionary with alleles integer identifiers as keys and
-            full alleles identifiers as values.
-        locus_id : str
-            The locus prefix.
-        switched : list
-            A list with all the allele identifiers reassignments
-            performed for the sequences of the current locus.
-
-        Returns
-        -------
-        A list with three elements:
-
-        - local_seqs : dict
-            Input `local_seqs` with the allele identifier for
-            the current allele updated (as well as the identifier
-            of any other allele that had to be switched to be able
-            to assign the correct identifier to the current allele).
-        - ns_seqs : dict
-            Input `ns_seqs` without the entry for the sequence
-            that had its allele identifier evaluated.
-        - switched : dict
-            Input `switched` variable with a new entry for the
-            reassignment performed.
-    """
-
-    # invert reassignments dict
-    inv_switched = {v: k for k, v in switched.items()}
-    # local and remote integer identifiers are equal
-    if ns_id == local_id:
-        # simply remove '*' from identifier
-        new_id = local_seqid.replace('*', '')
-        local_seqs[new_id] = [str(local_id), seq]
-
-        if local_seqid in inv_switched:
-            switched[inv_switched[local_seqid]] = new_id
-        else:
-            switched[local_seqid] = new_id
-
-        # delete record with '*' and record retrieved from the NS
-        del local_seqs[local_seqid]
-        del ns_seqs[seq]
-    # local and remote integer identifiers differ
-    elif ns_id != local_id:
-        # identifier in the NS was assigned to other sequence
-        if ns_id in id_map:
-            # NS identifier will be the new identifier
-            new_id = '{0}_{1}'.format(locus_id, ns_id)
-
-            # current sequence identifier
-            old_id = local_seqid
-            # identifier of sequence with same identifier as NS
-            beep_id = '{0}_*{1}'.format(locus_id, ns_id)
-            if beep_id in local_seqs:
-                old_seq = local_seqs[beep_id][1]
-
-            local_seqs[new_id] = [str(ns_id), seq]
-            if old_id in inv_switched:
-                switched[inv_switched[old_id]] = new_id
-            else:
-                switched[old_id] = new_id
-
-            if beep_id in local_seqs:
-                local_seqs[old_id] = [str(local_id), old_seq]
-                if beep_id in inv_switched:
-                    switched[inv_switched[beep_id]] = old_id
-                else:
-                    switched[beep_id] = old_id
-                del local_seqs[beep_id]
-            else:
-                del local_seqs[old_id]
-            del ns_seqs[seq]
-        # ns identifier is greater than maximum local identifier
-        elif ns_id not in id_map:
-            new_id = '{0}_{1}'.format(locus_id, ns_id)
-            local_seqs[new_id] = [str(ns_id), seq]
-
-            if local_seqid in inv_switched:
-                switched[inv_switched[local_seqid]] = new_id
-            else:
-                switched[local_seqid] = new_id
-
-            # simply delete the old record with the same allele
-            del local_seqs[local_seqid]
-            del ns_seqs[seq]
-
-    return [local_seqs, ns_seqs, switched]
-
-
-def process_novel(local_id, local_seqid, seq, local_seqs, ns_seqs,
-                  max_id, locus_id, not_in_ns, locus, switched):
-    """ Determines the integer identifier that must be attributed
-        to a local allele that is not present in the Chewie-NS.
-
-        Parameters
-        ----------
-        local_id : int
-            The integer identifier of the allele in the local schema.
-        local_seqid : str
-            The full identifier (locus prefix plus integer identifier)
-            of the allele in the local schema.
-        seq : str
-            The DNA sequence of the allele.
-        local_seqs : dict
-            A dictionary with alleles full identifiers as keys and lists,
-            that contain integer identifiers and DNA sequences, as values.
-        ns_seqs : dict
-            A dictionary with DNA sequences as keys and alleles full
-            identifiers as values.
-        max_id : int
-            The highest integer identifier attributed to local and remote
-            alleles.
-        locus_id : str
-            The locus prefix.
-        not_in_ns : dict
-            Dictionary with information about local alleles that are not
-            in the Chewie-NS. It has loci identifiers as keys and lists
-            as values. Each list contains the following elements:
-
-            - A dictionary with sequences hashes as keys and a list
-              with the sequence identifier, DNA sequence and sequence
-              length value.
-            - The locus URI.
-        locus : str
-            Full locus identifier with '.fasta' suffix.
-
-        Returns
-        -------
-        A list with four elements:
-
-        - local_seqs : dict
-            Input `local_seqs` variable with the allele identifier for
-            the current allele updated (as well as the identifier
-            of any other allele that had to be switched to be able
-            to assign the correct identifier to the current allele).
-        - ns_seqs : dict
-            Input `ns_seqs` variable without the entry for the sequence
-            that had its allele identifier evaluated.
-        - not_in_ns : dict
-            Input `not_in_ns` variable that was updated with the info
-            of the allele that is not in the Chewie-NS.
-        - max_id : int
-            Updated value for the maximum integer identifier
-            attributed to an allele.
-    """
-
-    seq_hash = hashlib.sha256(seq.encode('utf-8')).hexdigest()
-    # local sequence may have an identifier
-    # that was attributed to another allele in the NS
-    if str(local_id) in list(ns_seqs.values()):
-        # invert local_seqs
-        inv_local = {v[1]: [k, v[0]] for k, v in local_seqs.items()}
-
-        # attribute identifier greater than total number
-        # of alleles
-        max_id += 1
-        new_id = '{0}_*{1}'.format(locus_id, max_id)
-        local_seqs[new_id] = ['*{0}'.format(max_id), seq]
-
-        # get sequence in the NS that has that allele identifier
-        ns_seq = [k for k, v in ns_seqs.items() if int(v) == local_id]
-        updated_seqid = local_seqid.replace('*', '')
-        # attribute the NS sequence to the allele identifier
-        local_seqs[updated_seqid] = [str(local_id), ns_seq[0]]
-        switched[local_seqid] = new_id
-        # check if sequence from NS is in local sequences
-        if ns_seq[0] in inv_local:
-            old_id = inv_local[ns_seq[0]][0]
-            inv_switched = {v: k for k, v in switched.items()}
-            if old_id in inv_switched:
-                switched[inv_switched[old_id]] = updated_seqid
-            else:
-                switched[old_id] = updated_seqid
-            del local_seqs[old_id]
-
-        # delete identifier with '*'
-        del local_seqs[local_seqid]
-        del ns_seqs[ns_seq[0]]
-
-        # store info about sequences that are not in the NS
-        not_in_ns[locus][0][seq_hash] = ['{0}_*{1}'.format(locus_id, max_id),
-                                         seq, len(seq)]
-    # local sequence has an identifier that is not attributed
-    # to any sequence in the NS
-    else:
-        not_in_ns[locus][0][seq_hash] = [local_seqid, seq, len(seq)]
-
-    return [local_seqs, ns_seqs, not_in_ns, max_id, switched]
-
-
-def alternative_alter(loci, schema_dir, pickled_loci, not_in_ns, temp_dir, rearranged):
-    """
-    """
-
-    for locus, alleles in loci.items():
-
-        locus_id = locus.rstrip('.fasta')
-
-        # get latest alleles retrieved from the Chewie-NS
-        ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
-
-        # paths for current and temp locus file
-        locus_file = os.path.join(schema_dir, locus)
-
-        # get local locus sequences
-        records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
-                   for rec in SeqIO.parse(locus_file, 'fasta')}
-
-        # check if the NS and local schema have the same set of
-        # sequence identifiers
-        ns_ids = set(list(ns_seqs.values()))
-        local_ids = set([rec[0] for seqid, rec in records.items()])
-
-        # proceed to next locus if set of identifiers is equa
-        if ns_ids == local_ids:
-            continue
-
-        # invert local dict
-        inv_local = {v[1]: [k, v[0]] for k, v in records.items()}
-
-        # alter identifiers of local alleles that were added to the NS
-        switched = {}
-        for seq, seqid in ns_seqs.items():
-            records[seqid] = [seqid.split('_')[-1], seq]
-            if seq in inv_local:
-                switched[inv_local[seq][0]] = seqid
-                del records[inv_local[seq][0]]
-
-        # identify alleles with '*' and move them to top
-        max_id = max([int(v[0]) for k, v in records.items() if '*' not in k])
-
-        novel_ids = [k for k in records if '*' in k]
-        sorted_novel = sorted(novel_ids, key=lambda x: int(x.split('*')[-1]))
-
-        for si in sorted_novel:
-            max_id += 1
-            new_id = '{0}*{1}'.format(si.split('*')[0], max_id)
-            records[new_id] = [new_id.split('_')[-1], records[si][1]]
-            if si != new_id:
-                del records[si]
-                switched[si] = new_id
-
-        # determine records that are not in the NS
-        not_in_ns[locus] = {hashlib.sha256(v[1].encode('utf-8')).hexdigest(): [v[0], v[1], len(v[1])]
-                            for k, v in records.items() if '*' in v[0]}
-
-        rearranged[locus] = switched
-
-        updated_records = {}
-        for seqid, seq in records.items():
-            int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
-            updated_records[int_seqid] = (seq[0], seq[1])
-
-        temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-        aux.pickle_dumper(temp_file, updated_records)
-
-        pickled_loci[locus] = temp_file
-
-    return [pickled_loci, not_in_ns, rearranged]
-
-
-def altered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir, rearranged):
+def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
+                 temp_dir, rearranged):
     """ Reassigns alleles identifiers of loci that were altered
         in the Chewie-NS since last sync process. Identifier
         reassignment will ensure that local and remote alleles
@@ -719,7 +460,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir, rearranged
         pickled_loci : dict
             A dictionary that will be used to store paths to
             pickled files with the records for each locus that is
-            processed..
+            processed.
         not_in_ns : dict
             A dictionary that will be used to store information
             about local alleles that are not in the Chewie-NS.
@@ -755,7 +496,6 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir, rearranged
 
         # paths for current and temp locus file
         locus_file = os.path.join(schema_dir, locus)
-        temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
 
         # get local locus sequences
         records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
@@ -770,79 +510,51 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir, rearranged
         if ns_ids == local_ids:
             continue
 
-        # deepcopy local records to alter and sync with the NS locus
-        local_seqs = deepcopy(records)
-        id_map = {}
-        for seqid, seq in local_seqs.items():
-            allele_id = seq[0]
-            id_map[int(allele_id.replace('*', ''))] = seqid
+        # invert local dict
+        inv_local = {v[1]: [k, v[0]] for k, v in records.items()}
 
-        # determine max integer identifier to later increment
-        identifiers = list(ns_ids) + list(id_map.keys())
-        max_id = max([int(i) for i in identifiers])
-
-        # initalize list
-        pre = 0
+        # alter identifiers of local alleles that were added to the NS
         switched = {}
-        not_in_ns[locus] = [{}]
-        # for each local record
-        for seqid, seq in records.items():
-            inv_local = {v[1]: [k, v[0]] for k, v in local_seqs.items()}
-            # get full and integer identifiers
-            current_seqid = inv_local[seq[1]][0]
-            #current_seqid = seqid
-            allele_id = inv_local[seq[1]][1]
-            allele_id = int(allele_id.replace('*', ''))
-            #allele_id = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
-            current_seq = seq[1]
-            # local allele is in the Chewie-NS
-            if current_seq in ns_seqs and '*' in current_seqid:
-                # get allele identifier in the Chewie-NS
-                ns_id = int(ns_seqs[current_seq])
+        for seq, seqid in ns_seqs.items():
+            records[seqid] = [seqid.split('_')[-1], seq]
+            if seq in inv_local:
+                switched[inv_local[seq][1]] = seqid
+                del records[inv_local[seq][0]]
 
-                local_seqs, \
-                    ns_seqs, \
-                    switched = process_common(ns_id, allele_id, current_seqid,
-                                              current_seq, local_seqs, ns_seqs,
-                                              id_map, locus_id, switched)
+        # identify alleles with '*' and move them to top
+        max_id = max([int(v[0]) for k, v in records.items() if '*' not in k])
 
-            # local allele is not in the Chewie-NS
-            elif current_seq not in ns_seqs and '*' in current_seqid:
+        novel_ids = [k for k in records if '*' in k]
+        sorted_novel = sorted(novel_ids, key=lambda x: int(x.split('*')[-1]))
 
-                local_seqs, \
-                    ns_seqs, \
-                    not_in_ns, \
-                    max_id, \
-                    switched = process_novel(allele_id, current_seqid,
-                                             current_seq, local_seqs,
-                                             ns_seqs, max_id, locus_id,
-                                             not_in_ns, locus, switched)
+        for si in sorted_novel:
+            max_id += 1
+            new_id = '*{0}'.format(max_id)
+            new_seqid = '{0}_{1}'.format(locus_id, new_id)
+            records[new_seqid] = [new_id, records[si][1]]
+            if si != new_seqid:
+                del records[si]
+                switched[si.split('_')[-1]] = new_id
 
-            # local allele was previously synced
-            elif current_seq in ns_seqs and '*' not in current_seqid:
-                del ns_seqs[current_seq]
-                pre += 1
+        # determine records that are not in the NS
+        novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+                         [v[0], v[1], len(v[1])]
+                         for k, v in records.items() if '*' in v[0]}
+        if len(novel_alleles) > 0:
+            not_in_ns[locus] = [novel_alleles]
 
         if len(switched) > 0:
             rearranged[locus] = switched
 
-        # get local records that were synced in terms of identifiers
         updated_records = {}
-        for seqid, seq in local_seqs.items():
+        for seqid, seq in records.items():
             int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
             updated_records[int_seqid] = (seq[0], seq[1])
 
-        # check if there are any completely new sequences that are only present in the NS
-        if len(ns_seqs) > 0:
-            ns_rest = {int(seqid): (seqid, seq) for seq, seqid in ns_seqs.items()}
-            updated_records = {**updated_records, **ns_rest}
-
+        temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
         aux.pickle_dumper(temp_file, updated_records)
 
         pickled_loci[locus] = temp_file
-
-        if len(not_in_ns[locus][0]) == 0:
-            del not_in_ns[locus]
 
     return [pickled_loci, not_in_ns, rearranged]
 
@@ -894,7 +606,8 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
                    for rec in SeqIO.parse(locus_file, 'fasta')}
 
         # determine if there are sequences with '*'
-        novel_local = {hashlib.sha256(v[1].encode('utf-8')).hexdigest(): [v[0], v[1], len(v[1])]
+        novel_local = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+                       [v[0], v[1], len(v[1])]
                        for k, v in records.items() if '*' in v[0]}
         if len(novel_local) > 0:
             not_in_ns[gene] = [novel_local]
@@ -973,16 +686,9 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
     not_updated = [gene for gene in local_loci if gene not in loci]
 
     # update local identifiers based on identifiers in the Chewie-NS
-    pickled_loci, not_in_ns, rearranged = altered_loci(updated, schema_dir,
-                                                       pickled_loci, not_in_ns,
-                                                       temp_dir, rearranged)
-
-    # rearranged2 = {}
-    # not_in_ns2 = {}
-    # pickled_loci2 = {}
-    # pickled_loci2, not_in_ns2, rearranged2 = alternative_alter(updated, schema_dir,
-    #                                                            pickled_loci2, not_in_ns2,
-    #                                                            temp_dir, rearranged2)
+    pickled_loci, not_in_ns, \
+        rearranged = altered_loci(updated, schema_dir, pickled_loci,
+                                  not_in_ns, temp_dir, rearranged)
 
     # determine loci that were not altered in the Chewie-NS but
     # have been altered locally
@@ -1048,7 +754,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-sc', type=str, dest='schema_directory', required=True,
+    parser.add_argument('-sc', type=str, dest='schema_directory',
+                        required=True,
                         help='Path to the directory with the schema to be'
                              'synced.')
 
@@ -1078,6 +785,11 @@ def parse_arguments():
 
 
 def main(schema_dir, core_num, base_url, submit):
+
+    # check if server is up
+    conn = aux.check_connection(cnst.HEADERS_GET_JSON)
+    if conn is False:
+        sys.exit('Failed to establish a connection to the Chewie-NS.')
 
     if submit is True:
         print('\nOnly registered users may submit new alleles.')
@@ -1129,7 +841,8 @@ def main(schema_dir, core_num, base_url, submit):
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_id, species_name = aux.species_ids(species_id, base_url, headers_get)
+    species_id, species_name = aux.species_ids(species_id, base_url,
+                                               headers_get)
 
     print('Schema id: {0}'.format(schema_id))
     print('Schema name: {0}'.format(schema_name))
@@ -1173,8 +886,8 @@ def main(schema_dir, core_num, base_url, submit):
         updated, not_update, \
         rearranged = update_loci_files(loci_alleles, genes,
                                        schema_dir, temp_dir)
-    print(rearranged)
-    total_local = sum([len(v) for k, v in not_in_ns.items()])
+
+    total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
     print('Local schema has {0} novel alleles.'.format(total_local))
 
     # check if there are any changes to make
@@ -1245,9 +958,10 @@ def main(schema_dir, core_num, base_url, submit):
                 # create new alleles data
                 alleles_files, \
                     loci_ids, \
-                    loci_names = create_alleles_files(not_in_ns, base_url, user_id,
-                                                      species_name, species_id,
-                                                      schema_id, temp_dir)
+                    loci_names = create_alleles_files(not_in_ns, base_url,
+                                                      user_id, species_name,
+                                                      species_id, schema_id,
+                                                      temp_dir)
 
                 # compress files with new alleles
                 zipped_files = ['{0}.zip'.format(file) for file in alleles_files]
@@ -1255,16 +969,15 @@ def main(schema_dir, core_num, base_url, submit):
                 alleles_data = list(zip(zipped_files, loci_ids, loci_names))
 
                 print('Sending and inserting new alleles...')
-                failed, results = upload_alleles_data(alleles_data, length_files, base_url,
-                                                      headers_post, headers_post_bytes,
-                                                      species_id, schema_id)
+                failed, \
+                    results = upload_alleles_data(alleles_data, length_files,
+                                                  base_url, headers_post,
+                                                  headers_post_bytes, species_id,
+                                                  schema_id)
 
                 # determine alleles that were attributed an identifier
-                repeated = 0
-                attributed = 0
-                for locus, r in results.items():
-                    repeated += len(r[0])
-                    attributed += len(r[1])
+                repeated = sum([len(r[0]) for l, r in results.items()])
+                attributed = sum([len(r[1]) for l, r in results.items()])
 
                 print('The Chewie-NS inserted {0} new alleles and detected '
                       '{1} repeated alleles.'.format(attributed, repeated))
@@ -1276,7 +989,14 @@ def main(schema_dir, core_num, base_url, submit):
 
     # change pickled files to FASTA files
     for locus, pick in pickled_loci.items():
-        pickle_to_fasta(locus, pick, temp_dir, results)
+        rearranged = pickle_to_fasta(locus, pick, temp_dir, results,
+                                     rearranged)
+
+    # change identifiers in SQLite DB
+    if len(rearranged) > 0:
+        print('\nUpdating local allele identifiers...')
+        altered = sq.update_profiles(schema_dir, rearranged)
+        print('Updated {0} profiles.\n'.format(altered))
 
     # Re-determine the representative sequences
     if attributed > 0 or count > 0:

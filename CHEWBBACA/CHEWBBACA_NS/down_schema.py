@@ -479,7 +479,13 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-def main(schema_id, species_id, download_folder, core_num, base_url, date, latest):
+def main(schema_id, species_id, download_folder, core_num,
+         base_url, date, latest):
+
+    # check if server is up
+    conn = aux.check_connection(cnst.HEADERS_GET_JSON)
+    if conn is False:
+        sys.exit('Failed to establish a connection to the Chewie-NS.')
 
     start_date = dt.datetime.now()
     start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')

@@ -283,8 +283,6 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             print (chosenTaxon)
             return "retry"
 
-    print(BlastpPath)
-
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
     print("Will use this number of cpus: " + str(cpuToUse))

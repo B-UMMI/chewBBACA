@@ -502,7 +502,6 @@ def allele_call():
     # determine if schema was downloaded from the Chewie-NS
     ns_config = os.path.join(schema_directory, '.ns_config')
     ns = os.path.isfile(ns_config)
-    print(ns)
 
     BBACA.main(genomes_files, schema_genes, cpu_cores,
                output_directory, blast_score_ratio,

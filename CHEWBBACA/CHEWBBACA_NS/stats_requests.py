@@ -54,9 +54,11 @@ from urllib3.exceptions import InsecureRequestWarning
 try:
     from utils import constants as cnst
     from utils import auxiliary_functions as aux
+    from utils import parameters_validation as pv
 except:
     from CHEWBBACA.utils import constants as cnst
     from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import parameters_validation as pv
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -168,7 +170,12 @@ def species_schemas_count(base_url, headers_get):
     endpoint_list = ['stats', 'species']
     # unpack list of sequential endpoints and pass to create URI
     res = aux.simple_get_request(base_url, headers_get, endpoint_list)
-    res = res.json()['message']
+    res = res.json()
+
+    if 'message' in res:
+        res = res['message']
+    else:
+        sys.exit('Could not retrieve species info.')
 
     if len(res) == 0:
         sys.exit('Could not retrieve species info.')
@@ -387,9 +394,9 @@ def parse_arguments():
                              'list of schemas for a species '
                              '("schemas" option).')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--sp', type=str, required=False,
@@ -404,13 +411,18 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    return [args.stats_mode, args.nomenclature_server_url,
+    return [args.stats_mode, args.nomenclature_server,
             args.species_id, args.schema_id]
 
 
 def main(mode, base_url, species_id, schema_id):
 
     headers_get = cnst.HEADERS_GET_JSON
+    # check if server is up
+    conn = aux.check_connection(headers_get, base_url)
+    if conn is False:
+        sys.exit('Failed to establish a connection to the Chewie-NS.')
+
     print('\nRetrieving data...')
     if mode == 'species':
         stats = species_stats(base_url, headers_get)

@@ -1027,7 +1027,7 @@ def download_schema():
                                                   '-sp <species_id> '
                                                   '-o <download_folder>\n'
                                                   '\t\t\t      --cpu <cpu_cores> '
-                                                  '--ns_url <nomenclature_server_url> ')
+                                                  '--ns <nomenclature_server_url> ')
 
         usage_msg = ('\nDownload schema:\n{0}\n'
                      '\nDownload schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
@@ -1066,9 +1066,9 @@ def download_schema():
                              'determine representatives and create the '
                              'final schema.')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--d', type=str, required=False,
@@ -1093,12 +1093,12 @@ def download_schema():
     ns_species = args.species_id
     download_folder = args.download_folder
     cpu_cores = args.cpu_cores
-    nomenclature_server_url = args.nomenclature_server_url
+    nomenclature_server = args.nomenclature_server
     date = args.date
     latest = args.latest
 
     down_schema.main(ns_schema, ns_species, download_folder,
-                     cpu_cores, nomenclature_server_url, date,
+                     cpu_cores, nomenclature_server, date,
                      latest)
 
 
@@ -1117,7 +1117,7 @@ def upload_schema():
                                               '-sn <schema_name>\n'
                                               '\t\t\t  -lp <loci_prefix> '
                                               '--thr <threads> '
-                                              '--ns_url <nomenclature_server_url>')
+                                              '--ns <nomenclature_server_url>')
 
         # command to continue schema upload that was interrupted or aborted
         continue_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
@@ -1188,9 +1188,9 @@ def upload_schema():
                         help='Number of threads to use to search for '
                              'annotations on UniProt')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--continue_up', required=False, action='store_true',
@@ -1212,12 +1212,12 @@ def upload_schema():
     annotations = args.annotations
     cpu_cores = args.cpu_cores
     threads = args.threads
-    nomenclature_server_url = args.nomenclature_server_url
+    nomenclature_server = args.nomenclature_server
     continue_up = args.continue_up
 
     load_schema.main(schema_directory, species_id, schema_name,
                      loci_prefix, description_file, annotations,
-                     cpu_cores, threads, nomenclature_server_url,
+                     cpu_cores, threads, nomenclature_server,
                      continue_up)
 
 
@@ -1230,7 +1230,7 @@ def synchronize_schema():
         # command to synchronize a schema with its NS version with non-default arguments values
         params_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> '
                                                 '--cpu <cpu_cores> '
-                                                '-ns_url <nomenclature_server_url>')
+                                                '--ns <nomenclature_server_url>')
 
         # command to submit novel local alleles
         submit_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> --submit')
@@ -1264,9 +1264,9 @@ def synchronize_schema():
                              'if the process downloads new alleles from '
                              'the Chewie-NS.')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--submit', required=False,
@@ -1284,11 +1284,11 @@ def synchronize_schema():
 
     schema_directory = args.schema_directory
     cpu_cores = args.cpu_cores
-    nomenclature_server_url = args.nomenclature_server_url
+    nomenclature_server = args.nomenclature_server
     submit = args.submit
 
     sync_schema.main(schema_directory, cpu_cores,
-                     nomenclature_server_url, submit)
+                     nomenclature_server, submit)
 
 
 def ns_stats():
@@ -1328,9 +1328,9 @@ def ns_stats():
                              'list of schemas for a species '
                              '("schemas" option).')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--sp', type=str, required=False,
@@ -1350,11 +1350,11 @@ def ns_stats():
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
     mode = args.stats_mode
-    ns_url = args.nomenclature_server_url
+    nomenclature_server = args.nomenclature_server
     species_id = args.species_id
     schema_id = args.schema_id
 
-    stats_requests.main(mode, ns_url, species_id, schema_id)
+    stats_requests.main(mode, nomenclature_server, species_id, schema_id)
 
 
 def main():

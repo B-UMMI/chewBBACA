@@ -274,3 +274,16 @@ def validate_ptf(arg, input_path):
         sys.exit('Could not find a valid training file in schema directory.')
 
     return valid
+
+
+def validate_ns_url(arg):
+    """
+    """
+
+    ns_url = cnts.HOST_NS.get(arg, None)
+
+    if ns_url is None:
+        sys.exit('Could not find specified URL for the Chewie-NS.\n'
+                 'Please provide a valid value for the "--ns" argument.')
+
+    return ns_url

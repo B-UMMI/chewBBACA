@@ -63,11 +63,13 @@ try:
     from utils import constants as cnst
     from utils import sqlite_functions as sq
     from utils import auxiliary_functions as aux
+    from utils import parameters_validation as pv
     from PrepExternalSchema import PrepExternalSchema
 except:
     from CHEWBBACA.utils import constants as cnst
     from CHEWBBACA.utils import sqlite_functions as sq
     from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import parameters_validation as pv
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
 
 
@@ -766,9 +768,9 @@ def parse_arguments():
                              'if the process downloads new alleles from '
                              'the Chewie-NS.')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        dest='nomenclature_server_url',
-                        default=cnst.HOST_NS,
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        dest='nomenclature_server',
+                        default='main',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--submit', required=False,
@@ -781,17 +783,17 @@ def parse_arguments():
     args = parser.parse_args()
 
     return [args.schema_directory, args.cpu_cores,
-            args.nomenclature_server_url, args.submit]
+            args.nomenclature_server, args.submit]
 
 
 def main(schema_dir, core_num, base_url, submit):
 
     # check if server is up
-    conn = aux.check_connection(cnst.HEADERS_GET_JSON)
+    conn = aux.check_connection(cnst.HEADERS_GET_JSON, base_url)
     if conn is False:
         sys.exit('Failed to establish a connection to the Chewie-NS.')
 
-    if submit is True:
+    if submit is True and 'tutorial' not in base_url:
         print('\nOnly registered users may submit new alleles.')
         token = aux.capture_login_credentials(base_url)
     else:
@@ -806,7 +808,7 @@ def main(schema_dir, core_num, base_url, submit):
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
-    if submit is True:
+    if submit is True and 'tutorial' not in base_url:
         user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
         user_auth = True
         print('User id: {0}'.format(user_id))

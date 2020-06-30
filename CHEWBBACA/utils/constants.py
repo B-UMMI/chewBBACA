@@ -62,8 +62,9 @@ HEADERS_POST_JSON = {'Authorization': None,
 					 'accept': 'application/json',
 					 'user_id': None}
 
-HOST_NS = 'https://chewbbaca.online/api/NS/api/'
-#HOST_NS = 'http://127.0.0.1:5000/NS/api/'
+HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
+           'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
+           'local': 'http://127.0.0.1:5000/NS/api/'}
 
 # UniProt SPARQL endpoint
 UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'

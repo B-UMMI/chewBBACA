@@ -52,11 +52,11 @@ except:
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 
 
-def check_connection(headers):
+def check_connection(headers, ns_url):
     """
     """
 
-    url = make_url(cnst.HOST_NS, *['stats', 'summary'])
+    url = make_url(ns_url, *['stats', 'summary'])
 
     res = requests.get(url, headers=headers, timeout=30, verify=False)
 

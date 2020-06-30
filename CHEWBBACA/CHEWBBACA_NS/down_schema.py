@@ -77,10 +77,12 @@ from urllib3.exceptions import InsecureRequestWarning
 try:
     from utils import constants as cnst
     from utils import auxiliary_functions as aux
+    from utils import parameters_validation as pv
     from PrepExternalSchema import PrepExternalSchema
 except:
     from CHEWBBACA.utils import constants as cnst
     from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import parameters_validation as pv
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
 
 
@@ -483,7 +485,7 @@ def main(schema_id, species_id, download_folder, core_num,
          base_url, date, latest):
 
     # check if server is up
-    conn = aux.check_connection(cnst.HEADERS_GET_JSON)
+    conn = aux.check_connection(cnst.HEADERS_GET_JSON, base_url)
     if conn is False:
         sys.exit('Failed to establish a connection to the Chewie-NS.')
 
@@ -644,9 +646,9 @@ def parse_arguments():
                              'if the process downloads FASTA '
                              'files instead of a compressed version.')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        dest='nomenclature_server_url',
-                        default=cnst.HOST_NS,
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        dest='nomenclature_server',
+                        default='main',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--d', type=str, required=False,
@@ -665,7 +667,7 @@ def parse_arguments():
     args = parser.parse_args()
 
     return [args.schema_id, args.species_id, args.download_folder,
-            args.cpu_cores, args.nomenclature_server_url, args.date,
+            args.cpu_cores, args.nomenclature_server, args.date,
             args.latest]
 
 

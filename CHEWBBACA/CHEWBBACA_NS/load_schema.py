@@ -969,9 +969,9 @@ def parse_arguments():
                         help='Number of threads to use to search for '
                              'annotations on UniProt.')
 
-    parser.add_argument('--ns_url', type=str, required=False,
-                        default=cnst.HOST_NS,
-                        dest='nomenclature_server_url',
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
                         help='The base URL for the Nomenclature Server.')
 
     parser.add_argument('--continue_up', required=False, action='store_true',
@@ -989,12 +989,12 @@ def parse_arguments():
     annotations = args.annotations
     cpu_cores = args.cpu_cores
     threads = args.threads
-    nomenclature_server_url = args.nomenclature_server_url
+    nomenclature_server = args.nomenclature_server
     continue_up = args.continue_up
 
     return [schema_directory, species_id, schema_name,
             loci_prefix, description_file, annotations,
-            cpu_cores, threads, nomenclature_server_url,
+            cpu_cores, threads, nomenclature_server,
             continue_up]
 
 
@@ -1002,11 +1002,14 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
          annotations, cpu_cores, threads, base_url, continue_up):
 
     # check if server is up
-    conn = aux.check_connection(cnst.HEADERS_GET_JSON)
+    conn = aux.check_connection(cnst.HEADERS_GET_JSON, base_url)
     if conn is False:
         sys.exit('Failed to establish a connection to the Chewie-NS.')
 
-    token = aux.capture_login_credentials(base_url)
+    if 'tutorial' not in base_url:
+        token = aux.capture_login_credentials(base_url)
+    else:
+        token = ''
 
     start_date = dt.datetime.now()
     start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
@@ -1019,7 +1022,11 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
-    user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
+    if 'tutorial' not in base_url:
+        user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
+    else:
+        user_id, user_role, user_auth = ['', '', True]
+
     print('User id: {0}'.format(user_id))
     print('User role: {0}'.format(user_role))
     print('Authorized: {0}\n'.format(user_auth))

@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHORS
+Purpose
+-------
 
-    Mickael Silva
-    github: @
-
-    Pedro Cerqueira
-    github: @pedrorvc
-
-    Rafael Mamede
-    github: @rfm-targa
-
-DESCRIPTION
+This is the main script of the chewBBACA suite.
 
 """
 
@@ -113,7 +105,7 @@ def create_schema():
                         dest='output_directory',
                         help='Output directory where the schema will be created.')
 
-    parser.add_argument('-ptf', type=str, required=True,
+    parser.add_argument('-ptf', '--ptf', type=str, required=True,
                         dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
@@ -752,19 +744,19 @@ def extract_cgmlst():
                         help='Path to the directory where the process '
                              'will store output files.')
 
-    parser.add_argument('--p', type=float, required=False,
+    parser.add_argument('--p', '-p', type=float, required=False,
                         default=1, dest='threshold',
                         help='Genes that constitute the core genome '
                              'must be in a proportion of genomes that is '
                              'at least equal to this value.')
 
-    parser.add_argument('--r', type=str, required=False,
+    parser.add_argument('--r', '-r', type=str, required=False,
                         default=False, dest='genes2remove',
                         help='Path to file with a list of genes/columns to '
                              'remove from the matrix (one gene identifier '
                              'per line).')
 
-    parser.add_argument('--g', type=str, required=False,
+    parser.add_argument('--g', '-g', type=str, required=False,
                         default=False, dest='genomes2remove',
                         help='Path to file with a list of genomes/rows to '
                              'remove from the matrix (one genome identifier '

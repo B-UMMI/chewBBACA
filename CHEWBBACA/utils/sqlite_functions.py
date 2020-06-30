@@ -672,7 +672,7 @@ def update_profiles(schema_directory, reassigned):
 
 
 # select all rows from tables
-#db_file = '/home/rfm/Desktop/ns_test/test_fulldown/down_test/sagalactiae_testsync99/profiles_database/profiles.db'
+#db_file = ''
 #loci_list_db = select_all_rows(db_file, 'loci')
 #profiles_list_db = select_all_rows(db_file, 'profiles')
 #samples_list_db = select_all_rows(db_file, 'samples')

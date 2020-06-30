@@ -12,11 +12,12 @@ import subprocess
 import json
 import re
 try:
-    from allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
-    from utils import ParalogPrunning
-except ImportError:
-    from CHEWBBACA.allelecall import callAlleles_protein3,runProdigal,Create_Genome_Blastdb
-    from CHEWBBACA.utils import ParalogPrunning
+    from allelecall import callAlleles_protein3
+    from utils import ParalogPrunning, runProdigal, Create_Genome_Blastdb
+except:
+    from CHEWBBACA.allelecall import callAlleles_protein3
+    from CHEWBBACA.utils import ParalogPrunning, runProdigal, Create_Genome_Blastdb
+
 
 def which(program):
     import os
@@ -34,7 +35,7 @@ def which(program):
             if is_exe(exe_file):
                 return True
 
-    print (program+" not found")
+    print(program+" not found")
     sys.exit()
     return "Not found"
 
@@ -54,7 +55,7 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
     currentGenomeDict = {}
 
     j = 0
-    if inputCDS==False:
+    if inputCDS == False:
 
         filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF.txt")
         with open(filepath, 'rb') as f:
@@ -63,7 +64,6 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
         for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
             sequence = str(contig.seq.upper())
             currentGenomeDict[contig.id] = sequence
-
 
         for contigTag, value in currentCDSDict.items():
 
@@ -98,10 +98,10 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
                 listOfCDS[idstr] = seq
                 genomeProts += str(protseq) + "\n"
             except:
-                print (contig.id+" is not translatable to protein, sequence ignored")
+                print(contig.id + " is not translatable to protein, sequence ignored")
                 pass
 
-    if j<2:
+    if j < 2:
         raise ValueError("your genome has something wrong, are you using a genome as a CDS fasta file or vice versa?")
 
     filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF_Protein.txt")
@@ -117,6 +117,7 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
     var = ''
     currentGenomeDict = ''
     currentCDSDict = ''
+
 
     return True
 
@@ -134,7 +135,7 @@ def translateSeq(DNASeq, verbose):
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print (arg),
+                print(arg),
             print
     else:
         verboseprint = lambda *a: None  # do-nothing function
@@ -182,8 +183,12 @@ def loci_translation(genesList, listOfGenomes2, verbose):
     noshortgeneFile = []
 
     for gene in gene_fp:
-        k = 0
         gene = gene.rstrip('\n')
+        if not gene.endswith(".fasta"):
+            continue
+
+        k = 0
+
         multiple = True
         shortgene = os.path.join(os.path.dirname(gene), "short", os.path.basename(gene))
         shortgene = shortgene.replace(".fasta", "_short.fasta")
@@ -197,14 +202,14 @@ def loci_translation(genesList, listOfGenomes2, verbose):
             k += 1
             if len(sequence) % 3 != 0:
                 multiple = False
-                print ("allele " + str(k) + " is not multiple of 3: " + str(gene) + " this gene is to be removed")
+                print("allele " + str(k) + " is not multiple of 3: " + str(gene) + " this gene is to be removed")
                 break
             else:
                 try:
                     protseq, Inverted, seq = translateSeq(sequence, verbose)
                 except:
                     multiple = False
-                    print ("allele " + str(k) + " is not translating : " + str(gene) + " this gene is to be removed")
+                    print("allele " + str(k) + " is not translating : " + str(gene) + " this gene is to be removed")
                     break
         if multiple:
             lGenesFiles.append(gene)
@@ -226,48 +231,13 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,translation_table, ns):
 
-    #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
-    #~ parser.add_argument('-g', nargs='?', type=str, help='List of genes (fasta)', required=True)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
-    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-    #~ required=True)
-    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-    #~ default=False)
-    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR score", required=False, default=0.6)
-    #~ parser.add_argument("--so", help="split the output per genome", dest='divideOutput', action="store_true",
-    #~ default=False)
-    #~ parser.add_argument('-t', nargs='?', type=str, help="taxon", required=False, default=False)
-    #~ parser.add_argument('--ptf', nargs='?', type=str, help="provide own training file path", required=False, default=False)
-    #~ parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
-    #~ parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
-    #~ parser.add_argument("--contained", help=argparse.SUPPRESS, required=False, action="store_true", default=False)
-    #~ parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
-    #~
-    #~ args = parser.parse_args()
-    #~
-    #~ genomeFiles = args.i
-    #~ genes = args.g
-    #~ cpuToUse = args.cpu
-    #~ BSRTresh = args.bsr
-    #~ verbose = args.verbose
-    #~ BlastpPath = args.b
-    #~ divideOutput = args.divideOutput
-    #~ gOutFile = args.o
-    #~ chosenTaxon = args.t
-    #~ chosenTrainingFile = args.ptf
-    #~ forceContinue = args.fc
-    #~ forceReset = args.fr
-    #~ jsonReport = args.json
-    #~ contained = args.contained
     divideOutput=False
 
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
-        print ("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
+        print("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
 
     taxonList = {'Campylobacter jejuni': 'trained_campyJejuni.trn',
                  'Acinetobacter baumannii': 'trained_acinetoBaumannii.trn',
@@ -280,16 +250,17 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                  'Salmonella enterica': 'trained_salmonellaEnterica_enteritidis.trn',
                  'Staphylococcus aureus': 'trained_StaphylococcusAureus.trn',
                  'Streptococcus pneumoniae': 'trained_strepPneumoniae.trn'
-                 }
+                }
+
     if isinstance(chosenTaxon, str):
         trainingFolderPAth = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'TrainingFiles4Prodigal'))
         try:
-            chosenTaxon = os.path.join(trainingFolderPAth, taxonList[chosenTaxon])
+            chosenTaxon = trainingFolderPAth
 
             if os.path.isfile(chosenTaxon):
-                print ("will use this training file : " + chosenTaxon)
+                print("will use this training file : " + chosenTaxon)
             else:
-                print ("training file don't exist "+chosenTaxon)
+                print("training file don't exist " + chosenTaxon)
                 return "retry"
         except:
             print("Your chosen taxon is not attributed, select one from:")
@@ -312,15 +283,13 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             print (chosenTaxon)
             return "retry"
 
-    print(BlastpPath)
-
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
-    print ("Will use this number of cpus: " + str(cpuToUse))
-    print ("Checking all programs are installed")
+    print("Will use this number of cpus: " + str(cpuToUse))
+    print("Checking all programs are installed")
 
-    print ("Checking Blast installed... " + str(which(str(BlastpPath))))
-    print ("Checking Prodigal installed... " + str(which('prodigal')))
+    print("Checking Blast installed... " + str(which(str(BlastpPath))))
+    print("Checking Prodigal installed... " + str(which('prodigal')))
 
     # check version of Blast
 
@@ -328,6 +297,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     stdout, stderr = proc.communicate()
     version_string = stdout.decode('utf8')
     blast_version_pat = re.compile(r'2.[5-9]')
+
     try:
         if not blast_version_pat.search(version_string):
             m = blast_version_pat.search(version_string).group()
@@ -341,12 +311,12 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         print("update your blast to 2.5.0 or above, will exit program")
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
-    print (starttime)
+    print(starttime)
 
     listOfGenomes = []
     listOfGenomesBasename = []
 
-    print ("checking if genome files exist..")
+    print("checking if genome files exist..")
     with open(genomeFiles, 'r') as fp:
         for genomeFile in fp:
 
@@ -356,7 +326,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 listOfGenomes.append(genomeFile)
                 listOfGenomesBasename.append(os.path.basename(genomeFile))
             else:
-                print ("File does not exist, will not be used : " + str(genomeFile))
+                print("File does not exist, will not be used : " + str(genomeFile))
 
     if len(listOfGenomes) == 0:
         raise ValueError('ERROR! No usable genome files in ' + str(genomeFiles))
@@ -365,15 +335,18 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
     lGenesFiles = []
 
-    print ("checking if gene files exist..")
+    print("checking if gene files exist..")
     with open(genes, 'r') as gene_fp:
         for gene in gene_fp:
             gene = gene.rstrip('\n')
             gene = gene.rstrip('\r')
+            if not gene.endswith(".fasta"):
+                print(gene)
+                continue
             if os.path.isfile(gene):
                 lGenesFiles.append(gene)
             else:
-                print ("File does not exist, will not be used : " + str(gene))
+                print("File does not exist, will not be used : " + str(gene))
 
     if len(lGenesFiles) == 0:
         raise ValueError('ERROR! No usable gene files in ' + str(genes))
@@ -401,7 +374,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             continueRun = True
 
     if continueRun:
-        print ("You chose to continue the allele call")
+        print("You chose to continue the allele call")
         argumentsList = []
         resultsList = []
         for filee in os.listdir(basepath):
@@ -423,8 +396,8 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         try:
             # user decided not to continue although there was a run that had been stopped before finishing, files will be removed for a new run
             if os.path.isdir(basepath):
-                print ("You chose to do a new allele call")
-                print ("removing existing files...")
+                print("You chose to do a new allele call")
+                print("removing existing files...")
                 shutil.rmtree(basepath)
 
             # translate the loci
@@ -445,7 +418,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             # ------------------------------------------------- #
 
             #if the input is a draft genome
-            if inputCDS==False:
+            if inputCDS == False:
 
                 print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -453,7 +426,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
                 pool = multiprocessing.Pool(cpuToUse)
                 for genome in listOfGenomes:
-                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
+                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon), translation_table))
 
                 pool.close()
                 pool.join()
@@ -471,24 +444,22 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                     shutil.rmtree(basepath)
                     raise ValueError(message)
                 else:
-                    print ("All prodigal files necessary were created\n")
+                    print("All prodigal files necessary were created\n")
 
-                print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-
-
+                print("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
             # ---CDS to protein---#
 
             # translate the genome CDSs, load them into dictionaries and fasta files to be used further ahead
 
-            print ("Translating genomes")
+            print("Translating genomes")
             pool = multiprocessing.Pool(cpuToUse)
             for genomeFile in listOfGenomes:
                 pool.apply_async(prepGenomes, args=[str(genomeFile), basepath, verbose,inputCDS])
             pool.close()
             pool.join()
 
-            print ("Starting Genome Blast Db creation at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+            print("Starting Genome Blast Db creation at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
             # creation of the Databases for each genome, one genome per core using n cores
 
@@ -497,8 +468,9 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))
 
-                pool.apply_async(Create_Genome_Blastdb.main,(filepath,os.path.join(basepath, str(os.path.basename(genomeFile))),str(os.path.basename(genomeFile)),False))
-
+                pool.apply_async(Create_Genome_Blastdb.main, (
+                    filepath, os.path.join(basepath, str(os.path.basename(genomeFile))), str(os.path.basename(genomeFile)),
+                    False))
 
             pool.close()
             pool.join()
@@ -506,14 +478,14 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         except Exception as e:
             exc_type, exc_obj, tb = sys.exc_info()
             lineno = tb.tb_lineno
-            print (lineno)
+            print(lineno)
 
             if jsonReport:
                 runReport = {'finalStatus': 'error : ' + str(e)}
                 with open('reportStatus.txt', 'w') as outfile:
                     json.dump(runReport, outfile)
             else:
-                print (e)
+                print(e)
             raise ValueError(e)
     else:
 
@@ -522,23 +494,22 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         argumentsList = sorted(argumentsList)
 
     print
-    print ("Starting Allele Calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    print("Starting Allele Calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
     # Run the allele call, one gene per core using n cores
 
 
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
-        #~ print (argList)
-        #~ asdasd
-        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh),str(sizeTresh)))
+        pool.apply_async(callAlleles_protein3.main,
+                         (str(argList), basepath, str(BlastpPath), str(verbose), str(BSRTresh), str(sizeTresh), ns))
 
     pool.close()
     pool.join()
 
-    print ("Finished Allele Calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    print("Finished Allele Calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
-    print ("Wrapping up the results")
+    print("Wrapping up the results")
 
     output = []
     output2 = []
@@ -557,20 +528,20 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
     numberOfLoci = len(output[0][1])
 
-    print ("##################################################\n "+str(numberOfLoci)+" genomes used for "+str(len(output))+"loci" )
+    print("##################################################\n "+str(numberOfLoci)+" genomes used for "+str(len(output))+"loci" )
     numberexactmatches = 0
     for gene in output:
         for gAllele in gene[1]:
             try:
-                int(gAllele)
+                allele_id = int(gAllele) if '*' not in gAllele else int(gAllele.replace('*', ''))
                 numberexactmatches += 1
             except:
                 pass
 
-    print ("\n used a bsr of : " + str(BSRTresh))
-    print ("\n"+str(numberexactmatches)+" exact matches found out of "+ str (len(output[0][1]) * len(lGenesFiles)))
-    print ("\n"+str(float((numberexactmatches * 100) / (numberOfLoci * len(lGenesFiles))))+" percent of exact matches \n##################################################")
-    print ("\nWriting output files\n")
+    print("\n used a bsr of : " + str(BSRTresh))
+    print("\n"+str(numberexactmatches)+" exact matches found out of "+ str (len(output[0][1]) * len(lGenesFiles)))
+    print("\n"+str(float((numberexactmatches * 100) / (numberOfLoci * len(lGenesFiles))))+" percent of exact matches \n##################################################")
+    print("\nWriting output files\n")
 
     # wrapping up the results into a matrix and save in a file
     try:
@@ -654,8 +625,14 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
             if divideOutput:
                 allelesDict[currentGenome] = ('\t'.join(map(str, auxList)))
             finalphylovinput += ('\t'.join(map(str, auxList)))
+            # append genome profile to list with new profiles to append
+            # to schema profiles master file
             genome += 1
             statistics.append(statsaux)
+
+        #########################
+        # This is removing INF from all matrix???
+        #finalphylovinput= finalphylovinput.replace("INF-","")
 
         genome = 0
         while genome < len(listOfGenomes):
@@ -691,7 +668,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
         # outputpath=os.path.dirname(gOutFile)
         outputfolder = os.path.join(gOutFile, "results_" + str(time.strftime("%Y%m%dT%H%M%S")))
         os.makedirs(outputfolder)
-        print (statswrite)
+        print(statswrite)
         # ~ print
         # ~ print containedOutpWrite
 
@@ -748,9 +725,9 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                 f.write("\nused this number of cpus: " + str(cpuToUse))
                 f.write("\nused a bsr of : " + str(BSRTresh))
 
-            print ("checking the existance of paralog genes...")
-            ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"), outputfolder)
+            print("checking the existance of paralog genes...")
 
+            ParalogPrunning.main(os.path.join(outputfolder, "results_contigsInfo.tsv"),outputfolder)
 
         else:
             for genome in listOfGenomesBasename:
@@ -771,21 +748,21 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
                     f.write(allelesDict[genome])
 
     except Exception as e:
-        print (e)
+        print(e)
 
         exc_type, exc_obj, tb = sys.exc_info()
         lineno = tb.tb_lineno
-        print (lineno)
+        print(lineno)
         if jsonReport:
             runReport = {'finalStatus': 'error : ' + str(e) + ' at line: ' + str(lineno)}
             with open(os.path.join(outputfolder, 'reportStatus.json'), 'w') as outfile:
                 json.dump(runReport, outfile)
         else:
-            print (e)
-            print (lineno)
+            print(e)
+            print(lineno)
 
-    print (starttime)
-    print ("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    print(starttime)
+    print("Finished Script at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
 
 if __name__ == "__main__":

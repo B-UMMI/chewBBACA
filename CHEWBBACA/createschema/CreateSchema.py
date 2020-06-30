@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-from Bio.Seq import Seq
-from Bio import SeqIO
-from Bio.Alphabet import generic_dna
-import argparse
+
+import pickle
+import shutil
 import os.path
+import argparse
+import collections
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
-import collections
-import shutil
+
 try:
-	from createschema import init_schema_4_bbaca,CommonFastaFunctions
-except ImportError:
-	from CHEWBBACA.createschema import init_schema_4_bbaca,CommonFastaFunctions
+    from createschema import init_schema_4_bbaca
+    from utils import CommonFastaFunctions
+except:
+    from CHEWBBACA.createschema import init_schema_4_bbaca
+    from CHEWBBACA.utils import CommonFastaFunctions
+
 import time
 
 
@@ -82,28 +89,6 @@ def translateSeq(DNASeq, genename):
 
 
 def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose):
-    #~ parser = argparse.ArgumentParser(
-        #~ description="Given an ffn file, recovers the genes that are not paralogs and have a size bigger than the g parameter provided")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='ffn file', required=True)
-    #~ parser.add_argument('-l', nargs='?', type=int, help='int minimum length', required=True)
-    #~ parser.add_argument('--cpu', nargs='?', type=int, help="Number of cpus, if over the maximum uses maximum -2",
-                        #~ required=False)
-    #~ parser.add_argument('-p', nargs='?', type=str, help="file with protein", required=False, default=False)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="output filename", required=False, default=False)
-    #~ parser.add_argument('-b', nargs='?', type=str, help="BLAST full path", required=False, default='blastp')
-    #~ parser.add_argument('--bsr', nargs='?', type=float, help="minimum BSR similarity", required=False, default=0.6)
-    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-                        #~ default=False)
-#~ 
-    #~ args = parser.parse_args()
-    #~ genes = args.i
-    #~ sizethresh = args.l
-    #~ cpuToUse = args.cpu
-    #~ proteinFIlePath = args.p
-    #~ outputFIlePath = args.o
-    #~ BlastpPath = args.b
-    #~ bsr = args.bsr
-    #~ verbose = args.verbose
 
     if verbose:
         def verboseprint(*args):
@@ -420,9 +405,6 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
 
     # create short folder
     else:
-        # ~ with open("schemacreation.log", "wb") as f:
-        # ~ for elem in log:
-        # ~ f.write(str(elem)+"\n")
         init_schema_4_bbaca.get_Short(listfiles)
         verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
         print ("Total of "+str(rest)+" loci that constitute the schema")

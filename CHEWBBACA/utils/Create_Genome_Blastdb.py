@@ -3,14 +3,13 @@ import sys
 import os
 
 
-def main(questionDB,directory,genomeFile):
+def main(questionDB, directory, genomeFile, nucleotide=False):
 
     name = directory + "/" + genomeFile + "_db"
 
-    try:
-        nucleotide = sys.argv[4]
+    if nucleotide is True:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype nucl -logfile " + name + "_blast.log")
-    except:
+    else:
         os.system("makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
 
     return True

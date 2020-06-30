@@ -996,7 +996,10 @@ def main(schema_dir, core_num, base_url, submit):
     if len(rearranged) > 0:
         print('\nUpdating local allele identifiers...')
         altered = sq.update_profiles(schema_dir, rearranged)
-        print('Updated {0} profiles.\n'.format(altered))
+        if altered is not None:
+            print('Updated {0} profiles.\n'.format(altered))
+        else:
+            print('Could not find local SQLite database to upload profiles.\n')
 
     # Re-determine the representative sequences
     if attributed > 0 or count > 0:

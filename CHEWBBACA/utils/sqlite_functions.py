@@ -649,6 +649,9 @@ def update_profiles(schema_directory, reassigned):
     db_file = os.path.join(schema_directory, 'profiles_database',
                            'profiles.db')
 
+    if os.path.isfile(db_file) is False:
+        return None
+
     # create connection to db
     conn = create_connection(db_file)
     cursor = conn.cursor()

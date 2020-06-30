@@ -1096,7 +1096,9 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     if None in params_values:
         sys.exit('Found invalid parameters values and exited.')
     else:
-        params_lines = ['  {0}: {1}'.format(k, v) for k, v in params.items() if k not in ['prodigal_training_file', 'name']]
+        params_lines = ['  {0}: {1}'.format(k, v)
+                        for k, v in params.items()
+                        if k not in ['prodigal_training_file', 'name']]
         params_text = '\n'.join(params_lines)
         print(params_text)
         print('All configurations successfully validated.\n')

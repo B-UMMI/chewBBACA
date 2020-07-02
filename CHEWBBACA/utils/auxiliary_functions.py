@@ -58,12 +58,14 @@ def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
 
     url = make_url(ns_url, *['stats', 'summary'])
 
-    res = requests.get(url, headers=headers, timeout=30, verify=False)
-
-    server_status = res.status_code
-    if server_status in [200, 201]:
-        conn = True
-    else:
+    try:
+        res = requests.get(url, headers=headers, timeout=30, verify=False)
+        server_status = res.status_code
+        if server_status in [200, 201]:
+            conn = True
+        else:
+            conn = False
+    except Exception:
         conn = False
 
     return conn

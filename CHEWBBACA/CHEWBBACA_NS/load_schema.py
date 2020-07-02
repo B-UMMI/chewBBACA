@@ -1001,11 +1001,6 @@ def parse_arguments():
 def main(input_files, species_id, schema_name, loci_prefix, description_file,
          annotations, cpu_cores, threads, base_url, continue_up):
 
-    # check if server is up
-    conn = aux.check_connection(cnst.HEADERS_GET_JSON, base_url)
-    if conn is False:
-        sys.exit('Failed to establish a connection to the Chewie-NS.')
-
     if 'tutorial' not in base_url:
         token = aux.capture_login_credentials(base_url)
     else:

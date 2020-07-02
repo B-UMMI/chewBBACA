@@ -788,11 +788,6 @@ def parse_arguments():
 
 def main(schema_dir, core_num, base_url, submit):
 
-    # check if server is up
-    conn = aux.check_connection(cnst.HEADERS_GET_JSON, base_url)
-    if conn is False:
-        sys.exit('Failed to establish a connection to the Chewie-NS.')
-
     if submit is True and 'tutorial' not in base_url:
         print('\nOnly registered users may submit new alleles.')
         token = aux.capture_login_credentials(base_url)

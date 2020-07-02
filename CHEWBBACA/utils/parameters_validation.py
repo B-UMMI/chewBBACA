@@ -280,10 +280,15 @@ def validate_ns_url(arg):
     """
     """
 
-    ns_url = cnts.HOST_NS.get(arg, None)
+    if arg in cnts.HOST_NS:
+        ns_url = cnts.HOST_NS[arg]
+    else:
+        ns_url = arg
 
-    if ns_url is None:
-        sys.exit('Could not find specified URL for the Chewie-NS.\n'
-                 'Please provide a valid value for the "--ns" argument.')
+    # check if server is up
+    conn = aux.check_connection(ns_url)
+    if conn is False:
+        sys.exit('Failed to establish a connection to the Chewie-NS '
+                 'at {0}.'.format(ns_url))
 
     return ns_url

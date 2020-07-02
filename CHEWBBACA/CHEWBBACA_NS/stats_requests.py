@@ -418,10 +418,6 @@ def parse_arguments():
 def main(mode, base_url, species_id, schema_id):
 
     headers_get = cnst.HEADERS_GET_JSON
-    # check if server is up
-    conn = aux.check_connection(headers_get, base_url)
-    if conn is False:
-        sys.exit('Failed to establish a connection to the Chewie-NS.')
 
     print('\nRetrieving data...')
     if mode == 'species':

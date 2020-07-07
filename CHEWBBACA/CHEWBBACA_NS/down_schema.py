@@ -45,8 +45,11 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``4``
 
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
-  Nomenclature Server.
+- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature Server.
+  The default value, "main", will establish a connection to "https://chewbbaca.online/",
+  "tutorial" to "https://tutorial.chewbbaca.online/"" and "local" to
+  "http://127.0.0.1:5000/NS/api/" (localhost). You can also provide the IP adress to
+  other Chewie-NS instances.
 
     - e.g.: ``http://127.0.0.1:5000/NS/api/`` (local host)
 
@@ -644,7 +647,13 @@ def parse_arguments():
     parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
                         dest='nomenclature_server',
                         default='main',
-                        help='The base URL for the Nomenclature Server.')
+                        help='The base URL for the Nomenclature Server. '
+                             'The default value, "main", will establish a '
+                             'connection to "https://chewbbaca.online/", '
+                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
+                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
+                             'You can also provide the IP adress to other '
+                             'Chewie-NS instances.')
 
     parser.add_argument('--d', type=str, required=False,
                         default=None,

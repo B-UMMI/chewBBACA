@@ -285,10 +285,12 @@ def validate_ns_url(arg):
     else:
         ns_url = arg
 
-    # check if server is up
-    conn = aux.check_connection(ns_url)
-    if conn is False:
-        sys.exit('Failed to establish a connection to the Chewie-NS '
-                 'at {0}.'.format(ns_url))
+    # sync schema has None by default to get ns_url in schema URI
+    if ns_url is not None:
+        # check if server is up
+        conn = aux.check_connection(ns_url)
+        if conn is False:
+            sys.exit('Failed to establish a connection to the Chewie-NS '
+                     'at {0}.'.format(ns_url))
 
     return ns_url

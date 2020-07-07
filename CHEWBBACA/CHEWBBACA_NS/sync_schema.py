@@ -30,11 +30,13 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``4``
 
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature Server.
-  The default value, "main", will establish a connection to "https://chewbbaca.online/",
-  "tutorial" to "https://tutorial.chewbbaca.online/"" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). You can also provide the IP adress to
-  other Chewie-NS instances.
+- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
+  Nomenclature Server. The default option will get the base URL from
+  the schema's URI. It is also possible to specify other options that
+  are available in chewBBACA's configs, such as: "main" will establish
+  a connection to "https://chewbbaca.online/", "tutorial" to 
+  "https://tutorial.chewbbaca.online/" and "local" to "http://127.0.0.1:5000/NS/api/"
+  (localhost). Users may also provide the IP address to other Chewie-NS instances.
 
     - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
 
@@ -773,13 +775,16 @@ def parse_arguments():
 
     parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
                         dest='nomenclature_server',
-                        default='main',
+                        default=None,
                         help='The base URL for the Nomenclature Server. '
-                             'The default value, "main", will establish a '
-                             'connection to "https://chewbbaca.online/", '
-                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
-                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'You can also provide the IP adress to other '
+                             'The default option will get the base URL from the '
+                             'schema\'s URI. It is also possible to specify other '
+                             'options that are available in chewBBACA\'s configs, '
+                             'such as: "main" will establish a connection to '
+                             '"https://chewbbaca.online/", "tutorial" to '
+                             '"https://tutorial.chewbbaca.online/" and "local" '
+                             'to "http://127.0.0.1:5000/NS/api/" (localhost). '
+                             'Users may also provide the IP address to other '
                              'Chewie-NS instances.')
 
     parser.add_argument('--submit', required=False,
@@ -796,6 +801,14 @@ def parse_arguments():
 
 
 def main(schema_dir, core_num, base_url, submit):
+
+    # get ns configs
+    local_date, schema_uri = aux.read_configs(schema_dir, '.ns_config')
+    # get schema and species identifiers
+    schema_id = schema_uri.split('/')[-1]
+    species_id = schema_uri.split('/')[-3]
+    if base_url is None:
+        base_url = schema_uri.split('species/')[0]
 
     if submit is True and 'tutorial' not in base_url:
         print('\nOnly registered users may submit new alleles.')
@@ -830,12 +843,6 @@ def main(schema_dir, core_num, base_url, submit):
     headers_post_bytes = cnst.HEADERS_POST
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
-
-    # get schema configs
-    local_date, schema_uri = aux.read_configs(schema_dir, '.ns_config')
-    # get schema and species identifiers
-    schema_id = schema_uri.split('/')[-1]
-    species_id = schema_uri.split('/')[-3]
 
     schema_params = aux.read_configs(schema_dir, '.schema_config')
 

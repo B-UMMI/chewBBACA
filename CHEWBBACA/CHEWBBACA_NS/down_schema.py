@@ -24,14 +24,14 @@ Expected input
 The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
-- ``-sc``, ``schema_id`` : The schema identifier in the Chewie-NS.
-
-    - e.g.: ``1``
-
 - ``-sp``, ``species_id`` : The integer identifier or name of the species
   that the schema will be associated to in the Chewie-NS.
 
     - e.g.: ``1`` or ``'Yersinia pestis'``
+
+- ``-sc``, ``schema_id`` : The schema identifier in the Chewie-NS.
+
+    - e.g.: ``1``
 
 - ``-o``, ``download_folder`` : Path to the parent directory of the folder
   that will store the downloaded schema. The process will create a folder
@@ -481,7 +481,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-def main(schema_id, species_id, download_folder, core_num,
+def main(species_id, schema_id, download_folder, core_num,
          base_url, date, latest):
 
     start_date = dt.datetime.now()
@@ -619,15 +619,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-sc', type=str, required=True,
-                        dest='schema_id',
-                        help='The schema identifier in the Chewie-NS.')
-
     parser.add_argument('-sp', type=str, required=True,
                         dest='species_id',
                         help='The integer identifier or name of the '
                              'species that the schema is associated '
                              'to in the Chewie-NS.')
+
+	parser.add_argument('-sc', type=str, required=True,
+                        dest='schema_id',
+                        help='The schema identifier in the Chewie-NS.')
 
     parser.add_argument('-o', type=str, required=True,
                         dest='download_folder',
@@ -661,7 +661,7 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    return [args.schema_id, args.species_id, args.download_folder,
+    return [args.species_id, args.schema_id, args.download_folder,
             args.cpu_cores, args.nomenclature_server, args.date,
             args.latest]
 

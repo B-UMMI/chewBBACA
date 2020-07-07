@@ -1018,13 +1018,13 @@ def download_schema():
 
     def msg(name=None):
         # simple command to download a schema from the NS
-        simple_cmd = ('  chewBBACA.py DownloadSchema -sc <schema_id> '
-                                                  '-sp <species_id> '
+        simple_cmd = ('  chewBBACA.py DownloadSchema -sp <species_id> '
+                                                  '-sc <schema_id> '
                                                   '-o <download_folder> ')
 
         # command to download a schema from the NS with non-default arguments values
-        params_cmd = ('  chewBBACA.py DownloadSchema -sc <schema_id> '
-                                                  '-sp <species_id> '
+        params_cmd = ('  chewBBACA.py DownloadSchema -sp <species_id> '
+                                                  '-sc <schema_id> '
                                                   '-o <download_folder>\n'
                                                   '\t\t\t      --cpu <cpu_cores> '
                                                   '--ns <nomenclature_server_url> ')
@@ -1044,15 +1044,15 @@ def download_schema():
                         help='This program downloads a schema from '
                              'the NS.')
 
-    parser.add_argument('-sc', type=str, required=True,
-                        dest='schema_id',
-                        help='The URI, integer identifier or description of '
-                             'the schema to download from the NS.')
-
     parser.add_argument('-sp', type=str, required=True,
                         dest='species_id',
                         help='The integer identifier or name of the species '
                              'that the schema is associated to in the NS.')
+
+    parser.add_argument('-sc', type=str, required=True,
+                        dest='schema_id',
+                        help='The URI, integer identifier or name of '
+                             'the schema to download from the NS.')
 
     parser.add_argument('-o', type=str, required=True,
                         dest='download_folder',
@@ -1089,15 +1089,15 @@ def download_schema():
     hf = '='*(len(header)+4)
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
-    ns_schema = args.schema_id
     ns_species = args.species_id
+    ns_schema = args.schema_id
     download_folder = args.download_folder
     cpu_cores = args.cpu_cores
     nomenclature_server = args.nomenclature_server
     date = args.date
     latest = args.latest
 
-    down_schema.main(ns_schema, ns_species, download_folder,
+    down_schema.main(ns_species, ns_schema, download_folder,
                      cpu_cores, nomenclature_server, date,
                      latest)
 

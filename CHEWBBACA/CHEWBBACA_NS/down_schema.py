@@ -628,7 +628,7 @@ def parse_arguments():
                              'species that the schema is associated '
                              'to in the Chewie-NS.')
 
-	parser.add_argument('-sc', type=str, required=True,
+    parser.add_argument('-sc', type=str, required=True,
                         dest='schema_id',
                         help='The schema identifier in the Chewie-NS.')
 

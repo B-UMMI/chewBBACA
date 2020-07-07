@@ -1137,7 +1137,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
 
     # get schema description
     if continue_up is False:
-        if os.path.isfile(description_file) is True:
+        if description_file is not None and os.path.isfile(description_file) is True:
             # determine file hash
             description_hash = aux.hash_file(description_file, 'rb')
             print('Schema description: {0}'.format(description_file))

@@ -1171,10 +1171,11 @@ def upload_schema():
     parser.add_argument('--df', type=str, required=False,
                         dest='description_file', default='',
                         help='Path to a text file with a description '
-                             'about the schema. Markdown syntax is '
-                             'supported in order to allow greater '
-                             'customizability of the rendered description '
-                             'in the Frontend')
+                             'about the schema. Markdown syntax is supported '
+                             'in order to offer greater customizability of '
+                             'the rendered description in the Frontend. '
+                             'Will default to the schema\'s name if the user '
+                             'does not provide a valid path for a file.')
 
     parser.add_argument('--a', type=str, required=False,
                         dest='annotations', default=None,

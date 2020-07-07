@@ -9,7 +9,7 @@ import shutil
 from Bio import SeqIO
 
 
-def verify_cpu_usage(cpu_to_use: int) -> int:
+def verify_cpu_usage(cpu_to_use):
     """ Verify the cpu usage for chewBBACA.
 
         Args:
@@ -43,38 +43,35 @@ def verify_cpu_usage(cpu_to_use: int) -> int:
     return cpu_to_use
 
 
-def check_prodigal_output_files(path_to_temp: str, list_of_genomes):
-	""" Checks if Prodigal created ORF files 
-		equal to the number of genome files provided.
+def check_prodigal_output_files(prodigal_path, fasta_files, genomes_dir, prodigal_results, genomes_identifiers, parent_dir):
+    """ Checks if Prodigal created ORF files
+        equal to the number of genome files provided.
 
         Args:
             path_to_temp (str): the full path to the 'temp' directory created by chewBBACA.
             list_of_genomes (list): list containing the full path to the input genomes.
+    """
 
-        Returns:
-            prints a message if Prodigal created all the necessary files, 
-            otherwise raises a ValueError 
+    no_cds = [l for l in prodigal_results if l[1] == 0]
+    errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
+    failed = no_cds + errors
 
-	"""
-	
-	# list ORF files created in the "temp" directory
-	listOfORFCreated = []
-	for orffile in os.listdir(path_to_temp):
-		if orffile.endswith("_ORF.txt"):
-			listOfORFCreated.append(orffile)
+    if len(failed) > 0:
+        outfile = os.path.join(parent_dir, 'prodigal_fails.tsv')
+        with open(outfile, 'w') as pf:
+            lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
+            pf.writelines(lines)
 
-	# raise exception if the number of ORF files is not equal to the number of genome files provided
-	if len(list_of_genomes) > len(listOfORFCreated):
-		message = "Missing some ORF files from Prodigal run. Missing " + str((len(list_of_genomes)) - (len(listOfORFCreated))) \
-		+ " ORF files out of " + str(len(list_of_genomes)) + " genome files provided."
-		# remove "temp" directory
-		shutil.rmtree(path_to_temp)
-		raise ValueError(message)
-	else:
-		print("Prodigal created all the necessary files.")
-	
+        # remove failed genomes from paths
+        for f in failed:
+            file_path = os.path.join(genomes_dir, '{0}.fasta'.format(f[0]))
+            fasta_files.remove(file_path)
+            genomes_identifiers.remove(f[0])
 
-def is_fasta(filename: str):
+    return [fasta_files, genomes_identifiers]
+
+
+def is_fasta(filename):
     """ Checks if a file is a FASTA file.
 
         Args:

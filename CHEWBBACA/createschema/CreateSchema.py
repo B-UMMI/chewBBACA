@@ -12,6 +12,7 @@ DESCRIPTION
 
 
 import os
+import sys
 import time
 import pickle
 import shutil
@@ -27,22 +28,99 @@ import runProdigal
 import CreateSchema_aux as rfm
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/ref32_genomes'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/dup_ref32_schema_seed'
-#prodigal_training_file = '/home/rfm/Desktop/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Streptococcus_agalactiae.trn'
-#schema_name = 'dup_ref32_schema_seed'
-#cpu_count = 6
-#blastp_path = shutil.which('blastp')
-#blast_score_ratio = 0.6
-#minimum_cds_length = 201
-#cleanup = 'yes'
-## cluster parameters
-#clustering_mode = 'greedy'
-#filtering_sim = 0.15
-#word_size = 4
-#clustering_sim = 0.20
-#cluster_filter = 0.80
+def process_cdss(input_data):
+    """
+    """
 
+    genomes = input_data[0:-3]
+    prodigal_path = input_data[-3]
+    parent_directory = input_data[-2]
+    index = input_data[-1]
+    temp_directory = os.path.join(parent_directory, 'temp')
+    protein_table = os.path.join(parent_directory,
+                                 'protein_info_{0}.tsv'.format(index))
+
+    cds_file = os.path.join(temp_directory,
+                            'coding_sequences_{0}.fasta'.format(index))
+    protid = 1
+    for i, g in enumerate(genomes):
+        # determine Prodigal ORF file path for current genome
+        identifier = os.path.basename(g).split('.')[0]
+        orf_file_path = os.path.join(prodigal_path,
+                                     '{0}_ORF.txt'.format(identifier))
+        # import contigs for current genome/assembly
+        contigs = rfm.import_sequences(g)
+        # extract coding sequences from contigs
+        genome_info = rfm.extract_coding_sequences(orf_file_path,
+                                                   contigs, protid)
+        # save coding sequences to file
+        # create records and write them to file
+        cds_lines = rfm.create_fasta_lines(genome_info[0], identifier)
+        rfm.write_fasta(cds_lines, cds_file)
+
+        rfm.write_protein_table(protein_table, identifier, genome_info[1])
+
+        # keep track of CDSs identifiers to assign them sequentially
+        protid = 1
+
+    return [protein_table, cds_file]
+
+
+def concatenate_files(files, output_file, header=None):
+    """
+    """
+
+    with open(output_file, 'w') as of:
+        if header is not None:
+            of.write(header)
+        for f in files:
+            with open(f, 'r') as fd:
+                shutil.copyfileobj(fd, of)
+
+    return output_file
+
+
+def integer_headers(input_fasta, output_fasta):
+    """
+    """
+
+    start = 1
+    ids_dict = {}
+    seqs = []
+    limit = 5000
+    for rec in SeqIO.parse(input_fasta, 'fasta'):
+        new_id = 'seq_{0}'.format(start)
+        ids_dict[new_id] = rec.id
+        sequence = str(rec.seq)
+        new_rec = '>{0}\n{1}'.format(new_id, sequence)
+        seqs.append(new_rec)
+        if len(seqs) == limit:
+            rfm.write_fasta(seqs, output_fasta)
+            seqs = []
+        start += 1
+
+    if len(seqs) > 0:
+        rfm.write_fasta(seqs, output_fasta)
+
+    return ids_dict
+
+
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/saureus_genomes/'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/saureus_schema_seed10436'
+prodigal_training_file = '/home/rfm/Lab_Software/chewBBACA/CHEWBBACA/prodigal_training_files/Staphylococcus_aureus.trn'
+schema_name = 'saureus_schema_seed10436'
+cpu_count = 2
+blastp_path = '/home/rfm/Software/anaconda3/envs/ns/bin/blastp'
+blast_score_ratio = 0.6
+minimum_cds_length = 201
+cleanup = 'no'
+translation_table = 11
+# cluster parameters
+clustering_mode = 'greedy'
+rep_filter = 0.80
+intra_filter = 0.80
+word_size = 4
+clustering_sim = 0.20
 
 def main(input_files, output_directory, prodigal_training_file, schema_name, cpu_count,
          blastp_path, blast_score_ratio, minimum_cds_length, translation_table, clustering_mode,
@@ -52,11 +130,11 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     cpu_to_apply = new_utils.verify_cpu_usage(cpu_count)
 
-    chosen_taxon = os.path.abspath(prodigal_training_file)
+    ptf_path = os.path.abspath(prodigal_training_file)
 
     print('\nCreating schema based on the genomes '
           'in the following directory:\n{0}'.format(os.path.abspath(input_files)))
-    print('Training file: {0}'.format(chosen_taxon))
+    print('Training file: {0}'.format(prodigal_training_file))
     print('Number of cores: {0}'.format(cpu_count))
     print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
     print('Translation table: {0}'.format(translation_table))
@@ -72,17 +150,14 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # list files in genomes FASTA files directory and determine absolute path for each
     fasta_files = os.listdir(genomes_path)
-    for f in range(len(fasta_files)):
-        fasta_files[f] = os.path.join(genomes_path, fasta_files[f])
+    fasta_files = [os.path.join(genomes_path, f) for f in fasta_files]
 
     # maintain genome order to assign identifiers correctly
     fasta_files.sort(key=lambda y: y.lower())
     print('Number of genomes/assemblies: {0}'.format(len(fasta_files)))
 
     # determine and store genome identifiers
-    genomes_identifiers = []
-    for genome in fasta_files:
-        genomes_identifiers.append(rfm.genome_id(genome))
+    genomes_identifiers = [rfm.genome_id(g) for g in fasta_files]
 
     # define parent directory
     parent_directory = os.path.abspath(output_directory)
@@ -94,8 +169,6 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     # define output directory where Prodigal files will be stored
     prodigal_path = os.path.join(temp_directory, 'prodigal_cds_prediction')
-
-    # create directory for Prodigal files, if it does not exist
     if not os.path.exists(prodigal_path):
         os.makedirs(prodigal_path)
 
@@ -105,63 +178,70 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     print ('Started Prodigal at: {0}'.format(time.strftime('%H:%M:%S - %d/%m/%Y')))
 
     # run Prodigal with multiprocessing
+    inputs = [[file, prodigal_path, ptf_path, translation_table, 'single'] for file in fasta_files]
+    results = []
     pool = Pool(cpu_to_apply)
-    for genome in fasta_files:
-        pool.apply_async(runProdigal.main, (genome, prodigal_path, chosen_taxon, translation_table))
-    pool.close()
-    pool.join()
+    rawr = pool.map_async(runProdigal.main, inputs, callback=results.extend)
+    rawr.wait()
 
     print('\nChecking if Prodigal created all the necessary files...')
-    new_utils.check_prodigal_output_files(prodigal_path, fasta_files)
+    fasta_files, genomes_identifiers = new_utils.check_prodigal_output_files(prodigal_path, fasta_files, input_files, results, genomes_identifiers, parent_directory)
     print('Finished Prodigal at: {0}'.format(time.strftime("%H:%M:%S - %d/%m/%Y")))
     prodigal_end = time.time()
     prodigal_delta = prodigal_end - prodigal_start
     print('Prodigal delta: {0}'.format(prodigal_delta))
 
-    # get CDSs for each genome
-    protein_table = os.path.join(parent_directory, 'protein_info.tsv')
-    with open(protein_table, 'w') as file:
-        file.write('Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n')
+    # divide inputs
+    inputs2 = rfm.divide_list_into_n_chunks(fasta_files, cpu_to_apply)
+    inputs2 = [i for i in inputs2 if len(i) > 0]
+    for i in range(len(inputs2)):
+        inputs2[i].append(prodigal_path)
+        inputs2[i].append(parent_directory)
+        inputs2[i].append(i+1)
 
-    # add multiprocessing!!!
+    # extract coding sequences
     print('Extracting coding sequences from all genomes...')
     cds_start = time.time()
-    protid = 1
-    cds_file = os.path.join(temp_directory, 'coding_sequences.fasta')
-    # divide list of input genomes per core and write into separate files to be capable of
-    # multiprocessing?
-    for g in range(len(fasta_files)):
-        # determine Prodigal ORF file path for current genome
-        orf_file_path = os.path.join(prodigal_path, '{0}_ORF.txt'.format(genomes_identifiers[g]))
-        # import contigs for current genome/assembly (importing for all genomes into memory might occupy too much memory)
-        contigs = rfm.import_sequences(fasta_files[g])
-        # extract coding sequences from contigs
-        genome_info = rfm.extract_coding_sequences(orf_file_path, contigs, protid)
-        # save coding sequences to file
-        genome_id = genomes_identifiers[g]
-
-        # create records and write them to file
-        cds_lines = rfm.create_fasta_lines(genome_info[0], genome_id)
-        rfm.write_fasta(cds_lines, cds_file)
-
-        rfm.write_protein_table(protein_table, genome_id, genome_info[1])
-
-        # keep track of CDSs identifiers to assign them sequentially
-        protid = 1
-
+    results2 = []
+    pool = Pool(cpu_to_apply)
+    rawr = pool.map_async(process_cdss, inputs2, callback=results2.extend)
+    rawr.wait()
     cds_end = time.time()
     cds_delta = cds_end - cds_start
     print('CDS extraction delta: {0}:'.format(cds_delta))
+
+    table_files = [f[0] for f in results2]
+    table_file = os.path.join(parent_directory, 'protein_info.tsv')
+    table_header = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
+    concatenate_files(table_files, table_file, table_header)
+    for f in table_files:
+        os.remove(f)
+
+    cds_files = [f[1] for f in results2]
+    inputs3 = []
+    unique_files = []
+    for i in range(len(cds_files)):
+        inputs3.append([cds_files[i], os.path.join(temp_directory, 'unique_dna_seqids_{0}.fasta'.format(i+1))])
+        unique_files.append(os.path.join(temp_directory, 'unique_dna_seqids_{0}.fasta'.format(i+1)))
+
     # determine repeated sequences and keep only one representative
     r1_start = time.time()
-    repeated_seqs_file = os.path.join(temp_directory, 'repeated_dna_seqids.txt')
+    results3 = []
+    pool = Pool(cpu_to_apply)
+    rawr = pool.map_async(rfm.determine_repeated, inputs3, callback=results3.extend)
+    rawr.wait()
+    # one last round after concatenating files
+    cds_file = os.path.join(temp_directory, 'coding_sequences_all.fasta')
+    cds_file = concatenate_files(unique_files, cds_file)
     unique_dna_seqids = os.path.join(temp_directory, 'unique_dna_seqids.fasta')
-    repeated_dna_cds = rfm.determine_repeated(cds_file, repeated_seqs_file, unique_dna_seqids)
+    repeated_dna_cds = rfm.determine_repeated([cds_file, unique_dna_seqids])
     r1_end = time.time()
     r1_delta = r1_end - r1_start
 
     print('Repeated DNA sequences removal delta: {0}:'.format(r1_delta))
     print('\nRemoved {0} repeated DNA sequences.'.format(repeated_dna_cds[0]))
+
+    #sys.exit(0)
 
     # determine small DNA sequences and remove those seqids
     small_dna_cds = rfm.determine_small(unique_dna_seqids, minimum_cds_length)
@@ -171,12 +251,33 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     valid_dna_seqs.sort(key=lambda y: y.lower())
 
     # convert to protein
-    trans_start = time.time()
-    dna_valid_file = os.path.join(temp_directory, 'valid_dna.fasta')
-    protein_valid_file = os.path.join(temp_directory, 'valid_protein.fasta')
     print('\nTranslating {0} DNA sequences...'.format(len(valid_dna_seqs)))
-    untranslatable_cds, total_seqs = rfm.translate_coding_sequences(unique_dna_seqids, valid_dna_seqs,
-                                                                    dna_valid_file, protein_valid_file, translation_table)
+    trans_start = time.time()
+    results4 = []
+    inputs4 = rfm.divide_list_into_n_chunks(valid_dna_seqs, cpu_to_apply)
+    dna_files = []
+    protein_files = []
+    for i in range(len(inputs4)):
+        inputs4[i].append(unique_dna_seqids)
+        inputs4[i].append(11)
+        inputs4[i].append(os.path.join(temp_directory, 'valid_dna_{0}.fasta'.format(i+1)))
+        inputs4[i].append(os.path.join(temp_directory, 'valid_protein_{0}.fasta'.format(i+1)))
+    pool = Pool(cpu_to_apply)
+    rawr = pool.map_async(rfm.translate_coding_sequences, inputs4, callback=results4.extend)
+    rawr.wait()
+
+    # concatenate files
+    dna_files = [i[-2] for i in inputs4]
+    protein_files = [i[-1] for i in inputs4]
+    dna_valid_file = os.path.join(temp_directory, 'valid_dna.fasta')
+    dna_valid_file = concatenate_files(dna_files, dna_valid_file)
+    protein_valid_file = os.path.join(temp_directory, 'valid_protein.fasta')
+    protein_valid_file = concatenate_files(protein_files, protein_valid_file)
+
+    untranslatable_cds = []
+    for r in results4:
+        untranslatable_cds.extend(r[0])
+
     untranslatable_seqids = [t[0] for t in untranslatable_cds]
 
     trans_end = time.time()
@@ -193,7 +294,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
             lines.append(line)
 
         inv.writelines(lines)
-        
+
     # add multiprocessing!!!
     # remove DNA sequences that could not be translated
     translatable_cds = list(set(valid_dna_seqs) - set(untranslatable_seqids))
@@ -202,13 +303,12 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     translatable_cds.sort(key=lambda y: y.lower())
 
     # next round of finding repeated sequences, but for proteins
-    repeated_prots_file = os.path.join(temp_directory, 'repeated_prots_seqids.txt')
     unique_prots_file = os.path.join(temp_directory, 'unique_prots_seqs.fasta')
-    repeated_protein_cds = rfm.determine_repeated(protein_valid_file, repeated_prots_file, unique_prots_file)
+    repeated_protein_cds = rfm.determine_repeated([protein_valid_file, unique_prots_file])
 
     # remove seqids that are from repeated protein sequences
     unique_protein_seqs = repeated_protein_cds[1]
-    #print('Removed {0} repeated Protein sequences.'.format(len(repeated_protein_cds[0])))
+    print('Removed {0} repeated Protein sequences.'.format(repeated_protein_cds[0]))
     unique_protein_seqs.sort(key=lambda y: y.lower())
 
     final_seqids = unique_protein_seqs
@@ -298,17 +398,21 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     # possibilitate Blasting only against certain database sequences
     clustered_seqs_file = os.path.join(temp_directory, 'clustered_proteins.fasta')
     rfm.get_sequences_by_id(indexed_prots, clustered_sequences2, clustered_seqs_file)
-    
-    makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format(clustered_seqs_file)
+
+    integer_clusters = os.path.join(temp_directory, 'clustered_proteins_int.fasta')
+    ids_dict = integer_headers(clustered_seqs_file, integer_clusters)
+
+    makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot >/dev/null 2>&1'.format(integer_clusters)
+    #makedb_cmd = 'makeblastdb -in {0} -parse_seqids -dbtype prot'.format(integer_clusters)
     os.system(makedb_cmd)
 
     # BLAST necessary sequences against only the sequences from the same cluster
-    blast_db = os.path.join(temp_directory, 'clustered_proteins.fasta')
+    blast_db = os.path.join(temp_directory, 'clustered_proteins_int.fasta')
 
     blast_results_dir = os.path.join(temp_directory, 'blast_results')
     os.mkdir(blast_results_dir)
 
-    seqids_to_blast = rfm.blast_inputs(final_clusters, blast_results_dir)
+    seqids_to_blast = rfm.blast_inputs(final_clusters, blast_results_dir, ids_dict)
 
     # distribute clusters per available cores, try to group inputs into
     # even groups in terms of number of clusters and sum of number of sequences
@@ -321,11 +425,10 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         splitted_seqids[s].append(blastp_path)
         splitted_seqids[s].append(blast_db)
         splitted_seqids[s].append(blast_results_dir)
-        splitted_seqids[s].append(clustered_seqs_file)
+        splitted_seqids[s].append(integer_clusters)
     
     # create the FASTA files with the protein sequences before BLAST?
-    
-    
+
     blast_start = time.time()
     print('BLASTing protein sequences in each cluster...')
     # ADD progress bar!!!
@@ -348,7 +451,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
 
     splitted_results = []
     for file in blast_files:
-        splitted_results.append([file, indexed_fasta, blast_score_ratio])
+        splitted_results.append([file, indexed_fasta, blast_score_ratio, ids_dict])
 
     blast_excluded_alleles = []
     for i in splitted_results:
@@ -358,10 +461,11 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         # proteins with low complexity regions might
         # fail to align 
         except Exception:
-            print('Could not apply BSR to {0} results. Probably low complexity proteins. FAGGOTS!'.format(i))
+            print('Could not apply BSR to {0} results. Probably low complexity proteins.'.format(i))
 
     # merge bsr results
     blast_excluded_alleles = list(itertools.chain.from_iterable(blast_excluded_alleles))
+    blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     excluded_alleles.extend(blast_excluded_alleles)
 
     # perform final BLAST to avoid creating a schema with paralogs
@@ -370,27 +474,31 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
     rfm.get_sequences_by_id(indexed_protein_valid_file, schema_seqids, beta_file)
 
-    makedb_cmd = 'makeblastdb -in {0} -dbtype prot >/dev/null 2>&1'.format(beta_file)
+    integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')
+    ids_dict2 = integer_headers(beta_file, integer_seqids)
+
+    makedb_cmd = 'makeblastdb -in {0} -dbtype prot >/dev/null 2>&1'.format(integer_seqids)
     os.system(makedb_cmd)
 
-    blast_db = os.path.join(temp_directory, beta_file)
+    blast_db = os.path.join(temp_directory, integer_seqids)
     
     second_blast_start = time.time()
     blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory, 'beta_schema')
     blast_command = ('{0} -db {1} -query {2} -out {3} -outfmt "6 qseqid sseqid score" '
-                     '-max_hsps 1 -num_threads {4} -evalue 0.001'.format(blastp_path, beta_file, beta_file, blast_output, cpu_to_apply))
+                     '-max_hsps 1 -num_threads {4} -evalue 0.001'.format(blastp_path, integer_seqids, integer_seqids, blast_output, cpu_to_apply))
     os.system(blast_command)
     second_blast_end = time.time()
     second_blast_delta = second_blast_end - second_blast_start
     print('Total BLAST time: {0}'.format(second_blast_delta))
 
-    final_excluded = rfm.apply_bsr([blast_output, indexed_fasta, blast_score_ratio])
+    final_excluded = rfm.apply_bsr([blast_output, indexed_fasta, blast_score_ratio, ids_dict2])
+    final_excluded = [ids_dict2[seqid] for seqid in final_excluded]
     excluded_alleles = excluded_alleles + final_excluded
     schema_seqids_final = list(set(schema_seqids) - set(excluded_alleles))
     print('Removed {0} loci that were too similar with other loci in the schema.'.format(len(final_excluded)))
 
     # decide which identifiers to keep and redo BLAST to check for residual paralogs
-    output_schema = os.path.join(temp_directory, 'cd_hit_chewie.fasta')
+    output_schema = os.path.join(temp_directory, 'schema_seed.fasta')
 
     # create file with the schema representative sequences
     rfm.get_schema_reps(indexed_fasta, schema_seqids_final,
@@ -439,7 +547,7 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
     global_end = time.time()
     global_delta = global_end - global_start
     print('Created schema based on {0} assemblies/genomes of {1} in {2}m{3}s.'.format(len(fasta_files),
-                                                                  os.path.basename(chosen_taxon).rstrip('.trn'),
+                                                                  os.path.basename(prodigal_training_file).rstrip('.trn'),
                                                                   int(global_delta/60), int(((global_delta/60)%1)*60)))
 
 

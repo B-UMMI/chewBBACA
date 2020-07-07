@@ -18,6 +18,7 @@ DESCRIPTION
 import os
 import csv
 import pickle
+import hashlib
 from collections import Counter
 
 from Bio import SeqIO
@@ -65,15 +66,8 @@ def import_sequences(fasta_path):
             sequences as values.
     """
 
-    seqs_dict = {}
-    # use BioPython to read FASTA file and get each contig sequence
-    for record in SeqIO.parse(fasta_path, 'fasta', generic_dna):
-        # seq object has to be converted to string
-        sequence = str(record.seq.upper())
-        seqid = record.id
-
-        # add contig id as key and DNA sequence as value
-        seqs_dict[seqid] = sequence
+    records = SeqIO.parse(fasta_path, 'fasta', generic_dna)
+    seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
 
     return seqs_dict
 
@@ -112,10 +106,10 @@ def extract_coding_sequences(reading_frames, contigs, starting_id):
     coding_sequences_info = []
     for contig_id, frames in rfs.items():
         # for each start and stop codon in the contig
-        for coding_sequence in frames:
-            start_codon = coding_sequence[0]
-            stop_codon = coding_sequence[1]
-            strand = coding_sequence[2]
+        for cds in frames:
+            start_codon = cds[0]
+            stop_codon = cds[1]
+            strand = cds[2]
             # extract CDS sequence
             cds_sequence = contigs[contig_id][start_codon:stop_codon].upper()
             # check coding strand to change sequence orientation
@@ -407,8 +401,9 @@ def write_to_file(text, output_file, write_mode, end_char):
         out.write(text+end_char)
 
 
-def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
-                               protein_valid_file, table_id):
+#def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
+#                               protein_valid_file, table_id):
+def translate_coding_sequences(input_data):
     """ Translates CDSs into protein sequences.
 
         Args:
@@ -426,6 +421,12 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
             keys and CDSs DNA sequences that could not be translated.
     """
 
+    sequences_file = input_data[-4]
+    valid_seqs = input_data[0:-4]
+    dna_valid_file = input_data[-2]
+    protein_valid_file = input_data[-1]
+    table_id = input_data[-3]
+
     # define limit of records to keep in memory
     dna_lines = []
     total_seqs = 0
@@ -441,7 +442,6 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
         sequence = str(cds_index.get(seqid).seq)
 
         translation = translate_dna(sequence, table_id)
-
         if isinstance(translation, list):
             dna_lines.append('>{0}'.format(seqid))
             dna_lines.append(translation[0][1])
@@ -466,39 +466,40 @@ def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
     return [invalid_alleles, total_seqs]
 
 
-def determine_repeated(sequences_file, repeated_output, unique_fasta):
+def determine_repeated(input_data):
     """
     """
 
+    sequences_file, unique_fasta = input_data
+
     total = 0
     seqs_dict = {}
+    out_limit = 5000
+    out_seqs = []
     for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
         sequence = str(record.seq.upper())
         seqid = record.id
+        seq_hash = hashlib.sha256(sequence.encode('utf-8')).hexdigest()
 
         # store each sequence and first seqid found
         # with that sequence
-        if sequence not in seqs_dict:
-            seqs_dict[sequence] = seqid
-        elif sequence in seqs_dict:
+        # write sequence and seqid to file and use hash as key
+        if seq_hash not in seqs_dict:
+            seqs_dict[seq_hash] = seqid
+            recout = '>{0}\n{1}'.format(seqid, sequence)
+            out_seqs.append(recout)
+            if len(out_seqs) == out_limit:
+                out_seqs = join_list(out_seqs, '\n')
+                write_to_file(out_seqs, unique_fasta, 'a', '\n')
+                out_seqs = []
+        elif seq_hash in seqs_dict:
             total += 1
 
-    # get sequences with more than one seqid
-    out_limit = 5000
-    out_seqs = []
-    for seq, seqid in seqs_dict.items():
-        header = '>{0}'.format(seqid)
-        sequence = seq
-        out_seqs.append(header)
-        out_seqs.append(sequence)
-        if len(out_seqs)/2 == out_limit:
-            out_seqs = join_list(out_seqs, '\n')
-            write_to_file(out_seqs, unique_fasta, 'a', '\n')
-            out_seqs = []
+    if len(out_seqs) > 0:
+        out_seqs = join_list(out_seqs, '\n')
+        write_to_file(out_seqs, unique_fasta, 'a', '\n')
 
-    out_seqs = join_list(out_seqs, '\n')
-    write_to_file(out_seqs, unique_fasta, 'a', '\n')
     unique_seqids = list(seqs_dict.values())
 
     return [total, unique_seqids]
@@ -567,11 +568,10 @@ def create_fasta_lines(sequences, genome_id):
 
     lines = []
     for seqid in sequences:
-        header = '>' + genome_id + '-protein' + str(seqid)
         sequence = sequences[seqid]
+        record = '>{0}-protein{1}\n{2}'.format(genome_id, seqid, sequence)
 
-        lines.append(header)
-        lines.append(sequence)
+        lines.append(record)
 
     return lines
 
@@ -585,7 +585,7 @@ def write_fasta(fasta_lines, output_file):
     write_to_file(joined_lines, output_file, 'a', '\n')
 
 
-#file_name = protein_table 
+#file_name = protein_table
 #cds_info = genome_info[1]
 
 def write_protein_table(file_name, genome_id, cds_info):
@@ -700,19 +700,21 @@ def cluster_blaster(inputs):
         os.system(blast_command)
 
 
-def blast_inputs(clusters, output_directory):
+def blast_inputs(clusters, output_directory, ids_dict):
     """
     """
+
+    rev_ids = {v: k for k, v in ids_dict.items()}
 
     ids_to_blast = []
     for i in clusters:
 
         cluster_file = os.path.join(output_directory,
-                                    '{0}_ids.txt'.format(i))
-        cluster_ids = [i] + [seq[0] for seq in clusters[i]]
+                                    '{0}_ids.txt'.format(rev_ids[i]))
+        cluster_ids = [rev_ids[i]] + [rev_ids[seq[0]] for seq in clusters[i]]
         cluster_lines = join_list(cluster_ids, '\n')
         write_to_file(cluster_lines, cluster_file, 'w', '')
-        ids_to_blast.append(i)
+        ids_to_blast.append(rev_ids[i])
 
     return ids_to_blast
 
@@ -755,6 +757,7 @@ def apply_bsr(inputs):
     """
     """
 
+    ids_dict = inputs[3]
     blast_file = inputs[0]
     blast_results = read_blast_tabular(blast_file)
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}
@@ -764,7 +767,7 @@ def apply_bsr(inputs):
     fasta_file = inputs[1]
     lengths = {}
     for k in self_scores:
-        record = fasta_file.get(k)
+        record = fasta_file.get(ids_dict[k])
         sequence = str(record.seq)
         lengths[k] = len(sequence)
 

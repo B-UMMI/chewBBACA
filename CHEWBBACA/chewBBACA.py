@@ -67,7 +67,7 @@ def create_schema():
         # command to create schema from genomes with non-default parameters
         params_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
                                                 '-o <output_directory> '
-                                                '-ptf <ptf_path>\n'
+                                                '--ptf <ptf_path>\n'
                                                 '\t\t\t    --cpu <cpu_cores> '
                                                 '--bsr <blast_score_ratio> '
                                                 '--l <minimum_length>\n'
@@ -76,7 +76,7 @@ def create_schema():
         # command to create schema from single FASTA
         cds_cmd = ('chewBBACA.py CreateSchema -i <input_file> '
                                              '-o <output_directory> '
-                                             '-ptf <ptf_path> '
+                                             '--ptf <ptf_path> '
                                              '--CDS')
 
         usage_msg = ('\nCreate schema from input genomes:\n  {0}\n'
@@ -105,8 +105,8 @@ def create_schema():
                         dest='output_directory',
                         help='Output directory where the schema will be created.')
 
-    parser.add_argument('-ptf', '--ptf', type=str, required=True,
-                        dest='ptf_path',
+    parser.add_argument('--ptf', type=str, required=False,
+                        default=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
     parser.add_argument('--bsr', type=pv.bsr_type,
@@ -172,9 +172,10 @@ def create_schema():
     verbose = args.verbose
 
     # check if ptf exists
-    ptf_val = aux.check_ptf(ptf_path)
-    if ptf_val[0] is False:
-        sys.exit(ptf_val[1])
+    if ptf_path is not False:
+        ptf_val = aux.check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
 
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
@@ -188,10 +189,12 @@ def create_schema():
                  translation_table, size_threshold)
 
     # copy training file to schema directory
-    shutil.copy(ptf_path, output_directory)
-
-    # determine PTF checksum
-    ptf_hash = aux.hash_file(ptf_path, 'rb')
+    if ptf_path is not False:
+        shutil.copy(ptf_path, output_directory)
+        # determine PTF checksum
+        ptf_hash = aux.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = ''
 
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
@@ -364,7 +367,6 @@ def allele_call():
     force_reset = args.force_reset
     store_profiles = args.store_profiles
     verbose = args.verbose
-    chosen_taxon = False
     minimum_length = args.minimum_length
 
     timeout = 30
@@ -378,7 +380,9 @@ def allele_call():
             prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
                       'It is highly recommended that you run the PrepExternalSchema '
                       'process to guarantee full compatibility with the new chewBBACA '
-                      'version.\nDo you wish to proceed?\n')
+                      'version.\nIf you wish to continue, the AlleleCall process will convert '
+                      'the schema to v2.5.0, but will not determine if schema structure respects '
+                      'configuration values.\nDo you wish to proceed?\n')
             proceed = aux.input_timeout(prompt, timeout)
         else:
             proceed = 'yes'
@@ -386,17 +390,22 @@ def allele_call():
         if proceed.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
-            print('\nAdding Prodigal training file to schema...')
-            ptf_val = aux.check_ptf(ptf_path)
-            if ptf_val[0] is False:
-                sys.exit(ptf_val[1])
-            # copy training file to schema directory
-            shutil.copy(ptf_path, schema_directory)
-            print('Created {0}'.format(os.path.join(schema_directory,
-                                                    os.path.basename(ptf_path))))
+            if ptf_path is not False:
+                print('\nAdding Prodigal training file to schema...')
+                ptf_val = aux.check_ptf(ptf_path)
+                if ptf_val[0] is False:
+                    sys.exit(ptf_val[1])
+                # copy training file to schema directory
+                shutil.copy(ptf_path, schema_directory)
+                print('Created {0}'.format(os.path.join(schema_directory,
+                                                        os.path.basename(ptf_path))))
 
             # determine PTF checksum
-            ptf_hash = aux.hash_file(ptf_path, 'rb')
+            if ptf_path is not False:
+                ptf_hash = aux.hash_file(ptf_path, 'rb')
+            else:
+                ptf_hash = ''
+
             print('\nCreating file with schema configs...')
             # write schema config file
             schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
@@ -410,7 +419,7 @@ def allele_call():
             # create hidden file with genes/loci list
             genes_list_file = aux.write_gene_list(schema_directory)
             print('Created {0}\n'.format(os.path.join(schema_directory,
-                                                    '.genes_list')))
+                                                      '.genes_list')))
 
     # read schema configs
     with open(config_file, 'rb') as pf:
@@ -430,7 +439,7 @@ def allele_call():
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments '
               'values used for schema creation:\n')
-        params_diffs = [[p, ':'.join(map(str, schema_params[p])), unmatch_params[p]] for p in unmatch_params]
+        params_diffs = [[p, ':'.join(map(str, schema_params[p])), str(unmatch_params[p])] for p in unmatch_params]
         params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
         params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
         print('\n'.join(params_diffs_text))
@@ -439,7 +448,7 @@ def allele_call():
                       'previous runs.\nProviding parameters values that differ '
                       'from the ones used for schema creation will also '
                       'invalidate the schema for uploading and synchronization '
-                      'with the NS.\nContinue?\n')
+                      'with the Chewie-NS.\nContinue?\n')
             params_answer = aux.input_timeout(prompt, timeout)
         else:
             params_answer = 'yes'
@@ -457,8 +466,10 @@ def allele_call():
         if len(schema_ptfs) > 1:
             sys.exit('Found more than one Prodigal training file in schema directory.\n'
                      'Please maintain only the training file used in the schema creation process.')
-        else:
+        elif len(schema_ptfs) == 1:
             ptf_path = os.path.join(schema_directory, schema_ptfs[0])
+        elif len(schema_ptfs) == 0:
+            print('There is no Prodigal training file in schema\'s directory.')
     # if user provides a training file
     else:
         ptf_val = aux.check_ptf(ptf_path)
@@ -466,7 +477,11 @@ def allele_call():
             sys.exit(ptf_val[1])
 
     # determine PTF checksum
-    ptf_hash = aux.hash_file(ptf_path, 'rb')
+    if ptf_path is not False:
+        ptf_hash = aux.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = ''
+
     if ptf_hash not in schema_params['prodigal_training_file']:
         ptf_num = len(schema_params['prodigal_training_file'])
         if force_continue is False:
@@ -506,7 +521,7 @@ def allele_call():
     BBACA.main(genomes_files, schema_genes, cpu_cores,
                output_directory, blast_score_ratio,
                blastp_path, force_continue, json_report,
-               verbose, force_reset, contained, chosen_taxon,
+               verbose, force_reset, contained,
                ptf_path, cds_input, size_threshold,
                translation_table, ns)
 
@@ -853,12 +868,12 @@ def prep_schema():
         # simple command to adapt external schema with default arguments values
         simple_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
                                                       '-o <output_directory> '
-                                                      '-ptf <ptf_path> ')
+                                                      '--ptf <ptf_path> ')
 
         # command to adapt external schema with non-default arguments values
         params_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
                                                       '-o <output_directory> '
-                                                      '-ptf <ptf_path>\n'
+                                                      '--ptf <ptf_path>\n'
                                                       '\t\t\t\t  --cpu <cpu_cores> '
                                                       '--bsr <blast_score_ratio> '
                                                       '--l <minimum_length>\n'
@@ -904,8 +919,8 @@ def prep_schema():
                              'saved (will create the directory if it does not '
                              'exist).')
 
-    parser.add_argument('-ptf', type=str, required=True,
-                        dest='ptf_path',
+    parser.add_argument('--ptf', type=str, required=False,
+                        default=False, dest='ptf_path',
                         help='Path to the Prodigal training file that '
                              'will be associated with the adapted schema.')
 
@@ -926,7 +941,7 @@ def prep_schema():
                              ' (default=11, for Bacteria and Archaea)')
 
     parser.add_argument('--st', type=pv.size_threshold_type,
-                        required=False, default=None, dest='size_threshold',
+                        required=False, default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '
@@ -952,9 +967,10 @@ def prep_schema():
     cpu_cores = args.cpu_cores
 
     # check if ptf exists
-    ptf_val = aux.check_ptf(ptf_path)
-    if ptf_val[0] is False:
-        sys.exit(ptf_val[1])
+    if ptf_path is not False:
+        ptf_val = aux.check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
 
     PrepExternalSchema.main(input_files, output_directory, cpu_cores,
                             blast_score_ratio, minimum_length,
@@ -962,10 +978,14 @@ def prep_schema():
                             size_threshold)
 
     # copy training file to schema directory
-    shutil.copy(ptf_path, output_directory)
+    if ptf_path is not False:
+        shutil.copy(ptf_path, output_directory)
 
     # determine PTF checksum
-    ptf_hash = aux.hash_file(ptf_path, 'rb')
+    if ptf_path is not False:
+        ptf_hash = aux.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = ''
 
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,

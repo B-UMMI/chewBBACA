@@ -58,8 +58,8 @@ execution or invocation of the :py:func:`main` function:
 
 - ``--df``, ``description_file`` : Path to a text file with a description
   about the schema. Markdown syntax is supported in order to allow greater
-  customizability of the rendered description in the Frontend. Will default 
-  to the schema's name if the user does not provide a valid path for a 
+  customizability of the rendered description in the Frontend. Will default
+  to the schema's name if the user does not provide a valid path for a
   file (default=None).
 
     - e.g.: ``/home/user/schemas/ypestis_description``
@@ -80,11 +80,11 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``20``
 
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature Server.
-  The default value, "main", will establish a connection to "https://chewbbaca.online/",
-  "tutorial" to "https://tutorial.chewbbaca.online/"" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide the IP address to
-  other Chewie-NS instances.
+- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature
+  Server. The default value, "main", will establish a connection to
+  "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
+  and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). Users may also
+  provide the IP address to other Chewie-NS instances.
 
     - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
 
@@ -331,7 +331,7 @@ def create_uniprot_queries(file, max_queries=cnst.MAX_QUERIES):
     # create queries based on unique sequences only
     unique_prots = set(list(protein_seqs.values()))
     selected = unique_prots if len(unique_prots) <= max_queries \
-                            else list(unique_prots)[0:max_queries]
+                               else list(unique_prots)[0:max_queries]
 
     queries = [aux.uniprot_query(prot) for prot in selected]
     # save SPARQL queries with pickle
@@ -1088,12 +1088,12 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     configs = aux.read_configs(input_files, '.schema_config')
 
     # validate arguments values
-    ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', None), input_files)
-    bsr_val = pv.bsr_type(configs.get('bsr', None))
-    msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', None))
-    tt_val = pv.translation_table_type(configs.get('translation_table', None))
-    st_val = pv.size_threshold_type(configs.get('size_threshold', None))
-    cv_val = pv.validate_cv(configs.get('chewBBACA_version', None))
+    ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', ''), input_files)
+    bsr_val = pv.bsr_type(configs.get('bsr', ''))
+    msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
+    tt_val = pv.translation_table_type(configs.get('translation_table', ''))
+    st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
+    cv_val = pv.validate_cv(configs.get('chewBBACA_version', ''))
     ws_val = pv.validate_ws(configs.get('word_size', None))
     cs_val = pv.validate_cs(configs.get('cluster_sim', None))
     rf_val = pv.validate_rf(configs.get('representative_filter', None))
@@ -1108,10 +1108,10 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
 
     params_values = list(params.values())
 
-    if None in params_values:
+    if '' in params_values:
         sys.exit('Found invalid parameters values and exited.')
     else:
-        params_lines = ['  {0}: {1}'.format(k, v)
+        params_lines = ['  {0}: {1}'.format(k, str(v))
                         for k, v in params.items()
                         if k not in ['prodigal_training_file', 'name']]
         params_text = '\n'.join(params_lines)
@@ -1236,7 +1236,10 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
                   'loci.'.format(valid))
         else:
             loci_annotations = {locus: loci_annotations[locus]+['N/A', 'N/A'] for locus in loci_annotations}
-            print('\nInvalid annotations file value.')
+            if annotations is None:
+                print('\nUser did not provide file with annotations.')
+            else:
+                print('\nInvalid annotations file value.')
 
     # convert parameters to string type because the Chewie-NS
     # expects strings
@@ -1256,8 +1259,8 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
                                        'schemas', schema_id, 'description')
 
         desc_res = aux.upload_file(description_file, description_hash,
-                               description_uri, headers_post_bytes,
-                               False)
+                                   description_uri, headers_post_bytes,
+                                   False)
 
         print('Created schema with name {0} '
               '(id={1}).\n'.format(schema_name, schema_id))
@@ -1335,8 +1338,8 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
         ptf_url = aux.make_url(base_url, 'species', species_id,
                                'schemas', schema_id, 'ptf')
         ptf_res = aux.upload_file(ptf_file, ptf_hash,
-                              ptf_url, headers_post_bytes,
-                              False)
+                                  ptf_url, headers_post_bytes,
+                                  False)
         print(list(ptf_res.json().values())[0])
         print('\nThe NS has received the data and will insert '
               'the alleles into the database.')

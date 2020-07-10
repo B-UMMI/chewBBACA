@@ -323,7 +323,7 @@ def adapt_loci(genes_list):
 
             # create FASTA file with distinct protein sequences
             protein_file = aux.join_paths(gene_temp_dir,
-                                      '{0}_protein.fasta'.format(gene_id))
+                                          '{0}_protein.fasta'.format(gene_id))
             protein_lines = aux.fasta_lines(ids_to_blast, prot_seqs)
             aux.write_list(protein_lines, protein_file)
 
@@ -347,12 +347,12 @@ def adapt_loci(genes_list):
                 # create file with seqids to BLAST against
                 ids_str = aux.concatenate_list([str(i) for i in ids_to_blast], '\n')
                 ids_file = aux.join_paths(gene_temp_dir,
-                                      '{0}_ids.txt'.format(gene_id))
+                                          '{0}_ids.txt'.format(gene_id))
                 aux.write_text_chunk(ids_file, ids_str)
 
                 # BLAST representatives against non-represented
                 blast_output = aux.join_paths(gene_temp_dir,
-                                          '{0}_blast_out.tsv'.format(gene_id))
+                                              '{0}_blast_out.tsv'.format(gene_id))
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
                 blast_command = ('blastp -task {0} -db {1} -query {2} -out {3} '
@@ -373,7 +373,7 @@ def adapt_loci(genes_list):
                 # divide results into high, low and hot BSR values
                 hitting_high, hitting_low, hotspots, high_reps, low_reps, hot_reps = \
                     bsr_categorizer(blast_results, representatives,
-                                           rep_self_scores, bsr, bsr+0.1)
+                                    rep_self_scores, bsr, bsr+0.1)
 
                 excluded_reps = []
 
@@ -383,7 +383,7 @@ def adapt_loci(genes_list):
 
                 # remove representatives that led to high BSR with subjects that were removed
                 prunned_high_reps = {k: [r for r in v if r in ids_to_blast] for k, v in high_reps.items()}
-                reps_to_remove = [k for k,v in prunned_high_reps.items() if len(v) == 0]
+                reps_to_remove = [k for k, v in prunned_high_reps.items() if len(v) == 0]
 
                 excluded_reps.extend(reps_to_remove)
 
@@ -522,7 +522,7 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
     rawr = genes_pools.map_async(adapt_loci, even_genes_groups,
                                  callback=invalid_data.extend)
 
-    while completed == False:
+    while completed is False:
         completed = aux.progress_bar(rawr, len(even_genes_groups), tickval, ticknum, completed)
 
     rawr.wait()
@@ -556,7 +556,6 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
     invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
     invalid_alleles_file = os.path.join(schema_parent_directory,
                                         '{0}_{1}'.format(output_schema_basename, 'invalid_alleles.txt'))
-
 
     with open(invalid_alleles_file, 'w') as inv:
         lines = ['{0}: {1}\n'.format(allele[0], allele[1]) for allele in invalid_alleles]
@@ -614,8 +613,8 @@ def parse_arguments():
                              'saved (will create the directory if it does not '
                              'exist).')
 
-    parser.add_argument('-ptf', type=str, required=True,
-                        dest='ptf_path',
+    parser.add_argument('--ptf', type=str, required=False,
+                        default=False, dest='ptf_path',
                         help='Path to the Prodigal training file that '
                              'will be associated with the adapted schema.')
 
@@ -640,7 +639,7 @@ def parse_arguments():
                         ' (default=11, for Bacteria and Archaea)')
 
     parser.add_argument('--st', type=float, required=True,
-                        default=None, dest='size_threshold',
+                        default=0.2, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '

@@ -45,11 +45,11 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``4``
 
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature Server.
-  The default value, "main", will establish a connection to "https://chewbbaca.online/",
-  "tutorial" to "https://tutorial.chewbbaca.online/"" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide the IP address to
-  other Chewie-NS instances.
+- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature
+  Server. The default value, "main", will establish a connection to
+  "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
+  and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). Users may also
+  provide the IP address to other Chewie-NS instances.
 
     - e.g.: ``http://127.0.0.1:5000/NS/api/`` (local host)
 

@@ -106,8 +106,8 @@ def size_threshold_type(arg, min_value=cnts.ST_MIN, max_value=cnts.ST_MAX):
             sys.exit('\nInvalid size threshold value. '
                      'Must be contained in the [0.0, 1.0] interval.')
     except Exception:
-        if arg is None:
-            valid = 'None'
+        if arg in [None, 'None']:
+            valid = None
         else:
             sys.exit('\nInvalid size threshold value used to '
                      'create schema. Value must be None or a '
@@ -258,6 +258,10 @@ def validate_ptf(arg, input_path):
     """
 
     arg = arg_list(arg, 'Prodigal training file')
+
+    if arg == '':
+        sys.exit('Cannot upload a schema that was created '
+                 'without a Prodigal training file.')
 
     schema_ptfs = [os.path.join(input_path, file)
                    for file in os.listdir(input_path) if '.trn' in file]

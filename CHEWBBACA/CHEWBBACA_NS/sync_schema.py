@@ -34,9 +34,10 @@ execution or invocation of the :py:func:`main` function:
   Nomenclature Server. The default option will get the base URL from
   the schema's URI. It is also possible to specify other options that
   are available in chewBBACA's configs, such as: "main" will establish
-  a connection to "https://chewbbaca.online/", "tutorial" to 
-  "https://tutorial.chewbbaca.online/" and "local" to "http://127.0.0.1:5000/NS/api/"
-  (localhost). Users may also provide the IP address to other Chewie-NS instances.
+  a connection to "https://chewbbaca.online/", "tutorial" to
+  "https://tutorial.chewbbaca.online/" and "local" to
+  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
+  the IP address to other Chewie-NS instances.
 
     - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
 
@@ -846,11 +847,19 @@ def main(schema_dir, core_num, base_url, submit):
 
     schema_params = aux.read_configs(schema_dir, '.schema_config')
 
+    # verify that local configs have a single value per parameter
+    if all([len(schema_params[k]) == 1 for k in schema_params]) is not True:
+        sys.exit('Cannot sync schema with multiple values per parameter.')
+
     # check if schema exists in the NS
     schema_name, ns_params = aux.get_species_schemas(schema_id,
                                                      species_id,
                                                      base_url,
                                                      headers_get)[2:]
+
+    # verify that local configs match NS configs
+    if all([str(schema_params[k][0]) == ns_params[k]['value'] for k in schema_params]) is not True:
+        sys.exit('Local configs do not match Chewie-NS configs.')
 
     # Get the name of the species from the provided id
     # or vice-versa

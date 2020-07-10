@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
+import os
+import time
 import pickle
 import shutil
-import os.path
 import argparse
 import collections
 
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
-from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
 
 try:
@@ -19,11 +19,9 @@ except:
     from CHEWBBACA.createschema import init_schema_4_bbaca
     from CHEWBBACA.utils import CommonFastaFunctions
 
-import time
-
 
 def which(program):
-    import os
+
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -54,13 +52,13 @@ def translateSeq(DNASeq, genename):
     seq = DNASeq
     tableid = 11
     inverted = False
-    
-    #look for ambiguous base
+
+    # look for ambiguous base
     try:
         reverseComplement(seq)
     except:
         protseq = ""
-    
+
     try:
         myseq = Seq(seq)
         protseq = Seq.translate(myseq, table=tableid, cds=True)
@@ -88,21 +86,17 @@ def translateSeq(DNASeq, genename):
     return protseq, seq, inverted
 
 
-def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr,verbose):
+def main(genes, sizethresh, cpuToUse, proteinFIlePath, outputFIlePath,
+         BlastpPath, bsr, verbose):
 
     if verbose:
         def verboseprint(*args):
 
             for arg in args:
-                print (arg),
+                print(arg),
             print
     else:
         verboseprint = lambda *a: None
-    
-    starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
-    verboseprint ("\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-
-    verboseprint ("Checking Blast installed... " + str(which(BlastpPath)))
 
     # translate to protein and create new file
     abspath = os.path.abspath(genes)
@@ -119,12 +113,10 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
     smallgenes = 0
     nottranslatable = 0
 
-    verboseprint ("Checking translatability of the loci:\n")
+    verboseprint("Checking translatability of the loci:\n")
 
     if not proteinFIlePath:
-        # print "not passing steps"
         with open(proteinfile, "w") as f:
-            #g_fp = HTSeq.FastaReader(genes)
 
             for gene in SeqIO.parse(genes, "fasta", generic_dna):
                 dnaseq = str(gene.seq.upper())
@@ -149,9 +141,9 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
                     nottranslatable += 1
                     continue
 
-            verboseprint (str(nottranslatable) + " not translatable out of " + str(totalgenes))
+            verboseprint(str(nottranslatable) + " not translatable out of " + str(totalgenes))
 
-            verboseprint ( "\nChecking if repeated protein sequences:\n")
+            verboseprint("\nChecking if repeated protein sequences:\n")
 
             orderedprotList = []
             orderedprotList = sorted(protDict.items(), key=lambda x: len(x[1]), reverse=True)
@@ -162,21 +154,19 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
                 orderedprotDict[elem[0]] = elem[1]
                 i += 1
 
-        verboseprint (str(repeatedgenes) + " repeated loci out of " + str(totalgenes))
-        verboseprint (str(smallgenes) + " loci out of " + str(totalgenes) + " smaller than " + str(sizethresh) + "bp")
-        verboseprint ("\nprotein file created\n")
+        verboseprint(str(repeatedgenes) + " repeated loci out of " + str(totalgenes))
+        verboseprint(str(smallgenes) + " loci out of " + str(totalgenes) + " smaller than " + str(sizethresh) + "bp")
+        verboseprint("\nprotein file created\n")
 
         # first step -  remove genes contained in other genes or 100% equal genes
-
         # list of results - the output of the function
         resultsList = []
 
         auxDict = {}
-        #g_fp = HTSeq.FastaReader(proteinfile)
         g = 0
         j = 0
 
-        verboseprint ( "Checking if protein sequences are contained in others...")
+        verboseprint("Checking if protein sequences are contained in others...")
 
         # for each gene from all the annotated genes - starting with an empty dictionary, only add a new gene if the "to be added gene" is not contained or equal to a gene already added to the dictionary
         auxprot = []
@@ -195,10 +185,9 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
                 auxprot.append(str(elem[1]))
 
             j += 1
-        verboseprint ( str(g)+" loci are contained in other genes\n")
+        verboseprint(str(g)+" loci are contained in other genes\n")
 
         # overwrite the original file, obtaining a new file with unique genes
-
         with open(proteinfile, "w") as f:
             allsequences = ''
             for k, v in auxDict.items():
@@ -206,23 +195,17 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
             f.write(allsequences)
 
     else:
-        # print "passed steps"
-
         proteinfile = proteinFIlePath
         totalgenes = 0
         smallgenes = 0
-        #g_fp = HTSeq.FastaReader(genes)
         proteinfile = proteinFIlePath
         for gene in SeqIO.parse(genes, "fasta", generic_dna):
-        #for gene in g_fp:
             dnaseq = str(gene.seq.upper())
 
             protname = ">" + str(gene.id) + "\n"
-            # protDict[protname] = str(protseq)
             geneDict[str(gene.name)] = dnaseq
 
-    verboseprint ( "Starting Blast")
-    # print "Blasting the total of "+ str(len(auxDict.keys())) + " loci"
+    verboseprint("Starting Blast")
 
     geneFile = os.path.abspath(proteinfile)
     Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb(geneFile, 1, True)
@@ -237,7 +220,7 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
         cline = NcbiblastpCommandline(cmd=BlastpPath, query=geneFile, db=Gene_Blast_DB_name, evalue=0.001,
                                       out=blast_out_file, outfmt=5, num_threads=1)
     blast_records = CommonFastaFunctions.runBlastParser(cline, blast_out_file)
-    verboseprint ( "Finished blast")
+    verboseprint("Finished blast")
 
     toRemove = []
     genesToKeep = []
@@ -250,9 +233,7 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
         alleleLength = len(geneDict[allelename])
 
         try:
-
             # if gene A is not on the toRemove list yet, add to genesToKeep list
-
             if str(blast_record.query) not in toRemove:
                 genesToKeep.append(blast_record.query)
 
@@ -323,12 +304,10 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
                         toRemove.append(align.hit_def)
                         log.append(str(align.hit_def) + "\t" + str(
                             blast_record.query) + "\t" + "2 was on the removed list and bsr >" + str(bsr))
-
                     else:
                         pass
 
                     i += 1
-
 
         except Exception as e:
             # print e
@@ -343,7 +322,6 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
     pathfiles = pathfiles + "/"
     listfiles = []
 
-    #g_fp = HTSeq.FastaReader(genes)
     removedparalogs = 0
     removedsize = 0
     totalgenes = 0
@@ -358,10 +336,8 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
 
     for contig in SeqIO.parse(genes, "fasta", generic_dna):
         totalgenes += 1
-        #name = contig.name + " " + contig.descr
         name2 = contig.id
 
-        # print name2
         if name2 not in toRemove and name2 in genesToKeep:
             if int(len(contig.seq)) > sizethresh:
                 namefile = contig.name
@@ -399,23 +375,20 @@ def main(genes,sizethresh,cpuToUse,proteinFIlePath,outputFIlePath,BlastpPath,bsr
             f.write(concatenatedFile)
     elif not proteinFIlePath and outputFIlePath:
         init_schema_4_bbaca.get_Short(listfiles)
-        verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
-        print ("Total of "+str(rest)+" loci that constitute the schema")
+        verboseprint("\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
+        print("\nCreated schema with "+str(rest)+" loci.")
         os.remove(proteinfile)
 
     # create short folder
     else:
         init_schema_4_bbaca.get_Short(listfiles)
-        verboseprint ( "\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
-        print ("Total of "+str(rest)+" loci that constitute the schema")
+        verboseprint("\nRemoved "+str(removedparalogs)+" with a high similarity (BSR>"+str(bsr)+")")
+        print("\nCreated schema with "+str(rest)+" loci.")
         os.remove(proteinfile)
 
     shutil.rmtree(os.path.join(pathfiles, 'blastdbs'))
 
     os.remove(blast_out_file)
-
-    verboseprint (starttime)
-    verboseprint ("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
 
 if __name__ == "__main__":

@@ -695,12 +695,12 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
                 with open(os.path.join(outputfolder, "results_contained.txt"), 'w') as f:
                     f.write(str(containedOutpWrite))
             with open(os.path.join(outputfolder, "logging_info.txt"), 'w') as f:
-                f.write(start_date_str)
-                f.write("\nFinished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-                f.write("\nnumber of genomes: " + str(len(listOfGenomes)))
-                f.write("\nnumber of loci: " + str(len(lGenesFiles)))
-                f.write("\nused this number of cpus: " + str(cpuToUse))
-                f.write("\nused a bsr of : " + str(BSRTresh))
+                f.write('Started Script at: {0}'.format(start_date_str))
+                f.write("\nFinished Script at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+                f.write("\nNumber of genomes: " + str(len(listOfGenomes)))
+                f.write("\nNumber of loci: " + str(len(lGenesFiles)))
+                f.write("\nUsed this number of CPU cores: " + str(cpuToUse))
+                f.write("\nUsed a bsr of: " + str(BSRTresh))
 
             print('\nChecking the existence of paralog genes...')
 

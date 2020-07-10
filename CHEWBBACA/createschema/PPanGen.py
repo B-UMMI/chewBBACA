@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-from Bio import SeqIO
-from Bio.Alphabet import generic_dna
-from Bio.Seq import Seq
+
 import os
-import argparse
 import time
 import pickle
 import shutil
-import multiprocessing
+import argparse
 import subprocess
+import datetime as dt
+import multiprocessing
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
+
 try:
     from createschema import CreateSchema
     from utils import runProdigal
@@ -19,6 +23,7 @@ except:
 
 def which(program):
     import os
+
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -36,7 +41,8 @@ def which(program):
     return "Not found"
 
 
-def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSchemaPath,verbose,bsr):
+def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp,
+                     createSchemaPath, verbose, bsr):
 
     if verbose:
         def verboseprint(*args):
@@ -73,10 +79,9 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
 
             currentCDSDict = {}
             currentGenomeDict = {}
-            filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF.txt")
+            filepath = os.path.join(basepath, '{0}_ORF.txt'.format(os.path.basename(genomeFile)))
             newfilepath = os.path.join(basepath, str(newName))
 
-            #g_fp = HTSeq.FastaReader(genomeFile)
             for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
                 sequence = str(contig.seq.upper())
                 currentGenomeDict[contig.id] = sequence
@@ -90,21 +95,18 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                     currentCDSDict[k] = [[v]]
 
             j = 0
-
             counter = 0
-            tsvProtidGenome=""
-
+            tsvProtidGenome = ""
             for contigTag, value in currentCDSDict.items():
 
                 for protein in value:
                     protid += 1
 
-
                     # at first iteration we use the genome file and after a cds only multifasta file
                     try:
                         seq = currentGenomeDict[contigTag][protein[0]:protein[1]].upper()
-                        aux=[genomename,contigTag,str(protein[0]),str(protein[1]),str(protid)]
-                        tsvProtidGenome+="\n"+'\t'.join(aux)
+                        aux = [genomename, contigTag, str(protein[0]), str(protein[1]), str(protid)]
+                        tsvProtidGenome += "\n"+'\t'.join(aux)
 
                     except Exception as e:
 
@@ -114,10 +116,10 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
                         protseq, orderedSeq = translateSeq(seq)
                         lengthofProt = len(str(protseq))
                     except:
-                        verboseprint( str(genome1) + " " + str(genome2))
+                        verboseprint(str(genome1) + " " + str(genome2))
                         pass
-                    # check if any protein with size on dict
 
+                    # check if any protein with size on dict
                     try:
 
                         if len(str(protseq)) < 67:
@@ -181,10 +183,10 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
             with open("proteinID_Genome.tsv", 'a') as f:
                 f.write(tsvProtidGenome)
 
-        verboseprint( "Checked equal proteins for: " + str(genome1) + " " + str(genome2))
-        verboseprint( "Starting with a total of loci: " + str(protid))
-        verboseprint( "equal proteins : " + str(proteinsEqual))
-        verboseprint( "small proteins : " + str(smallProteins))
+        verboseprint("Checked equal proteins for: " + str(genome1) + " " + str(genome2))
+        verboseprint("Starting with a total of loci: " + str(protid))
+        verboseprint("equal proteins : " + str(proteinsEqual))
+        verboseprint("small proteins : " + str(smallProteins))
 
         fastaFile = os.path.join(pathForTemp, newName + ".fasta")
         with open(fastaFile, 'a') as f:
@@ -205,7 +207,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
         auxprotlist = []
         contained = 0
         finalnumber = 0
-        verboseprint( "Looking for contained proteins in : " + str(genome1) + " " + str(genome2))
+        verboseprint("Looking for contained proteins in : " + str(genome1) + " " + str(genome2))
         counter = 0
 
         for elem in auxlist:
@@ -241,8 +243,8 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
         dictprotsLen = {}
         dictprotsName = {}
 
-        verboseprint( "number of contained proteins : " + str(contained))
-        verboseprint( "total of loci to blast : " + str(finalnumber))
+        verboseprint("number of contained proteins : " + str(contained))
+        verboseprint("total of loci to blast : " + str(finalnumber))
 
         proteinFile = os.path.join(pathForTemp, newName + "_proteins.fasta")
 
@@ -251,19 +253,14 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp, createSch
         genomeProtsTrans = ''
 
         # run createschema for the final protogenome
-        verboseprint( "running blast will use this number of cpu: " + str(cpu))
-        CreateSchema.main(fastaFile,200,cpu,proteinFile,fastaFile,blastp,bsr,verbose)
-        #~ proc = subprocess.Popen(
-        #~ [createSchemaPath, '-i', fastaFile, '-l', "200", '--cpu', str(cpu), '-p', proteinFile, '-o', fastaFile,
-        #~ "-b", blastp], stdout=subprocess.PIPE)
-        #~ p_status = proc.wait()
-        verboseprint( "finished blast")
+        verboseprint("running blast will use this number of cpu: " + str(cpu))
+        CreateSchema.main(fastaFile, 200, cpu, proteinFile, fastaFile, blastp, bsr, verbose)
+        verboseprint("finished blast")
 
         os.remove(proteinFile)
 
-
     except Exception as e:
-        verboseprint( e )
+        verboseprint(e)
         return e
 
     return True
@@ -282,7 +279,7 @@ def translateSeq(DNASeq):
     seq = DNASeq
     tableid = 11
 
-    #look for ambiguous bases
+    # look for ambiguous bases
     try:
         reverseComplement(seq)
     except:
@@ -308,8 +305,6 @@ def translateSeq(DNASeq):
                     myseq = Seq(seq)
                     protseq = Seq.translate(myseq, table=tableid, cds=True)
                 except Exception as e:
-                    #print "translation error"
-                    #print e
                     raise
 
     return protseq, seq
@@ -321,9 +316,8 @@ def call_proc(cmd):
     return p
 
 
-# ================================================ MAIN ================================================ #
-
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,translation_table,st):
+def main(genomeFiles, cpuToUse, outputFile, bsr, BlastpPath, min_length,
+         verbose, chosenTrainingFile, inputCDS, translation_table, st):
 
     if verbose:
         def verboseprint(*args):
@@ -333,10 +327,13 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
     else:
         verboseprint = lambda *a: None  # do-nothing function
 
-
     # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
     if cpuToUse > multiprocessing.cpu_count() - 2:
-        print("Warning, you are close to use all your cpus, if you are using a laptop you may be uncapable to perform any action")
+        print('\nWARNING: you provided a --cpu value close to the '
+              'maximum number of available CPU cores.\n'
+              'This might degrade system performance and lead '
+              'to system unresponsiveness.\n')
+        time.sleep(2)
 
     if isinstance(chosenTrainingFile, str):
         trainingFolderPAth = os.path.abspath(chosenTrainingFile)
@@ -344,41 +341,39 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             chosenTaxon = trainingFolderPAth
 
             if os.path.isfile(chosenTaxon):
-                print ("will use this training file : " + chosenTaxon)
+                print("Prodigal training file: " + chosenTaxon)
             else:
-                print ("training file don't exist "+chosenTaxon)
+                print("Training file does not exist "+chosenTaxon)
                 return "retry"
         except:
-            print ("The training file you provided doesn't exist:")
-            print (chosenTaxon)
+            print("The training file you provided does not exist:")
+            print(chosenTaxon)
             return "retry"
     else:
-        chosenTaxon=False
+        chosenTaxon = False
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
-    print ("Will use this number of cpus: " + str(cpuToUse))
-    print ("Checking all programs are installed")
+    print("Number of CPU cores: " + str(cpuToUse))
 
-    print ("Checking Prodigal installed... " + str(which('prodigal')))
+    print("\nChecking dependencies...")
+    print("Blast installation..." + str(which(str(BlastpPath))))
+    print("Prodigal installation..." + str(which('prodigal')))
 
-    starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
-    print (starttime)
+    start_date = dt.datetime.now()
+    start_date_str = dt.datetime.strftime(start_date, '%H:%M:%S-%d/%m/%Y')
+    print('\nStarted at: {0}\n'.format(start_date_str))
 
     listOfGenomes = []
-
     fp = open(genomeFiles, 'r')
-
     for genomeFile in fp:
         genomeFile = genomeFile.rstrip('\n')
         genomeFile = genomeFile.rstrip('\r')
         listOfGenomes.append(genomeFile)
-
     fp.close()
     listOfGenomes.sort(key=lambda y: y.lower())
 
     # check if remnant files from previous run exist, prompt user if exists to know if it's his run and want to continue or start a new one
-
     basepath = os.path.join((os.path.dirname(outputFile)), "temp")
     if not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -387,26 +382,26 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
     #           RUN PRODIGAL OVER ALL GENOMES           #
     # ------------------------------------------------- #
 
-    if inputCDS==True:
+    if inputCDS is True:
         CreateSchema.main(listOfGenomes[0], min_length, cpuToUse, False, outputFile, BlastpPath, bsr, verbose)
         shutil.rmtree(basepath)
         return True
 
-    elif inputCDS==False:
+    elif inputCDS is False:
 
-        print ("\nStarting Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+        print("Starting Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
         # Prodigal run on the genomes, one genome per core using n-2 cores (n number of cores)
-        print ("chosen taxon :" + str(chosenTaxon))
         pool = multiprocessing.Pool(cpuToUse)
         for genome in listOfGenomes:
-            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon), translation_table))
+            pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon), translation_table))
 
         pool.close()
         pool.join()
 
-        print("\nChecking all prodigal processes created the necessary files...")
+        print("Finishing Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
+        print("\nChecking if Prodigal created all the necessary files...")
         listOfORFCreated = []
         for orffile in os.listdir(basepath):
             if orffile.endswith("_ORF.txt"):
@@ -418,20 +413,14 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             shutil.rmtree(basepath)
             raise ValueError(message)
         else:
-            print("All prodigal files necessary were created\n")
-
-        print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+            print("All files were created.\n")
 
     createSchemaPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CreateSchema.py')
-
 
     # ---CDS to protein---#
 
     # translate the genome CDSs, load them into dictionaries and fasta files to be used further ahead
-    # listpairs=[]
-
     pairID = 0
-    # while len(processed)<len(toprocess):
     with open("proteinID_Genome.tsv", 'w') as f:
         f.write("Genome\tcontig\tStart\tStop\tprotID")
     while len(listOfGenomes) > 0:
@@ -440,7 +429,6 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
         dictPairs = {}
 
         for genomeFile in listOfGenomes:
-            # toprocess.append(listOfGenomes)
             if len(pair) < 2:
                 pair.append(genomeFile)
             else:
@@ -476,14 +464,13 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
             pathFornewgGenome = os.path.join(basepath, newgGenome, newgGenome + ".fasta")
             listOfGenomes.append(pathFornewgGenome)
             extraCpuPerProcess = extraCpu / numberOfPairs
-            print( "running analysis for pair : " + str(v[0]) + " " + str(v[1]))
+            print("Running analysis for pair: " + str(v[0]) + " " + str(v[1]))
             pool.apply_async(checkGeneStrings,
                              args=[v[0], v[1], newgGenome, basepath, int(extraCpuPerProcess + 1), BlastpPath,
-                                   createSchemaPath,verbose,bsr])
+                                   createSchemaPath, verbose, bsr])
 
         pool.close()
         pool.join()
-        verboseprint("finished running pair analysis")
 
         if len(listOfGenomes) == 1:
 
@@ -497,8 +484,14 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
 
     shutil.rmtree(basepath)
 
-    print (starttime)
-    print ("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+    end_date = dt.datetime.now()
+    end_date_str = dt.datetime.strftime(end_date, '%H:%M:%S-%d/%m/%Y')
+
+    delta = end_date - start_date
+    minutes, seconds = divmod(delta.total_seconds(), 60)
+
+    print('\nFinished at: {0}'.format(end_date_str))
+    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 if __name__ == "__main__":

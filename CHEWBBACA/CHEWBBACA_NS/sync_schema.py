@@ -1059,6 +1059,13 @@ def main(schema_dir, core_num, base_url, submit):
     # delete temp directory
     shutil.rmtree(temp_dir)
 
+    # delete pre-computed BSR values from 'short' directory
+    # representatives might have changed and BSR values are outdated
+    short_dir = os.path.join(schema_dir, 'short')
+    bsr_files = [f for f in os.listdir(short_dir) if f.endswith('_bsr.txt')]
+    for f in bsr_files:
+        os.remove(os.path.join(short_dir, f))
+
     end_date = dt.datetime.now()
     end_date_str = dt.datetime.strftime(end_date, '%Y-%m-%dT%H:%M:%S')
 

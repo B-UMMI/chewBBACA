@@ -566,6 +566,8 @@ def main(species_id, schema_id, download_folder, core_num,
                                 base_url)
 
         # use PrepExternalSchema main to determine representatives
+        genus, epithet = species_name.split(' ')
+        schema_name = '{0}{1}_{2}'.format(genus[0].lower(), epithet, schema_name)
         schema_path = os.path.join(download_folder, schema_name)
 
         # determine representatives and create schema

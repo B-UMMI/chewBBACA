@@ -272,7 +272,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
         else:
             if continue_up is False:
                 sys.exit('Cannot upload schema. A schema with '
-                         'provided description already exists.')
+                         'provided name already exists.')
             elif continue_up is True:
                 schema_url, schema_id = schema_info
                 # determine if schema upload was complete

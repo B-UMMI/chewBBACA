@@ -625,19 +625,22 @@ def check_input_type(input_path, output_file):
                 for file in fasta_files:
                     f.write(file + '\n')
         else:
-            raise Exception('There were no FASTA files in the given '
-                            'directory. Please provide a directory'
-                            'with FASTA files or a file with the '
-                            'list of full paths to the FASTA files.')
+            sys.exit('\nCould not get input files. Please '
+                     'provide a directory with FASTA files '
+                     'or a file with the list of full paths '
+                     'to the FASTA files and ensure that '
+                     'filenames end with one of the '
+                     'following suffixes: {0}.'
+                     ''.format(cnst.FASTA_SUFFIXES))
 
         list_files = output_file
 
     else:
-        raise Exception('Input argument is not a valid directory or '
-                        'file with a list of paths. Please provide a '
-                        'valid input, either a folder with FASTA files '
-                        'or a file with the list of full paths to FASTA '
-                        'files (one per line).')
+        sys.exit('\nInput argument is not a valid directory or '
+                 'file with a list of paths. Please provide a '
+                 'valid input, either a folder with FASTA files '
+                 'or a file with the list of full paths to FASTA '
+                 'files (one per line).')
 
     return list_files
 

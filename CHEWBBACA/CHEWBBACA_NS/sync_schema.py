@@ -53,6 +53,7 @@ Code documentation
 import os
 import sys
 import json
+import time
 import shutil
 import pickle
 import hashlib
@@ -241,6 +242,7 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
             inserted into each locus).
     """
 
+    uploaded = 0
     failed = []
     for i, a in enumerate(alleles_data):
 
@@ -274,13 +276,19 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
         zip_res = aux.upload_file(current_zip, os.path.basename(current_zip),
                                   zip_url, headers_post_bytes,
                                   False)
+
+        # determine if upload was successful
         zip_status = zip_res.status_code
 
         # determine if upload was successful
         if length_status not in [200, 201] or zip_status not in [200, 201]:
             failed.append(locus_id)
+        elif length_status in [200, 201] and zip_status in [200, 201]:
+            uploaded += 1
+            print('\r', '    Sent data for alleles of '
+                  '{0}/{1} loci.'.format(uploaded, len(alleles_data)), end='')
 
-    return [failed, zip_res.json()]
+    return [failed, zip_res]
 
 
 def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
@@ -305,7 +313,7 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
             The `zip_res` variable returned by the
             :py:func:`upload_alleles_data` function. It will be used
             to change allele identifiers that were successfully
-            inserted into the Cewie-NS.
+            inserted into the Chewie-NS.
 
         Returns
         -------
@@ -910,7 +918,8 @@ def main(schema_dir, core_num, base_url, submit):
                                        schema_dir, temp_dir)
 
     total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
-    print('Local schema has {0} novel alleles.'.format(total_local))
+    print('Local schema has {0} novel alleles for {1} '
+          'loci.'.format(total_local, len(not_in_ns)))
 
     # check if there are any changes to make
     if len(pickled_loci) == 0:
@@ -961,7 +970,7 @@ def main(schema_dir, core_num, base_url, submit):
                                                     'lock'],
                                                    {'action': 'unlock'})
             else:
-                print('Determining local alleles to submit...')
+                print('Collecting data and creating files to submit local alleles...')
                 # get list of loci for schema in the NS
                 loci_res = aux.simple_get_request(base_url, headers_get,
                                                   ['species', species_id,
@@ -992,17 +1001,48 @@ def main(schema_dir, core_num, base_url, submit):
 
                 print('Sending and inserting new alleles...')
                 failed, \
-                    results = upload_alleles_data(alleles_data, length_files,
+                    start_count = upload_alleles_data(alleles_data, length_files,
                                                   base_url, headers_post,
                                                   headers_post_bytes, species_id,
                                                   schema_id)
 
-                # determine alleles that were attributed an identifier
-                repeated = sum([len(r[0]) for l, r in results.items()])
-                attributed = sum([len(r[1]) for l, r in results.items()])
+                # track progress through endpoint
+                # set time limit for task completion (seconds)
+                print()
+                time_limit = 2100
+                current_time = 0
+                status = 'Updating'
+                start_count = int(start_count.json()['Updating'])
+                while status != 'Complete' and (current_time < time_limit):
+                    insertion_status = aux.simple_get_request(
+                        base_url, headers_get, ['species', species_id,
+                                                'schemas', schema_id, 'status'])
+                    insertion_status = insertion_status.json()
+                    current_status = insertion_status['Status']
+                    if current_status in ['Ready', 'Updating']:
+                        current_count = int(insertion_status['nr_alleles'])
+                    elif current_status == 'Complete':
+                        results = insertion_status['Identifiers']
+                        current_count = int(insertion_status['nr_alleles'])
+                        status = current_status
 
-                print('The Chewie-NS inserted {0} new alleles and detected '
-                      '{1} repeated alleles.'.format(attributed, repeated))
+                    inserted = current_count - start_count
+                    print('\r', '    Inserted {0} alleles.'.format(inserted), end='')
+                    time.sleep(2)
+                    current_time += 2
+
+                if current_time != time_limit:
+                    # determine alleles that were attributed an identifier
+                    repeated = sum([len(r[0]) for l, r in results.items()])
+                    attributed = sum([len(r[1]) for l, r in results.items()])
+
+                    print('\nThe Chewie-NS inserted {0} new alleles and detected '
+                          '{1} repeated alleles.'.format(attributed, repeated))
+                else:
+                    print('\nCould not retrieve allele identifiers assigned by '
+                          'Chewie-NS. Will adapt schema with retrieved alleles. '
+                          'Please repeat the syncing process in order to assign '
+                          'the new identifiers for the submitted alleles.')
 
                 # remove files in temp folder
                 aux.remove_files(length_files)

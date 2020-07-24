@@ -99,6 +99,7 @@ Code documentation
 import os
 import sys
 import csv
+import time
 import json
 import pickle
 import argparse
@@ -695,7 +696,7 @@ def create_loci_file(schema_files, annotations, schema_dir,
 
 
 def upload_loci_data(loci_file, base_url, species_id,
-                     schema_id, headers_post, hashed_files):
+                     schema_id, headers_post, headers_get, hashed_files):
     """ Sends the necessary data to create loci and associate
         those loci with species and schema.
 
@@ -750,18 +751,38 @@ def upload_loci_data(loci_file, base_url, species_id,
                                zip_url, headers_post,
                                False)
 
-    response_data = response.json()
-    if 'message' in response_data:
-        result = response_data['message']
-        if isinstance(result, str) is True:
-            sys.exit(response_data['message'])
-        elif isinstance(result, dict) is True:
-            invalid_loci = list(result.keys())
-            invalid_loci = ','.join(invalid_loci)
-            sys.exit('The NS could not insert data from the following loci:\n'
-                     '{0}\nThe process cannot proceed. Please retry with the '
-                     '"--continue_up" option and contact the NS Admin if the '
-                     'problem persists.'.format(invalid_loci))
+    response = response.json()
+    start_nr_loci = int(response['nr_loci'])
+    start_sp_loci = int(response['sp_loci'])
+    start_sc_loci = int(response['sc_loci'])
+
+    time_limit = 2100
+    current_time = 0
+    status = 'Inserting'
+    while status != 'Complete' and (current_time < time_limit):
+        insertion_status = aux.simple_get_request(
+            base_url, headers_get, ['species', species_id,
+                                    'schemas', schema_id,
+                                    'loci', 'data'])
+        insertion_status = insertion_status.json()
+
+        if 'message' in insertion_status:
+            status = 'Complete'
+            response_data = insertion_status['message']
+
+        nr_loci = int(insertion_status['nr_loci'])
+        sp_loci = int(insertion_status['sp_loci'])
+        sc_loci = int(insertion_status['sc_loci'])
+
+        inserted_loci = nr_loci - start_nr_loci
+        linked_sp = sp_loci - start_sp_loci
+        linked_sc = sc_loci - start_sc_loci
+
+        print('\r', '   Inserted {0} loci; '
+              'Linked {1} to species; '
+              'Linked {2} to schema.'.format(inserted_loci, linked_sp, linked_sc), end='')
+        time.sleep(2)
+        current_time += 2
 
     response_data = {hashed_files[k]: v+[k] for k, v in response_data.items()}
 
@@ -812,7 +833,7 @@ def create_alleles_files(schema_files, loci_responses, invalid_alleles,
     schema_dir = os.path.dirname(schema_files[0])
     user_uri = '{0}users/{1}'.format(base_url, user_id)
     for file in schema_files:
-        locus_uri = loci_responses[file][0]
+        locus_uri = loci_responses[file][1][0]
 
         alleles_sequences = [str(rec.seq)
                              for rec in SeqIO.parse(file, 'fasta')
@@ -1172,7 +1193,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     inputs = [(file,
                file.split('/')[-1].split('.fasta')[0],
                int(params['translation_table']),
-               int(params['minimum_locus_length']),
+               0,
                None) for file in fasta_paths]
 
     # validate schema data and create files with translated sequences
@@ -1285,12 +1306,13 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
             print('  Sending data to the NS...')
             absent_data = upload_loci_data(loci_file, base_url,
                                            species_id, schema_id,
-                                           headers_post_bytes, hashed_files)
+                                           headers_post_bytes, headers_get,
+                                           hashed_files)
             response_data = {k: [v[0], True, True, True, v[3]]
                              for k, v in loci_info.items() if k not in absent_data}
             response_data = {**absent_data, **response_data}
-            print('  The NS completed the insertion of {0} '
-                  'loci\n'.format(len(absent_loci)))
+            print('\n  The NS completed the insertion of {0} '
+                  'loci.\n'.format(len(absent_loci)))
     else:
         print('  Collecting loci data...')
         loci_file = create_loci_file(dna_files, loci_annotations,
@@ -1299,10 +1321,11 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
         print('  Sending data to the NS...')
         response_data = upload_loci_data(loci_file, base_url,
                                          species_id, schema_id,
-                                         headers_post_bytes, hashed_files)
+                                         headers_post_bytes, headers_get,
+                                         hashed_files)
 
-        print('  The NS completed the insertion of {0} '
-              'loci\n'.format(len(response_data)))
+        print('\n  The NS completed the insertion of {0} '
+              'loci.\n'.format(len(response_data)))
 
     # create files with info for posting alleles
     print('Alleles data:')

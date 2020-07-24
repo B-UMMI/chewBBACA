@@ -1002,9 +1002,9 @@ def main(schema_dir, core_num, base_url, submit):
                 print('Sending and inserting new alleles...')
                 failed, \
                     start_count = upload_alleles_data(alleles_data, length_files,
-                                                  base_url, headers_post,
-                                                  headers_post_bytes, species_id,
-                                                  schema_id)
+                                                      base_url, headers_post,
+                                                      headers_post_bytes, species_id,
+                                                      schema_id)
 
                 # track progress through endpoint
                 # set time limit for task completion (seconds)
@@ -1012,19 +1012,18 @@ def main(schema_dir, core_num, base_url, submit):
                 time_limit = 2100
                 current_time = 0
                 status = 'Updating'
-                start_count = int(start_count.json()['Updating'])
+                start_count = int(start_count.json()['nr_alleles'])
                 while status != 'Complete' and (current_time < time_limit):
                     insertion_status = aux.simple_get_request(
                         base_url, headers_get, ['species', species_id,
-                                                'schemas', schema_id, 'status'])
+                                                'schemas', schema_id,
+                                                'loci', 'locus', 'update'])
                     insertion_status = insertion_status.json()
-                    current_status = insertion_status['Status']
-                    if current_status in ['Ready', 'Updating']:
-                        current_count = int(insertion_status['nr_alleles'])
-                    elif current_status == 'Complete':
-                        results = insertion_status['Identifiers']
-                        current_count = int(insertion_status['nr_alleles'])
-                        status = current_status
+                    if 'message' in insertion_status:
+                        status = 'Complete'
+                        results = insertion_status['identifiers']
+
+                    current_count = int(insertion_status['nr_alleles'])
 
                     inserted = current_count - start_count
                     print('\r', '    Inserted {0} alleles.'.format(inserted), end='')

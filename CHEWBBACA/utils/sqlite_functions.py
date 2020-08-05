@@ -613,7 +613,7 @@ def alter_profiles(profiles, cursor):
     results = {}
     for k, v in profiles.items():
         profile = v[0]
-        to_replace = ["'$.{0}', {1}".format(r[0], r[2]) for r in v[1:]]
+        to_replace = ["'$.{0}', '{1}'".format(r[0], r[2]) for r in v[1:]]
         # json_replace cannot receive a great number of arguments
         # change 50 identifiers at a time
         for i in range(0, len(to_replace), 50):

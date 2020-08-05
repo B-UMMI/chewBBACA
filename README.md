@@ -25,6 +25,14 @@ The prodigal training files to be used are now provided with chewBBACA's source 
 
 # Latest updates
 
+## New in 2.5.1 (05/08/2020)
+* Chewie verifies if Chewie-NS instance is available before starting processes.
+* SyncSchema gets Chewie-NS base URL from configuration file.
+* Schemas can be created without a Prodigal training file and without a size threshold value.
+* LoadSchema and SyncSchema processes display info about loci and allele insertion progress.
+* Corrected bug leading to errors during the AlleleCall process. Schema adaptation during the SyncSchema process may change loci representatives and pre-computed BSR values would become outdated.
+* Corrected bug leading to error during the update of allelic profiles if new allele identifiers contained '*'.
+
 ## New in 2.5.0 (30/06/2020)
 We've developed [Chewie-NS](https://chewbbaca.online/), a Nomenclature Server that is based on the [TypOn](https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-5-43) ontology and integrates with chewBBACA to provide access to gene-by-gene typing schemas and to allow a common and global allelic nomenclature to be maintained.
 
@@ -45,8 +53,6 @@ This version also includes other changes:
 - Schemas created with the `CreateSchema` process or adapted with the `PrepExternalSchema` retain information about parameters values (BLAST Score Ratio, Prodigal training file, genetic code, minimum sequence length and sequence size variation threshold) and users are advised to keep performing allele call with those parameters values to ensure consistent results and provide the possibility of schema upload to the Chewie-NS. The AlleleCall process detects if a user provides parameters values that differ from the original values and requests confirmation before proceeding (you may force execution with the `--fc` argument).
 - The AlleleCall process creates a SQLite database in the schema's directory that is used to store the allelic profiles determined with that schema.
 - Further optimizations in the `PrepExternalSchema` process.
-
-
 
 ## New in 2.1.0 (05/11/2019)
 * New `PrepExternalSchema` implementation: Algorithmic optimizations to improve speed and maintain memory efficiency. New output files with summary information about schema adaptation and excluded sequences and options to control the Blast Score Ratio, minimum sequence length and genetic code values passed to the process.

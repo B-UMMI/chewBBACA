@@ -559,7 +559,10 @@ def schema_completedness(base_url, species_id, schema_id, headers_get,
                                           'schemas', schema_id,
                                           'loci', 'data'])
     schema_loci = schema_loci.json()
-    schema_loci = schema_loci['message']
+    if 'Not found' in schema_loci:
+        sys.exit('{0}'.format(schema_loci['Not found']))
+    else:
+        schema_loci = schema_loci['hashes']
 
     loci_info = {hashed_files[k]: v[1]+[k] for k, v in schema_loci.items()}
     # determine loci that were not fully inserted
@@ -766,9 +769,9 @@ def upload_loci_data(loci_file, base_url, species_id,
                                     'loci', 'data'])
         insertion_status = insertion_status.json()
 
-        if 'message' in insertion_status:
+        if insertion_status['status'] == 'complete':
             status = 'Complete'
-            response_data = insertion_status['message']
+            response_data = insertion_status['hashes']
 
         nr_loci = int(insertion_status['nr_loci'])
         sp_loci = int(insertion_status['sp_loci'])

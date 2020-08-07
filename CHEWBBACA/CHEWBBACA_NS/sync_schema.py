@@ -842,7 +842,7 @@ def main(schema_dir, core_num, base_url, submit):
     else:
         user_id = ''
         user_role = ''
-        user_auth = False
+        user_auth = True
 
     # POST requests headers
     headers_post = cnst.HEADERS_POST_JSON

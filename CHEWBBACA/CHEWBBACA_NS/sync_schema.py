@@ -820,14 +820,10 @@ def main(schema_dir, core_num, base_url, submit):
         base_url = schema_uri.split('species/')[0]
 
     if submit is True and 'tutorial' not in base_url:
-        print('\nOnly registered users may submit new alleles.')
+        print('\nOnly authorized registered users may submit new alleles.')
         token = aux.capture_login_credentials(base_url)
     else:
         token = ''
-
-    start_date = dt.datetime.now()
-    start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
-    print('Started at: {0}\n'.format(start_date_str))
 
     # GET request headers
     headers_get = cnst.HEADERS_GET_JSON
@@ -836,13 +832,25 @@ def main(schema_dir, core_num, base_url, submit):
     # determine current user ID and Role
     if submit is True and 'tutorial' not in base_url:
         user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
-        user_auth = True
+        # verify if user has authorization to submit
+        url = aux.make_url(base_url, 'auth', 'check')
+        response = requests.get(url, headers=headers_get)
+        if response.status_code is 200:
+            user_auth = True
+        else:
+            sys.exit('Current user has no authorization to submit novel alleles.\n'
+                     'You can request authorization to submit novel alleles by sending '
+                     'an e-mail to: imm-bioinfo@medicina.ulisboa.pt')
         print('User id: {0}'.format(user_id))
         print('User role: {0}\n'.format(user_role))
     else:
         user_id = ''
         user_role = ''
-        user_auth = True
+        user_auth = True if 'tutorial' in base_url else False
+
+    start_date = dt.datetime.now()
+    start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
+    print('Started at: {0}\n'.format(start_date_str))
 
     # POST requests headers
     headers_post = cnst.HEADERS_POST_JSON

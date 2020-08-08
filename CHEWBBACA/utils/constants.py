@@ -13,7 +13,7 @@ DESCRIPTION
 
 """
 
-CHEWIE_VERSIONS = ['2.5.0', '2.5.1']
+CHEWIE_VERSIONS = ['2.5.0', '2.5.1', '2.5.2']
 
 # BSR
 BSR_MIN = 0.0

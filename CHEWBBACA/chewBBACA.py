@@ -434,7 +434,7 @@ def allele_call():
 
     # mismatched schema and run parameters values
     unmatch_params = {k: v for k, v in run_params.items()
-                      if v not in schema_params[k] and k != 'prodigal_training_file'}
+                      if v not in schema_params[k] and k not in ['prodigal_training_file', 'chewBBACA_version']}
 
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments '

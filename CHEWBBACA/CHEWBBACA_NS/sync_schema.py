@@ -864,7 +864,7 @@ def main(schema_dir, core_num, base_url, submit):
     schema_params = aux.read_configs(schema_dir, '.schema_config')
 
     # verify that local configs have a single value per parameter
-    if all([len(schema_params[k]) == 1 for k in schema_params]) is not True:
+    if all([len(schema_params[k]) == 1 for k in schema_params if k != 'chewBBACA_version']) is not True:
         sys.exit('Cannot sync schema with multiple values per parameter.')
 
     # check if schema exists in the NS
@@ -874,7 +874,7 @@ def main(schema_dir, core_num, base_url, submit):
                                                      headers_get)[2:]
 
     # verify that local configs match NS configs
-    if all([str(schema_params[k][0]) == ns_params[k]['value'] for k in schema_params]) is not True:
+    if all([str(schema_params[k][0]) == ns_params[k]['value'] for k in schema_params if k != 'chewBBACA_version']) is not True:
         sys.exit('Local configs do not match Chewie-NS configs.')
 
     # Get the name of the species from the provided id

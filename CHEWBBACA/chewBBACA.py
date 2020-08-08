@@ -795,38 +795,53 @@ def extract_cgmlst():
 def remove_genes():
 
     def msg(name=None):
-        return '''chewBBACA.py RemoveGenes [RemoveGenes ...][-h]
-                  -i [I] -g [G] -o [O] [--inverse]'''
 
-    parser = argparse.ArgumentParser(description='This program removes genes '
-                                                 'from a tab separated allele '
-                                                 'profile file',
+        # simple command to remove a set of genes from a matrix with allelic profiles
+        simple_cmd = ('  chewBBACA.py RemoveGenes -i <input_file> '
+                                                   '-g <genes_list> '
+                                                   '-o <output_file>')
+
+        usage_msg = ('\nRemove a set of genes from a matrix with allelic profiles:\n{0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(description='Remove loci from a matrix with allelic profiles.',
                                      usage=msg())
 
     parser.add_argument('RemoveGenes', nargs='+',
-                        help='remove loci from a chewBBACA profile')
+                        help='Remove loci from a matrix with allelic profiles.')
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='',
-                        help='main matrix file from which to remove')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='input_file',
+                        help='TSV file that contains a matrix with allelic profiles '
+                             'determined by the AlleleCall process.')
 
-    parser.add_argument('-g', nargs='?', type=str, required=True,
-                        help='list of genes to remove')
+    parser.add_argument('-g', type=str, required=True,
+                        dest='genes_list',
+                        help='File with the list of genes to remove.')
 
-    parser.add_argument('-o', nargs='?', type=str, required=True,
-                        help='output file name')
+    parser.add_argument('-o', type=str, required=True,
+                        dest='output_file',
+                        help='Path to the output file that will be created with the '
+                             'new matrix.')
 
-    parser.add_argument("--inverse", action="store_true", default=False,
+    parser.add_argument('--inverse', action='store_true', default=False,
                         dest='inverse',
-                        help="list to remove is actually the one to keep")
+                        help='List of genes that is provided is the list of genes to '
+                             'keep and all other genes should be removed.')
 
     args = parser.parse_args()
-    mainListFile = args.i
-    toRemoveListFile = args.g
-    outputfileName = args.o
+
+    header = 'chewBBACA - RemoveGenes'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
+    input_file = args.input_file
+    genes_list = args.genes_list
+    output_file = args.output_file
     inverse = args.inverse
 
-    RemoveGenes.main(mainListFile, toRemoveListFile, outputfileName, inverse)
+    RemoveGenes.main(input_file, genes_list, output_file, inverse)
 
 
 def join_profiles():

@@ -381,8 +381,8 @@ def allele_call():
                       'It is highly recommended that you run the PrepExternalSchema '
                       'process to guarantee full compatibility with the new chewBBACA '
                       'version.\nIf you wish to continue, the AlleleCall process will convert '
-                      'the schema to v2.5.0, but will not determine if schema structure respects '
-                      'configuration values.\nDo you wish to proceed?\n')
+                      'the schema to v{0}, but will not determine if schema structure respects '
+                      'configuration values.\nDo you wish to proceed?\n'.format(version))
             proceed = aux.input_timeout(prompt, timeout)
         else:
             proceed = 'yes'
@@ -578,135 +578,165 @@ def allele_call():
 def evaluate_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py SchemaEvaluator [SchemaEvaluator ...] [-h]
-                 -i [I] [-p] [--log] -l [L] -ta [TA] [-t [T]]
-                 [--title [TITLE]] --cpu [CPU] [-s [S]] [--light]'''
+        # simple command to evaluate schema or set of loci
+        simple_cmd = ('chewBBACA.py SchemaEvaluator -i <input_files> '
+                                                   '-l <output_file> '
+                                                   '--cpu <cpu_cores>')
 
-    parser = argparse.ArgumentParser(description='This program analyses a '
-                                                 'set of gene files, '
-                                                 'analyzing the alleles '
-                                                 'CDS and the length of '
-                                                 'the alleles per gene',
-                                     usage=msg())
+        usage_msg = ('\nEvaluate schema with default parameters:\n  {0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='SchemaEvaluator',
+                                     description='Evaluate the number of alelles and allele size '
+                                                 'variation for the loci in a schema or for a set '
+                                                 'of selected loci. Provide information about '
+                                                 'problematic alleles per locus and individual pages '
+                                                 'for each locus with a plot with allele size, a Neighbor '
+                                                 'Joining tree based on a multiple sequence alignment (MSA) '
+                                                 'and a visualization of the MSA.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('SchemaEvaluator', nargs='+',
-                        help='evaluation of a schema')
+                        help='Evaluates a set of loci.')
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='',
-                        help='list genes, directory or .txt file '
-                             'with the full path')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='input_files',
+                        help='Path to the schema\'s directory or path to a file containing '
+                             'the paths to the FASTA files of the loci that will be evaluated, '
+                             'one per line.')
+
+    parser.add_argument('-l', type=str, required=True,
+                        dest='output_file',
+                        help='Path to the output HTML file.')
 
     parser.add_argument('-p', action='store_true', required=False,
                         default=False, dest='conserved',
-                        help='One bad allele still makes gene conserved.')
+                        help='If all alleles must be within the threshold for the '
+                             'locus to be considered as having low length variability.')
 
     parser.add_argument('--log', action='store_true', default=False,
-                        dest='logScale',
-                        help='')
+                        dest='log_scale',
+                        help='Apply log scale transformation to the yaxis '
+                             'of the plot with the number of alleles per locus.')
 
-    parser.add_argument('-l', nargs='?', type=str, required=True,
-                        dest='',
-                        help='name/location main html file')
+    parser.add_argument('-ta', type=int, required=False,
+                        default=11, dest='translation_table',
+                        help='Genetic code used to translate coding '
+                             'sequences.')
 
-    parser.add_argument('-ta', nargs='?', type=int, required=False,
-                        default=11, dest='',
-                        help='ncbi translation table')
+    parser.add_argument('-t', type=float, required=False,
+                        default=0.05, dest='threshold',
+                        help='Allele size variation threshold. If an allele has '
+                             'a size within the interval of the locus mode -/+ '
+                             'the threshold, it will be considered a conserved '
+                             'allele.')
 
-    parser.add_argument('-t', nargs='?', type=float, required=False,
-                        default=0.05, dest='',
-                        help='Threshold')
-
-    parser.add_argument('--title', nargs='?', type=str, required=False,
+    parser.add_argument('--title', type=str, required=False,
                         default='My Analyzed wg/cg MLST Schema - Rate My Schema',
-                        dest='',
-                        help='title on the html')
+                        dest='title',
+                        help='Title displayed on the html page.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=True,
-                        dest='',
-                        help='number of cpu to use')
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
+                        help='Number of CPU cores to use to run the process.')
 
-    parser.add_argument('-s', nargs='?', type=int, required=False,
-                        default=500, dest='',
-                        help='number of boxplots per page (more than '
-                        '500 can make the page very slow).')
+    parser.add_argument('-s', type=int, required=False,
+                        default=500, dest='split_range',
+                        help='Number of boxplots displayed in the plot area (more than '
+                             '500 can lead to performance issues).')
 
     parser.add_argument('--light', action='store_true', required=False,
-                        default=False, dest='',
-                        help='skip clustal and mafft run')
+                        default=False, dest='light_mode',
+                        help='Skip clustal and mafft.')
 
     args = parser.parse_args()
-    genes = args.i
-    transTable = args.ta
-    logScale = args.logScale
-    outputpath = args.l
-    cpuToUse = args.cpu
-    threshold = args.t
-    OneBadGeneNotConserved = args.conserved
-    splited = args.s
-    light = args.light
+
+    header = 'chewBBACA - SchemaEvaluator'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
+    input_files = args.input_files
+    output_file = args.output_file
+    log_scale = args.log_scale
+    translation_table = args.translation_table
+    cpu_cores = args.cpu_cores
+    threshold = args.threshold
+    conserved = args.conserved
+    split_range = args.split_range
+    light_mode = args.light_mode
     title = str(args.title)
 
-    ValidateSchema.main(genes, cpuToUse, outputpath,
-                        transTable, threshold, splited,
-                        title, logScale, OneBadGeneNotConserved,
-                        light)
+    ValidateSchema.main(input_files, cpu_cores, output_file,
+                        translation_table, threshold, split_range,
+                        title, log_scale, conserved,
+                        light_mode)
 
 
 def test_schema():
 
     def msg(name=None):
-        return '''chewBBACA.py TestGenomeQuality [TestGenomeQuality ...] [-h]
-                 -i [I] -n [N] -t [T] -s [S] [-o [O]] [-v]'''
+        # simple command to evaluate genome quality
+        simple_cmd = ('chewBBACA.py TestGenomeQuality -i <input_file> '
+                                                   '-n <max_iteration> '
+                                                   '-t <max_threshold>'
+                                                   '-s <step>')
 
-    parser = argparse.ArgumentParser(description='This program analyzes an '
-                                                 'allele call raw output '
-                                                 'matrix, returning info on '
-                                                 'which genomes are '
-                                                 'responsible for cgMLST '
-                                                 'loci loss',
-                                     usage=msg())
+        usage_msg = ('\nEvaluate genome quality with default parameters:\n  {0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(description='This process evaluates the quality of genomes '
+                                                 'based on the results of the AlleleCall process.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('TestGenomeQuality', nargs='+',
-                        help='test the quality of the genomes on the '
-                             'allele call')
+                        help='Evaluate the quality of input genomes based '
+                             'on allele calling results.')
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='',
-                        help='raw allele call matrix file')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='input_file',
+                        help='Path to file with a matrix of allelic profiles.')
 
-    parser.add_argument('-n', nargs='?', type=int, required=True,
-                        dest='',
-                        help='maximum number of iterations')
+    parser.add_argument('-n', type=int, required=True,
+                        dest='max_iteration',
+                        help='Maximum number of iterations.')
 
-    parser.add_argument('-t', nargs='?', type=int, required=True,
-                        dest='',
-                        help='maximum threshold of bad calls above 95 percent')
+    parser.add_argument('-t', type=int, required=True,
+                        dest='max_threshold',
+                        help='Maximum threshold of bad calls above 95 percent.')
 
-    parser.add_argument('-s', nargs='?', type=int, required=True,
-                        dest='',
-                        help='step between each threshold analysis')
+    parser.add_argument('-s', type=int, required=True,
+                        dest='step',
+                        help='Step between each threshold analysis.')
 
-    parser.add_argument('-o', nargs='?', type=str, required=False,
-                        default=".", dest='',
-                        help="Folder for the analysis files")
+    parser.add_argument('-o', type=str, required=False,
+                        default='.', dest='output_directory',
+                        help='Path to the output directory that will '
+                             'store output files')
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
-                        dest='verbose',
-                        help="increase output verbosity")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        default=False, dest='verbose',
+                        help='Increase stdout verbosity.')
 
     args = parser.parse_args()
 
-    pathOutputfile = args.i
-    iterationNumber = args.n
-    thresholdBadCalls = args.t
-    step = args.s
-    out_folder = args.o
+    header = 'chewBBACA - TestGenomeQuality'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
+    input_file = args.input_file
+    max_iteration = args.max_iteration
+    max_threshold = args.max_threshold
+    step = args.step
+    output_directory = args.output_directory
     verbose = args.verbose
 
-    TestGenomeQuality.main(pathOutputfile, iterationNumber,
-                           thresholdBadCalls, step,
-                           out_folder, verbose)
+    TestGenomeQuality.main(input_file, max_iteration,
+                           max_threshold, step,
+                           output_directory, verbose)
 
 
 def extract_cgmlst():
@@ -869,6 +899,11 @@ def join_profiles():
                         help='output file name')
 
     args = parser.parse_args()
+
+    header = 'chewBBACA - JoinProfiles'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
     profile1 = args.p1
     profile2 = args.p2
     outputFile = args.o
@@ -1015,38 +1050,50 @@ def prep_schema():
 def find_uniprot():
 
     def msg(name=None):
-        return '''chewBBACA.py UniprotFinder [UniprotFinder ...][-h]
-                  -i [I] -t [T] --cpu [CPU]'''
 
-    parser = argparse.ArgumentParser(description='This program gets '
-                                                 'information of each '
-                                                 'locus created on the '
-                                                 'schema creation, based '
-                                                 'on the uniprot database')
+        # simple command to determine annotations for the loci in a schema
+        simple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+                                                   '-t <protein_table> '
+                                                   '--cpu <cpu_cores>')
+
+        usage_msg = ('\nFind annotations for loci in a schema:\n\n{0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='UniprotFinder',
+                                     description='This process determines loci annotations based '
+                                                 'on exact matches found in the UniProt database.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('UniprotFinder', nargs='+',
-                        help='get info about a schema created with chewBBACA')
+                        help='Determine annotations for loci in a schema.')
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='',
-                        help='path to folder containg the schema fasta '
-                             'files ( alternative a list of fasta files)')
+    parser.add_argument('-i', type=str, required=True,
+                        dest='input_files',
+                        help='Path to the schema\'s directory or to a file with '
+                             'a list of paths to loci FASTA files, one per line.')
 
-    parser.add_argument('-t', nargs='?', type=str, required=True,
-                        dest='',
-                        help='path to proteinID_Genome.tsv file generated')
+    parser.add_argument('-t', type=str, required=True,
+                        dest='protein_table',
+                        help='Path to the "proteinID_Genome.tsv" file created by '
+                             'the CreateSchema process.')
 
-    parser.add_argument('--cpu', nargs='?', type=int, required=False,
-                        default=1, dest='',
-                        help='number of cpu')
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
+                        help='The number of CPU cores to use during the process.')
 
     args = parser.parse_args()
 
-    geneFiles = args.i
-    tsvFile = args.t
-    cpu2use = args.cpu
+    header = 'chewBBACA - UniprotFinder'
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
-    uniprot_find.main(geneFiles, tsvFile, cpu2use)
+    input_files = args.input_files
+    protein_table = args.protein_table
+    cpu_cores = args.cpu_cores
+
+    uniprot_find.main(input_files, protein_table, cpu_cores)
 
 
 def download_schema():

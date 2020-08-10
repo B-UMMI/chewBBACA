@@ -594,7 +594,7 @@ def main(species_id, schema_id, download_folder, core_num,
                                                 ptf_hash,
                                                 schema_params_dict['translation_table'],
                                                 schema_params_dict['minimum_locus_length'],
-                                                schema_params_dict['translation_table'],
+                                                schema_params_dict['chewBBACA_version'],
                                                 schema_params_dict['size_threshold'],
                                                 schema_path)
 

@@ -164,17 +164,6 @@ def proc_gene(gene,auxBar):
     return [gene, name, url]
 
 def main(geneFiles,proteinid2genome,cpu2use):
-    #~ parser = argparse.ArgumentParser(
-    #~ description="This program get names for a schema")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='path to folder containg the schema fasta files ( alternative a list of fasta files)', required=True)
-    #~ parser.add_argument('-t', nargs='?', type=str, help='path to tsv file)', required=True)
-    #~ parser.add_argument('--cpu', nargs='?', type=int, help='number of cpu', required=False, default=1)
-    #~
-    #~ args = parser.parse_args()
-    #~
-    #~ geneFiles = args.i
-    #~ proteinid2genome = args.t
-    #~ cpu2use = args.cpu
 
     geneFiles = check_if_list_or_folder(geneFiles)
     if isinstance(geneFiles, list):

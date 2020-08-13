@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 AUTHOR
 
@@ -428,7 +429,6 @@ def main(input_files, output_directory, prodigal_training_file, schema_name, cpu
         splitted_seqids[s].append(integer_clusters)
     
     # create the FASTA files with the protein sequences before BLAST?
-
     blast_start = time.time()
     print('BLASTing protein sequences in each cluster...')
     # ADD progress bar!!!

@@ -12,3 +12,8 @@ __pycache__/
 # due to using tox and pytest
 .tox
 .cache
+.directory
+# files from finished/unfinised executions
+listGenomes2Call.txt
+listGenes2Call.txt
+proteinID_Genome.tsv

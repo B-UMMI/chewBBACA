@@ -1,43 +1,13 @@
 #!/usr/bin/env python3
+
 import os
+import math
 import argparse
+from operator import itemgetter
+
+import numpy
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna
-from operator import itemgetter
-import numpy
-import math
-
-#~ def main():
-#~ 
-    #~ parser = argparse.ArgumentParser(description="This program screens a set of genes in a fasta file.")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='List of genes files (list of fasta files)', required=True)
-    #~ parser.add_argument('-t', nargs='?', type=float, help='threshold', required=False)
-    #~ parser.add_argument('-c', nargs='?', type=bool, help='All alleles must be conserved', required=False)
-    #~ parser.add_argument('-r', nargs='?', type=bool, help='Return values', required=False)
-#~ 
-    #~ args = parser.parse_args()
-    #~ genes = args.i
-#~ 
-#~ 
-    #~ try:
-        #~ threshold=float(args.t)
-    #~ except:
-        #~ threshold=0.05
-        #~ pass
-    #~ try:
-        #~ OneNotConserved=bool(args.c)
-    #~ except:
-        #~ OneNotConserved=False
-        #~ pass
-#~ 
-    #~ try:
-        #~ ReturnValues=bool(args.r)
-    #~ except:
-        #~ ReturnValues=False
-        #~ pass
-#~ 
-    #~ return getStats(genes,threshold,OneNotConserved,ReturnValues)
-
 
 
 def main(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_thresh):
@@ -138,7 +108,6 @@ def main(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_
                 print(os.path.basename(gene))
             conservedlengthgenes.append(os.path.basename(gene))
         else:
-            #notconservedlengthgenes.append(os.path.basename(gene))
             notconservedlengthgenes.append(os.path.join(relpath,(os.path.basename(gene)).replace(".fasta",".html")))
 
 

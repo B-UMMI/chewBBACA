@@ -4,6 +4,7 @@ import pickle
 import subprocess
 
 
+<<<<<<< HEAD:CHEWBBACA/createschema/runProdigal.py
 def main(input_data):
     
     input_file = input_data[0]
@@ -11,6 +12,41 @@ def main(input_data):
     ptf_path = input_data[2]
     translation_table = input_data[3]
     mode = input_data[4]
+=======
+def main(input_file,tempPath,choosenTaxon,translation_table):
+
+    contigsFasta = input_file
+
+    basepath = tempPath
+
+    # ------------ #
+    # RUN PRODIGAL #
+    # ------------ #
+    # prodigal_path='prodigal'
+
+    if choosenTaxon == "False":
+
+        proc = subprocess.Popen(
+            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', str(translation_table), '-p', 'single', '-f', 'sco', '-q'],
+            stdout=subprocess.PIPE)
+    else:
+        proc = subprocess.Popen(
+            ['prodigal', '-i', contigsFasta, '-c', '-m', '-g', str(translation_table), '-p', 'single', '-f', 'sco', '-q', '-t',
+             choosenTaxon], stdout=subprocess.PIPE)
+
+    cdsDict = {}
+    tempList = []
+    line = ' '
+    while line != '':
+
+        # when it finds a contig tag
+        if "seqhdr" in line:
+            # add contig to cdsDict and start new entry
+
+            if len(tempList) > 0:
+
+                # --- brute force parsing of the contig tag - better solution is advisable --- #
+>>>>>>> master:CHEWBBACA/utils/runProdigal.py
 
     if ptf_path != '':
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',

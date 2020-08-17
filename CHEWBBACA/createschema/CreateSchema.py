@@ -193,7 +193,8 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     protein_files = []
     for i in range(len(inputs4)):
         inputs4[i].append(unique_dna_seqids)
-        inputs4[i].append(11)
+        inputs4[i].append(translation_table)
+        inputs4[i].append(minimum_length)
         inputs4[i].append(os.path.join(temp_directory, 'valid_dna_{0}.fasta'.format(i+1)))
         inputs4[i].append(os.path.join(temp_directory, 'valid_protein_{0}.fasta'.format(i+1)))
     pool = Pool(cpu_to_apply)
@@ -455,12 +456,9 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     minutes, seconds = divmod(delta.total_seconds(), 60)
 
     print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
-
-    print('Created schema based on {0} genomes of {1} in '
-          '{2: .0f}m{3: .0f}s.'.format(len(fasta_files),
-                                           os.path.basename(ptf_path).rstrip('.trn'),
-                                           minutes, sedonds))
+    print('Created schema based on {0} genomes in'
+          '{1: .0f}m{2: .0f}s.'.format(len(fasta_files),
+                                       minutes, seconds))
 
 
 def parse_arguments():

@@ -1967,8 +1967,6 @@ def input_timeout(prompt, timeout):
         sys.exit('Timed out.')
 
 
-#def translate_coding_sequences(sequences_file, valid_seqs, dna_valid_file,
-#                               protein_valid_file, table_id):
 def translate_coding_sequences(input_data):
     """ Translates CDSs into protein sequences.
 
@@ -1987,11 +1985,12 @@ def translate_coding_sequences(input_data):
             keys and CDSs DNA sequences that could not be translated.
     """
 
-    sequences_file = input_data[-4]
-    valid_seqs = input_data[0:-4]
-    dna_valid_file = input_data[-2]
+    valid_seqs = input_data[0:-5]
     protein_valid_file = input_data[-1]
-    table_id = input_data[-3]
+    dna_valid_file = input_data[-2]
+    minimum_length = input_data[-3]
+    table_id = input_data[-4]
+    sequences_file = input_data[-5]
 
     # define limit of records to keep in memory
     dna_lines = []
@@ -2005,9 +2004,12 @@ def translate_coding_sequences(input_data):
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
     for i, seqid in enumerate(valid_seqs):
-        sequence = str(cds_index.get(seqid).seq)
+        try:
+            sequence = str(cds_index.get(seqid).seq)
+        except Exception as e:
+            print(e)
 
-        translation = translate_dna(sequence, table_id)
+        translation = translate_dna(sequence, table_id, minimum_length)
         if isinstance(translation, list):
             dna_lines.append('>{0}'.format(seqid))
             dna_lines.append(translation[0][1])

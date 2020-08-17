@@ -9,40 +9,6 @@ import shutil
 from Bio import SeqIO
 
 
-def verify_cpu_usage(cpu_to_use):
-    """ Verify the cpu usage for chewBBACA.
-
-        Args:
-            cpu_to_use (int): the number of cpu provided to chewBBACA
-
-        Returns:
-            cpu_to_use (int): the number of cpu to use after verification
-
-        Example:
-
-            >>> verify_cpu_usage(6)
-            6
-    """
-    total_cpu = multiprocessing.cpu_count()
-
-    # do not allow a value of cpuToUse greater than the number of cores/threads
-    if cpu_to_use > total_cpu:
-    	print("Warning! You have provided a CPU core count value that exceeds the number of cores in your machine!")
-    	print("Setting a different value for the CPU core count...")
-    	# define a value that is safe according to the number of available cores/threads
-    	if total_cpu > 2:
-    		cpu_to_use = total_cpu - 2
-    	elif total_cpu == 2:
-    		cpu_to_use = 1
-    	print("CPU core count value set to: ", cpu_to_use)
-    
-    elif cpu_to_use < total_cpu and cpu_to_use > total_cpu - 2:
-        print("Warning! You have provided a CPU core count value that is close to the maximum core count of your machine (" \
-        	+ str(cpu_to_use) + '/' + str(total_cpu) + "). This may affect your system responsiveness.")
-
-    return cpu_to_use
-
-
 def check_prodigal_output_files(prodigal_path, fasta_files, genomes_dir, prodigal_results, genomes_identifiers, parent_dir):
     """ Checks if Prodigal created ORF files
         equal to the number of genome files provided.

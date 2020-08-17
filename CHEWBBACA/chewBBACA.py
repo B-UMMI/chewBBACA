@@ -21,7 +21,7 @@ import argparse
 try:
     from __init__ import __version__
     from allelecall import BBACA
-    from createschema import PPanGen
+    from createschema import CreateSchema
     from SchemaEvaluator import ValidateSchema
     from PrepExternalSchema import PrepExternalSchema
     from utils import (TestGenomeQuality, profile_joiner,
@@ -38,7 +38,7 @@ try:
 except:
     from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
-    from CHEWBBACA.createschema import PPanGen
+    from CHEWBBACA.createschema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import ValidateSchema
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
@@ -103,7 +103,12 @@ def create_schema():
 
     parser.add_argument('-o', type=str, required=True,
                         dest='output_directory',
-                        help='Output directory where the schema will be created.')
+                        help='Output directory where the process will store '
+                             'intermediate files and create the schema\'s directory.')
+
+    parser.add_argument('--n', type=str, required=False,
+                        default='schema_seed', dest='schema_name',
+                        help='Name to give to folder that will store the schema files.')
 
     parser.add_argument('--ptf', type=str, required=False,
                         default=False, dest='ptf_path',
@@ -132,6 +137,38 @@ def create_schema():
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM.')
 
+    parser.add_argument('--cm', type=str, required=False,
+                        default='greedy', dest='clustering_mode',
+                        help='The clustering mode. There are two modes: '
+                             'greedy and full. Greedy will add sequences '
+                             'to a single cluster. Full will add sequences '
+                             'to all clusters they share high similarity with.')
+    
+    parser.add_argument('--ws', type=int, required=False,
+                        default=4, dest='word_size',
+                        help='Value of k used to decompose protein sequences '
+                             'into k-mers.')
+
+    parser.add_argument('--cs', type=float, required=False,
+                        default=0.20, dest='clustering_sim',
+                        help='Similarity threshold value necessary to '
+                             'consider adding a sequence to a cluster. This '
+                             'value corresponds to the percentage of shared k-mers.')
+
+    parser.add_argument('--rf', type=float, required=False,
+                        default=0.80, dest='representative_filter',
+                        help='Similarity threshold value that is considered '
+                             'to determine if a sequence belongs to the same '
+                             'gene as the cluster representative purely based '
+                             'on the percentage of shared k-mers.')
+    
+    parser.add_argument('--if', type=float, required=False,
+                        default=0.80, dest='intra_filter',
+                        help='Similarity threshold value that is considered '
+                             'to determine if sequences in the same custer '
+                             'belong to the same gene. Only one of those '
+                             'sequences is kept.')
+
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
@@ -153,6 +190,10 @@ def create_schema():
                         dest='verbose',
                         help='Increased output verbosity during execution.')
 
+    parser.add_argument('--c', '--cleanup', required=False, action='store_false',
+                        dest='cleanup',
+                        help='Delete intermediate files at the end.')
+
     args = parser.parse_args()
 
     header = 'chewBBACA - CreateSchema'
@@ -161,15 +202,22 @@ def create_schema():
 
     input_files = args.input_files
     output_directory = args.output_directory
+    schema_name = args.schema_name
     ptf_path = args.ptf_path
     blast_score_ratio = args.blast_score_ratio
     minimum_length = args.minimum_length
     translation_table = args.translation_table
     size_threshold = args.size_threshold
+    clustering_mode = args.clustering_mode
+    word_size = args.word_size
+    clustering_sim = args.clustering_sim
+    representative_filter = args.representative_filter
+    intra_filter = args.intra_filter
     cpu_cores = args.cpu_cores
     blastp_path = args.blastp_path
     cds_input = args.cds_input
     verbose = args.verbose
+    cleanup = args.cleanup
 
     # check if ptf exists
     if ptf_path is not False:
@@ -177,20 +225,28 @@ def create_schema():
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
+    # create output directory
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
     else:
-        input_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
+        genomes_list = os.path.join(output_directory, 'listGenomes2Call.txt')
+        input_files = aux.check_input_type(input_files, genomes_list)
 
     # start CreateSchema process
-    PPanGen.main(input_files, cpu_cores, output_directory,
-                 blast_score_ratio, blastp_path, minimum_length,
-                 verbose, ptf_path, cds_input,
-                 translation_table, size_threshold)
+    CreateSchema.main(input_files, output_directory, schema_name,
+                      ptf_path, blast_score_ratio, minimum_length,
+                      translation_table, size_threshold, clustering_mode,
+                      word_size, clustering_sim, representative_filter,
+                      intra_filter, cpu_cores, blastp_path,
+                      cds_input, verbose, cleanup)
 
+    schema_dir = os.path.join(output_directory, schema_name)
     # copy training file to schema directory
     if ptf_path is not False:
-        shutil.copy(ptf_path, output_directory)
+        shutil.copy(ptf_path, schema_dir)
         # determine PTF checksum
         ptf_hash = aux.hash_file(ptf_path, 'rb')
     else:
@@ -199,11 +255,12 @@ def create_schema():
     # write schema config file
     schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
                                             translation_table, minimum_length,
-                                            version, size_threshold,
-                                            output_directory)
+                                            version, size_threshold, word_size,
+                                            clustering_sim, representative_filter,
+                                            intra_filter, schema_dir)
 
     # create hidden file with genes/loci list
-    genes_list_file = aux.write_gene_list(output_directory)
+    genes_list_file = aux.write_gene_list(schema_dir)
 
     # remove temporary file with paths
     # to genome files

@@ -99,7 +99,7 @@ def create_schema():
                         dest='input_files',
                         help='Path to the directory that contains the input '
                              'FASTA files. Alternatively, a single file with '
-                             'a list of paths to FASTA files, one per line')
+                             'a list of paths to FASTA files, one per line.')
 
     parser.add_argument('-o', type=str, required=True,
                         dest='output_directory',
@@ -186,6 +186,10 @@ def create_schema():
                         help='Input is a FASTA file with one representative '
                              'sequence per gene in the schema.')
 
+    parser.add_argument('--pm', required=False, choices=['single', 'meta'],
+                        default='single', dest='prodigal_mode',
+                        help='Prodigal running mode.')
+
     parser.add_argument('--v', required=False, action='store_true',
                         dest='verbose',
                         help='Increased output verbosity during execution.')
@@ -216,6 +220,7 @@ def create_schema():
     cpu_cores = args.cpu_cores
     blastp_path = args.blastp_path
     cds_input = args.cds_input
+    prodigal_mode = args.prodigal_mode
     verbose = args.verbose
     cleanup = args.cleanup
 
@@ -229,6 +234,7 @@ def create_schema():
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
+    print('Validating input genomes...')
     if cds_input is True:
         input_files = [os.path.abspath(input_files)]
     else:
@@ -241,7 +247,7 @@ def create_schema():
                       translation_table, size_threshold, clustering_mode,
                       word_size, clustering_sim, representative_filter,
                       intra_filter, cpu_cores, blastp_path,
-                      cds_input, verbose, cleanup)
+                      cds_input, prodigal_mode, verbose, cleanup)
 
     schema_dir = os.path.join(output_directory, schema_name)
     # copy training file to schema directory

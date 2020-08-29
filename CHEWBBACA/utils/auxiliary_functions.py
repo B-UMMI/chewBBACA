@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHORS
 
-    Mickael Silva
-    github: @
-
-    Pedro Cerqueira
-    github: @pedrorvc
-
-    Rafael Mamede
-    github: @rfm-targa
 
 DESCRIPTION
 
@@ -30,11 +21,13 @@ import zipfile
 import requests
 import threading
 import itertools
+import subprocess
 import datetime as dt
 import multiprocessing
 import concurrent.futures
 from getpass import getpass
 from collections import Counter
+from multiprocessing import Pool
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -45,34 +38,87 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC, generic_dna
 
 try:
+    from utils import runProdigal
     from utils import constants as cnst
-    from createschema import new_utils
-    from createschema import init_schema_4_bbaca
 except:
+    from CHEWBBACA.utils import runProdigal
     from CHEWBBACA.utils import constants as cnst
-    from CHEWBBACA.createschema import new_utils
-    from CHEWBBACA.createschema import init_schema_4_bbaca
+
 
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 
 
-def join_list(lst, link):
-    """
+def read_lines(input_file, strip=True):
+    """ Reads lines in an input file and stors those
+        lines in a list.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the input file.
+        strip : bool
+            Specify if lines should be stripped of
+            leading and trailing white spaces and
+            new line characters.
+
+        Returns
+        -------
+        lines : list
+            List with the lines read from the input
+            file.
     """
 
-    return link.join(lst)
+    with open(input_file, 'r') as infile:
+        if strip is True:
+            lines = [file.strip() for file in infile.readlines()]
+        else:
+            lines = [file for file in infile.readlines()]
+
+    return lines
+
+
+def join_list(lst, link):
+    """ Joins all elements in a list into a
+        single string.
+
+        Parameters
+        ----------
+        lst : list
+            List with elements to e joined.
+        link : str
+            Character used to join list
+            elements.
+
+        Returns
+        -------
+        joined_list : str
+            A single string with all elements
+            in the input list concatenated and
+            separated by the character chosen as
+            link.
+    """
+
+    joined_list = link.join(lst)
+
+    return joined_list
 
 
 def file_basename(file_path, suffix=True):
-    """ Get file basename without extension suffix.
+    """ Extract file basename from path.
 
-        Args:
-            file_path (str): the path to the file.
-            Full path or relative path.
+        Parameters
+        ----------
+        file_path : str
+            Path to the file.
+        suffix : bool
+            Specify if the basename should
+            include the file extension.
 
-        Returns:
-            file (str): the file basename without the
-            file extension suffix.
+        Returns
+        -------
+        file : str
+            File basename extracted from input
+            path.
     """
 
     file = os.path.basename(file_path)
@@ -102,36 +148,79 @@ def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
     return conn
 
 
-def pickle_dumper(pickle_out, content):
-    """
+def pickle_dumper(output_file, content):
+    """ Use the Pickle module to serialize an object.
+
+        Parameters
+        ----------
+        content : type
+            Variable that refers to the object that
+            will be serialized and written to the
+            output file.
+        output_file : str
+            Path to the output file.
     """
 
-    with open(pickle_out, 'wb') as po:
+    with open(output_file, 'wb') as po:
         pickle.dump(content, po)
 
 
-def pickle_loader(pickle_in):
-    """
+def pickle_loader(input_file):
+    """ Use the Pickle module to de-serialize an object.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to file with byte stream to be
+            de-serialized.
+
+        Returns
+        -------
+        data : type
+            Variable that refers to the de-serialized
+            object.
     """
 
-    with open(pickle_in, 'rb') as pi:
+    with open(input_file, 'rb') as pi:
         data = pickle.load(pi)
 
     return data
 
 
-def file_zipper(ori_file, zip_file):
-    """
+def file_zipper(input_file, zip_file):
+    """ Zips (compresses) a file.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the file that will be
+            compressed.
+        zip_file : str
+            Path to the ZIP file that will
+            be created.
+
+        Returns
+        -------
+        zip_file : str
+            Path to the ZIP file that was
+            created by compressing the input
+            file.
     """
 
     with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.write(ori_file, os.path.basename(ori_file))
+        zf.write(input_file, os.path.basename(input_file))
 
     return zip_file
 
 
 def remove_files(files):
-    """
+    """ Deletes a set of files.
+
+        Parameters
+        ----------
+        files : list
+            List with paths to the files
+            to be removed.
     """
         
     for f in files:
@@ -139,7 +228,19 @@ def remove_files(files):
 
 
 def count_sequences(fasta_file):
-    """
+    """ Counts the number of sequences in a
+        FASTA file.
+
+        Parameters
+        ----------
+        fasta_file : str
+            Path to a FASTA file.
+
+        Returns
+        -------
+        total_seqs : int
+            Number of sequences in the input
+            FASTA file.
     """
 
     records = SeqIO.parse(fasta_file, 'fasta')
@@ -149,45 +250,53 @@ def count_sequences(fasta_file):
 
 
 def simple_get_request(base_url, headers, endpoint_list):
-    """ Constructs an endpoint URI and uses a GET method to retrive
-        information from the endpoint.
+    """ Constructs an URI for an endpoint and requests
+        data through a GET method sent to that endpoint.
 
-        Args:
-            base_url (str): the base URI for the NS, used to concatenate
-            with a list of elements and obtain endpoints URL.
-            headers (dict): headers for the GET method used to
-            get data from the API endpoints.
-            endpoint_list (list): list with elements that will be
-            concatenated to the base URL to obtain the URL for
-            the API endpoint.
-        Returns:
-            res (requests.models.Response): response object from
-            the GET method.
+        Parameters
+        ----------
+        base_url : str
+            Base URL of the Chewie Nomenclature Server.
+        headers : dict
+            HTTP headers for GET requests.
+        endpoint_list : list
+            List with elements that will be concatenated
+            to the base URI to create the URI for the API endpoint.
+
+        Returns
+        -------
+        res : requests.models.Response
+            Response object from the GET method.
     """
 
     # unpack list of sequential endpoints and pass to create URI
     url = make_url(base_url, *endpoint_list)
-
     res = requests.get(url, headers=headers, timeout=30, verify=False)
 
     return res
 
 
 def simple_post_request(base_url, headers, endpoint_list, data):
-    """ Constructs an endpoint URI and uses a POST method to insert
-        information into the NS structure.
+    """ Constructs an URI for an endpoint and sends
+        data through a POST method sent to that endpoint.
 
-        Args:
-            base_url (str): the base URL for the NS, used to concatenate
-            with a list of elements and obtain endpoints URL.
-            headers (dict): headers for the POST method used to
-            insert data into the NS.
-            endpoint_list (list): list with elements that will be
-            concatenated to the base URL to obtain the URL for
-            the API endpoint.
-        Returns:
-            res (requests.models.Response): response object from
-            the POST method.
+        Parameters
+        ----------
+        base_url : str
+            Base URL of the Chewie Nomenclature Server.
+        headers : dict
+            HTTP headers for GET requests.
+        endpoint_list : list
+            List with elements that will be concatenated
+            to the base URI to create the URI for the API endpoint.
+        data : 
+            Data to send. Must be an object that can be JSON
+            serialized.
+
+        Returns
+        -------
+        res : requests.models.Response
+            Response object from the POST method.
     """
 
     # unpack list of sequential endpoints and pass to create URI
@@ -198,7 +307,24 @@ def simple_post_request(base_url, headers, endpoint_list, data):
 
 
 def concatenate_files(files, output_file, header=None):
-    """
+    """ Concatenates the contents of a set of files.
+
+        Parameters
+        ----------
+        files : list
+            List with the paths to the files to concatenate.
+        output_file : str
+            Path to the output file that will store the
+            concatenation of input files.
+        header : str or NoneType
+            Specify a header that should be written as the
+            first line in the output file.
+
+        Returns
+        -------
+        output_file : str
+            Path to the output file that was created with
+            the concatenation of input files.
     """
 
     with open(output_file, 'w') as of:
@@ -212,7 +338,18 @@ def concatenate_files(files, output_file, header=None):
 
 
 def write_to_file(text, output_file, write_mode, end_char):
-    """
+    """ Writes a single string to a file.
+
+        Parameters
+        ----------
+        text : str
+
+        output_file : str
+
+        write_mode : str
+
+        end_char : str
+
     """
 
     with open(output_file, write_mode) as out:
@@ -263,12 +400,10 @@ def create_fasta_lines(sequences, genome_id):
         Example:
     """
 
-    lines = []
-    for seqid in sequences:
-        sequence = sequences[seqid]
-        record = '>{0}-protein{1}\n{2}'.format(genome_id, seqid, sequence)
+    template = '>{0}-protein{1}\n{2}'
 
-        lines.append(record)
+    lines = [template.format(genome_id, seqid, sequence)
+             for seqid, sequence in sequences.items()]
 
     return lines
 
@@ -288,6 +423,27 @@ def import_sequences(fasta_path):
     seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
 
     return seqs_dict
+
+
+def extract_subsequence(sequence, start, stop):
+    """
+    """
+
+    subsequence = sequence[start:stop]
+
+    return subsequence
+
+
+def extract_cds(sequence, start, stop, strand):
+    """
+    """
+
+    subsequence = extract_subsequence(sequence, start, stop)
+
+    if strand == 0:
+        subsequence = reverse_complement(subsequence)
+
+    return subsequence
 
 
 def extract_coding_sequences(reading_frames, contigs, starting_id):
@@ -313,34 +469,25 @@ def extract_coding_sequences(reading_frames, contigs, starting_id):
             attributed to that CDS and the strand that coded for that CDS.)
     """
 
-    # load binary file with a list of lists for each contig
-    # each sublist has a start codon and stop codon positions
-    # in the contig
-    with open(reading_frames, 'rb') as orf_file:
-        rfs = pickle.load(orf_file)
-
     seqid = starting_id
     coding_sequences = {}
     coding_sequences_info = []
-    for contig_id, frames in rfs.items():
+    for contig_id, frames in reading_frames.items():
+        sequence = contigs[contig_id]
         # for each start and stop codon in the contig
         for cds in frames:
-            start_codon = cds[0]
-            stop_codon = cds[1]
+            start_pos = cds[0]
+            stop_pos = cds[1]
             strand = cds[2]
             # extract CDS sequence
-            cds_sequence = contigs[contig_id][start_codon:stop_codon].upper()
-            # check coding strand to change sequence orientation
-            # if needed
-            if strand == 0:
-                cds_sequence = reverse_complement(cds_sequence)
+            cds_sequence = extract_cds(sequence, *cds).upper()
 
             # store CDS with unique id
             coding_sequences[seqid] = cds_sequence
 
             # store CDS information
-            coding_sequences_info.append([contig_id, str(start_codon),
-                                          str(stop_codon), str(seqid),
+            coding_sequences_info.append([contig_id, str(start_pos),
+                                          str(stop_pos), str(seqid),
                                           str(strand)])
 
             # increment seqid
@@ -360,45 +507,60 @@ def write_protein_table(file_name, genome_id, cds_info):
     write_to_file(table_text, file_name, 'a', '\n')
 
 
-def process_cdss(input_data):
+def batch_extractor(input_data):
     """
     """
 
+    index = input_data[-1]
     genomes = input_data[0:-3]
     prodigal_path = input_data[-3]
     parent_directory = input_data[-2]
-    index = input_data[-1]
-    temp_directory = os.path.join(parent_directory, 'temp')
-    protein_table = os.path.join(parent_directory,
-                                 'protein_info_{0}.tsv'.format(index))
 
-    cds_file = os.path.join(temp_directory,
-                            'coding_sequences_{0}.fasta'.format(index))
+    protein_table = join_paths(parent_directory,
+                               ['protein_info_{0}.tsv'.format(index)])
+
+    cds_file = join_paths(parent_directory,
+                          ['temp', 'coding_sequences_{0}.fasta'.format(index)])
+
+    batch_total = 0
+    for g in genomes:
+        # determine Prodigal ORF file path for current genome
+        identifier = file_basename(g, False)
+        orf_file_path = os.path.join(prodigal_path,
+                                     '{0}_ORF.txt'.format(identifier))
+        total = extract_features(g, identifier, orf_file_path, protein_table, cds_file)
+        batch_total += total
+
+    return [protein_table, cds_file, batch_total]
+
+
+def extract_features(genome, identifier, orf_file, protein_table, cds_file):
+    """
+    """
+
+    total = 0
     protid = 1
-    for i, g in enumerate(genomes):
-        try:
-            # determine Prodigal ORF file path for current genome
-            identifier = os.path.basename(g).split('.')[0]
-            orf_file_path = os.path.join(prodigal_path,
-                                         '{0}_ORF.txt'.format(identifier))
-            # import contigs for current genome/assembly
-            contigs = import_sequences(g)
-            # extract coding sequences from contigs
-            genome_info = extract_coding_sequences(orf_file_path,
-                                                       contigs, protid)
-            # save coding sequences to file
-            # create records and write them to file
-            cds_lines = create_fasta_lines(genome_info[0], identifier)
-            write_fasta(cds_lines, cds_file)
+    try:
+        # import contigs for current genome/assembly
+        contigs = import_sequences(genome)
+        # extract coding sequences from contigs
+        reading_frames = pickle_loader(orf_file)
+        genome_info = extract_coding_sequences(reading_frames,
+                                               contigs, protid)
+        # save coding sequences to file
+        # create records and write them to file
+        cds_lines = create_fasta_lines(genome_info[0], identifier)
+        write_fasta(cds_lines, cds_file)
 
-            write_protein_table(protein_table, identifier, genome_info[1])
+        write_protein_table(protein_table, identifier, genome_info[1])
 
-            # keep track of CDSs identifiers to assign them sequentially
-            protid = 1
-        except Exception as e:
-            print(e, identifier, orf_file_path, g)
+        # keep track of CDSs identifiers to assign them sequentially
+        total += len(genome_info[0])
+        protid = 1
+    except Exception as e:
+        print(e, identifier, orf_file, genome)
 
-    return [protein_table, cds_file]
+    return total
 
 
 def hash_file(file, read_mode):
@@ -623,20 +785,18 @@ def verify_cpu_usage(cpu_to_use):
     """
     total_cpu = multiprocessing.cpu_count()
 
-    # do not allow a value of cpuToUse greater than the number of cores/threads
+    # do not allow a value greater than the number of cores
     if cpu_to_use >= total_cpu:
         print('Warning! You have provided a CPU core count value '
               'that is equal to or exceeds the number of CPU '
-              'cores/threads in your machine!')
-        print('Setting a different value...')
+              'cores in your system!')
         # define a value that is safe according to the number of
         # available cores/threads
         if total_cpu > 2:
             cpu_to_use = total_cpu - 2
         elif total_cpu == 2:
             cpu_to_use = 1
-        print('CPU cores/threads value set to: {0}'.format(cpu_to_use))
-
+        print('Resetting to: {0}'.format(cpu_to_use))
     elif cpu_to_use == (total_cpu - 1):
         print('Warning! You have provided a CPU core count value '
               'that is close to the maximum core count of your '
@@ -663,39 +823,72 @@ def check_ptf(ptf_path):
         return [True, ptf_path]
 
 
-def check_prodigal_output_files(path_to_temp, list_of_genomes):
+def check_prodigal_results(fasta_files, genomes_dir, prodigal_results,
+                           genomes_identifiers, parent_dir):
     """ Checks if Prodigal created ORF files
         equal to the number of genome files provided.
 
         Args:
-            path_to_temp (str): the full path to the 'temp'
-            directory created by chewBBACA.
-            list_of_genomes (list): list containing the full
-            path to the input genomes.
-
-        Returns:
-            prints a message if Prodigal created all the
-            necessary files, otherwise raises a ValueError
+            path_to_temp (str): the full path to the 'temp' directory created by chewBBACA.
+            list_of_genomes (list): list containing the full path to the input genomes.
     """
 
-    # list ORF files created in the 'temp' directory
-    listOfORFCreated = []
-    for orffile in os.listdir(path_to_temp):
-        if orffile.endswith('_ORF.txt'):
-            listOfORFCreated.append(orffile)
+    no_cds = [l for l in prodigal_results if l[1] == 0]
+    errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
+    failed = no_cds + errors
 
-    # raise exception if the number of ORF files is not equal
-    # to the number of genome files provided
-    if len(list_of_genomes) > len(listOfORFCreated):
-        message = ('Missing some ORF files from Prodigal run. '
-                   'Missing {0} ORF files out of {1} genome files '
-                   'provided.'.format(len(list_of_genomes) - len(listOfORFCreated),
-                                      len(list_of_genomes)))
-        # remove 'temp' directory
-        shutil.rmtree(path_to_temp)
-        raise ValueError(message)
-    else:
-        print('Prodigal created all the necessary files.')
+    outfile = os.path.join(parent_dir, 'prodigal_fails.tsv')
+    if len(failed) > 0:
+        with open(outfile, 'w') as pf:
+            lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
+            pf.writelines(lines)
+
+        # remove failed genomes from paths
+        for f in failed:
+            file_path = os.path.join(genomes_dir, '{0}.fasta'.format(f[0]))
+            fasta_files.remove(file_path)
+            genomes_identifiers.remove(f[0])
+
+    return [fasta_files, genomes_identifiers, failed, outfile]
+
+
+def map_async_parallelizer(inputs, function, cpu, callback='extend', chunksize=1, show_progress=False):
+    """
+    """
+
+    results = []
+    pool = Pool(cpu)
+    if callback == 'extend':
+        rawr = pool.map_async(function, inputs, callback=results.extend, chunksize=chunksize)
+    elif callback == 'append':
+        rawr = pool.map_async(function, inputs, callback=results.append, chunksize=chunksize)
+
+    if show_progress is True:
+        completed = False
+        while completed is False:
+            completed = progress_bar(rawr, len(inputs))
+
+    rawr.wait()
+
+    return results
+
+
+def execute_prodigal(input_info):
+    """
+    """
+
+    prodigal_result = runProdigal.main(*input_info)
+
+    return prodigal_result
+
+
+def extend_list(input_list, *elements):
+    """
+    """
+
+    input_list.extend(elements)
+
+    return input_list
 
 
 def is_fasta(filename):
@@ -787,11 +980,14 @@ def make_blast_db(input_fasta, output_path, db_type):
             Creates a BLAST database with the input sequences.
     """
 
-    makedb_cmd = ('makeblastdb -in {0} -out {1} -parse_seqids '
-                  '-dbtype {2} > /dev/null'.format(input_fasta,
-                                                   output_path,
-                                                   db_type))
-    os.system(makedb_cmd)
+    blastdb_cmd = ['makeblastdb', '-in', input_fasta, '-out', output_path,
+                   '-parse_seqids', '-dbtype', db_type]
+
+    makedb_cmd = subprocess.Popen(blastdb_cmd,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+
+    makedb_cmd.wait()
 
 
 def determine_blast_task(proteins):
@@ -821,10 +1017,10 @@ def create_directory(directory_path):
         os.makedirs(directory_path)
 
 
-def join_paths(parent_path, child_path):
+def join_paths(parent_path, child_paths):
     """ Joins a parent directory and a subdirectory."""
 
-    joined_paths = os.path.join(parent_path, child_path)
+    joined_paths = os.path.join(parent_path, *child_paths)
 
     return joined_paths
 
@@ -1925,7 +2121,7 @@ def get_data(sparql_query):
     return result
 
 
-def progress_bar(process, total, tickval, ticknum, completed):
+def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
     """
     """
 
@@ -2034,7 +2230,25 @@ def translate_coding_sequences(input_data):
     return [invalid_alleles, total_seqs]
 
 
-def determine_repeated(input_data):
+def hash_sequence(sequence):
+    """
+    """
+
+    seq_hash = hashlib.sha256(sequence.encode('utf-8')).hexdigest()
+
+    return seq_hash
+
+
+def fasta_str_record(seqid, sequence):
+    """
+    """
+
+    record = '>{0}\n{1}'.format(seqid, sequence)
+
+    return record
+
+
+def determine_distinct(input_data):
     """
     """
 
@@ -2042,31 +2256,34 @@ def determine_repeated(input_data):
 
     total = 0
     seqs_dict = {}
-    out_limit = 5000
+    out_limit = 10000
     out_seqs = []
-    for record in SeqIO.parse(sequences_file, 'fasta'):
-        # seq object has to be converted to string
-        sequence = str(record.seq.upper())
-        seqid = record.id
-        seq_hash = hashlib.sha256(sequence.encode('utf-8')).hexdigest()
+    exausted = False
+    seq_generator = SeqIO.parse(sequences_file, 'fasta')
 
-        # store each sequence and first seqid found
-        # with that sequence
-        # write sequence and seqid to file and use hash as key
-        if seq_hash not in seqs_dict:
-            seqs_dict[seq_hash] = seqid
-            recout = '>{0}\n{1}'.format(seqid, sequence)
-            out_seqs.append(recout)
-            if len(out_seqs) == out_limit:
+    while exausted is False:
+        record = next(seq_generator, None)
+        if record is not None:
+            # seq object has to be converted to string
+            sequence = str(record.seq.upper())
+            seqid = record.id
+            seq_hash = hash_sequence(sequence)
+
+            # store only the hash for distinct sequences
+            if seq_hash not in seqs_dict:
+                seqs_dict[seq_hash] = seqid
+                recout = fasta_str_record(seqid, sequence)
+                out_seqs.append(recout)
+            elif seq_hash in seqs_dict:
+                total += 1
+        else:
+            exausted = True
+
+        if len(out_seqs) == out_limit or exausted is True:
+            if len(out_seqs) > 0:
                 out_seqs = join_list(out_seqs, '\n')
                 write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
-        elif seq_hash in seqs_dict:
-            total += 1
-
-    if len(out_seqs) > 0:
-        out_seqs = join_list(out_seqs, '\n')
-        write_to_file(out_seqs, unique_fasta, 'a', '\n')
 
     unique_seqids = list(seqs_dict.values())
 
@@ -2107,37 +2324,36 @@ def get_sequences_by_id(sequences_index, seqids, out_file):
     """
     """
 
-    selected = []
+    records = []
     seq_limit = 5000
     for i, seqid in enumerate(seqids):
-        identifier = sequences_index[seqid].id
-        header = '>{0}'.format(identifier)
+        #identifier = sequences_index[seqid].id
         sequence = str(sequences_index[seqid].seq)
-        selected.append(header)
-        selected.append(sequence)
+        record = fasta_str_record(seqid, sequence)
+        records.append(record)
 
-        if len(selected) // 2 == seq_limit or i+1 == len(seqids):
-
-            lines = join_list(selected, '\n')
+        if len(records) == seq_limit or i+1 == len(seqids):
+            lines = join_list(records, '\n')
             write_to_file(lines, out_file, 'a', '\n')
+            records = []
 
-            selected = []
 
-
-def get_schema_reps(dna_index, schema_seqids, protein_file, output_file):
+def create_short(schema_files, schema_dir):
     """
     """
 
-    schema_lines = []
-    for seqid in schema_seqids:
-        header = '>{0}'.format(seqid)
-        sequence = str(dna_index[seqid].seq)
+    short_path = join_paths(schema_dir, ['short'])
+    if not os.path.exists(short_path):
+        os.makedirs(short_path)
 
-        schema_lines.append(header)
-        schema_lines.append(sequence)
+    for file in schema_files:
 
-    schema_text = join_list(schema_lines, '\n')
-    write_to_file(schema_text, output_file, 'w', '')
+        short_file = join_paths(short_path, [file[0]+'_short.fasta'])
+        main_file = file[1]
+        
+        shutil.copy(main_file, short_file)        
+
+    return True
 
 
 def build_schema(schema_file, output_path):
@@ -2148,11 +2364,12 @@ def build_schema(schema_file, output_path):
     schema_files = []
     for record in SeqIO.parse(schema_file, 'fasta', IUPAC.unambiguous_dna):
         file_name = record.name
-        file_name = new_utils.replace_multiple_characters(file_name)
+        file_name = replace_multiple_characters(file_name)
 
         new_file = '{0}{1}'.format(file_name, '.fasta')
         new_file_path = os.path.join(output_path, new_file)
-        schema_files.append(new_file_path)
+
+        schema_files.append([file_name, new_file_path])
 
         header = '>{0}_1'.format(file_name)
         sequence = str(record.seq).upper()
@@ -2161,8 +2378,31 @@ def build_schema(schema_file, output_path):
 
         total_genes += 1
 
-    init_schema_4_bbaca.get_Short(schema_files)
-    print('\nTotal of {0} loci that constitute the schema.'.format(total_genes))
+    create_short(schema_files, output_path)
+
+    return total_genes
+
+
+def run_blast(blastp_path, blast_db, fasta_file, blast_output,
+              max_hsps=1, threads=1, ids_file=None):
+    """
+    """
+
+    blast_args = [blastp_path, '-db', blast_db, '-query', fasta_file,
+                  '-out', blast_output, '-outfmt', '6 qseqid sseqid score',
+                  '-max_hsps', str(max_hsps), '-num_threads', str(threads),
+                  '-evalue', '0.001']
+
+    if ids_file is not None:
+        blast_args.extend(['-seqidlist', ids_file])
+
+    blast_proc = subprocess.Popen(blast_args,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+
+    stderr = blast_proc.stderr.readlines()
+
+    return stderr
 
 
 def cluster_blaster(inputs):
@@ -2177,32 +2417,34 @@ def cluster_blaster(inputs):
 
     indexed_fasta = SeqIO.index(proteins_file, 'fasta')
 
-    for cluster in blast_inputs:
+    out_files = []
+    try:
+        for cluster in blast_inputs:
 
-        cluster_id = cluster
-        ids_file = os.path.join(output_directory,
-                                '{0}_ids.txt'.format(cluster_id))
+            cluster_id = cluster
+            ids_file = os.path.join(output_directory,
+                                    '{0}_ids.txt'.format(cluster_id))
 
-        with open(ids_file, 'r') as clstr:
-            cluster_ids = [l.strip() for l in clstr.readlines()]
+            with open(ids_file, 'r') as clstr:
+                cluster_ids = [l.strip() for l in clstr.readlines()]
 
-        fasta_file = os.path.join(output_directory,
-                                  '{0}_protein.fasta'.format(cluster_id))
-        # create file with protein sequences
-        get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
+            fasta_file = os.path.join(output_directory,
+                                      '{0}_protein.fasta'.format(cluster_id))
+            # create file with protein sequences
+            get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
 
-        blast_output = os.path.join(output_directory,
-                                    '{0}_blast_out.tsv'.format(cluster_id))
-        blast_command = ('{0} -db {1} -query {2} -out {3} '
-                         '-outfmt "6 qseqid sseqid score" '
-                         '-max_hsps 1 -num_threads {4} -evalue '
-                         '0.001 -seqidlist {5}'.format(blastp_path,
-                                                       blast_db,
-                                                       fasta_file,
-                                                       blast_output,
-                                                       1, ids_file))
+            blast_output = os.path.join(output_directory,
+                                        '{0}_blast_out.tsv'.format(cluster_id))
 
-        os.system(blast_command)
+            # Use subprocess to capture errors and warnings
+            stderr = run_blast(blastp_path, blast_db, fasta_file, blast_output,
+                               1, 1, ids_file)
+
+            out_files.append(blast_output)
+    except Exception as e:
+        print(e)
+
+    return out_files
 
 
 def blast_inputs(clusters, output_directory, ids_dict):
@@ -2255,6 +2497,9 @@ def divide_list_into_n_chunks(list_to_divide, n):
         si = (d+1)*(i if i < r else r) + d*(0 if i < r else i - r)
         sublists.append(list_to_divide[si:si+(d+1 if i < r else d)])
 
+    # exclude lists that are empty due to small number of elements
+    sublists = [i for i in sublists if len(i) > 0]
+
     return sublists
 
 
@@ -2286,7 +2531,6 @@ def apply_bsr(inputs):
         score = res[2]
 
         if query not in excluded_alleles:
-            #print(res)
             # try to apply BSR strategy
             try:
                 self_blast_score = self_scores[query]
@@ -2300,11 +2544,9 @@ def apply_bsr(inputs):
 
                     if hit_length > query_length and query not in excluded_alleles:
                         excluded_alleles.append(query)
-                        #print(query)
 
                     elif hit_length <= query_length:
                         excluded_alleles.append(hit)
-                        #print(hit)
             # it might not work because there is no self score for
             # some sequences due to low complexity regions...
             except Exception:
@@ -2322,30 +2564,25 @@ def sequence_kmerizer(sequence, k_value, offset=1):
     return kmers
 
 
-# for AlleleCall this function need to receive the variable 'reps_groups'
-# and to accept a argument that controls if it is allowed to create new
+# for AlleleCall this function needs to receive the variable 'reps_groups'
+# and to accept an argument that controls if it is allowed to create new
 # clusters based on new genes that it finds.
-def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode, offset=1):#, interval=0.25):
+def cluster_sequences(sorted_sequences, word_size, clustering_sim,
+                      mode, representatives={}, grow=True, offset=1):
     """
     """
 
     clusters = {}
-    reps_groups = {}
+    reps_groups = representatives
     for prot in sorted_sequences:
         protid = prot[0]
         protein = prot[1]
         kmers = sequence_kmerizer(protein, word_size, offset)
 
-        #first_value = len(kmers) * interval
-        #intervals = [first_value, first_value*2, first_value*3, len(kmers)]
         current_reps = []
         for k in kmers:
-        #for i, k in enumerate(kmers):
             if k in reps_groups:
                 current_reps.extend(list(reps_groups[k]))
-            #if i in intervals:
-            #    counts = Counter(current_reps)
-            #    current_reps = [(k, v/len(kmers)) for k, v in counts.items() if v/len(kmers) >= clustering_sim]
 
         # count number of kmer hits per representative
         counts = Counter(current_reps)
@@ -2355,7 +2592,6 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode, offset=
         sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
 
         if len(sims) > 0:
-
             if mode == 'greedy':
                 clusters[sims[0][0]].append((protid, sims[0][1]))
             elif mode == 'full':

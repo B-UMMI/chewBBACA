@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
+
 import os
 import pickle
 import subprocess
 
+try:
+    from utils import auxiliary_functions as aux
+except:
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
-def main(input_data):
-    
-    input_file = input_data[0]
-    output_dir = input_data[1]
-    ptf_path = input_data[2]
-    translation_table = input_data[3]
-    mode = input_data[4]
+
+def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     if ptf_path != '':
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
@@ -29,13 +29,13 @@ def main(input_data):
     stdout = proc.stdout.readlines()
     stderr = proc.stderr.readlines()
 
-    file_basename = os.path.basename(input_file).split('.')[0]
+    genome_basename = aux.file_basename(input_file, False)
 
     if len(stderr) > 0:
         stderr = [line.decode('utf-8').strip() for line in stderr]
         stderr = [line for line in stderr if line != '']
         error = ' '.join(stderr)
-        return [file_basename, error]
+        return [genome_basename, error]
 
     # Parse output
     lines = [line.decode('utf-8').strip() for line in stdout]
@@ -45,7 +45,7 @@ def main(input_data):
     contigs_ids = [l.split('"')[1].split()[0] for l in contigs_headers]
     contigs_idx = [lines.index(l) for l in contigs_headers] + [len(lines)]
 
-    # get CDS' positions for each contig
+    # get CDSs' positions for each contig
     contigs_pos = {contigs_ids[i]: lines[contigs_idx[i]+1:contigs_idx[i+1]]
                    for i in range(len(contigs_ids))}
 
@@ -65,13 +65,11 @@ def main(input_data):
 
     if total_genome > 0:
         # save positions in file
-        filepath = os.path.join(output_dir, file_basename + '_ORF.txt')
+        filepath = os.path.join(output_dir, genome_basename + '_ORF.txt')
         with open(filepath, 'wb') as f:
             pickle.dump(contigs_pos, f)
 
-    status = [file_basename, total_genome]
-
-    #print("done prodigal run on: " + str(os.path.basename(input_file)))
+    status = [genome_basename, total_genome]
 
     return status
 

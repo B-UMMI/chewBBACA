@@ -47,20 +47,21 @@ This version also includes other changes:
 - Further optimizations in the `PrepExternalSchema` process.
 
 ---------
-## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
+## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki)...
 ...for a much more thorough chewBBACA walkthrough.
 Below you can find a list of commands for a quick usage of the software.
 
-## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial) ...
+## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial)...
 ...is available as example on how to run an analysis pipeline using chewBBACA.
 
 ## Use [BBACA gitter](https://gitter.im/BBACA/Lobby)...
 ... if you have any pressing question. Chat can be faster and better than email for troubleshooting purposes.
 
-## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/) ...
+## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/)...
 ...automatically built from the latest version of chewBBACA in Ubuntu 16.04.
 
-## chewBBACA is available as a Galaxy module. Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome! 
+## chewBBACA is available as a Galaxy module.
+Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome! 
 https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
 
 ----------
@@ -261,7 +262,8 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 
 Basic usage:
 
-```chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
+```
+chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
 ```
 	
 `-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line

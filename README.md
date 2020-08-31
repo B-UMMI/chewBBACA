@@ -1,4 +1,4 @@
-# chewBBACA: Quick Usage
+# chewBBACA
 
 **chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
 but at this point still it needs a bit of work to make that claim so we just add "chew" to add extra coolness to the software name. BSR stands for 
@@ -10,30 +10,22 @@ settings and a set of functions to visualize and validate allele variation in th
 
 chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting from de novo assemblers.
 
-The code contained in this repository concerning release v2.0.5. has been published in Microbial Genomics under the title:  
+chewBBACA has been published (version 2.0.5 at the time) in Microbial Genomics under the title:
 **chewBBACA: A complete suite for gene-by-gene schema creation and strain identification**  - [Link to paper](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166) 
 
 When using chewBBACA please use the following citation:
 
-
 Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
 
 # IMPORTANT
-As from 25/01/2018 this repo is now fully on **python 3** (tested on >=3.4). The previous python 2 version can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2  
-As from 02/02/2018 **chewBBACA is a python package**, install with pip instead of git clone.  
-The prodigal training files to be used are now provided with chewBBACA's source code, easing their usage.
+
+As from 25/01/2018, chewBBACA's code has been adapted for **python 3** (tested on >=3.4). The previous python 2 version is no longer supported and can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2.
+chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
 
 # Latest updates
 
-## New in 2.5.1 (05/08/2020)
-* Chewie verifies if Chewie-NS instance is available before starting processes.
-* SyncSchema gets Chewie-NS base URL from configuration file.
-* Schemas can be created without a Prodigal training file and without a size threshold value.
-* LoadSchema and SyncSchema processes display info about loci and allele insertion progress.
-* Corrected bug leading to errors during the AlleleCall process. Schema adaptation during the SyncSchema process may change loci representatives and pre-computed BSR values would become outdated.
-* Corrected bug leading to error during the update of allelic profiles if new allele identifiers contained '*'.
+## 2.5.0 - 2.5.4
 
-## New in 2.5.0 (30/06/2020)
 We've developed [Chewie-NS](https://chewbbaca.online/), a Nomenclature Server that is based on the [TypOn](https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-5-43) ontology and integrates with chewBBACA to provide access to gene-by-gene typing schemas and to allow a common and global allelic nomenclature to be maintained.
 
 To allow all users to interact with the Chewie-NS, we've implemented the following set of modules:
@@ -49,84 +41,48 @@ The Chewie-NS [source code](https://github.com/B-UMMI/Nomenclature_Server_docker
 This version also includes other changes:
 
 - The `AlleleCall` process will detect if a schema was created with previous chewBBACA versions and ask users if they wish to convert the schema to the latest version. The conversion process **will not alter** your schema files, it will simply add configuration files and copy the Prodigal training file to the schema's directory. You can force schema conversion with the `--fc` argument.
-- It is now required that users provide a valid Prodigal training file to the `CreateSchema` and `PrepExternalSchema` processes. The training file will be included in the schema and can be automatically detected by the `AlleleCall` process.
+- The Prodigal training file used to create the schema will be included in the schema's directory and can be automatically detected by the `AlleleCall` process.
 - Schemas created with the `CreateSchema` process or adapted with the `PrepExternalSchema` retain information about parameters values (BLAST Score Ratio, Prodigal training file, genetic code, minimum sequence length and sequence size variation threshold) and users are advised to keep performing allele call with those parameters values to ensure consistent results and provide the possibility of schema upload to the Chewie-NS. The AlleleCall process detects if a user provides parameters values that differ from the original values and requests confirmation before proceeding (you may force execution with the `--fc` argument).
 - The AlleleCall process creates a SQLite database in the schema's directory that is used to store the allelic profiles determined with that schema.
 - Further optimizations in the `PrepExternalSchema` process.
 
-## New in 2.1.0 (05/11/2019)
-* New `PrepExternalSchema` implementation: Algorithmic optimizations to improve speed and maintain memory efficiency. New output files with summary information about schema adaptation and excluded sequences and options to control the Blast Score Ratio, minimum sequence length and genetic code values passed to the process.
-
-## chewBBACA released as a galaxy module! 
-Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome ! 
-https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
-
-## New in 2.0.17 (10/2/2019)
-* New alleles also have a timestamp added to the allele name.
-
-## New in 2.0.16 (06/1/2018)
-* Corrected bug from 2.0.15 when no prodigal training file provided.
-
-## New in 2.0.15 (06/1/2018)
-* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
- 
-## New in 2.0.13 (18/09/2018)
-* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
- 
-## New in 2.0.11 (05/06/2018)
-* corrected bug when -h on allele call
-* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
- 
-## New in 2.0.10 (21/05/2018)
-* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
-* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
- 
-## New in 2.0.9 (04/04/2018)
-* blast results during allele call are not saved as a file, instead are piped directly for processing
-* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option  
- 
-## New in 2.0.7 (23/02/2018)
-* corrected bug that prevented usage of latest blast version (>=2.7.0)
-* version flag can now be used `--version`
-* instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
- 
-## New in 2.0.5 (14/02/2018)
-* AlleleCall : -i option accepts a single fasta file now
-
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki) ...
-...for a much more thorough chewBBACA walkthrough. 
+...for a much more thorough chewBBACA walkthrough.
 Below you can find a list of commands for a quick usage of the software.
 
-## Use [BBACA gitter](https://gitter.im/BBACA/Lobby)...
+## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial) ...
+...is available as example on how to run an analysis pipeline using chewBBACA.
 
-... if you have any pressing question. Chat can be faster and better than email for troubleshooting purposes 
+## Use [BBACA gitter](https://gitter.im/BBACA/Lobby)...
+... if you have any pressing question. Chat can be faster and better than email for troubleshooting purposes.
+
+## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/) ...
+...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
+
+----------
+
+## Quick Usage
 
 **Important Notes before starting:**
 
- - **chewBBACA** define an allele as a complete Coding DNA Sequence, with start and stop codon according 
+ - **chewBBACA** defines an allele as a complete Coding DNA Sequence, with start and stop codons according 
  to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will 
  automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
  - All the referenced lists of files *must contain full path* for the files.
  - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](http://linuxcommand.org/man_pages/dos2unix1.html).
 
-## An extensive [tutorial repository](https://github.com/B-UMMI/chewBBACA_tutorial) ...
-...is available as example on how to run an analysis pipeline using chewBBACA. 
-
-## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/) ...
-...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
-
-## Available [training files](https://github.com/mickaelsilva/prodigal_training_files) ...
-
-...use for a better result, species specific. **Also inside the package now!** e.g. `--ptf  Acinetobacter_baumannii.trn` will now also work!
-
-----------
-
 ## 0. Setting up the analysis
 
 **Installing chewBBACA**
 
-Install using pip
+Install using conda:
+
+```
+conda install -c bioconda chewbbaca
+```
+
+Install using pip:
 
 ```
 pip3 install chewbbaca
@@ -134,23 +90,26 @@ pip3 install chewbbaca
 
 You need to install the following dependencies. Prodigal and BLAST must be added to the PATH variables.
 
+chewBBACA has the following dependencies:
 
-Python dependencies:
+Python dependencies (defined in the [requirements](https://github.com/B-UMMI/chewBBACA/blob/master/CHEWBBACA/requirements.txt) file, should be automatically installed):
 * numpy>=1.14.0
 * scipy>=0.13.3
 * biopython>=1.70
 * plotly>=1.12.9
 * SPARQLWrapper>=1.8.0
+* requests>=2.2.1
 * pandas>=0.22.0
 
 Main dependencies:
-* BLAST 2.5.0+ ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.5.0/ or above
+* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/) or above
 * [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/) or above
 
 Other dependencies (for schema evaluation only):
 * [ClustalW2](http://www.clustal.org/download/current/)
 * [mafft](https://mafft.cbrc.jp/alignment/software/)
 
+Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST and Prodigal installed and added to the PATH.
 
 ----------
 
@@ -158,7 +117,9 @@ Other dependencies (for schema evaluation only):
 
 Create your own wgMLST schema based on a set of genomes fasta files. The command is the following:
 
-`chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --cpu 4`
+```
+chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --cpu 4
+```
 
 **Parameters**
 
@@ -184,7 +145,9 @@ The fasta file names are the given according the FASTA annotation for each codin
 Information about each locus is almost non existant at this point, the only information directly given by the schema creation is where are located each identified protein on the 
 genome (proteinID_Genome.tsv file). A function was added to fetch information on each locus based on the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
 
-`chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4`
+```
+chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
+```
 
 **Parameters**
 
@@ -205,7 +168,9 @@ A tsv file with the information of each fasta (new_protids.tsv), location on the
 
 Then run is the following:
 
-`chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 `
+```
+chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 
+```
 
 **Parameters** 
 
@@ -242,7 +207,9 @@ be hard to use a different one, use this option using the full path of the updat
 Usage:
 
 
-`chewBBACA.py TestGenomeQuality -i alleles.tsv -n 12 -t 200 -s 5 -o OutFolder`  
+```
+chewBBACA.py TestGenomeQuality -i alleles.tsv -n 12 -t 200 -s 5 -o OutFolder
+```
 	
 `-i` raw output file from an allele calling (i.e. results_Alleles.txt)
 
@@ -270,7 +237,9 @@ Clean a raw output file from an allele calling to a phyloviz readable file.
 
 Basic usage:
 
-`chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders`
+```
+chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
+```
 	
 `-i` raw output file from an allele calling
 
@@ -291,8 +260,8 @@ Basic usage:
 
 Basic usage:
 
-
-`chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"`
+```chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
+```
 	
 `-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line
 
@@ -332,22 +301,28 @@ A: At the moment:
  - *Legionella pneumophila*
  - *Listeria monocytogenes*
  - *Salmonella enterica enteritidis*
- - *Streptococcus agalactiae*
  - *Staphylococcus aureus*
  - *Staphylococcus haemolyticus*
+ - *Streptococcus agalactiae*
+ - *Streptococcus canis
+ - *Streptococcus dysgalactiae
+ - *Streptococcus equi
+ - *Streptococcus pneumoniae
+ - *Streptococcus pyogenes
  - *Yersinia enterocolitica*
- 
-get them at https://github.com/mickaelsilva/prodigal_training_files
+
+get them [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files).
  
 ### Q: My favorite species has no training file. What can I do?
 A: You can propose a new one to be added to the repository or create your own training 
 files. To create a training file do:
 
-`prodigal -i myGoldStandardGenome.fna -t myTrainedFile.trn -p single`
- 
+```
+prodigal -i myGoldStandardGenome.fna -t myTrainedFile.trn -p single
+```
 
 ----------  
-  
- 
+
 ## Citation
+
 Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço J. 15/03/2018. M Gen 4(3): [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)

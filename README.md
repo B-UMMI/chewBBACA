@@ -19,8 +19,8 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, CarriÃ
 
 # IMPORTANT
 
-As from 25/01/2018, chewBBACA's code has been adapted for **python 3** (tested on >=3.4). The previous python 2 version is no longer supported and can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2.
-chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
+- As from 25/01/2018, chewBBACA's code has been adapted for **python 3** (tested on >=3.4). The previous python 2 version is no longer supported and can be found at https://github.com/B-UMMI/chewBBACA/tree/chewbbaca_py2.
+- chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
 
 # Latest updates
 
@@ -35,7 +35,7 @@ To allow all users to interact with the Chewie-NS, we've implemented the followi
 - `SyncSchema`: compares local schemas, previously downloaded from the Chewie-NS, with the remote versions in the Chewie-NS to download and add new alleles to local schemas, submit new alleles to update remote schemas and ensure that a common allele identifier nomenclature is maintained.
 - `NSStats`:  retrieves basic information about species and schemas in the Chewie-NS.
 
-The [documentation](https://chewie-ns.readthedocs.io/en/latest/) includes information about the integration with chewBBACA and how to run the new [LoadSchema](https://chewie-ns.readthedocs.io/en/latest/user/upload_api.html), [DownloadSchema](https://chewie-ns.readthedocs.io/en/latest/user/download_api.html), [SyncSchema](https://chewie-ns.readthedocs.io/en/latest/user/synchronize_api.html) and [NSStats]() processes.
+The [documentation](https://chewie-ns.readthedocs.io/en/latest/) includes information about the integration with chewBBACA and how to run the new [LoadSchema](https://chewie-ns.readthedocs.io/en/latest/user/upload_api.html), [DownloadSchema](https://chewie-ns.readthedocs.io/en/latest/user/download_api.html), [SyncSchema](https://chewie-ns.readthedocs.io/en/latest/user/synchronize_api.html) and [NSStats](https://chewie-ns.readthedocs.io/en/latest/user/nsstats_api.html) processes.
 The Chewie-NS [source code](https://github.com/B-UMMI/Nomenclature_Server_docker_compose) is freely available and deployment of local instances can be easily achieved through Docker Compose.
 
 This version also includes other changes:
@@ -58,7 +58,10 @@ Below you can find a list of commands for a quick usage of the software.
 ... if you have any pressing question. Chat can be faster and better than email for troubleshooting purposes.
 
 ## A ready to use [docker image](https://hub.docker.com/r/mickaelsilva/chewbbaca_py3/) ...
-...automatically built from the latest version of chewBBACA in Ubuntu 16.04. 
+...automatically built from the latest version of chewBBACA in Ubuntu 16.04.
+
+## chewBBACA is available as a Galaxy module. Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome! 
+https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
 
 ----------
 
@@ -87,8 +90,6 @@ Install using pip:
 ```
 pip3 install chewbbaca
 ```
-
-You need to install the following dependencies. Prodigal and BLAST must be added to the PATH variables.
 
 chewBBACA has the following dependencies:
 

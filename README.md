@@ -262,7 +262,8 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 
 Basic usage:
 
-```chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
+```
+chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
 ```
 	
 `-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line

@@ -2555,69 +2555,180 @@ def apply_bsr(inputs):
     return excluded_alleles
 
 
-def sequence_kmerizer(sequence, k_value, offset=1):
+def sort_data(data, sort_key=None, reverse=False):
     """
     """
 
-    kmers = [sequence[i:i+k_value] for i in range(0, len(sequence)-k_value+1, offset)]
+    if sort_key is None:
+        sorted_data = sorted(data, reverse=reverse)
+    elif sort_key is not None:
+        sorted_data = sorted(data, key=sort_key, reverse=reverse)
+
+    return sorted_data
+
+
+def sequence_kmerizer(sequence, k_value, offset=1, position=False):
+    """
+    """
+
+    if position is False:
+        kmers = [sequence[i:i+k_value] for i in range(0, len(sequence)-k_value+1, offset)]
+    elif position is True:
+        kmers = [(sequence[i:i+k_value], i) for i in range(0, len(sequence)-k_value+1, offset)]
 
     return kmers
+
+
+def determine_minimizers(sequence, adjacent_kmers, k_value):
+    """
+    """
+
+    # break sequence into kmers
+    kmers = sequence_kmerizer(sequence, k_value, position=True)
+
+    i = 0
+    seq_minimizers = []
+    last = None
+    # determine total number of windows
+    last_window = (len(kmers)-adjacent_kmers)
+    while i <= last_window:
+        # get kmers in current window
+        window = kmers[i:i+adjacent_kmers]
+        # sort kmers lexicographically
+        sorted_kmers = sort_data(window, sort_key=lambda x: x[0])
+        #sorted_kmers = sorted(window, key=lambda x: x[0])
+
+        # pick smallest kmer as minimizer
+        minimizer = [sorted_kmers[0]]
+        # sliding window that does not included last minimizer
+        if last is None:
+            # simply store smallest minimizer
+            seq_minimizers.extend(minimizer)
+        # sliding window includes last minimizer because we
+        # skipped some sliding windows
+        else:
+            # check if minimizer is the same as the one picked
+            # in the last window
+            # Do not store minimizer if it is the same
+            if minimizer[0] != last:
+                last_idx = sorted_kmers.index(last)
+                # get kmers smaller than last minimizer
+                skipped = sorted_kmers[1:last_idx]
+                # determine if any of the smaller kmers is
+                # the minimizer of a skipped window
+                for m in skipped:
+                    if m[1] < minimizer[-1][1]:
+                        minimizer.append(m)
+                seq_minimizers.extend(minimizer)
+
+        # get position in window of smallest minimizer
+        minimizer_idx = window.index(minimizer[0])
+        # slide by 1 if minimizer has index 0 in window
+        if minimizer_idx == 0:
+            i += 1
+            last = None
+        # skip sliding windows based on minimizer position
+        else:
+            i += minimizer_idx
+            last = minimizer[0]
+
+    return seq_minimizers
 
 
 # for AlleleCall this function needs to receive the variable 'reps_groups'
 # and to accept an argument that controls if it is allowed to create new
 # clusters based on new genes that it finds.
-def cluster_sequences(sorted_sequences, word_size, clustering_sim,
-                      mode, representatives={}, grow=True, offset=1):
+def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
+                      representatives={}, grow=True, offset=1, minimizer=False):
     """
     """
+
+    ###### ADD multi-threading to speed up clustering???
+    # pick some representatives based on size distribution???
 
     clusters = {}
     reps_groups = representatives
-    for prot in sorted_sequences:
-        protid = prot[0]
-        protein = prot[1]
-        kmers = sequence_kmerizer(protein, word_size, offset)
+    repetitive = 0
+    for protid, protein in sorted_sequences.items():
+        if minimizer is True:
+            minimizers = determine_minimizers(protein, word_size, word_size)
+            kmers = set([m[0] for m in minimizers])
+            if len(kmers) < (0.98*len(minimizers)):
+                repetitive += 1
 
-        current_reps = []
-        for k in kmers:
-            if k in reps_groups:
-                current_reps.extend(list(reps_groups[k]))
+            # check if set of distinct kmers is much smaller than the set of minimizers
+            # to understand if sequence has too much redundancy
+        elif minimizer is False:
+            kmers = sequence_kmerizer(protein, word_size, offset, False)
+
+        current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
+        current_reps = flatten_list(current_reps)
 
         # count number of kmer hits per representative
         counts = Counter(current_reps)
-        current_reps = [(k, v/len(kmers)) for k, v in counts.items() if v/len(kmers) >= clustering_sim]
+        selected_reps = [(k, v/len(kmers)) for k, v in counts.items() if v/len(kmers) >= clustering_sim]
 
         # sort to get most similar at index 0
-        sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
-
-        if len(sims) > 0:
-            if mode == 'greedy':
-                clusters[sims[0][0]].append((protid, sims[0][1]))
-            elif mode == 'full':
-                for s in sims:
-                    clusters[s[0]].append((protid, s[1]))
+        if len(selected_reps) > 0:
+            for s in selected_reps:
+                clusters[s[0]].append((protid, s[1], len(protein)))
         else:
             for k in kmers:
-                if k in reps_groups:
-                    reps_groups[k].add(protid)
-                else:
-                    reps_groups[k] = set([protid])
-            clusters[protid] = [(protid, 1.0)]
+                reps_groups.setdefault(k, []).append(protid)
 
+            clusters[protid] = [(protid, 1.0, len(protein))]
+    print(repetitive)
     return clusters
 
 
-def cluster_prunner(clusters, sim_cutoff):
+def write_clusters(clusters, outfile):
+    """
+    """
+
+    cluster_num = 0
+    cluster_lines = []
+    for rep, seqids in clusters.items():
+        cluster_lines.append('>Cluster_{0}'.format(cluster_num))
+        clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2]) for s in seqids]
+        cluster_lines.extend(clustered)
+        cluster_num += 1
+    cluster_text = join_list(cluster_lines, '\n')
+
+    write_to_file(cluster_text, outfile, 'w', '\n')
+
+
+def representative_prunner(clusters, sim_cutoff):
     """
     """
 
     excluded = []
     prunned_clusters = {}
     for rep, seqids in clusters.items():
+        # get high scoring elements
+        # determine if distribution is multimodal
+        # determine if rep length is considerably larger than first high scoring element
+
         # this removes the representative from the cluster
-        prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
-        excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
+        rep_info = clusters[rep][0]
+        length_cutoff = rep_info[2] - (rep_info[2]*0.2)
+        keep = []
+        remove = []
+        for s in seqids:
+            query_sim = s[1]
+            query_len = s[2]
+            if query_sim < sim_cutoff:
+                keep.append(s)
+            elif query_sim >= sim_cutoff and query_len < length_cutoff:
+                keep.append(s)
+            elif query_sim >= sim_cutoff and query_len > length_cutoff:
+                if s[0] != rep:
+                    remove.append(s)
+
+        prunned_clusters[rep] = keep
+        excluded.extend(remove)
+
+        #prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
+        #excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
 
     return [prunned_clusters, excluded]
 
@@ -2659,17 +2770,15 @@ def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
         kmers_mapping = {}
         cluster_kmers = {}
         for seqid, prot in cluster_sequences.items():
-            prot_kmers = sequence_kmerizer(prot, word_size)
+            minimizers = determine_minimizers(prot, word_size, word_size)
+            kmers = set([m[0] for m in minimizers])
             # dict with sequence indentifiers and kmers
-            cluster_kmers[seqid] = prot_kmers
-            
+            cluster_kmers[seqid] = kmers
+
             # create dict with kmers as keys and list
             # of sequences with given kmers as values
-            for kmer in prot_kmers:
-                if kmer in kmers_mapping:
-                    kmers_mapping[kmer].add(seqid)
-                else:
-                    kmers_mapping[kmer] = set([seqid])
+            for kmer in kmers:
+                kmers_mapping.setdefault(kmer, []).append(seqid)
 
         sims_cases = {}
         excluded = []
@@ -2677,19 +2786,17 @@ def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
         for seqid, kmers in cluster_kmers.items():
             if seqid not in excluded:
                 query_kmers = kmers
-                current_reps = []
                 # determine sequences that also have the same kmers
-                for kmer in query_kmers:
-                    if kmer in kmers_mapping:
-                        current_reps.extend(list(kmers_mapping[kmer]))
-                
+                current_reps = [kmers_mapping[kmer] for kmer in query_kmers if kmer in kmers_mapping]
+                current_reps = flatten_list(current_reps)
+
                 # count number of common kmers with other sequences
                 counts = Counter(current_reps)
                 # determine sequences that are equal or above a similarty threshold
                 current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= intra_filter]
                 # sort to get most similar first
                 sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
-                
+
                 if len(sims) > 1:
                     # exclude current sequence
                     candidates = [s for s in sims if s[0] != seqid]

@@ -228,20 +228,38 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     prots = {rec.id: str(rec.seq) for rec in SeqIO.parse(protein_file, 'fasta')}
 
     # sort proteins by length and alphabetically
-    sorted_prots = sorted(list(prots.items()),
-                          key=lambda x: (-len(x[1]), x[0]))
+    sorted_prots = {k: v for k, v in sorted(prots.items(),
+                                            key=lambda item: len(item[1]),
+                                            reverse=True)}
 
     # cluster proteins
     print('\nClustering protein sequences...')
-    clusters = aux.cluster_sequences(sorted_prots, word_size,
-                                     clustering_sim, clustering_mode)
+    start_cluster = time.time()
+    clusters = aux.cluster_sequences(sorted_prots, word_size, clustering_sim,
+                                     clustering_mode, minimizer=True)
+
+    # with multiprocessing!!!
+    
+
+    end_cluster = time.time()
+    print(end_cluster-start_cluster)
     print('Clustered {0} proteins into {1} clusters'.format(len(distinct_protein_seqs),
                                                             len(clusters)))
 
+    # write file with clustering results
+    clusters_out = os.path.join(temp_directory, 'clustered_results.txt')
+    aux.write_clusters(clusters, clusters_out)
+
     # remove sequences that are very similar to representatives
-    prunned_clusters, excluded_alleles = aux.cluster_prunner(clusters,
-                                                             representative_filter)
+    prunned_clusters, excluded_alleles = aux.representative_prunner(clusters,
+                                                                    representative_filter)
+
+    # write file with prunning results
+    prunned_out = os.path.join(temp_directory, 'clustered_prunned.txt')
+    aux.write_clusters(prunned_clusters, prunned_out)
+
     excluded_alleles = [e[0] for e in excluded_alleles]
+
     print('Removed {0} sequences based on high similarity with '
           'cluster representative.'.format(len(excluded_alleles)))
     # determine clusters that only have the representative
@@ -249,7 +267,7 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     print('Found {0} singletons.'.format(len(singletons)))
     # remove singletons and keep clusters that need to be BLASTed
     final_clusters = aux.remove_clusters(prunned_clusters, singletons)
-    
+
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
     clustered_sequences = sum([len(v)+1 for k, v in final_clusters.items()])
@@ -262,6 +280,19 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     indexed_prots = SeqIO.index(protein_file, 'fasta')
 
     excluded_dict = aux.intra_cluster_sim(intra_clusters, indexed_prots, word_size, intra_filter)
+
+    # write results to file
+    intrasim_out = os.path.join(temp_directory, 'clustered_intrasim.txt')
+    intrasim_lines = []
+    for k, v in excluded_dict.items():
+        if len(v[0]) > 0:
+            header_line = '>{0}'.format(k)
+            intrasim_lines.append(header_line)
+            sims_cases = v[1]
+            sims_lines = ['\t{0}, {1}, {2}'.format(s1, s2[0], s2[1]) for s1, s2 in sims_cases.items()]
+            intrasim_lines.extend(sims_lines)
+
+    aux.write_to_file('\n'.join(intrasim_lines), intrasim_out, 'w', '\n')
 
     intra_excluded = [v[0] for k, v in excluded_dict.items()]
     intra_excluded = list(itertools.chain.from_iterable(intra_excluded))
@@ -331,6 +362,7 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     print('Performing a final BLAST to check for paralogs...')
     schema_seqids = list(set(distinct_protein_seqs) - set(excluded_alleles))
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
+    print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
     aux.get_sequences_by_id(indexed_protein_valid_file, schema_seqids, beta_file)
 
     integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')

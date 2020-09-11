@@ -26,6 +26,7 @@ import datetime as dt
 import multiprocessing
 import concurrent.futures
 from getpass import getpass
+from itertools import islice
 from collections import Counter
 from multiprocessing import Pool
 from multiprocessing import TimeoutError
@@ -1543,6 +1544,39 @@ def split_genes_by_core(inputs, threads, method):
     return splitted_ids
 
 
+def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
+    """
+    """
+
+    splitted_ids = [[] for cpu in range(threads)]
+    splitted_values = [[] for cpu in range(threads)]
+    cluster_sums = [0] * threads
+    i = 0
+    for cluster in blast_inputs:
+        cluster_file = os.path.join(blast_files_dir,
+                                    '{0}_ids.txt'.format(cluster))
+        with open(cluster_file, 'r') as infile:
+            cluster_seqs = [line.strip() for line in infile.readlines()]
+        splitted_values[i].append(len(cluster_seqs))
+        splitted_ids[i].append(cluster)
+        cluster_sums[i] += len(cluster_seqs)
+        i = cluster_sums.index(min(cluster_sums))
+
+    return splitted_ids
+
+
+def split_iterable(iterable, size):
+    """
+    """
+
+    chunks = []
+    it = iter(iterable)
+    for i in range(0, len(iterable), size):
+        chunks.append({k:iterable[k] for k in islice(it, size)})
+
+    return chunks
+
+
 def concatenate_list(str_list, join_char):
     """ Concatenates list elements with specified
         character between each original list element.
@@ -2305,19 +2339,15 @@ def determine_small(sequences_file, minimum_length):
     """
 
     small_seqs = []
-    valid_seqs = []
     for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
-        #sequence = sequences_index.get(seqid).seq
         sequence = str(record.seq)
         seqid = record.id
 
         if len(sequence) < minimum_length:
             small_seqs.append(seqid)
-        else:
-            valid_seqs.append(seqid)
 
-    return [small_seqs, valid_seqs]
+    return small_seqs
 
 
 def get_sequences_by_id(sequences_index, seqids, out_file):
@@ -2464,27 +2494,6 @@ def blast_inputs(clusters, output_directory, ids_dict):
         ids_to_blast.append(rev_ids[i])
 
     return ids_to_blast
-
-
-def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
-    """
-    """
-
-    splitted_ids = [[] for cpu in range(threads)]
-    splitted_values = [[] for cpu in range(threads)]
-    cluster_sums = [0] * threads
-    i = 0
-    for cluster in blast_inputs:
-        cluster_file = os.path.join(blast_files_dir,
-                                    '{0}_ids.txt'.format(cluster))
-        with open(cluster_file, 'r') as infile:
-            cluster_seqs = [line.strip() for line in infile.readlines()]
-        splitted_values[i].append(len(cluster_seqs))
-        splitted_ids[i].append(cluster)
-        cluster_sums[i] += len(cluster_seqs)
-        i = cluster_sums.index(min(cluster_sums))
-
-    return splitted_ids
 
 
 def divide_list_into_n_chunks(list_to_divide, n):
@@ -2638,16 +2647,18 @@ def determine_minimizers(sequence, adjacent_kmers, k_value):
 # for AlleleCall this function needs to receive the variable 'reps_groups'
 # and to accept an argument that controls if it is allowed to create new
 # clusters based on new genes that it finds.
-def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
-                      representatives={}, grow=True, offset=1, minimizer=False):
+def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='greedy',
+                      representatives=None, grow=True, offset=1, minimizer=True):
     """
     """
-
-    ###### ADD multi-threading to speed up clustering???
-    # pick some representatives based on size distribution???
 
     clusters = {}
-    reps_groups = representatives
+    reps_sequences = {}
+    if representatives is None:
+        reps_groups = {}
+    else:
+        reps_groups = representatives
+    #print(len(reps_groups))
     repetitive = 0
     for protid, protein in sorted_sequences.items():
         if minimizer is True:
@@ -2655,9 +2666,8 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
             kmers = set([m[0] for m in minimizers])
             if len(kmers) < (0.98*len(minimizers)):
                 repetitive += 1
-
-            # check if set of distinct kmers is much smaller than the set of minimizers
-            # to understand if sequence has too much redundancy
+        # check if set of distinct kmers is much smaller than the set of minimizers
+        # to understand if sequence has too much redundancy
         elif minimizer is False:
             kmers = sequence_kmerizer(protein, word_size, offset, False)
 
@@ -2677,8 +2687,10 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
                 reps_groups.setdefault(k, []).append(protid)
 
             clusters[protid] = [(protid, 1.0, len(protein))]
-    print(repetitive)
-    return clusters
+            reps_sequences[protid] = protein
+
+    #print(repetitive)
+    return [clusters, reps_sequences]
 
 
 def write_clusters(clusters, outfile):
@@ -2709,26 +2721,26 @@ def representative_prunner(clusters, sim_cutoff):
         # determine if rep length is considerably larger than first high scoring element
 
         # this removes the representative from the cluster
-        rep_info = clusters[rep][0]
-        length_cutoff = rep_info[2] - (rep_info[2]*0.2)
-        keep = []
-        remove = []
-        for s in seqids:
-            query_sim = s[1]
-            query_len = s[2]
-            if query_sim < sim_cutoff:
-                keep.append(s)
-            elif query_sim >= sim_cutoff and query_len < length_cutoff:
-                keep.append(s)
-            elif query_sim >= sim_cutoff and query_len > length_cutoff:
-                if s[0] != rep:
-                    remove.append(s)
+        # rep_info = clusters[rep][0]
+        # length_cutoff = rep_info[2] - (rep_info[2]*0.2)
+        # keep = []
+        # remove = []
+        # for s in seqids:
+        #     query_sim = s[1]
+        #     query_len = s[2]
+        #     if query_sim < sim_cutoff:
+        #         keep.append(s)
+        #     elif query_sim >= sim_cutoff and query_len < length_cutoff:
+        #         keep.append(s)
+        #     elif query_sim >= sim_cutoff and query_len > length_cutoff:
+        #         if s[0] != rep:
+        #             remove.append(s)
 
-        prunned_clusters[rep] = keep
-        excluded.extend(remove)
+        # prunned_clusters[rep] = keep
+        # excluded.extend(remove)
 
-        #prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
-        #excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
+        prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
+        excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
 
     return [prunned_clusters, excluded]
 

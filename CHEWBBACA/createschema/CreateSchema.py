@@ -146,20 +146,20 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     dedup_files = [f[1] for f in dedup_inputs]
     cds_file = os.path.join(temp_directory, 'coding_sequences_all.fasta')
     cds_file = aux.concatenate_files(dedup_files, cds_file)
-    distinct_dna_seqids = os.path.join(temp_directory, 'distinct_dna_seqids.fasta')
-    repeated_dna_cds = aux.determine_distinct([cds_file, distinct_dna_seqids])
+    distinct_dna_seqids_file = os.path.join(temp_directory, 'distinct_dna_seqids.fasta')
+    repeated_dna_cds, distinct_dna_seqids = aux.determine_distinct([cds_file, distinct_dna_seqids_file])
 
-    repeated += repeated_dna_cds[0]
+    repeated += repeated_dna_cds
 
     print('Removed {0} repeated DNA sequences.'.format(repeated))
 
     # determine small DNA sequences and remove those seqids
     print('\nRemoving sequences smaller than {0} nucleotides...'.format(minimum_length))
-    small_dna_cds = aux.determine_small(distinct_dna_seqids, minimum_length)
+    small_dna_cds = aux.determine_small(distinct_dna_seqids_file, minimum_length)
 
-    small_dna_seqs = small_dna_cds[0]
-    valid_dna_seqs = small_dna_cds[1]
-    print('Removed {0} DNA sequences shorter than {1} nucleotides.'.format(len(small_dna_seqs), minimum_length))
+    valid_dna_seqs = list(set(distinct_dna_seqids) - set(small_dna_cds))
+    #valid_dna_seqs = small_dna_cds[1]
+    print('Removed {0} DNA sequences shorter than {1} nucleotides.'.format(len(small_dna_cds), minimum_length))
     valid_dna_seqs.sort(key=lambda y: y.lower())
 
     # translate distinct DNA sequences
@@ -170,7 +170,7 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     valid_dna_files = [valid_dna_template.format(i+1) for i in range(len(translation_inputs))]
     valid_protein_template = aux.join_paths(temp_directory, ['valid_protein_{0}.fasta'])
     valid_protein_files = [valid_protein_template.format(i+1) for i in range(len(translation_inputs))]
-    translation_inputs = list(map(aux.extend_list, translation_inputs, repeat(distinct_dna_seqids),
+    translation_inputs = list(map(aux.extend_list, translation_inputs, repeat(distinct_dna_seqids_file),
                                   repeat(translation_table), repeat(minimum_length),
                                   valid_dna_files, valid_protein_files))
 
@@ -189,11 +189,11 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
         if len(res[0]) > 0:
             untranslatable_cds.extend(['{0}: {1}'.format(r[0], r[1]) for r in res[0]])
             untranslatable_seqids.extend([r[0] for r in res[0]])
-    small_dna_seqs = ['{0}: {1}'.format(seqid, 'smaller than {0} nucleotides'.format(minimum_length)) for seqid in small_dna_seqs]
+    small_dna_cds = ['{0}: {1}'.format(seqid, 'smaller than {0} nucleotides'.format(minimum_length)) for seqid in small_dna_cds]
 
     # write file with invalid alleles info
     invalid_alleles_file = os.path.join(output_directory, 'invalid_alleles.txt')
-    invalid_alleles = aux.join_list(untranslatable_cds+small_dna_seqs, '\n')
+    invalid_alleles = aux.join_list(untranslatable_cds+small_dna_cds, '\n')
     aux.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
 
     # remove DNA sequences that could not be translated
@@ -231,32 +231,82 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     sorted_prots = {k: v for k, v in sorted(prots.items(),
                                             key=lambda item: len(item[1]),
                                             reverse=True)}
+    divided_prots = aux.split_iterable(sorted_prots, int(len(sorted_prots)*0.20+10))
 
     # cluster proteins
     print('\nClustering protein sequences...')
     start_cluster = time.time()
-    clusters = aux.cluster_sequences(sorted_prots, word_size, clustering_sim,
-                                     clustering_mode, minimizer=True)
+    #clusters = aux.cluster_sequences(sorted_prots, word_size, clustering_sim,
+    #                                 clustering_mode, minimizer=True)
 
-    # with multiprocessing!!!
-    
+    clustering_results = aux.map_async_parallelizer(divided_prots, aux.cluster_sequences,
+                                                    cpu_to_apply)
+
+    #print('Clustered {0} proteins into {1} clusters'.format(len(distinct_protein_seqs),
+    #                                                        len(clusters)))
+    #print(len(clustering_results))
+    #for r in clustering_results:
+        #print(len(r))
+
+    # join representatives of each cluster
+    rep_sequences = {}
+    for r in clustering_results:
+        rep_sequences = {**rep_sequences, **r[1]}
+
+    # cluster final round
+    clusters = aux.cluster_sequences(rep_sequences, word_size, 0.8,
+                                     clustering_mode, minimizer=True)
+    #print(len(clusters[0]))
+    #p = 0
+    #for k, v in clusters[0].items():
+        #if len(v) > 1:
+            #p += 1
 
     end_cluster = time.time()
     print(end_cluster-start_cluster)
-    print('Clustered {0} proteins into {1} clusters'.format(len(distinct_protein_seqs),
-                                                            len(clusters)))
+
+    #print(p)
+
+    # merge clusters
+    all_clusters = {}
+    for c in clustering_results:
+        all_clusters = {**all_clusters, **c[0]}
+
+    merged_clusters = {}
+    for k, v in clusters[0].items():
+        new_cluster = {k: []}
+        #if len(v) > 1:
+            #print(v)
+        for n in v:
+            new_cluster[k] += all_clusters[n[0]]
+
+        merged_clusters[k] = new_cluster[k]
+
+    #print(len(merged_clusters))
+    #seen = []
+    #total = 0
+    #for j, b in merged_clusters.items():
+        #total += len(b)
+        #repeated = [d for d in b if d in seen]
+        #if len(repeated) > 0:
+            #print(j, b)
+            #print('repe', repeated)
+        #seen.extend(b)
+    #print(total, len(set([s[0] for s in seen])))
 
     # write file with clustering results
     clusters_out = os.path.join(temp_directory, 'clustered_results.txt')
-    aux.write_clusters(clusters, clusters_out)
+    aux.write_clusters(merged_clusters, clusters_out)
 
     # remove sequences that are very similar to representatives
-    prunned_clusters, excluded_alleles = aux.representative_prunner(clusters,
+    prunned_clusters, excluded_alleles = aux.representative_prunner(merged_clusters,
                                                                     representative_filter)
 
     # write file with prunning results
     prunned_out = os.path.join(temp_directory, 'clustered_prunned.txt')
     aux.write_clusters(prunned_clusters, prunned_out)
+
+    #sys.exit(0)
 
     excluded_alleles = [e[0] for e in excluded_alleles]
 

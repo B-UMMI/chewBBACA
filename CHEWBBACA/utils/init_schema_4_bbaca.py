@@ -2,7 +2,6 @@
 
 import sys
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
@@ -78,7 +77,7 @@ def get_Short (gene,auxBar):
 		total_alleles=0
 		error_alleles=0
 		corrected_alleles=0
-		for allele in SeqIO.parse(gene, "fasta", generic_dna):
+		for allele in SeqIO.parse(gene, "fasta"):
 			total_alleles+=1
 			try:
 				translatedSequence,sortedSeq, originalSeq=translateSeq(str(allele.seq.upper()))
@@ -307,7 +306,7 @@ def check_if_list_or_folder(folder_or_list):
 				if os.path.isdir(genepath):
 					continue
 				
-				for allele in SeqIO.parse(genepath, "fasta", generic_dna):
+				for allele in SeqIO.parse(genepath, "fasta"):
 					break
 				list_files.append(os.path.abspath(genepath))
 			except Exception as e:

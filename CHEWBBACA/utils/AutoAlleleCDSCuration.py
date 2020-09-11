@@ -3,7 +3,6 @@ import os
 import argparse
 import multiprocessing
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 
 
@@ -52,7 +51,7 @@ def curate(geneFile):
 
 	gene2write=''
 	#gene_fp2 = HTSeq.FastaReader(geneFile)
-	for allele in SeqIO.parse(geneFile, "fasta", generic_dna):
+	for allele in SeqIO.parse(geneFile, "fasta"):
 		sequence = str(allele.seq.upper())
 		name = allele.name
 		#per gene remove the alleles that are not CDS

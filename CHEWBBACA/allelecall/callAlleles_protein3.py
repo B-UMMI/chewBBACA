@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from io import StringIO
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 import sys
 from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastpCommandline
@@ -37,7 +36,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
     alleleIlist = []
     listAllelesNames = []
     # calculate bsr for each allele
-    for allele in SeqIO.parse(genefile, "fasta", generic_dna):
+    for allele in SeqIO.parse(genefile, "fasta"):
 
         # usually first allele name is just > 1 and after that it has > gene_id_genome
         aux = allele.id.split("_")
@@ -250,7 +249,7 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
     fullAlleleNameList = []
     alleleI = 0
     # get full list of alleles from main gene file and last allele number id
-    for allele in SeqIO.parse(geneFile, "fasta", generic_dna):
+    for allele in SeqIO.parse(geneFile, "fasta"):
         aux = allele.id.split("_")
         if len(aux) < 2:
             alleleI = aux[0]
@@ -479,7 +478,7 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
                 # if match with BSR >0.6 and not equal DNA sequences
                 else:
                     # load the contig info of the genome to a dictionary
-                    for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
+                    for contig in SeqIO.parse(genomeFile, "fasta"):
                         currentGenomeDict[contig.id] = len(str(contig.seq.upper()))
 
                     match = bestmatch[5]

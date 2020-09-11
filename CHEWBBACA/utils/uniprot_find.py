@@ -2,7 +2,6 @@
 
 from Bio.Seq import Seq
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 import os
 import argparse
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -53,7 +52,7 @@ def check_if_list_or_folder(folder_or_list):
         for gene in os.listdir(folder_or_list):
             try:
                 genepath = os.path.join(folder_or_list, gene)
-                for allele in SeqIO.parse(genepath, "fasta", generic_dna):
+                for allele in SeqIO.parse(genepath, "fasta"):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
@@ -130,7 +129,7 @@ def proc_gene(gene,auxBar):
     url=''
     prevName=''
     prevUrl=''
-    for allele in SeqIO.parse(gene, "fasta", generic_dna):
+    for allele in SeqIO.parse(gene, "fasta"):
         params = {}
         sequence=str(allele.seq)
         try:

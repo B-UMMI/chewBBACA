@@ -9,7 +9,6 @@ import collections
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 from Bio.Blast.Applications import NcbiblastpCommandline
 
 try:
@@ -118,7 +117,7 @@ def main(genes, sizethresh, cpuToUse, proteinFIlePath, outputFIlePath,
     if not proteinFIlePath:
         with open(proteinfile, "w") as f:
 
-            for gene in SeqIO.parse(genes, "fasta", generic_dna):
+            for gene in SeqIO.parse(genes, "fasta"):
                 dnaseq = str(gene.seq.upper())
                 protseq, seq, y = translateSeq(dnaseq, gene.id)
                 totalgenes += 1
@@ -199,7 +198,7 @@ def main(genes, sizethresh, cpuToUse, proteinFIlePath, outputFIlePath,
         totalgenes = 0
         smallgenes = 0
         proteinfile = proteinFIlePath
-        for gene in SeqIO.parse(genes, "fasta", generic_dna):
+        for gene in SeqIO.parse(genes, "fasta"):
             dnaseq = str(gene.seq.upper())
 
             protname = ">" + str(gene.id) + "\n"
@@ -334,7 +333,7 @@ def main(genes, sizethresh, cpuToUse, proteinFIlePath, outputFIlePath,
     elif not proteinFIlePath and outputFIlePath:
         os.makedirs(outputFIlePath)
 
-    for contig in SeqIO.parse(genes, "fasta", generic_dna):
+    for contig in SeqIO.parse(genes, "fasta"):
         totalgenes += 1
         name2 = contig.id
 

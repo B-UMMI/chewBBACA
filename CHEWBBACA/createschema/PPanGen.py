@@ -11,7 +11,6 @@ import multiprocessing
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 
 try:
     from createschema import CreateSchema
@@ -82,7 +81,7 @@ def checkGeneStrings(genome1, genome2, newName, basepath, cpu, blastp,
             filepath = os.path.join(basepath, '{0}_ORF.txt'.format(os.path.basename(genomeFile)))
             newfilepath = os.path.join(basepath, str(newName))
 
-            for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
+            for contig in SeqIO.parse(genomeFile, "fasta"):
                 sequence = str(contig.seq.upper())
                 currentGenomeDict[contig.id] = sequence
 

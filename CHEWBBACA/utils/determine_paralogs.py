@@ -14,7 +14,6 @@ from multiprocessing import Pool
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 
 
 def reverse_complement(dna_sequence):
@@ -477,7 +476,7 @@ def cluster_blaster(inputs):
 # with open(protein_file, 'a') as pf:
 #     proteins = []
 #     for locus in schema_genes:
-#         for record in SeqIO.parse(locus, 'fasta', generic_dna):
+#         for record in SeqIO.parse(locus, 'fasta'):
 #             dna_seq = str(record.seq)
 #             prot = translate_dna(dna_seq, 11, 0)
 #             prot = str(prot[0][0])

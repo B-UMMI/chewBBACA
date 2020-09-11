@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 import os
 import argparse
 
@@ -15,7 +14,7 @@ def get_Short(genesList):
         shortgene = shortgene.replace(".fasta", "_short.fasta")
 
         #gene_fp2 = HTSeq.FastaReader(gene)
-        for allele in SeqIO.parse(gene, "fasta", generic_dna):
+        for allele in SeqIO.parse(gene, "fasta"):
             fG = open(shortgene, 'w')
             fG.write('>' + str(allele.id) + '\n' + str(allele.seq.upper()) + '\n')
             fG.close()

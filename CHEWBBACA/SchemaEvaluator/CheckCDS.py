@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 from Bio.Seq import Seq
 import os
 import argparse
@@ -160,7 +159,7 @@ def main(genes,transTable,ReturnValues,outputpath,cpu,skipClustalMafft):
         alleleSizesTransError=[]
         alleleSizesTransErrorNames=[]
         # translate each allele and report the error if unable to translate
-        for allele in SeqIO.parse(gene, "fasta", generic_dna):
+        for allele in SeqIO.parse(gene, "fasta"):
 
             k+=1
             realAlleleID=allele.id.split("_")[-1]

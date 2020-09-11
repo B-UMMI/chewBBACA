@@ -36,7 +36,6 @@ from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC, generic_dna
 
 try:
     from utils import runProdigal
@@ -420,7 +419,7 @@ def import_sequences(fasta_path):
             sequences as values.
     """
 
-    records = SeqIO.parse(fasta_path, 'fasta', generic_dna)
+    records = SeqIO.parse(fasta_path, 'fasta')
     seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
 
     return seqs_dict
@@ -959,7 +958,7 @@ def gene_seqs_info(gene):
             of allele sequences for that gene.
     """
 
-    seq_generator = SeqIO.parse(gene, 'fasta', generic_dna)
+    seq_generator = SeqIO.parse(gene, 'fasta')
     alleles_lengths = [len(allele) for allele in seq_generator]
     mean_length = sum(alleles_lengths)/len(alleles_lengths)
     total_seqs = len(alleles_lengths)
@@ -1429,7 +1428,7 @@ def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_pr
     prot_seqs = {}
     seqids_map = {}
     invalid_alleles = []
-    seq_generator = SeqIO.parse(gene_file, 'fasta', generic_dna)
+    seq_generator = SeqIO.parse(gene_file, 'fasta')
     if max_proteins is None:
         translated_seqs = [(rec.id, translate_dna(str(rec.seq), table_id, min_len)) for rec in seq_generator]
     else:

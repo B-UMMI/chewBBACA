@@ -7,7 +7,6 @@ from operator import itemgetter
 
 import numpy
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 
 
 def main(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_thresh):
@@ -50,7 +49,7 @@ def main(genes,threshold,OneNotConserved,ReturnValues,logScale,outputpath,split_
 
 
         #per gene get all sizes, minimin size, maximum size, media and mode
-        for allele in SeqIO.parse(gene, "fasta", generic_dna):
+        for allele in SeqIO.parse(gene, "fasta"):
 
             allelesize=len(str(allele.seq))
             sizes.append(allelesize)

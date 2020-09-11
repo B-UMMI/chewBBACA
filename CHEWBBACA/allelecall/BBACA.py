@@ -13,7 +13,6 @@ import multiprocessing
 
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 
 try:
     from allelecall import callAlleles_protein3
@@ -66,7 +65,7 @@ def prepGenomes(genomeFile, basepath, verbose, inputCDS):
         with open(filepath, 'rb') as f:
             currentCDSDict = pickle.load(f)
 
-        for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
+        for contig in SeqIO.parse(genomeFile, "fasta"):
             sequence = str(contig.seq.upper())
             currentGenomeDict[contig.id] = sequence
 
@@ -89,7 +88,7 @@ def prepGenomes(genomeFile, basepath, verbose, inputCDS):
                     pass
 
     else:
-        for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
+        for contig in SeqIO.parse(genomeFile, "fasta"):
             sequence = str(contig.seq.upper())
             currentGenomeDict[contig.id] = sequence
             try:
@@ -200,7 +199,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
             noshortgeneFile.append(gene)
             break
 
-        for allele in SeqIO.parse(shortgene, "fasta", generic_dna):
+        for allele in SeqIO.parse(shortgene, "fasta"):
             sequence = str(allele.seq.upper())
             k += 1
             if len(sequence) % 3 != 0:

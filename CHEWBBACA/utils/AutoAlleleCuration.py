@@ -2,7 +2,6 @@
 import os
 import argparse
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 
 
 def main():
@@ -33,7 +32,7 @@ def main():
         firstallele=False
         changed=False
         fasta2Write=''
-        for allele in SeqIO.parse(gene, "fasta", generic_dna):
+        for allele in SeqIO.parse(gene, "fasta"):
 
 
             alleleGenomeName=((str(allele.name)).split("_"))[-1]

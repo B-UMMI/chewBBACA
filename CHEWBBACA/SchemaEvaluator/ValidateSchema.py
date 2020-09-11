@@ -8,7 +8,6 @@ import argparse
 from operator import itemgetter
 
 from Bio import SeqIO
-from Bio.Alphabet import generic_dna
 
 try:
 	from SchemaEvaluator import CheckCDS,alleleSizeStats
@@ -56,7 +55,7 @@ def main(genes, cpuToUse, htmlFile, transTable, threshold, splited, title, logSc
                 try:
                     genepath = os.path.join(genes, gene)
                     #gene_fp2 = HTSeq.FastaReader(genepath)
-                    for allele in SeqIO.parse(genepath, "fasta", generic_dna):
+                    for allele in SeqIO.parse(genepath, "fasta"):
                         break
                     f.write(genepath + "\n")
                 except Exception as e:

@@ -231,8 +231,8 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     sorted_prots = {k: v for k, v in sorted(prots.items(),
                                             key=lambda item: len(item[1]),
                                             reverse=True)}
-    divided_prots = aux.split_iterable(sorted_prots, int(len(sorted_prots)*0.20+10))
-
+    divided_prots = aux.split_iterable(sorted_prots, int(len(sorted_prots)/cpu_to_apply+10))
+    print(int(len(sorted_prots)/cpu_to_apply+10), len(divided_prots))
     # cluster proteins
     print('\nClustering protein sequences...')
     start_cluster = time.time()

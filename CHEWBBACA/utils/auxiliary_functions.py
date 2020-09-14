@@ -2391,7 +2391,7 @@ def build_schema(schema_file, output_path):
 
     total_genes = 0
     schema_files = []
-    for record in SeqIO.parse(schema_file, 'fasta', IUPAC.unambiguous_dna):
+    for record in SeqIO.parse(schema_file, 'fasta'):
         file_name = record.name
         file_name = replace_multiple_characters(file_name)
 

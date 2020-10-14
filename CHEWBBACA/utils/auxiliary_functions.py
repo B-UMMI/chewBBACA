@@ -2587,60 +2587,64 @@ def sequence_kmerizer(sequence, k_value, offset=1, position=False):
     return kmers
 
 
-def determine_minimizers(sequence, adjacent_kmers, k_value):
+def determine_minimizers(sequence, adjacent_kmers, k_value, position=False):
     """
     """
 
     # break sequence into kmers
-    kmers = sequence_kmerizer(sequence, k_value, position=True)
+    kmers = sequence_kmerizer(sequence, k_value, position=position)
 
     i = 0
-    seq_minimizers = []
-    last = None
+    previous = None
+    sell = False
+    minimizers = []
     # determine total number of windows
     last_window = (len(kmers)-adjacent_kmers)
     while i <= last_window:
         # get kmers in current window
         window = kmers[i:i+adjacent_kmers]
-        # sort kmers lexicographically
-        sorted_kmers = sort_data(window, sort_key=lambda x: x[0])
-        #sorted_kmers = sorted(window, key=lambda x: x[0])
-
         # pick smallest kmer as minimizer
-        minimizer = [sorted_kmers[0]]
+        minimizer = [min(window)]
+        # get position in window of smallest minimizer
+        minimizer_idx = window.index(minimizer[0])
         # sliding window that does not included last minimizer
-        if last is None:
+        if previous is None:
             # simply store smallest minimizer
-            seq_minimizers.extend(minimizer)
+            minimizers.extend(minimizer)
         # sliding window includes last minimizer because we
         # skipped some sliding windows
         else:
             # check if minimizer is the same as the one picked
             # in the last window
             # Do not store minimizer if it is the same
-            if minimizer[0] != last:
-                last_idx = sorted_kmers.index(last)
+            if minimizer[0] != previous:
                 # get kmers smaller than last minimizer
-                skipped = sorted_kmers[1:last_idx]
+                skipped = window[1:minimizer_idx]
                 # determine if any of the smaller kmers is
                 # the minimizer of a skipped window
+                minimal = previous
                 for m in skipped:
-                    if m[1] < minimizer[-1][1]:
+                    if m < minimal:
                         minimizer.append(m)
-                seq_minimizers.extend(minimizer)
+                        minimal = m
+                minimizers.extend(minimizer)
 
-        # get position in window of smallest minimizer
-        minimizer_idx = window.index(minimizer[0])
         # slide by 1 if minimizer has index 0 in window
         if minimizer_idx == 0:
             i += 1
-            last = None
+            previous = None
         # skip sliding windows based on minimizer position
         else:
             i += minimizer_idx
-            last = minimizer[0]
+            # if adding minimizer index surpasses last window value we
+            # might miss one last minimizer because it will fail the condition
+            # find a better way to control this condition!
+            if i > last_window and sell is False:
+                i = last_window
+                sell = True
+            previous = minimizer[0]
 
-    return seq_minimizers
+    return minimizers
 
 
 # for AlleleCall this function needs to receive the variable 'reps_groups'
@@ -2657,14 +2661,14 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='g
         reps_groups = {}
     else:
         reps_groups = representatives
-    #print(len(reps_groups))
-    repetitive = 0
+
+    #repetitive = 0
     for protid, protein in sorted_sequences.items():
         if minimizer is True:
-            minimizers = determine_minimizers(protein, word_size, word_size)
-            kmers = set([m[0] for m in minimizers])
-            if len(kmers) < (0.98*len(minimizers)):
-                repetitive += 1
+            minimizers = determine_minimizers(protein, word_size, word_size, position=False)
+            kmers = set(minimizers)
+            #if len(kmers) < (0.98*len(minimizers)):
+            #    repetitive += 1
         # check if set of distinct kmers is much smaller than the set of minimizers
         # to understand if sequence has too much redundancy
         elif minimizer is False:

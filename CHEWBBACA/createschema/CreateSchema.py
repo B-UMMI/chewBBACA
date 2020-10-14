@@ -236,9 +236,8 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     # cluster proteins
     print('\nClustering protein sequences...')
     start_cluster = time.time()
-    #clusters = aux.cluster_sequences(sorted_prots, word_size, clustering_sim,
-    #                                 clustering_mode, minimizer=True)
 
+    # need to pass word size!!!
     clustering_results = aux.map_async_parallelizer(divided_prots, aux.cluster_sequences,
                                                     cpu_to_apply)
 

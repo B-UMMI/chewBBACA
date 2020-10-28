@@ -2105,13 +2105,13 @@ def translate_sequence(dna_str, table_id):
         Parameters
         ----------
         dna_str : str
-            DNA sequence as string type.
+            String representing a DNA sequence.
         table_id : int
             Translation table identifier.
 
         Returns
         -------
-        protseq : str
+        protseq : Bio.Seq.Seq
             Protein sequence created by translating the
             input DNA sequence.
     """
@@ -2123,21 +2123,29 @@ def translate_sequence(dna_str, table_id):
 
 
 def translate_dna_aux(dna_sequence, method, table_id):
-    """ Tries to translate an input DNA sequence in specified orientation
-        and stores exceptions when the input sequence cannot be translated.
+    """ Attempts to translate an input DNA sequence in specified
+        orientation and stores exceptions when the input sequence
+        cannot be translated.
 
-        Args:
-            dna_sequence (str): string representing a DNA sequence.
-            method (str): a string specifying the way the sequence will
-            be oriented to attempt translation.
-            table_id (int): translation table identifier.
+        Parameters
+        ----------
+        dna_sequence : str
+            String representing a DNA sequence.
+        method : str
+            Sequence orientation to attempt translation.
+        table_id : int
+            Translation table identifier.
 
-        Returns:
-            List with following elements if translation is successful:
-                protseq (str): string representing the translated DNA sequence.
-                myseq (str): string representing the DNA sequence in the
+        Returns
+        -------
+        If the sequence can be translated:
+            protseq : Bio.Seq.Seq
+                Translated DNA sequence.
+            myseq : str
+                String representing the DNA sequence in the
                 orientation used to translate it.
-            Otherwise, returns string derived from captured exception.
+        Otherwise, returns string with the description of the
+        exception that was raised.
     """
 
     myseq = dna_sequence
@@ -2174,18 +2182,22 @@ def translate_dna_aux(dna_sequence, method, table_id):
 
 
 def check_str_alphabet(string, alphabet):
-    """ Determine if a string only has characters from specified
-        alphabet.
+    """ Determine if a string only contains characters from
+        specified alphabet.
 
-        Args:
-            string (str): input string.
-            alphabet (str): string that has all characters from desired
+        Parameters
+        ----------
+        string : str
+            Input string.
+        alphabet : str
+            String that has all characters from desired
             alphabet.
 
-        Returns:
-            "True" if sequence only has characters from specified
-            alphabet and string "ambiguous or invalid characters" if
-            it any of its characters is not in the alphabet.
+        Returns
+        -------
+        "True" if sequence only has characters from specified
+        alphabet and string "ambiguous or invalid characters" if
+        it any of its characters is not in the alphabet.
     """
 
     valid_chars = alphabet
@@ -2199,15 +2211,18 @@ def check_str_multiple(string, number):
     """ Determine if length of input string is multiple of
         a specified number.
 
-        Args:
-            string (str): input string.
-            number (int): integer that will be used to check if sequence
-            length is multiple of.
+        Parameters
+        ----------
+        string : str
+            Input string.
+        number : int
+            Length value should be a multiple of this number.
 
-        Returns:
-            "True" if the length of the sequence is a multiple of the
-            specified number and "sequence length is not a multiple of number"
-            if condition is not satisfied.
+        Returns
+        -------
+        "True" if the length of the sequence is a multiple of the
+        specified number and "sequence length is not a multiple of number"
+        if condition is not satisfied.
     """
 
     if len(string) % number == 0:
@@ -2217,26 +2232,34 @@ def check_str_multiple(string, number):
 
 
 def translate_dna(dna_sequence, table_id, min_len):
-    """ Checks if sequence is valid and attempts to translate it,
-        calling several functions to ensure that the sequence only has
-        'ACTG', is multiple of 3 and that it can be translated in any of 4
-        different orientations. Stores exceptions so that it is possible to
-        understand the sequence could not be translated.
+    """ Checks if sequence is valid and attempts to translate
+        it, calling several functions to ensure that the sequence
+        only has 'ACTG', is multiple of 3 and that it can be
+        translated in any of 4 different orientations. Stores
+        exceptions so that it is possible to understand why the
+        sequence could not be translated.
 
-        Args:
-            dna_sequence (str):
-            table_id (int):
+        Parameters
+        ----------
+        dna_sequence : str
+            String representing a DNA sequence.
+        table_id : int
+            Translation table identifier.
 
-        Returns:
-            If the sequence can be translated,
-            a list with following elements:
-                sequence (list): a list with two elemets, the protein sequence
+        Returns
+        -------
+        If the sequence can be translated:
+            sequence : list
+                List with two elemets, the protein sequence
                 and the DNA sequence in the correct orientation.
-                coding_strand (str): the strand orientation that had could be
+            coding_strand : str
+                The sequence orientation that codes for the
+                protein.
+        Otherwise:
+            exception_str : str
+                A string containing the exceptions that
+                explain why the the sequence could not be
                 translated.
-            Otherwise:
-                exception_str (str): a string containing the exceptions that
-                determined that the sequence could not be translated.
     """
 
     original_seq = dna_sequence.upper()
@@ -2289,28 +2312,38 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
     """ Sends sequence for translation and collects exceptions when
         the sequence cannot be translated.
 
-        Args:
-            sequence (str): string representing a DNA sequence.
-            method (str): a string specifying the sequence orientation
-            that should be used to attempt translation.
-            table_id (int): translation table identifier.
-            strands (list): list with 4 different orientations that can
-            be checked.
-            exception_collector (list): list used to store all exceptions
-            arising from translation attempts.
+        Parameters
+        ----------
+        sequence : str
+            String representing a DNA sequence.
+        method : str
+            Sequence orientation to attempt translation.
+        table_id : int
+            Translation table identifier.
+        strands : list
+            List with maximum of 4 different orientations
+            to attempt translation, 'original', 'revcomp',
+            'rev' and 'revrevcomp'.
+        exception_collector : list
+            List used to store all exceptions arising from
+            translation attempts.
 
-        Returns:
-            A list with following elements, if the sequence can be translated:
-                translated_seq (list): a list with the protein sequence and
-                with the DNA sequence in the orientation used for translation.
-                exception_collector (list): a list with the exceptions that are
-                captured when the sequence could not be translated.
-            Otherwise:
-                translated_seq (str): a string with the exception/reason why
-                the sequence could not be translated.
-                exception_collector (list): list with all exception that have
-                been captured during translation attempts of the current
-                sequence.
+        Returns
+        -------
+        If the sequence can be translated:
+            translated_seq : list
+                List with the protein sequence and with the
+                DNA sequence in the orientation used for translation.
+            exception_collector : list
+                List with the exceptions that were captured when the
+                sequence could not be translated.
+        Otherwise:
+            translated_seq : str
+                String with the description of the last exception
+                captured because sequence could not be translated.
+            exception_collector : list
+                List with all exception that have been captured
+                for translation attempts.
     """
 
     translated_seq = translate_dna_aux(sequence, method, table_id)
@@ -2322,105 +2355,142 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
 
 
 def is_url(url):
-    """ Checks if a url is valid
-    
-        Args: 
-        url (str): the url to be checked
+    """ Checks if a URL is valid.
 
-        Returns:
+        Parameters
+        ----------
+        url : str
+            The url to be checked.
+
+        Returns
+        -------
         True if url is valid, False otherwise.
-    
     """
-    
+
     try:
-        
         result = urlparse(url)
         return all([result.scheme, result.netloc, result.path])
-    
     except:
         return False
 
 
 def make_url(base_url, *res, **params):
-    """ Creates a url. 
-    
-        Args: 
-            base_url (str): the base url
-            res (str): endpoint(s) to add to the base url
-            params (str): addtional parameters (WIP)
+    """ Creates a URL.
 
-        Returns:
-            url (str) with the provided parameters.
-            Otherwise, returns base_url.
+        Parameters
+        ----------
+        base_url : str
+            The base URL.
+        res : str
+            Endpoint(s) to add to the base URL.
+        params : str
+            Addtional parameters (WIP).
 
+        Returns
+        -------
+        url : str
+            URL constructed by adding endpoints and
+            additional parameters. If the provided
+            base URL is invalid returns 'An invalid
+            URL was provided.'
     """
-    
+
     url = base_url
-    
     # Check if the url is valid
     if is_url(url):
-        
-        if url[-1] == "/":
+
+        if url[-1] == '/':
             url = url[:-1]
-    
+
         # Add the endpoints
         for r in res:
             url = '{0}/{1}'.format(url, r)
-        
+
         # Add params if they are provided
         if params:
             url = '{0}?{1}'.format(url, urlencode(params))
-        
+
         return url
-    
     else:
-        return "An invalid URL was provided."
+        return 'An invalid URL was provided.'
 
 
 def get_sequence_from_url(url):
+    """ Extracts sequence from URL.
+
+        Parameters
+        ----------
+        url : str
+            URL that contains the sequence.
+
+        Returns
+        -------
+        seq : str
+            Sequence extracted from the URL.
     """
-    """
-    
-    seq = parse_qs(urlsplit(url).query)["sequence"][0]
-    
+
+    seq = parse_qs(urlsplit(url).query)['sequence'][0]
+
     return seq
 
 
 def login_user_to_NS(server_url, email, password):
-    """ Logs a user in Nomenclature Server
-    
-        Args:
-            server_url (str): url of Nomeclature Server API
-            email (str): email of the user in NS
-            password (str): password of the user in NS
-            
-        Returns:
-            token (str): authorization token to perform requests to NS
+    """ Login user to a Chewie-NS instance.
+
+        Parameters
+        ----------
+        server_url : str
+            Base URL of the Chewie-NS instance.
+        email : str
+            Email linked to user's account in Chewie-NS.
+        password : str
+            Password for the user's account in Chewie-NS.
+
+        Returns
+        -------
+        If Login is successful:
+            token : str
+                Authorization token to perform requests to
+                Chewie-NS.
+        Otherwise, returns False.
     """
-    
+
     auth_params = {}
-    auth_params["email"] = email 
-    auth_params["password"] = password
-    
+    auth_params['email'] = email
+    auth_params['password'] = password
+
     auth_headers = {}
-    auth_headers["Content-Type"] = "application/json"
-    auth_headers["accepts"] = "application/json"
-    
-    auth_url = make_url(server_url, "auth", "login")
-    
-    auth_r = requests.post(auth_url, data=json.dumps(auth_params), headers=auth_headers, verify=False)
-    
+    auth_headers['Content-Type'] = 'application/json'
+    auth_headers['accepts'] = 'application/json'
+
+    auth_url = make_url(server_url, 'auth', 'login')
+
+    auth_r = requests.post(auth_url, data=json.dumps(auth_params),
+                           headers=auth_headers, verify=False)
+
     auth_result = auth_r.json()
     if auth_result['status'] == 'success':
-        token = auth_result["access_token"]
+        token = auth_result['access_token']
     else:
         token = False
-    
+
     return token
 
 
 def capture_login_credentials(base_url):
-    """
+    """ Captures login credentials and logs user into
+        Chewie-NS to get authorization token.
+
+        Parameters
+        ----------
+        base_url : str
+            Base URL of the Chewie-NS instance.
+
+        Returns
+        -------
+        token : str
+            Authorization token to perform requests to
+            Chewie-NS.
     """
 
     print('\nPlease provide login credentials:')
@@ -2437,7 +2507,20 @@ def capture_login_credentials(base_url):
 
 
 def read_configs(schema_path, filename):
-    """
+    """ Reads file with schema config values.
+
+        Parameters
+        ----------
+        schema_path : str
+            Path to the schema's directory.
+        filename : str
+            Name of the file that contains the config values.
+
+        Returns
+        -------
+        configs : dict
+            Dictionary with config names as keys and config
+            values as values.
     """
 
     config_file = os.path.join(schema_path, filename)
@@ -2451,7 +2534,7 @@ def read_configs(schema_path, filename):
 
 
 def get_species_schemas(schema_id, species_id, base_url, headers_get):
-    """ Determines if a species in the Chewie-NS has a schema
+    """ Determines if a species in Chewie-NS has a schema
         with specified identifier.
 
         Parameters
@@ -2468,12 +2551,9 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
 
         Returns
         -------
-        list
-            A list with the following elements:
-
-            - The schema id (str).
-            - The schema URI (str).
-            - The schema name (str).
+        A list with the schema identifier, the schema URI,
+        the schema name and a dictionary with all properties
+        for the schema in Chewie-NS.
 
         Raises
         ------
@@ -2504,7 +2584,8 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
         if len(schema) > 0:
             # get schema parameters
             schema = schema[0]
-            schema_params = requests.get(schema[1], headers=headers_get, verify=False)
+            schema_params = requests.get(schema[1], headers=headers_get,
+                                         verify=False)
             schema_params = schema_params.json()[0]
             schema.append(schema_params)
             return schema
@@ -2529,7 +2610,8 @@ def upload_file(file, filename, url, headers, verify_ssl):
             HTTP POST request headers.
         verify_sll : bool
             If the SSL certificates should be verified in
-            HTTPS requests (False for no verification, True otherwise).
+            HTTPS requests (False for no verification, True
+            otherwise).
 
         Returns
         -------
@@ -2549,12 +2631,12 @@ def upload_file(file, filename, url, headers, verify_ssl):
 
 
 def upload_data(data, url, headers, verify_ssl):
-    """ Uploads data to the NS.
+    """ Uploads data to Chewie-NS.
 
         Parameters
         ----------
         data
-            The data that will be sent to the NS (any data
+            The data that will be sent to Chewie-NS (any data
             type accepted by requests 'data' argument).
         url : str
             Endpoint URL that receives the POST request.
@@ -2579,7 +2661,18 @@ def upload_data(data, url, headers, verify_ssl):
 
 
 def get_data(sparql_query):
-    """ Gets data from Virtuoso """
+    """ Sends request to query UniProts's SPARQL endpoint.
+
+        Parameters
+        ----------
+        sparql_query : str
+            SPARQL query.
+
+        Returns
+        -------
+        result : dict
+            Dictionary with data retrieved from UniProt.
+    """
 
     tries = 0
     max_tries = 5
@@ -2600,7 +2693,26 @@ def get_data(sparql_query):
 
 
 def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
-    """
+    """ Creates and prints progress bar to stdout.
+
+        Parameters
+        ----------
+        process : multiprocessing.pool.MapResult
+            Multiprocessing object.
+        total : int
+            Total number of inputs that have to be processed.
+        tickval : int
+            Progress completion percentage value for each
+            tick.
+        ticknum : int
+            Total number of ticks in progress bar.
+        completed : bool
+            Boolean indicating if process has completed.
+
+        Returns
+        -------
+        completed : bool
+            Boolean indicating if process has completed.
     """
 
     # check if process has finished
@@ -2629,7 +2741,25 @@ def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
 
 
 def input_timeout(prompt, timeout):
-    """
+    """ Adds timeout feature when requesting user input.
+
+        Parameters
+        ----------
+        prompt : str
+            Message to print to stdout to request for user
+            input.
+        timeout : int
+            Maximum number of seconds that the process will
+            wait for input.
+
+        Returns
+        -------
+        String with user input.
+
+        Raises
+        ------
+        SystemExit
+            - If there is no user input before timeout.
     """
 
     pool = ThreadPool(processes=1)
@@ -2644,19 +2774,28 @@ def input_timeout(prompt, timeout):
 def translate_coding_sequences(input_data):
     """ Translates CDSs into protein sequences.
 
-        Args:
-            cdss (dict): a dictionary with CDSs ids as keys and CDSs DNA
-            sequences as values.
+        Parameters
+        ----------
+        input_data : list
+            A list with the sequence identifiers of the
+            sequences that should be translated, the path
+            to the FASTA file that contains the DNA sequences,
+            the translation table identifier, the minimum
+            sequence length value, the path to a file to
+            save DNA sequences and the path to a file to
+            save protein sequences.
 
-        Returns:
-            prots (dict): a dictionary with CDSs/proteins ids as keys and
-            protein sequences as values.
-            trans_state (dict): a dictionary with the CDSs/proteins ids as
-            keys and the DNA strand that coded for those proteins.
-            ambiguous (dict): a dictionary with CDSs/proteins ids as keys
-            and CDSs DNA sequences that had ambiguous bases as values.
-            untranslatable (dict): a dictionary with CDSs/proteins ids as
-            keys and CDSs DNA sequences that could not be translated.
+        Returns
+        -------
+        A list with following elements:
+            invalid_alleles : list
+                List with one sublist per invalid allele.
+                Each sublist contains a sequence identifer
+                and the exception message returned after
+                attempting translation.
+            total_seqs : int
+                Total number of DNA sequences that were
+                translated.
     """
 
     valid_seqs = input_data[0:-5]
@@ -2708,17 +2847,39 @@ def translate_coding_sequences(input_data):
     return [invalid_alleles, total_seqs]
 
 
-def hash_sequence(sequence):
-    """
+def hash_sequence(string):
+    """ Compute SHA256 for an input string.
+
+        Parameters
+        ----------
+        string : str
+            Input string to hash.
+
+        Returns
+        -------
+        sha256 : str
+            String representation of the sha256 HASH object.
     """
 
-    seq_hash = hashlib.sha256(sequence.encode('utf-8')).hexdigest()
+    sha256 = hashlib.sha256(string.encode('utf-8')).hexdigest()
 
-    return seq_hash
+    return sha256
 
 
 def fasta_str_record(seqid, sequence):
-    """
+    """ Creates the string representation of a FASTA record.
+
+        Parameters
+        ----------
+        seqid : str
+            Sequence identifier to include in the header.
+        sequence : str
+            String representing DNA or Protein sequence.
+
+        Returns
+        -------
+        record : str
+            String representation of the FASTA record.
     """
 
     record = '>{0}\n{1}'.format(seqid, sequence)
@@ -2727,7 +2888,27 @@ def fasta_str_record(seqid, sequence):
 
 
 def determine_distinct(input_data):
-    """
+    """ Identifies duplicated sequences in a FASTA file.
+        Returns a single sequence identifier per distinct
+        sequence and saves distinct sequences to a FASTA
+        file.
+
+        Parameters
+        ----------
+        input_data : list
+            List with a path to a FASTA file and a path
+            to a FASTA file that will be created to store
+            distinct sequences.
+
+        Returns
+        -------
+        List with following elements:
+            total : int
+                Total number of times sequences were repeated.
+            unique_seqids : list
+                List with one sequence identifier per distinct
+                sequence. The first identifier observed for a
+                distinct sequence is the one stored in the list.
     """
 
     sequences_file, unique_fasta = input_data
@@ -2768,17 +2949,21 @@ def determine_distinct(input_data):
 
 
 def determine_small(sequences_file, minimum_length):
-    """ Find protein sequences that are shorter than desired length.
+    """ Find protein sequences that are shorter than
+        desired length.
 
-        Args:
-            prots (dict): a dictionary with protein ids as keys and protein
-            sequences as values.
-            min_len (int): Proteins with a number of amino acids lower than
-            this value are considered small.
+        Parameters
+        ----------
+        sequences_file : str
+            Path to a FASTA file.
+        minimum_length : int
+            Sequences with a length value below this value
+            are considered small.
 
-        Returns:
-            small_proteins (dict): a dictionary with the ids of small proteins
-            as keys and their amino acid sequence as values.
+        Returns
+        -------
+        small_seqs : list
+            List with the identifiers of small sequences.
     """
 
     small_seqs = []
@@ -2794,23 +2979,57 @@ def determine_small(sequences_file, minimum_length):
 
 
 def get_sequences_by_id(sequences_index, seqids, out_file, limit=5000):
-    """
+    """ Retrieves sequences from an indexed FASTA file.
+
+        Parameters
+        ----------
+        sequences_index : Bio.File._IndexedSeqFileDict
+            Fasta file index.
+        seqids : list
+            List with the identifiers of the sequences
+            that should be retrieved.
+        out_file : str
+            Path to the FASTA file to which selected
+            sequences will be saved.
+        limit : int
+            Maximum number of sequences that will be
+            kept in memory at a time (to avoid keeping
+            huge datasets in memory).
+
+        Returns
+        -------
+        Creates a file with the sequences that have the
+        identifiers in the input list.
     """
 
     records = []
-    for i, seqid in enumerate(seqids):
+    for seqid in seqids:
         sequence = str(sequences_index[seqid].seq)
         record = fasta_str_record(seqid, sequence)
         records.append(record)
 
-        if len(records) == limit or i+1 == len(seqids):
+        if len(records) == limit or seqid == seqids[-1]:
             lines = join_list(records, '\n')
             write_to_file(lines, out_file, 'a', '\n')
             records = []
 
 
 def create_short(schema_files, schema_dir):
-    """
+    """ Creates the 'short' directory for a schema.
+        Creates the directory and copies schema files
+        to the directory (should be used when the schema
+        only has 1 sequence per gene/locus).
+
+        Parameters
+        ----------
+        schema_files : list
+            List with paths to all FASTA files in the schema.
+        schema_dir : str
+            Path to the schema's directory.
+
+        Returns
+        -------
+        True on completion.
     """
 
     short_path = join_paths(schema_dir, ['short'])
@@ -2825,10 +3044,29 @@ def create_short(schema_files, schema_dir):
 
 
 def split_fasta(fasta_path, output_path, num_seqs, filenames):
-    """
+    """ Splits a FASTA file.
+
+        Parameters
+        ----------
+        fasta_path : str
+            Path to a FASTA file.
+        output_path : str
+            Path to the output directory where new FASTA
+            files will be created.
+        num_seqs : int
+            Split FASTA file into files with this number
+            of sequences.
+        filenames : list
+            List with names to attribute to new files.
+
+        Returns
+        -------
+        splitted_files : list
+            List with paths to the new files that were
+            created by splitting the input FASTA file.
     """
 
-    schema_files = []
+    splitted_files = []
     current_recs = []
     records = [rec for rec in SeqIO.parse(fasta_path, 'fasta')]
     for record in records:
@@ -2837,23 +3075,53 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
             file_name = filenames.__next__()
             file_name = replace_multiple_characters(file_name)
 
-            new_file = join_paths(output_path, ['{0}{1}'.format(file_name, '.fasta')])
+            new_file = join_paths(output_path,
+                                  ['{0}{1}'.format(file_name, '.fasta')])
 
-            schema_files.append(new_file)
+            splitted_files.append(new_file)
 
             write_records(current_recs, new_file)
 
             current_recs = []
 
-    return schema_files
+    return splitted_files
 
 
-def run_blast(blastp_path, blast_db, fasta_file, blast_output,
+def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_hsps=1, threads=1, ids_file=None):
-    """
+    """ Execute BLAST to align sequences in a FASTA file
+        against a BLAST database.
+
+        Parameters
+        ----------
+        blast_path : str
+            Path to BLAST executables.
+        blast_db : str
+            Path to the BLAST database.
+        fasta_file : str
+            Path to the FASTA file with sequences to
+            align against the BLAST database.
+        blast_output : str
+            Path to the file that will be created to
+            store BLAST results.
+        max_hsps : int
+            Maximum number of High Scoring Pairs per
+            pair of aligned sequences.
+        threads : int
+            Number of threads/cores used to run BLAST.
+        ids_file : str
+            Path to a file with sequence identifiers,
+            one per line. Sequences will only be aligned
+            to the sequences in the BLAST database that
+            have any of the identifiers in this file.
+
+        Returns
+        -------
+        stderr : str
+            String with errors raised during BLAST execution.
     """
 
-    blast_args = [blastp_path, '-db', blast_db, '-query', fasta_file,
+    blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
                   '-out', blast_output, '-outfmt', '6 qseqid sseqid score',
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
                   '-evalue', '0.001']
@@ -2871,7 +3139,25 @@ def run_blast(blastp_path, blast_db, fasta_file, blast_output,
 
 
 def cluster_blaster(inputs):
-    """
+    """ Aligns sequences in the same cluster with BLAST.
+
+        Parameters
+        ----------
+        inputs : list
+            List with clusters identifiers, the path to
+            BLAST executables, the path to a BLAST database,
+            the path to the directory that contains files with
+            the identifiers of the sequences in each cluster
+            and where FASTA files with the sequences in each
+            cluster and files with BLAST results will be
+            written to and the path to the FASTA file with
+            the protein sequences in all clusters.
+
+        Returns
+        -------
+        out_files : list
+            List with the paths to the files with BLAST
+            results for each cluster.
     """
 
     blast_inputs = inputs[0:-4]
@@ -2913,7 +3199,33 @@ def cluster_blaster(inputs):
 
 
 def blast_inputs(clusters, output_directory, ids_dict):
-    """
+    """ Creates files with the identifiers of the sequences
+        in each cluster.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of cluster
+            representatives as keys and a list with tuples
+            as values (each tuple has the identifier of a
+            sequence that is in the cluster, the percentage
+            of shared minimizers and the length os that
+            sequence).
+        output_directory : str
+            Path to the directory where files with identifiers
+            will be created.
+        ids_dict : dict
+            Dictionary that maps sequence identifiers to
+            shorter and unique identifiers that will be
+            saved in the files and used as sequence
+            identifiers during BLAST to avoid errors
+            related with sequence headers/identifiers
+            that exceed length limit allowed by BLAST.
+
+        Returns
+        -------
+        ids_to_blast : list
+            List with the identifiers of all clusters.
     """
 
     rev_ids = {v: k for k, v in ids_dict.items()}
@@ -2932,7 +3244,20 @@ def blast_inputs(clusters, output_directory, ids_dict):
 
 
 def divide_list_into_n_chunks(list_to_divide, n):
-    """
+    """ Divides a list into a defined number of sublists.
+
+        Parameters
+        ----------
+        list_to_divide : list
+            List to divide into sublists.
+        n : int
+            Number of sublists to create.
+
+        Returns
+        -------
+        sublists : list
+            List with the sublists created by dividing
+            the input list.
     """
 
     sublists = []
@@ -2948,7 +3273,28 @@ def divide_list_into_n_chunks(list_to_divide, n):
 
 
 def apply_bsr(inputs):
-    """
+    """ Computes the BLAST Score Ratio value for BLAST
+        alignments and returns the identifiers of the
+        sequences that are similar to sequences with
+        the same size or that are larger.
+
+        Parameters
+        ----------
+        inputs : list
+            List with the path to a file with BLAST
+            results, the path to a FASTA file that
+            contains the sequences that were aligned,
+            the BSR value to use as threshold and a
+            dictionary with the mapping between
+            sequence identifiers used for BLAST and
+            the original sequence identifiers.
+
+        Returns
+        -------
+        excluded_alleles : list
+            List with the identifiers of the sequences
+            that were highly similar to larger sequences
+            or sequences of the same size.
     """
 
     ids_dict = inputs[3]
@@ -3000,7 +3346,22 @@ def apply_bsr(inputs):
 
 
 def sort_data(data, sort_key=None, reverse=False):
-    """
+    """ Sorts an iterable.
+
+        Parameters
+        ----------
+        data : iter
+            Iterable to sort.
+        sort_key
+            If provided, data will be sorted based
+            on this function.
+        reverse : bool
+            If sorting order should be inverted.
+
+        Returns
+        -------
+        sorted_data
+            List with sorted elements.
     """
 
     if sort_key is None:
@@ -3012,19 +3373,63 @@ def sort_data(data, sort_key=None, reverse=False):
 
 
 def sequence_kmerizer(sequence, k_value, offset=1, position=False):
-    """
+    """ Decomposes a sequence into kmers.
+
+        Parameters
+        ----------
+        sequence : str
+            Sequence to divide into kmers.
+        k_value : int
+            Value for the size k of kmers.
+        offset : int
+            Value to indicate offset of consecutive kmers.
+        position : bool
+            If the start position of the kmers in the sequence
+            should be stored.
+
+        Returns
+        -------
+        kmers : list
+            List with the kmers determined for the input
+            sequence. The list will contain strings if
+            it is not specified that positions should be
+            stored and tuples of kmer and start position
+            if the position is stored.
     """
 
     if position is False:
-        kmers = [sequence[i:i+k_value] for i in range(0, len(sequence)-k_value+1, offset)]
+        kmers = [sequence[i:i+k_value]
+                 for i in range(0, len(sequence)-k_value+1, offset)]
     elif position is True:
-        kmers = [(sequence[i:i+k_value], i) for i in range(0, len(sequence)-k_value+1, offset)]
+        kmers = [(sequence[i:i+k_value], i)
+                 for i in range(0, len(sequence)-k_value+1, offset)]
 
     return kmers
 
 
 def determine_minimizers(sequence, adjacent_kmers, k_value, position=False):
-    """
+    """ Determine the minimizers for a sequence based on
+        lexicographical order. Skips windows that
+        cannot have a minimizer based on the minimizer
+        computed in the previous iteration.
+
+        Parameters
+        ----------
+        sequence : str
+            String representing the sequence.
+        adjacent_kmers : int
+            Window size value. Number of adjacent kmers per group.
+        k_value : int
+            Value of k for kmer size.
+        position : bool
+            If the start position of the kmers in the sequence
+            should be stored.
+
+        Returns
+        -------
+        minimizers : list
+            A list with the set of minimizers determined
+            for the input sequence.
     """
 
     # break sequence into kmers
@@ -3086,10 +3491,52 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, position=False):
 # for AlleleCall this function needs to receive the variable 'reps_groups'
 # and to accept an argument that controls if it is allowed to create new
 # clusters based on new genes that it finds.
-def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='greedy',
-                      representatives=None, grow=True, offset=1, minimizer=True):
+def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2,
+                      mode='greedy', representatives=None, grow=True,
+                      offset=1, minimizer=True):
+    """ Cluster sequences based on shared percentage of kmers/minimizers.
+
+        Parameters
+        ----------
+        sorted_sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values. Sorted by decreasing sequence
+            length.
+        word_size : int
+            Value k for the kmer size.
+        clustering_sim : float
+            Similarity threshold to cluster a sequence into
+            a cluster.
+        mode : str
+            Clustering mode.
+        representatives : dict
+            Dictionary with kmers as keys and a list with
+            identifiers of sequences that contain that kmer
+            as values.
+        grow : bool
+            If it is allowed to create new clusters.
+        offset : int
+            Value to indicate offset of consecutive kmers.
+        minimizer : bool
+            If clustering should be based on shared minimizers.
+
+        Returns
+        -------
+        A list with the following elements:
+            clusters : dict
+                Dictionary with the identifiers of sequences
+                that are clusters representatives as keys and
+                a list with tuples as values. Each tuple has
+                the identifier of a sequence that was added to
+                the cluster, the percentage of shared
+                kmers/minimizers and the length of the clustered
+                sequence.
+            reps_sequences : dict
+                Dictionary with the identifiers of sequences
+                that are clusters representatives as keys and
+                their sequences as values.
     """
-    """
+
     print(word_size)
     clusters = {}
     reps_sequences = {}
@@ -3098,15 +3545,16 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='g
     else:
         reps_groups = representatives
 
-    #repetitive = 0
+    # repetitive = 0
     for protid, protein in sorted_sequences.items():
         if minimizer is True:
-            minimizers = determine_minimizers(protein, word_size, word_size, position=False)
+            minimizers = determine_minimizers(protein, word_size,
+                                              word_size, position=False)
             kmers = set(minimizers)
-            #if len(kmers) < (0.98*len(minimizers)):
-            #    repetitive += 1
-        # check if set of distinct kmers is much smaller than the set of minimizers
-        # to understand if sequence has too much redundancy
+            # if len(kmers) < (0.98*len(minimizers)):
+            #     repetitive += 1
+        # check if set of distinct kmers is much smaller than the
+        # set of minimizers to understand if sequence has too much redundancy
         elif minimizer is False:
             kmers = sequence_kmerizer(protein, word_size, offset, False)
 
@@ -3115,7 +3563,9 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='g
 
         # count number of kmer hits per representative
         counts = Counter(current_reps)
-        selected_reps = [(k, v/len(kmers)) for k, v in counts.items() if v/len(kmers) >= clustering_sim]
+        selected_reps = [(k, v/len(kmers))
+                         for k, v in counts.items()
+                         if v/len(kmers) >= clustering_sim]
 
         # sort to get most similar at index 0
         if len(selected_reps) > 0:
@@ -3128,19 +3578,34 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='g
             clusters[protid] = [(protid, 1.0, len(protein))]
             reps_sequences[protid] = protein
 
-    #print(repetitive)
+    # print(repetitive)
     return [clusters, reps_sequences]
 
 
 def write_clusters(clusters, outfile):
-    """
+    """ Writes clusters to file.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the percentage of shared
+            kmers/minimizers and the length of the clustered
+            sequence.
+        outfile : str
+            Path to the file that will be
+            created to save clusters.
     """
 
     cluster_num = 0
     cluster_lines = []
     for rep, seqids in clusters.items():
         cluster_lines.append('>Cluster_{0}'.format(cluster_num))
-        clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2]) for s in seqids]
+        clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2])
+                     for s in seqids]
         cluster_lines.extend(clustered)
         cluster_num += 1
     cluster_text = join_list(cluster_lines, '\n')
@@ -3149,7 +3614,35 @@ def write_clusters(clusters, outfile):
 
 
 def representative_prunner(clusters, sim_cutoff):
-    """
+    """ Removes sequences from clusters based on a similarity
+        threshold.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the percentage of shared
+            kmers/minimizers and the length of the clustered
+            sequence.
+        sim_cutoff : float
+            Similarity threshold value. Sequences with
+            equal or greater similarity value are excluded
+            from clusters.
+
+        Returns
+        -------
+        A list with the following elements:
+            prunned_clusters : dict
+                Input dictionary without values for the
+                sequences that had similarity values
+                equal or greater that defined threshold.
+            excluded : list
+                List with a list per cluster. Each list
+                has the sequences that were excluded from
+                a cluster.
     """
 
     excluded = []
@@ -3178,14 +3671,35 @@ def representative_prunner(clusters, sim_cutoff):
         # prunned_clusters[rep] = keep
         # excluded.extend(remove)
 
-        prunned_clusters[rep] = [seqid for seqid in seqids if seqid[1] < sim_cutoff]
-        excluded.extend([seqid for seqid in seqids if seqid[1] >= sim_cutoff and seqid[0] != rep])
+        prunned_clusters[rep] = [seqid
+                                 for seqid in seqids
+                                 if seqid[1] < sim_cutoff]
+        excluded.extend([seqid
+                         for seqid in seqids
+                         if seqid[1] >= sim_cutoff and seqid[0] != rep])
 
     return [prunned_clusters, excluded]
 
 
 def determine_singletons(clusters):
-    """
+    """ Determines clusters that only have one sequence.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the percentage of shared
+            kmers/minimizers and the length of the clustered
+            sequence.
+
+        Returns
+        -------
+        singletons : dict
+            Dictionary entries for clusters that only have
+            one sequence.
     """
 
     singletons = {k: v for k, v in clusters.items() if len(v) == 0}
@@ -3193,17 +3707,68 @@ def determine_singletons(clusters):
     return singletons
 
 
-def remove_clusters(clusters, cluster_ids):
-    """
+def remove_entries(dictionary, keys):
+    """ Creates new dictionary without entries with
+        specified keys.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Input dictionary.
+        keys : list
+            List of keys for the entries that should
+            not be included in the new dictionary.
+
+        Returns
+        -------
+        new_dict : dict
+            Dictionary without entries with keys in
+            the input list.
     """
 
-    new_clusters = {k: v for k, v in clusters.items() if k not in cluster_ids}
+    new_dict = {k: v for k, v in dictionary.items() if k not in keys}
 
-    return new_clusters
+    return new_dict
 
 
 def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
-    """
+    """ Determines the percentage of shared kmers/minimizers
+        between sequences in the same cluster and excludes
+        sequences from a clusters sequences that are similar
+        to other sequences in the cluster.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the percentage of shared
+            kmers/minimizers and the length of the clustered
+            sequence.
+        protein_file : str
+            Path to a FASTA file with protein sequences.
+        word_size : int
+            Value k for the kmer size.
+        intra_filter : float
+            Similarity threshold value. If two sequences in
+            the same cluster have a similarity value equal
+            or greater to this value, one of the sequences
+            will be excluded from the cluster.
+
+        Returns
+        -------
+        excluded_dict : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            lists as values. Each list has two elements:
+            a list with the identifiers of the sequences
+            that were excluded from the clusters and a
+            dictionary with sequences identifiers as keys
+            and tuples with sequence identifiers and the
+            similarity value for each match that led to
+            an eclusion.
     """
 
     excluded_dict = {}
@@ -3282,15 +3847,17 @@ def datetime_str(datetime_obj, date_format='%Y-%m-%dT%H:%M:%S'):
 
         Parameters
         ----------
-        datetime_obj : 
-
+        datetime_obj : datetime.datetime
+            Datetime module object.
         date_format : str
-
+            Format for string representation of the date
+            object.
 
         Returns
         -------
         dt_str : str
-
+            String representation of the date according
+            to specified format.
     """
 
     dt_str = dt.datetime.strftime(datetime_obj, date_format)
@@ -3299,24 +3866,26 @@ def datetime_str(datetime_obj, date_format='%Y-%m-%dT%H:%M:%S'):
 
 
 def datetime_diff(sdate, edate):
-    """ Returns the difference in
-        minutes and the remaining
-        in seconds between two dates.
+    """ Returns the difference in minutes and the
+        remaining in seconds between two dates.
 
         Parameters
         ----------
-        sdate : 
-
-        edate : 
-
+        sdate : datetime.datetime
+            Datetime module object corresponding to
+            the oldest date.
+        edate : datetime.datetime
+            Datetime module object corresponding to
+            the most recent date.
 
         Returns
         -------
         A list with the following elements:
-            minutes : int
-
-            seconds : int
-                
+            minutes : float
+                Time difference between the two dates
+                in minutes.
+            seconds : float
+                The remaining time difference in seconds.
     """
 
     delta = edate - sdate
@@ -3333,7 +3902,7 @@ def delete_directory(directory_path):
 
 
 def validate_date(date):
-    """
+    """ 
     """
 
     valid = False

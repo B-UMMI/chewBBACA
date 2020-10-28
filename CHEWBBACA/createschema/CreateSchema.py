@@ -286,7 +286,7 @@ def clustering_helper(protein_file, cpu_cores, word_size, clustering_mode, temp_
     singletons = aux.determine_singletons(prunned_clusters)
     print('Found {0} singletons.'.format(len(singletons)))
     # remove singletons and keep clusters that need to be BLASTed
-    final_clusters = aux.remove_clusters(prunned_clusters, singletons)
+    final_clusters = aux.remove_entries(prunned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
@@ -353,7 +353,7 @@ def blaster_helper(temp_directory, clustered_sequences2, final_clusters, blastp_
     os.mkdir(blast_results_dir)
 
     seqids_to_blast = aux.blast_inputs(final_clusters, blast_results_dir, ids_dict)
-
+    print(len(seqids_to_blast))
     # distribute clusters per available cores
     splitted_seqids = aux.split_blast_inputs_by_core(seqids_to_blast,
                                                      20,

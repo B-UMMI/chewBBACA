@@ -310,7 +310,7 @@ def adapt_loci(genes_list):
 
         if len(gene_seqs) > 1:
             # identify DNA sequences that code for same protein
-            equal_prots = aux.determine_duplicated_prots(prot_seqs)
+            equal_prots = aux.determine_duplicated_seqs(prot_seqs)
 
             # get only one identifier per protein
             ids_to_blast = [protids[0] for protein, protids in equal_prots.items()]
@@ -347,7 +347,7 @@ def adapt_loci(genes_list):
                 ids_str = aux.concatenate_list([str(i) for i in ids_to_blast], '\n')
                 ids_file = aux.join_paths(gene_temp_dir,
                                           '{0}_ids.txt'.format(gene_id))
-                aux.write_text_chunk(ids_file, ids_str)
+                aux.write_to_file(ids_str, ids_file, 'w', '')
 
                 # BLAST representatives against non-represented
                 blast_output = aux.join_paths(gene_temp_dir,
@@ -363,7 +363,7 @@ def adapt_loci(genes_list):
                 os.system(blast_command)
 
                 # import BLAST results
-                blast_results = aux.read_blast_tabular(blast_output)
+                blast_results = aux.read_tabular(blast_output)
 
                 # get self-score for representatives
                 rep_self_scores = {res[1]: res[2] for res in blast_results

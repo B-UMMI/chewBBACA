@@ -657,6 +657,13 @@ def update_profiles(schema_directory, reassigned):
     cursor = conn.cursor()
     # get list of loci
     loci_list = select_all_rows(db_file, 'loci')
+    ################
+    ################
+    ################
+    ################
+    # this does not seem right! loci identifiers are being truncated?
+    # maybe because it was designed to work with identifiers from Chewie-NS? -_-
+    # profiles should only be updated for schemas downloaded from the NS anyway...
     loci = {l[1].split('-')[-1].lstrip('0'): l[0] for l in loci_list}
     # get profiles with identifiers that have to be changed
     profiles = select_outdated(loci, reassigned, cursor)
@@ -674,9 +681,17 @@ def update_profiles(schema_directory, reassigned):
     return len(profiles)
 
 
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST'
 # select all rows from tables
-#db_file = ''
-#loci_list_db = select_all_rows(db_file, 'loci')
-#profiles_list_db = select_all_rows(db_file, 'profiles')
-#samples_list_db = select_all_rows(db_file, 'samples')
-#subschemas_list_db = select_all_rows(db_file, 'subschemas')
+db_file = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST/profiles_database/profiles.db'
+loci_list_db = select_all_rows(db_file, 'loci')
+profiles_list_db = select_all_rows(db_file, 'profiles')
+samples_list_db = select_all_rows(db_file, 'samples')
+subschemas_list_db = select_all_rows(db_file, 'subschemas')
+
+# select rows with '*'
+# might be better than current method that selects based on single fields with '*' and can return a lot of
+# duplicated profiles.
+query = ("SELECT profiles.profile_id, profiles.profile_json FROM profiles WHERE profiles.profile_json LIKE '%*%'")
+
+

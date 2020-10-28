@@ -224,6 +224,8 @@ def create_schema():
     verbose = args.verbose
     cleanup = args.cleanup
 
+    cpu_cores = aux.verify_cpu_usage(cpu_cores)
+
     # check if ptf exists
     if ptf_path is not False:
         ptf_val = aux.check_ptf(ptf_path)

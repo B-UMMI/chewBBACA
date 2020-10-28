@@ -10,7 +10,9 @@ except:
     from CHEWBBACA.utils import auxiliary_functions as aux
 
 
-def main(input_file, output_dir, ptf_path, translation_table, mode):
+def run_prodigal(input_file, translation_table, mode, ptf_path):
+    """
+    """
 
     if ptf_path != '':
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
@@ -28,6 +30,13 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     # Read the stdout from Prodigal
     stdout = proc.stdout.readlines()
     stderr = proc.stderr.readlines()
+
+    return [stdout, stderr]
+
+
+def main(input_file, output_dir, ptf_path, translation_table, mode):
+
+    stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
     genome_basename = aux.file_basename(input_file, False)
 

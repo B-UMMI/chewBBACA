@@ -19,12 +19,10 @@ import pickle
 import hashlib
 import zipfile
 import requests
-import threading
 import itertools
 import subprocess
 import datetime as dt
 import multiprocessing
-import concurrent.futures
 from getpass import getpass
 from itertools import islice
 from collections import Counter
@@ -36,6 +34,7 @@ from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqIO import FastaIO
 
 try:
     from utils import runProdigal
@@ -49,23 +48,21 @@ UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
 
 
 def read_lines(input_file, strip=True):
-    """ Reads lines in an input file and stors those
-        lines in a list.
+    """ Reads lines in an input file and stores those lines
+        in a list.
 
         Parameters
         ----------
         input_file : str
             Path to the input file.
         strip : bool
-            Specify if lines should be stripped of
-            leading and trailing white spaces and
-            new line characters.
+            Specify if lines should be stripped of leading
+            and trailing white spaces and new line characters.
 
         Returns
         -------
         lines : list
-            List with the lines read from the input
-            file.
+            List with the lines read from the input file.
     """
 
     with open(input_file, 'r') as infile:
@@ -78,24 +75,20 @@ def read_lines(input_file, strip=True):
 
 
 def join_list(lst, link):
-    """ Joins all elements in a list into a
-        single string.
+    """ Joins all elements in a list into a single string.
 
         Parameters
         ----------
         lst : list
-            List with elements to e joined.
+            List with elements to be joined.
         link : str
-            Character used to join list
-            elements.
+            Character used to join list elements.
 
         Returns
         -------
         joined_list : str
-            A single string with all elements
-            in the input list concatenated and
-            separated by the character chosen as
-            link.
+            A single string with all elements in the input
+            list joined by the character chosen as link.
     """
 
     joined_list = link.join(lst)
@@ -111,26 +104,39 @@ def file_basename(file_path, suffix=True):
         file_path : str
             Path to the file.
         suffix : bool
-            Specify if the basename should
-            include the file extension.
+            Specify if the basename should include the file
+            extension.
 
         Returns
         -------
-        file : str
-            File basename extracted from input
-            path.
+        basename : str
+            File basename extracted from input path.
     """
 
-    file = os.path.basename(file_path)
+    basename = os.path.basename(file_path)
 
     if suffix is False:
-        file = file.split('.')[0]
+        basename = basename.split('.')[0]
 
-    return file
+    return basename
 
 
 def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
-    """
+    """ Verifies connection to a chewie-NS instance.
+
+        Parameters
+        ----------
+        ns_url : str
+           The base URL for a Chewie Nomenclature Server
+           instance.
+        headers : dict
+            HTTP headers for GET requests.
+
+        Returns
+        -------
+        conn : bool
+            True if it was possible to return data from the
+            server, False otherwise.
     """
 
     url = make_url(ns_url, *['stats', 'summary'])
@@ -148,15 +154,14 @@ def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
     return conn
 
 
-def pickle_dumper(output_file, content):
+def pickle_dumper(content, output_file):
     """ Use the Pickle module to serialize an object.
 
         Parameters
         ----------
         content : type
-            Variable that refers to the object that
-            will be serialized and written to the
-            output file.
+            Variable that refers to the object that will
+            be serialized and written to the output file.
         output_file : str
             Path to the output file.
     """
@@ -171,20 +176,19 @@ def pickle_loader(input_file):
         Parameters
         ----------
         input_file : str
-            Path to file with byte stream to be
-            de-serialized.
+            Path to file with byte stream to be de-serialized.
 
         Returns
         -------
-        data : type
+        content : type
             Variable that refers to the de-serialized
             object.
     """
 
     with open(input_file, 'rb') as pi:
-        data = pickle.load(pi)
+        content = pickle.load(pi)
 
-    return data
+    return content
 
 
 def file_zipper(input_file, zip_file):
@@ -193,18 +197,15 @@ def file_zipper(input_file, zip_file):
         Parameters
         ----------
         input_file : str
-            Path to the file that will be
-            compressed.
+            Path to the file that will be compressed.
         zip_file : str
-            Path to the ZIP file that will
-            be created.
+            Path to the ZIP file that will be created.
 
         Returns
         -------
         zip_file : str
-            Path to the ZIP file that was
-            created by compressing the input
-            file.
+            Path to the ZIP file that was created by
+            compressing the input file.
     """
 
     with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
@@ -214,22 +215,20 @@ def file_zipper(input_file, zip_file):
 
 
 def remove_files(files):
-    """ Deletes a set of files.
+    """ Deletes a list of files.
 
         Parameters
         ----------
         files : list
-            List with paths to the files
-            to be removed.
+            List with paths to the files to be deleted.
     """
-        
+
     for f in files:
         os.remove(f)
 
 
 def count_sequences(fasta_file):
-    """ Counts the number of sequences in a
-        FASTA file.
+    """ Counts the number of sequences in a FASTA file.
 
         Parameters
         ----------
@@ -239,8 +238,7 @@ def count_sequences(fasta_file):
         Returns
         -------
         total_seqs : int
-            Number of sequences in the input
-            FASTA file.
+            Number of sequences in the input FASTA file.
     """
 
     records = SeqIO.parse(fasta_file, 'fasta')
@@ -256,7 +254,8 @@ def simple_get_request(base_url, headers, endpoint_list):
         Parameters
         ----------
         base_url : str
-            Base URL of the Chewie Nomenclature Server.
+            The base URL for a Chewie Nomenclature Server
+            instance.
         headers : dict
             HTTP headers for GET requests.
         endpoint_list : list
@@ -283,13 +282,14 @@ def simple_post_request(base_url, headers, endpoint_list, data):
         Parameters
         ----------
         base_url : str
-            Base URL of the Chewie Nomenclature Server.
+            The base URL for a Chewie Nomenclature Server
+            instance.
         headers : dict
             HTTP headers for GET requests.
         endpoint_list : list
             List with elements that will be concatenated
             to the base URI to create the URI for the API endpoint.
-        data : 
+        data
             Data to send. Must be an object that can be JSON
             serialized.
 
@@ -301,7 +301,8 @@ def simple_post_request(base_url, headers, endpoint_list, data):
 
     # unpack list of sequential endpoints and pass to create URI
     url = make_url(base_url, *endpoint_list)
-    res = requests.post(url, data=json.dumps(data), headers=headers, verify=False)
+    res = requests.post(url, data=json.dumps(data),
+                        headers=headers, verify=False)
 
     return res
 
@@ -343,66 +344,117 @@ def write_to_file(text, output_file, write_mode, end_char):
         Parameters
         ----------
         text : str
-
+            A single string to write to the output file.
         output_file : str
-
+            Path to the output file.
         write_mode : str
-
+            Write mode can be 'w', writes text and overwrites
+            any text in file, or 'a', appends text to text
+            already in file.
         end_char : str
-
+            Character added to the end of the file.
     """
 
     with open(output_file, write_mode) as out:
         out.write(text+end_char)
 
 
-def write_fasta(fasta_lines, output_file):
-    """
+def write_lines(lines, output_file):
+    """ Writes a list of strings to a file. The strings
+        are joined with newlines before being written to
+        file.
+
+        Parameters
+        ----------
+        lines : list
+            List with the lines/strings to write to the
+            output file.
+        output_file : str
+            Path to the output file.
     """
 
-    joined_lines = join_list(fasta_lines, '\n')
+    joined_lines = join_list(lines, '\n')
 
     write_to_file(joined_lines, output_file, 'a', '\n')
 
 
-def integer_headers(input_fasta, output_fasta):
-    """
+def write_records(records, output_file):
+    """ Writes FASTA records (BioPython SeqRecord) to a file.
+
+        Parameters
+        ----------
+        records : list
+            List with BioPython SeqRecord objects.
+        output_file : str
+            Path to the output file.
     """
 
-    start = 1
-    ids_dict = {}
+    with open(output_file, 'w') as output_handle:
+        fasta_out = FastaIO.FastaWriter(output_handle, wrap=None)
+        fasta_out.write_file(records)
+
+
+def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
+    """ Switches FASTA records headers in a file by integer
+        values.
+
+        Parameters
+        ----------
+        input_fasta : str
+            Path to the a FASTA file.
+        output_fasta : str
+            Path to the output file with modified headers.
+
+        Returns
+        -------
+        ids_map : dict
+            Dictionary with mapping between integer and original
+            headers.
+    """
+
     seqs = []
-    limit = 5000
-    for rec in SeqIO.parse(input_fasta, 'fasta'):
-        new_id = 'seq_{0}'.format(start)
-        ids_dict[new_id] = rec.id
-        sequence = str(rec.seq)
-        new_rec = '>{0}\n{1}'.format(new_id, sequence)
-        seqs.append(new_rec)
-        if len(seqs) == limit:
-            write_fasta(seqs, output_fasta)
+    ids_map = {}
+    exausted = False
+    seq_generator = SeqIO.parse(input_fasta, 'fasta')
+    while exausted is False:
+        record = next(seq_generator, None)
+        if record is not None:
+            new_id = 'seq_{0}'.format(start)
+            ids_map[new_id] = record.id
+            sequence = str(record.seq)
+            new_rec = '>{0}\n{1}'.format(new_id, sequence)
+            seqs.append(new_rec)
+            start += 1
+        elif record is None:
+            exausted = True
+
+        if len(seqs) == limit or exausted is True:
+            write_lines(seqs, output_fasta)
             seqs = []
-        start += 1
 
-    if len(seqs) > 0:
-        write_fasta(seqs, output_fasta)
-
-    return ids_dict
+    return ids_map
 
 
-def create_fasta_lines(sequences, genome_id):
-    """
+def create_fasta_lines(sequences, prefix):
+    """ Creates FASTA records in string format.
 
-        Args:
+        Parameters
+        ----------
+        sequences : dict
+            Dictionary with sequence identifiers as keys
+            and sequences as values.
+        prefix : str
+            Prefix to include in sequences headers.
 
-        Returns:
-
-        Example:
+        Returns
+        -------
+        lines : list
+            List with Fasta records in string format.
     """
 
     template = '>{0}-protein{1}\n{2}'
 
-    lines = [template.format(genome_id, seqid, sequence)
+    lines = [template.format(prefix, seqid, sequence)
              for seqid, sequence in sequences.items()]
 
     return lines
@@ -411,11 +463,15 @@ def create_fasta_lines(sequences, genome_id):
 def import_sequences(fasta_path):
     """ Imports sequences from a FASTA file.
 
-        Args:
-            fasta_path (str): full path to the FASTA file.
+        Parameters
+        ----------
+        fasta_path : str
+            Path to a FASTA file.
 
-        Returns:
-            dictionary that has sequences ids as keys and DNA
+        Returns
+        -------
+        seqs_dict : dict
+            Dictionary that has sequences ids as keys and
             sequences as values.
     """
 
@@ -426,7 +482,21 @@ def import_sequences(fasta_path):
 
 
 def extract_subsequence(sequence, start, stop):
-    """
+    """ Extract substring from string.
+
+        Parameters
+        ----------
+        sequence : str
+            Input string.
+        start : int
+            Substring start position in input string.
+        stop : int
+            Substring stop position in input string.
+
+        Returns
+        -------
+        subsequence : str
+            Substring extracted from input string.
     """
 
     subsequence = sequence[start:stop]
@@ -435,38 +505,62 @@ def extract_subsequence(sequence, start, stop):
 
 
 def extract_cds(sequence, start, stop, strand):
-    """
+    """ Extract coding sequence from contig.
+
+        Parameters
+        ----------
+        sequence : str
+            Contig that contains the coding sequence.
+        start : int
+            Coding sequence start position in contig.
+        stop : int
+            Coding sequence stop position in contig.
+        strand : int
+            Conding sequence orientation.
+
+        Returns
+        -------
+        coding_sequence : str
+            Coding sequence extracted from input contig
+            in sense orientation.
     """
 
-    subsequence = extract_subsequence(sequence, start, stop)
+    coding_sequence = extract_subsequence(sequence, start, stop)
 
     if strand == 0:
-        subsequence = reverse_complement(subsequence)
+        coding_sequence = reverse_complement(coding_sequence)
 
-    return subsequence
+    return coding_sequence
 
 
 def extract_coding_sequences(reading_frames, contigs, starting_id):
     """ Extracts CDSs from contigs based on the start
         and stop codon positions determined by Prodigal.
 
-        Args:
-            reading_frames (str): full path to the ORF file derived
-            from Prodigal.
-            contigs (dict): a dictionary with contigs ids as keys
-            and contigs sequences as values.
-            starting_id (int): integer identifier to give to the
-            first CDS extracted and that will be incremented to
-            serve as identifier for subsequent CDSs.
+        Parameters
+        ----------
+        reading_frames : str
+            Path to the ORF file created by Prodigal.
+        contigs : dict
+            Dictionary with contig ids as keys and contig
+            sequences as values.
+        starting_id : int
+            Integer identifier to give to the first CDS extracted
+            and that will be incremented to serve as identifier
+            for subsequent CDSs.
 
-        Returns:
-            coding_sequences (dict): dictionary with CDSs ids as keys and
-            CDSs DNA sequences as values.
-            coding_sequences_info (list): list with a sublist for each
-            extracted CDS. Sublists have information about the extracted CDS
-            (identifier of the contig where the CDS was found, start position
-            in the contig, stop position in the contig, sequence identifier
-            attributed to that CDS and the strand that coded for that CDS.)
+        Returns
+        -------
+        coding_sequences : dict
+            Dictionary with coding sequences ids as keys and
+            coding sequences as values.
+        coding_sequences_info : list
+            List with a sublist for each extracted CDS. Sublists
+            have information about the extracted CDS (identifier
+            of the contig where the CDS was found, start position
+            in the contig, stop position in the contig, sequence
+            identifier attributed to that CDS and the strand that
+            coded for that CDS).
     """
 
     seqid = starting_id
@@ -496,19 +590,105 @@ def extract_coding_sequences(reading_frames, contigs, starting_id):
     return [coding_sequences, coding_sequences_info]
 
 
-def write_protein_table(file_name, genome_id, cds_info):
-    """
+def write_protein_table(output_file, genome_id, cds_info):
+    """ Writes information about coding sequences in a
+        genome to a file.
+
+        Parameters
+        ----------
+        output_file : str
+            Path to the output file to which info will
+            be saved.
+        genome_id : str
+            Identifier of the genome to add to first field
+            of every new line.
+        cds_info : list
+            List with information about each coding sequence
+            identified in the genome (contig identifier,
+            cds start position, cds stop position, cds
+            identifier and cds coding strand).
     """
 
     table_lines = [[genome_id] + protein_info
                    for protein_info in cds_info]
     table_lines = [join_list(line, '\t') for line in table_lines]
     table_text = join_list(table_lines, '\n')
-    write_to_file(table_text, file_name, 'a', '\n')
+    write_to_file(table_text, output_file, 'a', '\n')
+
+
+def extract_features(genome, identifier, orf_file, protein_table, cds_file):
+    """ Extracts coding sequences from genome based on Prodigal
+        gene predictions. Writes coding sequences to FASTA file
+        and information about coding sequences to TSV file.
+
+        Parameters
+        ----------
+        genome : str
+            Path to the FASTA file with the FASTA sequences for
+            a genome.
+        identifier : str
+            Genome identifier to add to FASTA records headers
+            and to the first field in the TSV file.
+        orf_file : str
+            Path to the file with Prodigal results.
+        protein_table : str
+            Path to the TSV file to which coding sequences
+            information will be written.
+        cds_file : str
+            Path to the FASTA file to which coding sequences
+            will be written.
+
+        Returns
+        -------
+        total_cds : int
+            Total number of coding sequences extracted from
+            the genome.
+    """
+
+    # import contigs for current genome/assembly
+    contigs = import_sequences(genome)
+    # extract coding sequences from contigs
+    reading_frames = pickle_loader(orf_file)
+    genome_info = extract_coding_sequences(reading_frames,
+                                           contigs, 1)
+    # save coding sequences to file
+    # create records and write them to file
+    cds_lines = create_fasta_lines(genome_info[0], identifier)
+    write_lines(cds_lines, cds_file)
+
+    write_protein_table(protein_table, identifier, genome_info[1])
+
+    total_cds = len(genome_info[0])
+
+    return total_cds
 
 
 def batch_extractor(input_data):
-    """
+    """ Extracts coding sequences from a set of genomes.
+
+        Parameters
+        ----------
+        input_data : list
+            List with a set of paths for FASTA files with
+            genomic sequences, followed by the path to the
+            directory with files with Prodigal resutls, the
+            path to the parent directory for all files and
+            directories that will be read and written and
+            an index/identifier to add to the output files
+            with coding sequences and coding sequences info.
+
+        Returns
+        -------
+        A list with the following elements:
+            protein_table : str
+                Path to the TSV file to which coding sequences
+                info was written.
+            cds_file : str
+                Path to the FASTA file to which coding sequences
+                were written.
+            batch_total : int
+                Total number of coding sequences extracted from
+                the set of input genomes.
     """
 
     index = input_data[-1]
@@ -526,45 +706,29 @@ def batch_extractor(input_data):
     for g in genomes:
         # determine Prodigal ORF file path for current genome
         identifier = file_basename(g, False)
-        orf_file_path = os.path.join(prodigal_path,
-                                     '{0}_ORF.txt'.format(identifier))
-        total = extract_features(g, identifier, orf_file_path, protein_table, cds_file)
+        orf_file_path = join_paths(prodigal_path,
+                                   ['{0}_ORF.txt'.format(identifier)])
+        total = extract_features(g, identifier, orf_file_path,
+                                 protein_table, cds_file)
         batch_total += total
 
     return [protein_table, cds_file, batch_total]
 
 
-def extract_features(genome, identifier, orf_file, protein_table, cds_file):
-    """
-    """
-
-    total = 0
-    protid = 1
-    try:
-        # import contigs for current genome/assembly
-        contigs = import_sequences(genome)
-        # extract coding sequences from contigs
-        reading_frames = pickle_loader(orf_file)
-        genome_info = extract_coding_sequences(reading_frames,
-                                               contigs, protid)
-        # save coding sequences to file
-        # create records and write them to file
-        cds_lines = create_fasta_lines(genome_info[0], identifier)
-        write_fasta(cds_lines, cds_file)
-
-        write_protein_table(protein_table, identifier, genome_info[1])
-
-        # keep track of CDSs identifiers to assign them sequentially
-        total += len(genome_info[0])
-        protid = 1
-    except Exception as e:
-        print(e, identifier, orf_file, genome)
-
-    return total
-
-
 def hash_file(file, read_mode):
-    """
+    """ Creates a hash based on the contents of a file.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file.
+        read_mode : str
+            File read mode.
+
+        Returns
+        -------
+        hash_str : str
+            Hash computed from file contents.
     """
 
     with open(file, read_mode) as f:
@@ -576,28 +740,26 @@ def hash_file(file, read_mode):
     return hash_str
 
 
-def validate_date(date):
-    """
-    """
-
-    valid = False
-    try:
-        date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
-        valid = date
-    except ValueError:
-        date = dt.datetime.strptime(date+'.0', '%Y-%m-%dT%H:%M:%S.%f')
-        valid = date
-
-    return valid
-
-
 def write_gene_list(schema_dir):
-    """
+    """ Creates list with gene files in a schema and
+        uses the pickle module to save the list to a file.
+
+        Parameters
+        ----------
+        schema_dir : str
+            Path to the directory with schema files.
+
+        Returns
+        -------
+        A list with two elements. A boolean value that
+        is True if the file with the list of genes was
+        created and False otherwise. The second element
+        is the path to the created file.
     """
 
     schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = os.path.join(schema_dir, '.genes_list')
-    pickle_dumper(schema_list_file, schema_files)
+    schema_list_file = join_paths(schema_dir, ['.genes_list'])
+    pickle_dumper(schema_files, schema_list_file)
 
     return [os.path.isfile(schema_list_file), schema_list_file]
 
@@ -606,7 +768,56 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
                         minimum_sequence_length, chewie_version, size_threshold,
                         word_size, clustering_sim, representative_filter,
                         intra_filter, output_directory):
-    """
+    """ Writes chewBBACA's parameters values used to create
+        a schema to a file.
+
+        Parameters
+        ----------
+        blast_score_ratio : float
+            BLAST Score Ratio value used to create the
+            schema.
+        ptf_hash : str
+            BLAKE2 hash of the Prodigal training file
+            content.
+        translation_table : int
+            Genetic code used to predict and translate
+            coding sequences.
+        minimum_sequence_length : int
+            Minimum sequence length, sequences with a
+            length value lower than this value are not
+            included in the schema.
+        chewie_version : str
+            Version of the chewBBACA suite used to create
+            the schema.
+        size_threshold : float
+            Sequence size variation percentage threshold,
+            new alleles cannot have a length value that
+            deviates +/- than this value in relation to the
+            locus's representative sequence.
+        word_size : int
+            Word/k value used to cluster protein sequences
+            during schema creation and allele calling.
+        clustering_sim : float
+            Proportion of k-mers/minimizers that two proteins
+            need to have in common to be clustered together.
+        representative_filter : float
+            Proportion of k-mers/minimizers that a clustered
+            protein has to have in common with the representative
+            protein of the cluster to be considered the same gene.
+        intra_filter : float
+            Proportion of k-mers/minimizers that clustered
+            proteins have to have in common to be considered
+            of the same gene.
+        output_directory : str
+            Path to the output directory where the file with
+            schema parameters values will be created.
+
+        Returns
+        -------
+        A list with two elements. A boolean value that
+        is True if the file with the parameters values was
+        created and False otherwise. The second element
+        is the path to the created file.
     """
 
     size_threshold = None if size_threshold in [None, 'None'] else float(size_threshold)
@@ -624,7 +835,7 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     params['intraCluster_filter'] = [intra_filter]
 
     config_file = os.path.join(output_directory, '.schema_config')
-    pickle_dumper(config_file, params)
+    pickle_dumper(params, config_file)
 
     return [os.path.isfile(config_file), config_file]
 
@@ -633,14 +844,21 @@ def select_name(result):
     """ Extracts the annotation description from the result
         of a query to the UniProt SPARQL endpoint.
 
-        Args:
-            result (dict): a dictionary with the results
-            from querying the UniProt SPARQL endpoint.
-        Returns:
-            A list with the following elements:
-                - the annotation descrition;
-                - the URI to the UniProt page for the protein;
-                - a label that has descriptive value.
+        Parameters
+        ----------
+        result : dict
+            A dictionary with the results from querying
+            the UniProt SPARQL endpoint.
+
+        Returns
+        -------
+        A list with the following elements:
+            name : str
+                The annotation descrition.
+            url : str
+                The URI to the UniProt page for the protein.
+            label : str
+                A label that has descriptive value.
     """
 
     url = ''
@@ -689,14 +907,19 @@ def select_name(result):
 
 
 def uniprot_query(sequence):
-    """ Constructs a SPARQL query to search for exact matches in the
-        UniProt endpoint.
+    """ Constructs a SPARQL query to search for exact matches in
+        UniProt's SPARQL endpoint.
 
-        Args:
-            sequence (str): the Protein sequence that will be added
-            to the query.
-        Returns:
-            query (str): the SPARQL query that will allow to seaarch for
+        Parameters
+        ----------
+        sequence : str
+            The Protein sequence that will be added to
+            the query/searched for.
+
+        Returns
+        -------
+        query : str
+            The SPARQL query that will allow to search for
             exact matches in the UniProt database.
     """
 
@@ -714,7 +937,28 @@ def uniprot_query(sequence):
 
 
 def user_info(base_url, headers_get):
-    """
+    """ Get the identifier and role for a user registered
+        in a Chewie-NS instance and determine if user has
+        permissions based on role.
+
+        Parameters
+        ----------
+        base_url : str
+            The base URL for a Chewie Nomenclature Server
+            instance.
+        headers_get : dict
+            HTTP headers for GET requests.
+
+        Returns
+        -------
+        A list with the following elements:
+            user_id : str
+                User identifier in Chewie-NS.
+            user_role : str
+                User role in Chewie-NS.
+            permission : bool
+                True if the user is the Admin or a
+                Contributor, False otherwise.
     """
 
     # verify user role to check permission
@@ -730,7 +974,25 @@ def user_info(base_url, headers_get):
 
 
 def species_ids(species_id, base_url, headers_get):
-    """
+    """ Gets species identifier or name in a Chewie-NS
+        instance.
+
+        Parameters
+        ----------
+        species_id : str
+            The identifier of the species in Chewie-NS or
+            the name of the species.
+        base_url : str
+            The base URL for a Chewie Nomenclature Server
+            instance.
+        headers_get : dict
+            HTTP headers for GET requests.
+
+        Returns
+        -------
+        A list with the species identifier and name if the
+        species exists in Chewie-NS or a 404 HTTP code if
+        the species was not found.
     """
 
     try:
@@ -753,7 +1015,24 @@ def species_ids(species_id, base_url, headers_get):
 
 
 def species_list(base_url, headers_get, endpoint_list):
-    """
+    """ Gets the list of species in a Chewie-NS instance.
+
+        Parameters
+        ----------
+        base_url : str
+            The base URL for a Chewie Nomenclature Server
+            instance.
+        headers_get : dict
+            HTTP headers for GET requests.
+        endpoint_list : list
+            List with strings to add to tht base_url to
+            create the URI for the endpoint.
+
+        Returns
+        -------
+        species_lst : dict
+            Dictionary with species names as keys and
+            species identifiers as values.
     """
 
     res = simple_get_request(base_url, headers_get, endpoint_list)
@@ -770,18 +1049,21 @@ def species_list(base_url, headers_get, endpoint_list):
 
 
 def verify_cpu_usage(cpu_to_use):
-    """ Verify the cpu usage for chewBBACA.
+    """ Verify if the value provided for the number of CPU
+        cores/threads does not exceed system limit or affect
+        system performance.
 
-        Args:
-            cpu_to_use (int): the number of cpu provided to chewBBACA
+        Parameters
+        ----------
+        cpu_to_use : int
+            Value provided for the number of CPU cores/threads.
 
-        Returns:
-            cpu_to_use (int): the number of cpu to use after verification
+        Returns
+        -------
+        cpu_to_use : int
+            Value of CPU cores/threads that will be used after
+            determining if the provided value was safe.
 
-        Example:
-
-            >>> verify_cpu_usage(6)
-            6
     """
     total_cpu = multiprocessing.cpu_count()
 
@@ -807,61 +1089,142 @@ def verify_cpu_usage(cpu_to_use):
 
 
 def check_ptf(ptf_path):
-    """
+    """ Determines if path to Prodigal training file exists.
+
+        Parameters
+        ----------
+        ptf_path : str
+            Path to the Prodigal training file.
+
+        Returns
+        -------
+        A list with a bool value that is True if the Prodigal
+        training file exists or False otherwise and the path
+        to the file if it exists or a message if it does not
+        exist.
     """
 
     if os.path.isfile(ptf_path) is False:
-        message = ('Cannot find specified Prodigal training file.\nPlease provide a '
-                   'valid training file.\n\nYou can create a training '
-                   'file for a species of interest with the following command:\n  '
-                   'prodigal -i <reference_genome> -t <training_file.trn> -p single\n\n'
-                   'It is strongly advised to provide a high-quality and closed genome '
-                   'for the training process.')
-
+        message = ('Cannot find specified Prodigal training file.'
+                   '\nPlease provide a valid training file.\n\nYou '
+                   'can create a training file for a species of '
+                   'interest with the following command:\n  prodigal '
+                   '-i <reference_genome> -t <training_file.trn> -p '
+                   'single\n\nIt is strongly advised to provide a '
+                   'high-quality and closed genome for the training '
+                   'process.')
         return [False, message]
     else:
         return [True, ptf_path]
 
 
-def check_prodigal_results(fasta_files, genomes_dir, prodigal_results,
-                           genomes_identifiers, parent_dir):
-    """ Checks if Prodigal created ORF files
-        equal to the number of genome files provided.
+def check_prodigal_results(inputs_paths, prodigal_results,
+                           inputs_ids, output_directory):
+    """ Determine if Prodigal could not predict genes for any input
+        assembly.
 
-        Args:
-            path_to_temp (str): the full path to the 'temp' directory created by chewBBACA.
-            list_of_genomes (list): list containing the full path to the input genomes.
+        Parameters
+        ----------
+        inputs_paths : list
+            List with the paths to the FASTA files passed to Prodigal.
+        prodigal_results : list
+            List with gene prediction results from Prodigal.
+        inputs_ids : list
+            List with the identifiers of the FASTA files passed to Prodigal.
+        output_directory : str
+            Path to the output directory where the file with information
+            about failed cases will be written to.
+
+        Returns
+        -------
+        A list with the following elements:
+            inputs_paths : list
+                Updated list of paths to the FASTA files passed
+                to Prodigal without the paths to the files that
+                Prodigal could not predict genes for.
+            inputs_ids : list
+                Updated list of identifiers without the identifiers
+                of the FASTA files that Prodigal could not precidt
+                genes for.
+            failed : list
+                List with the stderr for the cases that Prodigal
+                failed to predict genes for.
+            failed_file : str
+                Path to the file with information about the failed
+                cases.
     """
 
     no_cds = [l for l in prodigal_results if l[1] == 0]
     errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
     failed = no_cds + errors
 
-    outfile = os.path.join(parent_dir, 'prodigal_fails.tsv')
+    failed_file = os.path.join(output_directory, 'prodigal_fails.tsv')
     if len(failed) > 0:
-        with open(outfile, 'w') as pf:
+        with open(failed_file, 'w') as pf:
             lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
             pf.writelines(lines)
 
         # remove failed genomes from paths
+        parent_path = os.path.dirname(inputs_paths[0])
         for f in failed:
-            file_path = os.path.join(genomes_dir, '{0}.fasta'.format(f[0]))
-            fasta_files.remove(file_path)
-            genomes_identifiers.remove(f[0])
+            file_path = os.path.join(parent_path, '{0}.fasta'.format(f[0]))
+            inputs_paths.remove(file_path)
+            inputs_ids.remove(f[0])
 
-    return [fasta_files, genomes_identifiers, failed, outfile]
+    return [inputs_paths, inputs_ids, failed, failed_file]
 
 
-def map_async_parallelizer(inputs, function, cpu, callback='extend', chunksize=1, show_progress=False):
+def cluster_helper(data):
     """
+    """
+
+    results = cluster_sequences(data[0], word_size=data[1])
+
+    return results
+
+
+def map_async_parallelizer(inputs, function, cpu, callback='extend',
+                           chunksize=1, show_progress=False):
+    """ Parallelizes function calls by creating several processes
+        and distributing inputs.
+
+        Parameters
+        ----------
+        inputs : list
+            List with inputs to process.
+        function
+            Function to be parallelized.
+        cpu : int
+            Number of processes to create (based on the
+            number of cores).
+        callback : str
+            Results can be appended, 'append', to the
+            list that stores results or the list of results
+            can be extended, 'extend'.
+        chunksize : int
+            Size of input chunks that will be passed to
+            each process. The function will create groups
+            of inputs with this number of elements.
+        show_progress: bool
+            True to show a progress bar with the percentage
+            of results that have been processed, False
+            otherwise.
+
+        Returns
+        -------
+        results : list
+            List with the results returned for each function
+            call.
     """
 
     results = []
     pool = Pool(cpu)
     if callback == 'extend':
-        rawr = pool.map_async(function, inputs, callback=results.extend, chunksize=chunksize)
+        rawr = pool.map_async(function, inputs,
+                              callback=results.extend, chunksize=chunksize)
     elif callback == 'append':
-        rawr = pool.map_async(function, inputs, callback=results.append, chunksize=chunksize)
+        rawr = pool.map_async(function, inputs,
+                              callback=results.append, chunksize=chunksize)
 
     if show_progress is True:
         completed = False
@@ -891,18 +1254,21 @@ def extend_list(input_list, *elements):
     return input_list
 
 
-def is_fasta(filename):
+def is_fasta(file_path):
     """ Checks if a file is a FASTA file.
 
-        Args:
-            filename (str): the full path to the FASTA file
+        Parameters
+        ----------
+        file_path : str
+            Path to the file.
 
-        Returns:
-            True if FASTA file,
-            False otherwise
+        Returns
+        -------
+        True if file has valid FASTA format,
+        False otherwise.
     """
 
-    with open(filename, 'r') as handle:
+    with open(file_path, 'r') as handle:
         try:
             fasta = SeqIO.parse(handle, 'fasta')
         except:
@@ -912,72 +1278,102 @@ def is_fasta(filename):
         return any(fasta)
 
 
+def filter_files(files, suffixes, reverse=False):
+    """ Filters files names based on a list of suffixes.
 
-def filter_files(files_list, suffixes):
-    """ Checks if files names contain any suffix from a list of suffixes.
+        Parameters
+        ----------
+        files : list
+            A list with filenames of file paths.
+        suffixes : list
+            List with suffixes.
+        reverse : bool
+            True if files should be filtered out from
+            input list or False otherwise.
 
-        Args:
-            files_list (list): a list with all files names.
-        Returns:
-            suffixes (list): a list with all suffixes to search for in
-            the files names.
+        Returns
+        -------
+        filtered : list
+            List with files that passed filtering.
     """
 
-    accepted = [file for file in files_list
-                if any([True for suffix in suffixes if suffix in file])]
+    if reverse is False:
+        filtered = [file for file in files
+                    if any([True for suffix in suffixes if suffix in file])]
+    elif reverse is True:
+        filtered = [file for file in files
+                    if not any([True for suffix in suffixes if suffix in file])]
 
-    return accepted
+    return filtered
 
 
-def filter_non_fasta(files_list):
-    """ Creates a new list of files names/paths that only contains FASTA files.
+def filter_non_fasta(files):
+    """ Creates a new list of files names/paths that only contains
+        FASTA files.
 
-        Args:
-            files_list (list): a list with files names/paths.
-        Returns:
-            real_fasta (list): a list with files names/paths that correspond
-            to FASTA files.
+        Parameters
+        ----------
+        files : list
+            A list with files names/paths.
+
+        Returns
+        -------
+        fasta_files : list
+            List with files names/paths that have a FASTA
+            format.
     """
 
-    real_fasta = [file for file in files_list if is_fasta(file) is True]
+    fasta_files = [file for file in files if is_fasta(file) is True]
 
-    return real_fasta
+    return fasta_files
 
 
-def gene_seqs_info(gene):
-    """ Determines the total number of alleles and the mean length
-        of allele sequences per gene.
+def gene_seqs_info(fasta_file):
+    """ Determines the total number of sequences and the mean
+        length of sequences in a fasta file.
 
-        Args:
-            genes_list (list): a list with names/paths for FASTA
-            files.
-        Returns:
-            genes_info (list): a list with a sublist for each input
-            gene file. Each sublist contains a gene identifier, the
-            total number of alleles for that gene and the mean length
-            of allele sequences for that gene.
+        Parameters
+        ----------
+        fasta_file : str
+            Path to a FASTA file.
+
+        Returns
+        -------
+        stats : list
+            A list with the path to the FASTA file, the
+            total number of records in that file and
+            the sequence mean length for the sequences
+            in the file.
     """
 
-    seq_generator = SeqIO.parse(gene, 'fasta')
-    alleles_lengths = [len(allele) for allele in seq_generator]
-    mean_length = sum(alleles_lengths)/len(alleles_lengths)
-    total_seqs = len(alleles_lengths)
-    genes_info = [gene, total_seqs, mean_length]
+    seq_generator = SeqIO.parse(fasta_file, 'fasta')
+    seqs_lengths = [len(seq) for seq in seq_generator]
+    mean_length = sum(seqs_lengths)/len(seqs_lengths)
+    total_seqs = len(seqs_lengths)
+    stats = [fasta_file, total_seqs, mean_length]
 
-    return genes_info
+    return stats
 
 
 def make_blast_db(input_fasta, output_path, db_type):
     """ Creates a BLAST database.
 
-        Args:
-            input_fasta (str): path to the input file with sequences.
-            output_path (str): path to the output database.
-            db_type (str): type of the database, nucleotide (nuc) or
+        Parameters
+        ----------
+        input_fasta : str
+            Path to the FASTA file that contains the sequences
+            that should be added to the BLAST database.
+        output_path : str
+            Path to the directory where the database files
+            will be created. Database files will have names
+            with the path's basemane.
+        db_type : str
+            Type of the database, nucleotide (nuc) or
             protein (prot).
 
-        Returns:
-            Creates a BLAST database with the input sequences.
+        Returns
+        -------
+        Creates a BLAST database with the input sequences.
     """
 
     blastdb_cmd = ['makeblastdb', '-in', input_fasta, '-out', output_path,
@@ -990,19 +1386,25 @@ def make_blast_db(input_fasta, output_path, db_type):
     makedb_cmd.wait()
 
 
-def determine_blast_task(proteins):
-    """ Determine the type of task that should be used to run BLAST.
+def determine_blast_task(sequences):
+    """ Determine the type of task that should be used to
+        run BLAST (alignments with short sequences require
+        definition of different task).
 
-        Args:
-            proteins (str): path to a file with sequences.
+        Parameters
+        ----------
+        sequences : str
+            Path to a file with sequences.
 
-        Returns:
-            blast_task (str): a string that indicates the type of BLAST
+        Returns
+        -------
+        blast_task : str
+            A string that indicates the type of BLAST
             task to run.
     """
 
     blast_task = 'blastp'
-    proteins_lengths = [len(p) for p in proteins]
+    proteins_lengths = [len(p) for p in sequences]
     minimum_length = min(proteins_lengths)
     if minimum_length < 30:
         blast_task = 'blastp-short'
@@ -1018,7 +1420,8 @@ def create_directory(directory_path):
 
 
 def join_paths(parent_path, child_paths):
-    """ Joins a parent directory and a subdirectory."""
+    """ Creates a new path by joining a parent directory
+        and a list with child paths."""
 
     joined_paths = os.path.join(parent_path, *child_paths)
 
@@ -1026,23 +1429,37 @@ def join_paths(parent_path, child_paths):
 
 
 def check_input_type(input_path, output_file):
-    """ Checks if the input is a file or a directory.
+    """ Checks if the input path is for a file or for a
+        directory. If the path is for a directory, the
+        function creates a file with the list of paths
+        to FASTA files in the directory.
 
-        Args:
-            folder_or_list (str): the full path to the file or directory
+        Parameters
+        ----------
+        input_path : str
+            Path to file or directory.
+        output_file : str
+            Path to the output file with the list of FASTA
+            files.
 
-        Returns:
-            list_files (str) if folder_or_list is a path to a file,
-            list_files (list) if folder_or_list is a path to a directory,
-            Raises Exception otherwise
+        Returns
+        -------
+        list_files : str
+            Path to a file with a list of paths for FASTA
+            files.
+
+        Raises
+        ------
+        SystemExit
+            - If there were no FASTA files in the directory.
+            - If input path is not a valid path for a file or
+              for a directory.
     """
 
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
         list_files = input_path
-
     elif os.path.isdir(input_path):
-
         # we need to get only files with FASTA extension
         files = os.listdir(input_path)
         files = filter_files(files, cnst.FASTA_SUFFIXES)
@@ -1070,7 +1487,6 @@ def check_input_type(input_path, output_file):
                      ''.format(cnst.FASTA_SUFFIXES))
 
         list_files = output_file
-
     else:
         sys.exit('\nInput argument is not a valid directory or '
                  'file with a list of paths. Please provide a '
@@ -1081,179 +1497,157 @@ def check_input_type(input_path, output_file):
     return list_files
 
 
-def escape_special_characters(a_string):
-    """ Escapes strings to use in regex
+def escape_special_characters(input_string):
+    """ Escapes strings to use in regex.
 
-        Args:
-            a_string (str): string containing characters to escape
+        Parameters
+        ----------
+        input_string : str
+            String containing characters to escape.
 
-        Returns:
-            escaped (str): escaped string
+        Returns
+        -------
+        escaped_string : str
+            Escaped string.
     """
 
-    escaped = re.escape(a_string)
+    escaped_string = re.escape(input_string)
 
-    return escaped
+    return escaped_string
 
 
-def replace_multiple_characters(namefile):
-    """ Replaces multiple characters in a string
+def replace_multiple_characters(input_string):
+    """ Replaces multiple characters in a string.
 
-        Args:
-            namefile (str): string containing the name of the contig
-            with characters to replace.
+        Parameters
+        ----------
+        input_string : str
+            String with characters to be replaced.
 
-        Returns:
-            replaced (str): string containing the name of the contig
-            without characters to replace.
+        Returns
+        -------
+        replaced : str
+            Input string without replaced characters.
     """
 
-    replaced = namefile.replace("|", "_")\
-                       .replace("_", "-")\
-                       .replace("(", "")\
-                       .replace(")", "")\
-                       .replace("'", "")\
-                       .replace("\"", "")\
-                       .replace(":", "")
+    replaced = input_string.replace("|", "_")\
+                           .replace("_", "-")\
+                           .replace("(", "")\
+                           .replace(")", "")\
+                           .replace("'", "")\
+                           .replace("\"", "")\
+                           .replace(":", "")
 
     return replaced
 
 
-def listdir_fullpath(path):
-    """ Gets the full path of the files from a directory
+def listdir_fullpath(directory_path):
+    """ Gets the full path of the files from a directory.
 
-        Args:
-            path (str): full path to a directory
+        Parameters
+        ----------
+        directory_path : str
+            Path to a directory.
 
-        Returns:
-            list containing the full path of every file
-            contained in the input directory.
+        Returns
+        -------
+        List containing the full path for every file
+        in the input directory.
     """
 
-    return [os.path.join(path, f) for f in os.listdir(path)]
+    return [os.path.join(directory_path, f)
+            for f in os.listdir(directory_path)]
 
 
 def flatten_list(list_to_flatten):
-    """Flattens one level of a nested list
+    """ Flattens one level of a nested list.
 
-        Args:
-            list_to_flatten (list)
+        Parameters
+        ----------
+        list_to_flatten : list
+            List with nested lists.
 
-        Returns:
-            flattened list
-
-        Example:
-
-            >>> flatten_list([[[1,2],[3,4]]])
-            [[1, 2], [3, 4]]
-
+        Returns
+        -------
+        flattened_list : str
+            Input list flattened by one level.
     """
 
-    return list(itertools.chain(*list_to_flatten))
+    flattened_list = list(itertools.chain(*list_to_flatten))
+
+    return flattened_list
 
 
 def invert_dictionary(dictionary):
-    """ Inverts a dictionary. Keys become values and vice-versa
+    """ Inverts a dictionary (Keys become values and vice-versa).
 
-        Args:
-            dictionary (dict)
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary to be inverted.
 
-        Returns:
-            inverted (dict): inverted dictionary
-
-        Example:
-
-            >>> inverted_dictionary({key:value})
-            {value:key}
+        Returns
+        -------
+        inverted_dict : dict
+            Inverted dictionary.
     """
 
-    inverted = {value: key for key, value in dictionary.items()}
+    inverted_dict = {value: key for key, value in dictionary.items()}
 
-    return inverted
+    return inverted_dict
 
 
-def threads_for_blast(files_to_blast, cpu_to_apply):
-    """ Define the number of threads for BLAST
+def isListEmpty(input_list):
+    """ Checks if a nested list is empty. """
 
-        Args:
-            files_to_blast (list): list containing the full
-            path to the files to BLAST
-            cpu_to_apply (int): number of cpu to use
+    if isinstance(input_list, list):
+        return all(map(isListEmpty, input_list)) if isinstance(input_list, list) else False
 
-        Returns:
-            blast_threads (list): list contaning the number
-            of threads to use for each file.
-            proc (int): Number of processes to use in multiprocessing
+
+def read_tabular(input_file, delimiter='\t'):
+    """ Read tabular file.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to a tabular file.
+        delimiter : str
+            Delimiter used to separate file fields.
+
+        Returns
+        -------
+        lines : list
+            A list with a sublist per line in the input file.
+            Each sublist has the fields that were separated by
+            the defined delimiter.
     """
 
-    # define number of processes and available cores for each BLAST
-    if len(files_to_blast) >= cpu_to_apply:
-        blast_threads = [1 for protogenome in files_to_blast]
-        proc = cpu_to_apply
+    with open(input_file, 'r') as infile:
+        reader = csv.reader(infile, delimiter=delimiter)
+        lines = [line for line in reader]
 
-    elif cpu_to_apply % len(files_to_blast) == 0:
-        blast_threads = [int(cpu_to_apply / len(files_to_blast))
-                         for protogenome in files_to_blast]
-        proc = len(blast_threads)
-
-    elif cpu_to_apply % len(files_to_blast) == 1:
-        blast_threads = [2] + [1 for protogenome in range(0,len(files_to_blast)-1)]
-        proc = len(blast_threads)
-
-    elif cpu_to_apply % len(files_to_blast) > 1:
-        base_cpu = int(cpu_to_apply / len(files_to_blast))
-        blast_threads = [base_cpu
-                         for protogenome in range(0, len(files_to_blast))]
-        extra_cpu = cpu_to_apply - sum(blast_threads)
-        i = 0
-        while extra_cpu > 0:
-            blast_threads[i] += 1
-            extra_cpu -= 1
-            i += 1
-        proc = len(blast_threads)
-
-    return blast_threads, proc
-
-
-def isListEmpty(inList):
-    """ Checks if a nested list is empty
-    """
-    if isinstance(inList, list): # Is a list
-        return all(map(isListEmpty, inList)) if isinstance(inList, list) else False
-
-
-def read_blast_tabular(blast_tabular_file):
-    """ Read a file with BLAST results in tabular format
-
-        Args:
-            blast_tabular_file (str): path to output file of BLAST.
-
-        Returns:
-            blasting_results (list): a list with a sublist per line
-            in the input file.
-    """
-
-    with open(blast_tabular_file, 'r') as blastout:
-        reader = csv.reader(blastout, delimiter='\t')
-        blasting_results = [row for row in reader]
-
-    return blasting_results
+    return lines
 
 
 def fasta_lines(identifiers, sequences_dictionary):
-    """ Creates list with line elements for a FASTA file based on the sequence
-        identifiers passed.
+    """ Creates list with line elements for a FASTA file based
+        on the sequence identifiers passed.
 
-        Args:
-            identifiers (list): a list with the identifiers of sequences that
-            will be included in the list.
-            sequences_dictionary (dict): a dictionary with sequence identifeirs
-            as keys and sequences as values.
+        Parameters
+        ----------
+        identifiers : list
+            A list with the identifiers of sequences that will be
+            included in the list.
+        sequences_dictionary : dict
+            A dictionary with sequence identifiers as keys and
+            sequences as values.
 
-        Returns:
-            seqs_lines (list): a list with strings representing the header of
-            the sequence and the sequence for each of the specified sequence
-            identifiers.
+        Returns
+        -------
+        seqs_lines : list
+            A list with strings representing the header of
+            the sequence and the sequence for each of the specified
+            sequence identifiers.
     """
 
     seqs_lines = ['>{0}\n{1}\n'.format(seqid, sequences_dictionary[seqid])
@@ -1265,55 +1659,63 @@ def fasta_lines(identifiers, sequences_dictionary):
 def write_list(lines, output_file):
     """ Writes list elements to file.
 
-        Args:
-            lines (list): list with the ordered lines that will be written
-            to the output file.
-            output_file (str): name/path of the output file.
+        Parameters
+        ----------
+        lines : list
+            List with the lines that will be written to
+            the output file.
+        output_file : str
+            Path to the output file.
 
-        Returns:
-            Writes contents of 'lines' argument into 'output_file'.
+        Returns
+        -------
+        Writes contents of input list to the output file
+        (function does not add any character between lines).
     """
 
     with open(output_file, 'w') as file:
         file.writelines(lines)
 
 
-def determine_duplicated_prots(proteins):
-    """ Creates a dictionary with protein sequences as keys and all sequence
-        identifiers associated with that protein as values.
+def determine_duplicated_seqs(sequences):
+    """ Creates a dictionary with sequences as keys and all sequence
+        identifiers associated with a sequence as values.
 
-        Args:
-            proteins (dict): dictionary with protein sequence identifiers as
-            keys and protein sequences as values.
+        Parameters
+        ----------
+        sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values.
 
-        Returns:
-            equal_prots (dict): dictionary with protein sequence as keys and
-            sequence identifiers that are associated with each protein sequence
-            as values.
+        Returns
+        -------
+        equal_seqs : dict
+            Dictionary with sequences as keys and sequence
+            identifiers that are associated with each
+            sequence as values.
     """
-    # use sequences hashes as keys and protids as values
-    # read file and process generator to save memory???
-    equal_prots = {}
-    for protid, protein in proteins.items():
+
+    equal_seqs = {}
+    for seqid, seq in sequences.items():
         # if protein sequence was already added as key
-        if protein in equal_prots:
+        if seq in equal_seqs:
             # append new protid
-            equal_prots[protein].append(protid)
+            equal_seqs[seq].append(seqid)
         # else add new protein sequence as key and protid
         # as value
         else:
-            equal_prots[protein] = [protid]
+            equal_seqs[seq] = [seqid]
 
-    return equal_prots
+    return equal_seqs
 
 
 def sequences_lengths(fasta_file):
-    """ Determines the length of all DNA sequences in a FASTA file.
+    """ Determines the length of all sequences in a FASTA file.
 
         Parameters
         ----------
         fasta_file : str
-            Path to a FASTA file with DNA sequences.
+            Path to a FASTA file with sequences.
 
         Returns
         -------
@@ -1330,66 +1732,101 @@ def sequences_lengths(fasta_file):
     return lengths
 
 
-def determine_longest(seqids, proteins):
+def determine_longest(seqids, sequences):
     """ Determines which sequence is the longest among
         sequences with the specified identifiers.
+
+        Parameters
+        ----------
+        seqids : list
+            List with sequence identifiers.
+        sequences : dict
+            Dictionary with sequence identifiers as keys
+            and sequences as values.
+
+        Returns
+        -------
+        chosen : str
+            Sequence identifier of the longest sequence.
     """
 
-    seqids_prots = [(seqid, proteins[seqid]) for seqid in seqids]
-    sorted_prots = sorted(seqids_prots, key= lambda x: len(x[1]), reverse=True)
-    chosen = sorted_prots[0][0]
+    seqids_tups = [(seqid, sequences[seqid]) for seqid in seqids]
+    sorted_tups = sorted(seqids_tups, key=lambda x: len(x[1]), reverse=True)
+    chosen = sorted_tups[0][0]
 
     return chosen
 
 
-def locus_mode(alleles):
-    """ Determines the mode value from a set of sequence length values.
+def determine_mode(int_values):
+    """ Determines the mode value from a list of integer values.
+        Returns list with multiple values if distribution is
+        multimodal.
 
-        Args:
-            alleles (dict): dictionary with alleles identifiers as keys
-            and the allele length as value.
-        Returns:
-            modes (list): The most frequent length values. The distribution
-            of length values for a locus might have more than one mode.
+        Parameters
+        ----------
+        int_values : list
+            List with integer values.
+
+        Returns
+        -------
+        modes : list
+            The most frequent integer values.
     """
 
     # determine frequency of each length value
-    counts = Counter(alleles.values())
+    counts = Counter(int_values)
+
     # order by most common first
     most_common = counts.most_common()
 
     # get most common
     modes = [most_common[0][0]]
+
     # determine if there are more length values that are as common
     modes += [m[0] for m in most_common[1:] if m[1] == most_common[0][1]]
 
     return modes
 
 
-def mode_filter(alleles, size_threshold):
+def mode_filter(sequences, size_threshold):
     """ Determines the mode from a set of input sequences
         and identifies sequences that have a length value
         smaller or greater than the mode based on a threshold.
 
-        Args:
-            alleles (dict):
-            size_threshold (float):
-        Returns:
-            A list with the following variables:
-                - modes (list):
-                - alm (list):
-                - asm (list):
-                - alleles_lengths (dict):
+        Parameters
+        ----------
+        sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values.
+        size_threshold : float
+            Sequences with +/- this value * mode will be
+            reported as above or below the mode.
+
+        Returns
+        -------
+        A list with the following variables:
+            modes : list
+                List with mode values determined based on the
+                length of input sequences.
+            alm : list
+                List with the sequence identifiers of the
+                sequences that are above the mode value by
+                mode*size_threshold.
+            asm : list
+                List with the sequence identifiers of the
+                sequences that are below the mode value by
+                mode*size_threshold.
+            seqs_lengths : dict
+                Dictionary with sequence identifiers as keys
+                and sequence lengths as values.
     """
 
-    alm = []
-    asm = []
-
     # determine length value of all sequences
-    alleles_lengths = {seqid: len(seq) for seqid, seq in alleles.items()}
+    seqs_lengths = {seqid: len(seq) for seqid, seq in sequences.items()}
 
     # determine mode/s
-    modes = locus_mode(alleles_lengths)
+    modes = determine_mode(list(seqs_lengths.values()))
+
     # determine top and bot length value limits
     max_mode = max(modes)
     top_limit = max_mode + (max_mode*size_threshold)
@@ -1397,17 +1834,32 @@ def mode_filter(alleles, size_threshold):
     bot_limit = min_mode - (min_mode*size_threshold)
 
     # determine sequences that are below or above limits
-    alm = [seqid for seqid, length in alleles_lengths.items() if length > top_limit]
-    asm = [seqid for seqid, length in alleles_lengths.items() if length < bot_limit]
+    alm = [seqid for seqid, length in seqs_lengths.items()
+           if length > top_limit]
+    asm = [seqid for seqid, length in seqs_lengths.items()
+           if length < bot_limit]
 
-    return [modes, alm, asm, alleles_lengths]
+    return [modes, alm, asm, seqs_lengths]
 
 
-def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_proteins=None):
+def add_prefix(ids, prefix):
+    """
+    """
+
+    ids_map = {}
+    for i in ids:
+        new_id = '{0}_{1}'.format(prefix, i.split('_')[-1])
+        ids_map[i] = new_id
+
+    return ids_map
+
+
+def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     """ Creates a dictionary mapping seqids to DNA sequences and
         another dictionary mapping protids to protein sequences.
 
-        Args:
+        Parameters
+        ----------
             gene_file (str): path/name of the FASTA file with
             DNA sequences.
             table_id (int): translation table identifier.
@@ -1423,61 +1875,31 @@ def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_pr
                 translated.
     """
 
+    sequences = import_sequences(fasta_path)
+
+    # translate sequences
+    translated_seqs = {k: translate_dna(v, table_id, min_len)
+                       for k, v in sequences.items()}
+
+    # add locus identifier to headers
+    # some headers might only have the allele identifier
+    seqids = list(translated_seqs.keys())
+    new_seqids = add_prefix(seqids, gene_id)
+    # switch ids
+    sequences = {new_seqids[k]: v for k, v in translated_seqs.items()}
+
+    valid = {k: v[0][1] for k, v in sequences.items() if isinstance(v, list) is True}
+    invalid = [[k, v] for k, v in sequences.items() if isinstance(v, list) is False]
+
     seqid = 1
+    seqids_map = {}
     dna_seqs = {}
     prot_seqs = {}
-    seqids_map = {}
-    invalid_alleles = []
-    seq_generator = SeqIO.parse(gene_file, 'fasta')
-    if max_proteins is None:
-        translated_seqs = [(rec.id, translate_dna(str(rec.seq), table_id, min_len)) for rec in seq_generator]
-    else:
-        translated_seqs = []
-        exausted = False
-        invalid = 0
-        seen = []
-        while (len(translated_seqs)-invalid) < max_proteins and exausted is False:
-            current_rec = next(seq_generator, None)
-            if current_rec is not None:
-                recid = current_rec.id
-                sequence = str(current_rec.seq)
-                prot = (recid, translate_dna(sequence, table_id, min_len))
-                if isinstance(prot[1], str) is True:
-                    invalid += 1
-                    translated_seqs.append(prot)
-                else:
-                    if prot[1] not in seen:
-                        translated_seqs.append(prot)
-                        seen.append(prot[1])
-            else:
-                exausted = True
-
-    total_seqs = len(translated_seqs)
-    for rec in translated_seqs:
-        # if the allele identifier is just an integer
-        # add gene identifier as prefix
-        try:
-            int_seqid = int(rec[0])
-            # Python converts '2_1' to 21
-            if '_' in rec[0]:
-                int_seqid = int(rec[0].split('_')[-1])
-            new_seqid = '{0}_{1}'.format(gene_id, int_seqid)
-        except Exception:
-            new_seqid = rec[0]
-
-        # if returned value is a list, translation was successful
-        if isinstance(rec[1], list):
-            # we need to assign simple integers as sequence identifiers
-            # because BLAST will not work if sequence identifiers are
-            # too long
-            seqids_map[str(seqid)] = new_seqid
-            dna_seqs[new_seqid] = rec[1][0][1]
-            prot_seqs[str(seqid)] = str(rec[1][0][0])
-            seqid += 1
-        # if returned value is a string, translation failed and
-        # string contains exceptions
-        elif isinstance(rec[1], str):
-            invalid_alleles.append([new_seqid, rec[1]])
+    for k, v in valid.items():
+        seqids_map[str(seqid)] = k
+        dna_seqs[k] = v[0][1]
+        prot_seqs[str(seqid)] = str(v[0][0])
+        seqid += 1
 
     if size_threshold is not None and len(prot_seqs) > 0:
         # remove alleles based on length mode and size threshold
@@ -1489,44 +1911,54 @@ def get_seqs_dicts(gene_file, gene_id, table_id, min_len, size_threshold, max_pr
 
         modes_concat = ':'.join(map(str, modes))
         st_percentage = int(size_threshold*100)
-        invalid_alleles += [[s, 'allele greater than {0}% locus length mode '
+        invalid += [[s, 'allele greater than {0}% locus length mode '
                                 '({1}>{2})'.format(st_percentage, alleles_lengths[s], modes_concat)] for s in alm]
-        invalid_alleles += [[s, 'allele smaller than {0}% locus length mode '
+        invalid += [[s, 'allele smaller than {0}% locus length mode '
                                 '({1}<{2})'.format(st_percentage, alleles_lengths[s], modes_concat)] for s in asm]
 
+    total_seqs = len(translated_seqs)
+
     return [dna_seqs, prot_seqs,
-            invalid_alleles, seqids_map, total_seqs]
+            invalid, seqids_map, total_seqs]
 
 
-def split_genes_by_core(inputs, threads, method):
-    """ Splits list with loci inputs into several sublists based
+def split_genes_by_core(inputs, cores, method):
+    """ Creates balanced lists of loci to distribute per number
+        of available cores. Loci lists can be created based
         on the number of sequence per locus (seqcount), the mean
         length of the sequences in each locus or the product of
-        both variables.
+        both values.
 
-        Args:
-            inputs (list): list with information about the data of
-            each locus that needs to be processed.
-            threads (int): the number of sublists with inputs that
-            should be created, based on the number of CPU threads
-            that will be used to process the inputs.
-            method (str): "seqcount" to split inputs into sublists
-            with even number of sequences, "length" to split based
+        Parameters
+        ----------
+        inputs : list
+            List with one sublist per locus. Each sublist has
+            the path to the FASTA file with the locus sequences,
+            the total number of sequences and sequence mean legth
+            for a locus.
+        cores : int
+            The number of loci groups that should be created.
+            Based on the number of CPU cores that will be
+            used to process the inputs.
+        method : str
+            "seqcount" to create loci lists based on the total
+            number of sequences, "length" to split based
             on mean length of sequences and "seqcount+length" to
             split based on both criteria.
 
-        Returns:
-            splitted_ids (list): subslists with paths to loci, each
-            sublist containing paths for a set of loci that should
-            not differ much from other sublists based on the criterion
-            used to separate the inputs.
+        Returns
+        -------
+        splitted_ids : list
+            List with sublists that contain paths to loci FASTA
+            files. Sublists are balanced based on the chosen
+            method.
     """
 
     # initialize list with sublists to store inputs
-    splitted_ids = [[] for cpu in range(threads)]
+    splitted_ids = [[] for cpu in range(cores)]
     # initialize list with chosen criterion values
     # for each sublist of inputs
-    splitted_values = [0 for cpu in range(threads)]
+    splitted_values = [0 for cpu in range(cores)]
     i = 0
     for locus in inputs:
         if method == 'seqcount':
@@ -1543,20 +1975,20 @@ def split_genes_by_core(inputs, threads, method):
     return splitted_ids
 
 
-def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
+# this function should receive an iterable with values per cluster
+# possibly convert it so that it can be used for the same as previous function!
+def split_blast_inputs_by_core(blast_inputs, cores, blast_files_dir):
     """
     """
 
-    splitted_ids = [[] for cpu in range(threads)]
-    splitted_values = [[] for cpu in range(threads)]
-    cluster_sums = [0] * threads
+    splitted_ids = [[] for cpu in range(cores)]
+    cluster_sums = [0 for cpu in range(cores)]
     i = 0
     for cluster in blast_inputs:
         cluster_file = os.path.join(blast_files_dir,
                                     '{0}_ids.txt'.format(cluster))
         with open(cluster_file, 'r') as infile:
             cluster_seqs = [line.strip() for line in infile.readlines()]
-        splitted_values[i].append(len(cluster_seqs))
         splitted_ids[i].append(cluster)
         cluster_sums[i] += len(cluster_seqs)
         i = cluster_sums.index(min(cluster_sums))
@@ -1565,13 +1997,27 @@ def split_blast_inputs_by_core(blast_inputs, threads, blast_files_dir):
 
 
 def split_iterable(iterable, size):
-    """
+    """ Splits a dictionary.
+
+        Parameters
+        ----------
+        iterable : dict
+            Dictionary to split.
+        size : int
+            Size of dictionaries created from the input
+            dictionary.
+
+        Returns
+        -------
+        chunks : list
+            List with dictionaries of defined size
+            resulting from splitting the input dictionary.
     """
 
     chunks = []
     it = iter(iterable)
     for i in range(0, len(iterable), size):
-        chunks.append({k:iterable[k] for k in islice(it, size)})
+        chunks.append({k: iterable[k] for k in islice(it, size)})
 
     return chunks
 
@@ -1580,13 +2026,19 @@ def concatenate_list(str_list, join_char):
     """ Concatenates list elements with specified
         character between each original list element.
 
-        Args:
-            sequence_ids (list): list with strings that will be concatenated.
-            join_char (str): character that will be used to join all list
+        Parameters
+        ----------
+        str_list : list
+            List with strings that will be concatenated.
+        join_char : str
+            Character that will be used to join list
             elements.
 
-        Returns:
-            ids_str (str): concatenation of all strings in the input list.
+        Returns
+        -------
+        ids_str : str
+            String resulting from the concatenation of
+            all strings in the input list.
     """
 
     concat = join_char.join(str_list)
@@ -1594,35 +2046,19 @@ def concatenate_list(str_list, join_char):
     return concat
 
 
-def write_text_chunk(output_file, text):
-    """ Write single string to file.
-
-        Args:
-            output_file (str): path/name of the file that will store
-            the input text.
-            text (str): single string to write to file.
-
-        Returns:
-            Writes input text to output file.
-    """
-
-    with open(output_file, 'w') as out:
-        out.write(text)
-
-
 def reverse_complement(dna_sequence):
     """ Determines the reverse complement of given DNA strand.
 
-        Args:
-            strDNA (str): string representing a DNA sequence.
+        Parameters
+        ----------
+        dna_sequence : str
+            String representing a DNA sequence.
 
-        Returns:
-            revC_dna (str): the reverse complement of the DNA sequence, without
-            lowercase letters.
-
-        Example:
-            >>> reverse_complement('ATCGgcaNn')
-            'NNTGCCGAT'
+        Returns
+        -------
+        reverse_complement_strand : str
+            The reverse complement of the DNA sequence (lowercase
+            is converted to uppercase).
     """
 
     base_complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A',
@@ -1647,11 +2083,15 @@ def reverse_complement(dna_sequence):
 def reverse_str(string):
     """ Reverse character order in input string.
 
-        Args:
-            string (str): string to be reversed.
+        Parameters
+        ----------
+        string : str
+         String to be reversed.
 
-        Returns:
-            revstr (str): reverse of input string.
+        Returns
+        -------
+        revstr : str
+            Reverse of input string.
     """
 
     revstr = string[::-1]
@@ -1662,13 +2102,18 @@ def reverse_str(string):
 def translate_sequence(dna_str, table_id):
     """ Translate a DNA sequence using the BioPython package.
 
-        Args:
-            dna_str (str): DNA sequence as string type.
-            table_id (int): translation table identifier.
+        Parameters
+        ----------
+        dna_str : str
+            DNA sequence as string type.
+        table_id : int
+            Translation table identifier.
 
-        Returns:
-            protseq (str): protein sequence created by translating
-            the input DNA sequence.
+        Returns
+        -------
+        protseq : str
+            Protein sequence created by translating the
+            input DNA sequence.
     """
 
     myseq_obj = Seq(dna_str)
@@ -2293,7 +2738,6 @@ def determine_distinct(input_data):
     out_seqs = []
     exausted = False
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
-
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -2349,19 +2793,17 @@ def determine_small(sequences_file, minimum_length):
     return small_seqs
 
 
-def get_sequences_by_id(sequences_index, seqids, out_file):
+def get_sequences_by_id(sequences_index, seqids, out_file, limit=5000):
     """
     """
 
     records = []
-    seq_limit = 5000
     for i, seqid in enumerate(seqids):
-        #identifier = sequences_index[seqid].id
         sequence = str(sequences_index[seqid].seq)
         record = fasta_str_record(seqid, sequence)
         records.append(record)
 
-        if len(records) == seq_limit or i+1 == len(seqids):
+        if len(records) == limit or i+1 == len(seqids):
             lines = join_list(records, '\n')
             write_to_file(lines, out_file, 'a', '\n')
             records = []
@@ -2372,44 +2814,38 @@ def create_short(schema_files, schema_dir):
     """
 
     short_path = join_paths(schema_dir, ['short'])
-    if not os.path.exists(short_path):
-        os.makedirs(short_path)
+    create_directory(short_path)
 
     for file in schema_files:
-
-        short_file = join_paths(short_path, [file[0]+'_short.fasta'])
-        main_file = file[1]
-        
-        shutil.copy(main_file, short_file)        
+        short_file = join_paths(short_path, [file_basename(file)])
+        short_file = short_file.replace('.fasta', '_short.fasta')
+        shutil.copy(file, short_file)
 
     return True
 
 
-def build_schema(schema_file, output_path):
+def split_fasta(fasta_path, output_path, num_seqs, filenames):
     """
     """
 
-    total_genes = 0
     schema_files = []
-    for record in SeqIO.parse(schema_file, 'fasta'):
-        file_name = record.name
-        file_name = replace_multiple_characters(file_name)
+    current_recs = []
+    records = [rec for rec in SeqIO.parse(fasta_path, 'fasta')]
+    for record in records:
+        current_recs.append(record)
+        if len(current_recs) == num_seqs or record.id == records[-1].id:
+            file_name = filenames.__next__()
+            file_name = replace_multiple_characters(file_name)
 
-        new_file = '{0}{1}'.format(file_name, '.fasta')
-        new_file_path = os.path.join(output_path, new_file)
+            new_file = join_paths(output_path, ['{0}{1}'.format(file_name, '.fasta')])
 
-        schema_files.append([file_name, new_file_path])
+            schema_files.append(new_file)
 
-        header = '>{0}_1'.format(file_name)
-        sequence = str(record.seq).upper()
-        file_text = join_list([header, sequence], '\n')
-        write_to_file(file_text, new_file_path, 'w', '\n')
+            write_records(current_recs, new_file)
 
-        total_genes += 1
+            current_recs = []
 
-    create_short(schema_files, output_path)
-
-    return total_genes
+    return schema_files
 
 
 def run_blast(blastp_path, blast_db, fasta_file, blast_output,
@@ -2517,7 +2953,7 @@ def apply_bsr(inputs):
 
     ids_dict = inputs[3]
     blast_file = inputs[0]
-    blast_results = read_blast_tabular(blast_file)
+    blast_results = read_tabular(blast_file)
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}
     # do not include self-scores lines, no need to evaluate those hits
     blast_results = [r for r in blast_results if r[0] != r[1]]
@@ -2654,7 +3090,7 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2, mode='g
                       representatives=None, grow=True, offset=1, minimizer=True):
     """
     """
-
+    print(word_size)
     clusters = {}
     reps_sequences = {}
     if representatives is None:
@@ -2829,3 +3265,83 @@ def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
         excluded_dict[k] = [list(set(excluded)), sims_cases]
 
     return excluded_dict
+
+
+def get_datetime():
+    """ Returns datetime module object with
+        information about current date and hour.
+    """
+
+    current_datetime = dt.datetime.now()
+
+    return current_datetime
+
+
+def datetime_str(datetime_obj, date_format='%Y-%m-%dT%H:%M:%S'):
+    """ Converts datetime module object to formatted string.
+
+        Parameters
+        ----------
+        datetime_obj : 
+
+        date_format : str
+
+
+        Returns
+        -------
+        dt_str : str
+
+    """
+
+    dt_str = dt.datetime.strftime(datetime_obj, date_format)
+
+    return dt_str
+
+
+def datetime_diff(sdate, edate):
+    """ Returns the difference in
+        minutes and the remaining
+        in seconds between two dates.
+
+        Parameters
+        ----------
+        sdate : 
+
+        edate : 
+
+
+        Returns
+        -------
+        A list with the following elements:
+            minutes : int
+
+            seconds : int
+                
+    """
+
+    delta = edate - sdate
+    minutes, seconds = divmod(delta.total_seconds(), 60)
+
+    return [minutes, seconds]
+
+
+def delete_directory(directory_path):
+    """ Deletes a directory.
+    """
+
+    shutil.rmtree(directory_path)
+
+
+def validate_date(date):
+    """
+    """
+
+    valid = False
+    try:
+        date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
+        valid = date
+    except ValueError:
+        date = dt.datetime.strptime(date+'.0', '%Y-%m-%dT%H:%M:%S.%f')
+        valid = date
+
+    return valid

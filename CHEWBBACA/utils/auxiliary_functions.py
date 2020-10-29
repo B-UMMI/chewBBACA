@@ -504,7 +504,7 @@ def extract_subsequence(sequence, start, stop):
     return subsequence
 
 
-def extract_cds(sequence, start, stop, strand):
+def extract_single_cds(sequence, start, stop, strand):
     """ Extract coding sequence from contig.
 
         Parameters
@@ -533,7 +533,7 @@ def extract_cds(sequence, start, stop, strand):
     return coding_sequence
 
 
-def extract_coding_sequences(reading_frames, contigs, starting_id):
+def extract_genome_cds(reading_frames, contigs, starting_id):
     """ Extracts CDSs from contigs based on the start
         and stop codon positions determined by Prodigal.
 
@@ -574,7 +574,7 @@ def extract_coding_sequences(reading_frames, contigs, starting_id):
             stop_pos = cds[1]
             strand = cds[2]
             # extract CDS sequence
-            cds_sequence = extract_cds(sequence, *cds).upper()
+            cds_sequence = extract_single_cds(sequence, *cds).upper()
 
             # store CDS with unique id
             coding_sequences[seqid] = cds_sequence
@@ -616,7 +616,7 @@ def write_protein_table(output_file, genome_id, cds_info):
     write_to_file(table_text, output_file, 'a', '\n')
 
 
-def extract_features(genome, identifier, orf_file, protein_table, cds_file):
+def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     """ Extracts coding sequences from genome based on Prodigal
         gene predictions. Writes coding sequences to FASTA file
         and information about coding sequences to TSV file.
@@ -649,7 +649,7 @@ def extract_features(genome, identifier, orf_file, protein_table, cds_file):
     contigs = import_sequences(genome)
     # extract coding sequences from contigs
     reading_frames = pickle_loader(orf_file)
-    genome_info = extract_coding_sequences(reading_frames,
+    genome_info = extract_genome_cds(reading_frames,
                                            contigs, 1)
     # save coding sequences to file
     # create records and write them to file
@@ -663,7 +663,16 @@ def extract_features(genome, identifier, orf_file, protein_table, cds_file):
     return total_cds
 
 
-def batch_extractor(input_data):
+def function_helper(input_args):
+    """
+    """
+
+    results = input_args[-1](*input_args[0:-1])
+
+    return results
+
+
+def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
     """ Extracts coding sequences from a set of genomes.
 
         Parameters
@@ -672,7 +681,7 @@ def batch_extractor(input_data):
             List with a set of paths for FASTA files with
             genomic sequences, followed by the path to the
             directory with files with Prodigal resutls, the
-            path to the parent directory for all files and
+            path to the temporary directory for all files and
             directories that will be read and written and
             an index/identifier to add to the output files
             with coding sequences and coding sequences info.
@@ -691,16 +700,11 @@ def batch_extractor(input_data):
                 the set of input genomes.
     """
 
-    index = input_data[-1]
-    genomes = input_data[0:-3]
-    prodigal_path = input_data[-3]
-    parent_directory = input_data[-2]
-
-    protein_table = join_paths(parent_directory,
+    protein_table = join_paths(temp_directory,
                                ['protein_info_{0}.tsv'.format(index)])
 
-    cds_file = join_paths(parent_directory,
-                          ['temp', 'coding_sequences_{0}.fasta'.format(index)])
+    cds_file = join_paths(temp_directory,
+                          ['coding_sequences_{0}.fasta'.format(index)])
 
     batch_total = 0
     for g in genomes:
@@ -708,8 +712,8 @@ def batch_extractor(input_data):
         identifier = file_basename(g, False)
         orf_file_path = join_paths(prodigal_path,
                                    ['{0}_ORF.txt'.format(identifier)])
-        total = extract_features(g, identifier, orf_file_path,
-                                 protein_table, cds_file)
+        total = save_extracted_cds(g, identifier, orf_file_path,
+                                   protein_table, cds_file)
         batch_total += total
 
     return [protein_table, cds_file, batch_total]
@@ -1213,15 +1217,6 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
     rawr.wait()
 
     return results
-
-
-def execute_prodigal(input_data):
-    """
-    """
-
-    prodigal_result = runProdigal.main(*input_data)
-
-    return prodigal_result
 
 
 def extend_list(input_list, *elements):
@@ -2750,7 +2745,8 @@ def input_timeout(prompt, timeout):
         sys.exit('Timed out.')
 
 
-def translate_coding_sequences(input_data):
+def translate_coding_sequences(seqids, sequences_file, translation_table,
+                               minimum_length, dna_file, protein_file):
     """ Translates CDSs into protein sequences.
 
         Parameters
@@ -2777,31 +2773,22 @@ def translate_coding_sequences(input_data):
                 translated.
     """
 
-    valid_seqs = input_data[0:-5]
-    protein_valid_file = input_data[-1]
-    dna_valid_file = input_data[-2]
-    minimum_length = input_data[-3]
-    table_id = input_data[-4]
-    sequences_file = input_data[-5]
-
     # define limit of records to keep in memory
     dna_lines = []
     total_seqs = 0
     prot_lines = []
     line_limit = 5000
     invalid_alleles = []
-    dna_seqs_file = dna_valid_file
-    protein_seqs_file = protein_valid_file
 
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
-    for i, seqid in enumerate(valid_seqs):
+    for i, seqid in enumerate(seqids):
         try:
             sequence = str(cds_index.get(seqid).seq)
         except Exception as e:
             print(e)
 
-        translation = translate_dna(sequence, table_id, minimum_length)
+        translation = translate_dna(sequence, translation_table, minimum_length)
         if isinstance(translation, list):
             dna_lines.append('>{0}'.format(seqid))
             dna_lines.append(translation[0][1])
@@ -2813,14 +2800,14 @@ def translate_coding_sequences(input_data):
         elif isinstance(translation, str):
             invalid_alleles.append([seqid, translation])
 
-        if len(dna_lines)//2 == line_limit or i+1 == len(valid_seqs):
+        if len(dna_lines)//2 == line_limit or i+1 == len(seqids):
 
             dna_lines = join_list(dna_lines, '\n')
-            write_to_file(dna_lines, dna_seqs_file, 'a', '\n')
+            write_to_file(dna_lines, dna_file, 'a', '\n')
             dna_lines = []
 
             prot_lines = join_list(prot_lines, '\n')
-            write_to_file(prot_lines, protein_seqs_file, 'a', '\n')
+            write_to_file(prot_lines, protein_file, 'a', '\n')
             prot_lines = []
 
     return [invalid_alleles, total_seqs]
@@ -2866,7 +2853,7 @@ def fasta_str_record(seqid, sequence):
     return record
 
 
-def determine_distinct(input_data):
+def determine_distinct(sequences_file, unique_fasta):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -2874,10 +2861,11 @@ def determine_distinct(input_data):
 
         Parameters
         ----------
-        input_data : list
-            List with a path to a FASTA file and a path
-            to a FASTA file that will be created to store
-            distinct sequences.
+        sequences_file : str
+            Path to a FASTA file.
+        unique_fasta : str
+            Path to a FASTA file that will be created to
+            store distinct sequences.
 
         Returns
         -------
@@ -2889,8 +2877,6 @@ def determine_distinct(input_data):
                 sequence. The first identifier observed for a
                 distinct sequence is the one stored in the list.
     """
-
-    sequences_file, unique_fasta = input_data
 
     total = 0
     seqs_dict = {}
@@ -2945,16 +2931,16 @@ def determine_small(sequences_file, minimum_length):
             List with the identifiers of small sequences.
     """
 
-    small_seqs = []
+    small_seqids = []
     for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
         sequence = str(record.seq)
         seqid = record.id
 
         if len(sequence) < minimum_length:
-            small_seqs.append(seqid)
+            small_seqids.append(seqid)
 
-    return small_seqs
+    return small_seqids
 
 
 def get_sequences_by_id(sequences_index, seqids, out_file, limit=5000):

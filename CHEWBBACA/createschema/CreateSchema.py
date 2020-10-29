@@ -32,14 +32,9 @@ Code documentation
 import os
 import sys
 import time
-import pickle
-import shutil
 import argparse
 import itertools
-import datetime as dt
 from itertools import repeat
-from collections import Counter
-from multiprocessing import Pool
 
 from Bio import SeqIO
 
@@ -49,43 +44,86 @@ except:
     from CHEWBBACA.utils import auxiliary_functions as aux
 
 
-def gene_prediction_helper(temp_directory, fasta_files, ptf_path, translation_table,
-                            prodigal_mode, cpu_cores, genomes_identifiers, output_directory):
-    """
+def gene_prediction_component(fasta_files, ptf_path, translation_table,
+                              prodigal_mode, cpu_cores, temp_directory,
+                              output_directory):
+    """ Runs Prodigal to predict coding sequences in FASTA
+        files with genomic sequence.
+
+        Parameters
+        ----------
+        fasta_files : list
+            List with paths to FASTA files with genomic
+            sequences.
+        ptf_path : str
+            Path to the Prodigal training file. Should
+            be False if a training file is not provided.
+        translation_table : int
+            Genetic code used to predict and translate
+            coding sequences.
+        prodigal_mode : str
+            Prodigal execution mode.
+        cpu_cores : int
+            Number of process that will run Prodigal in
+            parallel.
+        temp_directory : str
+            Path to the directory where temporary files
+            should be stored in.
+        output_directory : str
+            Path to the parent directory of the temporary
+            directory.
+
+        Returns
+        -------
+        A list with the following elements:
+            fasta_files : list
+                Input list without the paths to the files
+                that Prodigal could not predict genes for.
+            prodigal_path : str
+                Path to the directory with the files with
+                Prodigal results.
     """
 
-    # define output directory where Prodigal files will be stored
+    # create directory to store files with Prodigal results
     prodigal_path = aux.join_paths(temp_directory, ['prodigal_cds_prediction'])
     aux.create_directory(prodigal_path)
 
     # run Prodigal to determine CDSs for all input genomes
     print('\nPredicting gene sequences...\n')
-
-    # divide input genomes into equal number of sublists for maximum progress resolution
+    # divide input genomes into equal number of sublists for
+    # maximum process progress resolution
     prodigal_inputs = aux.divide_list_into_n_chunks(fasta_files, len(fasta_files))
+    # add common arguments to all sublists
     common_args = [prodigal_path, ptf_path, translation_table, prodigal_mode]
     prodigal_inputs = [i+common_args for i in prodigal_inputs]
 
     # run Prodigal to predict genes
-    prodigal_results = aux.map_async_parallelizer(prodigal_inputs, aux.execute_prodigal,
-                                                  cpu_cores, show_progress=True)
+    prodigal_results = aux.map_async_parallelizer(prodigal_inputs,
+                                                  aux.execute_prodigal,
+                                                  cpu_cores,
+                                                  show_progress=True)
 
     # determine if Prodigal predicted genes for all genomes
-    fasta_files, genomes_identifiers,\
-        failed, failed_file = aux.check_prodigal_results(fasta_files, prodigal_results,
-                                                         genomes_identifiers, output_directory)
+    failed, failed_file = aux.check_prodigal_results(prodigal_results,
+                                                     output_directory)
 
     if len(failed) > 0:
         print('Failed to predict genes for {0} genomes.'.format(len(failed)))
         print('Info for failed cases stored in: {0}'.format(failed_file))
+
+    # remove failed genomes from paths
+    for f in failed:
+        fasta_files.remove(f[0])
+
     if len(fasta_files) == 0:
-        sys.exit('\nCould not predict gene sequences from any of the input files.\n'
-                 'Please provide input files in the accepted FASTA format.')
+        sys.exit('\nCould not predict gene sequences from any '
+                 'of the input files.\nPlease provide input files '
+                 'in the accepted FASTA format.')
 
-    return [fasta_files, genomes_identifiers, prodigal_path]
+    return [fasta_files, prodigal_path]
 
 
-def cds_extration_helper(fasta_files, cpu_cores, prodigal_path, output_directory):
+def cds_extration_component(fasta_files, cpu_cores, prodigal_path, output_directory):
     """
     """
 
@@ -375,10 +413,11 @@ def blaster_helper(temp_directory, clustered_sequences2, final_clusters, blastp_
     return [blast_results, ids_dict]
 
 
-def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio,
-         minimum_length, translation_table, size_threshold, clustering_mode,
-         word_size, clustering_sim, representative_filter, intra_filter, cpu_cores,
-         blastp_path, cds_input, prodigal_mode, verbose, cleanup):
+def main(input_files, output_directory, schema_name, ptf_path,
+         blast_score_ratio, minimum_length, translation_table,
+         size_threshold, clustering_mode, word_size, clustering_sim,
+         representative_filter, intra_filter, cpu_cores, blastp_path,
+         cds_input, prodigal_mode, verbose, cleanup):
 
     start_date = aux.get_datetime()
     print('Started at: {0}\n'.format(aux.datetime_str(start_date)))
@@ -386,8 +425,8 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     # read file with paths to input files
     fasta_files = aux.read_lines(input_files, strip=True)
 
-    # maintain genome order to assign identifiers correctly
-    fasta_files.sort(key=lambda y: y.lower())
+    # sort paths to FASTA files
+    fasta_files = aux.sort_data(fasta_files, sort_key=lambda x: x.lower())
 
     print('Number of genomes/assemblies: {0}'.format(len(fasta_files)))
     print('Training file: {0}'.format(ptf_path))
@@ -401,18 +440,19 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
     print('Representative filter: {0}'.format(representative_filter))
     print('Intra filter: {0}'.format(intra_filter))
 
-    # determine and store genome identifiers
-    genomes_identifiers = [aux.file_basename(file, False) for file in fasta_files]
-
     # define directory for temporary files
     temp_directory = aux.join_paths(output_directory, ['temp'])
 
-    fasta_files, genomes_identifiers, prodigal_path = gene_prediction_helper(temp_directory, fasta_files,
-                                                              ptf_path, translation_table,
-                                                              prodigal_mode, cpu_cores,
-                                                              genomes_identifiers, output_directory)
+    # gene prediction step
+    gp_results = gene_prediction_component(fasta_files, ptf_path,
+                                           translation_table, prodigal_mode,
+                                           cpu_cores, temp_directory,
+                                           output_directory)
 
-    extracted_cdss = cds_extration_helper(fasta_files, cpu_cores, prodigal_path, output_directory)
+    fasta_files, prodigal_path = gp_results
+
+    # CDS extraction step
+    extracted_cdss = cds_extration_component(fasta_files, cpu_cores, prodigal_path, output_directory)
 
     distinct_dna_seqids, distinct_dna_seqids_file = deduplication_helper(temp_directory, extracted_cdss, cpu_cores)
 

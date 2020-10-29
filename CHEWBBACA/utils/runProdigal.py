@@ -14,13 +14,13 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     """
     """
 
-    if ptf_path != '':
+    if ptf_path is not False:
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
                                  '-m', '-g', str(translation_table), '-p',
                                  mode, '-f', 'sco', '-q', '-t', ptf_path],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-    elif ptf_path == '':
+    elif ptf_path is False:
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
                                  '-m', '-g', str(translation_table), '-p',
                                  mode, '-f', 'sco', '-q'],
@@ -44,7 +44,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
         stderr = [line.decode('utf-8').strip() for line in stderr]
         stderr = [line for line in stderr if line != '']
         error = ' '.join(stderr)
-        return [genome_basename, error]
+        return [input_file, error]
 
     # Parse output
     lines = [line.decode('utf-8').strip() for line in stdout]
@@ -78,7 +78,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
         with open(filepath, 'wb') as f:
             pickle.dump(contigs_pos, f)
 
-    status = [genome_basename, total_genome]
+    status = [input_file, total_genome]
 
     return status
 

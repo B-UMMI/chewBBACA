@@ -1118,19 +1118,14 @@ def check_ptf(ptf_path):
         return [True, ptf_path]
 
 
-def check_prodigal_results(inputs_paths, prodigal_results,
-                           inputs_ids, output_directory):
+def check_prodigal_results(prodigal_results, output_directory):
     """ Determine if Prodigal could not predict genes for any input
         assembly.
 
         Parameters
         ----------
-        inputs_paths : list
-            List with the paths to the FASTA files passed to Prodigal.
         prodigal_results : list
             List with gene prediction results from Prodigal.
-        inputs_ids : list
-            List with the identifiers of the FASTA files passed to Prodigal.
         output_directory : str
             Path to the output directory where the file with information
             about failed cases will be written to.
@@ -1138,14 +1133,6 @@ def check_prodigal_results(inputs_paths, prodigal_results,
         Returns
         -------
         A list with the following elements:
-            inputs_paths : list
-                Updated list of paths to the FASTA files passed
-                to Prodigal without the paths to the files that
-                Prodigal could not predict genes for.
-            inputs_ids : list
-                Updated list of identifiers without the identifiers
-                of the FASTA files that Prodigal could not precidt
-                genes for.
             failed : list
                 List with the stderr for the cases that Prodigal
                 failed to predict genes for.
@@ -1160,18 +1147,10 @@ def check_prodigal_results(inputs_paths, prodigal_results,
 
     failed_file = os.path.join(output_directory, 'prodigal_fails.tsv')
     if len(failed) > 0:
-        with open(failed_file, 'w') as pf:
-            lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
-            pf.writelines(lines)
+        lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
+        write_lines(lines, failed_file)
 
-        # remove failed genomes from paths
-        parent_path = os.path.dirname(inputs_paths[0])
-        for f in failed:
-            file_path = os.path.join(parent_path, '{0}.fasta'.format(f[0]))
-            inputs_paths.remove(file_path)
-            inputs_ids.remove(f[0])
-
-    return [inputs_paths, inputs_ids, failed, failed_file]
+    return [failed, failed_file]
 
 
 def cluster_helper(data):
@@ -1236,11 +1215,11 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
     return results
 
 
-def execute_prodigal(input_info):
+def execute_prodigal(input_data):
     """
     """
 
-    prodigal_result = runProdigal.main(*input_info)
+    prodigal_result = runProdigal.main(*input_data)
 
     return prodigal_result
 

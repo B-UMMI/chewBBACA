@@ -1157,15 +1157,6 @@ def check_prodigal_results(prodigal_results, output_directory):
     return [failed, failed_file]
 
 
-def cluster_helper(data):
-    """
-    """
-
-    results = cluster_sequences(data[0], word_size=data[1])
-
-    return results
-
-
 def map_async_parallelizer(inputs, function, cpu, callback='extend',
                            chunksize=1, show_progress=False):
     """ Parallelizes function calls by creating several processes

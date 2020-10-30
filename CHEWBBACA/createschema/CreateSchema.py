@@ -385,111 +385,114 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
 
-def clustering_helper(protein_file, cpu_cores, word_size, clustering_mode, temp_directory, intra_filter, representative_filter):
+def clustering_component(sequences, word_size, clustering_sim,
+                         clustering_mode, representatives, grow_clusters,
+                         kmer_offset, minimizer, temp_directory, cpu_cores):
     """
     """
 
-    # Use clustering to reduce number of BLAST comparisons
-    prots = {rec.id: str(rec.seq) for rec in SeqIO.parse(protein_file, 'fasta')}
+    # sort sequences by length
+    sorted_seqs = {k: v for k, v in aux.sort_data(sequences.items(),
+                                                  sort_key=lambda x: len(x[1]),
+                                                  reverse=True)}
 
-    # sort proteins by length and alphabetically
-    sorted_prots = {k: v for k, v in sorted(prots.items(),
-                                            key=lambda item: len(item[1]),
-                                            reverse=True)}
-    divided_prots = aux.split_iterable(sorted_prots, int(len(sorted_prots)/cpu_cores+10))
-    divided_prots = [[d, word_size] for d in divided_prots]
-    print(int(len(sorted_prots)/cpu_cores+10), len(divided_prots))
-    # cluster proteins
+    # divide sequences into sublists to distribute per available cores
+    cluster_inputs = aux.split_iterable(sorted_seqs,
+                                        int(len(sorted_seqs)/cpu_cores+10))
+    common_args = [word_size, clustering_sim, clustering_mode,
+                   representatives, grow_clusters, kmer_offset,
+                   minimizer, aux.cluster_sequences]
+    cluster_inputs = [[d, *common_args] for d in cluster_inputs]
+
+    print(int(len(sorted_seqs)/cpu_cores+10), len(cluster_inputs))
+
+    # cluster proteins in parallel
     print('\nClustering protein sequences...')
     start_cluster = time.time()
 
-    # need to pass word size!!!
-    # clustering_results = aux.map_async_parallelizer(divided_prots, aux.cluster_sequences,
-    #                                                 cpu_cores)
-    clustering_results = aux.map_async_parallelizer(divided_prots, aux.cluster_helper,
+    clustering_results = aux.map_async_parallelizer(cluster_inputs,
+                                                    aux.function_helper,
                                                     cpu_cores)
 
-    #print('Clustered {0} proteins into {1} clusters'.format(len(distinct_protein_seqs),
-    #                                                        len(clusters)))
-    #print(len(clustering_results))
-    #for r in clustering_results:
-        #print(len(r))
+    # perform clustering with representatives
+    if len(cluster_inputs) > 1:
+        rep_sequences = {}
+        for r in clustering_results:
+            rep_sequences = {**rep_sequences, **r[1]}
 
-    # join representatives of each cluster
-    rep_sequences = {}
-    for r in clustering_results:
-        rep_sequences = {**rep_sequences, **r[1]}
+        # cluster representatives
+        rep_clusters = aux.cluster_sequences(rep_sequences, word_size, 0.8,
+                                             clustering_mode, minimizer=True)
 
-    # cluster final round
-    clusters = aux.cluster_sequences(rep_sequences, word_size, 0.8,
-                                     clustering_mode, minimizer=True)
-    #print(len(clusters[0]))
-    #p = 0
-    #for k, v in clusters[0].items():
-        #if len(v) > 1:
-            #p += 1
+        # merge clusters
+        clusters = {}
+        for c in clustering_results:
+            clusters = {**clusters, **c[0]}
+
+        merged_clusters = {}
+        for k, v in rep_clusters[0].items():
+            new_cluster = {k: []}
+            # is this including the representatives of other clusters???
+            for n in v:
+                new_cluster[k] += clusters[n[0]]
+
+            merged_clusters[k] = new_cluster[k]
 
     end_cluster = time.time()
     print(end_cluster-start_cluster)
 
-    #print(p)
-
-    # merge clusters
-    all_clusters = {}
-    for c in clustering_results:
-        all_clusters = {**all_clusters, **c[0]}
-
-    merged_clusters = {}
-    for k, v in clusters[0].items():
-        new_cluster = {k: []}
-        #if len(v) > 1:
-            #print(v)
-        for n in v:
-            new_cluster[k] += all_clusters[n[0]]
-
-        merged_clusters[k] = new_cluster[k]
-
-    #print(len(merged_clusters))
-    #seen = []
-    #total = 0
-    #for j, b in merged_clusters.items():
-        #total += len(b)
-        #repeated = [d for d in b if d in seen]
-        #if len(repeated) > 0:
-            #print(j, b)
-            #print('repe', repeated)
-        #seen.extend(b)
-    #print(total, len(set([s[0] for s in seen])))
+    print('Clustered {0} proteins into {1} '
+          'clusters'.format(len(sorted_seqs), len(merged_clusters)))
 
     # write file with clustering results
     clusters_out = os.path.join(temp_directory, 'clustered_results.txt')
     aux.write_clusters(merged_clusters, clusters_out)
 
+    return merged_clusters
+
+
+def cluster_prunner_component(clusters, representative_filter, temp_directory):
+    """
+    """
+
     # remove sequences that are very similar to representatives
-    prunned_clusters, excluded_alleles = aux.representative_prunner(merged_clusters,
-                                                                    representative_filter)
+    prunning_results = aux.representative_prunner(clusters,
+                                                  representative_filter)
+
+    prunned_clusters, excluded_alleles = prunning_results
 
     # write file with prunning results
     prunned_out = os.path.join(temp_directory, 'clustered_prunned.txt')
     aux.write_clusters(prunned_clusters, prunned_out)
 
+    # get identifiers of excluded sequences
     excluded_alleles = [e[0] for e in excluded_alleles]
 
     print('Removed {0} sequences based on high similarity with '
           'cluster representative.'.format(len(excluded_alleles)))
-    # determine clusters that only have the representative
+
+    # identify singletons and exclude those clusters
     singletons = aux.determine_singletons(prunned_clusters)
     print('Found {0} singletons.'.format(len(singletons)))
-    # remove singletons and keep clusters that need to be BLASTed
-    final_clusters = aux.remove_entries(prunned_clusters, singletons)
+
+    pop_clusters = aux.remove_entries(prunned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
-    clustered_sequences = sum([len(v)+1 for k, v in final_clusters.items()])
-    print('Remaining sequences after representative and singleton prunning: {0}'.format(clustered_sequences))
+    clustered_sequences = sum([len(v)+1 for k, v in pop_clusters.items()])
+    print('Remaining sequences after representative and singleton '
+          'prunning: {0}'.format(clustered_sequences))
+
+    return pop_clusters
+
+
+def cluster_intra_prunner_component(clusters, word_size, intra_filter,
+                                    temp_directory):
+    """
+    """
 
     # identify clusters with more than 1 sequence besides the representative
-    intra_clusters = {k: v for k, v in final_clusters.items() if len(v) > 1}
+    intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
 
     # create kmer profile for each cluster and determine similarity
     indexed_prots = SeqIO.index(protein_file, 'fasta')
@@ -516,16 +519,16 @@ def clustering_helper(protein_file, cpu_cores, word_size, clustering_mode, temp_
 
     for k, v in excluded_dict.items():
         if len(v[0]) > 0:
-            final_clusters[k] = [e for e in final_clusters[k] if e[0] not in v[0]]
+            clusters[k] = [e for e in clusters[k] if e[0] not in v[0]]
 
     # add key because it is representative identifier
-    clustered_sequences2 = [[k]+[e[0] for e in v] for k, v in final_clusters.items()]
+    clustered_sequences2 = [[k]+[e[0] for e in v] for k, v in clusters.items()]
     clustered_sequences2 = list(itertools.chain.from_iterable(clustered_sequences2))
     print('Remaining sequences after intra cluster prunning: {0}'.format(len(clustered_sequences2)))
 
-    print('Clusters to BLAST: {0}'.format(len(final_clusters)))
+    print('Clusters to BLAST: {0}'.format(len(clusters)))
 
-    return [final_clusters, clustered_sequences2, indexed_prots, excluded_alleles]
+    return [clusters, clustered_sequences2, indexed_prots, excluded_alleles]
 
 
 def blaster_helper(temp_directory, clustered_sequences2, final_clusters, blastp_path, cpu_cores, indexed_prots):
@@ -669,12 +672,26 @@ def main(input_files, output_directory, schema_name, ptf_path,
     print('\nKept {0} sequences after filtering the initial '
           'sequences.'.format(len(distinct_protein_seqs)))
 
-    final_clusters, clustered_sequences2, indexed_prots, excluded_alleles = clustering_helper(qc_protein_file, cpu_cores,
-                                                                                              word_size, clustering_mode,
-                                                                                              temp_directory, intra_filter,
-                                                                                              representative_filter)
+    # protein clustering step
+    # read protein sequences
+    proteins = aux.import_sequences(protein_file)
 
-    blast_results, ids_dict = blaster_helper(temp_directory, clustered_sequences2, final_clusters, blastp_path, cpu_cores, indexed_prots)
+    cs_results = clustering_component(proteins, word_size, clustering_sim,
+                                      clustering_mode, None, False,
+                                      1, True, temp_directory, cpu_cores)
+
+    # clustering prunning step
+    cp_results = cluster_prunner_component(cs_results, representative_filter,
+                                           temp_directory)
+
+    # intra cluster prunner step
+    cip_results = cluster_intra_prunner_component(cp_results, word_size,
+                                                  intra_filter, temp_directory)
+
+    # BLASTp clusters step
+    blast_results, ids_dict = blaster_helper(temp_directory, clustered_sequences2,
+                                             final_clusters, blastp_path,
+                                             cpu_cores, indexed_prots)
 
     blast_files = aux.flatten_list(blast_results)
 

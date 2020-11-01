@@ -20,6 +20,7 @@ import hashlib
 import zipfile
 import requests
 import itertools
+import traceback
 import subprocess
 import datetime as dt
 import multiprocessing
@@ -72,6 +73,17 @@ def read_lines(input_file, strip=True):
             lines = [file for file in infile.readlines()]
 
     return lines
+
+
+def merge_dictionaries(dicts_list):
+    """
+    """
+
+    merged_dicts = {}
+    for d in dicts_list:
+        merged_dicts = {**merged_dicts, **d}
+
+    return merged_dicts
 
 
 def join_list(lst, link):
@@ -667,7 +679,14 @@ def function_helper(input_args):
     """
     """
 
-    results = input_args[-1](*input_args[0:-1])
+    try:
+        results = input_args[-1](*input_args[0:-1])
+    except Exception as e:
+        func_name = (input_args[-1]).__name__
+        traceback_lines = traceback.format_exception(etype=type(e), value=e,
+                                                     tb=e.__traceback__)
+        traceback_text = ''.join(traceback_lines)
+        print('Error on {0}:\n{1}\n'.format(func_name, traceback_text))
 
     return results
 
@@ -2934,13 +2953,15 @@ def determine_small(sequences_file, minimum_length):
     return small_seqids
 
 
-def get_sequences_by_id(sequences_index, seqids, out_file, limit=5000):
+def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
     """ Retrieves sequences from an indexed FASTA file.
 
         Parameters
         ----------
-        sequences_index : Bio.File._IndexedSeqFileDict
-            Fasta file index.
+        sequences : dict or Bio.File._IndexedSeqFileDict
+            Dictionary with seqids as keys and sequences
+            as values or a Fasta file index created with
+            BioPython.
         seqids : list
             List with the identifiers of the sequences
             that should be retrieved.
@@ -2958,13 +2979,17 @@ def get_sequences_by_id(sequences_index, seqids, out_file, limit=5000):
         identifiers in the input list.
     """
 
+    if type(sequences) == dict:
+        seqs = [(seqid, sequences[seqid]) for seqid in seqids]
+    else:
+        seqs = [(seqid, str(sequences[seqid].seq)) for seqid in seqids]
+
     records = []
-    for seqid in seqids:
-        sequence = str(sequences_index[seqid].seq)
-        record = fasta_str_record(seqid, sequence)
+    for seq in seqs:
+        record = fasta_str_record(seq[0], seq[1])
         records.append(record)
 
-        if len(records) == limit or seqid == seqids[-1]:
+        if len(records) == limit or seq[0] == seqids[-1]:
             lines = join_list(records, '\n')
             write_to_file(lines, out_file, 'a', '\n')
             records = []
@@ -3094,7 +3119,8 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     return stderr
 
 
-def cluster_blaster(inputs):
+def cluster_blaster(seqids, sequences, output_directory,
+                    blast_path, blastdb_path):
     """ Aligns sequences in the same cluster with BLAST.
 
         Parameters
@@ -3116,40 +3142,31 @@ def cluster_blaster(inputs):
             results for each cluster.
     """
 
-    blast_inputs = inputs[0:-4]
-    blastp_path = inputs[-4]
-    output_directory = inputs[-2]
-    proteins_file = inputs[-1]
-    blast_db = inputs[-3]
-
-    indexed_fasta = SeqIO.index(proteins_file, 'fasta')
+    indexed_fasta = SeqIO.index(sequences, 'fasta')
 
     out_files = []
-    try:
-        for cluster in blast_inputs:
+    for cluster in seqids:
 
-            cluster_id = cluster
-            ids_file = os.path.join(output_directory,
-                                    '{0}_ids.txt'.format(cluster_id))
+        cluster_id = cluster
+        ids_file = os.path.join(output_directory,
+                                '{0}_ids.txt'.format(cluster_id))
 
-            with open(ids_file, 'r') as clstr:
-                cluster_ids = [l.strip() for l in clstr.readlines()]
+        with open(ids_file, 'r') as clstr:
+            cluster_ids = [l.strip() for l in clstr.readlines()]
 
-            fasta_file = os.path.join(output_directory,
-                                      '{0}_protein.fasta'.format(cluster_id))
-            # create file with protein sequences
-            get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
+        fasta_file = os.path.join(output_directory,
+                                  '{0}_protein.fasta'.format(cluster_id))
+        # create file with protein sequences
+        get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
 
-            blast_output = os.path.join(output_directory,
-                                        '{0}_blast_out.tsv'.format(cluster_id))
+        blast_output = os.path.join(output_directory,
+                                    '{0}_blast_out.tsv'.format(cluster_id))
 
-            # Use subprocess to capture errors and warnings
-            stderr = run_blast(blastp_path, blast_db, fasta_file, blast_output,
-                               1, 1, ids_file)
+        # Use subprocess to capture errors and warnings
+        stderr = run_blast(blast_path, blastdb_path, fasta_file, blast_output,
+                           1, 1, ids_file)
 
-            out_files.append(blast_output)
-    except Exception as e:
-        print(e)
+        out_files.append(blast_output)
 
     return out_files
 
@@ -3228,7 +3245,7 @@ def divide_list_into_n_chunks(list_to_divide, n):
     return sublists
 
 
-def apply_bsr(inputs):
+def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
     """ Computes the BLAST Score Ratio value for BLAST
         alignments and returns the identifiers of the
         sequences that are similar to sequences with
@@ -3253,21 +3270,15 @@ def apply_bsr(inputs):
             or sequences of the same size.
     """
 
-    ids_dict = inputs[3]
-    blast_file = inputs[0]
-    blast_results = read_tabular(blast_file)
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}
     # do not include self-scores lines, no need to evaluate those hits
     blast_results = [r for r in blast_results if r[0] != r[1]]
 
-    fasta_file = inputs[1]
     lengths = {}
     for k in self_scores:
         record = fasta_file.get(ids_dict[k])
         sequence = str(record.seq)
         lengths[k] = len(sequence)
-
-    bsr = inputs[2]
 
     excluded_alleles = []
     for res in blast_results:
@@ -3687,7 +3698,7 @@ def remove_entries(dictionary, keys):
     return new_dict
 
 
-def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
+def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     """ Determines the percentage of shared kmers/minimizers
         between sequences in the same cluster and excludes
         sequences from a clusters sequences that are similar
@@ -3703,8 +3714,9 @@ def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
             the cluster, the percentage of shared
             kmers/minimizers and the length of the clustered
             sequence.
-        protein_file : str
-            Path to a FASTA file with protein sequences.
+        sequences : dict
+            Dictionary with sequence identifiers as keys
+            and sequences as values.
         word_size : int
             Value k for the kmer size.
         intra_filter : float
@@ -3735,8 +3747,7 @@ def intra_cluster_sim(clusters, protein_file, word_size, intra_filter):
         # get protein sequences
         cluster_sequences = {}
         for seqid in cluster_ids:
-            # get sequences through indexed FASTA file
-            cluster_sequences[seqid[0]] = str(protein_file[seqid[0]].seq)
+            cluster_sequences[seqid[0]] = sequences[seqid[0]]
 
         # get all kmers per sequence
         kmers_mapping = {}

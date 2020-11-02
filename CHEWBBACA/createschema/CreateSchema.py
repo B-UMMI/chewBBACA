@@ -388,7 +388,45 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
 def clustering_component(sequences, word_size, clustering_sim,
                          clustering_mode, representatives, grow_clusters,
                          kmer_offset, minimizer, temp_directory, cpu_cores):
-    """
+    """ Clusters sequences based on the proportion of shared kmers.
+
+        Parameters
+        ----------
+        sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values.
+        word_size : int
+            Value k for the kmer size.
+        clustering_sim : float
+            Similarity threshold to cluster a sequence into
+            a cluster.
+        clustering_mode : str
+            Clustering mode.
+        representatives : dict
+            Dictionary with kmers as keys and a list with
+            identifiers of sequences that contain that kmer
+            as values.
+        grow_clusters : bool
+            If it is allowed to create new clusters.
+        kmer_offset : int
+            Value to indicate offset of consecutive kmers.
+        minimizer : bool
+            If clustering should be based on shared minimizers.
+        temp_directory : str
+            Path to the directory where the clustering results
+            will be saved to.
+        cpu_cores : int
+            Number of clustering processes to run in parallel.
+
+        Returns
+        -------
+        clusters : dict
+            Dictionary with representative sequence identifiers
+            as keys and lists of tuples as values. Each tuple
+            contains a sequence identifier of a clustered
+            sequence, the proportion of shared kmers with the
+            representative and the length of the clustered
+            sequence.
     """
 
     # sort sequences by length
@@ -402,12 +440,10 @@ def clustering_component(sequences, word_size, clustering_sim,
     common_args = [word_size, clustering_sim, clustering_mode,
                    representatives, grow_clusters, kmer_offset,
                    minimizer, aux.cluster_sequences]
-    cluster_inputs = [[d, *common_args] for d in cluster_inputs]
+    cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
-    print('\nClustering protein sequences...')
-    start_cluster = time.time()
-
+    print('\nClustering sequences...')
     clustering_results = aux.map_async_parallelizer(cluster_inputs,
                                                     aux.function_helper,
                                                     cpu_cores)
@@ -432,10 +468,7 @@ def clustering_component(sequences, word_size, clustering_sim,
 
         clusters = merged_clusters
 
-    end_cluster = time.time()
-    print(end_cluster-start_cluster)
-
-    print('Clustered {0} proteins into {1} '
+    print('Clustered {0} sequences into {1} '
           'clusters'.format(len(sorted_seqs), len(clusters)))
 
     # write file with clustering results
@@ -445,8 +478,41 @@ def clustering_component(sequences, word_size, clustering_sim,
     return clusters
 
 
-def cluster_prunner_component(clusters, representative_filter, temp_directory):
-    """
+def cluster_prunner_component(clusters, representative_filter,
+                              output_directory):
+    """ Excludes sequences from clusters based on the proportion
+        of shared kmers with the representative. After removing
+        highly similar sequences, excludes clusters that are
+        singletons (only contain the representative).
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with representative sequence identifiers
+            as keys and lists of tuples as values. Each tuple
+            contains a sequence identifier of a clustered
+            sequence, the proportion of shared kmers with the
+            representative and the length of the clustered
+            sequence.
+        representative_filter : float
+            Similarity threshold value. Sequences with
+            equal or greater similarity value with the cluster's
+            representative are excluded from clusters.
+        output_directory : str
+            Path to the directory where the clustering results
+            will be saved to.
+
+        Returns
+        -------
+        A list with the following elements:
+            prunned_clusters : dict
+                Clusters without the sequences that were highly
+                similar to the cluster's representative and without
+                the clusters that were singletons (only contained
+                the representative).
+            excluded_seqids : list
+                List with the sequence identifiers of the sequences
+                that were excluded from the clusters.
     """
 
     # remove sequences that are very similar to representatives
@@ -456,7 +522,7 @@ def cluster_prunner_component(clusters, representative_filter, temp_directory):
     prunned_clusters, excluded_seqids = prunning_results
 
     # write file with prunning results
-    prunned_out = os.path.join(temp_directory, 'clustered_prunned.txt')
+    prunned_out = os.path.join(output_directory, 'clustered_prunned.txt')
     aux.write_clusters(prunned_clusters, prunned_out)
 
     # get identifiers of excluded sequences
@@ -469,89 +535,158 @@ def cluster_prunner_component(clusters, representative_filter, temp_directory):
     singletons = aux.determine_singletons(prunned_clusters)
     print('Found {0} singletons.'.format(len(singletons)))
 
-    pop_clusters = aux.remove_entries(prunned_clusters, singletons)
+    prunned_clusters = aux.remove_entries(prunned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
-    clustered_sequences = sum([len(v)+1 for k, v in pop_clusters.items()])
+    clustered_sequences = sum([len(v)+1 for k, v in prunned_clusters.items()])
     print('Remaining sequences after representative and singleton '
           'prunning: {0}'.format(clustered_sequences))
 
-    return [pop_clusters, excluded_seqids]
+    return [prunned_clusters, excluded_seqids]
 
 
 def cluster_intra_prunner_component(clusters, sequences, word_size,
-                                    intra_filter, temp_directory):
-    """
+                                    intra_filter, output_directory):
+    """ Determines similarity between clustered sequences and
+        excludes sequences that are highly similar to other clustered
+        sequences.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with representative sequence identifiers
+            as keys and lists of tuples as values. Each tuple
+            contains a sequence identifier of a clustered
+            sequence, the proportion of shared kmers with the
+            representative and the length of the clustered
+            sequence.
+        sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values.
+        word_size : int
+            Value k for the kmer size.
+        intra_filter : float
+            Similarity threshold value. Sequences with
+            equal or greater similarity value with other
+            clustered sequences are excluded from clusters.
+        output_directory : str
+            Path to the directory where the clustering results
+            will be saved to.
+
+        Returns
+        -------
+        A list with the following elements:
+            clusters : dict
+                Clusters without the sequences that were highly
+                similar to other clustered sequences.
+            intra_excluded : list
+                List with the identifiers of the sequences that
+                were excluded.
     """
 
-    # identify clusters with more than 1 sequence besides the representative
+    # identify clusters with more than 1 sequence
     intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
 
-    excluded_dict = aux.intra_cluster_sim(intra_clusters, sequences,
-                                          word_size, intra_filter)
+    excluded_seqids, excluded_sims = aux.intra_cluster_sim(intra_clusters,
+                                                           sequences,
+                                                           word_size,
+                                                           intra_filter)
 
-    # write results to file
-    intrasim_out = os.path.join(temp_directory, 'clustered_intrasim.txt')
-    intrasim_lines = []
-    for k, v in excluded_dict.items():
-        if len(v[0]) > 0:
-            header_line = '>{0}'.format(k)
-            intrasim_lines.append(header_line)
-            sims_cases = v[1]
-            sims_lines = ['\t{0}, {1}, {2}'.format(s1, s2[0], s2[1]) for s1, s2 in sims_cases.items()]
-            intrasim_lines.extend(sims_lines)
+    intra_excluded = [v for k, v in excluded_seqids.items()]
+    intra_excluded = aux.flatten_list(intra_excluded)
+    print('Removed {0} sequences.'.format(len(intra_excluded)))
 
-    aux.write_to_file('\n'.join(intrasim_lines), intrasim_out, 'w', '\n')
+    for k, v in excluded_seqids.items():
+        if len(v) > 0:
+            clusters[k] = [e for e in clusters[k] if e[0] not in v]
 
-    intra_excluded = [v[0] for k, v in excluded_dict.items()]
-    intra_excluded = list(itertools.chain.from_iterable(intra_excluded))
-
-    for k, v in excluded_dict.items():
-        if len(v[0]) > 0:
-            clusters[k] = [e for e in clusters[k] if e[0] not in v[0]]
+    # write excluded to file
+    intrasim_out = os.path.join(output_directory, 'clustered_sims.txt')
+    aux.write_clusters(excluded_sims, intrasim_out)
+    # write clusters to file
+    intrasim_out = os.path.join(output_directory, 'clustered_intrasim.txt')
+    aux.write_clusters(clusters, intrasim_out)
 
     # add key because it is representative identifier
-    clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
-    clustered_sequences = list(itertools.chain.from_iterable(clustered_sequences))
-    print('Remaining sequences after intra cluster prunning: {0}'.format(len(clustered_sequences)))
+    clustered_sequences = sum([len(v)+1 for k, v in clusters.items()])
+    print('Remaining sequences after intra cluster prunning: '
+          '{0}'.format(clustered_sequences))
+
+    return [clusters, intra_excluded]
+
+
+def cluster_blaster_component(clusters, sequences, output_directory,
+                              blastp_path, cpu_cores):
+    """ Performs all-against-all comparisons between sequences in
+        the same cluster through alignments with BLAST.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with representative sequence identifiers
+            as keys and lists of tuples as values. Each tuple
+            contains a sequence identifier of a clustered
+            sequence, the proportion of shared kmers with the
+            representative and the length of the clustered
+            sequence.
+        sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values.
+        output_directory : str
+            Path to the directory where the clustering results
+            will be saved to.
+        blastp_path : str
+            Path to the BLAST executables.
+        cpu_cores : int
+            Number of BLAST processes to run in parallel.
+
+        Returns
+        -------
+        A list with the following elements:
+            blast_results : list
+                List with paths to the files with BLAST results
+                (one file per input).
+            ids_dict : dict
+                Dictionary that maps sequence identifiers to
+                shorter and unique integer identifiers used
+                to avoid errors during BLAST related with
+                sequence headers/identifiers that exceed the
+                length limit allowed by BLAST.
+    """
 
     print('Clusters to BLAST: {0}'.format(len(clusters)))
 
-    return [clusters, clustered_sequences, intra_excluded]
-
-
-def cluster_blaster_component(temp_directory, clustered_sequences,
-                              clusters, blastp_path,
-                              cpu_cores, sequences):
-    """
-    """
-
-    # create BLASTdb with all protein sequences from the protogenome,
-    # and with files to possibilitate Blasting only against certain
-    # database sequences
-    clustered_seqs_file = aux.join_paths(temp_directory,
+    # create FASTA file with sequences in clusters
+    clustered_seqs_file = aux.join_paths(output_directory,
                                          ['clustered_proteins.fasta'])
+    clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
+    clustered_sequences = aux.flatten_list(clustered_sequences)
+
     aux.get_sequences_by_id(sequences, clustered_sequences,
                             clustered_seqs_file)
 
-    integer_clusters = aux.join_paths(temp_directory,
+    # create FASTA file with replaced headers to avoid header
+    # length limitation in BLAST
+    integer_clusters = aux.join_paths(output_directory,
                                       ['clustered_proteins_int.fasta'])
     ids_dict = aux.integer_headers(clustered_seqs_file, integer_clusters)
 
     # create BLAST DB
-    blast_db = aux.join_paths(temp_directory, ['clustered_proteins_int'])
+    blast_db = aux.join_paths(output_directory, ['clustered_proteins_int'])
     aux.make_blast_db(integer_clusters, blast_db, 'prot')
 
-    blast_results_dir = os.path.join(temp_directory, 'blast_results')
+    blast_results_dir = os.path.join(output_directory, 'blast_results')
     os.mkdir(blast_results_dir)
 
+    # create files with replaced sequence identifiers per cluster
     seqids_to_blast = aux.blast_inputs(clusters, blast_results_dir, ids_dict)
-    print(len(seqids_to_blast))
+
     # distribute clusters per available cores
-    splitted_seqids = aux.split_blast_inputs_by_core(seqids_to_blast,
-                                                     20,
-                                                     blast_results_dir)
+    process_num = 20 if cpu_cores <= 20 else cpu_cores
+    splitted_seqids = aux.split_genes_by_core(seqids_to_blast,
+                                              process_num,
+                                              'seqcount')
 
     common_args = [integer_clusters, blast_results_dir, blastp_path,
                    blast_db, aux.cluster_blaster]
@@ -694,19 +829,21 @@ def main(input_files, output_directory, schema_name, ptf_path,
                                                   word_size, intra_filter,
                                                   temp_directory)
 
-    clusters, clustered_sequences, intra_excluded = cip_results
+    clusters, intra_excluded = cip_results
 
     # remove excluded seqids
     schema_seqids = list(set(schema_seqids) - set(intra_excluded))
 
     # BLASTp clusters step
-    blast_results, ids_dict = cluster_blaster_component(temp_directory,
-                                                        clustered_sequences,
-                                                        clusters, blastp_path,
-                                                        cpu_cores, proteins)
+    blast_results, ids_dict = cluster_blaster_component(clusters,
+                                                        proteins,
+                                                        temp_directory,
+                                                        blastp_path,
+                                                        cpu_cores)
 
     blast_files = aux.flatten_list(blast_results)
 
+    # compute and exclude based on BSR
     blast_excluded_alleles = [aux.apply_bsr(aux.read_tabular(file),
                                             indexed_dna_file,
                                             blast_score_ratio,
@@ -734,9 +871,10 @@ def main(input_files, output_directory, schema_name, ptf_path,
     blast_db = aux.join_paths(temp_directory, ['int_proteins_int'])
     aux.make_blast_db(integer_seqids, blast_db, 'prot')
 
-    blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory, 'beta_schema')
-    stderr = aux.run_blast(blastp_path, blast_db, integer_seqids, blast_output, 1,
-                           cpu_cores)
+    blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory,
+                                                  'beta_schema')
+    stderr = aux.run_blast(blastp_path, blast_db, integer_seqids,
+                           blast_output, 1, cpu_cores)
 
     final_excluded = aux.apply_bsr(aux.read_tabular(blast_output),
                                    indexed_dna_file,

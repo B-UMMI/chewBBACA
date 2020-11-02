@@ -75,12 +75,23 @@ def read_lines(input_file, strip=True):
     return lines
 
 
-def merge_dictionaries(dicts_list):
-    """
+def merge_dictionaries(dictionaries_list):
+    """ Merges several dictionaries into a single dictionary.
+
+        Parameters
+        ----------
+        dictionaries_list : list
+            A list with the dictionaries to merge.
+
+        Returns
+        -------
+        merged_dicts : dict
+            A dictionary resulting from merging
+            all input dictionaries.
     """
 
     merged_dicts = {}
-    for d in dicts_list:
+    for d in dictionaries_list:
         merged_dicts = {**merged_dicts, **d}
 
     return merged_dicts
@@ -1917,9 +1928,8 @@ def split_genes_by_core(inputs, cores, method):
         ----------
         inputs : list
             List with one sublist per locus. Each sublist has
-            the path to the FASTA file with the locus sequences,
-            the total number of sequences and sequence mean legth
-            for a locus.
+            a locus identifier, the total number of sequences
+            and sequence mean legth for that locus.
         cores : int
             The number of loci groups that should be created.
             Based on the number of CPU cores that will be
@@ -1933,9 +1943,8 @@ def split_genes_by_core(inputs, cores, method):
         Returns
         -------
         splitted_ids : list
-            List with sublists that contain paths to loci FASTA
-            files. Sublists are balanced based on the chosen
-            method.
+            List with sublists that contain loci identifiers
+            Sublists are balanced based on the chosen method.
     """
 
     # initialize list with sublists to store inputs
@@ -1955,27 +1964,6 @@ def split_genes_by_core(inputs, cores, method):
         # at the end of each iteration, choose the sublist
         # with lowest criterion value
         i = splitted_values.index(min(splitted_values))
-
-    return splitted_ids
-
-
-# this function should receive an iterable with values per cluster
-# possibly convert it so that it can be used for the same as previous function!
-def split_blast_inputs_by_core(blast_inputs, cores, blast_files_dir):
-    """
-    """
-
-    splitted_ids = [[] for cpu in range(cores)]
-    cluster_sums = [0 for cpu in range(cores)]
-    i = 0
-    for cluster in blast_inputs:
-        cluster_file = os.path.join(blast_files_dir,
-                                    '{0}_ids.txt'.format(cluster))
-        with open(cluster_file, 'r') as infile:
-            cluster_seqs = [line.strip() for line in infile.readlines()]
-        splitted_ids[i].append(cluster)
-        cluster_sums[i] += len(cluster_seqs)
-        i = cluster_sums.index(min(cluster_sums))
 
     return splitted_ids
 
@@ -3204,14 +3192,14 @@ def blast_inputs(clusters, output_directory, ids_dict):
     rev_ids = {v: k for k, v in ids_dict.items()}
 
     ids_to_blast = []
-    for i in clusters:
+    for rep in clusters:
 
         cluster_file = os.path.join(output_directory,
-                                    '{0}_ids.txt'.format(rev_ids[i]))
-        cluster_ids = [rev_ids[i]] + [rev_ids[seq[0]] for seq in clusters[i]]
+                                    '{0}_ids.txt'.format(rev_ids[rep]))
+        cluster_ids = [rev_ids[rep]] + [rev_ids[seqid[0]] for seqid in clusters[rep]]
         cluster_lines = join_list(cluster_ids, '\n')
         write_to_file(cluster_lines, cluster_file, 'w', '')
-        ids_to_blast.append(rev_ids[i])
+        ids_to_blast.append((rev_ids[rep], len(cluster_ids)))
 
     return ids_to_blast
 
@@ -3504,7 +3492,6 @@ def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2,
                 their sequences as values.
     """
 
-    print(word_size)
     clusters = {}
     reps_sequences = {}
     if representatives is None:
@@ -3567,14 +3554,13 @@ def write_clusters(clusters, outfile):
             created to save clusters.
     """
 
-    cluster_num = 0
     cluster_lines = []
     for rep, seqids in clusters.items():
-        cluster_lines.append('>Cluster_{0}'.format(cluster_num))
+        cluster_lines.append('>{0}'.format(rep))
         clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2])
                      for s in seqids]
         cluster_lines.extend(clustered)
-        cluster_num += 1
+
     cluster_text = join_list(cluster_lines, '\n')
 
     write_to_file(cluster_text, outfile, 'w', '\n')
@@ -3588,7 +3574,7 @@ def representative_prunner(clusters, sim_cutoff):
         ----------
         clusters : dict
             Dictionary with the identifiers of sequences
-            that are clusters representatives as keys and
+            that are cluster representatives as keys and
             a list with tuples as values. Each tuple has
             the identifier of a sequence that was added to
             the cluster, the percentage of shared
@@ -3664,12 +3650,12 @@ def determine_singletons(clusters):
 
         Returns
         -------
-        singletons : dict
-            Dictionary entries for clusters that only have
-            one sequence.
+        singletons : list
+            List with cluster identifiers for clusters that
+            only contain the representative sequence.
     """
 
-    singletons = {k: v for k, v in clusters.items() if len(v) == 0}
+    singletons = [k for k, v in clusters.items() if len(v) == 0]
 
     return singletons
 
@@ -3739,22 +3725,20 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
             an eclusion.
     """
 
-    excluded_dict = {}
-    for k, v in clusters.items():
+    excluded_seqids = {}
+    excluded_sims = {}
+    for representative, clustered in clusters.items():
         # get identifiers of sequences in the cluster
-        cluster_ids = v
-
-        # get protein sequences
-        cluster_sequences = {}
-        for seqid in cluster_ids:
-            cluster_sequences[seqid[0]] = sequences[seqid[0]]
+        clustered_ids = [c[0] for c in clustered]
+        clustered_seqs = {seqid: sequences[seqid] for seqid in clustered_ids}
 
         # get all kmers per sequence
         kmers_mapping = {}
         cluster_kmers = {}
-        for seqid, prot in cluster_sequences.items():
-            minimizers = determine_minimizers(prot, word_size, word_size)
-            kmers = set([m[0] for m in minimizers])
+        for seqid, seq in clustered_seqs.items():
+            minimizers = determine_minimizers(seq, word_size, word_size, position=False)
+            kmers = set(minimizers)
+
             # dict with sequence indentifiers and kmers
             cluster_kmers[seqid] = kmers
 
@@ -3763,8 +3747,8 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
             for kmer in kmers:
                 kmers_mapping.setdefault(kmer, []).append(seqid)
 
-        sims_cases = {}
         excluded = []
+        similarities = []
         # for each sequence in the cluster
         for seqid, kmers in cluster_kmers.items():
             if seqid not in excluded:
@@ -3785,18 +3769,19 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
                     candidates = [s for s in sims if s[0] != seqid]
                     for c in candidates:
                         # if query sequence is longer, keep it and exclude candidate
-                        if len(query_kmers) >= len(cluster_kmers[c[0]]):
-                            sims_cases[c[0]] = (seqid, c[1])
+                        if len(clustered_seqs[seqid]) >= len(clustered_seqs[c[0]]):
+                            similarities.append((c[0], seqid, c[1]))
                             excluded.append(c[0])
                         # otherwise, exclude query sequence
-                        elif len(cluster_kmers[c[0]]) > len(query_kmers):
-                            sims_cases[seqid] = (c[0], c[1])
+                        elif len(clustered_seqs[c[0]]) > len(clustered_seqs[seqid]):
+                            similarities.append(([seqid, c[0], c[1]]))
                             excluded.append(seqid)
 
         # convert into set first to remove possible duplicates
-        excluded_dict[k] = [list(set(excluded)), sims_cases]
+        excluded_seqids[representative] = list(set(excluded))
+        excluded_sims[representative] = similarities
 
-    return excluded_dict
+    return [excluded_seqids, excluded_sims]
 
 
 def get_datetime():

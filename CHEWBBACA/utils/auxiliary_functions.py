@@ -3566,7 +3566,7 @@ def write_clusters(clusters, outfile):
     write_to_file(cluster_text, outfile, 'w', '\n')
 
 
-def representative_prunner(clusters, sim_cutoff):
+def representative_pruner(clusters, sim_cutoff):
     """ Removes sequences from clusters based on a similarity
         threshold.
 
@@ -3588,7 +3588,7 @@ def representative_prunner(clusters, sim_cutoff):
         Returns
         -------
         A list with the following elements:
-            prunned_clusters : dict
+            pruned_clusters : dict
                 Input dictionary without values for the
                 sequences that had similarity values
                 equal or greater that defined threshold.
@@ -3599,7 +3599,7 @@ def representative_prunner(clusters, sim_cutoff):
     """
 
     excluded = []
-    prunned_clusters = {}
+    pruned_clusters = {}
     for rep, seqids in clusters.items():
         # get high scoring elements
         # determine if distribution is multimodal
@@ -3621,17 +3621,17 @@ def representative_prunner(clusters, sim_cutoff):
         #         if s[0] != rep:
         #             remove.append(s)
 
-        # prunned_clusters[rep] = keep
+        # pruned_clusters[rep] = keep
         # excluded.extend(remove)
 
-        prunned_clusters[rep] = [seqid
+        pruned_clusters[rep] = [seqid
                                  for seqid in seqids
                                  if seqid[1] < sim_cutoff]
         excluded.extend([seqid
                          for seqid in seqids
                          if seqid[1] >= sim_cutoff and seqid[0] != rep])
 
-    return [prunned_clusters, excluded]
+    return [pruned_clusters, excluded]
 
 
 def determine_singletons(clusters):

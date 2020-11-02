@@ -31,10 +31,7 @@ Code documentation
 
 import os
 import sys
-import time
 import argparse
-import itertools
-from itertools import repeat
 
 from Bio import SeqIO
 
@@ -478,8 +475,8 @@ def clustering_component(sequences, word_size, clustering_sim,
     return clusters
 
 
-def cluster_prunner_component(clusters, representative_filter,
-                              output_directory):
+def cluster_pruner_component(clusters, representative_filter,
+                             output_directory):
     """ Excludes sequences from clusters based on the proportion
         of shared kmers with the representative. After removing
         highly similar sequences, excludes clusters that are
@@ -505,7 +502,7 @@ def cluster_prunner_component(clusters, representative_filter,
         Returns
         -------
         A list with the following elements:
-            prunned_clusters : dict
+            pruned_clusters : dict
                 Clusters without the sequences that were highly
                 similar to the cluster's representative and without
                 the clusters that were singletons (only contained
@@ -516,14 +513,14 @@ def cluster_prunner_component(clusters, representative_filter,
     """
 
     # remove sequences that are very similar to representatives
-    prunning_results = aux.representative_prunner(clusters,
-                                                  representative_filter)
+    pruning_results = aux.representative_pruner(clusters,
+                                                representative_filter)
 
-    prunned_clusters, excluded_seqids = prunning_results
+    pruned_clusters, excluded_seqids = pruning_results
 
-    # write file with prunning results
-    prunned_out = os.path.join(output_directory, 'clustered_prunned.txt')
-    aux.write_clusters(prunned_clusters, prunned_out)
+    # write file with pruning results
+    pruned_out = os.path.join(output_directory, 'clustered_pruned.txt')
+    aux.write_clusters(pruned_clusters, pruned_out)
 
     # get identifiers of excluded sequences
     excluded_seqids = [e[0] for e in excluded_seqids]
@@ -532,22 +529,22 @@ def cluster_prunner_component(clusters, representative_filter,
           'cluster representative.'.format(len(excluded_seqids)))
 
     # identify singletons and exclude those clusters
-    singletons = aux.determine_singletons(prunned_clusters)
+    singletons = aux.determine_singletons(pruned_clusters)
     print('Found {0} singletons.'.format(len(singletons)))
 
-    prunned_clusters = aux.remove_entries(prunned_clusters, singletons)
+    pruned_clusters = aux.remove_entries(pruned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
-    clustered_sequences = sum([len(v)+1 for k, v in prunned_clusters.items()])
+    clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
     print('Remaining sequences after representative and singleton '
-          'prunning: {0}'.format(clustered_sequences))
+          'pruning: {0}'.format(clustered_sequences))
 
-    return [prunned_clusters, excluded_seqids]
+    return [pruned_clusters, excluded_seqids]
 
 
-def cluster_intra_prunner_component(clusters, sequences, word_size,
-                                    intra_filter, output_directory):
+def cluster_intra_pruner_component(clusters, sequences, word_size,
+                                   intra_filter, output_directory):
     """ Determines similarity between clustered sequences and
         excludes sequences that are highly similar to other clustered
         sequences.
@@ -610,7 +607,7 @@ def cluster_intra_prunner_component(clusters, sequences, word_size,
 
     # add key because it is representative identifier
     clustered_sequences = sum([len(v)+1 for k, v in clusters.items()])
-    print('Remaining sequences after intra cluster prunning: '
+    print('Remaining sequences after intra cluster pruning: '
           '{0}'.format(clustered_sequences))
 
     return [clusters, intra_excluded]
@@ -814,8 +811,8 @@ def main(input_files, output_directory, schema_name, ptf_path,
                                       clustering_mode, None, False,
                                       1, True, temp_directory, cpu_cores)
 
-    # clustering prunning step
-    cp_results = cluster_prunner_component(cs_results,
+    # clustering pruning step
+    cp_results = cluster_pruner_component(cs_results,
                                            representative_filter,
                                            temp_directory)
 
@@ -824,8 +821,8 @@ def main(input_files, output_directory, schema_name, ptf_path,
     # remove excluded seqids
     schema_seqids = list(set(distinct_protein_seqs) - set(excluded_seqids))
 
-    # intra cluster prunner step
-    cip_results = cluster_intra_prunner_component(clusters, proteins,
+    # intra cluster pruner step
+    cip_results = cluster_intra_pruner_component(clusters, proteins,
                                                   word_size, intra_filter,
                                                   temp_directory)
 

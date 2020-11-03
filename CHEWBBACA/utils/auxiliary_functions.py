@@ -3446,9 +3446,8 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, position=False):
 # for AlleleCall this function needs to receive the variable 'reps_groups'
 # and to accept an argument that controls if it is allowed to create new
 # clusters based on new genes that it finds.
-def cluster_sequences(sorted_sequences, word_size=4, clustering_sim=0.2,
-                      mode='greedy', representatives=None, grow=True,
-                      offset=1, minimizer=True):
+def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
+                      representatives, grow, offset, minimizer):
     """ Cluster sequences based on shared percentage of kmers/minimizers.
 
         Parameters
@@ -3634,8 +3633,9 @@ def representative_pruner(clusters, sim_cutoff):
     return [pruned_clusters, excluded]
 
 
-def determine_singletons(clusters):
-    """ Determines clusters that only have one sequence.
+def select_clusters(clusters, cluster_size):
+    """ Determines clusters that contain a specified number
+        of sequences.
 
         Parameters
         ----------
@@ -3647,17 +3647,21 @@ def determine_singletons(clusters):
             the cluster, the percentage of shared
             kmers/minimizers and the length of the clustered
             sequence.
+        cluster_size : int
+            Number of sequences in the clusters that will
+            be selected.
 
         Returns
         -------
-        singletons : list
+        clusters_ids : list
             List with cluster identifiers for clusters that
-            only contain the representative sequence.
+            contain a number of sequences equal to specified
+            cluster size.
     """
 
-    singletons = [k for k, v in clusters.items() if len(v) == 0]
+    clusters_ids = [k for k, v in clusters.items() if len(v) == cluster_size]
 
-    return singletons
+    return clusters_ids
 
 
 def remove_entries(dictionary, keys):

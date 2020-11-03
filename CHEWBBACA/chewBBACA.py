@@ -22,7 +22,7 @@ try:
     from __init__ import __version__
     from allelecall import BBACA
     from createschema import PPanGen
-    from SchemaEvaluator import ValidateSchema
+    from SchemaEvaluator import SchemaEvaluator
     from PrepExternalSchema import PrepExternalSchema
     from utils import (TestGenomeQuality, profile_joiner,
                        uniprot_find, Extract_cgAlleles,
@@ -39,7 +39,7 @@ except:
     from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
     from CHEWBBACA.createschema import PPanGen
-    from CHEWBBACA.SchemaEvaluator import ValidateSchema
+    from CHEWBBACA.SchemaEvaluator import SchemaEvaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  uniprot_find, Extract_cgAlleles,
@@ -626,12 +626,12 @@ def evaluate_schema():
                         help='Genetic code used to translate coding '
                              'sequences.')
 
-    parser.add_argument('-t', type=float, required=False,
-                        default=0.05, dest='threshold',
-                        help='Allele size variation threshold. If an allele has '
-                             'a size within the interval of the locus mode -/+ '
-                             'the threshold, it will be considered a conserved '
-                             'allele.')
+    # parser.add_argument('-t', type=float, required=False,
+    #                     default=0.05, dest='threshold',
+    #                     help='Allele size variation threshold. If an allele has '
+    #                          'a size within the interval of the locus mode -/+ '
+    #                          'the threshold, it will be considered a conserved '
+    #                          'allele.')
 
     parser.add_argument('--title', type=str, required=False,
                         default='My Analyzed wg/cg MLST Schema - Rate My Schema',
@@ -642,10 +642,10 @@ def evaluate_schema():
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores to use to run the process.')
 
-    parser.add_argument('-s', type=int, required=False,
-                        default=500, dest='split_range',
-                        help='Number of boxplots displayed in the plot area (more than '
-                             '500 can lead to performance issues).')
+    # parser.add_argument('-s', type=int, required=False,
+    #                     default=500, dest='split_range',
+    #                     help='Number of boxplots displayed in the plot area (more than '
+    #                          '500 can lead to performance issues).')
 
     parser.add_argument('--light', action='store_true', required=False,
                         default=False, dest='light_mode',
@@ -662,16 +662,36 @@ def evaluate_schema():
     log_scale = args.log_scale
     translation_table = args.translation_table
     cpu_cores = args.cpu_cores
-    threshold = args.threshold
-    conserved = args.conserved
-    split_range = args.split_range
+    # threshold = args.threshold
+    # conserved = args.conserved
+    # split_range = args.split_range
     light_mode = args.light_mode
     title = str(args.title)
 
-    ValidateSchema.main(input_files, cpu_cores, output_file,
-                        translation_table, threshold, split_range,
-                        title, log_scale, conserved,
-                        light_mode)
+    
+    cpu_to_use = aux.verify_cpu_usage(cpu_cores)
+
+    ### Flow
+
+    # 1. Generate pre-computed data (check for MAFFT)
+    # 2. Launch the App with subprocess
+
+    print("Creating pre-computed-data....")
+    pre_computed_data_path = SchemaEvaluator.create_pre_computed_data(input_files, output_file)
+
+    # add code for MAFFT
+    # if not light_mode:
+    #     pass
+
+    # Launch app
+    # dash_test2.main(pre_computed_data_path)
+    
+
+
+    # ValidateSchema.main(input_files, cpu_cores, output_file,
+    #                     translation_table, threshold, split_range,
+    #                     title, log_scale, conserved,
+    #                     light_mode)
 
 
 def test_schema():

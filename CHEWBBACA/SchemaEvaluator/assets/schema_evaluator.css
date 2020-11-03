@@ -1,0 +1,35 @@
+@import url("https://fonts.googleapis.com/css?family=Open+Sans:300,400");
+
+/* Basic app page with header and content area */
+#app-page-content {
+  margin: 0px;
+  margin-top: 0px; /* hide border between header and content */
+  width: 100%;
+  height: auto;
+  min-height: calc(100vh - 60px);
+  position: absolute;
+  top: 60px;
+}
+
+/* Scrollbar */
+#app-page-content ::-webkit-scrollbar {
+  width: 4px;
+  height: 0px;
+  background-color: #f6f6f6; /* Change in individual app stylesheet */
+}
+
+#app-page-content ::-webkit-scrollbar-thumb {
+  width: 2px;
+  border-radius: 15px;
+  padding-right: 5px;
+  background-color: #119dff; /* Change in individual app stylesheet */
+}
+
+/* Body */
+#app-page-content .app-body {
+  padding: 5px;
+  min-height: calc(100vh - 70px);
+  overflow: auto;
+  background-color: #f6f6f6; /* Change in individual app stylesheet */
+  color: #303030; /* Change in individual app stylesheet */
+}

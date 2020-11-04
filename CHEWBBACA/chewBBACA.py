@@ -145,7 +145,7 @@ def create_schema():
                              'to all clusters they share high similarity with.')
     
     parser.add_argument('--ws', type=int, required=False,
-                        default=4, dest='word_size',
+                        default=5, dest='word_size',
                         help='Value of k used to decompose protein sequences '
                              'into k-mers.')
 

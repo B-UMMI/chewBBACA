@@ -3443,11 +3443,9 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, position=False):
     return minimizers
 
 
-# for AlleleCall this function needs to receive the variable 'reps_groups'
-# and to accept an argument that controls if it is allowed to create new
-# clusters based on new genes that it finds.
 def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
-                      representatives, grow, offset, minimizer):
+                      representatives, grow, offset, minimizer,
+                      seq_num_cluster):
     """ Cluster sequences based on shared percentage of kmers/minimizers.
 
         Parameters
@@ -3473,6 +3471,9 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
             Value to indicate offset of consecutive kmers.
         minimizer : bool
             If clustering should be based on shared minimizers.
+        seq_num_cluster : int
+            Maximum number of clusters that a sequence can be
+            added to.
 
         Returns
         -------
@@ -3497,13 +3498,15 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
         reps_groups = {}
     else:
         reps_groups = representatives
+        clusters_ids = set(flatten_list(list(reps_groups.values())))
+        clusters = {rep: [] for rep in clusters_ids}
 
     # repetitive = 0
     for protid, protein in sorted_sequences.items():
         if minimizer is True:
             minimizers = determine_minimizers(protein, word_size,
                                               word_size, position=False)
-            kmers = set(minimizers)
+            kmers = list(set(minimizers))
             # if len(kmers) < (0.98*len(minimizers)):
             #     repetitive += 1
         # check if set of distinct kmers is much smaller than the
@@ -3520,16 +3523,24 @@ def cluster_sequences(sorted_sequences, word_size, clustering_sim, mode,
                          for k, v in counts.items()
                          if v/len(kmers) >= clustering_sim]
 
+        selected_reps = sorted(selected_reps, key = lambda x: x[0])
+        selected_reps = sorted(selected_reps, key = lambda x: x[1], reverse=True)
+
+        top = len(selected_reps) if len(selected_reps) < seq_num_cluster else seq_num_cluster
+
         # sort to get most similar at index 0
         if len(selected_reps) > 0:
-            for s in selected_reps:
-                clusters[s[0]].append((protid, s[1], len(protein)))
+            for i in range(0, top):
+                clusters[selected_reps[i][0]].append((protid,
+                                                      selected_reps[i][1],
+                                                      len(protein)))
         else:
-            for k in kmers:
-                reps_groups.setdefault(k, []).append(protid)
+            if grow is True:
+                for k in kmers: 
+                    reps_groups.setdefault(k, []).append(protid)
 
-            clusters[protid] = [(protid, 1.0, len(protein))]
-            reps_sequences[protid] = protein
+                clusters[protid] = [(protid, 1.0, len(protein))]
+                reps_sequences[protid] = protein
 
     # print(repetitive)
     return [clusters, reps_sequences]
@@ -3555,11 +3566,16 @@ def write_clusters(clusters, outfile):
 
     cluster_lines = []
     for rep, seqids in clusters.items():
-        cluster_lines.append('>{0}'.format(rep))
+        current_cluster = []
+        current_cluster.append('>{0}'.format(rep))
         clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2])
                      for s in seqids]
-        cluster_lines.extend(clustered)
+        current_cluster.extend(clustered)
+        cluster_lines.append(current_cluster)
 
+    # sort by number of lines to get clusters with more sequences first
+    cluster_lines = sort_data(cluster_lines, sort_key=lambda x: len(x), reverse=True)
+    cluster_lines = flatten_list(cluster_lines)
     cluster_text = join_list(cluster_lines, '\n')
 
     write_to_file(cluster_text, outfile, 'w', '\n')
@@ -3686,6 +3702,23 @@ def remove_entries(dictionary, keys):
     new_dict = {k: v for k, v in dictionary.items() if k not in keys}
 
     return new_dict
+
+
+def kmer_index(sequences, word_size):
+    """
+    """
+
+    kmers_mapping = {}
+    for seqid, seq in sequences.items():
+        minimizers = determine_minimizers(seq, word_size, word_size, position=False)
+        kmers = set(minimizers)
+
+        # create dict with kmers as keys and list
+        # of sequences with given kmers as values
+        for kmer in kmers:
+            kmers_mapping.setdefault(kmer, []).append(seqid)
+
+    return kmers_mapping
 
 
 def intra_cluster_sim(clusters, sequences, word_size, intra_filter):

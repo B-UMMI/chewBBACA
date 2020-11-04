@@ -14,49 +14,50 @@ import dash_html_components as html
 # import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 
-import utils2
+import SchemaEvaluator
 
 
-def get_data():
+# Functions to read pre-computed-data
+def get_data(pre_computed_data_path):
     """Get pre-computed data for panels A-C."""
-    with open(
-        "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/pre_computed_data_test.json"
-    ) as data_file:
+    json_file = os.path.join(pre_computed_data_path, "pre_computed_data.json")
+    with open(json_file) as data_file:
         return json.load(data_file)
 
 
-def get_boxplot_data():
+def get_boxplot_data(pre_computed_data_path):
     """Get pre-computed data for panel D."""
-    with open(
-        "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/boxplot_testing.json"
-    ) as data_file:
+    boxplot_json_file = os.path.join(
+        pre_computed_data_path, "pre_computed_data_boxplot.json")
+    with open(boxplot_json_file) as data_file:
         return json.load(data_file)
 
 
 def get_cds_df(schema_dir):
     """Creates the dataframe for panel E."""
-    data, hist_data = utils2.create_cds_df(schema_dir)
+    data, hist_data = SchemaEvaluator.create_cds_df(schema_dir)
     return data, hist_data
 
 
-def get_locus_ind_dict():
+def get_locus_ind_dict(pre_computed_data_path):
     """Get pre-computed data for the Locus Invidual Analysis section."""
-    with open(
-        "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/pre_computed_data_ind_test.json"
-    ) as data_file:
+    locus_ind_file = os.path.join(
+        pre_computed_data_path, "pre_computed_data_ind.json")
+    with open(locus_ind_file) as data_file:
         return json.load(data_file)
 
 
 def get_locus_ind_df(locus_ind_dict, option):
     """Creates a dataframe for the Locus Invidual Analysis section."""
-    df = utils2.create_locus_ind_df(locus_ind_dict, option)
+    df = SchemaEvaluator.create_locus_ind_df(locus_ind_dict, option)
     return df
 
 
-def build_locus_options():
+# Functions to create Plotly charts and Dash components
+def build_locus_options(pre_computed_data_path):
     """Creates the options for the dropdown menu of the Locus Invidual Analysis section."""
 
-    data_ind = get_locus_ind_dict()
+    data_ind = get_locus_ind_dict(pre_computed_data_path)
 
     # Options for selectbox
     locus_options = list(data_ind.keys())
@@ -137,10 +138,10 @@ def build_locus_scatter(data_ind, locus_id):
     return fig
 
 
-def build_allele_length_histogram():
+def build_allele_length_histogram(pre_computed_data_path):
     """Builds the Allele Length Analysis plotly histogram Figure."""
 
-    data_mode = get_data()
+    data_mode = get_data(pre_computed_data_path)
 
     data_alleles_mode = data_mode["mode"]
 
@@ -175,10 +176,10 @@ def build_allele_length_histogram():
     return fig
 
 
-def build_allele_number_histogram():
+def build_allele_number_histogram(pre_computed_data_path):
     """Builds the Allele Numbers Analysis plotly histogram Figure."""
 
-    data_total = get_data()
+    data_total = get_data(pre_computed_data_path)
 
     data_total_all = data_total["total_alleles"]
 
@@ -213,10 +214,10 @@ def build_allele_number_histogram():
     return fig2
 
 
-def build_locus_stats_scatter():
+def build_locus_stats_scatter(pre_computed_data_path):
     """Builds the Locus Statistics Plotly scatterplot Figure."""
 
-    data_scatter = get_data()
+    data_scatter = get_data(pre_computed_data_path)
 
     data_total_scatter = data_scatter["scatter_data"]
 
@@ -290,15 +291,13 @@ def build_locus_stats_scatter():
 
     fig3 = go.Figure(dict_of_fig3)
 
-    # fw = go.FigureWidget(fig3)
-
     return fig3
 
 
-def build_boxplot():
+def build_boxplot(pre_computed_data_path):
     """Builds the loci size distribution plotly Boxplot figure."""
 
-    data_boxplot = get_boxplot_data()
+    data_boxplot = get_boxplot_data(pre_computed_data_path)
 
     loci_x = data_boxplot["loci"]
 
@@ -408,37 +407,13 @@ def build_cds_hist(cds_dict):
     return fig
 
 
-def main():
+# Main function where all components are assembled in a layout
+def main(pre_computed_data_path, schema_dir, light_mode):
+
     # Instatiate the app, loading the external stylesheet
     external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
     app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-
-    # data = urlreq.urlopen(
-    #    'https://raw.githubusercontent.com/plotly/dash-bio-docs-files/master/' +
-    #    'alignment_viewer_p53.fasta'
-    # ).read()
-
-    # if PY3:
-    #     data = data.decode('utf-8')
-
-    # app.layout = html.Div([
-    #     dashbio.AlignmentChart(
-    #         id='my-alignment-viewer',
-    #         data=data
-    #     ),
-    #     html.Div(id='alignment-viewer-output')
-    # ])
-
-    # @app.callback(
-    #     dash.dependencies.Output('alignment-viewer-output', 'children'),
-    #     [dash.dependencies.Input('my-alignment-viewer', 'eventDatum')]
-    # )
-
-    # def update_output(value):
-    #     if value is None:
-    #         return 'No data.'
-    #     return str(value)
 
     # Initial Explanation text
     markdown_initial_text = dcc.Markdown(
@@ -461,34 +436,32 @@ def main():
     )
 
     # Build the plotly Figure object for panel A - Allele Numbers Analysis.
-    allele_number_fig = build_allele_number_histogram()
+    allele_number_fig = build_allele_number_histogram(pre_computed_data_path)
 
     dash_allele_number_fig = dcc.Graph(
         id="allele-number", figure=allele_number_fig)
 
     # Build the plotly Figure object for panel B - Allele Length Analysis.
-    allele_length_fig = build_allele_length_histogram()
+    allele_length_fig = build_allele_length_histogram(pre_computed_data_path)
 
     dash_allele_length_fig = dcc.Graph(
         id="allele-length", figure=allele_length_fig)
 
     # Build the plotly Figure object for panel C - Locus Statistics.
-    locus_statictics_fig = build_locus_stats_scatter()
+    locus_statictics_fig = build_locus_stats_scatter(pre_computed_data_path)
 
     dash_locus_statictics_fig = dcc.Graph(
         id="locus-statistics", figure=locus_statictics_fig
     )
 
     # Build the plotly Figure object for panel D - Loci Size Distribution.
-    boxplot = build_boxplot()
+    boxplot = build_boxplot(pre_computed_data_path)
 
     dash_boxplot = dcc.Graph(id="boxplot", figure=boxplot)
     # Build the plotly Figure object for panel E - CDS Analysis.
 
     # Get the CDS Analysis dataframe.
-    cds_analysis_df, histogram_cds_data = get_cds_df(
-        "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/yersinia_enterobase_wgMLST_unziped"
-    )
+    cds_analysis_df, histogram_cds_data = get_cds_df(schema_dir)
 
     # Create Dash's DataTable component.
     table_df = dash_table.DataTable(
@@ -505,8 +478,9 @@ def main():
     dash_cds_bar_fig = dcc.Graph(id="cds-bar-fig", figure=cds_bar_fig)
 
     # Locus Individual analysis
-    options, data_ind = build_locus_options()
+    options, data_ind = build_locus_options(pre_computed_data_path)
 
+    # Create Dash's Dropdown component.
     dropdown = dcc.Dropdown(
         id="locus-ind-dropdown",
         options=options,
@@ -514,27 +488,27 @@ def main():
     )
 
     # MSA
-    with open(
-        "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/GCF-000007265-protein1_aligned_prot.fasta",
-        "r",
-    ) as m:
-        msa_file = m.read()
+    # with open(
+    #     "/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/GCF-000007265-protein1_aligned_prot.fasta",
+    #     "r",
+    # ) as m:
+    #     msa_file = m.read()
 
-    msa_viewer = html.Div(
-        [
-            html.Div(
-                dashbio.AlignmentChart(
-                    id="my-alignment-viewer",
-                    data=msa_file,
-                    extension="fasta",
-                    height=2000,
-                    groupbars=False,
-                    overview="heatmap",
-                )
-            ),
-            html.Div(id="alignment-viewer-output"),
-        ]
-    )
+    # msa_viewer = html.Div(
+    #     [
+    #         html.Div(
+    #             dashbio.AlignmentChart(
+    #                 id="my-alignment-viewer",
+    #                 data=msa_file,
+    #                 extension="fasta",
+    #                 height=2000,
+    #                 groupbars=False,
+    #                 overview="heatmap",
+    #             )
+    #         ),
+    #         html.Div(id="alignment-viewer-output"),
+    #     ]
+    # )
 
     # App layout
     app.layout = html.Div(
@@ -603,25 +577,8 @@ def main():
             ),
             # html.Br(),
             html.H3("Multiple Sequence alignment of an Individual Locus"),
-            msa_viewer,
+            # msa_viewer,
         ]
-        # style={
-        #     "background-color": "#f6f6f6",
-        #     "padding": "5px",
-        #     "min-height": "calc(100vh - 70px)",
-        #     "overflow": "auto",
-        #     "color": "#303030",
-        # }
-        # style={
-        #     "background-color": "#f2f2f2",
-        #     "opacity": 0.8,
-        #     "position": "fixed",
-        #     "width": "100%",
-        #     "height": "100%",
-        #     "top": "0px",
-        #     "left": "0px",
-        #     "z-index": 1000,
-        # }
     )
 
     # App Callback functions.
@@ -673,6 +630,6 @@ def main():
     app.run_server(debug=True)
 
 
-if __name__ == "__main__":
-    main()
-    # app.run_server(debug=True)
+# if __name__ == "__main__":
+#     main()
+#     # app.run_server(debug=True)

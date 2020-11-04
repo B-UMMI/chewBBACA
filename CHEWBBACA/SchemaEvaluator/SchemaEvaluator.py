@@ -451,7 +451,6 @@ def create_protein_files(schema_dir, output_path):
 
             if isinstance(ola, list):
                 tets = make_protein_record(ola[0][0], allele.id)
-                # print(tets)
                 proteins.append(tets)
             elif isinstance(ola, str):
                 exc = [allele.id, ola]

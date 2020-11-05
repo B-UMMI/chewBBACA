@@ -354,13 +354,9 @@ def adapt_loci(genes_list):
                                               '{0}_blast_out.tsv'.format(gene_id))
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
-                blast_command = ('blastp -task {0} -db {1} -query {2} -out {3} '
-                                 '-outfmt "6 qseqid sseqid score" -max_hsps 1 '
-                                 '-num_threads {4} -max_target_seqs 100000 '
-                                 '-seqidlist {5}'.format(blastp_task, blastp_db,
-                                                         rep_file, blast_output,
-                                                         1, ids_file))
-                os.system(blast_command)
+                blast_stderr = aux.run_blast('blastp', blastp_db, rep_file,
+                                             blast_output, 1, 1, ids_file, blastp_task,
+                                             100000)
 
                 # import BLAST results
                 blast_results = aux.read_blast_tabular(blast_output)

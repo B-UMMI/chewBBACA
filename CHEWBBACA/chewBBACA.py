@@ -371,6 +371,13 @@ def allele_call():
 
     timeout = 30
 
+    # change schema's directory value if user provided file with list of genes
+    genes_list = schema_directory
+    if os.path.isfile(schema_directory) is True:
+        with open(genes_list, 'r') as f:
+            schema_directory = f.readline().strip()
+            schema_directory = os.path.dirname(schema_directory)
+
     # check parameters values in config file and alter if needed
     config_file = os.path.join(schema_directory, '.schema_config')
 
@@ -511,7 +518,7 @@ def allele_call():
 
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
-    schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
+    schema_genes = aux.check_input_type(genes_list, 'listGenes2Call.txt')
     genomes_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
 
     # determine if schema was downloaded from the Chewie-NS

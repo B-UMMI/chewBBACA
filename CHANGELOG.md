@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.6 - 2020-11-10
+
+* Fixed BLAST version detection. BLAST versions greater than 2.9 (e.g.: 2.10) were not correctly detected. Thanks to [Eric DEVEAUD](https://github.com/EricDeveaud) for creating a pull request with a fix for this issue!
+* Fixed issue that would lead to error when users provided a file with the list of genes to the AlleleCall process
+* Added function that uses the subprocess module to run BLAST and capture warnings raised during normal execution of BLAST >= 2.10.
+
+## 2.5.5 - 2020-09-15
+
+* Removed Bio.Alphabet imports and generic_dna mentions. New version of the BioPython package was not compatible with the way chewBBACA was using those features.
+
 ## 2.5.4 - 2020-08-10
 
 * Corrected problem related with versioning inconsistencies that would lead to errors during validation steps.

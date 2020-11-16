@@ -980,12 +980,19 @@ def main(input_files, output_directory, schema_name, ptf_path,
     # create file with the schema representative sequences
     aux.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
 
+    # add allele identifier to all sequences
+    schema_records = ['>{0}\n{1}'.format(rec.id + '_1', str(rec.seq))
+                      for rec in SeqIO.parse(output_schema, 'fasta')]
+
+    final_records = os.path.join(temp_directory, 'schema_loci.fasta')
+    aux.write_lines(schema_records, final_records)
+
     schema_dir = aux.join_paths(output_directory, [schema_name])
     aux.create_directory(schema_dir)
 
     # create directory and schema files
-    filenames = (record.name for record in SeqIO.parse(output_schema, 'fasta'))
-    schema_files = aux.split_fasta(output_schema, schema_dir, 1, filenames)
+    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
+    schema_files = aux.split_fasta(final_records, schema_dir, 1, filenames)
     aux.create_short(schema_files, schema_dir)
 
     # remove temporary files

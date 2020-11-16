@@ -3057,7 +3057,8 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
 
 
 def run_blast(blast_path, blast_db, fasta_file, blast_output,
-              max_hsps=1, threads=1, ids_file=None):
+              max_hsps=1, threads=1, ids_file=None, blast_task=None,
+              max_targets=None):
     """ Execute BLAST to align sequences in a FASTA file
         against a BLAST database.
 
@@ -3083,6 +3084,11 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
             one per line. Sequences will only be aligned
             to the sequences in the BLAST database that
             have any of the identifiers in this file.
+        blast_task : str
+            Type of BLAST task.
+        max_targets : int
+            Maximum number of target of subject sequences
+            to align against.
 
         Returns
         -------
@@ -3097,6 +3103,10 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
 
     if ids_file is not None:
         blast_args.extend(['-seqidlist', ids_file])
+    if blast_task is not None:
+        blast_args.extend(['-task', blast_task])
+    if max_targets is not None:
+        blast_args.extend(['-max_target_seqs', str(max_targets)])
 
     blast_proc = subprocess.Popen(blast_args,
                                   stdout=subprocess.PIPE,

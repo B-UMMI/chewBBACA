@@ -22,7 +22,7 @@ try:
     from __init__ import __version__
     from allelecall import BBACA
     from createschema import PPanGen
-    from SchemaEvaluator import SchemaEvaluator
+    from SchemaEvaluator import (schema_evaluator, dash_app)
     from PrepExternalSchema import PrepExternalSchema
     from utils import (TestGenomeQuality, profile_joiner,
                        uniprot_find, Extract_cgAlleles,
@@ -39,7 +39,7 @@ except:
     from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
     from CHEWBBACA.createschema import PPanGen
-    from CHEWBBACA.SchemaEvaluator import SchemaEvaluator
+    from CHEWBBACA.SchemaEvaluator import (schema_evaluator, dash_app)
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  uniprot_find, Extract_cgAlleles,
@@ -62,22 +62,22 @@ def create_schema():
     def msg(name=None):
         # simple command to create schema from genomes
         simple_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
-                                                '-o <output_directory> '
-                                                '-ptf <ptf_path>')
+                      '-o <output_directory> '
+                      '-ptf <ptf_path>')
         # command to create schema from genomes with non-default parameters
         params_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
-                                                '-o <output_directory> '
-                                                '--ptf <ptf_path>\n'
-                                                '\t\t\t    --cpu <cpu_cores> '
-                                                '--bsr <blast_score_ratio> '
-                                                '--l <minimum_length>\n'
-                                                '\t\t\t    --t <translation_table> '
-                                                '--st <size_threshold>')
+                      '-o <output_directory> '
+                      '--ptf <ptf_path>\n'
+                      '\t\t\t    --cpu <cpu_cores> '
+                      '--bsr <blast_score_ratio> '
+                      '--l <minimum_length>\n'
+                      '\t\t\t    --t <translation_table> '
+                      '--st <size_threshold>')
         # command to create schema from single FASTA
         cds_cmd = ('chewBBACA.py CreateSchema -i <input_file> '
-                                             '-o <output_directory> '
-                                             '--ptf <ptf_path> '
-                                             '--CDS')
+                   '-o <output_directory> '
+                   '--ptf <ptf_path> '
+                   '--CDS')
 
         usage_msg = ('\nCreate schema from input genomes:\n  {0}\n'
                      '\nCreate schema from input genomes with non-default parameters:\n  {1}\n'
@@ -216,18 +216,18 @@ def allele_call():
     def msg(name=None):
         # simple command to perform AlleleCall with schema deafult parameters
         simple_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
-                                              '-g <schema_directory> '
-                                              '-o <output_directory> ')
+                      '-g <schema_directory> '
+                      '-o <output_directory> ')
         # command to perform AlleleCall with non-default parameters
         params_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
-                                              '-g <schema_directory> '
-                                              '-o <output_directory> '
-                                              '--ptf <ptf_path>\n'
-                                              '\t\t\t  --cpu <cpu_cores> '
-                                              '--bsr <blast_score_ratio> '
-                                              '--l <minimum_length>\n'
-                                              '\t\t\t  --t <translation_table> '
-                                              '--st <size_threshold>')
+                      '-g <schema_directory> '
+                      '-o <output_directory> '
+                      '--ptf <ptf_path>\n'
+                      '\t\t\t  --cpu <cpu_cores> '
+                      '--bsr <blast_score_ratio> '
+                      '--l <minimum_length>\n'
+                      '\t\t\t  --t <translation_table> '
+                      '--st <size_threshold>')
         # command to perform AlleleCall with single Fasta file
         # cds_cmd = ('chewBBACA.py AlleleCall -i <input_file> '
         #                                    '-o <output_directory> '
@@ -236,7 +236,7 @@ def allele_call():
 
         usage_msg = ('\nPerform AlleleCall with schema default parameters:\n  {0}\n'
                      '\nPerform AlleleCall with non-default parameters:\n  {1}\n'.format(simple_cmd, params_cmd))
-                     #'\nPerform AlleleCall with single FASTA file that contains coding sequences:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+        # '\nPerform AlleleCall with single FASTA file that contains coding sequences:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -439,9 +439,12 @@ def allele_call():
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments '
               'values used for schema creation:\n')
-        params_diffs = [[p, ':'.join(map(str, schema_params[p])), str(unmatch_params[p])] for p in unmatch_params]
-        params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
-        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
+        params_diffs = [[p, ':'.join(map(str, schema_params[p])), str(
+            unmatch_params[p])] for p in unmatch_params]
+        params_diffs_text = ['{:^20} {:^20} {:^10}'.format(
+            'Argument', 'Schema', 'Provided')]
+        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(
+            p[0], p[1], p[2]) for p in params_diffs]
         print('\n'.join(params_diffs_text))
         if force_continue is False:
             prompt = ('\nContinuing might lead to results not consistent with '
@@ -462,7 +465,8 @@ def allele_call():
     # default is to get the training file in schema directory
     if run_params['prodigal_training_file'] is False:
         # deal with multiple training files
-        schema_ptfs = [file for file in os.listdir(schema_directory) if file.endswith('.trn')]
+        schema_ptfs = [file for file in os.listdir(
+            schema_directory) if file.endswith('.trn')]
         if len(schema_ptfs) > 1:
             sys.exit('Found more than one Prodigal training file in schema directory.\n'
                      'Please maintain only the training file used in the schema creation process.')
@@ -492,7 +496,8 @@ def allele_call():
                           'schema for usage with the NS.\nContinue process?\n')
                 ptf_answer = aux.input_timeout(prompt, timeout)
             if ptf_num > 1:
-                print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
+                print('Prodigal training file is not any of the {0} used in previous runs.'.format(
+                    ptf_num))
                 prompt = ('Continue?\n')
                 ptf_answer = aux.input_timeout(prompt, timeout)
         else:
@@ -533,12 +538,15 @@ def allele_call():
         # create datetime objects and sort to get latest
         insert_dates = [(file, datetime.datetime.strptime(file.split('_')[-1], '%Y%m%dT%H%M%S'))
                         for file in results_folders]
-        sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
-        results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')
+        sorted_insert_dates = sorted(
+            insert_dates, key=lambda x: x[1], reverse=True)
+        results_matrix = os.path.join(
+            sorted_insert_dates[0][0], 'results_alleles.tsv')
         insert_date = sorted_insert_dates[0][0].split('_')[-1]
 
         # verify that database directory exists
-        database_directory = os.path.join(schema_directory, 'profiles_database')
+        database_directory = os.path.join(
+            schema_directory, 'profiles_database')
         # create if it does not exist
         if os.path.isdir(database_directory) is False:
             os.mkdir(database_directory)
@@ -554,15 +562,18 @@ def allele_call():
                 print('done.')
                 print('Inserted {0} loci into database.'.format(total_loci))
             except Exception:
-                print('WARNING: Could not create database file. Will not store profiles.')
+                print(
+                    'WARNING: Could not create database file. Will not store profiles.')
 
         # insert whole matrix
         if os.path.isfile(database_file) is not False:
             print('\nSending allelic profiles to SQLite database...', end='')
             try:
-                total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+                total_profiles = sq.insert_allelecall_matrix(
+                    results_matrix, database_file, insert_date)
                 print('done.')
-                print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
+                print('Inserted {0} profiles ({1} total, {2} total unique).'.format(
+                    total_profiles[0], total_profiles[1], total_profiles[2]))
             except Exception as e:
                 print(e)
                 print('WARNING: Could not store profiles in local database.')
@@ -580,10 +591,11 @@ def evaluate_schema():
     def msg(name=None):
         # simple command to evaluate schema or set of loci
         simple_cmd = ('chewBBACA.py SchemaEvaluator -i <input_files> '
-                                                   '-l <output_file> '
-                                                   '--cpu <cpu_cores>')
+                      '-l <output_file> '
+                      '--cpu <cpu_cores>')
 
-        usage_msg = ('\nEvaluate schema with default parameters:\n  {0}\n'.format(simple_cmd))
+        usage_msg = (
+            '\nEvaluate schema with default parameters:\n  {0}\n'.format(simple_cmd))
 
         return usage_msg
 
@@ -616,10 +628,10 @@ def evaluate_schema():
                         help='If all alleles must be within the threshold for the '
                              'locus to be considered as having low length variability.')
 
-    parser.add_argument('--log', action='store_true', default=False,
-                        dest='log_scale',
-                        help='Apply log scale transformation to the yaxis '
-                             'of the plot with the number of alleles per locus.')
+    # parser.add_argument('--log', action='store_true', default=False,
+    #                     dest='log_scale',
+    #                     help='Apply log scale transformation to the yaxis '
+    #                          'of the plot with the number of alleles per locus.')
 
     parser.add_argument('-ta', type=int, required=False,
                         default=11, dest='translation_table',
@@ -659,7 +671,7 @@ def evaluate_schema():
 
     input_files = args.input_files
     output_file = args.output_file
-    log_scale = args.log_scale
+    # log_scale = args.log_scale
     translation_table = args.translation_table
     cpu_cores = args.cpu_cores
     # threshold = args.threshold
@@ -668,30 +680,43 @@ def evaluate_schema():
     light_mode = args.light_mode
     title = str(args.title)
 
-    
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
 
-    ### Flow
+    # Flow
 
     # 1. Generate pre-computed data (check for MAFFT)
-    # 2. Launch the App with subprocess
+    # 2. Launch the App
 
-    print("Creating pre-computed-data....")
-    pre_computed_data_path = SchemaEvaluator.create_pre_computed_data(input_files, output_file)
+    print("Creating pre-computed-data....\n")
+    pre_computed_data_path = schema_evaluator.create_pre_computed_data(
+        input_files, translation_table, output_file)
+
+    schema_evaluator_main_path = os.path.join(
+        output_file, "SchemaEvaluator_pre_computed_data"
+    )
+
+    schema_evaluator_html_files_path = os.path.join(
+        output_file, "html_files"
+    )
+
+    ## Copy the main.js files to the respective directories
+    # Global main.js
+    shutil.copy("./SchemaEvaluator/resources/main.js", schema_evaluator_main_path)
 
     # add code for MAFFT
-    # if not light_mode:
-    #     pass
+    if not light_mode:
+        print("Using MAFFT to create the MSA.\n")
+        protein_file_path = schema_evaluator.create_protein_files(
+            input_files, pre_computed_data_path)
+        schema_evaluator.run_mafft(protein_file_path, cpu_to_use)
+        schema_evaluator.run_clustalw(protein_file_path, cpu_to_use)
+        schema_evaluator.write_individual_html(
+            input_files, pre_computed_data_path, protein_file_path, output_file)
 
-    # Launch app
-    # dash_test2.main(pre_computed_data_path)
-    
+        # html_files main.js
+        shutil.copy("./SchemaEvaluator/resources/main_ind.js", schema_evaluator_html_files_path)
 
-
-    # ValidateSchema.main(input_files, cpu_cores, output_file,
-    #                     translation_table, threshold, split_range,
-    #                     title, log_scale, conserved,
-    #                     light_mode)
+    # print("The pre-computed-data has been created. Please check your browser momentarily for the report.")
 
 
 def test_schema():
@@ -699,11 +724,12 @@ def test_schema():
     def msg(name=None):
         # simple command to evaluate genome quality
         simple_cmd = ('chewBBACA.py TestGenomeQuality -i <input_file> '
-                                                   '-n <max_iteration> '
-                                                   '-t <max_threshold>'
-                                                   '-s <step>')
+                      '-n <max_iteration> '
+                      '-t <max_threshold>'
+                      '-s <step>')
 
-        usage_msg = ('\nEvaluate genome quality with default parameters:\n  {0}\n'.format(simple_cmd))
+        usage_msg = (
+            '\nEvaluate genome quality with default parameters:\n  {0}\n'.format(simple_cmd))
 
         return usage_msg
 
@@ -764,18 +790,18 @@ def extract_cgmlst():
     def msg(name=None):
         # simple command to determine loci that constitute cgMLST
         simple_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
-                                                   '-o <output_directory> ')
+                      '-o <output_directory> ')
 
         # command to determine cgMLST with custom threshold
         threshold_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
-                                                   '-o <output_directory> '
-                                                   '\n\t\t\t     --p <threshold>')
+                         '-o <output_directory> '
+                         '\n\t\t\t     --p <threshold>')
 
         # command to get information about a single schema
         remove_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
-                                                   '-o <output_directory> '
-                                                   '\n\t\t\t     --r <genes2remove> '
-                                                   '--g <genomes2remove>')
+                      '-o <output_directory> '
+                      '\n\t\t\t     --r <genes2remove> '
+                      '--g <genomes2remove>')
 
         usage_msg = ('\nDetermine cgMLST:\n{0}\n'
                      '\nDetermine cgMLST based on non-default threshold:\n{1}\n'
@@ -848,10 +874,11 @@ def remove_genes():
 
         # simple command to remove a set of genes from a matrix with allelic profiles
         simple_cmd = ('  chewBBACA.py RemoveGenes -i <input_file> '
-                                                   '-g <genes_list> '
-                                                   '-o <output_file>')
+                      '-g <genes_list> '
+                      '-o <output_file>')
 
-        usage_msg = ('\nRemove a set of genes from a matrix with allelic profiles:\n{0}\n'.format(simple_cmd))
+        usage_msg = (
+            '\nRemove a set of genes from a matrix with allelic profiles:\n{0}\n'.format(simple_cmd))
 
         return usage_msg
 
@@ -937,18 +964,18 @@ def prep_schema():
 
         # simple command to adapt external schema with default arguments values
         simple_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
-                                                      '-o <output_directory> '
-                                                      '--ptf <ptf_path> ')
+                      '-o <output_directory> '
+                      '--ptf <ptf_path> ')
 
         # command to adapt external schema with non-default arguments values
         params_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
-                                                      '-o <output_directory> '
-                                                      '--ptf <ptf_path>\n'
-                                                      '\t\t\t\t  --cpu <cpu_cores> '
-                                                      '--bsr <blast_score_ratio> '
-                                                      '--l <minimum_length>\n'
-                                                      '\t\t\t\t  --t <translation_table> '
-                                                      '--st <size_threshold>')
+                      '-o <output_directory> '
+                      '--ptf <ptf_path>\n'
+                      '\t\t\t\t  --cpu <cpu_cores> '
+                      '--bsr <blast_score_ratio> '
+                      '--l <minimum_length>\n'
+                      '\t\t\t\t  --t <translation_table> '
+                      '--st <size_threshold>')
 
         usage_msg = ('\nAdapt external schema (one FASTA file per schema gene):\n\n{0}\n'
                      '\nAdapt external schema with non-default parameters:\n\n{1}\n'.format(simple_cmd, params_cmd))
@@ -1073,10 +1100,11 @@ def find_uniprot():
 
         # simple command to determine annotations for the loci in a schema
         simple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
-                                                   '-t <protein_table> '
-                                                   '--cpu <cpu_cores>')
+                      '-t <protein_table> '
+                      '--cpu <cpu_cores>')
 
-        usage_msg = ('\nFind annotations for loci in a schema:\n\n{0}\n'.format(simple_cmd))
+        usage_msg = (
+            '\nFind annotations for loci in a schema:\n\n{0}\n'.format(simple_cmd))
 
         return usage_msg
 
@@ -1121,15 +1149,15 @@ def download_schema():
     def msg(name=None):
         # simple command to download a schema from the NS
         simple_cmd = ('  chewBBACA.py DownloadSchema -sp <species_id> '
-                                                  '-sc <schema_id> '
-                                                  '-o <download_folder> ')
+                      '-sc <schema_id> '
+                      '-o <download_folder> ')
 
         # command to download a schema from the NS with non-default arguments values
         params_cmd = ('  chewBBACA.py DownloadSchema -sp <species_id> '
-                                                  '-sc <schema_id> '
-                                                  '-o <download_folder>\n'
-                                                  '\t\t\t      --cpu <cpu_cores> '
-                                                  '--ns <nomenclature_server_url> ')
+                      '-sc <schema_id> '
+                      '-o <download_folder>\n'
+                      '\t\t\t      --cpu <cpu_cores> '
+                      '--ns <nomenclature_server_url> ')
 
         usage_msg = ('\nDownload schema:\n{0}\n'
                      '\nDownload schema with non-default parameters:\n{1}\n'.format(simple_cmd, params_cmd))
@@ -1215,23 +1243,23 @@ def upload_schema():
     def msg(name=None):
         # simple command to load a schema to the NS
         simple_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
-                                              '-sp <species_id> '
-                                              '-sn <schema_name>\n'
-                                              '\t\t\t  -lp <loci_prefix> ')
+                      '-sp <species_id> '
+                      '-sn <schema_name>\n'
+                      '\t\t\t  -lp <loci_prefix> ')
 
         # command to load a schema to the NS with non-default arguments values
         params_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
-                                              '-sp <species_id> '
-                                              '-sn <schema_name>\n'
-                                              '\t\t\t  -lp <loci_prefix> '
-                                              '--thr <threads> '
-                                              '--ns <nomenclature_server_url>')
+                      '-sp <species_id> '
+                      '-sn <schema_name>\n'
+                      '\t\t\t  -lp <loci_prefix> '
+                      '--thr <threads> '
+                      '--ns <nomenclature_server_url>')
 
         # command to continue schema upload that was interrupted or aborted
         continue_cmd = ('  chewBBACA.py LoadSchema -i <schema_directory> '
-                                                '-sp <species_id> '
-                                                '-sn <schema_name>\n'
-                                                '\t\t\t  --continue_up')
+                        '-sp <species_id> '
+                        '-sn <schema_name>\n'
+                        '\t\t\t  --continue_up')
 
         usage_msg = ('\nLoad schema:\n{0}\n'
                      '\nLoad schema with non-default parameters:\n{1}\n'
@@ -1344,11 +1372,12 @@ def synchronize_schema():
 
         # command to synchronize a schema with its NS version with non-default arguments values
         params_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> '
-                                                '--cpu <cpu_cores> '
-                                                '--ns <nomenclature_server_url>')
+                      '--cpu <cpu_cores> '
+                      '--ns <nomenclature_server_url>')
 
         # command to submit novel local alleles
-        submit_cmd = ('  chewBBACA.py SyncSchema -sc <schema_directory> --submit')
+        submit_cmd = (
+            '  chewBBACA.py SyncSchema -sc <schema_directory> --submit')
 
         usage_msg = ('\nSync schema:\n{0}\n'
                      '\nSync schema with non-default parameters:\n{1}\n'
@@ -1426,7 +1455,7 @@ def ns_stats():
 
         # command to get information about a single schema
         schema_cmd = ('  chewBBACA.py NSStats -m schemas --sp <species_id> '
-                                             '--sc <schema_id>')
+                      '--sc <schema_id>')
 
         usage_msg = ('\nList species and totals:\n{0}\n'
                      '\nList all schemas for a species and associated information:\n{1}\n'

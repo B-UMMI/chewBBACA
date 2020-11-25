@@ -1,0 +1,11 @@
+:local(.mainPaper) {
+    flex-grow: 1;
+}
+
+:local(.tabButton){
+    border-bottom: 2px solid #bb7944!important;
+}
+
+:local(.title){
+    color: #bb7944;
+}

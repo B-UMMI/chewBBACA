@@ -560,7 +560,7 @@ def run_mafft(protein_file_path, cpu_to_use):
 def call_clustalw(genefile):
 
     try:
-        print("clustaling " + os.path.basename(genefile))
+        # print("clustaling " + os.path.basename(genefile))
         # inputfile = os.path.join(htmlpath, (os.path.basename(
         #     genefile)).replace(".fasta", "_aligned.fasta"))
         clw_cline = ClustalwCommandline(
@@ -574,7 +574,7 @@ def call_clustalw(genefile):
         return False
 
 
-def run_clustalw(protein_file_path, cpu_to_use):
+def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
     """Run ClustalW with multprocessing and save output."""
 
     protein_files = [
@@ -586,6 +586,11 @@ def run_clustalw(protein_file_path, cpu_to_use):
     pool = multiprocessing.Pool(cpu_to_use)
 
     rawr = pool.map_async(call_clustalw, protein_files)
+
+    if show_progress is True:
+        completed = False
+        while completed is False:
+            completed = aux.progress_bar(rawr, len(protein_files))
 
     rawr.wait()
 
@@ -606,7 +611,7 @@ def run_clustalw(protein_file_path, cpu_to_use):
 def write_individual_html(input_files, pre_computed_data_path, protein_file_path, output_path):
     """Writes HTML files for each locus"""
 
-    print("Writing HTML files...")
+    print("\nWriting HTML files...")
 
     out_path = os.path.join(output_path, "html_files")
 

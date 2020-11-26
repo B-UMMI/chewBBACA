@@ -1683,8 +1683,27 @@ def get_data(sparql_query):
     return result
 
 
-def progress_bar(process, total, tickval, ticknum, completed):
-    """
+def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
+    """ Creates and prints progress bar to stdout.
+
+        Parameters
+        ----------
+        process : multiprocessing.pool.MapResult
+            Multiprocessing object.
+        total : int
+            Total number of inputs that have to be processed.
+        tickval : int
+            Progress completion percentage value for each
+            tick.
+        ticknum : int
+            Total number of ticks in progress bar.
+        completed : bool
+            Boolean indicating if process has completed.
+
+        Returns
+        -------
+        completed : bool
+            Boolean indicating if process has completed.
     """
 
     # check if process has finished

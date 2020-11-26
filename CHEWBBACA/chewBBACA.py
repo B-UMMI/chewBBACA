@@ -709,7 +709,7 @@ def evaluate_schema():
         protein_file_path = schema_evaluator.create_protein_files(
             input_files, pre_computed_data_path)
         schema_evaluator.run_mafft(protein_file_path, cpu_to_use)
-        schema_evaluator.run_clustalw(protein_file_path, cpu_to_use)
+        schema_evaluator.run_clustalw(protein_file_path, cpu_to_use, show_progress=True)
         schema_evaluator.write_individual_html(
             input_files, pre_computed_data_path, protein_file_path, output_file)
 

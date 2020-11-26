@@ -203,7 +203,7 @@ class SchemaEvaluator extends Component {
 
     // Build scatter
     const scatter_allele_ids_x = this.state.locus_ind_data.data.locus_ids.map(
-      (id) => id.split("_")[1]
+      (id) => id.split("_")[id.split("_").length - 1]
     );
 
     const scatter_allele_sizes_y = this.state.locus_ind_data.data.allele_sizes;

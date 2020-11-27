@@ -483,7 +483,7 @@ def create_protein_files(schema_dir, output_path):
         # print(f)
         file_name_split = os.path.split(f)[1]
         prot_file_name = file_name_split.replace(".fasta", "_prot.fasta")
-        exc_file_name = file_name_split.replace(".fasta", "_exceptions.txt")
+        exc_file_name = file_name_split.replace(".fasta", "_exceptions.json")
 
         out_file = os.path.join(out_path, prot_file_name)
         exc_file = os.path.join(exception_path, exc_file_name)
@@ -499,14 +499,25 @@ def create_protein_files(schema_dir, output_path):
                 tets = make_protein_record(ola[0][0], allele.id)
                 proteins.append(tets)
             elif isinstance(ola, str):
-                exc = [allele.id, ola]
+                # exc = [allele.id, ola]
+                if "sense" in ola:
+                    ola2 = ola.split(",")[0]
+                else:
+                    ola2 = ola
+                exc = {
+                    "allele": allele.id,
+                    "exception": ola2
+                }
                 exceptions.append(exc)
 
         SeqIO.write(proteins, out_file, "fasta")
 
         with open(exc_file, "w") as ef:
-            ef.writelines('\n'.join([': '.join(map(str, ex))
-                                     for ex in exceptions]))
+            json.dump(exceptions, ef)
+
+        # with open(exc_file, "w") as ef:
+        #     ef.writelines('\n'.join([': '.join(map(str, ex))
+        #                              for ex in exceptions]))
 
     print("Done!")
 
@@ -516,13 +527,14 @@ def create_protein_files(schema_dir, output_path):
     #     return out_path
 
 
-def call_mafft(path_to_save, genefile):
+def call_mafft(genefile):
     """Calls MAFFT to generate a MSA."""
 
     try:
-        print("maffting " + os.path.basename(genefile))
+        # print("maffting " + os.path.basename(genefile))
         mafft_cline = MafftCommandline(input=genefile, adjustdirection=True)
         stdout, stderr = mafft_cline()
+        path_to_save = genefile.replace("_prot.fasta", "_aligned.fasta")
         with open(path_to_save, "w") as handle:
             handle.write(stdout)
         return True
@@ -532,7 +544,7 @@ def call_mafft(path_to_save, genefile):
         return False
 
 
-def run_mafft(protein_file_path, cpu_to_use):
+def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     """Run MAFFT with multprocessing and save output."""
 
     protein_files = [
@@ -543,18 +555,27 @@ def run_mafft(protein_file_path, cpu_to_use):
 
     pool = multiprocessing.Pool(cpu_to_use)
 
-    for pf in protein_files:
+    rawr = pool.map_async(call_mafft, protein_files, chunksize=1)
 
-        pf = pf.rstrip('\n')
-        pf = pf.rstrip('\r')
+    if show_progress is True:
+        completed = False
+        while completed is False:
+            completed = aux.progress_bar(rawr, len(protein_files))
 
-        alignFileName = os.path.join(protein_file_path, (os.path.basename(
-            pf)).replace("_prot.fasta", "_aligned.fasta"))
+    rawr.wait()
 
-        pool.apply_async(call_mafft, args=[alignFileName, pf])
+    # for pf in protein_files:
 
-    pool.close()
-    pool.join()
+    #     pf = pf.rstrip('\n')
+    #     pf = pf.rstrip('\r')
+
+    #     alignFileName = os.path.join(protein_file_path, (os.path.basename(
+    #         pf)).replace("_prot.fasta", "_aligned.fasta"))
+
+    #     pool.apply_async(call_mafft, args=[alignFileName, pf])
+
+    # pool.close()
+    # pool.join()
 
 
 def call_clustalw(genefile):
@@ -585,7 +606,7 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
 
     pool = multiprocessing.Pool(cpu_to_use)
 
-    rawr = pool.map_async(call_clustalw, protein_files)
+    rawr = pool.map_async(call_clustalw, protein_files, chunksize=1)
 
     if show_progress is True:
         completed = False
@@ -631,6 +652,10 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         output_path, "SchemaEvaluator_pre_computed_data",  "cds_df.json"
     )
 
+    exceptions_path = os.path.join(
+        output_path, "SchemaEvaluator_pre_computed_data",  "prot_files", "exceptions"
+    )
+
     # Read the pre_computed data file
     with open(pre_computed_data_file, "r") as pre_comp_file:
         pre_computed_data_individual = json.load(pre_comp_file)
@@ -646,6 +671,11 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # Get CDS data for table
         cds_ind_data = [e for e in cds_json_data if sf in e["Gene"]][0]
+
+        # Read the exceptions file
+        exceptions_filename_path = os.path.join(exceptions_path, f"{sf}_exceptions.json")
+        with open(exceptions_filename_path, "r") as ef:
+            exc_data = json.load(ef)
 
         # get the msa data
         msa_file_path = os.path.join(protein_file_path, f"{sf}_aligned.fasta")
@@ -676,6 +706,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
                 <script> const _preComputedDataInd = {pre_computed_data_individual_sf} </script>
+                <script> const _exceptions = {exc_data} </script>
                 <script> const _cdsDf = {cds_ind_data} </script>
                 <script> const _msaData = {json.dumps(msa_data_json)} </script>
                 <script> const _phyloData = {json.dumps(phylo_data_json)} </script>
@@ -690,4 +721,3 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         with open(html_file_path, "w") as html_fh:
             html_fh.write(html_template_individual)
-

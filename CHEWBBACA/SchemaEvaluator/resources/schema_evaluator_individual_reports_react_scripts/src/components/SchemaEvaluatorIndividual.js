@@ -39,6 +39,7 @@ class SchemaEvaluator extends Component {
   state = {
     locus_ind_data: _preComputedDataInd,
     cds_df_data: _cdsDf,
+    exceptions: _exceptions,
     testMSA: _msaData,
     phyloData: _phyloData,
     indTabValue: 0,
@@ -417,7 +418,7 @@ class SchemaEvaluator extends Component {
     const indTable = (
       <MuiThemeProvider theme={this.getMuiTheme()}>
         <MUIDataTable
-          title={""}
+          title={"Locus information"}
           data={indTableData}
           columns={indTableColumns}
           options={indTableOptions}
@@ -425,8 +426,67 @@ class SchemaEvaluator extends Component {
       </MuiThemeProvider>
     );
 
+    const excTableColumns = [
+      {
+        name: "allele",
+        label: "Allele",
+        options: {
+          filter: false,
+          sort: false,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "exception",
+        label: "Exceptions",
+        options: {
+          filter: false,
+          sort: false,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+    ];
+
+    const excTableOptions = {
+      responsive: "vertical",
+      selectableRowsHeader: false,
+      selectableRows: "none",
+      selectableRowsOnClick: false,
+      print: false,
+      download: false,
+      filter: false,
+      search: false,
+      viewColumns: false,
+      pagination: false,
+    };
+
+    const excTable = (
+      <MuiThemeProvider theme={this.getMuiTheme()}>
+        <MUIDataTable
+          title={"Exceptions"}
+          data={this.state.exceptions}
+          columns={excTableColumns}
+          options={excTableOptions}
+        />
+      </MuiThemeProvider>
+    );
+
     const msa_component = (
-      <div id="msa-viewer" style={{ marginTop: "20px" }}>
+      <div id="msa-viewer" style={{ marginTop: "20px", padding: "16px" }}>
         <Typography variant="h5" className={classes.title}>
           Multiple Sequence Analysis
         </Typography>
@@ -486,6 +546,7 @@ class SchemaEvaluator extends Component {
           </Accordion>
         </div>
         <div style={{ marginTop: "20px" }}>{indTable}</div>
+        <div style={{ marginTop: "20px" }}>{excTable}</div>
       </div>
     );
 

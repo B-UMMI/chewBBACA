@@ -6,10 +6,14 @@ Created on Tue Apr 23 10:16:33 2019
 @author: pcerqueira
 """
 
-from CHEWBBACA.createschema import PPanGen
+try:
+    from createschema import PPanGen
+except:
+    from CHEWBBACA.createschema import PPanGen
 
 from contextlib import nullcontext as does_not_raise
 import pytest
+
 
 @pytest.mark.parametrize(
         "test_input, expectation",

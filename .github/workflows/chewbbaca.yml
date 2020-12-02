@@ -41,4 +41,7 @@ jobs:
         chewBBACA.py -h
     - name: Run Pytest
       run: |
+        pwd
+        pushd tests
+        pwd
         pytest

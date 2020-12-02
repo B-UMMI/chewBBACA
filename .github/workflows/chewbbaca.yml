@@ -42,6 +42,6 @@ jobs:
     - name: Run Pytest
       run: |
         pwd
-        pushd tests
+        pushd CHEWBBACA/tests
         pwd
         pytest

@@ -32,7 +32,7 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE/chewbbaca
         python setup.py install
-    #- name: test 1
-    #  run: |
-    #    which chewBBACA.py
-    #    chewBBACA.py -h
+    - name: Test help
+      run: |
+        which chewBBACA.py
+        chewBBACA.py -h

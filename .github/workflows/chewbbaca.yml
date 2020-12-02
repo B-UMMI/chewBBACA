@@ -27,12 +27,11 @@ jobs:
     - name: List dir
       run: |
         cd $GITHUB_WORKSPACE/chewbbaca
-        echo chewie
-        ls
-    #- name: Install chewbbaca
-    #  run: |
-    #    cd $GITHUB_WORKSPACE/chewbbaca
-    #    ./setup.py install
+        ls -lah
+    - name: Install chewbbaca
+      run: |
+        cd $GITHUB_WORKSPACE/chewbbaca
+        python setup.py install
     #- name: test 1
     #  run: |
     #    which chewBBACA.py

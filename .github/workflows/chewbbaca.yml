@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,11 +24,16 @@ jobs:
       with:
         repository: B-UMMI/chewBBACA
         path: chewbbaca
-    - name: Install chewbbaca
+    - name: List dir
       run: |
         cd $GITHUB_WORKSPACE/chewbbaca
-        ./setup.py install
-    - name: test 1
-      run: |
-        which chewBBACA.py
-        chewBBACA.py -h
+        echo chewie
+        ls
+    #- name: Install chewbbaca
+    #  run: |
+    #    cd $GITHUB_WORKSPACE/chewbbaca
+    #    ./setup.py install
+    #- name: test 1
+    #  run: |
+    #    which chewBBACA.py
+    #    chewBBACA.py -h

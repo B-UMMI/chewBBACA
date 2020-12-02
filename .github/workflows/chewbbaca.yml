@@ -44,8 +44,8 @@ jobs:
         chewBBACA.py --version
         chewBBACA.py CreateSchema -h
         chewBBACA.py CreateSchema --help
-        chewBBACA.py AlelleCall -h
-        chewBBACA.py AlelleCall --help
+        chewBBACA.py AlleleCall -h
+        chewBBACA.py AlleleCall --help
         chewBBACA.py TestGenomeQuality -h
         chewBBACA.py TestGenomeQuality --help
         chewBBACA.py ExtractCgMLST -h

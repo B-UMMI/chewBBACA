@@ -20,6 +20,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
     - uses: actions/checkout@v2
       with:
         repository: B-UMMI/chewBBACA
@@ -30,9 +34,11 @@ jobs:
         ls -lah
     - name: Install chewbbaca
       run: |
-        cd $GITHUB_WORKSPACE/chewbbaca
         python setup.py install
     - name: Test help
       run: |
         which chewBBACA.py
         chewBBACA.py -h
+    - name: Run Pytest
+      run: |
+        pytest

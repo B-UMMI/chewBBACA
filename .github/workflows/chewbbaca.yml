@@ -21,7 +21,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - uses: actions/checkout@v2
       with:
-        repository: ummi/chewbbaca
+        repository: B-UMMI/chewBBACA
         path: chewbbaca
     - name: Install chewbbaca
       run: |

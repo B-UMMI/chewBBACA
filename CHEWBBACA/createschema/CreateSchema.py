@@ -981,7 +981,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
     aux.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
 
     # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(rec.id + '_1', str(rec.seq))
+    schema_records = ['>{0}\n{1}'.format(aux.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
                       for rec in SeqIO.parse(output_schema, 'fasta')]
 
     final_records = os.path.join(temp_directory, 'schema_loci.fasta')

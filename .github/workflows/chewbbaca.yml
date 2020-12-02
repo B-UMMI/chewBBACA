@@ -1,0 +1,33 @@
+name: chewbbaca
+
+on:
+  push:
+    branches: [ csis_testing ]
+  pull_request:
+    branches: [ csis_testing ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkou@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v2
+      with:
+        repository: ummi/chewbbaca
+        path: chewbbaca
+    - name: Install chewbbaca
+      run: |
+        cd $GITHUB_WORKSPACE/chewbbaca
+        ./setup.py install
+    - name: test 1
+      run: |
+        which chewBBACA.py
+        chewBBACA.py -h

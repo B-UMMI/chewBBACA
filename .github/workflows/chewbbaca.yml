@@ -35,6 +35,18 @@ jobs:
     - name: Check BLAST
       run: |
         blastp -version
+    - name: checkout Prodigal
+      uses: actions/checkou@v2
+        repository: hyattpd/Prodigal
+        path: prodigal
+    - name: Install Prodigal
+      run: |
+        pushd $GITHUB_WORKSPACE/prodigal
+        make
+        chmod +x prodigal
+        echo "$GITHUB_WORKSPACE/prodigal/prodigal" >> $GITHUB_PATH
+        popd
+    - name: checkout chewBBACA    
     - uses: actions/checkout@v2
       with:
         repository: B-UMMI/chewBBACA

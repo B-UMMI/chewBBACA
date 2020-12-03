@@ -48,10 +48,16 @@ jobs:
     - name: Install Prodigal
       run: |
         pushd $GITHUB_WORKSPACE/prodigal
+        ls -lah
         make
         chmod +x prodigal
+        ls -lah
         echo "$GITHUB_WORKSPACE/prodigal/prodigal" >> $GITHUB_PATH
         popd
+
+    - name: Check Prodigal
+      run: |
+        prodigal -v
 
     - name: checkout chewBBACA    
       uses: actions/checkout@v2
@@ -59,15 +65,12 @@ jobs:
         repository: B-UMMI/chewBBACA
         path: chewbbaca
 
-    - name: List dir
+    - name: Install chewBBACA
       run: |
-        cd $GITHUB_WORKSPACE/chewbbaca
-
-    - name: Install chewbbaca
-      run: |
+        pushd $GITHUB_WORKSPACE/chewbbaca
         python setup.py install
 
-    - name: Basic testing
+    - name: Check chewBBACA
       run: |
         which chewBBACA.py
 

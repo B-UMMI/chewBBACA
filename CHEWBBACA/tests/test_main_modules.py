@@ -68,7 +68,7 @@ def test_allelecall_valid(test_args, expected):
     assert 'Writing output files' in stdout
 
     # check output files
-    for root, dirs, files in os.walk(expected):
+    for root, dirs, files in os.walk(test_args[7]):
         output_files = [os.path.join(root, file)
                         for file in files
                         if 'logging_info.txt' != file]

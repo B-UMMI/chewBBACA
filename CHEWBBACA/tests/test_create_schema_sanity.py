@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 from CHEWBBACA import chewBBACA
 
-# @pytest.mark.skip
+
+@pytest.mark.skip
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
@@ -33,8 +34,8 @@ def test_createschema_valid(test_args, expected):
 
     # check output files
     output_files = [os.path.join(test_args[5], file)
-                  for file in os.listdir(test_args[5])
-                  if 'short' != file] 
+                    for file in os.listdir(test_args[5])
+                    if 'short' != file]
 
     expected_files = [os.path.join(expected, file)
                       for file in os.listdir(expected)
@@ -54,7 +55,6 @@ def test_createschema_valid(test_args, expected):
     assert all(file_cmps) is True
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
@@ -74,11 +74,14 @@ def test_createschema_invalid_pairs(test_args, expected):
         assert e.type == ValueError
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
+       '-o', 'createschema_results',
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files."),
+       (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/zero_bytes_pair',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files.")
      ])
@@ -90,7 +93,7 @@ def test_createschema_empty_pairs(test_args, expected):
     assert e.type == SystemExit
     assert expected in e.value.code
 
-@pytest.mark.skip
+
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',

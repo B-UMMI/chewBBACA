@@ -38,28 +38,6 @@ jobs:
     - name: Basic testing
       run: |
         which chewBBACA.py
-        chewBBACA.py -h
-        chewBBACA.py --help
-        chewBBACA.py -v
-        chewBBACA.py --version
-        chewBBACA.py CreateSchema -h
-        chewBBACA.py CreateSchema --help
-        chewBBACA.py AlleleCall -h
-        chewBBACA.py AlleleCall --help
-        chewBBACA.py TestGenomeQuality -h
-        chewBBACA.py TestGenomeQuality --help
-        chewBBACA.py ExtractCgMLST -h
-        chewBBACA.py ExtractCgMLST --help
-        chewBBACA.py SchemaEvaluator -h
-        chewBBACA.py SchemaEvaluator --help
-        chewBBACA.py DownloadSchema -h
-        chewBBACA.py DownloadSchema --help
-        chewBBACA.py LoadSchema -h
-        chewBBACA.py LoadSchema --help
-        chewBBACA.py SyncSchema -h
-        chewBBACA.py SyncSchema --help
-        chewBBACA.py NSStats -h
-        chewBBACA.py NSStats --help
     - name: Run Pytest
       run: |
         pushd CHEWBBACA/tests

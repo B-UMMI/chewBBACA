@@ -40,7 +40,7 @@ jobs:
         blastp -version
 
     - name: checkout Prodigal
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
       with:
         repository: hyattpd/Prodigal
         path: prodigal

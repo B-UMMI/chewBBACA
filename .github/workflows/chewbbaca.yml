@@ -40,7 +40,7 @@ jobs:
         blastp -version
 
     - name: checkout Prodigal
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
       with:
         repository: hyattpd/Prodigal
         path: prodigal
@@ -54,7 +54,7 @@ jobs:
         popd
 
     - name: checkout chewBBACA    
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
       with:
         repository: B-UMMI/chewBBACA
         path: chewbbaca

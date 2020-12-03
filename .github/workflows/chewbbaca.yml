@@ -21,12 +21,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest
 
-    - name: Install BLAST
+    - name: install blast
       run: |
         mkdir $GITHUB_WORKSPACE/blast
         pushd $GITHUB_WORKSPACE/blast
@@ -35,47 +35,45 @@ jobs:
         echo "$GITHUB_WORKSPACE/blast/ncbi-blast-2.9.0+/bin" >> $GITHUB_PATH
         popd
 
-    - name: Check BLAST
+    - name: check blast
       run: |
         which blastp
         blastp -version
 
-    - name: checkout Prodigal
+    - name: checkout prodigal
       uses: actions/checkout@v2
       with:
         repository: hyattpd/Prodigal
         path: prodigal
 
-    - name: Install Prodigal
+    - name: install prodigal
       run: |
         pushd $GITHUB_WORKSPACE/prodigal
-        ls -lah
         make
         chmod +x prodigal
-        ls -lah
         echo "$GITHUB_WORKSPACE/prodigal" >> $GITHUB_PATH
         popd
 
-    - name: Check Prodigal
+    - name: check prodigal
       run: |
         prodigal -v
 
-    - name: checkout chewBBACA    
+    - name: checkout chewbbaca
       uses: actions/checkout@v2
       with:
         repository: B-UMMI/chewBBACA
         path: chewbbaca
 
-    - name: Install chewBBACA
+    - name: install chewbbaca
       run: |
         pushd $GITHUB_WORKSPACE/chewbbaca
         python setup.py install
 
-    - name: Check chewBBACA
+    - name: check chewbbaca
       run: |
         which chewBBACA.py
 
-    - name: Run Pytest
+    - name: run pytest
       run: |
         pushd CHEWBBACA/tests
         pytest

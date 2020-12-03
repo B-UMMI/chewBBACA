@@ -33,6 +33,7 @@ jobs:
         wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz \
         && tar -xzvf ncbi-blast-2.9.0+-x64-linux.tar.gz && rm ncbi-blast-2.9.0+-x64-linux.tar.gz
         echo "$GITHUB_WORKSPACE/blast/ncbi-blast-2.9.0+/bin" >> $GITHUB_PATH
+        echo $GITHUB_PATH
         popd
 
     - name: Check BLAST
@@ -53,6 +54,7 @@ jobs:
         chmod +x prodigal
         ls -lah
         echo "$GITHUB_WORKSPACE/prodigal/prodigal" >> $GITHUB_PATH
+        echo $GITHUB_PATH
         popd
 
     - name: Check Prodigal

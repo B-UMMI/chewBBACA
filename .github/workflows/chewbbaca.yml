@@ -37,6 +37,7 @@ jobs:
         blastp -version
     - name: checkout Prodigal
       uses: actions/checkou@v2
+      with:
         repository: hyattpd/Prodigal
         path: prodigal
     - name: Install Prodigal

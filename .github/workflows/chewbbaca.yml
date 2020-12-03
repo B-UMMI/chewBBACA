@@ -30,7 +30,7 @@ jobs:
         pushd blast
         wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz \
         && tar -xzvf ncbi-blast-2.9.0+-x64-linux.tar.gz && rm ncbi-blast-2.9.0+-x64-linux.tar.gz
-        ENV PATH="/blast/ncbi-blast-2.9.0+/bin:${PATH}"
+        echo "/blast/ncbi-blast-2.9.0+/bin" >> $GITHUB_PATH
         popd
     - uses: actions/checkout@v2
       with:

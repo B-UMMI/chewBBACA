@@ -5,8 +5,8 @@
 """
 
 
-import py
 import os
+import py
 import sys
 import pickle
 import pytest
@@ -49,6 +49,11 @@ def pickle_loader(pickle_in):
           'file with a list of paths.')
          ])
 def test_prep_invalid_input(test_args, expected):
+
+    # create empty dir for empty dir test
+    if os.path.isdir(test_args[3]) is False:
+        os.mkdir(test_args[3])
+
     with pytest.raises(SystemExit) as e:
         with patch.object(sys, 'argv', test_args):
             chewBBACA.main()

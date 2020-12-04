@@ -55,7 +55,7 @@ def test_prep_invalid_input(test_args, expected):
 
     try:
         shutil.rmtree(test_args[5])
-    except Exception as e:
+    except Exception as e2:
         pass
 
     assert e.type == SystemExit

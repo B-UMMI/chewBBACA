@@ -4,6 +4,7 @@
 import py
 import os
 import sys
+import pickle
 import pytest
 import filecmp
 from unittest.mock import patch
@@ -12,7 +13,16 @@ from unittest.mock import patch
 from CHEWBBACA import chewBBACA
 
 
-@pytest.mark.skip
+def pickle_loader(pickle_in):
+    """
+    """
+
+    with open(pickle_in, 'rb') as pi:
+        data = pickle.load(pi)
+
+    return data
+
+
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
@@ -36,10 +46,20 @@ def test_createschema_valid(test_args, expected):
     output_files = [os.path.join(test_args[5], file)
                     for file in os.listdir(test_args[5])
                     if 'short' != file]
+    output_files.sort()
 
     expected_files = [os.path.join(expected, file)
                       for file in os.listdir(expected)
                       if 'short' != file]
+    expected_files.sort()
+
+    # get config files
+    genes_lists = [output_files.pop(0), expected_files.pop(0)]
+    schemas_configs = [output_files.pop(0), expected_files.pop(0)]
+
+    # compare configs
+    assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
+    assert pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
 
     files = output_files + expected_files
     basename_dict = {}
@@ -80,10 +100,14 @@ def test_createschema_invalid_pairs(test_args, expected):
        '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files."),
-       (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/zero_bytes_pair',
+     (['chewBBACA.py', 'CreateSchema',
+         '-i', 'data/createschema_data/zero_bytes_pair',
+         '-o', 'createschema_results',
+         '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files."),
+     (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/mock_schema_dir',
        '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files.")
+       '--ptf', 'path/does/not/exist'], "Cannot find specified Prodigal training file.")
      ])
 def test_createschema_empty_pairs(test_args, expected):
     with pytest.raises(SystemExit) as e:

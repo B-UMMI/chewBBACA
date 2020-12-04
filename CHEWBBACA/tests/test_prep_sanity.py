@@ -109,9 +109,3 @@ def test_prep_valid_input(test_args, expected):
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
-
-
-
-
-
-

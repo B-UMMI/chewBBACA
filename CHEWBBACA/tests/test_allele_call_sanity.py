@@ -62,6 +62,33 @@ def test_allelecall_valid(test_args, expected):
 
 @pytest.mark.parametrize(
         'test_args, expected',
+        [(['chewBBACA.py', 'AlleleCall',
+           '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
+           '-g', 'data/allelecall_data/sagalactiae_schema',
+           '-o', 'allelecall_results'],
+         'Could not get input files.'),
+         (['chewBBACA.py', 'AlleleCall',
+           '-i', 'data/createschema_data/zero_bytes_pair',
+           '-g', 'data/allelecall_data/sagalactiae_schema',
+           '-o', 'allelecall_results'],
+         'Could not get input files.'),
+         (['chewBBACA.py', 'AlleleCall',
+           '-i', 'this/path/aint/real',
+           '-g', 'data/allelecall_data/sagalactiae_schema',
+           '-o', 'allelecall_results'],
+          'Input argument is not a valid directory or '
+          'file with a list of paths.')])
+def test_invalid_input(test_args, expected):
+    with pytest.raises(SystemExit) as e:
+        with patch.object(sys, 'argv', test_args):
+            chewBBACA.main()
+
+    assert e.type == SystemExit
+    assert expected in e.value.code
+
+
+@pytest.mark.parametrize(
+        'test_args, expected',
         [(args_template+['--bsr', '-1'],
          '\nBSR value is not contained in the [0.0, 1.0] interval.'),
          (args_template+['--bsr', '1.1'],

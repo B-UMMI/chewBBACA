@@ -63,6 +63,11 @@ def test_allelecall_valid(test_args, expected):
 @pytest.mark.parametrize(
         'test_args, expected',
         [(['chewBBACA.py', 'AlleleCall',
+           '-i', 'data/prep_data/empty_dir',
+           '-g', 'data/allelecall_data/sagalactiae_schema',
+           '-o', 'allelecall_results'],
+         'Could not get input files.'),
+         (['chewBBACA.py', 'AlleleCall',
            '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
@@ -77,7 +82,8 @@ def test_allelecall_valid(test_args, expected):
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
           'Input argument is not a valid directory or '
-          'file with a list of paths.')])
+          'file with a list of paths.')
+        ])
 def test_invalid_input(test_args, expected):
     with pytest.raises(SystemExit) as e:
         with patch.object(sys, 'argv', test_args):

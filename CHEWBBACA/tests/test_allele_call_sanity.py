@@ -87,7 +87,7 @@ def test_allelecall_valid(test_args, expected):
 def test_invalid_input(test_args, expected):
 
     # create empty dir for empty dir test
-    if os.path.isdir(test_args[3]) is False:
+    if 'empty_dir' in test_args[3]:
         os.mkdir(test_args[3])
 
     with pytest.raises(SystemExit) as e:

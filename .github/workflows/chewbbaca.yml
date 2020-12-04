@@ -2,9 +2,9 @@ name: chewbbaca
 
 on:
   push:
-    branches: [ csis_testing ]
+    branches: [ master ]
   pull_request:
-    branches: [ csis_testing ]
+    branches: [ master ]
 
 jobs:
   build:

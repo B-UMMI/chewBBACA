@@ -1540,9 +1540,11 @@ def main():
             print('{0}: {1}'.format(f, functions_info[f][0]))
         sys.exit(0)
 
-    if len(sys.argv) > 1 and 'version' in sys.argv[1]:
+    matches = ["version", "v"]
+
+    if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
         print(version)
-        return
+        sys.exit(0)
 
     print('\nchewBBACA version: {0}'.format(version))
     print('Authors: {0}'.format(authors))
@@ -1559,6 +1561,7 @@ def main():
         print('Select one of the following functions:\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))
+        sys.exit(0)
 
 
 if __name__ == "__main__":

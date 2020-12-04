@@ -1,0 +1,80 @@
+name: chewbbaca
+
+on:
+  push:
+    branches: [ csis_testing ]
+  pull_request:
+    branches: [ csis_testing ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+
+    - name: install blast
+      run: |
+        mkdir $GITHUB_WORKSPACE/blast
+        pushd $GITHUB_WORKSPACE/blast
+        wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz \
+        && tar -xzvf ncbi-blast-2.9.0+-x64-linux.tar.gz && rm ncbi-blast-2.9.0+-x64-linux.tar.gz
+        echo "$GITHUB_WORKSPACE/blast/ncbi-blast-2.9.0+/bin" >> $GITHUB_PATH
+        popd
+
+    - name: check blast
+      run: |
+        which blastp
+        blastp -version
+
+    - name: checkout prodigal
+      uses: actions/checkout@v2
+      with:
+        repository: hyattpd/Prodigal
+        path: prodigal
+
+    - name: install prodigal
+      run: |
+        pushd $GITHUB_WORKSPACE/prodigal
+        make
+        chmod +x prodigal
+        echo "$GITHUB_WORKSPACE/prodigal" >> $GITHUB_PATH
+        popd
+
+    - name: check prodigal
+      run: |
+        prodigal -v
+
+    - name: checkout chewbbaca
+      uses: actions/checkout@v2
+      with:
+        repository: B-UMMI/chewBBACA
+        path: chewbbaca
+
+    - name: install chewbbaca
+      run: |
+        pushd $GITHUB_WORKSPACE/chewbbaca
+        python setup.py install
+
+    - name: check chewbbaca
+      run: |
+        which chewBBACA.py
+
+    - name: run pytest
+      run: |
+        pushd CHEWBBACA/tests
+        pytest
+        popd

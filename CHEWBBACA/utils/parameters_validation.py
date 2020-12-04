@@ -67,7 +67,7 @@ def bsr_type(arg, min_value=cnts.BSR_MIN, max_value=cnts.BSR_MAX):
                      '[0.0, 1.0] interval.')
     except Exception:
         sys.exit('\nInvalid BSR value of {0}. BSR value must be contained'
-                 ' in the [0.0, 1.0] interval.'.format(arg[0]))
+                 ' in the [0.0, 1.0] interval.'.format(arg))
 
     return valid
 

@@ -5,8 +5,10 @@ import pickle
 import subprocess
 
 try:
+    from utils import files_utils as fu
     from utils import auxiliary_functions as aux
 except:
+    from CHEWBBACA.utils import files_utils as fu
     from CHEWBBACA.utils import auxiliary_functions as aux
 
 
@@ -38,7 +40,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
-    genome_basename = aux.file_basename(input_file, False)
+    genome_basename = fu.file_basename(input_file, False)
 
     if len(stderr) > 0:
         stderr = [line.decode('utf-8').strip() for line in stderr]

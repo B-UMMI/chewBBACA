@@ -37,9 +37,27 @@ from Bio import SeqIO
 
 try:
     from utils import runProdigal
+    from utils import io_utils as iu
+    from utils import str_utils as su
+    from utils import files_utils as fu
+    from utils import list_utils as lu
+    from utils import dict_utils as du
+    from utils import blast_utils as bu
+    from utils import fasta_utils as fau
+    from utils import datetime_utils as dtu
+    from utils import clustering_utils as cu
     from utils import auxiliary_functions as aux
 except:
     from CHEWBBACA.utils import runProdigal
+    from CHEWBBACA.utils import io_utils as iu
+    from CHEWBBACA.utils import str_utils as su
+    from CHEWBBACA.utils import files_utils as fu
+    from CHEWBBACA.utils import list_utils as lu
+    from CHEWBBACA.utils import dict_utils as du
+    from CHEWBBACA.utils import blast_utils as bu
+    from CHEWBBACA.utils import fasta_utils as fau
+    from CHEWBBACA.utils import datetime_utils as dtu
+    from CHEWBBACA.utils import clustering_utils as cu
     from CHEWBBACA.utils import auxiliary_functions as aux
 
 
@@ -89,14 +107,14 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
     """
 
     # create directory to store files with Prodigal results
-    prodigal_path = aux.join_paths(temp_directory, ['prodigal_cds_prediction'])
-    aux.create_directory(prodigal_path)
+    prodigal_path = fu.join_paths(temp_directory, ['prodigal_cds_prediction'])
+    fu.create_directory(prodigal_path)
 
     # run Prodigal to determine CDSs for all input genomes
     print('\nPredicting gene sequences...\n')
     # divide input genomes into equal number of sublists for
     # maximum process progress resolution
-    prodigal_inputs = aux.divide_list_into_n_chunks(fasta_files,
+    prodigal_inputs = lu.divide_list_into_n_chunks(fasta_files,
                                                     len(fasta_files))
     # add common arguments to all sublists
     common_args = [prodigal_path, ptf_path, translation_table,
@@ -161,7 +179,7 @@ def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
     # divide inputs into at least 20 sublists for 5% process
     # progress resolution
     num_chunks = 20 if cpu_cores < 20 else cpu_cores
-    extractor_inputs = aux.divide_list_into_n_chunks(fasta_files, num_chunks)
+    extractor_inputs = lu.divide_list_into_n_chunks(fasta_files, num_chunks)
     # add common arguments and unique index/identifier
     extractor_inputs = [[extractor_inputs[i-1], prodigal_path,
                          temp_directory, i, aux.cds_batch_extractor]
@@ -180,10 +198,10 @@ def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
 
     # create full table file
     table_files = [f[0] for f in extracted_cdss]
-    table_file = aux.join_paths(output_directory, ['protein_info.tsv'])
+    table_file = fu.join_paths(output_directory, ['protein_info.tsv'])
     table_header = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
-    aux.concatenate_files(table_files, table_file, table_header)
-    aux.remove_files(table_files)
+    iu.concatenate_files(table_files, table_file, table_header)
+    fu.remove_files(table_files)
 
     cds_files = [f[1] for f in extracted_cdss]
 
@@ -219,7 +237,7 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
     """
 
     dedup_inputs = [[file,
-                     aux.join_paths(temp_directory,
+                     fu.join_paths(temp_directory,
                                     [outfile_template.format(i+1)]),
                      aux.determine_distinct]
                     for i, file in enumerate(fasta_files)]
@@ -237,9 +255,9 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
     # one last round after concatenating files
     if len(dedup_inputs) > 1:
         dedup_files = [f[1] for f in dedup_inputs]
-        cds_file = aux.join_paths(temp_directory, ['sequences.fasta'])
-        cds_file = aux.concatenate_files(dedup_files, cds_file)
-        distinct_seqs = aux.join_paths(temp_directory, ['distinct_seqs.fasta'])
+        cds_file = fu.join_paths(temp_directory, ['sequences.fasta'])
+        cds_file = iu.concatenate_files(dedup_files, cds_file)
+        distinct_seqs = fu.join_paths(temp_directory, ['distinct_seqs.fasta'])
         dedup_results = aux.determine_distinct(cds_file, distinct_seqs)
         repeated_seqs, distinct_seqids = dedup_results
 
@@ -337,15 +355,15 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
     print('\nTranslating {0} DNA sequences...'.format(len(sequence_ids)))
 
     # divide inputs into sublists
-    translation_inputs = aux.divide_list_into_n_chunks(sequence_ids, cpu_cores)
+    translation_inputs = lu.divide_list_into_n_chunks(sequence_ids, cpu_cores)
 
     # create paths to files with translatable DNA sequences
-    dna_template = aux.join_paths(temp_directory, ['dna_{0}.fasta'])
+    dna_template = fu.join_paths(temp_directory, ['dna_{0}.fasta'])
     dna_files = [dna_template.format(i+1)
                  for i in range(len(translation_inputs))]
 
     # create paths to files with protein sequences
-    protein_template = aux.join_paths(temp_directory, ['protein_{0}.fasta'])
+    protein_template = fu.join_paths(temp_directory, ['protein_{0}.fasta'])
     protein_files = [protein_template.format(i+1)
                      for i in range(len(translation_inputs))]
 
@@ -362,10 +380,10 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
                                                      show_progress=False)
 
     # concatenate files
-    dna_file = aux.join_paths(temp_directory, ['dna.fasta'])
-    dna_file = aux.concatenate_files(dna_files, dna_file)
-    protein_file = aux.join_paths(temp_directory, ['protein.fasta'])
-    protein_file = aux.concatenate_files(protein_files, protein_file)
+    dna_file = fu.join_paths(temp_directory, ['dna.fasta'])
+    dna_file = iu.concatenate_files(dna_files, dna_file)
+    protein_file = fu.join_paths(temp_directory, ['protein.fasta'])
+    protein_file = iu.concatenate_files(protein_files, protein_file)
 
     # determine sequences that could not be translated
     untrans_lines = []
@@ -441,14 +459,14 @@ def clustering_component(sequences, word_size, clustering_sim,
         # divide sequences into sublists
         # do not divide based on number of available cores as it may
         # lead to different results with different number of cores
-        cluster_inputs = aux.split_iterable(sorted_seqs,
+        cluster_inputs = du.split_iterable(sorted_seqs,
                                             int(len(sorted_seqs)/40+10))
     else:
         cluster_inputs = [sorted_seqs]
 
     common_args = [word_size, clustering_sim, clustering_mode,
                    representatives, grow_clusters, kmer_offset,
-                   minimizer, seq_num_cluster, aux.cluster_sequences]
+                   minimizer, seq_num_cluster, cu.cluster_sequences]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
@@ -459,14 +477,14 @@ def clustering_component(sequences, word_size, clustering_sim,
 
     # merge clusters
     clusters = [d[0] for d in clustering_results]
-    clusters = aux.merge_dictionaries(clusters)
+    clusters = du.merge_dictionaries(clusters)
     rep_sequences = [d[1] for d in clustering_results]
-    rep_sequences = aux.merge_dictionaries(rep_sequences)
+    rep_sequences = du.merge_dictionaries(rep_sequences)
 
     # perform clustering with representatives
     if len(cluster_inputs) > 1:
         # cluster representatives
-        rep_clusters = aux.cluster_sequences(rep_sequences, word_size,
+        rep_clusters = cu.cluster_sequences(rep_sequences, word_size,
                                              clustering_sim, clustering_mode,
                                              representatives, grow_clusters,
                                              kmer_offset, minimizer,
@@ -489,7 +507,7 @@ def clustering_component(sequences, word_size, clustering_sim,
     # write file with clustering results
     clusters_out = os.path.join(temp_directory,
                                 '{0}_clustered_results.txt'.format(file_prefix))
-    aux.write_clusters(clusters, clusters_out)
+    cu.write_clusters(clusters, clusters_out)
 
     return clusters
 
@@ -534,7 +552,7 @@ def cluster_pruner_component(clusters, representative_filter,
     """
 
     # remove sequences that are very similar to representatives
-    pruning_results = aux.representative_pruner(clusters,
+    pruning_results = cu.representative_pruner(clusters,
                                                 representative_filter)
 
     pruned_clusters, excluded_seqids = pruning_results
@@ -554,13 +572,13 @@ def cluster_pruner_component(clusters, representative_filter,
     # write file with pruning results
     pruned_out = os.path.join(output_directory,
                               '{0}_clustered_pruned.txt'.format(file_prefix))
-    aux.write_clusters(pruned_clusters, pruned_out)
+    cu.write_clusters(pruned_clusters, pruned_out)
 
     # identify singletons and exclude those clusters
-    singletons = aux.select_clusters(pruned_clusters, 0)
+    singletons = du.select_clusters(pruned_clusters, 0)
     print('Found {0} singletons.'.format(len(singletons)))
 
-    pruned_clusters = aux.remove_entries(pruned_clusters, singletons)
+    pruned_clusters = du.remove_entries(pruned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
@@ -616,13 +634,13 @@ def cluster_intra_pruner_component(clusters, sequences, word_size,
     # identify clusters with more than 1 sequence
     intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
 
-    excluded_seqids, excluded_sims = aux.intra_cluster_sim(intra_clusters,
+    excluded_seqids, excluded_sims = cu.intra_cluster_sim(intra_clusters,
                                                            sequences,
                                                            word_size,
                                                            intra_filter)
 
     intra_excluded = [v for k, v in excluded_seqids.items()]
-    intra_excluded = aux.flatten_list(intra_excluded)
+    intra_excluded = lu.flatten_list(intra_excluded)
     # get identifiers of excluded sequences
     # determine set because same seqids could be in several clusters
     intra_excluded = set(intra_excluded)
@@ -635,11 +653,11 @@ def cluster_intra_pruner_component(clusters, sequences, word_size,
     # write excluded to file
     intrasim_out = os.path.join(output_directory,
                                 '{0}_clustered_sims.txt'.format(file_prefix))
-    aux.write_clusters(excluded_sims, intrasim_out)
+    cu.write_clusters(excluded_sims, intrasim_out)
     # write clusters to file
     intrasim_out = os.path.join(output_directory,
                                 '{0}_clustered_intrasim.txt'.format(file_prefix))
-    aux.write_clusters(pruned_clusters, intrasim_out)
+    cu.write_clusters(pruned_clusters, intrasim_out)
 
     # add key because it is representative identifier
     clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
@@ -693,32 +711,32 @@ def cluster_blaster_component(clusters, sequences, output_directory,
     print('Clusters to BLAST: {0}'.format(len(clusters)))
 
     # create FASTA file with sequences in clusters
-    clustered_seqs_file = aux.join_paths(output_directory,
+    clustered_seqs_file = fu.join_paths(output_directory,
                                          ['{0}_clustered_proteins.fasta'.format(file_prefix)])
     clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
-    clustered_sequences = aux.flatten_list(clustered_sequences)
+    clustered_sequences = lu.flatten_list(clustered_sequences)
     # do not include duplicate identifiers
     clustered_sequences = list(set(clustered_sequences))
-    aux.get_sequences_by_id(sequences, clustered_sequences,
+    fau.get_sequences_by_id(sequences, clustered_sequences,
                             clustered_seqs_file)
 
     # create FASTA file with replaced headers to avoid header
     # length limitation in BLAST
-    integer_clusters = aux.join_paths(output_directory,
+    integer_clusters = fu.join_paths(output_directory,
                                       ['{0}_clustered_proteins_int.fasta'.format(file_prefix)])
-    ids_dict = aux.integer_headers(clustered_seqs_file, integer_clusters)
+    ids_dict = fau.integer_headers(clustered_seqs_file, integer_clusters)
 
     # create BLAST DB
-    blast_db = aux.join_paths(output_directory,
+    blast_db = fu.join_paths(output_directory,
                               ['{0}_clustered_proteins_int'.format(file_prefix)])
-    aux.make_blast_db(integer_clusters, blast_db, 'prot')
+    bu.make_blast_db(integer_clusters, blast_db, 'prot')
 
     blast_results_dir = os.path.join(output_directory,
                                      '{0}_blast_results'.format(file_prefix))
     os.mkdir(blast_results_dir)
 
     # create files with replaced sequence identifiers per cluster
-    seqids_to_blast = aux.blast_inputs(clusters, blast_results_dir, ids_dict)
+    seqids_to_blast = cu.blast_inputs(clusters, blast_results_dir, ids_dict)
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
@@ -727,7 +745,7 @@ def cluster_blaster_component(clusters, sequences, output_directory,
                                               'seqcount')
 
     common_args = [integer_clusters, blast_results_dir, blastp_path,
-                   blast_db, aux.cluster_blaster]
+                   blast_db, cu.cluster_blaster]
 
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
@@ -751,11 +769,11 @@ def main(input_files, output_directory, schema_name, ptf_path,
          representative_filter, intra_filter, cpu_cores, blastp_path,
          cds_input, prodigal_mode, verbose, cleanup):
 
-    start_date = aux.get_datetime()
-    print('Started at: {0}\n'.format(aux.datetime_str(start_date)))
+    start_date = dtu.get_datetime()
+    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
 
     # read file with paths to input files
-    fasta_files = aux.read_lines(input_files, strip=True)
+    fasta_files = iu.read_lines(input_files, strip=True)
 
     # sort paths to FASTA files
     fasta_files = aux.sort_data(fasta_files, sort_key=lambda x: x.lower())
@@ -773,7 +791,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
     print('Intra filter: {0}'.format(intra_filter))
 
     # define directory for temporary files
-    temp_directory = aux.join_paths(output_directory, ['temp'])
+    temp_directory = fu.join_paths(output_directory, ['temp'])
 
     # gene prediction step
     gp_results = gene_prediction_component(fasta_files, ptf_path,
@@ -812,10 +830,10 @@ def main(input_files, output_directory, schema_name, ptf_path,
     dna_file, protein_file, ut_seqids, ut_lines = ts_results
 
     # write info about invalid alleles to fle
-    invalid_alleles_file = aux.join_paths(output_directory,
+    invalid_alleles_file = fu.join_paths(output_directory,
                                           ['invalid_alleles.txt'])
-    invalid_alleles = aux.join_list(ut_lines+ss_lines, '\n')
-    aux.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
+    invalid_alleles = lu.join_list(ut_lines+ss_lines, '\n')
+    iu.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
     print('Info about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
 
@@ -832,13 +850,13 @@ def main(input_files, output_directory, schema_name, ptf_path,
     # write protein FASTA file
     qc_protein_file = os.path.join(temp_directory, 'filtered_proteins.fasta')
     indexed_protein_file = SeqIO.index(protein_file, 'fasta')
-    aux.get_sequences_by_id(indexed_protein_file, distinct_protein_seqs,
+    fau.get_sequences_by_id(indexed_protein_file, distinct_protein_seqs,
                             qc_protein_file)
 
     # write DNA FASTA file
     qc_dna_file = os.path.join(temp_directory, 'filtered_dna.fasta')
     indexed_dna_file = SeqIO.index(dna_file, 'fasta')
-    aux.get_sequences_by_id(indexed_dna_file, distinct_protein_seqs,
+    fau.get_sequences_by_id(indexed_dna_file, distinct_protein_seqs,
                             qc_dna_file)
 
     print('\nKept {0} sequences after filtering the initial '
@@ -846,7 +864,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
 
     # protein clustering step
     # read protein sequences
-    proteins = aux.import_sequences(qc_protein_file)
+    proteins = fau.import_sequences(qc_protein_file)
 
     # change names of files created during components execution!!!
     cs_results = clustering_component(proteins, word_size, clustering_sim,
@@ -884,17 +902,17 @@ def main(input_files, output_directory, schema_name, ptf_path,
                                                         cpu_cores,
                                                         'cbi')
 
-    blast_files = aux.flatten_list(blast_results)
+    blast_files = lu.flatten_list(blast_results)
 
     # compute and exclude based on BSR
-    blast_excluded_alleles = [aux.apply_bsr(aux.read_tabular(file),
+    blast_excluded_alleles = [aux.apply_bsr(iu.read_tabular(file),
                                             indexed_dna_file,
                                             blast_score_ratio,
                                             ids_dict)
                               for file in blast_files]
 
     # merge bsr results
-    blast_excluded_alleles = aux.flatten_list(blast_excluded_alleles)
+    blast_excluded_alleles = lu.flatten_list(blast_excluded_alleles)
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
 
@@ -906,7 +924,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
     schema_seqids = aux.sort_data(schema_seqids, sort_key=lambda x: x.lower())
 
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
-    aux.get_sequences_by_id(proteins, schema_seqids, beta_file)
+    fau.get_sequences_by_id(proteins, schema_seqids, beta_file)
 
 ##############################################################################
 
@@ -952,17 +970,17 @@ def main(input_files, output_directory, schema_name, ptf_path,
 ##############################################################################
 
     integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')
-    ids_dict2 = aux.integer_headers(beta_file, integer_seqids)
+    ids_dict2 = fau.integer_headers(beta_file, integer_seqids)
 
-    blast_db = aux.join_paths(temp_directory, ['int_proteins_int'])
-    aux.make_blast_db(integer_seqids, blast_db, 'prot')
+    blast_db = fu.join_paths(temp_directory, ['int_proteins_int'])
+    bu.make_blast_db(integer_seqids, blast_db, 'prot')
 
     blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory,
                                                  'beta_schema')
-    stderr = aux.run_blast(blastp_path, blast_db, integer_seqids,
+    stderr = bu.run_blast(blastp_path, blast_db, integer_seqids,
                            blast_output, 1, cpu_cores)
 
-    final_excluded = aux.apply_bsr(aux.read_tabular(blast_output),
+    final_excluded = aux.apply_bsr(iu.read_tabular(blast_output),
                                   indexed_dna_file,
                                   blast_score_ratio,
                                   ids_dict2)
@@ -978,31 +996,31 @@ def main(input_files, output_directory, schema_name, ptf_path,
     output_schema = os.path.join(temp_directory, 'schema_seed.fasta')
 
     # create file with the schema representative sequences
-    aux.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
+    fau.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
 
     # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(aux.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
+    schema_records = ['>{0}\n{1}'.format(su.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
                       for rec in SeqIO.parse(output_schema, 'fasta')]
 
     final_records = os.path.join(temp_directory, 'schema_loci.fasta')
-    aux.write_lines(schema_records, final_records)
+    iu.write_lines(schema_records, final_records)
 
-    schema_dir = aux.join_paths(output_directory, [schema_name])
-    aux.create_directory(schema_dir)
+    schema_dir = fu.join_paths(output_directory, [schema_name])
+    fu.create_directory(schema_dir)
 
     # create directory and schema files
     filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
-    schema_files = aux.split_fasta(final_records, schema_dir, 1, filenames)
+    schema_files = fau.split_fasta(final_records, schema_dir, 1, filenames)
     aux.create_short(schema_files, schema_dir)
 
     # remove temporary files
     if cleanup is True:
-        aux.delete_directory(temp_directory)
+        fu.delete_directory(temp_directory)
 
-    end_date = aux.get_datetime()
-    end_date_str = aux.datetime_str(end_date)
+    end_date = dtu.get_datetime()
+    end_date_str = dtu.datetime_str(end_date)
 
-    minutes, seconds = aux.datetime_diff(start_date, end_date)
+    minutes, seconds = dtu.datetime_diff(start_date, end_date)
 
     print('Created schema with {0} genes based on {1} genomes in'
           '{2: .0f}m{3: .0f}s.'.format(len(schema_files), len(fasta_files),

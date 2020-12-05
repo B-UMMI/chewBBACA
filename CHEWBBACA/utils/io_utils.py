@@ -16,6 +16,11 @@ import zipfile
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 
+try:
+    from utils import list_utils as lu
+except:
+    from CHEWBBACA.utils import list_utils as lu
+
 
 def read_lines(input_file, strip=True):
     """ Reads lines in an input file and stores those lines
@@ -170,7 +175,7 @@ def write_lines(lines, output_file):
             Path to the output file.
     """
 
-    joined_lines = join_list(lines, '\n')
+    joined_lines = lu.join_list(lines, '\n')
 
     write_to_file(joined_lines, output_file, 'a', '\n')
 

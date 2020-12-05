@@ -8,6 +8,9 @@ DESCRIPTION
 """
 
 
+from itertools import islice
+
+
 def merge_dictionaries(dictionaries_list):
     """ Merges several dictionaries into a single dictionary.
 

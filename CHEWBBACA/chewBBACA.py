@@ -29,7 +29,8 @@ try:
                        RemoveGenes, sqlite_functions as sq,
                        auxiliary_functions as aux,
                        constants as cnst,
-                       parameters_validation as pv)
+                       parameters_validation as pv,
+                       files_utils as fu)
 
     from utils.parameters_validation import ModifiedHelpFormatter
 
@@ -46,7 +47,8 @@ except:
                                  RemoveGenes, sqlite_functions as sq,
                                  auxiliary_functions as aux,
                                  constants as cnst,
-                                 parameters_validation as pv)
+                                 parameters_validation as pv,
+                                 files_utils as fu)
 
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
@@ -256,7 +258,7 @@ def create_schema():
     if ptf_path is not False:
         shutil.copy(ptf_path, schema_dir)
         # determine PTF checksum
-        ptf_hash = aux.hash_file(ptf_path, 'rb')
+        ptf_hash = fu.hash_file(ptf_path, 'rb')
     else:
         ptf_hash = ''
 

@@ -15,8 +15,14 @@ from Bio.SeqIO import FastaIO
 
 try:
     from utils import io_utils as io
+    from utils import str_utils as su
+    from utils import list_utils as lu
+    from utils import files_utils as fu
 except:
     from CHEWBBACA.utils import io_utils as io
+    from CHEWBBACA.utils import str_utils as su
+    from CHEWBBACA.utils import list_utils as lu
+    from CHEWBBACA.utils import files_utils as fu
 
 
 def count_sequences(fasta_file):
@@ -297,7 +303,7 @@ def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
         records.append(record)
 
         if len(records) == limit or seq[0] == seqids[-1]:
-            lines = join_list(records, '\n')
+            lines = lu.join_list(records, '\n')
             io.write_to_file(lines, out_file, 'a', '\n')
             records = []
 
@@ -332,9 +338,9 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
         current_recs.append(record)
         if len(current_recs) == num_seqs or record.id == records[-1].id:
             file_name = filenames.__next__()
-            file_name = replace_multiple_characters(file_name)
+            file_name = su.replace_multiple_characters(file_name)
 
-            new_file = join_paths(output_path,
+            new_file = fu.join_paths(output_path,
                                   ['{0}{1}'.format(file_name, '.fasta')])
 
             splitted_files.append(new_file)

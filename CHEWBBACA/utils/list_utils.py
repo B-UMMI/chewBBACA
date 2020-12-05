@@ -8,6 +8,9 @@ DESCRIPTION
 """
 
 
+import itertools
+
+
 def join_list(lst, link):
     """ Joins all elements in a list into a single string.
 

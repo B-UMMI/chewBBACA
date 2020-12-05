@@ -10,6 +10,11 @@ DESCRIPTION
 
 from Bio.Seq import Seq
 
+try:
+    from utils import str_utils as su
+except:
+    from CHEWBBACA.utils import str_utils as su
+
 
 def translate_sequence(dna_str, table_id):
     """ Translate a DNA sequence using the BioPython package.
@@ -70,22 +75,22 @@ def translate_dna_aux(dna_sequence, method, table_id):
     # try to translate the reverse complement
     elif method == 'revcomp':
         try:
-            myseq = reverse_complement(myseq)
+            myseq = su.reverse_complement(myseq)
             protseq = translate_sequence(myseq, table_id)
         except Exception as argh:
             return argh
     # try to translate the reverse
     elif method == 'rev':
         try:
-            myseq = reverse_str(myseq)
+            myseq = su.reverse_str(myseq)
             protseq = translate_sequence(myseq, table_id)
         except Exception as argh:
             return argh
     # try to translate the reverse reverse complement
     elif method == 'revrevcomp':
         try:
-            myseq = reverse_str(myseq)
-            myseq = reverse_complement(myseq)
+            myseq = su.reverse_str(myseq)
+            myseq = su.reverse_complement(myseq)
             protseq = translate_sequence(myseq, table_id)
         except Exception as argh:
             return argh
@@ -130,12 +135,12 @@ def translate_dna(dna_sequence, table_id, min_len):
     translating_methods = ['original', 'revcomp', 'rev', 'revrevcomp']
 
     # check if the string is DNA, without ambiguous bases
-    valid_dna = check_str_alphabet(original_seq, 'ACTG')
+    valid_dna = su.check_str_alphabet(original_seq, 'ACTG')
     if valid_dna is not True:
         return valid_dna
 
     # check if sequence is multiple of three
-    valid_length = check_str_multiple(original_seq, 3)
+    valid_length = su.check_str_multiple(original_seq, 3)
     if valid_length is not True:
         return valid_length
 

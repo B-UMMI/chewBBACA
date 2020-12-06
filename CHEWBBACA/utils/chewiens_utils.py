@@ -12,6 +12,11 @@ import requests
 from getpass import getpass
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
+try:
+    from utils import constants as cnst
+except:
+    from CHEWBBACA.utils import constants as cnst
+
 
 def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
     """ Verifies connection to a chewie-NS instance.

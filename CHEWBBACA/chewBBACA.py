@@ -15,7 +15,6 @@ import time
 import pickle
 import shutil
 import datetime
-import platform
 import argparse
 
 try:
@@ -201,73 +200,51 @@ def create_schema():
                         help='Delete intermediate files at the end.')
 
     args = parser.parse_args()
+    del args.CreateSchema
 
     header = 'chewBBACA - CreateSchema'
     hf = '='*(len(header)+4)
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
-    input_files = args.input_files
-    output_directory = args.output_directory
-    schema_name = args.schema_name
-    ptf_path = args.ptf_path
-    blast_score_ratio = args.blast_score_ratio
-    minimum_length = args.minimum_length
-    translation_table = args.translation_table
-    size_threshold = args.size_threshold
-    clustering_mode = args.clustering_mode
-    word_size = args.word_size
-    clustering_sim = args.clustering_sim
-    representative_filter = args.representative_filter
-    intra_filter = args.intra_filter
-    cpu_cores = args.cpu_cores
-    blastp_path = args.blastp_path
-    cds_input = args.cds_input
-    prodigal_mode = args.prodigal_mode
-    verbose = args.verbose
-    cleanup = args.cleanup
-
-    cpu_cores = aux.verify_cpu_usage(cpu_cores)
+    cpu_cores = aux.verify_cpu_usage(args.cpu_cores)
 
     # check if ptf exists
-    if ptf_path is not False:
-        ptf_val = aux.check_ptf(ptf_path)
+    if args.ptf_path is not False:
+        ptf_val = aux.check_ptf(args.ptf_path)
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
     # create output directory
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+    if not os.path.exists(args.output_directory):
+        os.makedirs(args.output_directory)
 
     print('Validating input genomes...')
-    if cds_input is True:
-        input_files = [os.path.abspath(input_files)]
+    if args.cds_input is True:
+        input_files = [os.path.abspath(args.input_files)]
     else:
-        genomes_list = os.path.join(output_directory, 'listGenomes2Call.txt')
-        input_files = aux.check_input_type(input_files, genomes_list)
+        genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
+        input_files = aux.check_input_type(args.input_files, genomes_list)
+    args.input_files = input_files
 
     # start CreateSchema process
-    CreateSchema.main(input_files, output_directory, schema_name,
-                      ptf_path, blast_score_ratio, minimum_length,
-                      translation_table, size_threshold, clustering_mode,
-                      word_size, clustering_sim, representative_filter,
-                      intra_filter, cpu_cores, blastp_path,
-                      cds_input, prodigal_mode, verbose, cleanup)
+    CreateSchema.main(**vars(args))
 
-    schema_dir = os.path.join(output_directory, schema_name)
+    schema_dir = os.path.join(args.output_directory, args.schema_name)
     # copy training file to schema directory
-    if ptf_path is not False:
-        shutil.copy(ptf_path, schema_dir)
+    if args.ptf_path is not False:
+        shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
-        ptf_hash = fu.hash_file(ptf_path, 'rb')
+        ptf_hash = fu.hash_file(args.ptf_path, 'rb')
     else:
         ptf_hash = ''
 
     # write schema config file
-    schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
-                                            translation_table, minimum_length,
-                                            version, size_threshold, word_size,
-                                            clustering_sim, representative_filter,
-                                            intra_filter, schema_dir)
+    schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
+                                            args.translation_table, args.minimum_length,
+                                            version, args.size_threshold,
+                                            args.word_size, args.clustering_sim,
+                                            args.representative_filter, args.intra_filter,
+                                            schema_dir)
 
     # create hidden file with genes/loci list
     genes_list_file = aux.write_gene_list(schema_dir)
@@ -464,36 +441,10 @@ def allele_call():
         if proceed.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
-            if ptf_path is not False:
-                print('\nAdding Prodigal training file to schema...')
-                ptf_val = aux.check_ptf(ptf_path)
-                if ptf_val[0] is False:
-                    sys.exit(ptf_val[1])
-                # copy training file to schema directory
-                shutil.copy(ptf_path, schema_directory)
-                print('Created {0}'.format(os.path.join(schema_directory,
-                                                        os.path.basename(ptf_path))))
-
-            # determine PTF checksum
-            if ptf_path is not False:
-                ptf_hash = aux.hash_file(ptf_path, 'rb')
-            else:
-                ptf_hash = ''
-
-            print('\nCreating file with schema configs...')
-            # write schema config file
-            schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
-                                                    translation_table, minimum_length,
-                                                    version, size_threshold,
-                                                    schema_directory)
-            print('Created {0}'.format(os.path.join(schema_directory,
-                                                    '.schema_config')))
-
-            print('\nCreating file with list of genes...')
-            # create hidden file with genes/loci list
-            genes_list_file = aux.write_gene_list(schema_directory)
-            print('Created {0}\n'.format(os.path.join(schema_directory,
-                                                      '.genes_list')))
+            upgraded = upgrade_legacy_schema(ptf_path, schema_directory,
+                                             blast_score_ratio, translation_table,
+                                             minimum_length, version,
+                                             size_threshold)
 
     # read schema configs
     with open(config_file, 'rb') as pf:
@@ -600,46 +551,7 @@ def allele_call():
                translation_table, ns)
 
     if store_profiles is True:
-        # add profiles to SQLite database
-        # parent results folder might have several results folders
-        results_folders = [os.path.join(output_directory, file)
-                           for file in os.listdir(output_directory) if 'results' in file]
-        # create datetime objects and sort to get latest
-        insert_dates = [(file, datetime.datetime.strptime(file.split('_')[-1], '%Y%m%dT%H%M%S'))
-                        for file in results_folders]
-        sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
-        results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')
-        insert_date = sorted_insert_dates[0][0].split('_')[-1]
-
-        # verify that database directory exists
-        database_directory = os.path.join(schema_directory, 'profiles_database')
-        # create if it does not exist
-        if os.path.isdir(database_directory) is False:
-            os.mkdir(database_directory)
-
-        # also need to check for database file
-        database_file = os.path.join(database_directory, 'profiles.db')
-        if os.path.isfile(database_file) is False:
-            print('\nCreating SQLite database to store profiles...', end='')
-            try:
-                sq.create_database(database_file)
-                # insert loci list into loci table
-                total_loci = sq.insert_loci(database_file, results_matrix)
-                print('done.')
-                print('Inserted {0} loci into database.'.format(total_loci))
-            except Exception:
-                print('WARNING: Could not create database file. Will not store profiles.')
-
-        # insert whole matrix
-        if os.path.isfile(database_file) is not False:
-            print('\nSending allelic profiles to SQLite database...', end='')
-            try:
-                total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
-                print('done.')
-                print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
-            except Exception as e:
-                print(e)
-                print('WARNING: Could not store profiles in local database.')
+        updated = store_allelecall_results(output_directory, schema_directory)
 
     # remove temporary files with paths to genomes
     # and schema files files
@@ -1500,7 +1412,7 @@ def ns_stats():
                         help='')
 
     parser.add_argument('-m', type=str, required=True,
-                        dest='stats_mode', choices=['species', 'schemas'],
+                        dest='mode', choices=['species', 'schemas'],
                         help='The process can retrieve the list of species '
                              '("species" option) in the Chewie-NS or the '
                              'list of schemas for a species '
@@ -1528,17 +1440,13 @@ def ns_stats():
                              'the Chewie-NS.')
 
     args = parser.parse_args()
+    del args.NSStats
 
     header = 'chewBBACA - NSStats'
     hf = '='*(len(header)+4)
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
 
-    mode = args.stats_mode
-    nomenclature_server = args.nomenclature_server
-    species_id = args.species_id
-    schema_id = args.schema_id
-
-    stats_requests.main(mode, nomenclature_server, species_id, schema_id)
+    stats_requests.main(**vars(args))
 
 
 def main():
@@ -1583,50 +1491,33 @@ def main():
                                   'and schemas in the Chewie-NS.',
                                   ns_stats]}
 
-    authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
-    repository = 'https://github.com/B-UMMI/chewBBACA'
-    wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
-    tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
-    contacts = 'imm-bioinfo@medicina.ulisboa.pt'
+    print('\nchewBBACA version: {0}'.format(version))
+    print('Authors: {0}'.format(cnst.authors))
+    print('Github: {0}'.format(cnst.repository))
+    print('Wiki: {0}'.format(cnst.wiki))
+    print('Tutorial: {0}'.format(cnst.tutorial))
+    print('Contacts: {0}\n'.format(cnst.contacts))
 
-    # Check python version, if fail, exit with message
-    try:
-        python_version = platform.python_version()
-        assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
-
-    except AssertionError:
-        print('Python version found: {} '.format(platform.python_version()))
-        print('Please use version Python >= 3.4')
+    matches = ["version", "v"]
+    if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
+        print(version)
         sys.exit(0)
 
-    # print help if no command is passed
-    if len(sys.argv) == 1:
+    # display help message if selected process is not valid
+    if len(sys.argv) == 1 or sys.argv[1] not in functions_info:
         print('\n\tUSAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following functions :\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))
         sys.exit(0)
 
-    if len(sys.argv) > 1 and 'version' in sys.argv[1]:
-        print(version)
-        return
-
-    print('\nchewBBACA version: {0}'.format(version))
-    print('Authors: {0}'.format(authors))
-    print('Github: {0}'.format(repository))
-    print('Wiki: {0}'.format(wiki))
-    print('Tutorial: {0}'.format(tutorial))
-    print('Contacts: {0}\n'.format(contacts))
+    # Check python version, if fail, exit with message
+    python_version = pv.validate_python_version()
 
     process = sys.argv[1]
-    if process in functions_info:
-        functions_info[process][1]()
-    else:
-        print('\n\tUSAGE: chewBBACA.py [module] -h \n')
-        print('Select one of the following functions:\n')
-        for f in functions_info:
-            print('{0}: {1}'.format(f, functions_info[f][0]))
+    functions_info[process][1]()
 
 
 if __name__ == "__main__":
+
     main()

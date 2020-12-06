@@ -36,29 +36,29 @@ import argparse
 from Bio import SeqIO
 
 try:
-    from utils import runProdigal
-    from utils import io_utils as iu
-    from utils import str_utils as su
-    from utils import files_utils as fu
-    from utils import list_utils as lu
-    from utils import dict_utils as du
-    from utils import blast_utils as bu
-    from utils import fasta_utils as fau
-    from utils import datetime_utils as dtu
-    from utils import clustering_utils as cu
-    from utils import auxiliary_functions as aux
+    from utils import (runProdigal,
+                       io_utils as iu,
+                       str_utils as su,
+                       list_utils as lu,
+                       dict_utils as du,
+                       blast_utils as bu,
+                       files_utils as fu,
+                       fasta_utils as fau,
+                       datetime_utils as dtu,
+                       clustering_utils as cu,
+                       auxiliary_functions as aux)
 except:
-    from CHEWBBACA.utils import runProdigal
-    from CHEWBBACA.utils import io_utils as iu
-    from CHEWBBACA.utils import str_utils as su
-    from CHEWBBACA.utils import files_utils as fu
-    from CHEWBBACA.utils import list_utils as lu
-    from CHEWBBACA.utils import dict_utils as du
-    from CHEWBBACA.utils import blast_utils as bu
-    from CHEWBBACA.utils import fasta_utils as fau
-    from CHEWBBACA.utils import datetime_utils as dtu
-    from CHEWBBACA.utils import clustering_utils as cu
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import (runProdigal,
+                                 io_utils as iu,
+                                 str_utils as su,
+                                 list_utils as lu,
+                                 dict_utils as du,
+                                 blast_utils as bu,
+                                 files_utils as fu,
+                                 fasta_utils as fau,
+                                 datetime_utils as dtu,
+                                 clustering_utils as cu,
+                                 auxiliary_functions as aux)
 
 
 def gene_prediction_component(fasta_files, ptf_path, translation_table,

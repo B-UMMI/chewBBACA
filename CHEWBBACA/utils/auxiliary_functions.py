@@ -22,23 +22,23 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 from Bio import SeqIO
 
 try:
-    from utils import runProdigal
-    from utils import io_utils as io
-    from utils import str_utils as su
-    from utils import list_utils as lu
-    from utils import constants as cnst
-    from utils import files_utils as fu
-    from utils import fasta_utils as fau
-    from utils import translation_utils as tu
+    from utils import (runProdigal,
+                       io_utils as iut,
+                       str_utils as sut,
+                       list_utils as lut,
+                       constants as cnst,
+                       files_utils as fut,
+                       fasta_utils as faut,
+                       translation_utils as tut)
 except:
-    from CHEWBBACA.utils import runProdigal
-    from CHEWBBACA.utils import io_utils as io
-    from CHEWBBACA.utils import str_utils as su
-    from CHEWBBACA.utils import list_utils as lu
-    from CHEWBBACA.utils import constants as cnst
-    from CHEWBBACA.utils import files_utils as fu
-    from CHEWBBACA.utils import fasta_utils as fau
-    from CHEWBBACA.utils import translation_utils as tu
+    from CHEWBBACA.utils import (runProdigal,
+                                 io_utils as iut,
+                                 str_utils as sut,
+                                 list_utils as lut,
+                                 constants as cnst,
+                                 files_utils as fut,
+                                 fasta_utils as faut,
+                                 translation_utils as tut)
 
 
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
@@ -85,7 +85,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
             stop_pos = cds[1]
             strand = cds[2]
             # extract CDS sequence
-            cds_sequence = su.extract_single_cds(sequence, *cds).upper()
+            cds_sequence = sut.extract_single_cds(sequence, *cds).upper()
 
             # store CDS with unique id
             coding_sequences[seqid] = cds_sequence
@@ -122,9 +122,9 @@ def write_protein_table(output_file, genome_id, cds_info):
 
     table_lines = [[genome_id] + protein_info
                    for protein_info in cds_info]
-    table_lines = [lu.join_list(line, '\t') for line in table_lines]
-    table_text = lu.join_list(table_lines, '\n')
-    io.write_to_file(table_text, output_file, 'a', '\n')
+    table_lines = [lut.join_list(line, '\t') for line in table_lines]
+    table_text = lut.join_list(table_lines, '\n')
+    iut.write_to_file(table_text, output_file, 'a', '\n')
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
@@ -157,15 +157,15 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     """
 
     # import contigs for current genome/assembly
-    contigs = fau.import_sequences(genome)
+    contigs = faut.import_sequences(genome)
     # extract coding sequences from contigs
-    reading_frames = io.pickle_loader(orf_file)
+    reading_frames = iut.pickle_loader(orf_file)
     genome_info = extract_genome_cds(reading_frames,
                                            contigs, 1)
     # save coding sequences to file
     # create records and write them to file
-    cds_lines = fau.create_fasta_lines(genome_info[0], identifier)
-    io.write_lines(cds_lines, cds_file)
+    cds_lines = faut.create_fasta_lines(genome_info[0], identifier)
+    iut.write_lines(cds_lines, cds_file)
 
     write_protein_table(protein_table, identifier, genome_info[1])
 
@@ -218,17 +218,17 @@ def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
                 the set of input genomes.
     """
 
-    protein_table = fu.join_paths(temp_directory,
+    protein_table = fut.join_paths(temp_directory,
                                ['protein_info_{0}.tsv'.format(index)])
 
-    cds_file = fu.join_paths(temp_directory,
+    cds_file = fut.join_paths(temp_directory,
                           ['coding_sequences_{0}.fasta'.format(index)])
 
     batch_total = 0
     for g in genomes:
         # determine Prodigal ORF file path for current genome
-        identifier = fu.file_basename(g, False)
-        orf_file_path = fu.join_paths(prodigal_path,
+        identifier = fut.file_basename(g, False)
+        orf_file_path = fut.join_paths(prodigal_path,
                                    ['{0}_ORF.txt'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
                                    protein_table, cds_file)
@@ -255,8 +255,8 @@ def write_gene_list(schema_dir):
     """
 
     schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = fu.join_paths(schema_dir, ['.genes_list'])
-    io.pickle_dumper(schema_files, schema_list_file)
+    schema_list_file = fut.join_paths(schema_dir, ['.genes_list'])
+    iut.pickle_dumper(schema_files, schema_list_file)
 
     return [os.path.isfile(schema_list_file), schema_list_file]
 
@@ -332,7 +332,7 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     params['intraCluster_filter'] = [intra_filter]
 
     config_file = os.path.join(output_directory, '.schema_config')
-    io.pickle_dumper(params, config_file)
+    iut.pickle_dumper(params, config_file)
 
     return [os.path.isfile(config_file), config_file]
 
@@ -533,7 +533,7 @@ def check_prodigal_results(prodigal_results, output_directory):
     failed_file = os.path.join(output_directory, 'prodigal_fails.tsv')
     if len(failed) > 0:
         lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
-        io.write_lines(lines, failed_file)
+        iut.write_lines(lines, failed_file)
 
     return [failed, failed_file]
 
@@ -625,14 +625,14 @@ def check_input_type(input_path, output_file):
     elif os.path.isdir(input_path):
         # we need to get only files with FASTA extension
         files = os.listdir(input_path)
-        files = fu.filter_files(files, cnst.FASTA_SUFFIXES)
+        files = fut.filter_files(files, cnst.FASTA_SUFFIXES)
         # get absolute paths
         files = [os.path.join(input_path, file) for file in files]
         # filter any directories that migh end with FASTA extension
         files = [file for file in files if os.path.isdir(file) is False]
 
         # only keep files whose content is typical of a FASTA file
-        fasta_files = fau.filter_non_fasta(files)
+        fasta_files = faut.filter_non_fasta(files)
 
         # if there are FASTA files
         if len(fasta_files) > 0:
@@ -835,10 +835,10 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
                 translated.
     """
 
-    sequences = fau.import_sequences(fasta_path)
+    sequences = faut.import_sequences(fasta_path)
 
     # translate sequences
-    translated_seqs = {k: tu.translate_dna(v, table_id, min_len)
+    translated_seqs = {k: tut.translate_dna(v, table_id, min_len)
                        for k, v in sequences.items()}
 
     # add locus identifier to headers
@@ -953,7 +953,7 @@ def read_configs(schema_path, filename):
     config_file = os.path.join(schema_path, filename)
     if os.path.isfile(config_file):
         # Load configs dictionary
-        configs = io.pickle_loader(config_file)
+        configs = iut.pickle_loader(config_file)
     else:
         sys.exit('Could not find a valid config file.')
 
@@ -1083,7 +1083,7 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
         except Exception as e:
             print(e)
 
-        translation = tu.translate_dna(sequence, translation_table, minimum_length)
+        translation = tut.translate_dna(sequence, translation_table, minimum_length)
         if isinstance(translation, list):
             dna_lines.append('>{0}'.format(seqid))
             dna_lines.append(translation[0][1])
@@ -1097,12 +1097,12 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
 
         if len(dna_lines)//2 == line_limit or i+1 == len(seqids):
 
-            dna_lines = lu.join_list(dna_lines, '\n')
-            io.write_to_file(dna_lines, dna_file, 'a', '\n')
+            dna_lines = lut.join_list(dna_lines, '\n')
+            iut.write_to_file(dna_lines, dna_file, 'a', '\n')
             dna_lines = []
 
-            prot_lines = lu.join_list(prot_lines, '\n')
-            io.write_to_file(prot_lines, protein_file, 'a', '\n')
+            prot_lines = lut.join_list(prot_lines, '\n')
+            iut.write_to_file(prot_lines, protein_file, 'a', '\n')
             prot_lines = []
 
     return [invalid_alleles, total_seqs]
@@ -1145,12 +1145,12 @@ def determine_distinct(sequences_file, unique_fasta):
             # seq object has to be converted to string
             sequence = str(record.seq.upper())
             seqid = record.id
-            seq_hash = su.hash_sequence(sequence)
+            seq_hash = sut.hash_sequence(sequence)
 
             # store only the hash for distinct sequences
             if seq_hash not in seqs_dict:
                 seqs_dict[seq_hash] = seqid
-                recout = fau.fasta_str_record(seqid, sequence)
+                recout = faut.fasta_str_record(seqid, sequence)
                 out_seqs.append(recout)
             elif seq_hash in seqs_dict:
                 total += 1
@@ -1159,8 +1159,8 @@ def determine_distinct(sequences_file, unique_fasta):
 
         if len(out_seqs) == out_limit or exausted is True:
             if len(out_seqs) > 0:
-                out_seqs = lu.join_list(out_seqs, '\n')
-                io.write_to_file(out_seqs, unique_fasta, 'a', '\n')
+                out_seqs = lut.join_list(out_seqs, '\n')
+                iut.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
     unique_seqids = list(seqs_dict.values())
@@ -1216,11 +1216,11 @@ def create_short(schema_files, schema_dir):
         True on completion.
     """
 
-    short_path = fu.join_paths(schema_dir, ['short'])
-    fu.create_directory(short_path)
+    short_path = fut.join_paths(schema_dir, ['short'])
+    fut.create_directory(short_path)
 
     for file in schema_files:
-        short_file = fu.join_paths(short_path, [fu.file_basename(file)])
+        short_file = fut.join_paths(short_path, [fut.file_basename(file)])
         short_file = short_file.replace('.fasta', '_short.fasta')
         shutil.copy(file, short_file)
 
@@ -1336,3 +1336,43 @@ def kmer_index(sequences, word_size):
             kmers_mapping.setdefault(kmer, []).append(seqid)
 
     return kmers_mapping
+
+
+def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
+                          translation_table, minimum_length, version,
+                          size_threshold):
+    """
+    """
+
+    if ptf_path is not False:
+        print('\nAdding Prodigal training file to schema...')
+        ptf_val = check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
+        # copy training file to schema directory
+        shutil.copy(ptf_path, schema_directory)
+        print('Created {0}'.format(os.path.join(schema_directory,
+                                                os.path.basename(ptf_path))))
+
+    # determine PTF hash
+    if ptf_path is not False:
+        ptf_hash = fut.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = ''
+
+    print('\nCreating file with schema configs...')
+    # write schema config file
+    schema_config = write_schema_config(blast_score_ratio, ptf_hash,
+                                        translation_table, minimum_length,
+                                        version, size_threshold,
+                                        schema_directory)
+    print('Created {0}'.format(os.path.join(schema_directory,
+                                            '.schema_config')))
+
+    print('\nCreating file with list of genes...')
+    # create hidden file with genes/loci list
+    genes_list_file = write_gene_list(schema_directory)
+    print('Created {0}\n'.format(os.path.join(schema_directory,
+                                              '.genes_list')))
+
+    return True

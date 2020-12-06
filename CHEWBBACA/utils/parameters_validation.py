@@ -17,13 +17,18 @@ DESCRIPTION
 import os
 import sys
 import argparse
+import platform
 
 try:
-    from utils import constants as cnts
-    from utils import auxiliary_functions as aux
+    from utils import (constants as cnts,
+                       files_utils as fut,
+                       chewiens_utils as nsut,
+                       auxiliary_functions as aux)
 except:
-    from CHEWBBACA.utils import constants as cnts
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import (constants as cnts,
+                                 files_utils as fut,
+                                 chewiens_utils as nsut,
+                                 auxiliary_functions as aux)
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -267,7 +272,7 @@ def validate_ptf(arg, input_path):
                    for file in os.listdir(input_path) if '.trn' in file]
     if len(schema_ptfs) == 1:
         schema_ptf = schema_ptfs[0]
-        ptf_hash = aux.hash_file(schema_ptf, 'rb')
+        ptf_hash = fut.hash_file(schema_ptf, 'rb')
         if ptf_hash == arg:
             valid = [schema_ptf, arg]
         else:
@@ -292,9 +297,25 @@ def validate_ns_url(arg):
     # sync schema has None by default to get ns_url in schema URI
     if ns_url is not None:
         # check if server is up
-        conn = aux.check_connection(ns_url)
+        conn = nsut.check_connection(ns_url)
         if conn is False:
             sys.exit('Failed to establish a connection to the Chewie-NS '
                      'at {0}.'.format(ns_url))
 
     return ns_url
+
+
+def validate_python_version():
+    """
+    """
+
+    python_version = platform.python_version()
+
+    try:
+        assert tuple(map(int, python_version.split('.'))) >= (3, 4, 0)
+    except AssertionError:
+        print('Python version found: {} '.format(python_version))
+        print('Please use version Python >= 3.4')
+        sys.exit(0)
+
+    return python_version

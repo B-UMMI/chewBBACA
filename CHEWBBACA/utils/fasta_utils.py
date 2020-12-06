@@ -14,15 +14,15 @@ from Bio import SeqIO
 from Bio.SeqIO import FastaIO
 
 try:
-    from utils import io_utils as io
-    from utils import str_utils as su
-    from utils import list_utils as lu
-    from utils import files_utils as fu
+    from utils import (io_utils as io,
+                       str_utils as su,
+                       list_utils as lu,
+                       files_utils as fu)
 except:
-    from CHEWBBACA.utils import io_utils as io
-    from CHEWBBACA.utils import str_utils as su
-    from CHEWBBACA.utils import list_utils as lu
-    from CHEWBBACA.utils import files_utils as fu
+    from CHEWBBACA.utils import (io_utils as io,
+                                 str_utils as su,
+                                 list_utils as lu,
+                                 files_utils as fu)
 
 
 def count_sequences(fasta_file):

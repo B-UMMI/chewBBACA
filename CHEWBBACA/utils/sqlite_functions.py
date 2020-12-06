@@ -435,6 +435,56 @@ def jsonify_profile(profile, loci):
     return json_profile
 
 
+def store_allelecall_results(output_directory, schema_directory):
+    """
+    """
+
+    # add profiles to SQLite database
+    # parent results folder might have several results folders
+    results_folders = [os.path.join(output_directory, file)
+                       for file in os.listdir(output_directory) if 'results' in file]
+    # create datetime objects and sort to get latest
+    insert_dates = [(file, datetime.datetime.strptime(file.split('_')[-1], '%Y%m%dT%H%M%S'))
+                    for file in results_folders]
+    sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
+    results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')
+    insert_date = sorted_insert_dates[0][0].split('_')[-1]
+
+    # verify that database directory exists
+    database_directory = os.path.join(schema_directory, 'profiles_database')
+    # create if it does not exist
+    if os.path.isdir(database_directory) is False:
+        os.mkdir(database_directory)
+
+    # also need to check for database file
+    database_file = os.path.join(database_directory, 'profiles.db')
+    if os.path.isfile(database_file) is False:
+        print('\nCreating SQLite database to store profiles...', end='')
+        try:
+            sq.create_database(database_file)
+            # insert loci list into loci table
+            total_loci = sq.insert_loci(database_file, results_matrix)
+            print('done.')
+            print('Inserted {0} loci into database.'.format(total_loci))
+        except Exception:
+            print('WARNING: Could not create database file. Will not store profiles.')
+
+    # insert whole matrix
+    updated = False
+    if os.path.isfile(database_file) is not False:
+        print('\nSending allelic profiles to SQLite database...', end='')
+        try:
+            total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+            print('done.')
+            print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
+            updated = True
+        except Exception as e:
+            print(e)
+            print('WARNING: Could not store profiles in local database.')
+
+    return updated
+
+
 def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     """ Inserts the data contained in a AlleleCall matrix into
         the SQLite database of the schema.
@@ -681,17 +731,17 @@ def update_profiles(schema_directory, reassigned):
     return len(profiles)
 
 
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST'
 # select all rows from tables
-db_file = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST/profiles_database/profiles.db'
-loci_list_db = select_all_rows(db_file, 'loci')
-profiles_list_db = select_all_rows(db_file, 'profiles')
-samples_list_db = select_all_rows(db_file, 'samples')
-subschemas_list_db = select_all_rows(db_file, 'subschemas')
+#db_file = '/home/rfm/Desktop/rfm/Lab_Software/senterica_schema/senterica_INNUENDO_cgMLST/profiles_database/profiles.db'
+#loci_list_db = select_all_rows(db_file, 'loci')
+#profiles_list_db = select_all_rows(db_file, 'profiles')
+#samples_list_db = select_all_rows(db_file, 'samples')
+#subschemas_list_db = select_all_rows(db_file, 'subschemas')
 
 # select rows with '*'
 # might be better than current method that selects based on single fields with '*' and can return a lot of
 # duplicated profiles.
-query = ("SELECT profiles.profile_id, profiles.profile_json FROM profiles WHERE profiles.profile_json LIKE '%*%'")
+#query = ("SELECT profiles.profile_id, profiles.profile_json FROM profiles WHERE profiles.profile_json LIKE '%*%'")
 
 

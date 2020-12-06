@@ -70,3 +70,9 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
 # UniProt SPARQL endpoint
 UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 MAX_QUERIES = 10
+
+authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
+repository = 'https://github.com/B-UMMI/chewBBACA'
+wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
+tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
+contacts = 'imm-bioinfo@medicina.ulisboa.pt'

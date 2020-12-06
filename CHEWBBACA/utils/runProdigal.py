@@ -5,11 +5,11 @@ import pickle
 import subprocess
 
 try:
-    from utils import files_utils as fu
-    from utils import auxiliary_functions as aux
+    from utils import (files_utils as fu,
+                       auxiliary_functions as aux)
 except:
-    from CHEWBBACA.utils import files_utils as fu
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import (files_utils as fu,
+                                 auxiliary_functions as aux)
 
 
 def run_prodigal(input_file, translation_table, mode, ptf_path):

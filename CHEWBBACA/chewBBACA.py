@@ -170,7 +170,7 @@ def create_schema():
                              'belong to the same gene. Only one of those '
                              'sequences is kept.')
 
-    parser.add_argument('--cpu', type=int, required=False,
+    parser.add_argument('--cpu', type=pv.verify_cpu_usage, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
                              'used to run the CreateSchema process '
@@ -202,11 +202,7 @@ def create_schema():
     args = parser.parse_args()
     del args.CreateSchema
 
-    header = 'chewBBACA - CreateSchema'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
-
-    cpu_cores = aux.verify_cpu_usage(args.cpu_cores)
+    aux.process_header('CreateSchema')
 
     # check if ptf exists
     if args.ptf_path is not False:
@@ -344,7 +340,7 @@ def allele_call():
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM')
 
-    parser.add_argument('--cpu', type=int, required=False, default=1,
+    parser.add_argument('--cpu', type=pv.verify_cpu_usage, required=False, default=1,
                         dest='cpu_cores',
                         help='Number of CPU cores/threads that will be '
                              'used to run the CreateSchema process '
@@ -391,9 +387,7 @@ def allele_call():
 
     args = parser.parse_args()
 
-    header = 'chewBBACA - AlleleCall'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('AlleleCall')
 
     input_files = args.input_files
     schema_directory = args.schema_directory
@@ -638,26 +632,11 @@ def evaluate_schema():
                         help='Skip clustal and mafft.')
 
     args = parser.parse_args()
+    del args.SchemaEvaluator
 
-    header = 'chewBBACA - SchemaEvaluator'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('SchemaEvaluator')
 
-    input_files = args.input_files
-    output_file = args.output_file
-    log_scale = args.log_scale
-    translation_table = args.translation_table
-    cpu_cores = args.cpu_cores
-    threshold = args.threshold
-    conserved = args.conserved
-    split_range = args.split_range
-    light_mode = args.light_mode
-    title = str(args.title)
-
-    ValidateSchema.main(input_files, cpu_cores, output_file,
-                        translation_table, threshold, split_range,
-                        title, log_scale, conserved,
-                        light_mode)
+    ValidateSchema.main(**vars(args))
 
 
 def test_schema():
@@ -708,21 +687,11 @@ def test_schema():
                         help='Increase stdout verbosity.')
 
     args = parser.parse_args()
+    del args.TestGenomeQuality
 
-    header = 'chewBBACA - TestGenomeQuality'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('TestGenomeQuality')
 
-    input_file = args.input_file
-    max_iteration = args.max_iteration
-    max_threshold = args.max_threshold
-    step = args.step
-    output_directory = args.output_directory
-    verbose = args.verbose
-
-    TestGenomeQuality.main(input_file, max_iteration,
-                           max_threshold, step,
-                           output_directory, verbose)
+    TestGenomeQuality.main(**vars(args))
 
 
 def extract_cgmlst():
@@ -793,19 +762,11 @@ def extract_cgmlst():
                              'per line).')
 
     args = parser.parse_args()
+    del args.ExtractCgMLST
 
-    header = 'chewBBACA - ExtractCgMLST'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('ExtractCgMLST')
 
-    input_file = args.input_file
-    output_directory = args.output_directory
-    threshold = args.threshold
-    genes2remove = args.genes2remove
-    genomes2remove = args.genomes2remove
-
-    Extract_cgAlleles.main(input_file, output_directory, threshold,
-                           genes2remove, genomes2remove)
+    Extract_cgAlleles.main(**vars(args))
 
 
 def remove_genes():
@@ -847,17 +808,11 @@ def remove_genes():
                              'keep and all other genes should be removed.')
 
     args = parser.parse_args()
+    del args.RemoveGenes
 
-    header = 'chewBBACA - RemoveGenes'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('RemoveGenes')
 
-    input_file = args.input_file
-    genes_list = args.genes_list
-    output_file = args.output_file
-    inverse = args.inverse
-
-    RemoveGenes.main(input_file, genes_list, output_file, inverse)
+    RemoveGenes.main(**vars(args))
 
 
 def join_profiles():
@@ -876,25 +831,23 @@ def join_profiles():
                         help='join profiles')
 
     parser.add_argument('-p1', nargs='?', type=str, required=True,
+                        dest='profile1',
                         help='profile 1')
 
     parser.add_argument('-p2', nargs='?', type=str, required=True,
+                        dest='profile2',
                         help='profile 2')
 
     parser.add_argument('-o', nargs='?', type=str, required=True,
+                        dest='output_file',
                         help='output file name')
 
     args = parser.parse_args()
+    del args.JoinProfiles
 
-    header = 'chewBBACA - JoinProfiles'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('JoinProfiles')
 
-    profile1 = args.p1
-    profile2 = args.p2
-    outputFile = args.o
-
-    profile_joiner.main(profile1, profile2, outputFile)
+    profile_joiner.main(**vars(args))
 
 
 def prep_schema():
@@ -988,49 +941,33 @@ def prep_schema():
                         help='The number of CPU cores to use (default=1).')
 
     args = parser.parse_args()
+    del args.PrepExternalSchema
 
-    header = 'chewBBACA - PrepExternalSchema'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
-
-    input_files = args.input_files
-    output_directory = args.output_directory
-    ptf_path = args.ptf_path
-    blast_score_ratio = args.blast_score_ratio
-    minimum_length = args.minimum_length
-    translation_table = args.translation_table
-    size_threshold = args.size_threshold
-    cpu_cores = args.cpu_cores
+    aux.process_header('PrepExternalSchema')
 
     # check if ptf exists
-    if ptf_path is not False:
-        ptf_val = aux.check_ptf(ptf_path)
+    if args.ptf_path is not False:
+        ptf_val = aux.check_ptf(args.ptf_path)
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
-    PrepExternalSchema.main(input_files, output_directory, cpu_cores,
-                            blast_score_ratio, minimum_length,
-                            translation_table, ptf_path,
-                            size_threshold)
+    PrepExternalSchema.main(**vars(args))
 
     # copy training file to schema directory
-    if ptf_path is not False:
-        shutil.copy(ptf_path, output_directory)
-
-    # determine PTF checksum
-    if ptf_path is not False:
-        ptf_hash = aux.hash_file(ptf_path, 'rb')
+    if args.ptf_path is not False:
+        ptf_hash = aux.hash_file(args.ptf_path, 'rb')
+        shutil.copy(args.ptf_path, args.output_directory)
     else:
         ptf_hash = ''
 
     # write schema config file
-    schema_config = aux.write_schema_config(blast_score_ratio, ptf_hash,
-                                            translation_table, minimum_length,
-                                            version, size_threshold,
-                                            output_directory)
+    schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
+                                            args.translation_table, args.minimum_length,
+                                            version, args.size_threshold,
+                                            args.output_directory)
 
     # create hidden file with genes/loci list
-    genes_list_file = aux.write_gene_list(output_directory)
+    genes_list_file = aux.write_gene_list(args.output_directory)
 
 
 def find_uniprot():
@@ -1070,16 +1007,11 @@ def find_uniprot():
                         help='The number of CPU cores to use during the process.')
 
     args = parser.parse_args()
+    del args.UniprotFinder
 
-    header = 'chewBBACA - UniprotFinder'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('UniprotFinder')
 
-    input_files = args.input_files
-    protein_table = args.protein_table
-    cpu_cores = args.cpu_cores
-
-    uniprot_find.main(input_files, protein_table, cpu_cores)
+    uniprot_find.main(**vars(args))
 
 
 def download_schema():
@@ -1158,22 +1090,11 @@ def download_schema():
                              'schema locally.')
 
     args = parser.parse_args()
+    del args.DownloadSchema
 
-    header = 'chewBBACA - DownloadSchema'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('DownloadSchema')
 
-    ns_species = args.species_id
-    ns_schema = args.schema_id
-    download_folder = args.download_folder
-    cpu_cores = args.cpu_cores
-    nomenclature_server = args.nomenclature_server
-    date = args.date
-    latest = args.latest
-
-    down_schema.main(ns_species, ns_schema, download_folder,
-                     cpu_cores, nomenclature_server, date,
-                     latest)
+    down_schema.main(**vars(args))
 
 
 def upload_schema():
@@ -1280,26 +1201,11 @@ def upload_schema():
                              'upload was interrupted and try to finish it.')
 
     args = parser.parse_args()
+    del args.LoadSchema
 
-    header = 'chewBBACA - LoadSchema'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('LoadSchema')
 
-    schema_directory = args.schema_directory
-    species_id = args.species_id
-    schema_name = args.schema_name
-    loci_prefix = args.loci_prefix
-    description_file = args.description_file
-    annotations = args.annotations
-    cpu_cores = args.cpu_cores
-    threads = args.threads
-    nomenclature_server = args.nomenclature_server
-    continue_up = args.continue_up
-
-    load_schema.main(schema_directory, species_id, schema_name,
-                     loci_prefix, description_file, annotations,
-                     cpu_cores, threads, nomenclature_server,
-                     continue_up)
+    load_schema.main(**vars(args))
 
 
 def synchronize_schema():
@@ -1367,18 +1273,11 @@ def synchronize_schema():
                              'Contributor can submit new alleles).')
 
     args = parser.parse_args()
+    del args.SyncSchema
 
-    header = 'chewBBACA - SyncSchema'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('SyncSchema')
 
-    schema_directory = args.schema_directory
-    cpu_cores = args.cpu_cores
-    nomenclature_server = args.nomenclature_server
-    submit = args.submit
-
-    sync_schema.main(schema_directory, cpu_cores,
-                     nomenclature_server, submit)
+    sync_schema.main(**vars(args))
 
 
 def ns_stats():
@@ -1442,9 +1341,7 @@ def ns_stats():
     args = parser.parse_args()
     del args.NSStats
 
-    header = 'chewBBACA - NSStats'
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+    aux.process_header('NSStats')
 
     stats_requests.main(**vars(args))
 

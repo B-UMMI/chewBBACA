@@ -443,21 +443,22 @@ def adapt_loci(genes_list):
     return [invalid_alleles, invalid_genes, summary_stats]
 
 
-def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, ptf_path, size_threshold):
+def main(input_files, output_directory, cpu_cores, blast_score_ratio,
+         minimum_length, translation_table, ptf_path, size_threshold):
 
     start = time.time()
 
     print('Adapting schema in the following '
-          'directory:\n{0}'.format(os.path.abspath(external_schema)))
+          'directory:\n{0}'.format(os.path.abspath(input_files)))
     print('Prodigal training file:\n{0}'.format(ptf_path))
-    print('Number of cores: {0}'.format(core_count))
-    print('BLAST Score Ratio: {0}'.format(bsr))
-    print('Translation table: {0}'.format(trans_tbl))
-    print('Minimum accepted sequence length: {0}'.format(min_len))
+    print('Number of cores: {0}'.format(cpu_cores))
+    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
+    print('Translation table: {0}'.format(translation_table))
+    print('Minimum accepted sequence length: {0}'.format(minimum_length))
     print('Size threshold: {0}'.format(size_threshold))
 
     # define output paths
-    schema_path = os.path.abspath(output_schema)
+    schema_path = os.path.abspath(output_directory)
     schema_short_path = aux.join_paths(schema_path, 'short')
 
     # create output directories
@@ -466,8 +467,8 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
     aux.create_directory(schema_short_path)
 
     # list schema gene files
-    genes_file = aux.check_input_type(external_schema,
-                                      os.path.join(output_schema, 'schema_genes.txt'))
+    genes_file = aux.check_input_type(input_files,
+                                      os.path.join(output_directory, 'schema_genes.txt'))
 
     # import list of schema files
     with open(genes_file, 'r') as gf:
@@ -483,14 +484,14 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
 
     # count number of sequences and mean length per gene
     genes_info = []
-    genes_pools = multiprocessing.Pool(processes=core_count)
+    genes_pools = multiprocessing.Pool(processes=cpu_cores)
     gp = genes_pools.map_async(aux.gene_seqs_info, genes_list,
                                callback=genes_info.extend)
     gp.wait()
 
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
-    even_genes_groups = aux.split_genes_by_core(genes_info, core_count*4,
+    even_genes_groups = aux.split_genes_by_core(genes_info, cpu_cores*4,
                                                 'seqcount')
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
@@ -499,20 +500,20 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
     for i in range(len(even_genes_groups)):
         even_genes_groups[i].append(schema_path)
         even_genes_groups[i].append(schema_short_path)
-        even_genes_groups[i].append(bsr)
-        even_genes_groups[i].append(min_len)
-        even_genes_groups[i].append(trans_tbl)
+        even_genes_groups[i].append(blast_score_ratio)
+        even_genes_groups[i].append(minimum_length)
+        even_genes_groups[i].append(translation_table)
         even_genes_groups[i].append(size_threshold)
 
     print('Adapting {0} genes...\n'.format(len(genes_list)))
 
     invalid_data = []
     completed = False
-    tickval = (100 // (core_count*4)) + 1
+    tickval = (100 // (cpu_cores*4)) + 1
     ticknum = 100//tickval
     completed = False
     # process inputs in parallel
-    genes_pools = multiprocessing.Pool(processes=core_count)
+    genes_pools = multiprocessing.Pool(processes=cpu_cores)
 
     rawr = genes_pools.map_async(adapt_loci, even_genes_groups,
                                  callback=invalid_data.extend)
@@ -543,7 +544,7 @@ def main(external_schema, output_schema, core_count, bsr, min_len, trans_tbl, pt
 
     # define paths and write files with list of invalid
     # alleles and invalid genes
-    output_schema_basename = os.path.basename(output_schema.rstrip('/'))
+    output_schema_basename = os.path.basename(output_directory.rstrip('/'))
     schema_parent_directory = os.path.dirname(schema_path)
 
     # write file with alleles that were determined to be invalid

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import numpy as np
+
+import os
+import time
 import argparse
 from collections import Counter
-import time
+
 import plotly
+import numpy as np
 import plotly.graph_objs as go
-import os
 
 
 def presAbs(d2c):
@@ -186,10 +188,6 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
     return d2d, reallybadgenomes, vector, True, listgenes2show
 
 
-# ~ return d2d,reallybadgenomes,vector,True
-
-
-
 def removegenomes(d2a, bagenomeslist,verbose):
 
     if verbose:
@@ -269,7 +267,6 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
             matrix3, toremovegenomes, statsvector, abscencematrix, listgenes2show = presence3(d2, ythreshold,
                                                                                               statsvector,
                                                                                               abscencematrix,verbose)
-        # ~ matrix3,toremovegenomes,statsvector,abscencematrix=presence3(d2,ythreshold,statsvector,abscencematrix)
 
         else:
             for vector in statsvector:
@@ -285,33 +282,13 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
         f.write(str(ythreshold) +"\t")
 
         for x in listgenes2showtotal:
-            # ~ f.write(str(x)+"\n")
             f.write((' '.join(map(str, x))) + "\n")
 
     return statsvector, iterationStabilizedat
 
 
-def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbose):
-
-
-    #~ parser = argparse.ArgumentParser(
-    #~ description="This program analyze an allele call raw output matrix, returning info on which genomes are responsible for cgMLST loci loss")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='raw allele call matrix file', required=True)
-    #~ parser.add_argument('-n', nargs='?', type=int, help='maximum number of iterations', required=True)
-    #~ parser.add_argument('-t', nargs='?', type=int, help='maximum threshold of bad calls above 95 percent', required=True)
-    #~ parser.add_argument('-s', nargs='?', type=int, help='step between each threshold analysis', required=True)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False, default=".")
-    #~ parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
-    #~ default=False)
-    #~
-    #~ args = parser.parse_args()
-    #~
-    #~ pathOutputfile = args.i
-    #~ iterationNumber = int(args.n)
-    #~ thresholdBadCalls = int(args.t)
-    #~ step = int(args.s)
-    #~ out_folder = args.o
-    #~ verbose = args.verbose
+def main(input_file, max_iteration, max_threshold,
+         step, output_directory, verbose):
 
     if verbose:
         def verboseprint(*args):
@@ -322,8 +299,8 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
         verboseprint = lambda *a: None  # do-nothing function
 
 
-    if not os.path.exists(out_folder):
-        os.makedirs(out_folder)
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
 
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
@@ -335,23 +312,23 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
 
     # for each threshold run a clean function on the dataset, using the previous run output (to be removed genomes) as input for the new one
 
-    with open(os.path.join(out_folder,"removedGenomes.txt"), "w") as f:
+    with open(os.path.join(output_directory,"removedGenomes.txt"), "w") as f:
         f.write( "Threshold\tRemoved_genomes\n")
-    with open(os.path.join(out_folder,"Genes_95%.txt"), "w") as f:
+    with open(os.path.join(output_directory,"Genes_95%.txt"), "w") as f:
         f.write( "Threshold\tPresent_genes\n")
 
     print("will try to open file...")
     # d2=np.loadtxt(inputfile, delimiter='\t')
-    d2original = np.genfromtxt(pathOutputfile, delimiter='\t', dtype=None)
+    d2original = np.genfromtxt(input_file, delimiter='\t', dtype=None)
     d2copy = np.copy(d2original)
     # create abscence/presence matrix for easier processing
     d2copy = presAbs(d2copy)
     print("file was read")
 
-    while threshold < thresholdBadCalls:
+    while threshold < max_threshold:
         thresholdlist.append(threshold)
         print(" ######## CALCULATING WITH THRESHOLD AT " + str(threshold) + " ########")
-        result, stabilizedIter = clean(d2copy, iterationNumber, threshold,out_folder,verbose)
+        result, stabilizedIter = clean(d2copy, max_iteration, threshold,output_directory,verbose)
         listStableIter.append(stabilizedIter)
         allresults.append(result)
 
@@ -369,8 +346,8 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
               # "Selected genomes to be removed",
               "Number of Loci present in 100% genomes"]
 
-    i = iterationNumber
-    while i <= iterationNumber:
+    i = max_iteration
+    while i <= max_iteration:
         threshindex = 0
 
         aux2 = []
@@ -439,7 +416,7 @@ def main(pathOutputfile,iterationNumber,thresholdBadCalls,step,out_folder,verbos
         )
 
         fig = go.Figure({"data": listtraces, "layout": layout})
-        plot_url = plotly.offline.plot(fig, filename=os.path.join(out_folder,'GenomeQualityPlot.html'))
+        plot_url = plotly.offline.plot(fig, filename=os.path.join(output_directory,'GenomeQualityPlot.html'))
 
         i += 1
 

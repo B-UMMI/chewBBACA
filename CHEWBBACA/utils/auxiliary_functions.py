@@ -433,46 +433,6 @@ def uniprot_query(sequence):
     return query
 
 
-def verify_cpu_usage(cpu_to_use):
-    """ Verify if the value provided for the number of CPU
-        cores/threads does not exceed system limit or affect
-        system performance.
-
-        Parameters
-        ----------
-        cpu_to_use : int
-            Value provided for the number of CPU cores/threads.
-
-        Returns
-        -------
-        cpu_to_use : int
-            Value of CPU cores/threads that will be used after
-            determining if the provided value was safe.
-
-    """
-    total_cpu = multiprocessing.cpu_count()
-
-    # do not allow a value greater than the number of cores
-    if cpu_to_use >= total_cpu:
-        print('Warning! You have provided a CPU core count value '
-              'that is equal to or exceeds the number of CPU '
-              'cores in your system!')
-        # define a value that is safe according to the number of
-        # available cores/threads
-        if total_cpu > 2:
-            cpu_to_use = total_cpu - 2
-        elif total_cpu == 2:
-            cpu_to_use = 1
-        print('Resetting to: {0}'.format(cpu_to_use))
-    elif cpu_to_use == (total_cpu - 1):
-        print('Warning! You have provided a CPU core count value '
-              'that is close to the maximum core count of your '
-              'machine ({0}/{1}). This may affect your system '
-              'responsiveness.'.format(cpu_to_use, total_cpu))
-
-    return cpu_to_use
-
-
 def check_ptf(ptf_path):
     """ Determines if path to Prodigal training file exists.
 
@@ -1376,3 +1336,12 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                               '.genes_list')))
 
     return True
+
+
+def process_header(process):
+    """
+    """
+
+    header = 'chewBBACA - {0}'.format(process)
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))

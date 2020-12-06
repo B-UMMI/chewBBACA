@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
-from Bio.Seq import Seq
-from Bio import SeqIO
+
 import os
-import argparse
-from SPARQLWrapper import SPARQLWrapper, JSON
 import csv
-from collections import defaultdict
+import argparse
 import multiprocessing
+from collections import defaultdict
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from SPARQLWrapper import SPARQLWrapper, JSON
+
+
 virtuoso_server=SPARQLWrapper('http://sparql.uniprot.org/sparql')
+
 
 class Result():
     def __init__(self):
@@ -20,6 +25,7 @@ class Result():
 
     def get_result(self):
         return self.val
+
 
 def translateSeq(DNASeq, verbose):
     if verbose:
@@ -39,6 +45,7 @@ def translateSeq(DNASeq, verbose):
 
 
     return str(protseq)
+
 
 def check_if_list_or_folder(folder_or_list):
     list_files = []
@@ -73,6 +80,7 @@ def get_data(sparql_query):
         time.sleep(5)
         result = virtuoso_server.query().convert()
     return result
+
 
 def get_protein_info(proteinSequence):
     proteinSequence=proteinSequence.replace("*","")
@@ -117,10 +125,8 @@ def get_protein_info(proteinSequence):
     except Exception as e:
         return False
 
-
-
-
     return str(name),str(url)
+
 
 def proc_gene(gene,auxBar):
 
@@ -162,17 +168,18 @@ def proc_gene(gene,auxBar):
 
     return [gene, name, url]
 
-def main(geneFiles,proteinid2genome,cpu2use):
 
-    geneFiles = check_if_list_or_folder(geneFiles)
-    if isinstance(geneFiles, list):
+def main(input_files, protein_table, cpu_cores):
+
+    input_files = check_if_list_or_folder(input_files)
+    if isinstance(input_files, list):
         with open("listGenes.txt", "w") as f:
-            for genome in geneFiles:
+            for genome in input_files:
                 f.write(genome + "\n")
-        geneFiles = "listGenes.txt"
+        input_files = "listGenes.txt"
 
     listGenes=[]
-    gene_fp = open( geneFiles, 'r')
+    gene_fp = open(input_files, 'r')
     for gene in gene_fp:
         gene = gene.rstrip('\n')
         listGenes.append(gene)
@@ -185,14 +192,12 @@ def main(geneFiles,proteinid2genome,cpu2use):
 
     dictaux= defaultdict(list)
 
-    with open(proteinid2genome) as csvfile:
+    with open(protein_table) as csvfile:
         reader = csv.reader(csvfile, delimiter='\t')
         headers = next(reader)
         for row in reader:
             for elem in row:
                 dictaux[row[0]+row[-1]].append(str(elem))
-
-
 
     print ("Processing the fastas")
     got=0
@@ -200,7 +205,6 @@ def main(geneFiles,proteinid2genome,cpu2use):
     uncharacterized=[]
     selected_prots=[]
     counter=0
-
 
     #test down bar
     auxBar=[]
@@ -211,7 +215,7 @@ def main(geneFiles,proteinid2genome,cpu2use):
         auxBar.append(listGenes[counter])
         counter+=step
 
-    pool = multiprocessing.Pool(cpu2use)
+    pool = multiprocessing.Pool(cpu_cores)
     result = Result()
     for gene in listGenes:
         p=pool.apply_async(proc_gene,args=[gene,auxBar],callback=result.update_result)
@@ -219,7 +223,6 @@ def main(geneFiles,proteinid2genome,cpu2use):
     pool.close()
     pool.join()
     listResults=result.get_result()
-
 
     for result in listResults:
         #~ lala=process_locus(gene,path2schema,newDict,auxBar)
@@ -245,7 +248,6 @@ def main(geneFiles,proteinid2genome,cpu2use):
         dictaux[aux2+protid].insert(0,os.path.basename(gene))
         selected_prots.append(aux2+protid)
 
-
     newProfileStr="Fasta\t"+('\t'.join(map(str, headers)))+"\tname\turl\n"
     for key in set(sorted(selected_prots,key=str)):
         newProfileStr += ('\t'.join(map(str, dictaux[key])))+"\n"
@@ -258,4 +260,5 @@ def main(geneFiles,proteinid2genome,cpu2use):
 
 
 if __name__ == "__main__":
+
     main()

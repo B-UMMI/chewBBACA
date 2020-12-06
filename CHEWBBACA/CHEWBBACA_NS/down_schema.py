@@ -484,8 +484,8 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-def main(species_id, schema_id, download_folder, core_num,
-         base_url, date, latest):
+def main(species_id, schema_id, download_folder, cpu_cores,
+         nomenclature_server, date, latest):
 
     start_date = dt.datetime.now()
     start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
@@ -496,7 +496,7 @@ def main(species_id, schema_id, download_folder, core_num,
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = aux.species_ids(species_id, base_url, headers_get)
+    species_info = aux.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
     else:
@@ -508,7 +508,7 @@ def main(species_id, schema_id, download_folder, core_num,
     schema_id, schema_uri,\
         schema_name, schema_params = aux.get_species_schemas(schema_id,
                                                              species_id,
-                                                             base_url,
+                                                             nomenclature_server,
                                                              headers_get)
 
     print('Schema id: {0}'.format(schema_id))
@@ -563,7 +563,7 @@ def main(species_id, schema_id, download_folder, core_num,
         ptf_hash = schema_params_dict['prodigal_training_file']
         ptf_file = download_ptf(ptf_hash, download_folder, schema_id,
                                 species_id, species_name, headers_get,
-                                base_url)
+                                nomenclature_server)
 
         # use PrepExternalSchema main to determine representatives
         genus, epithet = species_name.split(' ')
@@ -573,7 +573,7 @@ def main(species_id, schema_id, download_folder, core_num,
         # determine representatives and create schema
         PrepExternalSchema.main(download_folder,
                                 schema_path,
-                                core_num,
+                                cpu_cores,
                                 float(schema_params_dict['bsr']),
                                 int(schema_params_dict['minimum_locus_length']),
                                 int(schema_params_dict['translation_table']),

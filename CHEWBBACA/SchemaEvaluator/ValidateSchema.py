@@ -33,9 +33,10 @@ def which(program):
     sys.exit()
     return "Not found"
 
-def main(genes, cpuToUse, htmlFile, transTable, threshold, splited, title, logScale, OneBadGeneNotConserved, skipHeavy):
+def main(input_files, cpu_cores, output_file, translation_table,
+		 threshold, split_range, title, log_scale, conserved, light_mode):
 
-    outputpath = os.path.dirname(htmlFile)
+    outputpath = os.path.dirname(output_file)
 
     starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
     print (starttime)
@@ -45,15 +46,15 @@ def main(genes, cpuToUse, htmlFile, transTable, threshold, splited, title, logSc
     print ("Checking clustalw2 installed... " + str(which('clustalw2')))
 
     try:
-        f = open(genes, 'r')
+        f = open(input_files, 'r')
         f.close()
     except IOError:
-        listbasename = os.path.basename(os.path.normpath(genes))
+        listbasename = os.path.basename(os.path.normpath(input_files))
 
         with open("listGenes" + listbasename + ".txt", "w") as f:
-            for gene in os.listdir(genes):
+            for gene in os.listdir(input_files):
                 try:
-                    genepath = os.path.join(genes, gene)
+                    genepath = os.path.join(input_files, gene)
                     #gene_fp2 = HTSeq.FastaReader(genepath)
                     for allele in SeqIO.parse(genepath, "fasta"):
                         break
@@ -62,21 +63,21 @@ def main(genes, cpuToUse, htmlFile, transTable, threshold, splited, title, logSc
                     print(e)
                     pass
 
-        genes = "listGenes" + listbasename + ".txt"
+        input_files = "listGenes" + listbasename + ".txt"
 
-    genebasename = str(os.path.basename(genes))
+    genebasename = str(os.path.basename(input_files))
     genebasename = genebasename.split(".")
     genebasename.pop()
     genebasename = ".".join(genebasename)
 
     notConservedgenes, totalgenes, genesWOneAllele, boxplot, histplot, allelenumberplot, listgenesBoxOrdered, totalnumberofgenes, boxListLink, allAllelesStats = alleleSizeStats.main(
-        genes, threshold, OneBadGeneNotConserved, True, logScale, outputpath, splited)
+        input_files, threshold, conserved, True, log_scale, outputpath, split_range)
 
     histplot = str(json.dumps(histplot))
     allelenumberplot = str(json.dumps(allelenumberplot))
     allAllelesStats = str(json.dumps(allAllelesStats))
 
-    statsPerGene = CheckCDS.main(genes, transTable, True, outputpath, cpuToUse,skipHeavy)
+    statsPerGene = CheckCDS.main(input_files, translation_table, True, outputpath, cpu_cores,light_mode)
 
     # stats values are ordered in a list allelesNotMultiple3,listStopcodonsInside,listnotStartCodon,numberOfAlleles
     htmlgenespath = os.path.join(outputpath, "genes_html/")
@@ -85,7 +86,7 @@ def main(genes, cpuToUse, htmlFile, transTable, threshold, splited, title, logSc
     if not os.path.exists(htmlgenespath):
         os.makedirs(htmlgenespath)
 
-    with open(htmlFile, "w") as f:
+    with open(output_file, "w") as f:
         f.write(
             "<!DOCTYPE html>\n<html>\n<head><script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js'></script>\n")
         f.write(

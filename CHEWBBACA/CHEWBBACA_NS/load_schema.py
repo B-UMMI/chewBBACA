@@ -37,7 +37,7 @@ Expected input
 The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
-- ``-i``, ``input_files`` : Path to the directory of the schema to upload.
+- ``-i``, ``schema_directory`` : Path to the directory of the schema to upload.
 
     - e.g.: ``/home/user/schemas/ypestis_schema``
 
@@ -80,7 +80,7 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``20``
 
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature
+- ``--ns_url``, ``nomenclature_server`` : The base URL for the Nomenclature
   Server. The default value, "main", will establish a connection to
   "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
   and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). Users may also
@@ -953,7 +953,7 @@ def parse_arguments():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('-i', type=str, required=True,
-                        dest='input_files',
+                        dest='schema_directory',
                         help='Path to the directory of the schema to upload.')
 
     parser.add_argument('-sp', type=str, required=True,
@@ -1035,11 +1035,11 @@ def parse_arguments():
             continue_up]
 
 
-def main(input_files, species_id, schema_name, loci_prefix, description_file,
-         annotations, cpu_cores, threads, base_url, continue_up):
+def main(schema_directory, species_id, schema_name, loci_prefix, description_file,
+         annotations, cpu_cores, threads, nomenclature_server, continue_up):
 
-    if 'tutorial' not in base_url:
-        token = aux.capture_login_credentials(base_url)
+    if 'tutorial' not in nomenclature_server:
+        token = aux.capture_login_credentials(nomenclature_server)
     else:
         token = ''
 
@@ -1054,8 +1054,8 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
-    if 'tutorial' not in base_url:
-        user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
+    if 'tutorial' not in nomenclature_server:
+        user_id, user_role, user_auth = aux.user_info(nomenclature_server, headers_get)
     else:
         user_id, user_role, user_auth = ['', '', True]
 
@@ -1079,14 +1079,14 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     headers_post_bytes['user_id'] = user_id
 
     print('-- Parameters Validation --')
-    print('Local schema: {0}'.format(input_files))
+    print('Local schema: {0}'.format(schema_directory))
 
     # Get schema files from genes list file
-    genes_list = os.path.join(input_files, '.genes_list')
+    genes_list = os.path.join(schema_directory, '.genes_list')
     with open(genes_list, 'rb') as gl:
         genes = pickle.load(gl)
 
-    fasta_paths = [os.path.join(input_files, file) for file in genes]
+    fasta_paths = [os.path.join(schema_directory, file) for file in genes]
     fasta_paths.sort()
 
     # total number of loci
@@ -1096,7 +1096,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = aux.species_ids(species_id, base_url, headers_get)
+    species_info = aux.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
         print("Schema's species: {0} (id={1})".format(species_name, species_id))
@@ -1109,10 +1109,10 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     # verify schema configs
     print('Verifying schema configs...')
     # load schema config file
-    configs = aux.read_configs(input_files, '.schema_config')
+    configs = aux.read_configs(schema_directory, '.schema_config')
 
     # validate arguments values
-    ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', ''), input_files)
+    ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', ''), schema_directory)
     bsr_val = pv.bsr_type(configs.get('bsr', ''))
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
@@ -1146,14 +1146,14 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
         ptf_hash = ptf_val[1]
 
     # determine schema status
-    upload_type = schema_status(base_url, headers_get,
+    upload_type = schema_status(nomenclature_server, headers_get,
                                 schema_name, species_id,
                                 continue_up)
 
     if upload_type[0] == 'novel':
         print('New schema name: "{0}" '.format(schema_name))
     else:
-        schema_url = '{0}species/{1}/schemas/{2}'.format(base_url, species_id,
+        schema_url = '{0}species/{1}/schemas/{2}'.format(nomenclature_server, species_id,
                                                          upload_type[1])
         schema_id = schema_url.split('/')[-1]
         print('Schema exists and is incomplete '
@@ -1183,7 +1183,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     absent_loci = fasta_paths
     if upload_type[0] == 'incomplete':
 
-        loci_info, absent_loci, fasta_paths = schema_completedness(base_url, species_id,
+        loci_info, absent_loci, fasta_paths = schema_completedness(nomenclature_server, species_id,
                                                                    upload_type[1], headers_get,
                                                                    hashed_files)
 
@@ -1274,12 +1274,12 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     print('\n-- Schema Upload --')
     # Build the new schema URL and POST to NS
     if continue_up is False:
-        schema_url, schema_id = create_schema(base_url,
+        schema_url, schema_id = create_schema(nomenclature_server,
                                               headers_post,
                                               species_id,
                                               params)
         # send file with description
-        description_uri = aux.make_url(base_url, 'species', species_id,
+        description_uri = aux.make_url(nomenclature_server, 'species', species_id,
                                        'schemas', schema_id, 'description')
 
         desc_res = aux.upload_file(description_file, description_hash,
@@ -1303,11 +1303,11 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
         else:
             print('  Collecting loci data...')
             loci_file = create_loci_file(dna_files, loci_annotations,
-                                         input_files, species_id,
+                                         schema_directory, species_id,
                                          schema_id, loci_prefix,
                                          absent_loci)
             print('  Sending data to the NS...')
-            absent_data = upload_loci_data(loci_file, base_url,
+            absent_data = upload_loci_data(loci_file, nomenclature_server,
                                            species_id, schema_id,
                                            headers_post_bytes, headers_get,
                                            hashed_files)
@@ -1319,10 +1319,10 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     else:
         print('  Collecting loci data...')
         loci_file = create_loci_file(dna_files, loci_annotations,
-                                     input_files, species_id,
+                                     schema_directory, species_id,
                                      schema_id, loci_prefix)
         print('  Sending data to the NS...')
-        response_data = upload_loci_data(loci_file, base_url,
+        response_data = upload_loci_data(loci_file, nomenclature_server,
                                          species_id, schema_id,
                                          headers_post_bytes, headers_get,
                                          hashed_files)
@@ -1336,10 +1336,10 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     (alleles_files, loci_ids, loci_hashes,
      loci_names) = create_alleles_files(dna_files, response_data,
                                         invalid_identifiers, species_name,
-                                        base_url, species_id,
+                                        nomenclature_server, species_id,
                                         schema_id, user_id)
     # determine length of all alleles per locus
-    length_files = create_lengths_files(dna_files, input_files)
+    length_files = create_lengths_files(dna_files, schema_directory)
 
     # zip all files to reduce upload size
     print('  Compressing files with alleles data...')
@@ -1349,7 +1349,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
 
     print('  Sending alleles data to the NS...')
     # send POST with file contents and process each file in the NS
-    failed = upload_alleles_data(alleles_data, length_files, base_url,
+    failed = upload_alleles_data(alleles_data, length_files, nomenclature_server,
                                  headers_post, headers_post_bytes,
                                  species_id, schema_id)
 
@@ -1361,7 +1361,7 @@ def main(input_files, species_id, schema_name, loci_prefix, description_file,
     else:
         # send training file to NS
         print('\n\nUploading Prodigal training file...')
-        ptf_url = aux.make_url(base_url, 'species', species_id,
+        ptf_url = aux.make_url(nomenclature_server, 'species', species_id,
                                'schemas', schema_id, 'ptf')
         ptf_res = aux.upload_file(ptf_file, ptf_hash,
                                   ptf_url, headers_post_bytes,

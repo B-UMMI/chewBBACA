@@ -18,6 +18,7 @@ import os
 import sys
 import argparse
 import platform
+import multiprocessing
 
 try:
     from utils import (constants as cnts,
@@ -339,6 +340,8 @@ def verify_cpu_usage(cpu_to_use):
 
     """
     total_cpu = multiprocessing.cpu_count()
+
+    cpu_to_use = int(cpu_to_use)
 
     # do not allow a value greater than the number of cores
     if cpu_to_use >= total_cpu:

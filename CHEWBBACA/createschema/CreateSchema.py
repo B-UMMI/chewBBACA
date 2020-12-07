@@ -763,14 +763,13 @@ def cluster_blaster_component(clusters, sequences, output_directory,
     return [blast_results, ids_dict]
 
 
-def main(input_files, output_directory, schema_name, ptf_path,
-         blast_score_ratio, minimum_length, translation_table,
-         size_threshold, clustering_mode, word_size, clustering_sim,
-         representative_filter, intra_filter, cpu_cores, blastp_path,
-         cds_input, prodigal_mode, verbose, cleanup):
-
-    start_date = dtu.get_datetime()
-    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
+def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
+                    blast_score_ratio, minimum_length, translation_table,
+                    size_threshold, clustering_mode, word_size, clustering_sim,
+                    representative_filter, intra_filter, cpu_cores, blastp_path,
+                    prodigal_mode, cleanup):
+    """
+    """
 
     # read file with paths to input files
     fasta_files = iu.read_lines(input_files, strip=True)
@@ -1017,13 +1016,66 @@ def main(input_files, output_directory, schema_name, ptf_path,
     if cleanup is True:
         fu.delete_directory(temp_directory)
 
+    return schema_files
+
+
+def direct_schema(input_files, output_directory, schema_name, cleanup):
+    """
+    """
+
+    # define directory for temporary files
+    temp_directory = fu.join_paths(output_directory, ['temp'])
+    if os.path.isdir(temp_directory) is False:
+        fu.create_directory(temp_directory)
+
+    # add allele identifier to all sequences
+    schema_records = ['>{0}\n{1}'.format(su.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
+                      for rec in SeqIO.parse(input_files, 'fasta')]
+
+    final_records = os.path.join(temp_directory, 'schema_loci.fasta')
+    iu.write_lines(schema_records, final_records)
+
+    schema_dir = fu.join_paths(output_directory, [schema_name])
+    fu.create_directory(schema_dir)
+
+    # create directory and schema files
+    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
+    schema_files = fau.split_fasta(final_records, schema_dir, 1, filenames)
+    aux.create_short(schema_files, schema_dir)
+
+    # remove temporary files
+    if cleanup is True:
+        fu.delete_directory(temp_directory)
+
+    return schema_files
+
+
+def main(input_files, output_directory, schema_name, ptf_path,
+         blast_score_ratio, minimum_length, translation_table,
+         size_threshold, clustering_mode, word_size, clustering_sim,
+         representative_filter, intra_filter, cpu_cores, blastp_path,
+         cds_input, prodigal_mode, cleanup):
+
+    start_date = dtu.get_datetime()
+    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
+
+    if cds_input is False:
+        schema_files = genomes_to_reps(input_files, output_directory, schema_name,
+                                       ptf_path, blast_score_ratio, minimum_length,
+                                       translation_table, size_threshold, clustering_mode,
+                                       word_size, clustering_sim, representative_filter,
+                                       intra_filter, cpu_cores, blastp_path,
+                                       prodigal_mode, cleanup)
+    elif cds_input is True:
+        schema_files = direct_schema(input_files, output_directory, schema_name, cleanup)
+
     end_date = dtu.get_datetime()
     end_date_str = dtu.datetime_str(end_date)
 
     minutes, seconds = dtu.datetime_diff(start_date, end_date)
 
-    print('Created schema with {0} genes based on {1} genomes in'
-          '{2: .0f}m{3: .0f}s.'.format(len(schema_files), len(fasta_files),
+    print('Created schema with {0} genes in '
+          '{1: .0f}m{2: .0f}s.'.format(len(schema_files),
                                        minutes, seconds))
     print('\nFinished at: {0}'.format(end_date_str))
 
@@ -1076,14 +1128,6 @@ def parse_arguments():
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM.')
 
-    parser.add_argument('--cpu', type=int, required=False,
-                        default=1, dest='cpu_cores',
-                        help='Number of CPU cores that will be '
-                             'used to run the CreateSchema process '
-                             '(will be redefined to a lower value '
-                             'if it is equal to or exceeds the total'
-                             'number of available CPU cores).')
-
     parser.add_argument('--cm', type=str, required=False,
                         default='greedy', dest='clustering_mode',
                         help='The clustering mode. There are two modes: '
@@ -1116,6 +1160,14 @@ def parse_arguments():
                              'belong to the same gene. Only one of those '
                              'sequences is kept.')
 
+    parser.add_argument('--cpu', type=int, required=False,
+                        default=1, dest='cpu_cores',
+                        help='Number of CPU cores that will be '
+                             'used to run the CreateSchema process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores).')
+
     parser.add_argument('--b', type=str, required=False,
                         default='blastp', dest='blastp_path',
                         help='Path to the BLASTp executables.')
@@ -1129,33 +1181,20 @@ def parse_arguments():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--v', required=False, action='store_true',
-                        dest='verbose',
-                        help='Increased output verbosity during execution.')
-
     parser.add_argument('--c', '--cleanup', required=False,
                         action='store_false', dest='cleanup',
                         help='Delete intermediate files at the end.')
 
     args = parser.parse_args()
 
-    return [args.input_files, args.output_directory, args.schema_name,
-            args.ptf_path, args.blast_score_ratio, args.minimum_length,
-            args.translation_table, args.size_threshold,
-            args.clustering_mode, args.word_size, args.clustering_sim,
-            args.representative_filter, args.intra_filter, args.cpu_cores,
-            args.blastp_path, args.cds_input, args.prodigal_mode, args.verbose,
-            args.cleanup]
+    return args
 
 
 if __name__ == '__main__':
 
     args = parse_arguments()
 
-    main(args[0], args[1], args[2], args[3], args[4], args[5],
-         args[6], args[7], args[8], args[9], args[10], args[11],
-         args[12], args[13], args[14], args[15], args[16], args[17],
-         args[18])
+    main(**vars(args))
 
 
 

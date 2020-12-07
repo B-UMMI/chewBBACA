@@ -191,10 +191,6 @@ def create_schema():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--v', required=False, action='store_true',
-                        dest='verbose',
-                        help='Increased output verbosity during execution.')
-
     parser.add_argument('--c', '--cleanup', required=False, action='store_false',
                         dest='cleanup',
                         help='Delete intermediate files at the end.')
@@ -214,9 +210,8 @@ def create_schema():
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
 
-    print('Validating input genomes...')
     if args.cds_input is True:
-        input_files = [os.path.abspath(args.input_files)]
+        input_files = os.path.abspath(args.input_files)
     else:
         genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
         input_files = aux.check_input_type(args.input_files, genomes_list)

@@ -1068,7 +1068,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
                                                      translation_table, ptf_path, size_threshold)
 
     # remove temporary files
-    if no_cleanup is True:
+    if no_cleanup is False:
         fu.delete_directory(temp_directory)
 
     end_date = dtu.get_datetime()
@@ -1184,7 +1184,7 @@ def parse_arguments():
                         help='Prodigal running mode.')
 
     parser.add_argument('--no_cleanup', required=False,
-                        action='store_false', dest='no_cleanup',
+                        action='store_true', dest='no_cleanup',
                         help='Delete intermediate files at the end.')
 
     args = parser.parse_args()

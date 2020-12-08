@@ -191,7 +191,7 @@ def create_schema():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--no_cleanup', required=False, action='store_false',
+    parser.add_argument('--no_cleanup', required=False, action='store_true',
                         dest='no_cleanup',
                         help='Delete intermediate files at the end.')
 
@@ -242,7 +242,7 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    if os.path.isfile(input_files):
+    if os.path.isfile(input_files) and args.cds_input is False:
         os.remove(input_files)
 
 
@@ -950,7 +950,7 @@ def prep_schema():
 
     # copy training file to schema directory
     if args.ptf_path is not False:
-        ptf_hash = aux.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fu.hash_file(args.ptf_path, 'rb')
         shutil.copy(args.ptf_path, args.output_directory)
     else:
         ptf_hash = ''
@@ -958,8 +958,8 @@ def prep_schema():
     # write schema config file
     schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
                                             args.translation_table, args.minimum_length,
-                                            version, args.size_threshold,
-                                            args.output_directory)
+                                            version, args.size_threshold, None,
+                                            None, None, None, args.output_directory)
 
     # create hidden file with genes/loci list
     genes_list_file = aux.write_gene_list(args.output_directory)

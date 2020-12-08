@@ -81,6 +81,7 @@ try:
                        files_utils as fut,
                        blast_utils as but,
                        fasta_utils as faut,
+                       datetime_utils as dtu,
                        auxiliary_functions as aux)
 except:
     from CHEWBBACA.utils import (io_utils as iut,
@@ -89,6 +90,7 @@ except:
                                  files_utils as fut,
                                  blast_utils as but,
                                  fasta_utils as faut,
+                                 datetime_utils as dtu,
                                  auxiliary_functions as aux)
 
 
@@ -230,8 +232,9 @@ def select_candidate(candidates, proteins, seqids,
 
     return [representatives, final_representatives]
 
-
-def adapt_loci(genes_list):
+                          
+def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
+               table_id, size_threshold):
     """ Adapts a set of genes/loci from an external schema so that
         that schema  can be used with chewBBACA. Removes invalid alleles
         and selects representative alleles to include in the "short" directory.
@@ -274,13 +277,6 @@ def adapt_loci(genes_list):
     summary_stats = []
     invalid_genes = []
     invalid_alleles = []
-    genes = genes_list[:-6]
-    schema_path = genes_list[-6]
-    schema_short_path = genes_list[-5]
-    bsr = genes_list[-4]
-    min_len = genes_list[-3]
-    table_id = genes_list[-2]
-    size_threshold = genes_list[-1]
     for gene in genes:
 
         representatives = []
@@ -456,7 +452,8 @@ def adapt_loci(genes_list):
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
          minimum_length, translation_table, ptf_path, size_threshold):
 
-    start = time.time()
+    start_date = dtu.get_datetime()
+    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
 
     print('Adapting schema in the following '
           'directory:\n{0}'.format(os.path.abspath(input_files)))
@@ -487,8 +484,6 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     print('Number of genes to adapt: {0}\n'.format(len(genes_list)))
 
-    print('Started at: {0}'.format(time.strftime('%H:%M:%S-%d/%m/%Y')))
-
     print('Determining the total number of alleles and '
           'allele mean length per gene...\n'.format())
 
@@ -506,51 +501,18 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
 
-    # append output paths and bsr value to each input
-    for i in range(len(even_genes_groups)):
-        even_genes_groups[i].append(schema_path)
-        even_genes_groups[i].append(schema_short_path)
-        even_genes_groups[i].append(blast_score_ratio)
-        even_genes_groups[i].append(minimum_length)
-        even_genes_groups[i].append(translation_table)
-        even_genes_groups[i].append(size_threshold)
+    # add common arguments
+    even_genes_groups = [[i, schema_path, schema_short_path,
+                          blast_score_ratio, minimum_length,
+                          translation_table, size_threshold,
+                          adapt_loci] for i in even_genes_groups]
 
     print('Adapting {0} genes...\n'.format(len(genes_list)))
 
-    invalid_data = []
-    completed = False
-    tickval = (100 // (cpu_cores*4)) + 1
-    ticknum = 100//tickval
-    completed = False
-    # process inputs in parallel
-    genes_pools = multiprocessing.Pool(processes=cpu_cores)
-
-    rawr = genes_pools.map_async(adapt_loci, even_genes_groups,
-                                 callback=invalid_data.extend)
-
-    while completed is False:
-        completed = aux.progress_bar(rawr, len(even_genes_groups), tickval, ticknum, completed)
-
-    rawr.wait()
-
-    # handle exceptions
-    try:
-        # try to get returned results
-        # will re-raise exceptions raised during multiprocessing
-        a = rawr.get()
-    except Exception as e:
-        # get exception info
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        print('\n\nThe process encountered some problem and could '
-              'not complete successfully. \nRaised exceptions:\n')
-        # get traceback as list of lines
-        traceback_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-        # keep first exception traceback and exclude traceback from rawr.get()
-        exc_index = traceback_lines.index('\nThe above exception was the direct cause of the following exception:\n\n')
-        traceback_lines[0] = traceback_lines[0].split('multiprocessing.pool.RemoteTraceback: \n"""')[1]
-        traceback_lines[exc_index-1] = traceback_lines[exc_index-1].rstrip('"""\n')
-        print(''.join(traceback_lines[0:exc_index]))
-        sys.exit('\nExited.')
+    invalid_data = aux.map_async_parallelizer(even_genes_groups,
+                                              aux.function_helper,
+                                              cpu_cores,
+                                              show_progress=True)
 
     # define paths and write files with list of invalid
     # alleles and invalid genes
@@ -596,11 +558,12 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
           'input schema.'.format(len(genes_list)-len(invalid_genes),
                                     len(genes_list)))
 
-    end = time.time()
-    delta = end - start
-    minutes = int(delta // 60)
-    seconds = int(delta % 60)
-    print('Finished at: {0}'.format(time.strftime('%H:%M:%S-%d/%m/%Y')))
+    end_date = dtu.get_datetime()
+    end_date_str = dtu.datetime_str(end_date)
+
+    minutes, seconds = dtu.datetime_diff(start_date, end_date)
+
+    print('\nFinished at: {0}'.format(end_date_str))
     print('Done! Took {0}m{1}s.'.format(minutes, seconds))
 
 

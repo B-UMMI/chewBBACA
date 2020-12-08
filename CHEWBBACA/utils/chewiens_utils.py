@@ -8,6 +8,7 @@ DESCRIPTION
 """
 
 
+import json
 import requests
 from getpass import getpass
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
@@ -18,46 +19,14 @@ except:
     from CHEWBBACA.utils import constants as cnst
 
 
-def check_connection(ns_url, headers=cnst.HEADERS_GET_JSON):
-    """ Verifies connection to a chewie-NS instance.
-
-        Parameters
-        ----------
-        ns_url : str
-           The base URL for a Chewie Nomenclature Server
-           instance.
-        headers : dict
-            HTTP headers for GET requests.
-
-        Returns
-        -------
-        conn : bool
-            True if it was possible to return data from the
-            server, False otherwise.
-    """
-
-    url = make_url(ns_url, *['stats', 'summary'])
-
-    try:
-        res = requests.get(url, headers=headers, timeout=30, verify=False)
-        server_status = res.status_code
-        if server_status in [200, 201]:
-            conn = True
-        else:
-            conn = False
-    except Exception:
-        conn = False
-
-    return conn
-
-
-def simple_get_request(base_url, headers, endpoint_list):
+def simple_get_request(url, headers, endpoint_list=None,
+                       parameters=None, verify=False, timeout=30):
     """ Constructs an URI for an endpoint and requests
         data through a GET method sent to that endpoint.
 
         Parameters
         ----------
-        base_url : str
+        url : str
             The base URL for a Chewie Nomenclature Server
             instance.
         headers : dict
@@ -73,19 +42,23 @@ def simple_get_request(base_url, headers, endpoint_list):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = make_url(base_url, *endpoint_list)
-    res = requests.get(url, headers=headers, timeout=30, verify=False)
+    if endpoint_list is not None:
+        url = make_url(url, *endpoint_list)
 
-    return res
+    res = requests.get(url, headers=headers, params=parameters,
+                       timeout=timeout, verify=verify)
+
+    return [url, res]
 
 
-def simple_post_request(base_url, headers, endpoint_list, data):
+def simple_post_request(url, headers, endpoint_list=None,
+                        data=None, files=None, verify=False):
     """ Constructs an URI for an endpoint and sends
         data through a POST method sent to that endpoint.
 
         Parameters
         ----------
-        base_url : str
+        url : str
             The base URL for a Chewie Nomenclature Server
             instance.
         headers : dict
@@ -104,11 +77,47 @@ def simple_post_request(base_url, headers, endpoint_list, data):
     """
 
     # unpack list of sequential endpoints and pass to create URI
-    url = make_url(base_url, *endpoint_list)
-    res = requests.post(url, data=json.dumps(data),
-                        headers=headers, verify=False)
+    if endpoint_list is not None:
+        url = make_url(url, *endpoint_list)
 
-    return res
+    # if the content is defined as 'application/json'
+    # the data has to be passed after being processed with
+    # json.dumps()
+    res = requests.post(url, headers=headers, data=data,
+                        files=files, verify=verify)
+
+    return [url, res]
+
+
+def check_connection(url, headers=cnst.HEADERS_GET_JSON):
+    """ Verifies connection to a chewie-NS instance.
+
+        Parameters
+        ----------
+        ns_url : str
+           The base URL for a Chewie Nomenclature Server
+           instance.
+        headers : dict
+            HTTP headers for GET requests.
+
+        Returns
+        -------
+        conn : bool
+            True if it was possible to return data from the
+            server, False otherwise.
+    """
+    
+    try:
+        url, res = simple_get_request(url, headers, ['stats', 'summary'])
+        server_status = res.status_code
+        if server_status in [200, 201]:
+            conn = True
+        else:
+            conn = False
+    except Exception:
+        conn = False
+
+    return conn
 
 
 def user_info(base_url, headers_get):
@@ -137,8 +146,8 @@ def user_info(base_url, headers_get):
     """
 
     # verify user role to check permission
-    user_info = simple_get_request(base_url, headers_get,
-                                   ['user', 'current_user'])
+    user_url, user_info = simple_get_request(base_url, headers_get,
+                                             ['user', 'current_user'])
     user_info = user_info.json()
 
     user_id = str(user_info['id'])
@@ -172,8 +181,8 @@ def species_ids(species_id, base_url, headers_get):
 
     try:
         int(species_id)
-        species_info = simple_get_request(base_url, headers_get,
-                                          ['species', species_id])
+        species_url, species_info = simple_get_request(base_url, headers_get,
+                                                       ['species', species_id])
         if species_info.status_code in [200, 201]:
             species_name = species_info.json()[0]['name']['value']
             return [species_id, species_name]
@@ -210,7 +219,7 @@ def species_list(base_url, headers_get, endpoint_list):
             species identifiers as values.
     """
 
-    res = simple_get_request(base_url, headers_get, endpoint_list)
+    species_url, res = simple_get_request(base_url, headers_get, endpoint_list)
     res = res.json()
     species_lst = {}
     for sp in res:
@@ -329,14 +338,10 @@ def login_user_to_NS(server_url, email, password):
     auth_params['email'] = email
     auth_params['password'] = password
 
-    auth_headers = {}
-    auth_headers['Content-Type'] = 'application/json'
-    auth_headers['accepts'] = 'application/json'
-
-    auth_url = make_url(server_url, 'auth', 'login')
-
-    auth_r = requests.post(auth_url, data=json.dumps(auth_params),
-                           headers=auth_headers, verify=False)
+    auth_url, auth_r = simple_post_request(server_url,
+                                           cnst.HEADERS_POST_JSON,
+                                           ['auth', 'login'],
+                                           data=json.dumps(auth_params))
 
     auth_result = auth_r.json()
     if auth_result['status'] == 'success':
@@ -408,8 +413,8 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
     """
 
     # get the list of schemas for the species
-    schema_get = simple_get_request(base_url, headers_get,
-                                    ['species', species_id, 'schemas'])
+    schemas_url, schema_get = simple_get_request(base_url, headers_get,
+                                                 ['species', species_id, 'schemas'])
     schema_get_status = schema_get.status_code
     if schema_get_status in [200, 201]:
         species_schemas = schema_get.json()
@@ -427,8 +432,7 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
         if len(schema) > 0:
             # get schema parameters
             schema = schema[0]
-            schema_params = requests.get(schema[1], headers=headers_get,
-                                         verify=False)
+            url, schema_params = simple_get_request(schema[1], headers_get)
             schema_params = schema_params.json()[0]
             schema.append(schema_params)
             return schema
@@ -464,40 +468,10 @@ def upload_file(file, filename, url, headers, verify_ssl):
 
     file_handle = open(file, 'rb')
     files = {'file': (filename, file_handle)}
-    response = requests.post(url,
-                             headers=headers,
-                             files=files,
-                             verify=verify_ssl)
+    up_url, response = simple_post_request(url, headers,
+                                           files=files,
+                                           verify=verify_ssl)
+
     file_handle.close()
-
-    return response
-
-
-def upload_data(data, url, headers, verify_ssl):
-    """ Uploads data to Chewie-NS.
-
-        Parameters
-        ----------
-        data
-            The data that will be sent to Chewie-NS (any data
-            type accepted by requests 'data' argument).
-        url : str
-            Endpoint URL that receives the POST request.
-        headers : dict
-            HTTP POST request headers.
-        verify_sll : bool
-            If the SSL certificates should be verified in
-            HTTPS requests (False for no verification, True otherwise).
-
-        Returns
-        -------
-        response : requests.models.Response
-            Response object from the 'requests' module.
-    """
-
-    response = requests.post(url,
-                             headers=headers,
-                             data=data,
-                             verify=verify_ssl)
 
     return response

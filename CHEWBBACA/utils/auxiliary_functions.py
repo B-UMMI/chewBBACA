@@ -11,7 +11,6 @@ DESCRIPTION
 import os
 import sys
 import time
-import json
 import shutil
 import traceback
 import multiprocessing
@@ -805,10 +804,11 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     # some headers might only have the allele identifier
     seqids = list(translated_seqs.keys())
     new_seqids = add_prefix(seqids, gene_id)
+
     # switch ids
     sequences = {new_seqids[k]: v for k, v in translated_seqs.items()}
 
-    valid = {k: v[0][1] for k, v in sequences.items() if isinstance(v, list) is True}
+    valid = {k: v for k, v in sequences.items() if isinstance(v, list) is True}
     invalid = [[k, v] for k, v in sequences.items() if isinstance(v, list) is False]
 
     seqid = 1

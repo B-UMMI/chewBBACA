@@ -142,7 +142,7 @@ def schema_stats(species_id, base_url, headers_get):
 
     endpoint_list = ['stats', 'species', species_id, 'totals']
     # unpack list of sequential endpoints and pass to create URI
-    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)
+    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)[1]
     status_code = res.status_code
     if status_code not in [200, 201]:
         res = None
@@ -174,7 +174,7 @@ def species_schemas_count(base_url, headers_get):
 
     endpoint_list = ['stats', 'species']
     # unpack list of sequential endpoints and pass to create URI
-    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)
+    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
     if 'message' in res:
@@ -223,7 +223,7 @@ def species_schemas(species_id, base_url, headers_get):
 
     endpoint_list = ['species', species_id]
     # unpack list of sequential endpoints and pass to create URI
-    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)
+    res = nsut.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
     return res

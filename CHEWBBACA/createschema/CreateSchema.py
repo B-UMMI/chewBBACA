@@ -36,28 +36,20 @@ import argparse
 from Bio import SeqIO
 
 try:
-    from utils import (runProdigal,
-                       io_utils as iu,
-                       str_utils as su,
-                       list_utils as lu,
-                       dict_utils as du,
-                       blast_utils as bu,
-                       files_utils as fu,
-                       fasta_utils as fau,
-                       datetime_utils as dtu,
-                       clustering_utils as cu,
+    from PrepExternalSchema import PrepExternalSchema
+    from utils import (runProdigal, io_utils as iu,
+                       str_utils as su, list_utils as lu,
+                       dict_utils as du, blast_utils as bu,
+                       files_utils as fu, fasta_utils as fau,
+                       datetime_utils as dtu, clustering_utils as cu,
                        auxiliary_functions as aux)
 except:
-    from CHEWBBACA.utils import (runProdigal,
-                                 io_utils as iu,
-                                 str_utils as su,
-                                 list_utils as lu,
-                                 dict_utils as du,
-                                 blast_utils as bu,
-                                 files_utils as fu,
-                                 fasta_utils as fau,
-                                 datetime_utils as dtu,
-                                 clustering_utils as cu,
+    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import (runProdigal, io_utils as iu,
+                                 str_utils as su, list_utils as lu,
+                                 dict_utils as du, blast_utils as bu,
+                                 files_utils as fu, fasta_utils as fau,
+                                 datetime_utils as dtu, clustering_utils as cu,
                                  auxiliary_functions as aux)
 
 
@@ -763,11 +755,34 @@ def cluster_blaster_component(clusters, sequences, output_directory,
     return [blast_results, ids_dict]
 
 
+def create_schema_structure(input_files, output_directory, temp_directory,
+                            schema_name):
+    """
+    """
+
+    # add allele identifier to all sequences
+    schema_records = ['>{0}\n{1}'.format(su.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
+                      for rec in SeqIO.parse(input_files, 'fasta')]
+
+    final_records = os.path.join(temp_directory, 'schema_loci.fasta')
+    iu.write_lines(schema_records, final_records)
+
+    schema_dir = fu.join_paths(output_directory, [schema_name])
+    fu.create_directory(schema_dir)
+
+    # create directory and schema files
+    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
+    schema_files = fau.split_fasta(final_records, schema_dir, 1, filenames)
+    aux.create_short(schema_files, schema_dir)
+
+    return schema_files
+
+
 def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
                     blast_score_ratio, minimum_length, translation_table,
                     size_threshold, clustering_mode, word_size, clustering_sim,
                     representative_filter, intra_filter, cpu_cores, blastp_path,
-                    prodigal_mode, cleanup):
+                    prodigal_mode):
     """
     """
 
@@ -997,29 +1012,15 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     # create file with the schema representative sequences
     fau.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
 
-    # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(su.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
-                      for rec in SeqIO.parse(output_schema, 'fasta')]
+    schema_files = create_schema_structure(output_schema, output_directory,
+                                           temp_directory, schema_name)
 
-    final_records = os.path.join(temp_directory, 'schema_loci.fasta')
-    iu.write_lines(schema_records, final_records)
-
-    schema_dir = fu.join_paths(output_directory, [schema_name])
-    fu.create_directory(schema_dir)
-
-    # create directory and schema files
-    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
-    schema_files = fau.split_fasta(final_records, schema_dir, 1, filenames)
-    aux.create_short(schema_files, schema_dir)
-
-    # remove temporary files
-    if cleanup is True:
-        fu.delete_directory(temp_directory)
-
-    return schema_files
+    return [schema_files, temp_directory]
 
 
-def direct_schema(input_files, output_directory, schema_name, cleanup):
+def direct_schema(input_files, output_directory, schema_name, cpu_cores,
+                  blast_score_ratio, minimum_length, translation_table,
+                  ptf_path, size_threshold):
     """
     """
 
@@ -1028,46 +1029,47 @@ def direct_schema(input_files, output_directory, schema_name, cleanup):
     if os.path.isdir(temp_directory) is False:
         fu.create_directory(temp_directory)
 
-    # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(su.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
-                      for rec in SeqIO.parse(input_files, 'fasta')]
+    schema_files = create_schema_structure(input_files, temp_directory,
+                                           temp_directory, schema_name)
 
-    final_records = os.path.join(temp_directory, 'schema_loci.fasta')
-    iu.write_lines(schema_records, final_records)
+    temp_schema = os.path.dirname(schema_files[0])
+    schema_directory = os.path.join(output_directory, schema_name)
 
-    schema_dir = fu.join_paths(output_directory, [schema_name])
-    fu.create_directory(schema_dir)
+    # execute PrepExternalSchema to exclude problematic loci
+    PrepExternalSchema.main(temp_schema, schema_directory,
+                            cpu_cores, blast_score_ratio,
+                            minimum_length, translation_table,
+                            ptf_path, size_threshold)
 
-    # create directory and schema files
-    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
-    schema_files = fau.split_fasta(final_records, schema_dir, 1, filenames)
-    aux.create_short(schema_files, schema_dir)
+    schema_files = [f for f in os.listdir(schema_directory) if '.fasta' in f]
 
-    # remove temporary files
-    if cleanup is True:
-        fu.delete_directory(temp_directory)
-
-    return schema_files
+    return [schema_files, temp_directory]
 
 
 def main(input_files, output_directory, schema_name, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, clustering_mode, word_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blastp_path,
-         cds_input, prodigal_mode, cleanup):
+         cds_input, prodigal_mode, no_cleanup):
 
     start_date = dtu.get_datetime()
     print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
 
     if cds_input is False:
-        schema_files = genomes_to_reps(input_files, output_directory, schema_name,
+        schema_files, temp_directory = genomes_to_reps(input_files, output_directory, schema_name,
                                        ptf_path, blast_score_ratio, minimum_length,
                                        translation_table, size_threshold, clustering_mode,
                                        word_size, clustering_sim, representative_filter,
                                        intra_filter, cpu_cores, blastp_path,
-                                       prodigal_mode, cleanup)
+                                       prodigal_mode)
     elif cds_input is True:
-        schema_files = direct_schema(input_files, output_directory, schema_name, cleanup)
+        schema_files, temp_directory = direct_schema(input_files, output_directory, schema_name,
+                                                     cpu_cores, blast_score_ratio, minimum_length,
+                                                     translation_table, ptf_path, size_threshold)
+
+    # remove temporary files
+    if no_cleanup is True:
+        fu.delete_directory(temp_directory)
 
     end_date = dtu.get_datetime()
     end_date_str = dtu.datetime_str(end_date)
@@ -1181,8 +1183,8 @@ def parse_arguments():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--c', '--cleanup', required=False,
-                        action='store_false', dest='cleanup',
+    parser.add_argument('--no_cleanup', required=False,
+                        action='store_false', dest='no_cleanup',
                         help='Delete intermediate files at the end.')
 
     args = parser.parse_args()

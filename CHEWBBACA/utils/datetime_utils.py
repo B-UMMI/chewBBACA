@@ -45,6 +45,28 @@ def datetime_str(datetime_obj, date_format='%Y-%m-%dT%H:%M:%S'):
     return dt_str
 
 
+def datetime_obj(datetime_str, date_format='%Y-%m-%dT%H:%M:%S'):
+    """ Converts formatted string to datetime module object.
+
+        Parameters
+        ----------
+        datetime_str : str
+            String to conver to datetime object.
+        date_format : str
+            Format of the string representation of the date
+            object.
+
+        Returns
+        -------
+        dt_obj : datetime.datetime
+            Datetime module object.
+    """
+
+    dt_obj = dt.datetime.strptime(datetime_str, date_format)
+
+    return dt_obj
+
+
 def datetime_diff(sdate, edate):
     """ Returns the difference in minutes and the
         remaining in seconds between two dates.

@@ -191,8 +191,8 @@ def create_schema():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--c', '--cleanup', required=False, action='store_false',
-                        dest='cleanup',
+    parser.add_argument('--no_cleanup', required=False, action='store_false',
+                        dest='no_cleanup',
                         help='Delete intermediate files at the end.')
 
     args = parser.parse_args()

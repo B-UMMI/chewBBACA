@@ -61,7 +61,6 @@ def write_records(records, output_file):
         fasta_out.write_file(records)
 
 
-
 def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
     """ Switches FASTA records headers in a file by integer
         values.
@@ -126,7 +125,6 @@ def create_fasta_lines(sequences, prefix):
              for seqid, sequence in sequences.items()]
 
     return lines
-
 
 
 def import_sequences(fasta_path):
@@ -377,4 +375,3 @@ def gene_seqs_info(fasta_file):
     stats = [fasta_file, total_seqs, mean_length]
 
     return stats
-

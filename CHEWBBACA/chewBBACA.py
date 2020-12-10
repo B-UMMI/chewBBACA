@@ -22,7 +22,7 @@ try:
     from __init__ import __version__
     from allelecall import BBACA
     from createschema import PPanGen
-    from SchemaEvaluator import (schema_evaluator, dash_app)
+    from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
     from utils import (TestGenomeQuality, profile_joiner,
                        uniprot_find, Extract_cgAlleles,
@@ -39,7 +39,7 @@ except:
     from CHEWBBACA import __version__
     from CHEWBBACA.allelecall import BBACA
     from CHEWBBACA.createschema import PPanGen
-    from CHEWBBACA.SchemaEvaluator import (schema_evaluator, dash_app)
+    from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  uniprot_find, Extract_cgAlleles,
@@ -1560,7 +1560,7 @@ def main():
             print('{0}: {1}'.format(f, functions_info[f][0]))
         sys.exit(0)
 
-    matches = ["version", "v"]
+    matches = ["--v", "-v", "-version", "--version"]
 
     if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
         print(version)

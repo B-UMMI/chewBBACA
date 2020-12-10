@@ -19,14 +19,17 @@ CHEWIE_VERSIONS = ['2.5.0', '2.5.1', '2.5.2', '2.5.3',
 # BSR
 BSR_MIN = 0.0
 BSR_MAX = 1.0
+DEFAULT_BSR = 0.6
 
 # minimum sequence length
 MSL_MIN = 0
 MSL_MAX = 99999
+MINIMUM_LENGTH_DEFAULT = 201
 
 # size variation threshold
 ST_MIN = 0.0
 ST_MAX = 1.0
+SIZE_THRESHOLD_DEFAULT = 0.2
 
 WS_MIN = 0.0
 WS_MAX = 1.0
@@ -45,6 +48,7 @@ GENETIC_CODES = {1: 'Standard',
 				 4: 'The mold, protozoan, and coelenterate mitochondrial code and the mycoplasma/spiroplasma code',
 				 11: 'The Bacterial, Archaeal and Plant Plastid code',
 				 25: 'Candidate division SR1 and gracilibacteria code'}
+GENETIC_CODES_DEFAULT = 11
 
 FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn', '.fa']
 
@@ -76,3 +80,6 @@ repository = 'https://github.com/B-UMMI/chewBBACA'
 wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
 tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
 contacts = 'imm-bioinfo@medicina.ulisboa.pt'
+
+# timeout when the process asks users for input
+prompt_timeout = 30

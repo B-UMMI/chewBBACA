@@ -3,7 +3,6 @@
 import os
 import sys
 import json
-import time
 import argparse
 from operator import itemgetter
 
@@ -37,9 +36,6 @@ def main(input_files, cpu_cores, output_file, translation_table,
 		 threshold, split_range, title, log_scale, conserved, light_mode):
 
     outputpath = os.path.dirname(output_file)
-
-    starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
-    print (starttime)
 
     print ("Checking all programs are installed")
     print ("Checking mafft installed... " + str(which('mafft')))
@@ -691,9 +687,6 @@ li a {
         os.remove("listGenes" + listbasename + ".txt")
     except:
         pass
-
-    print (starttime)
-    print ("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
 
 if __name__ == "__main__":

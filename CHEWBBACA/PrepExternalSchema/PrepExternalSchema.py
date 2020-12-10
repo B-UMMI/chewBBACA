@@ -64,7 +64,6 @@ Code documentation
 
 import os
 import sys
-import time
 import shutil
 import argparse
 import traceback
@@ -81,7 +80,6 @@ try:
                        files_utils as fut,
                        blast_utils as but,
                        fasta_utils as faut,
-                       datetime_utils as dtu,
                        auxiliary_functions as aux)
 except:
     from CHEWBBACA.utils import (io_utils as iut,
@@ -90,7 +88,6 @@ except:
                                  files_utils as fut,
                                  blast_utils as but,
                                  fasta_utils as faut,
-                                 datetime_utils as dtu,
                                  auxiliary_functions as aux)
 
 
@@ -452,9 +449,6 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
          minimum_length, translation_table, ptf_path, size_threshold):
 
-    start_date = dtu.get_datetime()
-    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
-
     print('Adapting schema in the following '
           'directory:\n{0}'.format(os.path.abspath(input_files)))
     print('Prodigal training file:\n{0}'.format(ptf_path))
@@ -557,14 +551,6 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     print('\nSuccessfully adapted {0}/{1} genes present in the '
           'input schema.'.format(len(genes_list)-len(invalid_genes),
                                     len(genes_list)))
-
-    end_date = dtu.get_datetime()
-    end_date_str = dtu.datetime_str(end_date)
-
-    minutes, seconds = dtu.datetime_diff(start_date, end_date)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Done! Took {0}m{1}s.'.format(minutes, seconds))
 
 
 def parse_arguments():

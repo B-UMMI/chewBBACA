@@ -28,7 +28,8 @@ try:
                        constants as cnst,
                        files_utils as fut,
                        fasta_utils as faut,
-                       translation_utils as tut)
+                       translation_utils as tut,
+                       parameters_validation as pv)
 except:
     from CHEWBBACA.utils import (runProdigal,
                                  io_utils as iut,
@@ -37,7 +38,8 @@ except:
                                  constants as cnst,
                                  files_utils as fut,
                                  fasta_utils as faut,
-                                 translation_utils as tut)
+                                 translation_utils as tut,
+                                 parameters_validation as pv)
 
 
 UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql")
@@ -550,7 +552,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
     return results
 
 
-def check_input_type(input_path, output_file):
+def check_input_type(input_path, output_file, parent_dir=None):
     """ Checks if the input path is for a file or for a
         directory. If the path is for a directory, the
         function creates a file with the list of paths
@@ -577,10 +579,24 @@ def check_input_type(input_path, output_file):
             - If input path is not a valid path for a file or
               for a directory.
     """
-
+    print(input_path, output_file)
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
-        list_files = input_path
+        if parent_dir is not None:
+
+            with open(input_path, 'r') as infile:
+                lines = list(csv.reader(infile))
+
+            lines = [os.path.join(parent_dir, f)
+                     if parent_dir not in f
+                     else f
+                     for f in lines]
+
+            with open(output_file, 'w') as outfile:
+                outfile.write('\n'.join(lines))
+
+            list_files = input_path
+
     elif os.path.isdir(input_path):
         # we need to get only files with FASTA extension
         files = os.listdir(input_path)
@@ -1300,31 +1316,92 @@ def kmer_index(sequences, word_size):
 
 def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                           translation_table, minimum_length, version,
-                          size_threshold):
+                          size_threshold, force_continue):
     """
     """
 
-    if ptf_path is not False:
+    if force_continue is False:
+        prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
+                  'It is highly recommended that you run the PrepExternalSchema '
+                  'process to guarantee full compatibility with the new chewBBACA '
+                  'version.\nIf you wish to continue, the AlleleCall process will convert '
+                  'the schema to v{0}, but will not determine if schema structure respects '
+                  'configuration values.\nDo you wish to proceed?\n'.format(version))
+        proceed = iut.input_timeout(prompt, cnst.prompt_timeout)
+        if proceed.lower() not in ['y', 'yes']:
+            sys.exit('Exited.')
+
+        print('\n')
+        # determine parameters default values to include in config file
+        if ptf_path is None:
+            prompt = ('Full path to the Prodigal training file:\n')
+            ptf_path = iut.input_timeout(prompt, cnst.prompt_timeout)
+            if ptf_path in ['', 'None']:
+                ptf_path = None
+            else:
+                if os.path.isfile(ptf_path) is False:
+                    sys.exit('Provided path is not a valid file.')
+        else:
+            if os.path.isfile(ptf_path) is False:
+                sys.exit('Provided path is not a valid file.')
+
+        if blast_score_ratio is None:
+            prompt = ('BLAST score ratio value:\n')
+            blast_score_ratio = iut.input_timeout(prompt, cnst.prompt_timeout)
+        
+        blast_score_ratio = pv.bsr_type(blast_score_ratio)
+
+        if translation_table is None:
+            prompt = ('Translation table value:\n')
+            translation_table = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+        translation_table = pv.translation_table_type(translation_table)
+
+        if minimum_length is None:
+            prompt = ('Minimum length value:\n')
+            minimum_length = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+        minimum_length = pv.minimum_sequence_length_type(minimum_length)
+
+        if size_threshold is None:
+            prompt = ('Size threshold value:\n')
+            size_threshold = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+        size_threshold = pv.size_threshold_type(size_threshold)
+    # forced method, create with default args defined in constants
+    else:
+        if ptf_path is not None:
+            if os.path.isfile(ptf_path) is False:
+                sys.exit('Provided path is not a valid file.')
+
+        blast_score_ratio = blast_score_ratio if blast_score_ratio is not None else cnst.DEFAULT_BSR
+        blast_score_ratio = pv.bsr_type(blast_score_ratio)
+
+        translation_table = translation_table if translation_table is not None else cnst.GENETIC_CODES_DEFAULT
+        translation_table = pv.translation_table_type(translation_table)
+
+        minimum_length = minimum_length if minimum_length is not None else cnst.MINIMUM_LENGTH_DEFAULT
+        minimum_length = pv.minimum_sequence_length_type(minimum_length)
+
+        size_threshold = size_threshold if size_threshold is not None else cnst.SIZE_THRESHOLD_DEFAULT
+        size_threshold = pv.size_threshold_type(size_threshold)
+
+    # copy training file to schema directory
+    if ptf_path is not None:
         print('\nAdding Prodigal training file to schema...')
-        ptf_val = check_ptf(ptf_path)
-        if ptf_val[0] is False:
-            sys.exit(ptf_val[1])
-        # copy training file to schema directory
         shutil.copy(ptf_path, schema_directory)
         print('Created {0}'.format(os.path.join(schema_directory,
                                                 os.path.basename(ptf_path))))
 
     # determine PTF hash
-    if ptf_path is not False:
-        ptf_hash = fut.hash_file(ptf_path, 'rb')
-    else:
-        ptf_hash = ''
+    ptf_hash = fut.hash_file(ptf_path, 'rb') if ptf_path is not None else None
 
     print('\nCreating file with schema configs...')
     # write schema config file
     schema_config = write_schema_config(blast_score_ratio, ptf_hash,
                                         translation_table, minimum_length,
                                         version, size_threshold,
+                                        None, None, None, None,
                                         schema_directory)
     print('Created {0}'.format(os.path.join(schema_directory,
                                             '.schema_config')))
@@ -1336,6 +1413,103 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                               '.genes_list')))
 
     return True
+
+
+def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
+                                translation_table, minimum_length,
+                                size_threshold, force_continue, config_file,
+                                schema_directory):
+
+    # run parameters values
+    run_params = {'bsr': blast_score_ratio,
+                  'translation_table': translation_table,
+                  'size_threshold': size_threshold,
+                  'minimum_locus_length':minimum_length}
+
+    # mismatched schema and run parameters values
+    unmatch_params = {k: v for k, v in run_params.items()
+                      if v not in schema_params[k] and v is not None}
+    default_params = {k: schema_params[k][0] for k, v in run_params.items()
+                      if v is None}
+
+    if len(unmatch_params) > 0:
+        print('Provided arguments values differ from arguments '
+              'values used for schema creation:\n')
+        params_diffs = [[p, ':'.join(map(str, schema_params[p])), str(unmatch_params[p])] for p in unmatch_params]
+        params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
+        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
+        print('\n'.join(params_diffs_text))
+        if force_continue is False:
+            prompt = ('\nContinuing might lead to results not consistent with '
+                      'previous runs.\nProviding parameters values that differ '
+                      'from the ones used for schema creation will also '
+                      'invalidate the schema for uploading and synchronization '
+                      'with Chewie-NS.\nContinue?\n')
+            params_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
+        else:
+            params_answer = 'yes'
+
+        if params_answer.lower() not in ['y', 'yes']:
+            sys.exit('Exited.')
+        else:
+            for p in unmatch_params:
+                schema_params[p].append(unmatch_params[p])
+
+    # update arguments for current run
+    for k in run_params:
+        if k in default_params:
+            run_params[k] = default_params[k]
+
+    # default is to get the training file in schema directory
+    if ptf_path is None:
+        # deal with multiple training files
+        schema_ptfs = [file for file in os.listdir(schema_directory) if file.endswith('.trn')]
+        if len(schema_ptfs) > 1:
+            sys.exit('Found more than one Prodigal training file in schema directory.\n'
+                     'Please maintain only the training file used in the schema creation process.')
+        elif len(schema_ptfs) == 1:
+            ptf_path = os.path.join(schema_directory, schema_ptfs[0])
+        elif len(schema_ptfs) == 0:
+            print('There is no Prodigal training file in schema\'s directory.')
+    # if user provides a training file
+    else:
+        ptf_val = check_ptf(ptf_path)
+        if ptf_val[0] is False:
+            sys.exit(ptf_val[1])
+
+    # determine PTF checksum
+    if ptf_path is not None:
+        ptf_hash = fut.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = ''
+
+    if ptf_hash not in schema_params['prodigal_training_file']:
+        ptf_num = len(schema_params['prodigal_training_file'])
+        if force_continue is False:
+            if ptf_num == 1:
+                print('Prodigal training file is not the one used to create the schema.')
+                prompt = ('Using this training file might lead to results not '
+                          'consistent with previous runs and invalidate the '
+                          'schema for usage with the NS.\nContinue process?\n')
+                ptf_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
+            if ptf_num > 1:
+                print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
+                prompt = ('Continue?\n')
+                ptf_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
+        else:
+            ptf_answer = 'yes'
+
+        if ptf_answer.lower() not in ['y', 'yes']:
+            sys.exit('Exited.')
+        else:
+            schema_params['prodigal_training_file'].append(ptf_hash)
+            unmatch_params['prodigal_training_file'] = ptf_hash
+
+    # save updated schema config file
+    if len(unmatch_params) > 0:
+        iut.pickle_dumper(schema_params, config_file)
+
+    return [schema_params, unmatch_params, run_params]
 
 
 def process_header(process):

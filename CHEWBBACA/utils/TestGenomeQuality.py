@@ -2,7 +2,6 @@
 
 
 import os
-import time
 import argparse
 from collections import Counter
 
@@ -302,9 +301,6 @@ def main(input_file, max_iteration, max_threshold,
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-
-    starttime = "\nStarting Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y")
-
     allresults = []
     threshold = 0
     thresholdlist = []
@@ -424,9 +420,6 @@ def main(input_file, max_iteration, max_threshold,
     for stableiter in listStableIter:
         verboseprint( "At threshold " + str(thresholdlist[i]) + " it stabilized at the iteration number " + str(stableiter) )
         i += 1
-
-    print (starttime)
-    print ("Finished Script at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
 
 if __name__ == "__main__":

@@ -59,7 +59,6 @@ import pickle
 import hashlib
 import argparse
 import requests
-import datetime as dt
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper
 from urllib3.exceptions import InsecureRequestWarning
@@ -72,7 +71,6 @@ try:
                        constants as cnst,
                        chewiens_utils as nsut,
                        files_utils as fut,
-                       datetime_utils as dtu,
                        sqlite_functions as sq,
                        auxiliary_functions as aux,
                        parameters_validation as pv)
@@ -82,7 +80,6 @@ except:
                                  constants as cnst,
                                  chewiens_utils as nsut,
                                  files_utils as fut,
-                                 datetime_utils as dtu,
                                  sqlite_functions as sq,
                                  auxiliary_functions as aux,
                                  parameters_validation as pv)
@@ -855,10 +852,6 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit):
         user_role = ''
         user_auth = True if 'tutorial' in nomenclature_server else False
 
-    start_date = dtu.get_datetime()
-    start_date_str = dtu.datetime_str(start_date)
-    print('Started at: {0}\n'.format(start_date_str))
-
     # POST requests headers
     headers_post = cnst.HEADERS_POST_JSON
     headers_post['Authorization'] = token
@@ -1116,15 +1109,6 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit):
                  for f in os.listdir(short_dir)
                  if f.endswith('_bsr.txt')]
     fut.remove_files(bsr_files)
-
-    end_date = dtu.get_datetime()
-    end_date_str = dtu.datetime_str(end_date)
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 if __name__ == "__main__":

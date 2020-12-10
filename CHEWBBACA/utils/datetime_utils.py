@@ -8,8 +8,15 @@ DESCRIPTION
 """
 
 
+import sys
 import time
+import functools
 import datetime as dt
+
+try:
+    from utils import auxiliary_functions as aux
+except:
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
 
 def get_datetime():
@@ -109,3 +116,27 @@ def validate_date(date):
         valid = date
 
     return valid
+
+
+# decorator to time main processes
+def process_timer(func):
+    # use functools to preserve info about wrapped function
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # get process name and print header
+        aux.process_header(sys.argv[1])
+
+        start = get_datetime()
+        start_str = datetime_str(start)
+        print('Started at: {0}\n'.format(start_str))
+        # run function
+        func(*args, **kwargs)
+
+        end = get_datetime()
+        end_str = datetime_str(end)
+        print('\nFinished at: {0}'.format(end_str))
+
+        minutes, seconds = datetime_diff(start, end)
+        print('Took {0: .0f}m{1: .0f}s.'.format(minutes, seconds))
+
+    return wrapper

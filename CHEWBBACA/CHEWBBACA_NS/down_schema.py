@@ -72,7 +72,6 @@ import pickle
 import shutil
 import requests
 import argparse
-import datetime as dt
 import concurrent.futures
 from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
@@ -83,7 +82,6 @@ try:
                        constants as cnst,
                        files_utils as fut,
                        chewiens_utils as cut,
-                       datetime_utils as dut,
                        auxiliary_functions as aux,
                        parameters_validation as pv)
 except:
@@ -92,7 +90,6 @@ except:
                                  constants as cnst,
                                  files_utils as fut,
                                  chewiens_utils as cut,
-                                 datetime_utils as dut,
                                  auxiliary_functions as aux,
                                  parameters_validation as pv)
 
@@ -487,10 +484,6 @@ def download_ptf(ptf_hash, download_folder, schema_id,
 def main(species_id, schema_id, download_folder, cpu_cores,
          nomenclature_server, date, latest):
 
-    start_date = dut.get_datetime()
-    start_date_str = dut.datetime_str(start_date, '%Y-%m-%dT%H:%M:%S')
-    print('Started at: {0}\n'.format(start_date_str))
-
     # GET request headers
     headers_get = cnst.HEADERS_GET_JSON
 
@@ -606,15 +599,6 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         genes_list_file = aux.write_gene_list(schema_path)
 
     print('Schema is now available at: {0}'.format(schema_path))
-
-    end_date = dut.get_datetime()
-    end_date_str = dut.datetime_str(end_date, '%Y-%m-%dT%H:%M:%S')
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 def parse_arguments():

@@ -226,7 +226,7 @@ def write_list(lines, output_file):
         file.writelines(lines)
 
 
-def input_timeout(prompt, timeout):
+def input_timeout(prompt, timeout=30):
     """ Adds timeout feature when requesting user input.
 
         Parameters

@@ -41,16 +41,14 @@ try:
                        str_utils as su, list_utils as lu,
                        dict_utils as du, blast_utils as bu,
                        files_utils as fu, fasta_utils as fau,
-                       datetime_utils as dtu, clustering_utils as cu,
-                       auxiliary_functions as aux)
+                       clustering_utils as cu, auxiliary_functions as aux)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (runProdigal, io_utils as iu,
                                  str_utils as su, list_utils as lu,
                                  dict_utils as du, blast_utils as bu,
                                  files_utils as fu, fasta_utils as fau,
-                                 datetime_utils as dtu, clustering_utils as cu,
-                                 auxiliary_functions as aux)
+                                 clustering_utils as cu, auxiliary_functions as aux)
 
 
 def gene_prediction_component(fasta_files, ptf_path, translation_table,
@@ -1052,9 +1050,6 @@ def main(input_files, output_directory, schema_name, ptf_path,
          representative_filter, intra_filter, cpu_cores, blastp_path,
          cds_input, prodigal_mode, no_cleanup):
 
-    start_date = dtu.get_datetime()
-    print('Started at: {0}\n'.format(dtu.datetime_str(start_date)))
-
     if cds_input is False:
         schema_files, temp_directory = genomes_to_reps(input_files, output_directory, schema_name,
                                        ptf_path, blast_score_ratio, minimum_length,
@@ -1070,16 +1065,6 @@ def main(input_files, output_directory, schema_name, ptf_path,
     # remove temporary files
     if no_cleanup is False:
         fu.delete_directory(temp_directory)
-
-    end_date = dtu.get_datetime()
-    end_date_str = dtu.datetime_str(end_date)
-
-    minutes, seconds = dtu.datetime_diff(start_date, end_date)
-
-    print('Created schema with {0} genes in '
-          '{1: .0f}m{2: .0f}s.'.format(len(schema_files),
-                                       minutes, seconds))
-    print('\nFinished at: {0}'.format(end_date_str))
 
 
 def parse_arguments():

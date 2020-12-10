@@ -287,10 +287,6 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
     else:
         print("Blast version meets minimum requirements (>=2.5.0).")
 
-    start_date = dt.datetime.now()
-    start_date_str = dt.datetime.strftime(start_date, '%H:%M:%S-%d/%m/%Y')
-    print('\nStarted at: {0}\n'.format(start_date_str))
-
     listOfGenomes = []
     listOfGenomesBasename = []
 
@@ -738,15 +734,6 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
         shutil.rmtree(basepath)
     else:
         print('Could not create some output files. Will not delete temp files.')
-
-    end_date = dt.datetime.now()
-    end_date_str = dt.datetime.strftime(end_date, '%H:%M:%S-%d/%m/%Y')
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 if __name__ == "__main__":

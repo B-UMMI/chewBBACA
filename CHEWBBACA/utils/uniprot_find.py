@@ -130,7 +130,6 @@ def get_protein_info(proteinSequence):
 
 def proc_gene(gene,auxBar):
 
-    #~ print gene
     name=''
     url=''
     prevName=''

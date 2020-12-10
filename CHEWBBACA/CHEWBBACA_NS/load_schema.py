@@ -99,13 +99,11 @@ Code documentation
 import os
 import sys
 import csv
-import time
 import json
 import pickle
 import argparse
 import requests
 import itertools
-import datetime as dt
 import multiprocessing
 import concurrent.futures
 
@@ -118,7 +116,6 @@ try:
                        constants as cnst,
                        files_utils as fut,
                        chewiens_utils as cut,
-                       datetime_utils as dtu,
                        auxiliary_functions as aux,
                        parameters_validation as pv)
 except:
@@ -126,7 +123,6 @@ except:
                                  constants as cnst,
                                  files_utils as fut,
                                  chewiens_utils as cut,
-                                 datetime_utils as dtu,
                                  auxiliary_functions as aux,
                                  parameters_validation as pv)
 
@@ -1037,10 +1033,6 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     else:
         token = ''
 
-    start_date = dtu.get_datetime()
-    start_date_str = dtu.datetime_str(start_date)
-    print('Started at: {0}\n'.format(start_date_str))
-
     # verify user
     print('-- User Permissions --')
     # GET request headers
@@ -1378,15 +1370,6 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     if len(absent_loci) > 0:
         os.remove(loci_file)
         os.remove('{0}.zip'.format(loci_file))
-
-    end_date = dtu.get_datetime()
-    end_date_str = dtu.datetime_str(end_date)
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 if __name__ == "__main__":

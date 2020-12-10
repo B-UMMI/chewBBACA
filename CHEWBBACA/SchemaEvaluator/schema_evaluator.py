@@ -13,7 +13,10 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalwCommandline
 
-from utils import auxiliary_functions as aux
+try:
+    from utils import auxiliary_functions as aux
+except:
+    from CHEWBBACA.utils import auxiliary_functions as aux
 
 
 # Schema Evaluator Auxiliary Functions
@@ -287,7 +290,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
 
     out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
     if not os.path.exists(out_path):
-        os.mkdir(out_path)
+        os.makedirs(out_path)
 
     if not os.listdir(out_path):
         # Calculate the summary statistics and other information about each locus.

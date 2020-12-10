@@ -672,7 +672,12 @@ def evaluate_schema():
     # Copy the main.js files to the respective directories
     
     # Global main.js
-    shutil.copy("./SchemaEvaluator/resources/main.js", schema_evaluator_main_path)
+    # shutil.copy("./SchemaEvaluator/resources/main.js", schema_evaluator_main_path)
+    # print(os.path.dirname(os.path.abspath(__file__)))
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    shutil.copy(os.path.join(script_path, "SchemaEvaluator", "resources", "main.js"), schema_evaluator_main_path)
+
+    # os.path.dirname(os.path.abspath(__file__))
 
     # add code for MAFFT
     if not light_mode:
@@ -692,7 +697,7 @@ def evaluate_schema():
             input_files, pre_computed_data_path, protein_file_path, output_file)
 
         # html_files main.js
-        shutil.copy("./SchemaEvaluator/resources/main_ind.js", schema_evaluator_html_files_path)
+        shutil.copy(os.path.join(script_path, "SchemaEvaluator", "resources", "main_ind.js"), schema_evaluator_html_files_path)
 
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 

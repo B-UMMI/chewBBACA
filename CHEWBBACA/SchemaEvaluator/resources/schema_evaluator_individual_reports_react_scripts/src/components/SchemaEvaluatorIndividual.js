@@ -1,9 +1,6 @@
 import React, { Component } from "react";
-// import alignment from "../data/AAATEST.fasta";
-// import nw from "../data/_nj.201124020211777.on.nh";
 
 import Aux from "../hoc/Aux";
-// import AlertSnackbar from "./AlertSnackbar";
 import classes from "./SchemaEvaluatorIndividual.css";
 
 // Material-UI components
@@ -29,8 +26,7 @@ import MUIDataTable from "mui-datatables";
 import Plot from "react-plotly.js";
 
 // MSAViewer
-// import AlignmentViewer from "react-alignment-viewer/lib/components/AlignmentViewer";
-import AlignmentChart from "react-alignment-viewer/lib/components/AlignmentChart";
+import MSAViewer from "react-msa-viewer";
 
 // Phylocanvas
 import { PhylogeneticTree } from "./Phylocanvas";
@@ -485,25 +481,30 @@ class SchemaEvaluator extends Component {
       </MuiThemeProvider>
     );
 
+    const msa_options = {
+      ...this.state.testMSA,
+      colorScheme: "clustal2",
+      height: 1000,
+      width: 1500,
+      barMethod: "conservation",
+    };
+
     const msa_component = (
       <div id="msa-viewer" style={{ marginTop: "20px", padding: "16px" }}>
         <Typography variant="h5" className={classes.title}>
           Multiple Sequence Analysis
         </Typography>
-        <AlignmentChart
-          data={this.state.testMSA.msa_data}
-          height={4000}
-          showconservation={false}
-          showgap={false}
-        />
+        <Typography variant="subtitle1">
+          Use the hand cursor on the alignment to pan over all alleles.
+        </Typography>
+        <br />
+        <MSAViewer {...msa_options} />
       </div>
     );
 
     let locusIndHist = (
       <div
         style={{
-          // marginLeft: "5%",
-          // marginRight: "5%",
           marginBottom: "2%",
           marginTop: "3%",
         }}

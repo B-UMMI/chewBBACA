@@ -351,24 +351,6 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         # Get data for panel E
         data_ind, hist_data = create_cds_df(schema_dir, translation_table)
 
-        # Test MSA file on HTML
-
-        # msa_data = {"msa_data": {}}
-
-        # for f in schema_files:
-        #     sf_name = os.path.split(f)[-1]
-        #     with open(f, "r") as sf:
-        #         sf_data = sf.read()
-
-        #     msa_data["msa_data"][sf_name] = sf_data
-
-        # msa_data.append(f"<script> const _{sf_name} = {json.dumps(sf_data)} </script>")
-
-        # with open("/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/TESTING_REPO/SchemaEvaluator_pre_computed_data_original/prot_files/AAATEST.fasta", "r") as f:
-        #     records = {"test": f.read()}
-
-        # {"/n".join(str(x) for x in msa_data)}
-
         # Write HTML file
         html_template_global = f"""
         <!DOCTYPE html>
@@ -476,7 +458,7 @@ def create_protein_files(schema_dir, output_path):
         if ".fasta" in file
     ]
 
-    print("Translating....")
+    print("Translating....\n")
 
     for f in schema_files:
 
@@ -493,20 +475,20 @@ def create_protein_files(schema_dir, output_path):
         exceptions = []
 
         for allele in SeqIO.parse(f, "fasta"):
-            ola = aux.translate_dna(str(allele.seq), 11, 201)
+            prot = aux.translate_dna(str(allele.seq), 11, 201)
 
-            if isinstance(ola, list):
-                tets = make_protein_record(ola[0][0], allele.id)
+            if isinstance(prot, list):
+                tets = make_protein_record(prot[0][0], allele.id)
                 proteins.append(tets)
-            elif isinstance(ola, str):
+            elif isinstance(prot, str):
                 # exc = [allele.id, ola]
-                if "sense" in ola:
-                    ola2 = ola.split(",")[0]
+                if "sense" in prot:
+                    prot2 = prot.split(",")[0]
                 else:
-                    ola2 = ola
+                    prot2 = prot
                 exc = {
                     "allele": allele.id,
-                    "exception": ola2
+                    "exception": prot2
                 }
                 exceptions.append(exc)
 
@@ -515,16 +497,9 @@ def create_protein_files(schema_dir, output_path):
         with open(exc_file, "w") as ef:
             json.dump(exceptions, ef)
 
-        # with open(exc_file, "w") as ef:
-        #     ef.writelines('\n'.join([': '.join(map(str, ex))
-        #                              for ex in exceptions]))
-
     print("Done!")
 
     return out_path
-    # else:
-    #     print("Protein files have already been created. Moving on...")
-    #     return out_path
 
 
 def call_mafft(genefile):
@@ -547,6 +522,8 @@ def call_mafft(genefile):
 def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     """Run MAFFT with multprocessing and save output."""
 
+    print("Running MAFFT...\n")
+
     protein_files = [
         os.path.join(protein_file_path, file)
         for file in os.listdir(protein_file_path)
@@ -564,26 +541,11 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
 
     rawr.wait()
 
-    # for pf in protein_files:
-
-    #     pf = pf.rstrip('\n')
-    #     pf = pf.rstrip('\r')
-
-    #     alignFileName = os.path.join(protein_file_path, (os.path.basename(
-    #         pf)).replace("_prot.fasta", "_aligned.fasta"))
-
-    #     pool.apply_async(call_mafft, args=[alignFileName, pf])
-
-    # pool.close()
-    # pool.join()
-
 
 def call_clustalw(genefile):
+    """Run MAFFT with multprocessing and save output."""
 
     try:
-        # print("clustaling " + os.path.basename(genefile))
-        # inputfile = os.path.join(htmlpath, (os.path.basename(
-        #     genefile)).replace(".fasta", "_aligned.fasta"))
         clw_cline = ClustalwCommandline(
             "clustalw2", infile=genefile, tree=True)
         clw_cline()
@@ -597,6 +559,8 @@ def call_clustalw(genefile):
 
 def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
     """Run ClustalW with multprocessing and save output."""
+
+    print("\nRunning Clustal...\n")
 
     protein_files = [
         os.path.join(protein_file_path, file)
@@ -614,19 +578,6 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
             completed = aux.progress_bar(rawr, len(protein_files))
 
     rawr.wait()
-
-    # for pf in protein_files:
-
-    #     pf = pf.rstrip('\n')
-    #     pf = pf.rstrip('\r')
-
-    #     # alignFileName = os.path.join(protein_file_path, (os.path.basename(
-    #     #     pf)).replace("_aligned.fasta", "_aligned_clustal.fasta"))
-
-    #     pool.apply_async(call_clustalw, args=[pf])
-
-    # pool.close()
-    # pool.join()
 
 
 def write_individual_html(input_files, pre_computed_data_path, protein_file_path, output_path):
@@ -679,10 +630,12 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # get the msa data
         msa_file_path = os.path.join(protein_file_path, f"{sf}_aligned.fasta")
-        with open(msa_file_path, "r") as msa:
-            msa_data = msa.read()
 
-        msa_data_json = {"msa_data": msa_data}
+        msa_data = {"sequences": []}
+
+        for allele in SeqIO.parse(msa_file_path, "fasta"):
+            msa_data["sequences"].append({"name": allele.id, "sequence": str(allele.seq)})
+
 
         # get the phylocanvas data
         phylo_file_path = os.path.join(protein_file_path, f"{sf}_aligned.ph")
@@ -708,7 +661,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 <script> const _preComputedDataInd = {pre_computed_data_individual_sf} </script>
                 <script> const _exceptions = {exc_data} </script>
                 <script> const _cdsDf = {cds_ind_data} </script>
-                <script> const _msaData = {json.dumps(msa_data_json)} </script>
+                <script> const _msaData = {json.dumps(msa_data)} </script>
                 <script> const _phyloData = {json.dumps(phylo_data_json)} </script>
                 <script src="./main_ind.js"></script>
             </body>

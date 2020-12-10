@@ -27,7 +27,8 @@ export default function Header() {
   By selecting a locus the following will be displayed:
   - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;
   - a table with **summary statistics** of the alleles;
-  - a **multiple sequence alignment** of the alleles.
+  - a **Neighbor Joining tree** built by clustalw2 based on the mafft alignment;
+  - a **multiple sequence alignment** of the alleles produced by mafft.
   `;
 
   return (
@@ -39,9 +40,6 @@ export default function Header() {
             style={{ width: "100%", height: "100%" }}
           >
             <ReactMarkdown plugins={[gfm]} children={markdown} />
-            {/* <Button component="a" href='/home/pcerqueira/github_repos/LMAS/dist/index.html' target='_blank'>
-              TEST
-            </Button> */}
           </div>
         </AccordionDetails>
       </Accordion>

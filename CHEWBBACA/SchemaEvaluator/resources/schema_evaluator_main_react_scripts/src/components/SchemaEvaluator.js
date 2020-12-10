@@ -1,12 +1,9 @@
 import React, { Component } from "react";
 
 import Aux from "../hoc/Aux";
-// import AlertSnackbar from "./AlertSnackbar";
 import classes from "./SchemaEvaluator.css";
 
 // Material-UI components
-// import Grid from "@material-ui/core/Grid";
-// import Switch from "@material-ui/core/Switch";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 // import FormControlLabel from "@material-ui/core/FormControlLabel";
@@ -27,14 +24,6 @@ import MUIDataTable from "mui-datatables";
 // Plotly.js
 import Plot from "react-plotly.js";
 
-// // MSAViewer
-// // import AlignmentViewer from "react-alignment-viewer/lib/components/AlignmentViewer";
-// import AlignmentChart from "react-alignment-viewer/lib/components/AlignmentChart";
-
-// // Phylocanvas
-// // import PhylocanvasComponent from "./Phylocanvas";
-// // import Phylogeny from "./PhylocanvasDENIM";
-// import { PhylogeneticTree } from "./Phylocanvas2";
 
 class SchemaEvaluator extends Component {
   state = {
@@ -45,10 +34,8 @@ class SchemaEvaluator extends Component {
     cds_scatter_data: _cdsScatter,
     tabValue: 0,
     indTabValue: 0,
-    // dropdownOption: "",
     scatterSelectOption: "",
     isIndOption: false,
-    // showSnack: false,
   };
 
   getMuiTheme = () =>
@@ -71,21 +58,11 @@ class SchemaEvaluator extends Component {
     console.log(locus_id);
 
     const anchor = document.createElement("a");
-    // anchor.href = `/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/TESTING_REPO/html_files/${locus_id.split(".")[0]}_individual_report.html`;
     anchor.href = `../html_files/${locus_id.split(".")[0]}_individual_report.html`;
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
     anchor.click();
 
-    // return (
-    //   <a href={`/home/pcerqueira/github_repos/SCHEMA_EVALUATOR_REFACTOR/TESTING_REPO/html_files/${locus_id.split(".")[0]}_individual_report.html`} target='_blank'/>
-    // )
-
-    // this.setState({
-    //   scatterSelectOption: locus_id,
-    //   isIndOption: true,
-    //   // showSnack: true,
-    // });
   };
 
   clickBoxPlotHandler = (event) => {
@@ -95,7 +72,6 @@ class SchemaEvaluator extends Component {
     this.setState({
       scatterSelectOption: locus_id,
       isIndOption: true,
-      // showSnack: true,
     });
   };
 
@@ -439,7 +415,6 @@ class SchemaEvaluator extends Component {
           this.setState({
             scatterSelectOption: cellData,
             isIndOption: true,
-            // showSnack: true,
           });
         }
       },

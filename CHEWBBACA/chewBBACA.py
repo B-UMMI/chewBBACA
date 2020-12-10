@@ -623,41 +623,14 @@ def evaluate_schema():
                         dest='output_file',
                         help='Path to the output HTML file.')
 
-    parser.add_argument('-p', action='store_true', required=False,
-                        default=False, dest='conserved',
-                        help='If all alleles must be within the threshold for the '
-                             'locus to be considered as having low length variability.')
-
-    # parser.add_argument('--log', action='store_true', default=False,
-    #                     dest='log_scale',
-    #                     help='Apply log scale transformation to the yaxis '
-    #                          'of the plot with the number of alleles per locus.')
-
     parser.add_argument('-ta', type=int, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to translate coding '
                              'sequences.')
 
-    # parser.add_argument('-t', type=float, required=False,
-    #                     default=0.05, dest='threshold',
-    #                     help='Allele size variation threshold. If an allele has '
-    #                          'a size within the interval of the locus mode -/+ '
-    #                          'the threshold, it will be considered a conserved '
-    #                          'allele.')
-
-    parser.add_argument('--title', type=str, required=False,
-                        default='My Analyzed wg/cg MLST Schema - Rate My Schema',
-                        dest='title',
-                        help='Title displayed on the html page.')
-
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores to use to run the process.')
-
-    # parser.add_argument('-s', type=int, required=False,
-    #                     default=500, dest='split_range',
-    #                     help='Number of boxplots displayed in the plot area (more than '
-    #                          '500 can lead to performance issues).')
 
     parser.add_argument('--light', action='store_true', required=False,
                         default=False, dest='light_mode',
@@ -671,21 +644,11 @@ def evaluate_schema():
 
     input_files = args.input_files
     output_file = args.output_file
-    # log_scale = args.log_scale
     translation_table = args.translation_table
     cpu_cores = args.cpu_cores
-    # threshold = args.threshold
-    # conserved = args.conserved
-    # split_range = args.split_range
     light_mode = args.light_mode
-    title = str(args.title)
 
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
-
-    # Flow
-
-    # 1. Generate pre-computed data (check for MAFFT)
-    # 2. Launch the App
 
     print("Creating pre-computed-data....\n")
     pre_computed_data_path = schema_evaluator.create_pre_computed_data(
@@ -699,24 +662,32 @@ def evaluate_schema():
         output_file, "html_files"
     )
 
-    ## Copy the main.js files to the respective directories
+    # Copy the main.js files to the respective directories
+    
     # Global main.js
     shutil.copy("./SchemaEvaluator/resources/main.js", schema_evaluator_main_path)
 
     # add code for MAFFT
     if not light_mode:
-        print("Using MAFFT to create the MSA.\n")
+
+        # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
             input_files, pre_computed_data_path)
+        
+        # Run MAFFT
         schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)
+        
+        # Run ClustalW
         schema_evaluator.run_clustalw(protein_file_path, cpu_to_use, show_progress=True)
+        
+        # Write HTML files
         schema_evaluator.write_individual_html(
             input_files, pre_computed_data_path, protein_file_path, output_file)
 
         # html_files main.js
         shutil.copy("./SchemaEvaluator/resources/main_ind.js", schema_evaluator_html_files_path)
 
-    # print("The pre-computed-data has been created. Please check your browser momentarily for the report.")
+    print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 
 
 def test_schema():

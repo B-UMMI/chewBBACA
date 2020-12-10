@@ -49,6 +49,7 @@
     "react-alignment-viewer": "^0.5.5",
     "react-dom": "^17.0.1",
     "react-markdown": "^5.0.2",
+    "react-msa-viewer": "^1.0.1",
     "react-plotly.js": "^2.5.0",
     "react-select": "^3.1.1",
     "remark-gfm": "^1.0.0",

@@ -30,6 +30,7 @@ import zipfile
 import requests
 import threading
 import itertools
+import subprocess
 import datetime as dt
 import multiprocessing
 import concurrent.futures
@@ -1742,3 +1743,64 @@ def input_timeout(prompt, timeout):
         return answer.get(timeout=timeout)
     except TimeoutError as e:
         sys.exit('Timed out.')
+
+
+def run_blast(blast_path, blast_db, fasta_file, blast_output,
+              max_hsps=1, threads=1, ids_file=None, blast_task=None,
+              max_targets=None):
+    """ Execute BLAST to align sequences in a FASTA file
+        against a BLAST database.
+
+        Parameters
+        ----------
+        blast_path : str
+            Path to BLAST executables.
+        blast_db : str
+            Path to the BLAST database.
+        fasta_file : str
+            Path to the FASTA file with sequences to
+            align against the BLAST database.
+        blast_output : str
+            Path to the file that will be created to
+            store BLAST results.
+        max_hsps : int
+            Maximum number of High Scoring Pairs per
+            pair of aligned sequences.
+        threads : int
+            Number of threads/cores used to run BLAST.
+        ids_file : str
+            Path to a file with sequence identifiers,
+            one per line. Sequences will only be aligned
+            to the sequences in the BLAST database that
+            have any of the identifiers in this file.
+        blast_task : str
+            Type of BLAST task.
+        max_targets : int
+            Maximum number of target of subject sequences
+            to align against.
+
+        Returns
+        -------
+        stderr : str
+            String with errors raised during BLAST execution.
+    """
+
+    blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
+                  '-out', blast_output, '-outfmt', '6 qseqid sseqid score',
+                  '-max_hsps', str(max_hsps), '-num_threads', str(threads),
+                  '-evalue', '0.001']
+
+    if ids_file is not None:
+        blast_args.extend(['-seqidlist', ids_file])
+    if blast_task is not None:
+        blast_args.extend(['-task', blast_task])
+    if max_targets is not None:
+        blast_args.extend(['-max_target_seqs', str(max_targets)])
+
+    blast_proc = subprocess.Popen(blast_args,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+
+    stderr = blast_proc.stderr.readlines()
+
+    return stderr

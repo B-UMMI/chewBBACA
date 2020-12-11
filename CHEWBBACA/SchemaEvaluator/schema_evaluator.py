@@ -130,7 +130,7 @@ def gene_seqs_info_boxplot(schema_dir):
         if ".fasta" in file
     ]
 
-    schema_files.sort()
+    # schema_files.sort()
 
     loci_list = []
     loci_min = []
@@ -219,7 +219,7 @@ def create_cds_df(schema_dir, translation_table):
         if ".fasta" in file
     ]
 
-    schema_files.sort()
+    # schema_files.sort()
 
     res = {"stats": []}
 
@@ -296,7 +296,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         if ".fasta" in file
     ]
 
-    schema_files.sort()
+    # schema_files.sort()
     
     if len(schema_files) < 1:
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
@@ -384,11 +384,11 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedData = {json.dumps(pre_computed_data, sort_keys=True)} </script>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual, sort_keys=True)} </script>
-                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data, sort_keys=True)} </script>
-                <script> const _cdsDf = {json.dumps(data_ind, sort_keys=True)} </script>
-                <script> const _cdsScatter = {json.dumps(hist_data, sort_keys=True)} </script>
+                <script> const _preComputedData = {json.dumps(pre_computed_data)} </script>
+                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual)} </script>
+                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data)} </script>
+                <script> const _cdsDf = {json.dumps(data_ind)} </script>
+                <script> const _cdsScatter = {json.dumps(hist_data)} </script>
                 <script src="./main.js"></script>
             </body>
         </html>
@@ -405,19 +405,19 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         pre_computed_data_path = os.path.join(
             out_path, "pre_computed_data.json")
         with open(pre_computed_data_path, "w") as out:
-            json.dump(pre_computed_data, out, sort_keys=True)
+            json.dump(pre_computed_data, out)
 
         # Write the locus individual file to the pre_computed_data directory.
         pre_computed_data_ind_path = os.path.join(
             out_path, "pre_computed_data_ind.json")
         with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
+            json.dump(pre_computed_data_individual, out_ind)
 
         # Write the boxplot pre_computed_data
         pre_computed_data_boxplot_path = os.path.join(
             out_path, "pre_computed_data_boxplot.json")
         with open(pre_computed_data_boxplot_path, "w") as box_outfile:
-            json.dump(boxplot_data, box_outfile, sort_keys=True)
+            json.dump(boxplot_data, box_outfile)
 
         # Write the CDS Analysis (Panel E) data files
         cds_df_path = os.path.join(
@@ -429,10 +429,10 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         )
 
         with open(cds_df_path, "w") as cds_df_json:
-            json.dump(data_ind, cds_df_json, sort_keys=True)
+            json.dump(data_ind, cds_df_json)
 
         with open(cds_scatter_path, "w") as cds_scatter_json:
-            json.dump(hist_data, cds_scatter_json, sort_keys=True)
+            json.dump(hist_data, cds_scatter_json)
 
         return out_path
     else:
@@ -479,7 +479,7 @@ def create_protein_files(schema_dir, output_path):
         if ".fasta" in file
     ]
 
-    schema_files.sort()
+    # schema_files.sort()
 
     print("Translating....\n")
 
@@ -518,7 +518,7 @@ def create_protein_files(schema_dir, output_path):
         SeqIO.write(proteins, out_file, "fasta")
 
         with open(exc_file, "w") as ef:
-            json.dump(exceptions, ef, sort_keys=True)
+            json.dump(exceptions, ef)
 
     print("Done!")
 
@@ -553,7 +553,7 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
         if "_prot.fasta" in file
     ]
 
-    protein_files.sort()
+    # protein_files.sort()
 
     pool = multiprocessing.Pool(cpu_to_use)
 
@@ -593,7 +593,7 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
         if "_aligned.fasta" in file
     ]
     
-    protein_files.sort()
+    # protein_files.sort()
 
     pool = multiprocessing.Pool(cpu_to_use)
 
@@ -623,7 +623,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         if ".fasta" in f
     ]
 
-    schema_files.sort()
+    # schema_files.sort()
 
     pre_computed_data_file = os.path.join(
         pre_computed_data_path, "pre_computed_data_ind.json")
@@ -690,8 +690,8 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 <script> const _preComputedDataInd = {pre_computed_data_individual_sf} </script>
                 <script> const _exceptions = {exc_data} </script>
                 <script> const _cdsDf = {cds_ind_data} </script>
-                <script> const _msaData = {json.dumps(msa_data, sort_keys=True)} </script>
-                <script> const _phyloData = {json.dumps(phylo_data_json, sort_keys=True)} </script>
+                <script> const _msaData = {json.dumps(msa_data)} </script>
+                <script> const _phyloData = {json.dumps(phylo_data_json)} </script>
                 <script src="./main_ind.js"></script>
             </body>
         </html>

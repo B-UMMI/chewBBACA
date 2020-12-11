@@ -1335,7 +1335,7 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
         prompt = ('Full path to the Prodigal training file:\n')
         ptf_path = iut.input_timeout(prompt, cnst.prompt_timeout)
         if ptf_path in ['', 'None']:
-            ptf_path = None
+            ptf_path = False
         else:
             if os.path.isfile(ptf_path) is False:
                 sys.exit('Provided path is not a valid file.')
@@ -1380,6 +1380,8 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
         if os.path.isfile(ptf_path) is False:
             sys.exit('Provided path to Prodigal training file '
                      'is not valid.')
+    else:
+        ptf_path = False
 
     blast_score_ratio = (blast_score_ratio
                          if blast_score_ratio is not None
@@ -1423,14 +1425,14 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     translation_table, minimum_length, size_threshold = values
 
     # copy training file to schema directory
-    if ptf_path is not None:
+    if ptf_path is not False:
         print('\nAdding Prodigal training file to schema...')
         shutil.copy(ptf_path, schema_directory)
         print('Created {0}'.format(os.path.join(schema_directory,
                                                 os.path.basename(ptf_path))))
 
     # determine PTF hash
-    ptf_hash = fut.hash_file(ptf_path, 'rb') if ptf_path is not None else None
+    ptf_hash = fut.hash_file(ptf_path, 'rb') if ptf_path is not False else False
 
     print('\nCreating file with schema configs...')
     # write schema config file
@@ -1510,16 +1512,19 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
             ptf_path = os.path.join(schema_directory, schema_ptfs[0])
         elif len(schema_ptfs) == 0:
             print('There is no Prodigal training file in schema\'s directory.')
+            ptf_path = False
     # if user provides a training file
+    elif ptf_path == 'False':
+        ptf_path = False
     else:
         if os.path.isfile(ptf_path) is False:
             sys.exit('Invalid path for Prodigal training file.')
 
     # determine PTF checksum
-    if ptf_path is not None:
+    if ptf_path is not False:
         ptf_hash = fut.hash_file(ptf_path, 'rb')
     else:
-        ptf_hash = ''
+        ptf_hash = False
 
     if ptf_hash not in schema_params['prodigal_training_file']:
         ptf_num = len(schema_params['prodigal_training_file'])

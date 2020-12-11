@@ -437,6 +437,7 @@ def allele_call():
     ns = os.path.isfile(ns_config)
 
     print(schema_genes, genomes_files, ns)
+    print(args)
 
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,

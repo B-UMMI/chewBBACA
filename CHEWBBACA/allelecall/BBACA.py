@@ -380,7 +380,7 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
                 processed = 0
                 for genome in listOfGenomes:
                     pool.apply_async(runProdigal.main,
-                                     (str(genome), basepath, str(chosenTrainingFile), translation_table, prodigal_mode),
+                                     (str(genome), basepath, chosenTrainingFile, translation_table, prodigal_mode),
                                      callback=prodigal_results.append)
                     processed += 1
                     print('\r', 'Processed {0}/{1}'.format(processed, total), end='')

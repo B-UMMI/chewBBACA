@@ -657,6 +657,10 @@ def evaluate_schema():
 
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
 
+    # check if input file path exists
+    if not os.path.exists(input_files):
+        sys.exit("Input argument is not a valid directory. Exiting...")
+
     print("Creating pre-computed-data....\n")
     pre_computed_data_path = schema_evaluator.create_pre_computed_data(
         input_files, translation_table, output_file)
@@ -672,12 +676,8 @@ def evaluate_schema():
     # Copy the main.js files to the respective directories
     
     # Global main.js
-    # shutil.copy("./SchemaEvaluator/resources/main.js", schema_evaluator_main_path)
-    # print(os.path.dirname(os.path.abspath(__file__)))
     script_path = os.path.dirname(os.path.abspath(__file__))
     shutil.copy(os.path.join(script_path, "SchemaEvaluator", "resources", "main.js"), schema_evaluator_main_path)
-
-    # os.path.dirname(os.path.abspath(__file__))
 
     # add code for MAFFT
     if not light_mode:

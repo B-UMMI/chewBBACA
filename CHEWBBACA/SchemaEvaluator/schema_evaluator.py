@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import statistics
 import pandas as pd
@@ -38,6 +39,9 @@ def gene_seqs_info_schema_evaluator(gene):
     seq_generator = SeqIO.parse(gene, "fasta")
     alleles_lengths = [len(allele) for allele in seq_generator]
     alleles_lengths.sort()
+
+    if len(alleles_lengths) == 0:
+        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
 
     # number of alleles
     nr_alleles = len(alleles_lengths)
@@ -287,6 +291,14 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         for file in os.listdir(schema_dir)
         if ".fasta" in file
     ]
+    
+    if len(schema_files) < 1:
+        sys.exit("The schema directory is empty. Please check your path. Exiting...")
+
+    empty_files_1 = [aux.is_file_empty(f) for f in schema_files]
+
+    if True in empty_files_1:
+        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
 
     out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
     if not os.path.exists(out_path):

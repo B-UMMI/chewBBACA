@@ -31,7 +31,8 @@ try:
                        auxiliary_functions as aux,
                        constants as cnst,
                        parameters_validation as pv,
-                       files_utils as fu)
+                       files_utils as fu,
+                       sqlite_functions as squt)
 
     from utils.parameters_validation import ModifiedHelpFormatter
 
@@ -51,7 +52,8 @@ except:
                                  auxiliary_functions as aux,
                                  constants as cnst,
                                  parameters_validation as pv,
-                                 files_utils as fu)
+                                 files_utils as fu,
+                                 sqlite_functions as squt)
 
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
@@ -214,11 +216,10 @@ def create_schema():
         os.makedirs(args.output_directory)
 
     if args.cds_input is True:
-        input_files = os.path.abspath(args.input_files)
+        args.input_files = os.path.abspath(args.input_files)
     else:
         genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
-        input_files = aux.check_input_type(args.input_files, genomes_list)
-    args.input_files = input_files
+        args.input_files = aux.check_input_type(args.input_files, genomes_list)
 
     # start CreateSchema process
     CreateSchema.main(**vars(args))
@@ -387,67 +388,65 @@ def allele_call():
                              'should be stored in the local SQLite '
                              'database.')
 
+    parser.add_argument('--pm', required=False, choices=['single', 'meta'],
+                        default='single', dest='prodigal_mode',
+                        help='Prodigal running mode.')
+
     parser.add_argument('--v', required=False, action='store_true',
                         dest='verbose',
                         help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
-    del args.AlleleCall
 
-    input_files = args.input_files
-    schema_directory = args.schema_directory
-    output_directory = args.output_directory
-    genes_list = args.genes_list
-    cpu_cores = args.cpu_cores
-    blastp_path = args.blastp_path
-    contained = args.contained
-    cds_input = args.cds_input
-    json_report = args.json_report
-    force_continue = args.force_continue
-    force_reset = args.force_reset
-    store_profiles = args.store_profiles
-    verbose = args.verbose
-
-    config_file = os.path.join(schema_directory, '.schema_config')
+    print(vars(args))
+    config_file = os.path.join(args.schema_directory, '.schema_config')
     # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
-        upgraded = aux.upgrade_legacy_schema(args.ptf_path, schema_directory,
+        upgraded = aux.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                              args.blast_score_ratio, args.translation_table,
                                              args.minimum_length, version,
-                                             args.size_threshold, force_continue)
+                                             args.size_threshold, args.force_continue)
+        args.ptf_path, args.blast_score_ratio, \
+        args.translation_table, args.minimum_length, \
+        args.size_threshold = upgraded
     else:
         schema_params = iut.pickle_loader(config_file)
-
         # chek if user provided different values
         schema_params, unmatch_params, run_params = aux.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                            args.blast_score_ratio, args.translation_table,
                                                            args.minimum_length, args.size_threshold,
-                                                           force_continue, config_file, schema_directory)
+                                                           args.force_continue, config_file, args.schema_directory)
+        args.ptf_path = run_params['ptf_path']
+        args.blast_score_ratio = run_params['bsr']
+        args.translation_table = run_params['translation_table']
+        args.minimum_length = run_params['minimum_locus_length']
+        args.size_threshold = run_params['size_threshold']
 
-        print(schema_params, unmatch_params, run_params)
-
+        print('\n', schema_params, unmatch_params, run_params)
+        print(args)
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
-    if genes_list is not False:
-        schema_genes = aux.check_input_type(genes_list, 'listGenes2Call.txt', schema_directory)
+    if args.genes_list is not False:
+        schema_genes = aux.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
     else:
-        schema_genes = aux.check_input_type(schema_directory, 'listGenes2Call.txt')
-    genomes_files = aux.check_input_type(input_files, 'listGenomes2Call.txt')
+        schema_genes = aux.check_input_type(args.schema_directory, 'listGenes2Call.txt')
+    genomes_files = aux.check_input_type(args.input_files, 'listGenomes2Call.txt')
 
     # determine if schema was downloaded from Chewie-NS
-    ns_config = os.path.join(schema_directory, '.ns_config')
+    ns_config = os.path.join(args.schema_directory, '.ns_config')
     ns = os.path.isfile(ns_config)
 
-    sys.exit(0)
-    BBACA.main(genomes_files, schema_genes, cpu_cores,
-               output_directory, blast_score_ratio,
-               blastp_path, force_continue, json_report,
-               verbose, force_reset, contained,
-               ptf_path, cds_input, size_threshold,
-               translation_table, ns)
+    print(schema_genes, genomes_files, ns)
 
-    if store_profiles is True:
-        updated = store_allelecall_results(output_directory, schema_directory)
+    BBACA.main(genomes_files, schema_genes, args.cpu_cores,
+               args.output_directory, args.blast_score_ratio,
+               args.blastp_path, args.force_continue, args.json_report,
+               args.verbose, args.force_reset, args.contained,
+               args.ptf_path, args.cds_input, args.size_threshold,
+               args.translation_table, ns, args.prodigal_mode)
+
+    if args.store_profiles is True:
+        updated = squt.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
     fu.remove_files([schema_genes, genomes_files])

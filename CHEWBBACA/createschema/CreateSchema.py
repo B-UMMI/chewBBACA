@@ -1066,6 +1066,10 @@ def main(input_files, output_directory, schema_name, ptf_path,
     if no_cleanup is False:
         fu.delete_directory(temp_directory)
 
+    # print message about schema that was created
+
+    #return os.path.dirname(schema_files[0])
+
 
 def parse_arguments():
 

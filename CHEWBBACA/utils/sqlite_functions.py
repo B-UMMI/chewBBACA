@@ -22,6 +22,11 @@ import csv
 import hashlib
 import sqlite3
 
+try:
+    from utils import datetime_utils as dut
+except:
+    from CHEWBBACA.utils import datetime_utils as dut
+
 
 def create_database_file(db_file):
     """ Creates a SQLite database file.
@@ -444,7 +449,7 @@ def store_allelecall_results(output_directory, schema_directory):
     results_folders = [os.path.join(output_directory, file)
                        for file in os.listdir(output_directory) if 'results' in file]
     # create datetime objects and sort to get latest
-    insert_dates = [(file, datetime.datetime.strptime(file.split('_')[-1], '%Y%m%dT%H%M%S'))
+    insert_dates = [(file, dut.datetime_obj(file.split('_')[-1], '%Y%m%dT%H%M%S'))
                     for file in results_folders]
     sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
     results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')
@@ -461,12 +466,13 @@ def store_allelecall_results(output_directory, schema_directory):
     if os.path.isfile(database_file) is False:
         print('\nCreating SQLite database to store profiles...', end='')
         try:
-            sq.create_database(database_file)
+            create_database(database_file)
             # insert loci list into loci table
-            total_loci = sq.insert_loci(database_file, results_matrix)
+            total_loci = insert_loci(database_file, results_matrix)
             print('done.')
             print('Inserted {0} loci into database.'.format(total_loci))
-        except Exception:
+        except Exception as e:
+            print(e)
             print('WARNING: Could not create database file. Will not store profiles.')
 
     # insert whole matrix
@@ -474,12 +480,11 @@ def store_allelecall_results(output_directory, schema_directory):
     if os.path.isfile(database_file) is not False:
         print('\nSending allelic profiles to SQLite database...', end='')
         try:
-            total_profiles = sq.insert_allelecall_matrix(results_matrix, database_file, insert_date)
+            total_profiles = insert_allelecall_matrix(results_matrix, database_file, insert_date)
             print('done.')
             print('Inserted {0} profiles ({1} total, {2} total unique).'.format(total_profiles[0], total_profiles[1], total_profiles[2]))
             updated = True
-        except Exception as e:
-            print(e)
+        except Exception:
             print('WARNING: Could not store profiles in local database.')
 
     return updated

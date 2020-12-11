@@ -265,9 +265,10 @@ def validate_ptf(arg, input_path):
 
     arg = arg_list(arg, 'Prodigal training file')
 
-    if arg == '':
-        sys.exit('Cannot upload a schema that was created '
-                 'without a Prodigal training file.')
+    # perform this check in LoadSchema!!!
+    #if arg == '':
+    #    sys.exit('Cannot upload a schema that was created '
+    #             'without a Prodigal training file.')
 
     schema_ptfs = [os.path.join(input_path, file)
                    for file in os.listdir(input_path) if '.trn' in file]

@@ -579,7 +579,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
             - If input path is not a valid path for a file or
               for a directory.
     """
-    print(input_path, output_file)
+
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
         if parent_dir is not None:
@@ -595,7 +595,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
             with open(output_file, 'w') as outfile:
                 outfile.write('\n'.join(lines))
 
-            list_files = input_path
+            list_files = output_file
 
     elif os.path.isdir(input_path):
         # we need to get only files with FASTA extension
@@ -603,7 +603,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
         files = fut.filter_files(files, cnst.FASTA_SUFFIXES)
         # get absolute paths
         files = [os.path.join(input_path, file) for file in files]
-        # filter any directories that migh end with FASTA extension
+        # filter any directories that might end with FASTA extension
         files = [file for file in files if os.path.isdir(file) is False]
 
         # only keep files whose content is typical of a FASTA file
@@ -1314,6 +1314,97 @@ def kmer_index(sequences, word_size):
     return kmers_mapping
 
 
+def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
+                     minimum_length, size_threshold, version):
+    """
+    """
+
+    prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
+              'It is highly recommended that you run the PrepExternalSchema '
+              'process to guarantee full compatibility with the new chewBBACA '
+              'version.\nIf you wish to continue, the AlleleCall process will convert '
+              'the schema to v{0}, but will not determine if schema structure respects '
+              'configuration values.\nDo you wish to proceed?\n'.format(version))
+    proceed = iut.input_timeout(prompt, cnst.prompt_timeout)
+    if proceed.lower() not in ['y', 'yes']:
+        sys.exit('Exited.')
+
+    print('\n')
+    # determine parameters default values to include in config file
+    if ptf_path is None:
+        prompt = ('Full path to the Prodigal training file:\n')
+        ptf_path = iut.input_timeout(prompt, cnst.prompt_timeout)
+        if ptf_path in ['', 'None']:
+            ptf_path = None
+        else:
+            if os.path.isfile(ptf_path) is False:
+                sys.exit('Provided path is not a valid file.')
+    else:
+        if os.path.isfile(ptf_path) is False:
+            sys.exit('Provided path is not a valid file.')
+
+    if blast_score_ratio is None:
+        prompt = ('BLAST score ratio value:\n')
+        blast_score_ratio = iut.input_timeout(prompt, cnst.prompt_timeout)
+    
+    blast_score_ratio = pv.bsr_type(blast_score_ratio)
+
+    if translation_table is None:
+        prompt = ('Translation table value:\n')
+        translation_table = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+    translation_table = pv.translation_table_type(translation_table)
+
+    if minimum_length is None:
+        prompt = ('Minimum length value:\n')
+        minimum_length = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+    minimum_length = pv.minimum_sequence_length_type(minimum_length)
+
+    if size_threshold is None:
+        prompt = ('Size threshold value:\n')
+        size_threshold = iut.input_timeout(prompt, cnst.prompt_timeout)
+
+    size_threshold = pv.size_threshold_type(size_threshold)
+
+    return [ptf_path, blast_score_ratio, translation_table,
+            minimum_length, size_threshold]
+
+
+def auto_arguments(ptf_path, blast_score_ratio, translation_table,
+                   minimum_length, size_threshold):
+    """
+    """
+
+    if ptf_path is not None:
+        if os.path.isfile(ptf_path) is False:
+            sys.exit('Provided path to Prodigal training file '
+                     'is not valid.')
+
+    blast_score_ratio = (blast_score_ratio
+                         if blast_score_ratio is not None
+                         else cnst.DEFAULT_BSR)
+    blast_score_ratio = pv.bsr_type(blast_score_ratio)
+
+    translation_table = (translation_table
+                         if translation_table is not None
+                         else cnst.GENETIC_CODES_DEFAULT)
+    translation_table = pv.translation_table_type(translation_table)
+
+    minimum_length = (minimum_length
+                      if minimum_length is not None
+                      else cnst.MINIMUM_LENGTH_DEFAULT)
+    minimum_length = pv.minimum_sequence_length_type(minimum_length)
+
+    size_threshold = (size_threshold
+                      if size_threshold is not None
+                      else cnst.SIZE_THRESHOLD_DEFAULT)
+    size_threshold = pv.size_threshold_type(size_threshold)
+
+    return [ptf_path, blast_score_ratio, translation_table,
+            minimum_length, size_threshold]
+
+
 def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                           translation_table, minimum_length, version,
                           size_threshold, force_continue):
@@ -1321,70 +1412,15 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     """
 
     if force_continue is False:
-        prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
-                  'It is highly recommended that you run the PrepExternalSchema '
-                  'process to guarantee full compatibility with the new chewBBACA '
-                  'version.\nIf you wish to continue, the AlleleCall process will convert '
-                  'the schema to v{0}, but will not determine if schema structure respects '
-                  'configuration values.\nDo you wish to proceed?\n'.format(version))
-        proceed = iut.input_timeout(prompt, cnst.prompt_timeout)
-        if proceed.lower() not in ['y', 'yes']:
-            sys.exit('Exited.')
-
-        print('\n')
-        # determine parameters default values to include in config file
-        if ptf_path is None:
-            prompt = ('Full path to the Prodigal training file:\n')
-            ptf_path = iut.input_timeout(prompt, cnst.prompt_timeout)
-            if ptf_path in ['', 'None']:
-                ptf_path = None
-            else:
-                if os.path.isfile(ptf_path) is False:
-                    sys.exit('Provided path is not a valid file.')
-        else:
-            if os.path.isfile(ptf_path) is False:
-                sys.exit('Provided path is not a valid file.')
-
-        if blast_score_ratio is None:
-            prompt = ('BLAST score ratio value:\n')
-            blast_score_ratio = iut.input_timeout(prompt, cnst.prompt_timeout)
-        
-        blast_score_ratio = pv.bsr_type(blast_score_ratio)
-
-        if translation_table is None:
-            prompt = ('Translation table value:\n')
-            translation_table = iut.input_timeout(prompt, cnst.prompt_timeout)
-
-        translation_table = pv.translation_table_type(translation_table)
-
-        if minimum_length is None:
-            prompt = ('Minimum length value:\n')
-            minimum_length = iut.input_timeout(prompt, cnst.prompt_timeout)
-
-        minimum_length = pv.minimum_sequence_length_type(minimum_length)
-
-        if size_threshold is None:
-            prompt = ('Size threshold value:\n')
-            size_threshold = iut.input_timeout(prompt, cnst.prompt_timeout)
-
-        size_threshold = pv.size_threshold_type(size_threshold)
+        values = prompt_arguments(ptf_path, blast_score_ratio, translation_table,
+                                  minimum_length, size_threshold, version)
     # forced method, create with default args defined in constants
     else:
-        if ptf_path is not None:
-            if os.path.isfile(ptf_path) is False:
-                sys.exit('Provided path is not a valid file.')
+        values = auto_arguments(ptf_path, blast_score_ratio, translation_table,
+                                minimum_length, size_threshold)
 
-        blast_score_ratio = blast_score_ratio if blast_score_ratio is not None else cnst.DEFAULT_BSR
-        blast_score_ratio = pv.bsr_type(blast_score_ratio)
-
-        translation_table = translation_table if translation_table is not None else cnst.GENETIC_CODES_DEFAULT
-        translation_table = pv.translation_table_type(translation_table)
-
-        minimum_length = minimum_length if minimum_length is not None else cnst.MINIMUM_LENGTH_DEFAULT
-        minimum_length = pv.minimum_sequence_length_type(minimum_length)
-
-        size_threshold = size_threshold if size_threshold is not None else cnst.SIZE_THRESHOLD_DEFAULT
-        size_threshold = pv.size_threshold_type(size_threshold)
+    ptf_path, blast_score_ratio,\
+    translation_table, minimum_length, size_threshold = values
 
     # copy training file to schema directory
     if ptf_path is not None:
@@ -1412,7 +1448,8 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     print('Created {0}\n'.format(os.path.join(schema_directory,
                                               '.genes_list')))
 
-    return True
+    return [ptf_path, blast_score_ratio, translation_table,
+            minimum_length, size_threshold]
 
 
 def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
@@ -1423,14 +1460,20 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
     # run parameters values
     run_params = {'bsr': blast_score_ratio,
                   'translation_table': translation_table,
-                  'size_threshold': size_threshold,
-                  'minimum_locus_length':minimum_length}
+                  'minimum_locus_length':minimum_length,
+                  'size_threshold': size_threshold}
 
-    # mismatched schema and run parameters values
+    # determine user provided arguments values that differ from default
     unmatch_params = {k: v for k, v in run_params.items()
                       if v not in schema_params[k] and v is not None}
+    # determine arguments values not provided by user
     default_params = {k: schema_params[k][0] for k, v in run_params.items()
                       if v is None}
+
+    # update arguments for current run
+    for k in run_params:
+        if k in default_params:
+            run_params[k] = default_params[k]
 
     if len(unmatch_params) > 0:
         print('Provided arguments values differ from arguments '
@@ -1452,13 +1495,9 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
         if params_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
+            # append new arguments values to configs values
             for p in unmatch_params:
                 schema_params[p].append(unmatch_params[p])
-
-    # update arguments for current run
-    for k in run_params:
-        if k in default_params:
-            run_params[k] = default_params[k]
 
     # default is to get the training file in schema directory
     if ptf_path is None:
@@ -1473,9 +1512,8 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
             print('There is no Prodigal training file in schema\'s directory.')
     # if user provides a training file
     else:
-        ptf_val = check_ptf(ptf_path)
-        if ptf_val[0] is False:
-            sys.exit(ptf_val[1])
+        if os.path.isfile(ptf_path) is False:
+            sys.exit('Invalid path for Prodigal training file.')
 
     # determine PTF checksum
     if ptf_path is not None:
@@ -1504,6 +1542,8 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
         else:
             schema_params['prodigal_training_file'].append(ptf_hash)
             unmatch_params['prodigal_training_file'] = ptf_hash
+
+    run_params['ptf_path'] = ptf_path
 
     # save updated schema config file
     if len(unmatch_params) > 0:

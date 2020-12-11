@@ -60,8 +60,10 @@ def prepGenomes(genomeFile, basepath, verbose, inputCDS):
 
     j = 0
     if inputCDS is False:
-
-        filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF.txt")
+        # determine file basename
+        # splitting too much???
+        basename = (os.path.basename(genomeFile)).split('.')[0]
+        filepath = os.path.join(basepath, basename + "_ORF.txt")
         with open(filepath, 'rb') as f:
             currentCDSDict = pickle.load(f)
 
@@ -231,39 +233,18 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 
 def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceContinue, jsonReport,
-         verbose, forceReset, contained, chosenTrainingFile, inputCDS, sizeTresh, translation_table, ns):
+         verbose, forceReset, contained, chosenTrainingFile, inputCDS, sizeTresh, translation_table,
+         ns, prodigal_mode):
+
+    start_date = dt.datetime.now()
+    start_date_str = dt.datetime.strftime(start_date, '%H:%M:%S-%d/%m/%Y')
 
     divideOutput = False
-
-    # avoid user to run the script with all cores available, could impossibilitate any usage when running on a laptop
-    if cpuToUse > multiprocessing.cpu_count() - 2:
-        print('\nWARNING: you provided a --cpu value close to the '
-              'maximum number of available CPU cores.\n'
-              'This might degrade system performance and lead '
-              'to system unresponsiveness.\n')
-        time.sleep(2)
-
-    if isinstance(chosenTrainingFile, str):
-        trainingFolderPAth = os.path.abspath(chosenTrainingFile)
-        try:
-            chosenTaxon = trainingFolderPAth
-
-            if os.path.isfile(chosenTaxon):
-                print("Prodigal training file: " + chosenTaxon)
-            else:
-                print("Training file does not exist "+chosenTaxon)
-                return "retry"
-        except:
-            print("The training file you provided does not exist:")
-            print(chosenTaxon)
-            return "retry"
-    else:
-        chosenTaxon = chosenTrainingFile
 
     scripts_path = os.path.dirname(os.path.realpath(__file__))
 
     print("Number of CPU cores: " + str(cpuToUse))
-    
+
     print("\nChecking dependencies...")
     print("Blast installation..." + str(which(str(BlastpPath))))
     print("Prodigal installation..." + str(which('prodigal')))
@@ -393,15 +374,33 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
             if inputCDS is False:
 
                 print("\nStarting Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-
-                # Prodigal run on the genomes, one genome per core using n-2 cores (n number of cores)
-
+                prodigal_results = []
                 pool = multiprocessing.Pool(cpuToUse)
+                total = len(listOfGenomes)
+                processed = 0
                 for genome in listOfGenomes:
-                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon), translation_table))
+                    pool.apply_async(runProdigal.main,
+                                     (str(genome), basepath, str(chosenTrainingFile), translation_table, prodigal_mode),
+                                     callback=prodigal_results.append)
+                    processed += 1
+                    print('\r', 'Processed {0}/{1}'.format(processed, total), end='')
 
                 pool.close()
                 pool.join()
+                print()
+
+                # get problematic cases
+                no_cds = [l for l in prodigal_results if l[1] == 0]
+                errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
+                failed = no_cds + errors
+
+                if len(failed) > 0:
+                    print('Failed to predict genes for {0} genomes.'.format(len(failed)))
+                    failed_genomes = '\n'.join([f[0] for f in failed])
+                    print('Failed for following genomes:\n{0}\nPlease remove '
+                          'these genomes and retry the analysis.'.format(failed_genomes))
+                    shutil.rmtree(basepath)
+                    sys.exit(0)
 
                 print("Finishing Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
@@ -595,7 +594,7 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
             statistics.append(statsaux)
 
         #########################
-        # This is removes INF from the matrix
+        # This removes INF from the matrix
         # finalphylovinput = finalphylovinput.replace("INF-","")
 
         genome = 0

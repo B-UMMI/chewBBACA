@@ -59,10 +59,10 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     # check text printed to stdout
 
-    # check if Prodigal created files
+    # check if the report has been created 
     assert 'The report has been created.' in stdout
 
-    # check output html files
+    # check output HTML files
     output_html_files = [os.path.join(test_args[5], "html_files", file)
                          for file in os.listdir(os.path.join(test_args[5], "html_files"))
                          ]
@@ -75,18 +75,18 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     html_files = output_html_files + expected_html_files
     basename_html_dict = {}
-    for f in html_files:
-        basename = os.path.basename(f)
-        basename_html_dict.setdefault(basename, []).append(f)
+    for f1 in html_files:
+        basename1 = os.path.basename(f1)
+        basename_html_dict.setdefault(basename1, []).append(f1)
 
     # assert that files in each pair are equal
-    file_cmps = []
-    for k, v in basename_html_dict.items():
-        file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
+    file_cmps_html = []
+    for k1, v1 in basename_html_dict.items():
+        file_cmps_html.append(filecmp.cmp(v1[0], v1[1], shallow=False))
 
-    assert all(file_cmps) is True
+    assert all(file_cmps_html) is True
 
-    # check output main files
+    # check output MAIN files
     output_main_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", file)
                          for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data"))
                          if "prot_files" != file]
@@ -99,18 +99,18 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     main_files = output_main_files + expected_main_files
     basename_main_dict = {}
-    for f in main_files:
-        basename = os.path.basename(f)
-        basename_main_dict.setdefault(basename, []).append(f)
+    for f2 in main_files:
+        basename2 = os.path.basename(f2)
+        basename_main_dict.setdefault(basename2, []).append(f2)
 
     # assert that files in each pair are equal
     file_cmps_main = []
-    for k, v in basename_main_dict.items():
-        file_cmps_main.append(filecmp.cmp(v[0], v[1], shallow=False))
+    for k2, v2 in basename_main_dict.items():
+        file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
 
     assert all(file_cmps_main) is True
 
-    # check output protein files
+    # check output PROTEIN files
     output_prot_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file)
                          for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"))
                          if "exceptions" != file]
@@ -124,17 +124,17 @@ def test_schemaEvaluator_valid(test_args, expected):
     prot_files = output_prot_files + expected_prot_files
     basename_prot_dict = {}
     for f in prot_files:
-        basename = os.path.basename(f)
-        basename_prot_dict.setdefault(basename, []).append(f)
+        basename3 = os.path.basename(f)
+        basename_prot_dict.setdefault(basename3, []).append(f)
 
     # assert that files in each pair are equal
     file_cmps_prot = []
-    for k, v in basename_prot_dict.items():
-        file_cmps_prot.append(filecmp.cmp(v[0], v[1], shallow=False))
+    for k3, v3 in basename_prot_dict.items():
+        file_cmps_prot.append(filecmp.cmp(v3[0], v3[1], shallow=False))
 
     assert all(file_cmps_prot) is True
 
-    # check output exception files
+    # check output EXCEPTION files
     output_exc_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions", file)
                          for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions"))
                         ]
@@ -148,12 +148,12 @@ def test_schemaEvaluator_valid(test_args, expected):
     exc_files = output_exc_files + expected_exc_files
     basename_exc_dict = {}
     for f in exc_files:
-        basename = os.path.basename(f)
-        basename_exc_dict.setdefault(basename, []).append(f)
+        basename4 = os.path.basename(f)
+        basename_exc_dict.setdefault(basename4, []).append(f)
 
     # assert that files in each pair are equal
     file_cmps_exc = []
-    for k, v in basename_exc_dict.items():
-        file_cmps_exc.append(filecmp.cmp(v[0], v[1], shallow=False))
+    for k4, v4 in basename_exc_dict.items():
+        file_cmps_exc.append(filecmp.cmp(v4[0], v4[1], shallow=False))
 
     assert all(file_cmps_exc) is True

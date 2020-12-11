@@ -40,6 +40,17 @@ jobs:
         which blastp
         blastp -version
 
+    - name: install mafft
+      run: |
+        mkdir $GITHUB_WORKSPACE/mafft
+        pushd $GITHUB_WORKSPACE/mafft
+        sudo apt-get install mafft
+        popd
+
+    - name: check mafft
+      run: |
+        which mafft
+
     - name: checkout prodigal
       uses: actions/checkout@v2
       with:

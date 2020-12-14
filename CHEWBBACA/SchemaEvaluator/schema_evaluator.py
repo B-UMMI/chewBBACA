@@ -690,7 +690,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
                 <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual_sf, sort_keys=True)} </script>
-                <script> const _exceptions = {exc_data} </script>
+                <script> const _exceptions = {json.dumps(exc_data, sort_keys=True)} </script>
                 <script> const _cdsDf = {json.dumps(cds_ind_data, sort_keys=True)} </script>
                 <script> const _msaData = {json.dumps(msa_data)} </script>
                 <script> const _phyloData = {json.dumps(phylo_data_json)} </script>

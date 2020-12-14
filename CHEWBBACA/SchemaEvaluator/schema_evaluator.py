@@ -5,7 +5,7 @@ import statistics
 import pandas as pd
 import multiprocessing
 from operator import itemgetter
-from collections import Counter
+from collections import Counter, OrderedDict
 
 
 from Bio import SeqIO
@@ -638,10 +638,10 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
     # Read the pre_computed data file
     with open(pre_computed_data_file, "r") as pre_comp_file:
-        pre_computed_data_individual = json.load(pre_comp_file)
+        pre_computed_data_individual = json.load(pre_comp_file, object_pairs_hook=OrderedDict)
 
     with open(cds_df_path, "r") as cds_file:
-        cds_json_data = json.load(cds_file)
+        cds_json_data = json.load(cds_file, object_pairs_hook=OrderedDict)
 
     for sf in schema_files:
 

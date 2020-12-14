@@ -411,7 +411,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         pre_computed_data_ind_path = os.path.join(
             out_path, "pre_computed_data_ind.json")
         with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind)
+            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
 
         # Write the boxplot pre_computed_data
         pre_computed_data_boxplot_path = os.path.join(

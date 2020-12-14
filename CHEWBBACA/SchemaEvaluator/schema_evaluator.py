@@ -5,7 +5,7 @@ import statistics
 import pandas as pd
 import multiprocessing
 from operator import itemgetter
-from collections import Counter, OrderedDict
+from collections import Counter
 
 
 from Bio import SeqIO
@@ -411,7 +411,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         pre_computed_data_ind_path = os.path.join(
             out_path, "pre_computed_data_ind.json")
         with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
+            json.dump(pre_computed_data_individual, out_ind)
 
         # Write the boxplot pre_computed_data
         pre_computed_data_boxplot_path = os.path.join(
@@ -429,7 +429,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         )
 
         with open(cds_df_path, "w") as cds_df_json:
-            json.dump(data_ind, cds_df_json, sort_keys=True)
+            json.dump(data_ind, cds_df_json)
 
         with open(cds_scatter_path, "w") as cds_scatter_json:
             json.dump(hist_data, cds_scatter_json)
@@ -638,10 +638,10 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
     # Read the pre_computed data file
     with open(pre_computed_data_file, "r") as pre_comp_file:
-        pre_computed_data_individual = json.load(pre_comp_file, object_pairs_hook=OrderedDict)
+        pre_computed_data_individual = json.load(pre_comp_file)
 
     with open(cds_df_path, "r") as cds_file:
-        cds_json_data = json.load(cds_file, object_pairs_hook=OrderedDict)
+        cds_json_data = json.load(cds_file)
 
     for sf in schema_files:
 
@@ -651,6 +651,8 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # Get CDS data for table
         cds_ind_data = [e for e in cds_json_data if sf in e["Gene"]][0]
+
+        # print(json.dumps(cds_ind_data, sort_keys=True))
 
         # Read the exceptions file
         exceptions_filename_path = os.path.join(exceptions_path, f"{sf}_exceptions.json")
@@ -687,9 +689,9 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedDataInd = {pre_computed_data_individual_sf} </script>
+                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual_sf, sort_keys=True)} </script>
                 <script> const _exceptions = {exc_data} </script>
-                <script> const _cdsDf = {cds_ind_data} </script>
+                <script> const _cdsDf = {json.dumps(cds_ind_data, sort_keys=True)} </script>
                 <script> const _msaData = {json.dumps(msa_data)} </script>
                 <script> const _phyloData = {json.dumps(phylo_data_json)} </script>
                 <script src="./main_ind.js"></script>

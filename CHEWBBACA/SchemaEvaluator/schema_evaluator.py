@@ -429,7 +429,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         )
 
         with open(cds_df_path, "w") as cds_df_json:
-            json.dump(data_ind, cds_df_json)
+            json.dump(data_ind, cds_df_json, sort_keys=True)
 
         with open(cds_scatter_path, "w") as cds_scatter_json:
             json.dump(hist_data, cds_scatter_json)

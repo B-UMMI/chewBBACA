@@ -692,8 +692,8 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual_sf, sort_keys=True)} </script>
                 <script> const _exceptions = {json.dumps(exc_data, sort_keys=True)} </script>
                 <script> const _cdsDf = {json.dumps(cds_ind_data, sort_keys=True)} </script>
-                <script> const _msaData = {json.dumps(msa_data)} </script>
-                <script> const _phyloData = {json.dumps(phylo_data_json)} </script>
+                <script> const _msaData = {json.dumps(msa_data, sort_keys=True)} </script>
+                <script> const _phyloData = {json.dumps(phylo_data_json, sort_keys=True)} </script>
                 <script src="./main_ind.js"></script>
             </body>
         </html>

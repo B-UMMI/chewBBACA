@@ -572,7 +572,7 @@ def call_clustalw(genefile):
 
     try:
         clw_cline = ClustalwCommandline(
-            "clustalw2", infile=genefile, tree=True)
+            "clustalw", infile=genefile, tree=True)
         clw_cline()
 
         return True
@@ -623,7 +623,9 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         if ".fasta" in f
     ]
 
-    # schema_files.sort()
+    prot_files = os.listdir(protein_file_path)
+
+    print(prot_files)
 
     pre_computed_data_file = os.path.join(
         pre_computed_data_path, "pre_computed_data_ind.json")
@@ -667,9 +669,9 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         for allele in SeqIO.parse(msa_file_path, "fasta"):
             msa_data["sequences"].append({"name": allele.id, "sequence": str(allele.seq)})
 
-
         # get the phylocanvas data
         phylo_file_path = os.path.join(protein_file_path, f"{sf}_aligned.ph")
+        # print(phylo_file_path)
         if os.path.exists(phylo_file_path):
             with open(phylo_file_path, "r") as phylo:
                 phylo_data = phylo.read()

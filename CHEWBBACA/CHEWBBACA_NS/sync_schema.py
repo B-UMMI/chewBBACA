@@ -808,12 +808,16 @@ def parse_arguments():
                              'NS. (only users with permissions level of '
                              'Contributor can submit new alleles).')
 
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
 
     return args
 
 
-def main(schema_directory, cpu_cores, nomenclature_server, submit):
+def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
     # get ns configs
     local_date, schema_uri = aux.read_configs(schema_directory, '.ns_config')
@@ -1073,7 +1077,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit):
         PrepExternalSchema.main(temp_dir, schema_directory,
                                 cpu_cores, float(schema_params['bsr'][0]),
                                 int(schema_params['minimum_locus_length'][0]),
-                                11, '', None)
+                                11, '', None, blast_path)
 
         # delete invalid alleles and genes files
         parent_dir = os.path.dirname(schema_directory)

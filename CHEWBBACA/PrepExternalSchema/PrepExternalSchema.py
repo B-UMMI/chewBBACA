@@ -231,7 +231,7 @@ def select_candidate(candidates, proteins, seqids,
 
                           
 def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
-               table_id, size_threshold):
+               table_id, size_threshold, blastp_path, makeblastdb_path):
     """ Adapts a set of genes/loci from an external schema so that
         that schema  can be used with chewBBACA. Removes invalid alleles
         and selects representative alleles to include in the "short" directory.
@@ -331,7 +331,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
             # create blastdb with all distinct proteins
             blastp_db = os.path.join(gene_temp_dir, gene_id)
-            but.make_blast_db(protein_file, blastp_db, 'prot')
+            but.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
 
             # determine appropriate blastp task (proteins < 30aa need blastp-short)
             blastp_task = but.determine_blast_task(equal_prots)
@@ -357,7 +357,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                                               ['{0}_blast_out.tsv'.format(gene_id)])
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
-                blast_stderr = but.run_blast('blastp', blastp_db, rep_file,
+                blast_stderr = but.run_blast(blastp_path, blastp_db, rep_file,
                                              blast_output, 1, 1, ids_file, blastp_task,
                                              100000)
 
@@ -447,7 +447,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
 
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
-         minimum_length, translation_table, ptf_path, size_threshold):
+         minimum_length, translation_table, ptf_path, size_threshold,
+         blast_path):
 
     print('Adapting schema in the following '
           'directory:\n{0}'.format(os.path.abspath(input_files)))
@@ -496,9 +497,12 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
 
     # add common arguments
+    blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
     even_genes_groups = [[i, schema_path, schema_short_path,
                           blast_score_ratio, minimum_length,
                           translation_table, size_threshold,
+                          blastp_path, makeblastdb_path,
                           adapt_loci] for i in even_genes_groups]
 
     print('Adapting {0} genes...\n'.format(len(genes_list)))
@@ -599,6 +603,10 @@ def parse_arguments():
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '
                              'will not be included in the final schema.')
+
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     args = parser.parse_args()
 

@@ -185,9 +185,9 @@ def create_schema():
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores).')
 
-    parser.add_argument('--b', type=str, required=False,
-                        default='blastp', dest='blastp_path',
-                        help='Path to the BLASTp executables.')
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     parser.add_argument('--CDS', required=False, action='store_true',
                         dest='cds_input',
@@ -204,6 +204,9 @@ def create_schema():
 
     args = parser.parse_args()
     del args.CreateSchema
+    print(args.blast_path)
+
+    prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
 
     # check if ptf exists
     if args.ptf_path is not False:
@@ -246,8 +249,8 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    if os.path.isfile(input_files) and args.cds_input is False:
-        os.remove(input_files)
+    if os.path.isfile(args.input_files) and args.cds_input is False:
+        os.remove(args.input_files)
 
 
 @dut.process_timer
@@ -355,9 +358,9 @@ def allele_call():
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
 
-    parser.add_argument('--b', type=str, required=False,
-                        default='blastp', dest='blastp_path',
-                        help='Path to the BLASTp executables.')
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     parser.add_argument('--contained', action='store_true', required=False,
                         default=False, dest='contained',
@@ -397,6 +400,8 @@ def allele_call():
                         help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
+
+    prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
 
     print(vars(args))
     config_file = os.path.join(args.schema_directory, '.schema_config')
@@ -441,7 +446,7 @@ def allele_call():
 
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,
-               args.blastp_path, args.force_continue, args.json_report,
+               args.blast_path, args.force_continue, args.json_report,
                args.verbose, args.force_reset, args.contained,
                args.ptf_path, args.cds_input, args.size_threshold,
                args.translation_table, ns, args.prodigal_mode)
@@ -834,6 +839,10 @@ def prep_schema():
                         default=1, dest='cpu_cores',
                         help='The number of CPU cores to use (default=1).')
 
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
     del args.PrepExternalSchema
 
@@ -980,6 +989,10 @@ def download_schema():
                         help='If the compressed version that is available is '
                              'not the latest, downloads all loci and constructs '
                              'schema locally.')
+
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     args = parser.parse_args()
     del args.DownloadSchema
@@ -1162,6 +1175,10 @@ def synchronize_schema():
                              'NS. (only users with permissons level of '
                              'Contributor can submit new alleles).')
 
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
     del args.SyncSchema
 
@@ -1295,7 +1312,7 @@ def main():
             print('{0}: {1}'.format(f, functions_info[f][0]))
         sys.exit(0)
 
-    # Check python version, if fail, exit with message
+    # Check python version
     python_version = pv.validate_python_version()
 
     process = sys.argv[1]

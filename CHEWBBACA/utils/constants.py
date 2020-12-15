@@ -13,6 +13,10 @@ DESCRIPTION
 
 """
 
+
+import platform
+
+
 CHEWIE_VERSIONS = ['2.5.0', '2.5.1', '2.5.2', '2.5.3',
 				   '2.5.4', '2.5.5', '2.5.6']
 
@@ -83,3 +87,10 @@ contacts = 'imm-bioinfo@medicina.ulisboa.pt'
 
 # timeout when the process asks users for input
 prompt_timeout = 30
+
+BLAST_MAJOR = 2
+BLAST_MINOR = 9
+BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else 'blastp'
+MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else 'makeblastdb'
+
+PRODIGAL_PATH = 'prodigal'

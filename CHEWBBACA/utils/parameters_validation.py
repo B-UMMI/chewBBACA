@@ -15,9 +15,11 @@ DESCRIPTION
 
 
 import os
+import re
 import sys
 import argparse
 import platform
+import subprocess
 import multiprocessing
 
 try:
@@ -363,3 +365,89 @@ def verify_cpu_usage(cpu_to_use):
               'responsiveness.'.format(cpu_to_use, total_cpu))
 
     return cpu_to_use
+
+
+def is_exe(fpath):
+    """
+    """
+
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+
+def which(program):
+    """
+    """
+
+    proc = subprocess.Popen(['which', program],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+
+    stdout, stderr = proc.communicate()
+
+    program_path = stdout.decode('utf8').strip()
+
+    return program_path
+
+
+def check_blast(blast_path, major=cnts.BLAST_MAJOR, minor=cnts.BLAST_MINOR):
+    """
+    """
+
+    # search for BLAST in PATH
+    if not blast_path:
+        blastp_path = which(cnts.BLASTP_ALIAS)
+        if not blastp_path:
+            sys.exit('Could not find BLAST executables in PATH.')
+        else:
+            blast_path = os.path.dirname(blastp_path)
+    # validate user-provided path
+    else:
+        blastp_path = os.path.join(blast_path, cnts.BLASTP_ALIAS)
+        executable = is_exe(blastp_path)
+        if executable is False:
+            sys.exit('Provided path does not contain BLAST executables.')
+
+    # check BLAST version
+    try:
+        proc = subprocess.Popen([blastp_path, '-version'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+    except:
+        sys.exit('Could not determine BLAST version.\n'
+                 'Please verify that BLAST is installed and added to PATH.')
+
+    stdout, stderr = proc.communicate()
+
+    version_string = stdout.decode('utf8')
+    version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
+    blast_version_pat = re.compile(version_pattern)
+
+    match = blast_version_pat.search(version_string)
+    if match is None:
+        sys.exit('Could not determine BLAST version.')
+
+    version = {k: int(v) for k, v in match.groupdict().items()}
+    if version['MAJOR'] < major or (version['MAJOR'] >= major and version['MINOR'] < minor):
+        sys.exit('Please update BLAST to version >= {0}.{1}.0'.format(major, minor))
+
+    return blast_path
+
+
+def check_prodigal(prodigal_path):
+    """
+    """
+
+    # check Prodigal version
+    try:
+        proc = subprocess.Popen([prodigal_path, '-v'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+    except:
+        sys.exit('Could not determine Prodigal version '
+                 '({0} -v).\nPlease verify that Prodigal '
+                 'is installed and added to PATH.'.format(prodigal_path))
+
+    # prodigal version is captured in stderr
+    stdout, stderr = proc.communicate()
+
+    return True

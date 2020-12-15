@@ -482,7 +482,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
 
 
 def main(species_id, schema_id, download_folder, cpu_cores,
-         nomenclature_server, date, latest):
+         nomenclature_server, date, latest, blast_path):
 
     # GET request headers
     headers_get = cnst.HEADERS_GET_JSON
@@ -571,7 +571,8 @@ def main(species_id, schema_id, download_folder, cpu_cores,
                                 int(schema_params_dict['minimum_locus_length']),
                                 int(schema_params_dict['translation_table']),
                                 ptf_file,
-                                None)
+                                None,
+                                blast_path)
 
         # copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)
@@ -651,6 +652,10 @@ def parse_arguments():
                         help='If the compressed version that is available '
                              'is not the latest, downloads all loci and '
                              'constructs schema locally.')
+
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     args = parser.parse_args()
 

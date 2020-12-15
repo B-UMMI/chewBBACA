@@ -382,7 +382,7 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         # Use subprocess to capture errors and warnings
         stderr = bu.run_blast(blast_path, blastdb_path, fasta_file, blast_output,
-                           1, 1, ids_file)
+                              1, 1, ids_file)
 
         out_files.append(blast_output)
 

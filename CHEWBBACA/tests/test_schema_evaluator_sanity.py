@@ -116,19 +116,23 @@ def test_schemaEvaluator_valid(test_args, expected):
     # assert that files in each pair are equal
     # print(list(basename_main_dict.values())[3][0])
     # print(list(basename_main_dict.values())[3][1])
+    
+    # print(list(basename_main_dict.items()))
     file_cmps_main = []
     for k2, v2 in basename_main_dict.items():
         file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
 
-    with open(list(basename_html_dict.values())[3][0], "r") as o:
+    with open(list(basename_html_dict.values())[4][0], "r") as o:
         out = o.read()
 
     print(out)
 
-    with open(list(basename_html_dict.values())[3][1], "r") as e:
+    with open(list(basename_html_dict.values())[4][1], "r") as e:
         exc = e.read()
 
     print(exc)
+
+    print(file_cmps_main)
 
     assert all(file_cmps_main) is True
 

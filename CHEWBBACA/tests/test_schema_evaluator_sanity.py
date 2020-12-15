@@ -68,14 +68,10 @@ def test_schemaEvaluator_valid(test_args, expected):
                          ]
     output_html_files.sort()
 
-    print(output_html_files)
-
     expected_html_files = [os.path.join(expected, "html_files", file)
                            for file in os.listdir(os.path.join(expected, "html_files"))
                            ]
     expected_html_files.sort()
-
-    print(expected_html_files)
 
     html_files = output_html_files + expected_html_files
     basename_html_dict = {}
@@ -87,6 +83,16 @@ def test_schemaEvaluator_valid(test_args, expected):
     file_cmps_html = []
     for k, v in basename_html_dict.items():
         file_cmps_html.append(filecmp.cmp(v[0], v[1], shallow=False))
+
+    with open(list(basename_html_dict.values())[0][0], "r") as o:
+        out = o.read()
+
+    print(out)
+
+    with open(list(basename_html_dict.values())[0][1], "r") as e:
+        exc = e.read()
+
+    print(exc)
 
     assert all(file_cmps_html) is True
 

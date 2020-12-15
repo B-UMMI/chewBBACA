@@ -84,41 +84,41 @@ def test_schemaEvaluator_valid(test_args, expected):
     for k, v in basename_html_dict.items():
         file_cmps_html.append(filecmp.cmp(v[0], v[1], shallow=False))
 
-    with open(list(basename_html_dict.values())[0][0], "r") as o:
-        out = o.read()
+    # with open(list(basename_html_dict.values())[0][0], "r") as o:
+    #     out = o.read()
 
-    print(out)
+    # print(out)
 
-    with open(list(basename_html_dict.values())[0][1], "r") as e:
-        exc = e.read()
+    # with open(list(basename_html_dict.values())[0][1], "r") as e:
+    #     exc = e.read()
 
-    print(exc)
+    # print(exc)
 
-    assert all(file_cmps_html) is True
+    # assert all(file_cmps_html) is True
 
-    # # check output MAIN files
-    # output_main_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", file)
-    #                      for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data"))
-    #                      if "prot_files" != file]
-    # output_main_files.sort()
+    # check output MAIN files
+    output_main_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", file)
+                         for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data"))
+                         if "prot_files" != file]
+    output_main_files.sort()
 
-    # expected_main_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
-    #                        for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data"))
-    #                        if "prot_files" != file]
-    # expected_main_files.sort()
+    expected_main_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
+                           for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data"))
+                           if "prot_files" != file]
+    expected_main_files.sort()
 
-    # main_files = output_main_files + expected_main_files
-    # basename_main_dict = {}
-    # for f2 in main_files:
-    #     basename2 = os.path.basename(f2)
-    #     basename_main_dict.setdefault(basename2, []).append(f2)
+    main_files = output_main_files + expected_main_files
+    basename_main_dict = {}
+    for f2 in main_files:
+        basename2 = os.path.basename(f2)
+        basename_main_dict.setdefault(basename2, []).append(f2)
 
-    # # assert that files in each pair are equal
-    # file_cmps_main = []
-    # for k2, v2 in basename_main_dict.items():
-    #     file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
+    # assert that files in each pair are equal
+    file_cmps_main = []
+    for k2, v2 in basename_main_dict.items():
+        file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
 
-    # assert all(file_cmps_main) is True
+    assert all(file_cmps_main) is True
 
     # # check output PROTEIN files
     # output_prot_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file)

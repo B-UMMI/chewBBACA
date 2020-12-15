@@ -623,10 +623,6 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         if ".fasta" in f
     ]
 
-    prot_files = os.listdir(protein_file_path)
-
-    print(prot_files)
-
     pre_computed_data_file = os.path.join(
         pre_computed_data_path, "pre_computed_data_ind.json")
 

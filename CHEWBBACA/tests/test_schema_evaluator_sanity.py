@@ -102,10 +102,14 @@ def test_schemaEvaluator_valid(test_args, expected):
                          if "prot_files" != file]
     output_main_files.sort()
 
+    print(output_main_files)
+
     expected_main_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
                            for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data"))
                            if "prot_files" != file]
     expected_main_files.sort()
+
+    print(expected_main_files)
 
     main_files = output_main_files + expected_main_files
     basename_main_dict = {}

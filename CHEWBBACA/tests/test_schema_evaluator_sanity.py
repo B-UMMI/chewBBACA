@@ -84,16 +84,6 @@ def test_schemaEvaluator_valid(test_args, expected):
     for k, v in basename_html_dict.items():
         file_cmps_html.append(filecmp.cmp(v[0], v[1], shallow=False))
 
-    # with open(list(basename_html_dict.values())[0][0], "r") as o:
-    #     out = o.read()
-
-    # print(out)
-
-    # with open(list(basename_html_dict.values())[0][1], "r") as e:
-    #     exc = e.read()
-
-    # print(exc)
-
     assert all(file_cmps_html) is True
 
     # check output MAIN files
@@ -122,12 +112,12 @@ def test_schemaEvaluator_valid(test_args, expected):
     for k2, v2 in basename_main_dict.items():
         file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
 
-    with open(list(basename_html_dict.values())[4][0], "r") as o:
+    with open(list(basename_main_dict.values())[3][0], "r") as o:
         out = o.read()
 
     print(out)
 
-    with open(list(basename_html_dict.values())[4][1], "r") as e:
+    with open(list(basename_main_dict.values())[3][1], "r") as e:
         exc = e.read()
 
     print(exc)

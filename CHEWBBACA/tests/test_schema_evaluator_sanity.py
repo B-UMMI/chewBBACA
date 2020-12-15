@@ -102,14 +102,14 @@ def test_schemaEvaluator_valid(test_args, expected):
                          if "prot_files" != file]
     output_main_files.sort()
 
-    print(output_main_files)
+    #print(output_main_files)
 
     expected_main_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
                            for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data"))
                            if "prot_files" != file]
     expected_main_files.sort()
 
-    print(expected_main_files)
+    #print(expected_main_files)
 
     main_files = output_main_files + expected_main_files
     basename_main_dict = {}
@@ -118,6 +118,7 @@ def test_schemaEvaluator_valid(test_args, expected):
         basename_main_dict.setdefault(basename2, []).append(f2)
 
     # assert that files in each pair are equal
+    print(list(basename_main_dict.values()))
     file_cmps_main = []
     for k2, v2 in basename_main_dict.items():
         file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))

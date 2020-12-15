@@ -384,11 +384,11 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedData = {json.dumps(pre_computed_data)} </script>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual)} </script>
-                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data)} </script>
-                <script> const _cdsDf = {json.dumps(data_ind)} </script>
-                <script> const _cdsScatter = {json.dumps(hist_data)} </script>
+                <script> const _preComputedData = {json.dumps(pre_computed_data, sort_keys=True)} </script>
+                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual, sort_keys=True)} </script>
+                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data, sort_keys=True)} </script>
+                <script> const _cdsDf = {json.dumps(data_ind, sort_keys=True)} </script>
+                <script> const _cdsScatter = {json.dumps(hist_data, sort_keys=True)} </script>
                 <script src="./main.js"></script>
             </body>
         </html>

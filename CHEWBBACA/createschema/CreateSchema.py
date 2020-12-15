@@ -799,6 +799,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
     print('Translation table: {0}'.format(translation_table))
     print('Minimum sequence length: {0}'.format(minimum_length))
+    print('Size threshold: {0}'.format(size_threshold))
     print('Clustering mode: {0}'.format(clustering_mode))
     print('Word size: {0}'.format(word_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
@@ -912,6 +913,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     # BLASTp clusters step
     blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
+    print(blastp_path, makeblastdb_path)
     blast_results, ids_dict = cluster_blaster_component(clusters,
                                                         proteins,
                                                         temp_directory,

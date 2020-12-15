@@ -368,7 +368,8 @@ def verify_cpu_usage(cpu_to_use):
 
 
 def is_exe(fpath):
-    """
+    """ Determines if path points to file and
+        if the file is executable.
     """
 
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)

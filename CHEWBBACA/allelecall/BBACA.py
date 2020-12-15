@@ -18,12 +18,14 @@ try:
     from allelecall import callAlleles_protein3
     from utils import (ParalogPrunning, runProdigal,
                        Create_Genome_Blastdb,
-                       parameters_validation as pv)
+                       parameters_validation as pv,
+                       constants as cnst)
 except:
     from CHEWBBACA.allelecall import callAlleles_protein3
     from CHEWBBACA.utils import (ParalogPrunning, runProdigal,
                                  Create_Genome_Blastdb,
-                                 parameters_validation as pv)
+                                 parameters_validation as pv,
+                                 constants as cnst)
 
 
 def prepGenomes(genomeFile, basepath, verbose, inputCDS):
@@ -214,7 +216,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
     return genepath, basepath, lGenesFiles, argumentsList, noshortgeneFile
 
 
-def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceContinue, jsonReport,
+def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, blast_path, forceContinue, jsonReport,
          verbose, forceReset, contained, chosenTrainingFile, inputCDS, sizeTresh, translation_table,
          ns, prodigal_mode):
 
@@ -391,13 +393,14 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
             print('Creating Blast databases for all genomes...\n')
             # creation of the Databases for each genome, one genome per core using n cores
             pool = multiprocessing.Pool(cpuToUse)
+            makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
             for genomeFile in listOfGenomes:
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))
 
-                pool.apply_async(Create_Genome_Blastdb.main, (
-                    filepath, os.path.join(basepath, str(os.path.basename(genomeFile))), str(os.path.basename(genomeFile)),
-                    False))
+                pool.apply_async(Create_Genome_Blastdb.main,
+                                 (makeblastdb_path, filepath, os.path.join(basepath,
+                                  str(os.path.basename(genomeFile))), str(os.path.basename(genomeFile)), False))
 
             pool.close()
             pool.join()
@@ -427,7 +430,7 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, BlastpPath, forceCont
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
         pool.apply_async(callAlleles_protein3.main,
-                         (str(argList), basepath, str(BlastpPath), str(verbose), BSRTresh, sizeTresh, ns))
+                         (str(argList), basepath, blast_path, str(verbose), BSRTresh, sizeTresh, ns))
 
     pool.close()
     pool.join()

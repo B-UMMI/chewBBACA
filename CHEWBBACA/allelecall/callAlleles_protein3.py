@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
-from io import StringIO
-from Bio import SeqIO
-import sys
-from Bio.Seq import Seq
-from Bio.Blast.Applications import NcbiblastpCommandline
-from collections import Counter
+
 import os
-from Bio.Blast import NCBIXML
-try:
-    from utils import CommonFastaFunctions
-except:
-    from CHEWBBACA.utils import CommonFastaFunctions
+import sys
 import time
 import pickle
 import shutil
 import warnings
+from collections import Counter
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from io import StringIO
+from Bio.Blast import NCBIXML
 from Bio import BiopythonWarning
+from Bio.Blast.Applications import NcbiblastpCommandline
+
+try:
+    from utils import (CommonFastaFunctions,
+                       constants as cnst)
+except:
+    from CHEWBBACA.utils import (CommonFastaFunctions,
+                                 constants as cnst)
+
+
 warnings.simplefilter('ignore', BiopythonWarning)
 
 
-def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
+def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastp_path, makeblastdb_path):
     if verbose:
         def verboseprint(*args):
             for arg in args:
@@ -63,7 +70,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
             proteinfastaPath = os.path.join(basepath, str(os.path.basename(genefile) + '_protein2.fasta'))
 
             # new db for each allele to blast it against himself
-            Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(proteinfastaPath, 1, True, alleleProt)
+            Gene_Blast_DB_name = CommonFastaFunctions.Create_Blastdb_no_fasta(makeblastdb_path, proteinfastaPath, 1, True, alleleProt)
 
             # if bsr hasn't been calculated, do the BLAST
             if doAll:
@@ -71,7 +78,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
                 verboseprint("Starting Blast alleles at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
                 # --- get BLAST score ratio --- #
-                cline = NcbiblastpCommandline(cmd=blastPath, db=Gene_Blast_DB_name,
+                cline = NcbiblastpCommandline(cmd=blastp_path, db=Gene_Blast_DB_name,
                                               evalue=0.001, outfmt=5, num_threads=1)
                 out, err = cline(stdin=alleleProt)
                 psiblast_xml = StringIO(out)
@@ -112,7 +119,7 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastPath):
 
 
 def reDogetBlastScoreRatios(sequence, basepath, alleleI, allelescores2, newGene_Blast_DB_name, alleleList2, picklepath,
-                            verbose, blastPath, listAllelesNames):
+                            verbose, blastp_path, listAllelesNames):
     if verbose:
         def verboseprint(*args):
             for arg in args:
@@ -125,7 +132,7 @@ def reDogetBlastScoreRatios(sequence, basepath, alleleI, allelescores2, newGene_
 
     verboseprint("Starting Blast of new alleles to calculate BSR at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
-    cline = NcbiblastpCommandline(cmd=blastPath, db=newGene_Blast_DB_name, evalue=0.001, outfmt=5, num_threads=1)
+    cline = NcbiblastpCommandline(cmd=blastp_path, db=newGene_Blast_DB_name, evalue=0.001, outfmt=5, num_threads=1)
 
     out, err = cline(stdin=sequence)
 
@@ -196,7 +203,11 @@ def translateSeq(DNASeq):
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
-def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
+def main(input_file, temppath, blast_path, verbose, bsrTresh, sizeTresh, ns):
+
+    # create BLASTp and MakeBLASTdb paths
+    blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
 
     if verbose == 'True':
         verbose = True
@@ -270,15 +281,14 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
 
     geneScorePickle = os.path.abspath(shortgeneFile) + '_bsr.txt'
 
-    # check if bsr as arealdy been calculated and recalculate it if necessary
-
+    # check if bsr has arealdy been calculated and recalculate it if necessary
     if os.path.isfile(geneScorePickle):
         allelescores, alleleList, listShortAllelesNames = getBlastScoreRatios(shortgeneFile, basepath, False, verbose,
-                                                                              blastPath)
+                                                                              blastp_path, makeblastdb_path)
 
     else:
         allelescores, alleleList, listShortAllelesNames = getBlastScoreRatios(shortgeneFile, basepath, True, verbose,
-                                                                              blastPath)
+                                                                              blastp_path, makeblastdb_path)
 
     with open(os.path.join(basepath, str(os.path.basename(shortgeneFile) + '_protein.fasta')), 'r') as myfile:
         proteinFastaString = myfile.read()
@@ -376,7 +386,7 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
             Gene_Blast_DB_name = os.path.join(temppath, str(os.path.basename(genomeFile)) + "/" + str(
                 os.path.basename(genomeFile)) + "_db")
 
-            cline = NcbiblastpCommandline(cmd=blastPath, db=Gene_Blast_DB_name, evalue=0.001,
+            cline = NcbiblastpCommandline(cmd=blastp_path, db=Gene_Blast_DB_name, evalue=0.001,
                                           outfmt=5, max_target_seqs=10, max_hsps=10, num_threads=1)
 
             out, err = cline(stdin=proteinFastaString)
@@ -630,7 +640,7 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
                                 listShortAllelesNames.append(appendAllele)
 
                                 sequence_2_blast = '>' + alleleIaux + '\n' + str(protSeq)
-                                Gene_Blast_DB_name2 = CommonFastaFunctions.Create_Blastdb_no_fasta(geneTransalatedPath2, 1, True, sequence_2_blast)
+                                Gene_Blast_DB_name2 = CommonFastaFunctions.Create_Blastdb_no_fasta(makeblastdb_path, geneTransalatedPath2, 1, True, sequence_2_blast)
 
                                 verboseprint("Re-calculating BSR at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
                                 allelescores, alleleList, listShortAllelesNames = reDogetBlastScoreRatios(sequence_2_blast,
@@ -641,7 +651,7 @@ def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, ns):
                                                                                                           alleleList,
                                                                                                           geneScorePickle,
                                                                                                           verbose,
-                                                                                                          blastPath,
+                                                                                                          blastp_path,
                                                                                                           listShortAllelesNames)
                                 verboseprint("Done Re-calculating BSR at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 

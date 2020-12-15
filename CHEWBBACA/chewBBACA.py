@@ -403,7 +403,6 @@ def allele_call():
 
     prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
 
-    print(vars(args))
     config_file = os.path.join(args.schema_directory, '.schema_config')
     # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
@@ -427,14 +426,13 @@ def allele_call():
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
 
-        print('\n', schema_params, unmatch_params, run_params)
-        print(args)
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
     if args.genes_list is not False:
         schema_genes = aux.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
     else:
         schema_genes = aux.check_input_type(args.schema_directory, 'listGenes2Call.txt')
+
     genomes_files = aux.check_input_type(args.input_files, 'listGenomes2Call.txt')
 
     # determine if schema was downloaded from Chewie-NS

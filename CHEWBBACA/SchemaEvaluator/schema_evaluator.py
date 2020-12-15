@@ -384,9 +384,9 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedData = {json.dumps(pre_computed_data, sort_keys=True)} </script>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual, sort_keys=True)} </script>
-                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data, sort_keys=True)} </script>
+                <script> const _preComputedData = {json.dumps(pre_computed_data)} </script>
+                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual)} </script>
+                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data)} </script>
                 <script> const _cdsDf = {json.dumps(data_ind, sort_keys=True)} </script>
                 <script> const _cdsScatter = {json.dumps(hist_data, sort_keys=True)} </script>
                 <script src="./main.js"></script>
@@ -405,19 +405,19 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         pre_computed_data_path = os.path.join(
             out_path, "pre_computed_data.json")
         with open(pre_computed_data_path, "w") as out:
-            json.dump(pre_computed_data, out, sort_keys=True)
+            json.dump(pre_computed_data, out)
 
         # Write the locus individual file to the pre_computed_data directory.
         pre_computed_data_ind_path = os.path.join(
             out_path, "pre_computed_data_ind.json")
         with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
+            json.dump(pre_computed_data_individual, out_ind)
 
         # Write the boxplot pre_computed_data
         pre_computed_data_boxplot_path = os.path.join(
             out_path, "pre_computed_data_boxplot.json")
         with open(pre_computed_data_boxplot_path, "w") as box_outfile:
-            json.dump(boxplot_data, box_outfile, sort_keys=True)
+            json.dump(boxplot_data, box_outfile)
 
         # Write the CDS Analysis (Panel E) data files
         cds_df_path = os.path.join(
@@ -429,10 +429,10 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         )
 
         with open(cds_df_path, "w") as cds_df_json:
-            json.dump(data_ind, cds_df_json, sort_keys=True)
+            json.dump(data_ind, cds_df_json)
 
         with open(cds_scatter_path, "w") as cds_scatter_json:
-            json.dump(hist_data, cds_scatter_json, sort_keys=True)
+            json.dump(hist_data, cds_scatter_json)
 
         return out_path
     else:

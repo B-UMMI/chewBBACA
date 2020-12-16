@@ -809,7 +809,7 @@ def parse_arguments():
                              'Contributor can submit new alleles).')
 
     parser.add_argument('--b', type=pv.check_blast, required=False,
-                        dest='blast_path',
+                        default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
     args = parser.parse_args()

@@ -722,7 +722,9 @@ def cluster_blaster_component(clusters, sequences, output_directory,
     # create BLAST DB
     blast_db = fu.join_paths(output_directory,
                               ['{0}_clustered_proteins_int'.format(file_prefix)])
-    bu.make_blast_db(makeblastdb_path, integer_clusters, blast_db, 'prot')
+    db_stderr = bu.make_blast_db(makeblastdb_path, integer_clusters, blast_db, 'prot')
+    if len(db_stderr) > 0:
+        sys.exit(db_stderr)
 
     blast_results_dir = os.path.join(output_directory,
                                      '{0}_blast_results'.format(file_prefix))
@@ -913,7 +915,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     # BLASTp clusters step
     blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
-    print(blastp_path, makeblastdb_path)
+
     blast_results, ids_dict = cluster_blaster_component(clusters,
                                                         proteins,
                                                         temp_directory,
@@ -946,59 +948,22 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
     fau.get_sequences_by_id(proteins, schema_seqids, beta_file)
 
-##############################################################################
-
-    # # perform clustering with really low similarity cutoff
-    # proteins = aux.import_sequences(beta_file)
-
-    # rep_kmers = aux.kmer_index(proteins, 4)
-
-    # cs_results = clustering_component(proteins, 4, 0.10,
-    #                                   clustering_mode, rep_kmers, False,
-    #                                   1, True, 2, temp_directory, cpu_cores,
-    #                                   'cse', False)
-
-    # # remove self from clusters
-    # cs_results = {k: [e for e in v if e[0] != k] for k, v in cs_results.items()}
-
-    # # remove singletons
-    # cs_results = {k: v for k, v in cs_results.items() if len(v) > 0}
-
-    # # BLASTp clusters step
-    # if len(cs_results) > 0:
-    #     blast_results, ids_dict = cluster_blaster_component(cs_results,
-    #                                                         proteins,
-    #                                                         temp_directory,
-    #                                                         blastp_path,
-    #                                                         cpu_cores,
-    #                                                         'cbe')
-
-    #     blast_files = aux.flatten_list(blast_results)
-
-    #     # merge all results
-    #     blast_results = aux.flatten_list([aux.read_tabular(file)
-    #                                       for file in blast_files])
-
-    #     # compute and exclude based on BSR
-    #     blast_excluded_alleles = aux.apply_bsr(blast_results, indexed_dna_file,
-    #                                            blast_score_ratio, ids_dict)
-    #     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
-    #     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
-    #     print('Removed {0} loci that were too similar with other loci '
-    #           'in the schema.'.format(len(set(blast_excluded_alleles))))
-
-##############################################################################
-
     integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')
     ids_dict2 = fau.integer_headers(beta_file, integer_seqids)
 
     blast_db = fu.join_paths(temp_directory, ['int_proteins_int'])
-    bu.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
+    db_stderr = bu.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
+
+    if len(db_stderr) > 0:
+        sys.exit(db_stderr)
 
     blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory,
                                                  'beta_schema')
-    stderr = bu.run_blast(blastp_path, blast_db, integer_seqids,
-                           blast_output, 1, cpu_cores)
+    blast_stderr = bu.run_blast(blastp_path, blast_db, integer_seqids,
+                                blast_output, 1, cpu_cores)
+
+    if len(blast_stderr) > 0:
+        sys.exit(blast_stderr)
 
     final_excluded = aux.apply_bsr(iu.read_tabular(blast_output),
                                   indexed_dna_file,
@@ -1010,8 +975,6 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
 
     print('Removed {0} loci that were too similar with other loci '
          'in the schema.'.format(len(final_excluded)))
-
-##############################################################################
 
     output_schema = os.path.join(temp_directory, 'schema_seed.fasta')
 
@@ -1169,7 +1132,7 @@ def parse_arguments():
                              'number of available CPU cores).')
 
     parser.add_argument('--b', type=pv.check_blast, required=False,
-                        dest='blast_path',
+                        default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
     parser.add_argument('--CDS', required=False, action='store_true',

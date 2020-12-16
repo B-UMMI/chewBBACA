@@ -9,6 +9,7 @@ DESCRIPTION
 
 
 import os
+import sys
 from collections import Counter
 
 from Bio import SeqIO
@@ -19,6 +20,7 @@ try:
                        list_utils as lu,
                        blast_utils as bu,
                        fasta_utils as fau,
+                       constants as cnst,
                        clustering_utils as cu,
                        auxiliary_functions as aux)
 except:
@@ -27,6 +29,7 @@ except:
                                  list_utils as lu,
                                  blast_utils as bu,
                                  fasta_utils as fau,
+                                 constants as cnst,
                                  clustering_utils as cu,
                                  auxiliary_functions as aux)
 
@@ -382,7 +385,10 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         # Use subprocess to capture errors and warnings
         stderr = bu.run_blast(blast_path, blastdb_path, fasta_file, blast_output,
-                              1, 1, ids_file)
+                              1, 1, ids_file, ignore=cnst.IGNORE_RAISED)
+
+        if len(stderr) > 0:
+            raise ValueError('\n'.join(stderr))
 
         out_files.append(blast_output)
 

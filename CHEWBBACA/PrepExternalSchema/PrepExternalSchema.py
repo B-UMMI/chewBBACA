@@ -360,6 +360,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                 blast_stderr = but.run_blast(blastp_path, blastp_db, rep_file,
                                              blast_output, 1, 1, ids_file, blastp_task,
                                              100000)
+                if len(blast_stderr) > 0:
+                    raise ValueError(blast_stderr)
 
                 # import BLAST results
                 blast_results = iut.read_tabular(blast_output)
@@ -605,7 +607,7 @@ def parse_arguments():
                              'will not be included in the final schema.')
 
     parser.add_argument('--b', type=pv.check_blast, required=False,
-                        dest='blast_path',
+                        default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
     args = parser.parse_args()

@@ -94,3 +94,7 @@ BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else 'blastp'
 MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else 'makeblastdb'
 
 PRODIGAL_PATH = 'prodigal'
+
+IGNORE_RAISED = ['Warning: [blastp] To obtain better run time performance, please run '
+				 'blastdb_aliastool -seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
+				 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the argument to -seqidlist']

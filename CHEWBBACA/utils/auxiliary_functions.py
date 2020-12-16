@@ -187,6 +187,7 @@ def function_helper(input_args):
                                                      tb=e.__traceback__)
         traceback_text = ''.join(traceback_lines)
         print('Error on {0}:\n{1}\n'.format(func_name, traceback_text))
+        results = [func_name, traceback_text]
 
     return results
 
@@ -1564,3 +1565,24 @@ def process_header(process):
     header = 'chewBBACA - {0}'.format(process)
     hf = '='*(len(header)+4)
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
+
+def decode_str(str_list, encoding):
+    """
+    """
+
+    decoded = [m.decode(encoding).strip()
+               if type(m) == bytes
+               else m.strip()
+               for m in str_list]
+
+    return decoded
+
+
+def filter_stderr(stderr, ignore):
+    """
+    """
+
+    unique_sterr = list(set(stderr) - set(ignore))
+
+    return unique_sterr

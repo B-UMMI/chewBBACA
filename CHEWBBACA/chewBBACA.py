@@ -204,7 +204,6 @@ def create_schema():
 
     args = parser.parse_args()
     del args.CreateSchema
-    print(args.blast_path)
 
     prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
 
@@ -438,9 +437,6 @@ def allele_call():
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
     ns = os.path.isfile(ns_config)
-
-    print(schema_genes, genomes_files, ns)
-    print(args)
 
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,

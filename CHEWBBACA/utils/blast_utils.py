@@ -10,8 +10,12 @@ DESCRIPTION
 
 import subprocess
 
+from utils import (constants as cnst,
+                   auxiliary_functions as aux)
 
-def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
+
+def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
+                  ignore=None):
     """ Creates a BLAST database.
 
         Parameters
@@ -39,7 +43,14 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
 
-    makedb_cmd.wait()
+    stderr = makedb_cmd.stderr.readlines()
+
+    if len(stderr) > 0:
+        stderr = aux.decode_str(stderr, 'utf8')
+        if ignore is not None:
+            stderr = aux.filter_stderr(stderr, ignore)
+
+    return stderr
 
 
 def determine_blast_task(sequences):
@@ -70,7 +81,7 @@ def determine_blast_task(sequences):
 
 def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_hsps=1, threads=1, ids_file=None, blast_task=None,
-              max_targets=None):
+              max_targets=None, ignore=None):
     """ Execute BLAST to align sequences in a FASTA file
         against a BLAST database.
 
@@ -125,5 +136,10 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
                                   stderr=subprocess.PIPE)
 
     stderr = blast_proc.stderr.readlines()
+
+    if len(stderr) > 0:
+        stderr = aux.decode_str(stderr, 'utf8')
+        if ignore is not None:
+            stderr = aux.filter_stderr(stderr, ignore)
 
     return stderr

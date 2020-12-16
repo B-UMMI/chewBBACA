@@ -13,6 +13,7 @@ import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 // Material-UI ExpansionPanel components
 import Accordion from "@material-ui/core/Accordion";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 
@@ -125,7 +126,6 @@ class SchemaEvaluator extends Component {
                 <div style={style.select}>
                   <Typography>Tree type:</Typography>
                   <Select
-                    // menuPlacement={"top"}
                     closeMenuOnSelect={false}
                     options={treeTypeOption}
                     onChange={(val) => {
@@ -158,10 +158,6 @@ class SchemaEvaluator extends Component {
         </Accordion>
       </div>
     );
-
-    // const isIndOption = this.state.isIndOption;
-
-    // let locusIndHist = <div />;
 
     const hist_allele_sizes_x = this.state.locus_ind_data.data.allele_sizes;
 
@@ -239,7 +235,6 @@ class SchemaEvaluator extends Component {
     );
 
     // Build table with additional information
-
     const cdsTableInfo = this.state.cds_df_data;
 
     const indData = {
@@ -249,7 +244,6 @@ class SchemaEvaluator extends Component {
     };
 
     const indTableData = [{ ...cdsTableInfo, ...indData }];
-    // const indTableData = [{ ...indData }];
 
     const indTableColumns = [
       {
@@ -486,19 +480,33 @@ class SchemaEvaluator extends Component {
       colorScheme: "clustal2",
       height: 1000,
       width: 1500,
-      barMethod: "conservation",
+      barMethod: "information-content",
     };
 
     const msa_component = (
-      <div id="msa-viewer" style={{ marginTop: "20px", padding: "16px" }}>
-        <Typography variant="h5" className={classes.title}>
-          Multiple Sequence Analysis
-        </Typography>
-        <Typography variant="subtitle1">
-          Use the hand cursor on the alignment to pan over all alleles.
-        </Typography>
-        <br />
-        <MSAViewer {...msa_options} />
+      <div style={{ marginTop: "40px" }}>
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h5" className={classes.title}>
+              Multiple Sequence Analysis
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <div id="msa-viewer" style={{ padding: "16px" }}>
+              <Typography variant="subtitle1">
+                To analyse the alignment please hover over the alignment until
+                the hand cursor appears and then drag it to see the remaining
+                data.
+              </Typography>
+              <Typography variant="subtitle1">
+                Note: the gray graph above the alignment represents the
+                information entropy after Shannon of a column (scaled).
+              </Typography>
+              <br />
+              <MSAViewer {...msa_options} />
+            </div>
+          </AccordionDetails>
+        </Accordion>
       </div>
     );
 

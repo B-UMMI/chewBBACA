@@ -3,11 +3,6 @@ import ReactMarkdown from "react-markdown";
 import gfm from "remark-gfm";
 import classes from "./Header.css";
 
-// Material-UI components
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
-import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
-
 // Material-UI ExpansionPanel components
 import Accordion from "@material-ui/core/Accordion";
 import AccordionDetails from "@material-ui/core/AccordionDetails";

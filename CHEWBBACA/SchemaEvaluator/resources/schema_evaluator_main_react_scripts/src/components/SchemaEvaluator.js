@@ -6,7 +6,6 @@ import classes from "./SchemaEvaluator.css";
 // Material-UI components
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-// import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 // Material-UI ExpansionPanel components
@@ -14,9 +13,6 @@ import Accordion from "@material-ui/core/Accordion";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
-
-// react-select import
-// import Select from "react-select";
 
 // Material-UI Datatables
 import MUIDataTable from "mui-datatables";

@@ -1320,12 +1320,14 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
     """
     """
 
-    prompt = ('It seems that your schema was created with chewBBACA 2.1.0 or lower.\n'
-              'It is highly recommended that you run the PrepExternalSchema '
-              'process to guarantee full compatibility with the new chewBBACA '
-              'version.\nIf you wish to continue, the AlleleCall process will convert '
-              'the schema to v{0}, but will not determine if schema structure respects '
-              'configuration values.\nDo you wish to proceed?\n'.format(version))
+    prompt = ('It seems that your schema was created with chewBBACA '
+              '2.1.0 or lower.\nIt is highly recommended that you run '
+              'the PrepExternalSchema process to guarantee full '
+              'compatibility with the new chewBBACA version.\nIf you '
+              'wish to continue, the AlleleCall process will convert '
+              'the schema to v{0}, but will not determine if schema '
+              'structure respects configuration values.\nDo you wish '
+              'to proceed?\n'.format(version))
     proceed = iut.input_timeout(prompt, cnst.prompt_timeout)
     if proceed.lower() not in ['y', 'yes']:
         sys.exit('Exited.')
@@ -1415,12 +1417,14 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     """
 
     if force_continue is False:
-        values = prompt_arguments(ptf_path, blast_score_ratio, translation_table,
-                                  minimum_length, size_threshold, version)
+        values = prompt_arguments(ptf_path, blast_score_ratio,
+                                  translation_table, minimum_length,
+                                  size_threshold, version)
     # forced method, create with default args defined in constants
     else:
-        values = auto_arguments(ptf_path, blast_score_ratio, translation_table,
-                                minimum_length, size_threshold)
+        values = auto_arguments(ptf_path, blast_score_ratio,
+                                translation_table, minimum_length,
+                                size_threshold)
 
     ptf_path, blast_score_ratio,\
     translation_table, minimum_length, size_threshold = values
@@ -1433,7 +1437,9 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                                 os.path.basename(ptf_path))))
 
     # determine PTF hash
-    ptf_hash = fut.hash_file(ptf_path, 'rb') if ptf_path is not False else False
+    ptf_hash = (fut.hash_file(ptf_path, 'rb')
+                if ptf_path is not False
+                else False)
 
     print('\nCreating file with schema configs...')
     # write schema config file
@@ -1455,64 +1461,26 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
             minimum_length, size_threshold]
 
 
-def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
-                                translation_table, minimum_length,
-                                size_threshold, force_continue, config_file,
-                                schema_directory):
+def validate_ptf(ptf_path, schema_directory, schema_params,
+                 unmatch_params):
+    """
+    """
 
-    # run parameters values
-    run_params = {'bsr': blast_score_ratio,
-                  'translation_table': translation_table,
-                  'minimum_locus_length':minimum_length,
-                  'size_threshold': size_threshold}
-
-    # determine user provided arguments values that differ from default
-    unmatch_params = {k: v for k, v in run_params.items()
-                      if v not in schema_params[k] and v is not None}
-    # determine arguments values not provided by user
-    default_params = {k: schema_params[k][0] for k, v in run_params.items()
-                      if v is None}
-
-    # update arguments for current run
-    for k in run_params:
-        if k in default_params:
-            run_params[k] = default_params[k]
-
-    if len(unmatch_params) > 0:
-        print('Provided arguments values differ from arguments '
-              'values used for schema creation:\n')
-        params_diffs = [[p, ':'.join(map(str, schema_params[p])), str(unmatch_params[p])] for p in unmatch_params]
-        params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
-        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
-        print('\n'.join(params_diffs_text))
-        if force_continue is False:
-            prompt = ('\nContinuing might lead to results not consistent with '
-                      'previous runs.\nProviding parameters values that differ '
-                      'from the ones used for schema creation will also '
-                      'invalidate the schema for uploading and synchronization '
-                      'with Chewie-NS.\nContinue?\n')
-            params_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
-        else:
-            params_answer = 'yes'
-
-        if params_answer.lower() not in ['y', 'yes']:
-            sys.exit('Exited.')
-        else:
-            # append new arguments values to configs values
-            for p in unmatch_params:
-                schema_params[p].append(unmatch_params[p])
-
-    # default is to get the training file in schema directory
     if ptf_path is None:
         # deal with multiple training files
-        schema_ptfs = [file for file in os.listdir(schema_directory) if file.endswith('.trn')]
+        schema_ptfs = [file
+                       for file in os.listdir(schema_directory)
+                       if file.endswith('.trn')]
         if len(schema_ptfs) > 1:
-            sys.exit('Found more than one Prodigal training file in schema directory.\n'
-                     'Please maintain only the training file used in the schema creation process.')
+            sys.exit('Found more than one Prodigal training '
+                     'file in schema directory.\nPlease maintain '
+                     'only the training file used in the schema '
+                     'creation process.')
         elif len(schema_ptfs) == 1:
             ptf_path = os.path.join(schema_directory, schema_ptfs[0])
         elif len(schema_ptfs) == 0:
-            print('There is no Prodigal training file in schema\'s directory.')
+            print('There is no Prodigal training file in schema\'s '
+                  'directory.')
             ptf_path = False
     # if user provides a training file
     elif ptf_path == 'False':
@@ -1531,13 +1499,16 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
         ptf_num = len(schema_params['prodigal_training_file'])
         if force_continue is False:
             if ptf_num == 1:
-                print('Prodigal training file is not the one used to create the schema.')
-                prompt = ('Using this training file might lead to results not '
-                          'consistent with previous runs and invalidate the '
-                          'schema for usage with the NS.\nContinue process?\n')
+                print('Prodigal training file is not the one '
+                      'used to create the schema.')
+                prompt = ('Using this training file might lead to '
+                          'results not consistent with previous runs '
+                          'and invalidate the schema for usage with '
+                          'the NS.\nContinue process?\n')
                 ptf_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
             if ptf_num > 1:
-                print('Prodigal training file is not any of the {0} used in previous runs.'.format(ptf_num))
+                print('Prodigal training file is not any of the {0} '
+                      'used in previous runs.'.format(ptf_num))
                 prompt = ('Continue?\n')
                 ptf_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
         else:
@@ -1549,6 +1520,64 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
             schema_params['prodigal_training_file'].append(ptf_hash)
             unmatch_params['prodigal_training_file'] = ptf_hash
 
+    return [ptf_path, schema_params, unmatch_params]
+
+
+def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
+                                translation_table, minimum_length,
+                                size_threshold, force_continue, config_file,
+                                schema_directory):
+
+    # run parameters values
+    run_params = {'bsr': blast_score_ratio,
+                  'translation_table': translation_table,
+                  'minimum_locus_length':minimum_length,
+                  'size_threshold': size_threshold}
+
+    # determine user provided arguments values that differ from default
+    unmatch_params = {k: v
+                      for k, v in run_params.items()
+                      if v not in schema_params[k] and v is not None}
+    # determine arguments values not provided by user
+    default_params = {k: schema_params[k][0]
+                      for k, v in run_params.items()
+                      if v is None}
+
+    # update arguments for current run
+    for k in run_params:
+        if k in default_params:
+            run_params[k] = default_params[k]
+
+    if len(unmatch_params) > 0:
+        print('Provided arguments values differ from arguments '
+              'values used for schema creation:\n')
+        params_diffs = [[p, ':'.join(map(str, schema_params[p])),
+                         str(unmatch_params[p])]
+                        for p in unmatch_params]
+        params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
+        params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
+        print('\n'.join(params_diffs_text))
+        if force_continue is False:
+            prompt = ('\nContinuing might lead to results not '
+                      'consistent with previous runs.\nProviding '
+                      'parameters values that differ from the ones '
+                      'used for schema creation will also invalidate '
+                      'the schema for uploading and synchronization '
+                      'with Chewie-NS.\nContinue?\n')
+            params_answer = iut.input_timeout(prompt, cnst.prompt_timeout)
+        else:
+            params_answer = 'yes'
+
+        if params_answer.lower() not in ['y', 'yes']:
+            sys.exit('Exited.')
+        else:
+            # append new arguments values to configs values
+            for p in unmatch_params:
+                schema_params[p].append(unmatch_params[p])
+
+    # default is to get the training file in schema directory
+    ptf_path, schema_params, unmatch_params = validate_ptf(ptf_path, schema_directory,
+                                                           schema_params, unmatch_params)
     run_params['ptf_path'] = ptf_path
 
     # save updated schema config file

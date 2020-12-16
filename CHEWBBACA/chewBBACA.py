@@ -217,23 +217,19 @@ def create_schema():
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
 
-    if args.cds_input is True:
-        args.input_files = os.path.abspath(args.input_files)
-    else:
-        genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
-        args.input_files = aux.check_input_type(args.input_files, genomes_list)
+    genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
+    args.input_files = aux.check_input_type(args.input_files, genomes_list)
 
     # start CreateSchema process
     CreateSchema.main(**vars(args))
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
     # copy training file to schema directory
+    ptf_hash = ''
     if args.ptf_path is not False:
         shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
         ptf_hash = fu.hash_file(args.ptf_path, 'rb')
-    else:
-        ptf_hash = ''
 
     # write schema config file
     schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
@@ -248,8 +244,7 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    if os.path.isfile(args.input_files) and args.cds_input is False:
-        os.remove(args.input_files)
+    os.remove(args.input_files)
 
 
 @dut.process_timer

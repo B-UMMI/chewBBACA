@@ -785,17 +785,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
                     blast_score_ratio, minimum_length, translation_table,
                     size_threshold, clustering_mode, word_size, clustering_sim,
                     representative_filter, intra_filter, cpu_cores, blast_path,
-                    prodigal_mode):
+                    prodigal_mode, cds_input):
     """
     """
 
-    # read file with paths to input files
-    fasta_files = iu.read_lines(input_files, strip=True)
-
-    # sort paths to FASTA files
-    fasta_files = aux.sort_data(fasta_files, sort_key=lambda x: x.lower())
-
-    print('Number of genomes/assemblies: {0}'.format(len(fasta_files)))
     print('Training file: {0}'.format(ptf_path))
     print('Number of cores: {0}'.format(cpu_cores))
     print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
@@ -810,19 +803,33 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
 
     # define directory for temporary files
     temp_directory = fu.join_paths(output_directory, ['temp'])
+    fu.create_directory(temp_directory)
 
-    # gene prediction step
-    gp_results = gene_prediction_component(fasta_files, ptf_path,
-                                           translation_table, prodigal_mode,
-                                           cpu_cores, temp_directory,
-                                           output_directory)
+    # read file with paths to input files
+    fasta_files = iu.read_lines(input_files, strip=True)
 
-    fasta_files, prodigal_path = gp_results
+    # sort paths to FASTA files
+    fasta_files = aux.sort_data(fasta_files, sort_key=lambda x: x.lower())
 
-    # CDS extraction step
-    cds_files = cds_extraction_component(fasta_files, prodigal_path,
-                                         cpu_cores, temp_directory,
-                                         output_directory)
+    if cds_input is False:
+
+        print('Number of genomes/assemblies: {0}'.format(len(fasta_files)))
+
+        # gene prediction step
+        gp_results = gene_prediction_component(fasta_files, ptf_path,
+                                               translation_table, prodigal_mode,
+                                               cpu_cores, temp_directory,
+                                               output_directory)
+
+        fasta_files, prodigal_path = gp_results
+
+        # CDS extraction step
+        cds_files = cds_extraction_component(fasta_files, prodigal_path,
+                                             cpu_cores, temp_directory,
+                                             output_directory)
+    else:
+        cds_files = fasta_files
+        print('Number of inputs: {0}'.format(len(cds_files)))
 
     # DNA sequences deduplication step
     distinct_dna_template = 'distinct_seqs_{0}.fasta'
@@ -987,52 +994,18 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     return [schema_files, temp_directory]
 
 
-def direct_schema(input_files, output_directory, schema_name, cpu_cores,
-                  blast_score_ratio, minimum_length, translation_table,
-                  ptf_path, size_threshold, blast_path):
-    """
-    """
-
-    # define directory for temporary files
-    temp_directory = fu.join_paths(output_directory, ['temp'])
-    if os.path.isdir(temp_directory) is False:
-        fu.create_directory(temp_directory)
-
-    schema_files = create_schema_structure(input_files, temp_directory,
-                                           temp_directory, schema_name)
-
-    temp_schema = os.path.dirname(schema_files[0])
-    schema_directory = os.path.join(output_directory, schema_name)
-
-    # execute PrepExternalSchema to exclude problematic loci
-    PrepExternalSchema.main(temp_schema, schema_directory,
-                            cpu_cores, blast_score_ratio,
-                            minimum_length, translation_table,
-                            ptf_path, size_threshold, blast_path)
-
-    schema_files = [f for f in os.listdir(schema_directory) if '.fasta' in f]
-
-    return [schema_files, temp_directory]
-
-
 def main(input_files, output_directory, schema_name, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, clustering_mode, word_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
          cds_input, prodigal_mode, no_cleanup):
 
-    if cds_input is False:
-        schema_files, temp_directory = genomes_to_reps(input_files, output_directory, schema_name,
-                                       ptf_path, blast_score_ratio, minimum_length,
-                                       translation_table, size_threshold, clustering_mode,
-                                       word_size, clustering_sim, representative_filter,
-                                       intra_filter, cpu_cores, blast_path,
-                                       prodigal_mode)
-    elif cds_input is True:
-        schema_files, temp_directory = direct_schema(input_files, output_directory, schema_name,
-                                                     cpu_cores, blast_score_ratio, minimum_length,
-                                                     translation_table, ptf_path, size_threshold,
-                                                     blast_path)
+    schema_files, temp_directory = genomes_to_reps(input_files, output_directory, schema_name,
+                                   ptf_path, blast_score_ratio, minimum_length,
+                                   translation_table, size_threshold, clustering_mode,
+                                   word_size, clustering_sim, representative_filter,
+                                   intra_filter, cpu_cores, blast_path,
+                                   prodigal_mode, cds_input)
 
     # remove temporary files
     if no_cleanup is False:

@@ -366,6 +366,10 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
                 }
             )
 
+        # sort pre_computed_data by locus_name
+        for k in pre_computed_data:
+            pre_computed_data[k] = sorted(pre_computed_data[k], key=itemgetter("locus_name"))
+
         # Get data for panel D
         boxplot_data = gene_seqs_info_boxplot(schema_dir)
 
@@ -385,7 +389,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
                 <script> const _preComputedData = {json.dumps(pre_computed_data)} </script>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual)} </script>
+                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual, sort_keys=True)} </script>
                 <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data)} </script>
                 <script> const _cdsDf = {json.dumps(data_ind, sort_keys=True)} </script>
                 <script> const _cdsScatter = {json.dumps(hist_data, sort_keys=True)} </script>
@@ -411,7 +415,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         pre_computed_data_ind_path = os.path.join(
             out_path, "pre_computed_data_ind.json")
         with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind)
+            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
 
         # Write the boxplot pre_computed_data
         pre_computed_data_boxplot_path = os.path.join(

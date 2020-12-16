@@ -20,7 +20,6 @@ import MUIDataTable from "mui-datatables";
 // Plotly.js
 import Plot from "react-plotly.js";
 
-
 class SchemaEvaluator extends Component {
   state = {
     pre_computed_data: _preComputedData,
@@ -54,11 +53,12 @@ class SchemaEvaluator extends Component {
     console.log(locus_id);
 
     const anchor = document.createElement("a");
-    anchor.href = `../html_files/${locus_id.split(".")[0]}_individual_report.html`;
+    anchor.href = `../html_files/${
+      locus_id.split(".")[0]
+    }_individual_report.html`;
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
     anchor.click();
-
   };
 
   clickBoxPlotHandler = (event) => {
@@ -272,20 +272,32 @@ class SchemaEvaluator extends Component {
     );
 
     // Panel D
-    let boxLoci = []
-    let boxQ1 = []
-    let boxMedian = []
-    let boxQ3 = []
-    let boxLowerfence = []
-    let boxUpperfence = []
+    let boxLoci = [];
+    let boxQ1 = [];
+    let boxMedian = [];
+    let boxQ3 = [];
+    let boxLowerfence = [];
+    let boxUpperfence = [];
 
     for (let boxKey in this.state.pre_computed_data_boxplot["boxplot_data"]) {
-      boxLoci.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].locus_name)
-      boxQ1.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q1)
-      boxMedian.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].median)
-      boxQ3.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q3)
-      boxLowerfence.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].min)
-      boxUpperfence.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].max)
+      boxLoci.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].locus_name
+      );
+      boxQ1.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q1
+      );
+      boxMedian.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].median
+      );
+      boxQ3.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q3
+      );
+      boxLowerfence.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].min
+      );
+      boxUpperfence.push(
+        this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].max
+      );
     }
 
     let boxplotData = [];
@@ -528,6 +540,13 @@ class SchemaEvaluator extends Component {
                   className={classes.mainPaper}
                   style={{ width: "100%", height: "100%" }}
                 >
+                  <div style={{ marginBottom: "10px" }}>
+                    <Typography variant="subtitle1">
+                      In the Locus Statistics and Locus Size Variation graphs,
+                      each point (locus) is clickable and will open a page with
+                      more details about it.
+                    </Typography>
+                  </div>
                   <div style={style.buttonBar}>
                     <Button
                       style={style.button}
@@ -588,14 +607,6 @@ class SchemaEvaluator extends Component {
             </Typography>
             <div style={{ marginTop: "20px" }}>{cds_analysis_table}</div>
             <div style={{ marginTop: "20px" }}>{cds_scatter_plot}</div>
-          </div>
-          <div id="locus-ind" style={{ marginTop: "40px" }}>
-            <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-              <Typography variant="h5" className={classes.title}>
-                Please choose the locus to analyse in the Locus Statistics or
-                Locus Size Variation plot.
-              </Typography>
-            </div>
           </div>
         </div>
       </Aux>

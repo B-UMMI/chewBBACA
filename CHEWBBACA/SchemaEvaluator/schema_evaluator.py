@@ -130,17 +130,7 @@ def gene_seqs_info_boxplot(schema_dir):
         if ".fasta" in file
     ]
 
-    # schema_files.sort()
-
-    loci_list = []
-    loci_min = []
-    loci_q1 = []
-    loci_median = []
-    loci_q3 = []
-    loci_max = []
-    loci_mean = []
-    loci_sd = []
-    alleles_counts = []
+    json_to_file = {"boxplot_data": []}
 
     for g in schema_files:
         seq_generator = SeqIO.parse(g, "fasta")
@@ -149,28 +139,26 @@ def gene_seqs_info_boxplot(schema_dir):
 
         # locus name
         locus_name = os.path.split(g)[1]
-        loci_list.append(locus_name)
 
         # number of alleles
         nr_alleles = len(alleles_lengths)
-        alleles_counts.append(nr_alleles)
 
         # minimum and maximum values
-        loci_max.append(max(alleles_lengths))
-        loci_min.append(min(alleles_lengths))
+        loci_max = max(alleles_lengths)
+        loci_min = min(alleles_lengths)
+
         # standard deviation
         if nr_alleles > 1:
             locus_sd = statistics.stdev(alleles_lengths)
         else:
             locus_sd = 0.0
-        loci_sd.append(locus_sd)
 
-        # # median
+        # median
         median_length = round(statistics.median(alleles_lengths))
-        loci_median.append(median_length)
-        # # mean
+
+        # mean
         mean_length = round(sum(alleles_lengths) / nr_alleles)
-        loci_mean.append(mean_length)
+
         # q1 and q3
         if nr_alleles > 1:
             half = int(nr_alleles // 2)
@@ -179,20 +167,23 @@ def gene_seqs_info_boxplot(schema_dir):
         else:
             q1 = alleles_lengths[0]
             q3 = alleles_lengths[0]
-        loci_q1.append(q1)
-        loci_q3.append(q3)
 
-    json_to_file = {
-        "loci": loci_list,
-        "min": loci_min,
-        "q1": loci_q1,
-        "median": loci_median,
-        "q3": loci_q3,
-        "max": loci_max,
-        "mean": loci_mean,
-        "sd": loci_sd,
-        "nr_alleles": alleles_counts,
-    }
+        json_to_file["boxplot_data"].append({
+            "locus_name": locus_name,
+            "nr_alleles": nr_alleles,
+            "max": loci_max,
+            "min": loci_min,
+            "sd": locus_sd,
+            "median": median_length,
+            "mean": mean_length,
+            "q1": q1,
+            "q3": q3
+        })
+
+    # Sort data by locus_name
+    for k in json_to_file:
+        json_to_file[k] = sorted(json_to_file[k], key=itemgetter("locus_name"))
+
 
     return json_to_file
 
@@ -297,7 +288,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
     ]
 
     # schema_files.sort()
-    
+
     if len(schema_files) < 1:
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
 
@@ -368,7 +359,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
 
         # sort pre_computed_data by locus_name
         for k in pre_computed_data:
-            pre_computed_data[k] = sorted(pre_computed_data[k], key=itemgetter("locus_name"))
+            pre_computed_data[k] = sorted(
+                pre_computed_data[k], key=itemgetter("locus_name"))
 
         # Get data for panel D
         boxplot_data = gene_seqs_info_boxplot(schema_dir)
@@ -596,7 +588,7 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
         for file in os.listdir(protein_file_path)
         if "_aligned.fasta" in file
     ]
-    
+
     # protein_files.sort()
 
     pool = multiprocessing.Pool(cpu_to_use)
@@ -657,7 +649,8 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         # print(json.dumps(cds_ind_data, sort_keys=True))
 
         # Read the exceptions file
-        exceptions_filename_path = os.path.join(exceptions_path, f"{sf}_exceptions.json")
+        exceptions_filename_path = os.path.join(
+            exceptions_path, f"{sf}_exceptions.json")
         with open(exceptions_filename_path, "r") as ef:
             exc_data = json.load(ef)
 
@@ -667,7 +660,8 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         msa_data = {"sequences": []}
 
         for allele in SeqIO.parse(msa_file_path, "fasta"):
-            msa_data["sequences"].append({"name": allele.id, "sequence": str(allele.seq)})
+            msa_data["sequences"].append(
+                {"name": allele.id, "sequence": str(allele.seq)})
 
         # get the phylocanvas data
         phylo_file_path = os.path.join(protein_file_path, f"{sf}_aligned.ph")

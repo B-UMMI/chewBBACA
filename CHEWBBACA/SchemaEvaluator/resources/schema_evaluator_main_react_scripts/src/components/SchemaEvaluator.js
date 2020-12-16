@@ -276,17 +276,33 @@ class SchemaEvaluator extends Component {
     );
 
     // Panel D
+    let boxLoci = []
+    let boxQ1 = []
+    let boxMedian = []
+    let boxQ3 = []
+    let boxLowerfence = []
+    let boxUpperfence = []
+
+    for (let boxKey in this.state.pre_computed_data_boxplot["boxplot_data"]) {
+      boxLoci.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].locus_name)
+      boxQ1.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q1)
+      boxMedian.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].median)
+      boxQ3.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].q3)
+      boxLowerfence.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].min)
+      boxUpperfence.push(this.state.pre_computed_data_boxplot["boxplot_data"][boxKey].max)
+    }
+
     let boxplotData = [];
 
     boxplotData.push({
       type: "box",
       name: "Locus Size Variation",
-      x: this.state.pre_computed_data_boxplot.loci,
-      q1: this.state.pre_computed_data_boxplot.q1,
-      median: this.state.pre_computed_data_boxplot.median,
-      q3: this.state.pre_computed_data_boxplot.q3,
-      lowerfence: this.state.pre_computed_data_boxplot.min,
-      upperfence: this.state.pre_computed_data_boxplot.max,
+      x: boxLoci,
+      q1: boxQ1,
+      median: boxMedian,
+      q3: boxQ3,
+      lowerfence: boxLowerfence,
+      upperfence: boxUpperfence,
       showlegend: false,
     });
 

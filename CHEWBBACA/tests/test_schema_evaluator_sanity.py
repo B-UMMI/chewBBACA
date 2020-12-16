@@ -110,15 +110,15 @@ def test_schemaEvaluator_valid(test_args, expected):
     for k2, v2 in basename_main_dict.items():
         file_cmps_main.append(filecmp.cmp(v2[0], v2[1], shallow=False))
 
-    with open(list(basename_main_dict.values())[4][0], "r") as o:
-        out = o.read()
+    # with open(list(basename_main_dict.values())[4][0], "r") as o:
+    #     out = o.read()
 
-    print(out)
+    # print(out)
 
-    with open(list(basename_main_dict.values())[4][1], "r") as e:
-        exc = e.read()
+    # with open(list(basename_main_dict.values())[4][1], "r") as e:
+    #     exc = e.read()
 
-    print(exc)
+    # print(exc)
 
     print(file_cmps_main)
 

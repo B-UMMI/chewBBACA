@@ -57,7 +57,7 @@ def test_schemaEvaluator_valid(test_args, expected):
         chewBBACA.main()
         stdout, stderr = capture.reset()
 
-    check if the report has been created 
+    # check if the report has been created 
     assert 'The report has been created.' in stdout
 
     # check output HTML files

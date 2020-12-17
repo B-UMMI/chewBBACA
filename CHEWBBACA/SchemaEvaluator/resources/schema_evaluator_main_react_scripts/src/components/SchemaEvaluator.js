@@ -404,6 +404,25 @@ class SchemaEvaluator extends Component {
         },
       },
       {
+        name: "Missing Allele IDs",
+        label: "Missing Allele IDs",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <div>{value.join(", ")}</div>
+          ),
+        },
+      },
+      {
         name: "CDS",
         label: "CDS",
         options: {

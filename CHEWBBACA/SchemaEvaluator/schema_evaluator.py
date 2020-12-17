@@ -295,8 +295,12 @@ def create_cds_df(schema_dir, translation_table):
         notStart = 0
         notMultiple = 0
         CDS = 0
+        allele_ids = []
 
         for allele in SeqIO.parse(f, "fasta"):
+
+            # get allele IDs, assuming "_" splits the IDs
+            allele_ids.append(int(allele.id.split("_")[-1]))
 
             ola = aux.translate_dna(str(allele.seq), translation_table, 201)
 
@@ -311,9 +315,15 @@ def create_cds_df(schema_dir, translation_table):
             else:
                 CDS += 1
 
+        if len(aux.find_missing(allele_ids)) > 0:
+            missing_allele_ids = aux.find_missing(allele_ids)
+        else:
+            missing_allele_ids = ["None"]
+
         gene_res["Alleles not multiple of 3"] = notMultiple
         gene_res["Alleles w/ >1 stop codons"] = stopC
         gene_res["Alleles wo/ Start/Stop Codon"] = notStart
+        gene_res["Missing Allele IDs"] = missing_allele_ids
         gene_res["CDS"] = CDS
 
         res["stats"].append(gene_res)

@@ -1339,7 +1339,7 @@ def translate_dna(dna_sequence, table_id, min_len):
         Returns:
             If the sequence can be translated,
             a list with following elements:
-                sequence (list): a list with two elemets, the protein sequence
+                sequence (list): a list with two elements, the protein sequence
                 and the DNA sequence in the correct orientation.
                 coding_strand (str): the strand orientation that had could be
                 translated.

@@ -1,3 +1,45 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Purpose
+-------
+This module generates an interactive report that allows the user to explore
+the diversity (number of alleles) at each locus, the variation of allele
+sizes per locus and the presence of alleles that are not CDSs 
+(when evaluating schemas called by other algorithms).
+
+Expected input
+--------------
+
+The process expects the following variables whether through command line
+execution or invocation of the :py:func:`main` function:
+
+- ``-i``, ``input_files`` : Path to the folder containing the fasta files,
+  one fasta file per gene/locus (alternatively, a file with a list of paths
+  can be given).
+
+    - e.g.: ``/home/user/schemas/schema_dir``
+
+- ``-l``, ``output_directory`` : The directory where the output files will
+  be saved (will create the directory if it does not exist).
+
+    - e.g.: ``/home/user/schemaReport``
+
+- ``-ta``, ``translation_table`` : Genetic code to use for CDS
+  translation (default=11, for Bacteria and Archaea).
+
+    - e.g.: ``11``
+
+- ``--cpu``, ``cpu_cores`` : The number of CPU cores to use (default=1).
+
+    - e.g.: ``4``
+
+- ``--light``, ``light_mode`` : Skip clustal and mafft (default=False)
+
+Code documentation
+------------------
+"""
+
 import os
 import sys
 import json
@@ -26,11 +68,15 @@ def gene_seqs_info_schema_evaluator(gene):
     """ Determines the total number of alleles and the mean length
         of allele sequences per gene.
 
-        Args:
-            genes_list (list): a list with names/paths for FASTA
-            files.
-        Returns:
-            genes_info (list): a list with a sublist for each input
+        Parameters
+        ----------
+        gene : string
+            a string with names/paths for FASTA files.
+
+        Returns
+        -------
+        genes_info : list
+            a list with a sublist for each input
             gene file. Each sublist contains a gene identifier, the
             total number of alleles for that gene and the mean length
             of allele sequences for that gene.
@@ -70,7 +116,21 @@ def gene_seqs_info_schema_evaluator(gene):
 
 
 def gene_seqs_info_individual_schema_evaluator(gene):
-    """
+    """ Determines the total number of alleles and 
+        the mean length of allele sequences for each locus.
+
+        Parameters
+        ----------
+        gene : string
+            a string with names/paths for FASTA files.
+
+        Returns
+        -------
+        genes_info : list
+            a list with a sublist for each input
+            gene file. Each sublist contains a gene identifier, the
+            total number of alleles for that gene and the mean length
+            of allele sequences for that gene.
     """
 
     seq_generator = SeqIO.parse(gene, "fasta")
@@ -112,16 +172,20 @@ def gene_seqs_info_individual_schema_evaluator(gene):
 
 
 def gene_seqs_info_boxplot(schema_dir):
-    """Determines boxplot statistics.
+    """ Determines boxplot statistics.
 
-    Args:
-        genes_list (list): a list with names/paths for FASTA
-        files.
-    Returns:
-        genes_info (dict): a dict with a subdict for each input
-        gene file. Each subdict contains information about each
-        gene such as, mode of the allele sizes, number of alleles
-        and summary statistics (min, max, median and mode).
+        Parameters
+        -----------
+        schema_dir : list 
+            a list with names/paths for FASTA files.
+
+        Returns
+        -------
+        json_to_file : dict
+            a dict with a subdict for each input
+            gene file. Each subdict contains information about each
+            gene such as, mode of the allele sizes, number of alleles
+            and summary statistics (min, max, median, mode and quartiles).
     """
 
     schema_files = [
@@ -184,23 +248,30 @@ def gene_seqs_info_boxplot(schema_dir):
     for k in json_to_file:
         json_to_file[k] = sorted(json_to_file[k], key=itemgetter("locus_name"))
 
-
     return json_to_file
 
 
 # Functions that obtain the data for panel E
 def create_cds_df(schema_dir, translation_table):
-    """
+    """ Detects alleles that aren't CDSs.
 
+        Parameters
+        ----------
+        schema_dir : list 
+            a list with names/paths for FASTA files.
+        translation_table: int
+            the translation table to be used.
 
-    Parameters
-    ----------
-    schema_dir : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
+        Returns
+        -------
+        data_index_records_dict : dict
+            a dict obtained from a dataframe containing the
+            number of non-CDSs detected. It will be used to
+            populate a table in the report.
+        hist_data : dict
+            a dict obtained from a dataframe containing the
+            number of non-CDSs detected. It will be used to
+            populate a chart in the report.
 
     """
 
@@ -279,7 +350,26 @@ def create_cds_df(schema_dir, translation_table):
 
 
 def create_pre_computed_data(schema_dir, translation_table, output_path):
-    """Creates a file with pre-computed data for the Schema Evaluator plotly charts."""
+    """ Creates a file with pre-computed data for 
+        the Schema Evaluator plotly charts.
+
+        Parameters
+        ----------
+        schema_dir : list 
+            a list with names/paths for FASTA files.
+        translation_table: int
+            the translation table to be used.
+        output_path : str
+            the directory where the output files will
+            be saved.
+
+        Returns
+        -------
+        out_path : str
+            the directory where the output files will
+            be saved.
+
+    """
 
     schema_files = [
         os.path.join(schema_dir, file)
@@ -369,7 +459,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         data_ind, hist_data = create_cds_df(schema_dir, translation_table)
 
         # Write HTML file
-        html_template_global = f"""
+        html_template_global = """
         <!DOCTYPE html>
         <html lang="en">
             <head>
@@ -380,15 +470,21 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedData = {json.dumps(pre_computed_data)} </script>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual, sort_keys=True)} </script>
-                <script> const _preComputedDataBoxplot = {json.dumps(boxplot_data)} </script>
-                <script> const _cdsDf = {json.dumps(data_ind, sort_keys=True)} </script>
-                <script> const _cdsScatter = {json.dumps(hist_data, sort_keys=True)} </script>
+                <script> const _preComputedData = {0} </script>
+                <script> const _preComputedDataInd = {1} </script>
+                <script> const _preComputedDataBoxplot = {2} </script>
+                <script> const _cdsDf = {3} </script>
+                <script> const _cdsScatter = {4} </script>
                 <script src="./main.js"></script>
             </body>
         </html>
-        """
+        """.format(
+            json.dumps(pre_computed_data),
+            json.dumps(pre_computed_data_individual, sort_keys=True),
+            json.dumps(boxplot_data),
+            json.dumps(data_ind, sort_keys=True),
+            json.dumps(hist_data, sort_keys=True)
+        )
 
         html_file_path = os.path.join(
             out_path, "schema_evaluator_report.html"
@@ -437,7 +533,23 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
 
 
 def make_protein_record(nuc_record, record_id):
-    """Returns a new SeqRecord with the translated sequence (default table)."""
+    """ Returns a new SeqRecord with the 
+        translated sequence (default table).
+
+        Parameters
+        ----------
+        nuc_record : str
+            protein sequence.
+        record_id: str
+            record id.
+
+        Returns
+        -------
+        SeqRecord
+            a SeqRecord object with the 
+            translated record.
+
+    """
     return SeqRecord(
         seq=nuc_record,
         id="trans_" + record_id,
@@ -445,18 +557,22 @@ def make_protein_record(nuc_record, record_id):
 
 
 def create_protein_files(schema_dir, output_path):
-    """
+    """ Generates FASTA files with the protein
+        sequence of the schema loci.
 
+        Parameters
+        ----------
+        schema_dir : list 
+            a list with names/paths for FASTA files.
+        output_path : str
+            the directory where the output files will
+            be saved.
 
-    Parameters
-    ----------
-    loci_list : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
-
+        Returns
+        -------
+        out_path : str
+            the directory where the output files will
+            be saved.
     """
 
     out_path = os.path.join(output_path, "prot_files")
@@ -474,8 +590,6 @@ def create_protein_files(schema_dir, output_path):
         for file in os.listdir(schema_dir)
         if ".fasta" in file
     ]
-
-    # schema_files.sort()
 
     print("Translating....\n")
 
@@ -522,10 +636,21 @@ def create_protein_files(schema_dir, output_path):
 
 
 def call_mafft(genefile):
-    """Calls MAFFT to generate a MSA."""
+    """ Calls MAFFT to generate an alignment.
+
+        Parameters
+        ----------
+        genefile : str 
+            a string with the name/path for 
+            the FASTA file.
+
+        Returns
+        -------
+        bool
+            True if sucessful, False otherwise.
+    """
 
     try:
-        # print("maffting " + os.path.basename(genefile))
         mafft_cline = MafftCommandline(input=genefile, adjustdirection=True)
         stdout, stderr = mafft_cline()
         path_to_save = genefile.replace("_prot.fasta", "_aligned.fasta")
@@ -539,7 +664,24 @@ def call_mafft(genefile):
 
 
 def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
-    """Run MAFFT with multprocessing and save output."""
+    """ Run MAFFT with multprocessing and saves the output.
+
+        Parameters
+        ----------
+        protein_file_path : str 
+            a string with the name/path for 
+            the protein FASTA file.
+        cpu_to_use : int
+            the number of cpu to use for
+            multiprocessing.
+        show_progress : bool
+            If a progress bar should be
+            displayed.
+
+        Returns
+        -------
+        None.
+    """
 
     print("Running MAFFT...\n")
 
@@ -548,8 +690,6 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
         for file in os.listdir(protein_file_path)
         if "_prot.fasta" in file
     ]
-
-    # protein_files.sort()
 
     pool = multiprocessing.Pool(cpu_to_use)
 
@@ -564,7 +704,19 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
 
 
 def call_clustalw(genefile):
-    """Run MAFFT with multprocessing and save output."""
+    """ Call ClustalW to generate a Neighbour Joining tree.
+
+        Parameters
+        ----------
+        genefile : str 
+            a string with the name/path for 
+            the FASTA file.
+
+        Returns
+        -------
+        bool
+            True if sucessful, False otherwise.
+    """
 
     try:
         clw_cline = ClustalwCommandline(
@@ -579,7 +731,24 @@ def call_clustalw(genefile):
 
 
 def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
-    """Run ClustalW with multprocessing and save output."""
+    """ Run ClustalW with multiprocessing and save output.
+
+        Parameters
+        ----------
+        protein_file_path : str 
+            a string with the name/path for 
+            the protein FASTA file.
+        cpu_to_use : int
+            the number of cpu to use for
+            multiprocessing.
+        show_progress : bool
+            If a progress bar should be
+            displayed.
+
+        Returns
+        -------
+        None.
+    """
 
     print("\nRunning Clustal...\n")
 
@@ -588,8 +757,6 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
         for file in os.listdir(protein_file_path)
         if "_aligned.fasta" in file
     ]
-
-    # protein_files.sort()
 
     pool = multiprocessing.Pool(cpu_to_use)
 
@@ -604,7 +771,27 @@ def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
 
 
 def write_individual_html(input_files, pre_computed_data_path, protein_file_path, output_path):
-    """Writes HTML files for each locus"""
+    """ Writes HTML files for each locus.
+
+        Parameters
+        ----------
+        input_files : str
+            a string with the name/path for 
+            the schema files.
+        pre_computed_data_path : str
+            a string with the name/path for 
+            the pre-computed data files.
+        protein_file_path : str 
+            a string with the name/path for 
+            the protein FASTA file.
+        output_path : str
+            the directory where the output 
+            files will be saved.
+
+        Returns
+        -------
+        None.
+    """
 
     print("\nWriting HTML files...")
 
@@ -674,7 +861,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         else:
             phylo_data_json = []
 
-        html_template_individual = f"""
+        html_template_individual = """
         <!DOCTYPE html>
         <html lang="en">
             <head>
@@ -685,15 +872,21 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
             <body style="background-color: #f6f6f6">
                 <noscript> You need to enable JavaScript to run this app. </noscript>
                 <div id="root"></div>
-                <script> const _preComputedDataInd = {json.dumps(pre_computed_data_individual_sf, sort_keys=True)} </script>
-                <script> const _exceptions = {json.dumps(exc_data, sort_keys=True)} </script>
-                <script> const _cdsDf = {json.dumps(cds_ind_data, sort_keys=True)} </script>
-                <script> const _msaData = {json.dumps(msa_data, sort_keys=True)} </script>
-                <script> const _phyloData = {json.dumps(phylo_data_json, sort_keys=True)} </script>
+                <script> const _preComputedDataInd = {0} </script>
+                <script> const _exceptions = {1} </script>
+                <script> const _cdsDf = {2} </script>
+                <script> const _msaData = {3} </script>
+                <script> const _phyloData = {4} </script>
                 <script src="./main_ind.js"></script>
             </body>
         </html>
-        """
+        """.format(
+            json.dumps(pre_computed_data_individual_sf, sort_keys=True),
+            json.dumps(exc_data, sort_keys=True),
+            json.dumps(cds_ind_data, sort_keys=True),
+            json.dumps(msa_data, sort_keys=True),
+            json.dumps(phylo_data_json, sort_keys=True)
+        )
 
         html_file_path = os.path.join(
             out_path, f"{sf}_individual_report.html"

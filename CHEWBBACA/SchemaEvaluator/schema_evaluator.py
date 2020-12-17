@@ -299,8 +299,12 @@ def create_cds_df(schema_dir, translation_table):
 
         for allele in SeqIO.parse(f, "fasta"):
 
-            # get allele IDs, assuming "_" splits the IDs
-            allele_ids.append(int(allele.id.split("_")[-1]))
+            # FASTA headers examples: >allele_1 or >1_2
+            if "_" in allele.id:
+                allele_ids.append(int(allele.id.split("_")[-1]))
+            # FASTA header example: >1
+            else:
+                allele_ids.append(int(allele.id))
 
             ola = aux.translate_dna(str(allele.seq), translation_table, 201)
 

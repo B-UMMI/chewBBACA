@@ -112,52 +112,57 @@ class SchemaEvaluator extends Component {
       },
     };
 
-    const phylocanvasComponent = (
-      <div style={{ marginTop: "40px" }}>
-        <Accordion defaultExpanded>
-          <AccordionSummary>
-            <Typography variant="h5" className={classes.title}>
-              NJ tree
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <div style={style.root}>
-              <Grid container style={style.toolbar}>
-                <div style={style.select}>
-                  <Typography>Tree type:</Typography>
-                  <Select
-                    closeMenuOnSelect={false}
-                    options={treeTypeOption}
-                    onChange={(val) => {
-                      this.handleSelectChange("treeType", val);
-                    }}
-                    value={treeTypeOption[this.state.treeType]}
-                  />
-                </div>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      color={"primary"}
-                      onChange={() => {
-                        this.setState({ zoom: !this.state.zoom });
+    const phylocanvasComponent =
+      this.state.phyloData === "undefined" ? (
+        <div />
+      ) : (
+        <div style={{ marginTop: "40px" }}>
+          <Accordion defaultExpanded>
+            <AccordionSummary>
+              <Typography variant="h5" className={classes.title}>
+                NJ tree
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <div style={style.root}>
+                <Grid container style={style.toolbar}>
+                  <div style={style.select}>
+                    <Typography>Tree type:</Typography>
+                    <Select
+                      closeMenuOnSelect={false}
+                      options={treeTypeOption}
+                      onChange={(val) => {
+                        this.handleSelectChange("treeType", val);
                       }}
-                      checked={this.state.zoom}
+                      value={treeTypeOption[this.state.treeType]}
                     />
-                  }
-                  label={`Zoom is ${this.state.zoom ? "enabled" : "disabled"}`}
-                  style={style.zoom}
+                  </div>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        color={"primary"}
+                        onChange={() => {
+                          this.setState({ zoom: !this.state.zoom });
+                        }}
+                        checked={this.state.zoom}
+                      />
+                    }
+                    label={`Zoom is ${
+                      this.state.zoom ? "enabled" : "disabled"
+                    }`}
+                    style={style.zoom}
+                  />
+                </Grid>
+                <PhylogeneticTree
+                  zoom={this.state.zoom}
+                  treeType={treeTypeOption[this.state.treeType].label}
+                  newickString={this.state.phyloData.phylo_data}
                 />
-              </Grid>
-              <PhylogeneticTree
-                zoom={this.state.zoom}
-                treeType={treeTypeOption[this.state.treeType].label}
-                newickString={this.state.phyloData.phylo_data}
-              />
-            </div>
-          </AccordionDetails>
-        </Accordion>
-      </div>
-    );
+              </div>
+            </AccordionDetails>
+          </Accordion>
+        </div>
+      );
 
     const hist_allele_sizes_x = this.state.locus_ind_data.data.allele_sizes;
 
@@ -502,32 +507,35 @@ class SchemaEvaluator extends Component {
       barMethod: "information-content",
     };
 
-    const msa_component = (
-      <div style={{ marginTop: "40px" }}>
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h5" className={classes.title}>
-              Multiple Sequence Analysis
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <div id="msa-viewer" style={{ padding: "16px" }}>
-              <Typography variant="subtitle1">
-                To analyse the alignment please hover over the alignment until
-                the hand cursor appears and then drag it to see the remaining
-                data.
+    const msa_component =
+      this.state.testMSA === "undefined" ? (
+        <div />
+      ) : (
+        <div style={{ marginTop: "40px" }}>
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h5" className={classes.title}>
+                Multiple Sequence Analysis
               </Typography>
-              <Typography variant="subtitle1">
-                Note: the gray graph above the alignment represents the
-                information entropy after Shannon of a column (scaled).
-              </Typography>
-              <br />
-              <MSAViewer {...msa_options} />
-            </div>
-          </AccordionDetails>
-        </Accordion>
-      </div>
-    );
+            </AccordionSummary>
+            <AccordionDetails>
+              <div id="msa-viewer" style={{ padding: "16px" }}>
+                <Typography variant="subtitle1">
+                  To analyse the alignment please hover over the alignment until
+                  the hand cursor appears and then drag it to see the remaining
+                  data.
+                </Typography>
+                <Typography variant="subtitle1">
+                  Note: the gray graph above the alignment represents the
+                  information entropy after Shannon of a column (scaled).
+                </Typography>
+                <br />
+                <MSAViewer {...msa_options} />
+              </div>
+            </AccordionDetails>
+          </Accordion>
+        </div>
+      );
 
     let locusIndHist = (
       <div

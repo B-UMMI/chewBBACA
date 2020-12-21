@@ -446,7 +446,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
 
             # Get the number of alleles for each locus.
             pre_computed_data["total_alleles"].append(
-                {"locus_name": os.path.split(res["gene"])[1], "nr_alleles": res["nr_alleles"]}
+                {"locus_name": os.path.split(res["gene"])[
+                    1], "nr_alleles": res["nr_alleles"]}
             )
 
             # Get summary statistics (min, max, mean, mode and median) for each locus.
@@ -857,23 +858,32 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
             exc_data = json.load(ef)
 
         # get the msa data
-        msa_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
+        msa_file_path = os.path.join(
+            protein_file_path, "{0}_aligned.fasta".format(sf))
 
         msa_data = {"sequences": []}
 
-        for allele in SeqIO.parse(msa_file_path, "fasta"):
-            msa_data["sequences"].append(
-                {"name": allele.id, "sequence": str(allele.seq)})
+        msa_seq_gen = SeqIO.parse(msa_file_path, "fasta")
+
+        allele_ids = [allele.id for allele in msa_seq_gen]
+
+        if len(allele_ids) > 1:
+            for allele in SeqIO.parse(msa_file_path, "fasta"):
+                msa_data["sequences"].append(
+                    {"name": allele.id, "sequence": str(allele.seq)})
+        else:
+            msa_data = "undefined"
 
         # get the phylocanvas data
-        phylo_file_path = os.path.join(protein_file_path, "{0}_aligned.ph".format(sf))
+        phylo_file_path = os.path.join(
+            protein_file_path, "{0}_aligned.ph".format(sf))
         if os.path.exists(phylo_file_path):
             with open(phylo_file_path, "r") as phylo:
                 phylo_data = phylo.read()
 
             phylo_data_json = {"phylo_data": phylo_data}
         else:
-            phylo_data_json = []
+            phylo_data_json = "undefined"
 
         html_template_individual = """
         <!DOCTYPE html>

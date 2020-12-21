@@ -18,11 +18,11 @@ export default function Header() {
   - The loci size distribution (**Panel D**);
   - The presence of alleles that are not CDSs (when evaluating schemas called by other algorithms) (**Panel E**).
 
-  After the panels, a **dropdown menu** allows users to select an **individual locus** to analysed.
+  Users are able to select an **individual locus** to be analysed, by clicking on each point (locus) of the Locus Statistics and Locus Size Variation charts.
   By selecting a locus the following will be displayed:
   - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;
   - a table with **summary statistics** of the alleles;
-  - a **Neighbor Joining tree** built by clustalw2 based on the mafft alignment;
+  - a **Neighbor Joining tree** built by clustal based on the mafft alignment;
   - a **multiple sequence alignment** of the alleles produced by mafft.
   `;
 

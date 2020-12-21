@@ -628,7 +628,8 @@ def evaluate_schema():
 
     parser.add_argument('-l', type=str, required=True,
                         dest='output_file',
-                        help='Path to the output HTML file.')
+                        help='Path to the output directory where the report HTML '
+                             'files will be generated.')
 
     parser.add_argument('-ta', type=int, required=False,
                         default=11, dest='translation_table',
@@ -674,10 +675,11 @@ def evaluate_schema():
     )
 
     # Copy the main.js files to the respective directories
-    
+
     # Global main.js
     script_path = os.path.dirname(os.path.abspath(__file__))
-    shutil.copy(os.path.join(script_path, "SchemaEvaluator", "resources", "main.js"), schema_evaluator_main_path)
+    shutil.copy(os.path.join(script_path, "SchemaEvaluator",
+                             "resources", "main.js"), schema_evaluator_main_path)
 
     # add code for MAFFT
     if not light_mode:
@@ -685,19 +687,22 @@ def evaluate_schema():
         # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
             input_files, pre_computed_data_path)
-        
+
         # Run MAFFT
-        schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)
-        
+        schema_evaluator.run_mafft(
+            protein_file_path, cpu_to_use, show_progress=True)
+
         # Run ClustalW
-        schema_evaluator.run_clustalw(protein_file_path, cpu_to_use, show_progress=True)
-        
+        schema_evaluator.run_clustalw(
+            protein_file_path, cpu_to_use, show_progress=True)
+
         # Write HTML files
         schema_evaluator.write_individual_html(
             input_files, pre_computed_data_path, protein_file_path, output_file)
 
         # html_files main.js
-        shutil.copy(os.path.join(script_path, "SchemaEvaluator", "resources", "main_ind.js"), schema_evaluator_html_files_path)
+        shutil.copy(os.path.join(script_path, "SchemaEvaluator",
+                                 "resources", "main_ind.js"), schema_evaluator_html_files_path)
 
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 

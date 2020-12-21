@@ -849,8 +849,6 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         # Get CDS data for table
         cds_ind_data = [e for e in cds_json_data if sf in e["Gene"]][0]
 
-        # print(json.dumps(cds_ind_data, sort_keys=True))
-
         # Read the exceptions file
         exceptions_filename_path = os.path.join(
             exceptions_path, "{0}_exceptions.json".format(sf))

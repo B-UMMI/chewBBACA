@@ -65,10 +65,13 @@ class SchemaEvaluator extends Component {
     const locus_id = event.points[0].x;
     console.log(locus_id);
 
-    this.setState({
-      scatterSelectOption: locus_id,
-      isIndOption: true,
-    });
+    const anchor = document.createElement("a");
+    anchor.href = `../html_files/${
+      locus_id.split(".")[0]
+    }_individual_report.html`;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.click();
   };
 
   render() {

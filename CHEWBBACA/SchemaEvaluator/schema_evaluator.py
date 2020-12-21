@@ -63,7 +63,6 @@ except:
 
 
 # Schema Evaluator Auxiliary Functions
-
 def gene_seqs_info_schema_evaluator(gene):
     """ Determines the total number of alleles and the mean length
         of allele sequences per gene.
@@ -101,16 +100,16 @@ def gene_seqs_info_schema_evaluator(gene):
     mean_length = round(sum(alleles_lengths) / len(alleles_lengths))
     mode_length = Counter(alleles_lengths).most_common()[0][0]
 
-    genes_info = [
-        gene,
-        nr_alleles,
-        min_length,
-        max_length,
-        median_length,
-        mean_length,
-        mode_length,
-        alleles_lengths
-    ]
+    genes_info = {
+        "gene": gene,
+        "nr_alleles": nr_alleles,
+        "min_length": min_length,
+        "max_length": max_length,
+        "median_length": median_length,
+        "mean_length": mean_length,
+        "mode_length": mode_length,
+        "alleles_lengths": alleles_lengths
+    }
 
     return genes_info
 
@@ -152,21 +151,21 @@ def gene_seqs_info_individual_schema_evaluator(gene):
     min_length = min(alleles_lengths)
 
     # size range
-    size_range = f"{min_length}-{max_length}"
+    size_range = "{0}-{1}".format(min_length, max_length)
 
     # Summary statistics
     median_length = round(statistics.median(alleles_lengths))
     mode_length = Counter(alleles_lengths).most_common()[0][0]
 
-    genes_info = [
-        gene,
-        nr_alleles,
-        size_range,
-        median_length,
-        allele_ids,
-        alleles_lengths,
-        mode_length,
-    ]
+    genes_info = {
+        "gene": gene,
+        "nr_alleles": nr_alleles,
+        "size_range": size_range,
+        "median_length": median_length,
+        "allele_ids": allele_ids,
+        "alleles_lengths": alleles_lengths,
+        "mode_length": mode_length,
+    }
 
     return genes_info
 
@@ -281,8 +280,6 @@ def create_cds_df(schema_dir, translation_table):
         if ".fasta" in file
     ]
 
-    # schema_files.sort()
-
     res = {"stats": []}
 
     for f in schema_files:
@@ -350,6 +347,9 @@ def create_cds_df(schema_dir, translation_table):
     res_sorted_reverse = sorted(res["stats"], key=itemgetter(
         "Number of alleles"), reverse=True)
 
+    # data_index_records_dict = sorted(res_sorted_reverse, key=itemgetter(
+    #     "Alleles not multiple of 3", "Alleles w/ >1 stop codons", "Alleles wo/ Start/Stop Codon"))
+
     data_index = pd.DataFrame.from_dict(res_sorted_reverse)
 
     data_index = data_index.sort_values(
@@ -363,7 +363,7 @@ def create_cds_df(schema_dir, translation_table):
     return data_index_records_dict, hist_data
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path):
+def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, show_progress=False):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 
@@ -391,8 +391,6 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         if ".fasta" in file
     ]
 
-    # schema_files.sort()
-
     if len(schema_files) < 1:
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
 
@@ -407,9 +405,13 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
 
     if not os.listdir(out_path):
         # Calculate the summary statistics and other information about each locus.
+        print("\nCalculating summary statistics...\n")
+
         results = [gene_seqs_info_schema_evaluator(i) for i in schema_files]
 
         # Calculate the summary statistics for each individual locus
+        print("\nCalculating individual summary statistics...\n")
+
         results_individual = [
             gene_seqs_info_individual_schema_evaluator(i) for i in schema_files]
 
@@ -424,13 +426,13 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         # Get data for each locus
         for res_ind in results_individual:
 
-            pre_computed_data_individual[os.path.split(res_ind[0])[1]] = {
-                "nr_alleles": res_ind[1],
-                "size_range": res_ind[2],
-                "alleles_median": res_ind[3],
-                "locus_ids": res_ind[4],
-                "allele_sizes": res_ind[5],
-                "alleles_mode": res_ind[6],
+            pre_computed_data_individual[os.path.split(res_ind["gene"])[1]] = {
+                "nr_alleles": res_ind["nr_alleles"],
+                "size_range": res_ind["size_range"],
+                "alleles_median": res_ind["median_length"],
+                "locus_ids": res_ind["allele_ids"],
+                "allele_sizes": res_ind["alleles_lengths"],
+                "alleles_mode": res_ind["mode_length"],
             }
 
         # Get the data for panels A-C.
@@ -439,25 +441,25 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
             # Get the mode for each locus.
             pre_computed_data["mode"].append(
                 {"locus_name": os.path.split(
-                    res[0])[1], "alleles_mode": res[-1]}
+                    res["gene"])[1], "alleles_mode": res["mode_length"]}
             )
 
             # Get the number of alleles for each locus.
             pre_computed_data["total_alleles"].append(
-                {"locus_name": os.path.split(res[0])[1], "nr_alleles": res[1]}
+                {"locus_name": os.path.split(res["gene"])[1], "nr_alleles": res["nr_alleles"]}
             )
 
             # Get summary statistics (min, max, mean, mode and median) for each locus.
             pre_computed_data["scatter_data"].append(
                 {
-                    "locus_name": os.path.split(res[0])[1],
-                    "locus_id": os.path.split(res[0])[1],
-                    "nr_alleles": res[1],
-                    "alleles_mean": res[5],
-                    "alleles_median": res[4],
-                    "alleles_min": res[2],
-                    "alleles_max": res[3],
-                    "alleles_mode": res[6],
+                    "locus_name": os.path.split(res["gene"])[1],
+                    "locus_id": os.path.split(res["gene"])[1],
+                    "nr_alleles": res["nr_alleles"],
+                    "alleles_mean": res["mean_length"],
+                    "alleles_median": res["median_length"],
+                    "alleles_min": res["min_length"],
+                    "alleles_max": res["max_length"],
+                    "alleles_mode": res["mode_length"],
                 }
             )
 
@@ -609,7 +611,6 @@ def create_protein_files(schema_dir, output_path):
 
     for f in schema_files:
 
-        # print(f)
         file_name_split = os.path.split(f)[1]
         prot_file_name = file_name_split.replace(".fasta", "_prot.fasta")
         exc_file_name = file_name_split.replace(".fasta", "_exceptions.json")
@@ -842,7 +843,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # Get the precomputed data for tables and plots
         pre_computed_data_individual_sf = {"locus_name": str(
-            sf), "data": pre_computed_data_individual[f"{sf}.fasta"]}
+            sf), "data": pre_computed_data_individual["{0}.fasta".format(sf)]}
 
         # Get CDS data for table
         cds_ind_data = [e for e in cds_json_data if sf in e["Gene"]][0]
@@ -851,12 +852,12 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # Read the exceptions file
         exceptions_filename_path = os.path.join(
-            exceptions_path, f"{sf}_exceptions.json")
+            exceptions_path, "{0}_exceptions.json".format(sf))
         with open(exceptions_filename_path, "r") as ef:
             exc_data = json.load(ef)
 
         # get the msa data
-        msa_file_path = os.path.join(protein_file_path, f"{sf}_aligned.fasta")
+        msa_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
 
         msa_data = {"sequences": []}
 
@@ -865,8 +866,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
                 {"name": allele.id, "sequence": str(allele.seq)})
 
         # get the phylocanvas data
-        phylo_file_path = os.path.join(protein_file_path, f"{sf}_aligned.ph")
-        # print(phylo_file_path)
+        phylo_file_path = os.path.join(protein_file_path, "{0}_aligned.ph".format(sf))
         if os.path.exists(phylo_file_path):
             with open(phylo_file_path, "r") as phylo:
                 phylo_data = phylo.read()
@@ -903,7 +903,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         )
 
         html_file_path = os.path.join(
-            out_path, f"{sf}_individual_report.html"
+            out_path, "{0}_individual_report.html".format(sf)
         )
 
         with open(html_file_path, "w") as html_fh:

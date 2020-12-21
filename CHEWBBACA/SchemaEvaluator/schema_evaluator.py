@@ -363,7 +363,7 @@ def create_cds_df(schema_dir, translation_table):
     return data_index_records_dict, hist_data
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, show_progress=False):
+def create_pre_computed_data(schema_dir, translation_table, output_path):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 

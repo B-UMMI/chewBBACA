@@ -662,9 +662,9 @@ def evaluate_schema():
     if not os.path.exists(input_files):
         sys.exit("Input argument is not a valid directory. Exiting...")
 
-    print("Creating pre-computed-data....\n")
+    # create pre-computed data
     pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-        input_files, translation_table, output_file)
+        input_files, translation_table, output_file, cpu_to_use, show_progress=True)
 
     schema_evaluator_main_path = os.path.join(
         output_file, "SchemaEvaluator_pre_computed_data"
@@ -681,20 +681,15 @@ def evaluate_schema():
     shutil.copy(os.path.join(script_path, "SchemaEvaluator",
                              "resources", "main.js"), schema_evaluator_main_path)
 
-    # add code for MAFFT
+    # translate and run MAFFT
     if not light_mode:
 
         # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
-            input_files, pre_computed_data_path)
+            input_files, pre_computed_data_path, cpu_to_use, show_progress=True)
 
         # Run MAFFT
-        schema_evaluator.run_mafft(
-            protein_file_path, cpu_to_use, show_progress=True)
-
-        # Run ClustalW
-        schema_evaluator.run_clustalw(
-            protein_file_path, cpu_to_use, show_progress=True)
+        schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)
 
         # Write HTML files
         schema_evaluator.write_individual_html(

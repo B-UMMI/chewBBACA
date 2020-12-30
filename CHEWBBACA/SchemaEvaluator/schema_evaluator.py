@@ -43,11 +43,11 @@ Code documentation
 import os
 import sys
 import json
+import itertools
 import statistics
-import pandas as pd
 import multiprocessing
 from operator import itemgetter
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 from Bio import SeqIO
@@ -251,119 +251,76 @@ def gene_seqs_info_boxplot(schema_dir):
 
 
 # Functions that obtain the data for panel E
-def create_cds_df(schema_dir, translation_table):
+def create_cds_df(schema_file):
     """ Detects alleles that aren't CDSs.
 
         Parameters
         ----------
-        schema_dir : list 
+        schema_dir : list
             a list with names/paths for FASTA files.
         translation_table: int
             the translation table to be used.
 
         Returns
         -------
-        data_index_records_dict : dict
+        res_sorted : dict
             a dict obtained from a dataframe containing the
             number of non-CDSs detected. It will be used to
             populate a table in the report.
-        hist_data : dict
-            a dict obtained from a dataframe containing the
-            number of non-CDSs detected. It will be used to
-            populate a chart in the report.
-
     """
-
-    schema_files = [
-        os.path.join(schema_dir, file)
-        for file in os.listdir(schema_dir)
-        if ".fasta" in file
-    ]
-
     res = {"stats": []}
 
-    for f in schema_files:
+    gene_res = {"Gene": os.path.split(schema_file)[1]}
 
-        gene_res = {"Gene": os.path.split(f)[1]}
+    gene_res["Number of alleles"] = aux.count_sequences(schema_file)
 
-        gene_res["Number of alleles"] = aux.count_sequences(f)
+    stopC = 0
+    notStart = 0
+    notMultiple = 0
+    CDS = 0
+    allele_ids = []
 
-        stopC = 0
-        notStart = 0
-        notMultiple = 0
-        CDS = 0
-        allele_ids = []
+    for allele in SeqIO.parse(schema_file, "fasta"):
 
-        for allele in SeqIO.parse(f, "fasta"):
-
-            # FASTA headers examples: >allele_1 or >1_2
-            if "_" in allele.id:
-                allele_ids.append(int(allele.id.split("_")[-1]))
-            # FASTA header example: >1
-            else:
-                allele_ids.append(int(allele.id))
-
-            ola = aux.translate_dna(str(allele.seq), translation_table, 201)
-
-            if "sequence length is not a multiple of 3" in ola:
-                notMultiple += 1
-            elif "Extra in frame stop codon found" in ola:
-                stopC += 1
-            elif "is not a start codon" in ola:
-                notStart += 1
-            elif "is not a stop codon" in ola:
-                notStart += 1
-            else:
-                CDS += 1
-
-        if len(aux.find_missing(allele_ids)) > 0:
-            missing_allele_ids = aux.find_missing(allele_ids)
+        # FASTA headers examples: >allele_1 or >1_2
+        if "_" in allele.id:
+            allele_ids.append(int(allele.id.split("_")[-1]))
+        # FASTA header example: >1
         else:
-            missing_allele_ids = ["None"]
+            allele_ids.append(int(allele.id))
 
-        gene_res["Alleles not multiple of 3"] = notMultiple
-        gene_res["Alleles w/ >1 stop codons"] = stopC
-        gene_res["Alleles wo/ Start/Stop Codon"] = notStart
-        gene_res["Missing Allele IDs"] = missing_allele_ids
-        gene_res["CDS"] = CDS
+        ola = aux.translate_dna(str(allele.seq), 11, 201)
 
-        res["stats"].append(gene_res)
+        if "sequence length is not a multiple of 3" in ola:
+            notMultiple += 1
+        elif "Extra in frame stop codon found" in ola:
+            stopC += 1
+        elif "is not a start codon" in ola:
+            notStart += 1
+        elif "is not a stop codon" in ola:
+            notStart += 1
+        else:
+            CDS += 1
 
-        res_sorted = sorted(res["stats"], key=itemgetter("Number of alleles"))
+    if len(aux.find_missing(allele_ids)) > 0:
+        missing_allele_ids = aux.find_missing(allele_ids)
+    else:
+        missing_allele_ids = ["None"]
 
-        hist_data = {}
+    gene_res["Alleles not multiple of 3"] = notMultiple
+    gene_res["Alleles w/ >1 stop codons"] = stopC
+    gene_res["Alleles wo/ Start/Stop Codon"] = notStart
+    gene_res["Missing Allele IDs"] = missing_allele_ids
+    gene_res["CDS"] = CDS
 
-        hist_data["genes"] = [g["Gene"] for g in res_sorted]
-        hist_data["total_alleles"] = [
-            float(na["Number of alleles"]) for na in res_sorted]
-        hist_data["mult3"] = [
-            float(mult3["Alleles not multiple of 3"]) for mult3 in res_sorted]
-        hist_data["stopC"] = [
-            float(stopC["Alleles w/ >1 stop codons"]) for stopC in res_sorted]
-        hist_data["notStart"] = [
-            float(notStart["Alleles wo/ Start/Stop Codon"]) for notStart in res_sorted]
-        hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in res_sorted]
+    res["stats"].append(gene_res)
 
-    res_sorted_reverse = sorted(res["stats"], key=itemgetter(
-        "Number of alleles"), reverse=True)
+    res_sorted = sorted(res["stats"], key=itemgetter("Number of alleles"))
 
-    # data_index_records_dict = sorted(res_sorted_reverse, key=itemgetter(
-    #     "Alleles not multiple of 3", "Alleles w/ >1 stop codons", "Alleles wo/ Start/Stop Codon"))
-
-    data_index = pd.DataFrame.from_dict(res_sorted_reverse)
-
-    data_index = data_index.sort_values(
-        ["Alleles not multiple of 3", "Alleles w/ >1 stop codons",
-            "Alleles wo/ Start/Stop Codon"],
-        ascending=[False, False, False]
-    )
-
-    data_index_records_dict = data_index.to_dict(orient="records")
-
-    return data_index_records_dict, hist_data
+    return res_sorted
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path):
+def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, show_progress=False):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 
@@ -394,10 +351,16 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
     if len(schema_files) < 1:
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
 
+    # Check if files are empty
     empty_files_1 = [aux.is_file_empty(f) for f in schema_files]
+    empty_files_2 = [aux.is_file_empty_3(f) for f in schema_files]
 
     if True in empty_files_1:
         sys.exit("At least one file is empty or it doesn't exist. Exiting...")
+    elif True in empty_files_2:
+        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
+
+    # sys.exit()
 
     out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
     if not os.path.exists(out_path):
@@ -407,13 +370,36 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
         # Calculate the summary statistics and other information about each locus.
         print("\nCalculating summary statistics...\n")
 
-        results = [gene_seqs_info_schema_evaluator(i) for i in schema_files]
+        results = []
+
+        pool_main = multiprocessing.Pool(processes=cpu_to_use)
+
+        rawr_main = pool_main.map_async(
+            gene_seqs_info_schema_evaluator, schema_files, chunksize=1, callback=results.extend)
+
+        if show_progress is True:
+            completed = False
+            while completed is False:
+                completed = aux.progress_bar(rawr_main, len(schema_files))
+
+        rawr_main.wait()
 
         # Calculate the summary statistics for each individual locus
         print("\nCalculating individual summary statistics...\n")
 
-        results_individual = [
-            gene_seqs_info_individual_schema_evaluator(i) for i in schema_files]
+        results_individual = []
+
+        pool_ind = multiprocessing.Pool(processes=cpu_to_use)
+
+        rawr_ind = pool_ind.map_async(gene_seqs_info_individual_schema_evaluator,
+                                      schema_files, chunksize=1, callback=results_individual.extend)
+
+        if show_progress is True:
+            completed = False
+            while completed is False:
+                completed = aux.progress_bar(rawr_ind, len(schema_files))
+
+        rawr_ind.wait()
 
         pre_computed_data = {
             "mode": [],
@@ -470,12 +456,54 @@ def create_pre_computed_data(schema_dir, translation_table, output_path):
                 pre_computed_data[k], key=itemgetter("locus_name"))
 
         # Get data for panel D
+        print("\nGenerating data to populate a boxplot...\n")
         boxplot_data = gene_seqs_info_boxplot(schema_dir)
 
         # Get data for panel E
-        data_ind, hist_data = create_cds_df(schema_dir, translation_table)
+        print("\nAnalysing CDSs...\n")
+
+        pool_cds = multiprocessing.Pool(processes=cpu_to_use)
+
+        cds_multi = []
+
+        rawr_cds = pool_cds.map_async(
+            create_cds_df, schema_files, chunksize=1, callback=cds_multi.extend)
+
+        if show_progress is True:
+            completed = False
+            while completed is False:
+                completed = aux.progress_bar(rawr_cds, len(schema_files))
+
+        rawr_cds.wait()
+
+        # flatten the CDS data output list
+        flat_multi_out = aux.flatten_list(cds_multi)
+
+        # sort data for the CDS table
+        data_ind = sorted(flat_multi_out, key=itemgetter("Alleles not multiple of 3",
+                                                         "Alleles w/ >1 stop codons", "Alleles wo/ Start/Stop Codon"), reverse=True)
+
+        # sort data for CDS scatterplot
+        hist_data_sort = sorted(
+            flat_multi_out, key=itemgetter("Number of alleles"))
+
+        # organize data for CDS scatterplot
+        hist_data = {}
+
+        hist_data["genes"] = [g["Gene"] for g in hist_data_sort]
+        hist_data["total_alleles"] = [
+            float(na["Number of alleles"]) for na in hist_data_sort]
+        hist_data["mult3"] = [
+            float(mult3["Alleles not multiple of 3"]) for mult3 in hist_data_sort]
+        hist_data["stopC"] = [
+            float(stopC["Alleles w/ >1 stop codons"]) for stopC in hist_data_sort]
+        hist_data["notStart"] = [
+            float(notStart["Alleles wo/ Start/Stop Codon"]) for notStart in hist_data_sort]
+        hist_data["CDS_Alleles"] = [float(cds["CDS"])
+                                    for cds in hist_data_sort]
 
         # Write HTML file
+        print("\nWriting main report HTML file...\n")
         html_template_global = """
         <!DOCTYPE html>
         <html lang="en">
@@ -569,11 +597,12 @@ def make_protein_record(nuc_record, record_id):
     """
     return SeqRecord(
         seq=nuc_record,
-        id="trans_" + record_id,
+        id=record_id,
+        description=""
     )
 
 
-def create_protein_files(schema_dir, output_path):
+def create_protein_files(schema_dir, output_path, cpu_to_use, show_progress=False):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 
@@ -601,54 +630,82 @@ def create_protein_files(schema_dir, output_path):
     if not os.path.exists(exception_path):
         os.mkdir(exception_path)
 
-    # if not os.listdir(out_path):
     schema_files = [
         os.path.join(schema_dir, file)
         for file in os.listdir(schema_dir)
         if ".fasta" in file
     ]
 
-    print("Translating....\n")
+    print("\nTranslating....\n")
 
-    for f in schema_files:
+    pool_prot = multiprocessing.Pool(processes=cpu_to_use)
 
-        file_name_split = os.path.split(f)[1]
-        prot_file_name = file_name_split.replace(".fasta", "_prot.fasta")
-        exc_file_name = file_name_split.replace(".fasta", "_exceptions.json")
+    rawr_prot = pool_prot.starmap_async(
+        generate_protein_files, zip(schema_files, itertools.repeat(output_path)), chunksize=1)
 
-        out_file = os.path.join(out_path, prot_file_name)
-        exc_file = os.path.join(exception_path, exc_file_name)
+    if show_progress is True:
+        completed = False
+        while completed is False:
+            completed = aux.progress_bar(rawr_prot, len(schema_files))
 
-        # to be SeqRecord list
-        proteins = []
-        exceptions = []
-
-        for allele in SeqIO.parse(f, "fasta"):
-            prot = aux.translate_dna(str(allele.seq), 11, 201)
-
-            if isinstance(prot, list):
-                tets = make_protein_record(prot[0][0], allele.id)
-                proteins.append(tets)
-            elif isinstance(prot, str):
-                # exc = [allele.id, ola]
-                if "sense" in prot:
-                    prot2 = prot.split(",")[0]
-                else:
-                    prot2 = prot
-                exc = {
-                    "allele": allele.id,
-                    "exception": prot2
-                }
-                exceptions.append(exc)
-
-        SeqIO.write(proteins, out_file, "fasta")
-
-        with open(exc_file, "w") as ef:
-            json.dump(exceptions, ef)
-
-    print("Done!")
+    rawr_prot.wait()
 
     return out_path
+
+
+def generate_protein_files(fasta, output_path):
+    """ Generates FASTA files with the protein
+        sequence of the schema loci.
+
+        Parameters
+        ----------
+        schema_dir : list 
+            a list with names/paths for FASTA files.
+        output_path : str
+            the directory where the output files will
+            be saved.
+
+        Returns
+        -------
+        None
+    """
+
+    out_path = os.path.join(output_path, "prot_files")
+    exception_path = os.path.join(out_path, "exceptions")
+
+    file_name_split = os.path.split(fasta)[1]
+    prot_file_name = file_name_split.replace(".fasta", "_prot.fasta")
+    exc_file_name = file_name_split.replace(".fasta", "_exceptions.json")
+
+    out_file = os.path.join(out_path, prot_file_name)
+    exc_file = os.path.join(exception_path, exc_file_name)
+
+    # to be SeqRecord list
+    proteins = []
+    exceptions = []
+
+    for allele in SeqIO.parse(fasta, "fasta"):
+        prot = aux.translate_dna(str(allele.seq), 11, 201)
+
+        if isinstance(prot, list):
+            tets = make_protein_record(
+                prot[0][0], allele.id.split("_")[-1])
+            proteins.append(tets)
+        elif isinstance(prot, str):
+            if "sense" in prot:
+                prot2 = prot.split(",")[0]
+            else:
+                prot2 = prot
+            exc = {
+                "allele": allele.id,
+                "exception": prot2
+            }
+            exceptions.append(exc)
+
+    SeqIO.write(proteins, out_file, "fasta")
+
+    with open(exc_file, "w") as ef:
+        json.dump(exceptions, ef)
 
 
 def call_mafft(genefile):
@@ -667,7 +724,8 @@ def call_mafft(genefile):
     """
 
     try:
-        mafft_cline = MafftCommandline(input=genefile, adjustdirection=True)
+        mafft_cline = MafftCommandline(
+            input=genefile, adjustdirection=True, treeout=True, thread=1, retree=1, maxiterate=0)
         stdout, stderr = mafft_cline()
         path_to_save = genefile.replace("_prot.fasta", "_aligned.fasta")
         with open(path_to_save, "w") as handle:
@@ -699,7 +757,7 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
         None.
     """
 
-    print("Running MAFFT...\n")
+    print("\nRunning MAFFT...\n")
 
     protein_files = [
         os.path.join(protein_file_path, file)
@@ -710,73 +768,6 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     pool = multiprocessing.Pool(cpu_to_use)
 
     rawr = pool.map_async(call_mafft, protein_files, chunksize=1)
-
-    if show_progress is True:
-        completed = False
-        while completed is False:
-            completed = aux.progress_bar(rawr, len(protein_files))
-
-    rawr.wait()
-
-
-def call_clustalw(genefile):
-    """ Call ClustalW to generate a Neighbour Joining tree.
-
-        Parameters
-        ----------
-        genefile : str 
-            a string with the name/path for 
-            the FASTA file.
-
-        Returns
-        -------
-        bool
-            True if sucessful, False otherwise.
-    """
-
-    try:
-        clw_cline = ClustalwCommandline(
-            "clustalw", infile=genefile, tree=True)
-        clw_cline()
-
-        return True
-
-    except Exception as e:
-        print(e)
-        return False
-
-
-def run_clustalw(protein_file_path, cpu_to_use, show_progress=False):
-    """ Run ClustalW with multiprocessing and save output.
-
-        Parameters
-        ----------
-        protein_file_path : str 
-            a string with the name/path for 
-            the protein FASTA file.
-        cpu_to_use : int
-            the number of cpu to use for
-            multiprocessing.
-        show_progress : bool
-            If a progress bar should be
-            displayed.
-
-        Returns
-        -------
-        None.
-    """
-
-    print("\nRunning Clustal...\n")
-
-    protein_files = [
-        os.path.join(protein_file_path, file)
-        for file in os.listdir(protein_file_path)
-        if "_aligned.fasta" in file
-    ]
-
-    pool = multiprocessing.Pool(cpu_to_use)
-
-    rawr = pool.map_async(call_clustalw, protein_files, chunksize=1)
 
     if show_progress is True:
         completed = False
@@ -809,7 +800,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
         None.
     """
 
-    print("\nWriting HTML files...")
+    print("\nWriting individual report HTML files...\n")
 
     out_path = os.path.join(output_path, "html_files")
 
@@ -874,7 +865,7 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
         # get the phylocanvas data
         phylo_file_path = os.path.join(
-            protein_file_path, "{0}_aligned.ph".format(sf))
+            protein_file_path, "{0}_prot.fasta.tree".format(sf))
         if os.path.exists(phylo_file_path):
             with open(phylo_file_path, "r") as phylo:
                 phylo_data = phylo.read()

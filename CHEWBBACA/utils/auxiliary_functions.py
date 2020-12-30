@@ -807,6 +807,8 @@ def is_file_empty_3(file_name):
         # if not fetched then file is empty
         if not one_char:
            return True
+        elif one_char == " ":
+            return True
     return False
 
 

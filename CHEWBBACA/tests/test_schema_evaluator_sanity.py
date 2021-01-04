@@ -91,12 +91,12 @@ def test_schemaEvaluator_valid(test_args, expected):
                         if "exceptions" != file]
     output_prot_files.sort()
 
-    print(output_prot_files)
+    # print(output_prot_files)
 
-    # with open(output_prot_files[0], "r") as o1:
-    #     otree_test = o1.read()
+    with open(output_prot_files[2], "r") as o1:
+        otree_test = o1.read()
 
-    # print(otree_test)
+    print(otree_test)
 
 
     html_files = output_html_files + expected_html_files

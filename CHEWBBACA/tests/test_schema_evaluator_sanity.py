@@ -68,10 +68,10 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     # print(output_html_files)
 
-    with open(output_html_files[0], "r") as o:
-        o_test = o.read()
+    # with open(output_html_files[0], "r") as o:
+    #     o_test = o.read()
 
-    print(o_test)
+    # print(o_test)
 
     expected_html_files = [os.path.join(expected, "html_files", file)
                            for file in os.listdir(os.path.join(expected, "html_files"))
@@ -80,10 +80,24 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     # print(expected_html_files)
 
-    with open(expected_html_files[0], "r") as e:
-        e_test = e.read()
+    # with open(expected_html_files[0], "r") as e:
+    #     e_test = e.read()
 
-    print(e_test)
+    # print(e_test)
+
+
+    output_prot_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file)
+                        for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"))
+                        if "exceptions" != file]
+    output_prot_files.sort()
+
+    print(output_prot_files)
+
+    # with open(output_prot_files[0], "r") as o1:
+    #     otree_test = o1.read()
+
+    # print(otree_test)
+
 
     html_files = output_html_files + expected_html_files
     basename_html_dict = {}

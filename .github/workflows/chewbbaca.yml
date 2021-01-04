@@ -50,17 +50,7 @@ jobs:
     - name: check mafft
       run: |
         which mafft
-
-    - name: install clustalw
-      run: |
-        mkdir $GITHUB_WORKSPACE/clustalw
-        pushd $GITHUB_WORKSPACE/clustalw
-        sudo apt-get install clustalw
-        popd
-
-    - name: check clustalw
-      run: |
-        which clustalw
+        mafft --version
 
     - name: checkout prodigal
       uses: actions/checkout@v2

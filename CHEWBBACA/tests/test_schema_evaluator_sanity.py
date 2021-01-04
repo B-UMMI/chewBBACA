@@ -66,10 +66,14 @@ def test_schemaEvaluator_valid(test_args, expected):
                          ]
     output_html_files.sort()
 
+    print(output_html_files)
+
     expected_html_files = [os.path.join(expected, "html_files", file)
                            for file in os.listdir(os.path.join(expected, "html_files"))
                            ]
     expected_html_files.sort()
+
+    print(expected_html_files)
 
     html_files = output_html_files + expected_html_files
     basename_html_dict = {}

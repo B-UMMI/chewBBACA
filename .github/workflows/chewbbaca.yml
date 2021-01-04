@@ -98,5 +98,5 @@ jobs:
     - name: run pytest
       run: |
         pushd CHEWBBACA/tests
-        pytest
+        pytest -s test_schema_evaluator_sanity.py
         popd

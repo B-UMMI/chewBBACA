@@ -66,14 +66,24 @@ def test_schemaEvaluator_valid(test_args, expected):
                          ]
     output_html_files.sort()
 
-    print(output_html_files)
+    # print(output_html_files)
+
+    with open(output_html_files[0], "r") as o:
+        o_test = o.read()
+
+    print(o_test)
 
     expected_html_files = [os.path.join(expected, "html_files", file)
                            for file in os.listdir(os.path.join(expected, "html_files"))
                            ]
     expected_html_files.sort()
 
-    print(expected_html_files)
+    # print(expected_html_files)
+
+    with open(expected_html_files[0], "r") as e:
+        e_test = e.read()
+
+    print(e_test)
 
     html_files = output_html_files + expected_html_files
     basename_html_dict = {}

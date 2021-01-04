@@ -44,7 +44,8 @@ jobs:
       run: |
         mkdir $GITHUB_WORKSPACE/mafft
         pushd $GITHUB_WORKSPACE/mafft
-        sudo apt-get install mafft
+        wget https://mafft.cbrc.jp/alignment/software/mafft_7.475-1_amd64.deb
+        dpkg -i mafft_7.475-1_amd64.deb
         popd
 
     - name: check mafft

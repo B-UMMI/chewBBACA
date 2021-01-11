@@ -251,7 +251,7 @@ def gene_seqs_info_boxplot(schema_dir):
 
 
 # Functions that obtain the data for panel E
-def create_cds_df(schema_file):
+def create_cds_df(schema_file, minimum_length):
     """ Detects alleles that aren't CDSs.
 
         Parameters
@@ -277,6 +277,7 @@ def create_cds_df(schema_file):
     stopC = 0
     notStart = 0
     notMultiple = 0
+    shorter = 0
     CDS = 0
     allele_ids = []
 
@@ -289,7 +290,7 @@ def create_cds_df(schema_file):
         else:
             allele_ids.append(int(allele.id))
 
-        ola = aux.translate_dna(str(allele.seq), 11, 201)
+        ola = aux.translate_dna(str(allele.seq), 11, minimum_length)
 
         if "sequence length is not a multiple of 3" in ola:
             notMultiple += 1
@@ -299,6 +300,8 @@ def create_cds_df(schema_file):
             notStart += 1
         elif "is not a stop codon" in ola:
             notStart += 1
+        elif "sequence shorter than" in ola:
+            shorter += 1
         else:
             CDS += 1
 
@@ -310,6 +313,8 @@ def create_cds_df(schema_file):
     gene_res["Alleles not multiple of 3"] = notMultiple
     gene_res["Alleles w/ >1 stop codons"] = stopC
     gene_res["Alleles wo/ Start/Stop Codon"] = notStart
+    gene_res["Alleles shorter than {0} nucleotides".format(
+        minimum_length)] = shorter
     gene_res["Missing Allele IDs"] = missing_allele_ids
     gene_res["CDS"] = CDS
 
@@ -320,7 +325,7 @@ def create_cds_df(schema_file):
     return res_sorted
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, show_progress=False):
+def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, minimum_length, show_progress=False):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 
@@ -359,8 +364,6 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         sys.exit("At least one file is empty or it doesn't exist. Exiting...")
     elif True in empty_files_2:
         sys.exit("At least one file is empty or it doesn't exist. Exiting...")
-
-    # sys.exit()
 
     out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
     if not os.path.exists(out_path):
@@ -422,7 +425,15 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             }
 
         # Get the data for panels A-C.
+
+        total_number_of_loci = 0
+        total_number_of_alleles = 0
+
         for res in results:
+
+            total_number_of_loci += 1
+
+            total_number_of_alleles += res["nr_alleles"]
 
             # Get the mode for each locus.
             pre_computed_data["mode"].append(
@@ -466,8 +477,11 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
 
         cds_multi = []
 
-        rawr_cds = pool_cds.map_async(
-            create_cds_df, schema_files, chunksize=1, callback=cds_multi.extend)
+        rawr_cds = pool_cds.starmap_async(
+            create_cds_df,
+            zip(schema_files, itertools.repeat(minimum_length)),
+            chunksize=1,
+            callback=cds_multi.extend)
 
         if show_progress is True:
             completed = False
@@ -487,6 +501,14 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         hist_data_sort = sorted(
             flat_multi_out, key=itemgetter("Number of alleles"))
 
+        # get total invalid alleles
+        total_invalid_alleles = 0
+
+        for k in data_ind:
+            total_invalid_alleles += k["Alleles not multiple of 3"] + k["Alleles w/ >1 stop codons"] + \
+                k["Alleles wo/ Start/Stop Codon"] + \
+                k["Alleles shorter than 201 nucleotides"]
+
         # organize data for CDS scatterplot
         hist_data = {}
 
@@ -499,8 +521,19 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             float(stopC["Alleles w/ >1 stop codons"]) for stopC in hist_data_sort]
         hist_data["notStart"] = [
             float(notStart["Alleles wo/ Start/Stop Codon"]) for notStart in hist_data_sort]
+        hist_data["shorter"] = [
+            float(s["Alleles shorter than {0} nucleotides".format(minimum_length)]) for s in hist_data_sort]
         hist_data["CDS_Alleles"] = [float(cds["CDS"])
                                     for cds in hist_data_sort]
+
+        # build the total data dictionary
+        total_data = [
+            {
+                "total_loci": total_number_of_loci,
+                "total_alleles": total_number_of_alleles,
+                "total_invalid_alleles": total_invalid_alleles,
+            }
+        ]
 
         # Write HTML file
         print("\nWriting main report HTML file...\n")
@@ -520,6 +553,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
                 <script> const _preComputedDataBoxplot = {2} </script>
                 <script> const _cdsDf = {3} </script>
                 <script> const _cdsScatter = {4} </script>
+                <script> const _totalData = {5} </script>
                 <script src="./main.js"></script>
             </body>
         </html>
@@ -528,7 +562,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             json.dumps(pre_computed_data_individual, sort_keys=True),
             json.dumps(boxplot_data),
             json.dumps(data_ind, sort_keys=True),
-            json.dumps(hist_data, sort_keys=True)
+            json.dumps(hist_data, sort_keys=True),
+            json.dumps(total_data)
         )
 
         html_file_path = os.path.join(
@@ -602,7 +637,7 @@ def make_protein_record(nuc_record, record_id):
     )
 
 
-def create_protein_files(schema_dir, output_path, cpu_to_use, show_progress=False):
+def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, show_progress=False):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 
@@ -641,7 +676,7 @@ def create_protein_files(schema_dir, output_path, cpu_to_use, show_progress=Fals
     pool_prot = multiprocessing.Pool(processes=cpu_to_use)
 
     rawr_prot = pool_prot.starmap_async(
-        generate_protein_files, zip(schema_files, itertools.repeat(output_path)), chunksize=1)
+        generate_protein_files, zip(schema_files, itertools.repeat(output_path), itertools.repeat(minimum_length)), chunksize=1)
 
     if show_progress is True:
         completed = False
@@ -653,7 +688,7 @@ def create_protein_files(schema_dir, output_path, cpu_to_use, show_progress=Fals
     return out_path
 
 
-def generate_protein_files(fasta, output_path):
+def generate_protein_files(fasta, output_path, minimum_length):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 
@@ -685,7 +720,7 @@ def generate_protein_files(fasta, output_path):
     exceptions = []
 
     for allele in SeqIO.parse(fasta, "fasta"):
-        prot = aux.translate_dna(str(allele.seq), 11, 201)
+        prot = aux.translate_dna(str(allele.seq), 11, minimum_length)
 
         if isinstance(prot, list):
             tets = make_protein_record(
@@ -833,12 +868,14 @@ def write_individual_html(input_files, pre_computed_data_path, protein_file_path
 
     for sf in schema_files:
 
+        sf_fasta = "{0}.fasta".format(sf)
+
         # Get the precomputed data for tables and plots
         pre_computed_data_individual_sf = {"locus_name": str(
-            sf), "data": pre_computed_data_individual["{0}.fasta".format(sf)]}
+            sf), "data": pre_computed_data_individual[sf_fasta]}
 
         # Get CDS data for table
-        cds_ind_data = [e for e in cds_json_data if sf in e["Gene"]][0]
+        cds_ind_data = [e for e in cds_json_data if sf_fasta == e["Gene"]][0]
 
         # Read the exceptions file
         exceptions_filename_path = os.path.join(

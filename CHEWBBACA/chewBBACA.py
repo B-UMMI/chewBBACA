@@ -626,7 +626,7 @@ def evaluate_schema():
                              'the paths to the FASTA files of the loci that will be evaluated, '
                              'one per line.')
 
-    parser.add_argument('-l', type=str, required=True,
+    parser.add_argument('-o', type=str, required=True,
                         dest='output_file',
                         help='Path to the output directory where the report HTML '
                              'files will be generated.')
@@ -644,6 +644,12 @@ def evaluate_schema():
                         default=False, dest='light_mode',
                         help='Skip clustal and mafft.')
 
+    parser.add_argument('--l', type=pv.minimum_sequence_length_type,
+                    required=False, default=201, dest='minimum_length',
+                    help='Minimum sequence length accepted for a '
+                            'coding sequence to be included in the schema.')
+
+
     args = parser.parse_args()
 
     header = 'chewBBACA - SchemaEvaluator'
@@ -655,6 +661,7 @@ def evaluate_schema():
     translation_table = args.translation_table
     cpu_cores = args.cpu_cores
     light_mode = args.light_mode
+    minimum_length = args.minimum_length
 
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
 
@@ -664,7 +671,7 @@ def evaluate_schema():
 
     # create pre-computed data
     pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-        input_files, translation_table, output_file, cpu_to_use, show_progress=True)
+        input_files, translation_table, output_file, cpu_to_use, minimum_length, show_progress=True)
 
     schema_evaluator_main_path = os.path.join(
         output_file, "SchemaEvaluator_pre_computed_data"
@@ -686,7 +693,7 @@ def evaluate_schema():
 
         # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
-            input_files, pre_computed_data_path, cpu_to_use, show_progress=True)
+            input_files, pre_computed_data_path, cpu_to_use, minimum_length, show_progress=True)
 
         # Run MAFFT
         schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)

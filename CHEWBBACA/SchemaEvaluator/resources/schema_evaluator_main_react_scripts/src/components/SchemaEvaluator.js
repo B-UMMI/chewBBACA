@@ -27,6 +27,7 @@ class SchemaEvaluator extends Component {
     pre_computed_data_boxplot: _preComputedDataBoxplot,
     cds_df_data: _cdsDf,
     cds_scatter_data: _cdsScatter,
+    total_data: _totalData,
     tabValue: 0,
     indTabValue: 0,
     scatterSelectOption: "",
@@ -63,6 +64,19 @@ class SchemaEvaluator extends Component {
 
   clickBoxPlotHandler = (event) => {
     const locus_id = event.points[0].x;
+    console.log(locus_id);
+
+    const anchor = document.createElement("a");
+    anchor.href = `../html_files/${
+      locus_id.split(".")[0]
+    }_individual_report.html`;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.click();
+  };
+
+  clickCdsTableHandler = (cellData) => {
+    const locus_id = cellData;
     console.log(locus_id);
 
     const anchor = document.createElement("a");
@@ -341,6 +355,10 @@ class SchemaEvaluator extends Component {
     );
 
     // CDS Analysis
+    const alleleShorterColumn = Object.keys(
+      this.state.cds_df_data[0]
+    ).find((k) => k.includes("Alleles shorter"));
+
     const columns = [
       {
         name: "Gene",
@@ -407,6 +425,22 @@ class SchemaEvaluator extends Component {
         },
       },
       {
+        name: alleleShorterColumn,
+        label: alleleShorterColumn,
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
         name: "Missing Allele IDs",
         label: "Missing Allele IDs",
         options: {
@@ -458,10 +492,7 @@ class SchemaEvaluator extends Component {
         console.log(cellData, cellMeta);
 
         if (cellData.includes(".fasta")) {
-          this.setState({
-            scatterSelectOption: cellData,
-            isIndOption: true,
-          });
+          this.clickCdsTableHandler(cellData);
         }
       },
     };
@@ -522,6 +553,15 @@ class SchemaEvaluator extends Component {
         text: this.state.cds_scatter_data["genes"],
         marker_color: "#ec7014",
         width: barWidth,
+      },
+      {
+        type: "bar",
+        name: alleleShorterColumn,
+        x: this.state.cds_scatter_data["shorter"],
+        orientation: "h",
+        text: this.state.cds_scatter_data["genes"],
+        marker_color: "#6a3d9a",
+        width: barWidth,
       }
     );
 
@@ -547,9 +587,88 @@ class SchemaEvaluator extends Component {
       />
     );
 
+    // Schema Summary Statistics table
+    const totalDataColumns = [
+      {
+        name: "total_loci",
+        label: "Total Loci",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_alleles",
+        label: "Total Alleles",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_invalid_alleles",
+        label: "Total Invalid Alleles",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+    ];
+
+    const totalDataOptions = {
+      responsive: "vertical",
+      selectableRowsHeader: false,
+      selectableRows: "none",
+      selectableRowsOnClick: false,
+      print: false,
+      download: false,
+      filter: false,
+      search: false,
+      viewColumns: true,
+      pagination: false,
+    };
+
+    const total_data = this.state.total_data;
+
+    const total_data_table = (
+      <MuiThemeProvider theme={this.getMuiTheme()}>
+        <MUIDataTable
+          title={"Schema Summary Statistics"}
+          data={total_data}
+          columns={totalDataColumns}
+          options={totalDataOptions}
+        />
+      </MuiThemeProvider>
+    );
+
     return (
       <Aux>
         <div>
+          <div style={{ marginTop: "40px" }}>{total_data_table}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>

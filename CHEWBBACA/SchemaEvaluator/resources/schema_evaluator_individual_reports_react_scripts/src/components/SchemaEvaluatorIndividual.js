@@ -242,6 +242,10 @@ class SchemaEvaluator extends Component {
     // Build table with additional information
     const cdsTableInfo = this.state.cds_df_data;
 
+    const alleleShorterColumn = Object.keys(
+      this.state.cds_df_data
+    ).find((k) => k.includes("Alleles shorter"));
+
     const indData = {
       size_range: this.state.locus_ind_data.data.size_range,
       alleles_median: this.state.locus_ind_data.data.alleles_median,
@@ -321,6 +325,22 @@ class SchemaEvaluator extends Component {
         options: {
           filter: false,
           sort: false,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: alleleShorterColumn,
+        label: alleleShorterColumn,
+        options: {
+          filter: true,
+          sort: true,
           display: true,
           setCellHeaderProps: (value) => {
             return {
@@ -485,7 +505,7 @@ class SchemaEvaluator extends Component {
       filter: false,
       search: false,
       viewColumns: false,
-      pagination: false,
+      pagination: true,
     };
 
     const excTable = (

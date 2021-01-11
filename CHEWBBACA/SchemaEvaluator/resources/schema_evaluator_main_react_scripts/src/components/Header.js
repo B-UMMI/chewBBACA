@@ -18,7 +18,10 @@ export default function Header() {
   - The loci size distribution (**Panel D**);
   - The presence of alleles that are not CDSs (when evaluating schemas called by other algorithms) (**Panel E**).
 
-  Users are able to select an **individual locus** to be analysed, by clicking on each point (locus) of the Locus Statistics and Locus Size Variation charts.
+  Users are able to select an **individual locus** to be analysed, by clicking on:
+  - each **point (locus)** of the **Locus Statistics** and **Locus Size Variation charts**;
+  - the **locus name** on the **Locus** column of the **CDS Analysis** table.
+
   By selecting a locus the following will be displayed:
   - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;
   - a table with **summary statistics** of the alleles;

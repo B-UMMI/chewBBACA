@@ -18,15 +18,15 @@ from CHEWBBACA import chewBBACA
         'test_args, expected',
         [(['chewBBACA.py', 'SchemaEvaluator',
            '-i', 'data/schemaEvaluatorData/empty_files',
-           '-l', 'schema_report'],
+           '-o', 'schema_report'],
           'At least one file is empty'),
          (['chewBBACA.py', 'SchemaEvaluator',
            '-i', 'data/schemaEvaluatorData/zero_bytes_pair',
-           '-l', 'schema_report'],
+           '-o', 'schema_report'],
           'At least one file is empty'),
          (['chewBBACA.py', 'SchemaEvaluator',
            '-i', 'this/path/aint/real',
-           '-l', 'schema_report'],
+           '-o', 'schema_report'],
           'Input argument is not a valid directory')
          ])
 def test_schemaEvaluator_invalid_input(test_args, expected):
@@ -48,7 +48,7 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
     'test_args, expected',
     [(['chewBBACA.py', 'SchemaEvaluator',
        '-i', 'data/schemaEvaluatorData/test_schema',
-       '-l', './schemaEvaluatorData_results', ],
+       '-o', './schemaEvaluatorData_results', ],
       'data/schemaEvaluatorData/expected_results')
      ])
 def test_schemaEvaluator_valid(test_args, expected):

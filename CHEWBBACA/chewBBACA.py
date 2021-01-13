@@ -693,7 +693,7 @@ def evaluate_schema():
 
         # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
-            input_files, pre_computed_data_path, cpu_to_use, minimum_length, show_progress=True)
+            input_files, pre_computed_data_path, cpu_to_use, minimum_length, translation_table, show_progress=True)
 
         # Run MAFFT
         schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)

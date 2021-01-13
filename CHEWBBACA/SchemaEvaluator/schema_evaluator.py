@@ -251,7 +251,7 @@ def gene_seqs_info_boxplot(schema_dir):
 
 
 # Functions that obtain the data for panel E
-def create_cds_df(schema_file, minimum_length):
+def create_cds_df(schema_file, minimum_length, translation_table):
     """ Detects alleles that aren't CDSs.
 
         Parameters
@@ -290,7 +290,8 @@ def create_cds_df(schema_file, minimum_length):
         else:
             allele_ids.append(int(allele.id))
 
-        ola = aux.translate_dna(str(allele.seq), 11, minimum_length)
+        ola = aux.translate_dna(
+            str(allele.seq), translation_table, minimum_length)
 
         if "sequence length is not a multiple of 3" in ola:
             notMultiple += 1
@@ -479,7 +480,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
 
         rawr_cds = pool_cds.starmap_async(
             create_cds_df,
-            zip(schema_files, itertools.repeat(minimum_length)),
+            zip(schema_files, itertools.repeat(minimum_length),
+                itertools.repeat(translation_table)),
             chunksize=1,
             callback=cds_multi.extend)
 
@@ -507,7 +509,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         for k in data_ind:
             total_invalid_alleles += k["Alleles not multiple of 3"] + k["Alleles w/ >1 stop codons"] + \
                 k["Alleles wo/ Start/Stop Codon"] + \
-                k["Alleles shorter than {0} nucleotides".format(minimum_length)]
+                k["Alleles shorter than {0} nucleotides".format(
+                    minimum_length)]
 
         # organize data for CDS scatterplot
         hist_data = {}
@@ -637,7 +640,7 @@ def make_protein_record(nuc_record, record_id):
     )
 
 
-def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, show_progress=False):
+def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, translation_table, show_progress=False):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 
@@ -676,7 +679,10 @@ def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, sh
     pool_prot = multiprocessing.Pool(processes=cpu_to_use)
 
     rawr_prot = pool_prot.starmap_async(
-        generate_protein_files, zip(schema_files, itertools.repeat(output_path), itertools.repeat(minimum_length)), chunksize=1)
+        generate_protein_files,
+        zip(schema_files, itertools.repeat(output_path), itertools.repeat(
+            minimum_length), itertools.repeat(translation_table)),
+        chunksize=1)
 
     if show_progress is True:
         completed = False
@@ -688,7 +694,7 @@ def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, sh
     return out_path
 
 
-def generate_protein_files(fasta, output_path, minimum_length):
+def generate_protein_files(fasta, output_path, minimum_length, translation_table):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 
@@ -720,7 +726,7 @@ def generate_protein_files(fasta, output_path, minimum_length):
     exceptions = []
 
     for allele in SeqIO.parse(fasta, "fasta"):
-        prot = aux.translate_dna(str(allele.seq), 11, minimum_length)
+        prot = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
 
         if isinstance(prot, list):
             tets = make_protein_record(

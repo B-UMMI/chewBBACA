@@ -507,7 +507,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         for k in data_ind:
             total_invalid_alleles += k["Alleles not multiple of 3"] + k["Alleles w/ >1 stop codons"] + \
                 k["Alleles wo/ Start/Stop Codon"] + \
-                k["Alleles shorter than 201 nucleotides"]
+                k["Alleles shorter than {0} nucleotides".format(minimum_length)]
 
         # organize data for CDS scatterplot
         hist_data = {}

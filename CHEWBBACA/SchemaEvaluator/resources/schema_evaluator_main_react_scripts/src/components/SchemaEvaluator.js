@@ -441,6 +441,22 @@ class SchemaEvaluator extends Component {
         },
       },
       {
+        name: "Total Invalid Alleles",
+        label: "Total Invalid Alleles",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
         name: "Missing Allele IDs",
         label: "Missing Allele IDs",
         options: {
@@ -608,6 +624,70 @@ class SchemaEvaluator extends Component {
       {
         name: "total_alleles",
         label: "Total Alleles",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_alleles_mult3",
+        label: "Total Alleles not multiple of 3",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_alleles_stopC",
+        label: "Total Alleles w/ >1 stop codons",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_alleles_notStart",
+        label: "Total Alleles wo/ Start/Stop Codon",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "total_alleles_shorter",
+        label: `Total ${alleleShorterColumn}`,
         options: {
           filter: true,
           sort: true,

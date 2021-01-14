@@ -316,6 +316,8 @@ def create_cds_df(schema_file, minimum_length, translation_table):
     gene_res["Alleles wo/ Start/Stop Codon"] = notStart
     gene_res["Alleles shorter than {0} nucleotides".format(
         minimum_length)] = shorter
+    gene_res["Total Invalid Alleles"] = notMultiple + \
+        stopC + notStart + shorter
     gene_res["Missing Allele IDs"] = missing_allele_ids
     gene_res["CDS"] = CDS
 
@@ -512,6 +514,16 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
                 k["Alleles shorter than {0} nucleotides".format(
                     minimum_length)]
 
+        # calculate total invalid alleles per class
+        total_alleles_mult3 = sum(
+            k1["Alleles not multiple of 3"] for k1 in data_ind)
+        total_alleles_stopC = sum(
+            k2["Alleles w/ >1 stop codons"] for k2 in data_ind)
+        total_alleles_notStart = sum(
+            k3["Alleles wo/ Start/Stop Codon"] for k3 in data_ind)
+        total_alleles_shorter = sum(k3["Alleles shorter than {0} nucleotides".format(
+            minimum_length)] for k3 in data_ind)
+
         # organize data for CDS scatterplot
         hist_data = {}
 
@@ -534,6 +546,10 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             {
                 "total_loci": total_number_of_loci,
                 "total_alleles": total_number_of_alleles,
+                "total_alleles_mult3": total_alleles_mult3,
+                "total_alleles_stopC": total_alleles_stopC,
+                "total_alleles_notStart": total_alleles_notStart,
+                "total_alleles_shorter": total_alleles_shorter,
                 "total_invalid_alleles": total_invalid_alleles,
             }
         ]
@@ -726,7 +742,8 @@ def generate_protein_files(fasta, output_path, minimum_length, translation_table
     exceptions = []
 
     for allele in SeqIO.parse(fasta, "fasta"):
-        prot = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
+        prot = aux.translate_dna(
+            str(allele.seq), translation_table, minimum_length)
 
         if isinstance(prot, list):
             tets = make_protein_record(

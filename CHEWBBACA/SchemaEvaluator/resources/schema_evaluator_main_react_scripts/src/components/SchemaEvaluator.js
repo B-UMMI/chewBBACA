@@ -745,7 +745,7 @@ class SchemaEvaluator extends Component {
       },
       {
         name: "CDS",
-        label: "CDS",
+        label: "Valid Alleles",
         options: {
           filter: true,
           sort: true,
@@ -786,7 +786,7 @@ class SchemaEvaluator extends Component {
     const cds_analysis_table = (
       <MuiThemeProvider theme={this.getMuiTheme()}>
         <MUIDataTable
-          title={""}
+          title={"Loci Analysis"}
           data={cds_data}
           columns={columns}
           options={options}
@@ -853,6 +853,7 @@ class SchemaEvaluator extends Component {
       <Plot
         data={scatterCDS}
         layout={{
+          autosize: true,
           barmode: "stack",
           bargap: 0.5,
           bargroupgap: 0.0,
@@ -862,12 +863,13 @@ class SchemaEvaluator extends Component {
           xaxis: {
             title: { text: "Number of occurrences" },
             gridcolor: "#eee",
+            type: "log",
           },
           yaxis: { showgrid: false, showticklabels: false },
           plot_bgcolor: "rgba(0,0,0,0)",
         }}
         useResizeHandler={true}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "700px" }}
       />
     );
 
@@ -982,7 +984,7 @@ class SchemaEvaluator extends Component {
           </div>
           <div id="cds-analysis" style={{ marginTop: "40px" }}>
             <Typography variant="h5" className={classes.title}>
-              CDS Analysis
+              Loci Analysis
             </Typography>
             <div style={{ marginTop: "20px" }}>{cds_analysis_table}</div>
             <div style={{ marginTop: "20px" }}>{cds_scatter_plot}</div>

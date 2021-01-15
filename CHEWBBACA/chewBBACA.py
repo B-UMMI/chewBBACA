@@ -645,10 +645,9 @@ def evaluate_schema():
                         help='Skip clustal and mafft.')
 
     parser.add_argument('--l', type=pv.minimum_sequence_length_type,
-                    required=False, default=201, dest='minimum_length',
-                    help='Minimum sequence length accepted for a '
-                            'coding sequence to be included in the schema.')
-
+                        required=False, default=201, dest='minimum_length',
+                        help='Minimum sequence length accepted for a '
+                        'coding sequence to be included in the schema.')
 
     args = parser.parse_args()
 
@@ -669,9 +668,26 @@ def evaluate_schema():
     if not os.path.exists(input_files):
         sys.exit("Input argument is not a valid directory. Exiting...")
 
-    # create pre-computed data
-    pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-        input_files, translation_table, output_file, cpu_to_use, minimum_length, show_progress=True)
+    # check if the schema was created with chewBBACA
+    config_file = os.path.join(input_files, ".schema_config")
+    if os.path.exists(config_file):
+        # get the schema configs
+        with open(config_file, "rb") as cf:
+            chewie_schema_configs = pickle.load(cf)
+        print("This schema was created with chewBBACA {0}. Using schema configurations...\n".format(
+            chewie_schema_configs["chewBBACA_version"][0]))
+
+        # use the configuration file's parameters
+        translation_table = chewie_schema_configs["translation_table"][0]
+        minimum_length = chewie_schema_configs["minimum_locus_length"][0]
+
+        # create pre-computed data
+        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
+            input_files, translation_table, output_file, cpu_to_use, minimum_length, chewie_schema=True, show_progress=True)
+    else:
+        # create pre-computed data
+        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
+            input_files, translation_table, output_file, cpu_to_use, minimum_length, show_progress=True)
 
     schema_evaluator_main_path = os.path.join(
         output_file, "SchemaEvaluator_pre_computed_data"
@@ -696,7 +712,8 @@ def evaluate_schema():
             input_files, pre_computed_data_path, cpu_to_use, minimum_length, translation_table, show_progress=True)
 
         # Run MAFFT
-        schema_evaluator.run_mafft(protein_file_path, cpu_to_use, show_progress=True)
+        schema_evaluator.run_mafft(
+            protein_file_path, cpu_to_use, show_progress=True)
 
         # Write HTML files
         schema_evaluator.write_individual_html(

@@ -88,6 +88,274 @@ class SchemaEvaluator extends Component {
     anchor.click();
   };
 
+  totalDataColumnsHandler = (columnData, alleleShorterColumn) => {
+    if ("chewBBACA_version" in columnData[0]) {
+      const totalDataColumns = [
+        {
+          name: "chewBBACA_version",
+          label: "chewBBACA Version",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "bsr",
+          label: "Blast Score Ratio",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_loci",
+          label: "Total Loci",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles",
+          label: "Total Alleles",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_mult3",
+          label: "Total Alleles not multiple of 3",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_stopC",
+          label: "Total Alleles w/ >1 stop codons",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_notStart",
+          label: "Total Alleles wo/ Start/Stop Codon",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_shorter",
+          label: `Total ${alleleShorterColumn}`,
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_invalid_alleles",
+          label: "Total Invalid Alleles",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+      ];
+      return totalDataColumns;
+    } else {
+      const totalDataColumns = [
+        {
+          name: "total_loci",
+          label: "Total Loci",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles",
+          label: "Total Alleles",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_mult3",
+          label: "Total Alleles not multiple of 3",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_stopC",
+          label: "Total Alleles w/ >1 stop codons",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_notStart",
+          label: "Total Alleles wo/ Start/Stop Codon",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_alleles_shorter",
+          label: `Total ${alleleShorterColumn}`,
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+        {
+          name: "total_invalid_alleles",
+          label: "Total Invalid Alleles",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+      ];
+      return totalDataColumns;
+    }
+  };
+
   render() {
     const style = {
       buttonBar: {
@@ -604,120 +872,10 @@ class SchemaEvaluator extends Component {
     );
 
     // Schema Summary Statistics table
-    const totalDataColumns = [
-      {
-        name: "total_loci",
-        label: "Total Loci",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_alleles",
-        label: "Total Alleles",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_alleles_mult3",
-        label: "Total Alleles not multiple of 3",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_alleles_stopC",
-        label: "Total Alleles w/ >1 stop codons",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_alleles_notStart",
-        label: "Total Alleles wo/ Start/Stop Codon",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_alleles_shorter",
-        label: `Total ${alleleShorterColumn}`,
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-      {
-        name: "total_invalid_alleles",
-        label: "Total Invalid Alleles",
-        options: {
-          filter: true,
-          sort: true,
-          display: true,
-          setCellHeaderProps: (value) => {
-            return {
-              style: {
-                fontWeight: "bold",
-              },
-            };
-          },
-        },
-      },
-    ];
+    const totalDataColumns = this.totalDataColumnsHandler(
+      this.state.total_data,
+      alleleShorterColumn
+    );
 
     const totalDataOptions = {
       responsive: "vertical",

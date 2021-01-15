@@ -43,6 +43,7 @@ Code documentation
 import os
 import sys
 import json
+import pickle
 import itertools
 import statistics
 import multiprocessing
@@ -328,7 +329,7 @@ def create_cds_df(schema_file, minimum_length, translation_table):
     return res_sorted
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, minimum_length, show_progress=False):
+def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, minimum_length, chewie_schema=False, show_progress=False):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 
@@ -541,18 +542,40 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         hist_data["CDS_Alleles"] = [float(cds["CDS"])
                                     for cds in hist_data_sort]
 
-        # build the total data dictionary
-        total_data = [
-            {
-                "total_loci": total_number_of_loci,
-                "total_alleles": total_number_of_alleles,
-                "total_alleles_mult3": total_alleles_mult3,
-                "total_alleles_stopC": total_alleles_stopC,
-                "total_alleles_notStart": total_alleles_notStart,
-                "total_alleles_shorter": total_alleles_shorter,
-                "total_invalid_alleles": total_invalid_alleles,
-            }
-        ]
+        # check if it is a chewBBACA schema
+        if chewie_schema:
+            # read config file to get chewBBACA parameters
+            config_file = os.path.join(schema_dir, ".schema_config")
+            with open(config_file, "rb") as cf:
+                chewie_schema_configs = pickle.load(cf)
+
+            # build the total data dictionary
+            total_data = [
+                {
+                    "chewBBACA_version": chewie_schema_configs["chewBBACA_version"][0],
+                    "bsr": chewie_schema_configs["bsr"][0],
+                    "total_loci": total_number_of_loci,
+                    "total_alleles": total_number_of_alleles,
+                    "total_alleles_mult3": total_alleles_mult3,
+                    "total_alleles_stopC": total_alleles_stopC,
+                    "total_alleles_notStart": total_alleles_notStart,
+                    "total_alleles_shorter": total_alleles_shorter,
+                    "total_invalid_alleles": total_invalid_alleles,
+                }
+            ]
+        else:
+            # build the total data dictionary
+            total_data = [
+                {
+                    "total_loci": total_number_of_loci,
+                    "total_alleles": total_number_of_alleles,
+                    "total_alleles_mult3": total_alleles_mult3,
+                    "total_alleles_stopC": total_alleles_stopC,
+                    "total_alleles_notStart": total_alleles_notStart,
+                    "total_alleles_shorter": total_alleles_shorter,
+                    "total_invalid_alleles": total_invalid_alleles,
+                }
+            ]
 
         # Write HTML file
         print("\nWriting main report HTML file...\n")

@@ -641,8 +641,13 @@ def evaluate_schema():
                         help='Number of CPU cores to use to run the process.')
 
     parser.add_argument('--light', action='store_true', required=False,
-                        default=False, dest='light_mode',
-                        help='Skip clustal and mafft.')
+                        dest='light_mode',
+                        help='Skip mafft.')
+
+    parser.add_argument('--no-cleanup', action='store_true', required=False,
+                        dest='no_cleanup',
+                        help='Stops the removal of intermediate files created '
+                             'during the report generation.')
 
     parser.add_argument('--l', type=pv.minimum_sequence_length_type,
                         required=False, default=201, dest='minimum_length',
@@ -661,6 +666,7 @@ def evaluate_schema():
     cpu_cores = args.cpu_cores
     light_mode = args.light_mode
     minimum_length = args.minimum_length
+    no_cleanup = args.no_cleanup
 
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
 
@@ -674,7 +680,7 @@ def evaluate_schema():
         # get the schema configs
         with open(config_file, "rb") as cf:
             chewie_schema_configs = pickle.load(cf)
-        print("This schema was created with chewBBACA {0}. Using schema configurations...\n".format(
+        print("This schema was created with chewBBACA {0}. Using schema configurations...".format(
             chewie_schema_configs["chewBBACA_version"][0]))
 
         # use the configuration file's parameters
@@ -722,6 +728,26 @@ def evaluate_schema():
         # html_files main.js
         shutil.copy(os.path.join(script_path, "SchemaEvaluator",
                                  "resources", "main_ind.js"), schema_evaluator_html_files_path)
+
+    # remove intermediate files created
+    # during the report generation
+    if not no_cleanup:
+        # Removes pre-computed data in json format.
+        json_files = [
+            os.path.join(schema_evaluator_main_path, file)
+            for file in os.listdir(schema_evaluator_main_path)
+            if ".json" in file
+        ]
+
+        for jf in json_files:
+            os.remove(jf)
+
+        if not light_mode:
+            # Removes translated loci and MAFFT outputs.
+            prot_files_dir = os.path.join(
+                schema_evaluator_main_path, "prot_files")
+
+            shutil.rmtree(prot_files_dir)
 
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 

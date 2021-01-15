@@ -259,6 +259,8 @@ def create_cds_df(schema_file, minimum_length, translation_table):
         ----------
         schema_dir : list
             a list with names/paths for FASTA files.
+        minimum_length: int
+            Minimum sequence length accepted in nt.
         translation_table: int
             the translation table to be used.
 
@@ -342,6 +344,14 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
         output_path : str
             the directory where the output files will
             be saved.
+        cpu_to_use: int
+            number of CPU cores to use for multiprocessing.
+        minimum_length: int
+            minimum sequence length accepted in nt.
+        chewie_schema: bool
+            identifies the schema as a chewBBACA created schema.
+        show_progress: bool
+            shows a progress bar for multiprocessing.
 
         Returns
         -------
@@ -690,6 +700,15 @@ def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, tr
         output_path : str
             the directory where the output files will
             be saved.
+        cpu_to_use: int
+            number of CPU cores to use for 
+            multiprocessing.
+        minimum_length: int
+            minimum sequence length accepted in nt.
+        translation_table: int
+            the translation table to be used.
+        show_progress: bool
+            shows a progress bar for multiprocessing.
 
         Returns
         -------
@@ -744,6 +763,10 @@ def generate_protein_files(fasta, output_path, minimum_length, translation_table
         output_path : str
             the directory where the output files will
             be saved.
+        minimum_length: int
+            minimum sequence length accepted in nt.
+        translation_table: int
+            the translation table to be used.
 
         Returns
         -------

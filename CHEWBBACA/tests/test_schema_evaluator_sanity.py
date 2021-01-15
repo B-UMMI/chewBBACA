@@ -48,7 +48,8 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
     'test_args, expected',
     [(['chewBBACA.py', 'SchemaEvaluator',
        '-i', 'data/schemaEvaluatorData/test_schema',
-       '-o', './schemaEvaluatorData_results', ],
+       '-o', './schemaEvaluatorData_results',
+       '--no-cleanup' ],
       'data/schemaEvaluatorData/expected_results')
      ])
 def test_schemaEvaluator_valid(test_args, expected):

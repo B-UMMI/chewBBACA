@@ -331,7 +331,9 @@ def create_cds_df(schema_file, minimum_length, translation_table):
     return res_sorted
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_use, minimum_length, chewie_schema=False, show_progress=False):
+def create_pre_computed_data(schema_dir, translation_table, output_path,
+                             cpu_to_use, minimum_length, chewie_schema=False,
+                             show_progress=False):
     """ Creates a file with pre-computed data for 
         the Schema Evaluator plotly charts.
 
@@ -510,7 +512,9 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
 
         # sort data for the CDS table
         data_ind = sorted(flat_multi_out, key=itemgetter("Alleles not multiple of 3",
-                                                         "Alleles w/ >1 stop codons", "Alleles wo/ Start/Stop Codon"), reverse=True)
+                                                         "Alleles w/ >1 stop codons",
+                                                         "Alleles wo/ Start/Stop Codon"),
+                          reverse=True)
 
         # sort data for CDS scatterplot
         hist_data_sort = sorted(
@@ -559,6 +563,9 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             with open(config_file, "rb") as cf:
                 chewie_schema_configs = pickle.load(cf)
 
+            translation_table_config = chewie_schema_configs["translation_table"][0]
+            minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
+
             # build the total data dictionary
             total_data = [
                 {
@@ -573,6 +580,15 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
                     "total_invalid_alleles": total_invalid_alleles,
                 }
             ]
+
+            # check if config parameters are the same as the user input
+            if minimum_length_config == minimum_length and \
+                    translation_table_config == translation_table:
+                message = '"Schema created and evaluated with minimum length of {0} and translation table {1}."'.format(
+                    minimum_length, translation_table)
+            else:
+                message = '"Schema created with minimum length of {0} and translation table {1} and evaluated with minimum length of {2} and translation table {3}."'.format(
+                    minimum_length_config, translation_table_config, minimum_length, translation_table)
         else:
             # build the total data dictionary
             total_data = [
@@ -586,6 +602,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
                     "total_invalid_alleles": total_invalid_alleles,
                 }
             ]
+            message = '"Schema evaluated with minimum length of {0} and translation table {1}."'.format(
+                minimum_length, translation_table)
 
         # Write HTML file
         print("\nWriting main report HTML file...\n")
@@ -606,6 +624,7 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
                 <script> const _cdsDf = {3} </script>
                 <script> const _cdsScatter = {4} </script>
                 <script> const _totalData = {5} </script>
+                <script> const _message = {6} </script>
                 <script src="./main.js"></script>
             </body>
         </html>
@@ -615,7 +634,8 @@ def create_pre_computed_data(schema_dir, translation_table, output_path, cpu_to_
             json.dumps(boxplot_data),
             json.dumps(data_ind, sort_keys=True),
             json.dumps(hist_data, sort_keys=True),
-            json.dumps(total_data)
+            json.dumps(total_data),
+            message,
         )
 
         html_file_path = os.path.join(
@@ -689,7 +709,9 @@ def make_protein_record(nuc_record, record_id):
     )
 
 
-def create_protein_files(schema_dir, output_path, cpu_to_use, minimum_length, translation_table, show_progress=False):
+def create_protein_files(schema_dir, output_path, cpu_to_use,
+                         minimum_length, translation_table,
+                         show_progress=False):
     """ Generates FASTA files with the protein
         sequence of the schema loci.
 

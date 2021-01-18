@@ -680,12 +680,8 @@ def evaluate_schema():
         # get the schema configs
         with open(config_file, "rb") as cf:
             chewie_schema_configs = pickle.load(cf)
-        print("This schema was created with chewBBACA {0}. Using schema configurations...".format(
+        print("This schema was created with chewBBACA {0}.".format(
             chewie_schema_configs["chewBBACA_version"][0]))
-
-        # use the configuration file's parameters
-        translation_table = chewie_schema_configs["translation_table"][0]
-        minimum_length = chewie_schema_configs["minimum_locus_length"][0]
 
         # create pre-computed data
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(

@@ -14,6 +14,9 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 
+// Material-UI Lab components
+import Alert from "@material-ui/lab/Alert";
+
 // Material-UI Datatables
 import MUIDataTable from "mui-datatables";
 
@@ -28,10 +31,8 @@ class SchemaEvaluator extends Component {
     cds_df_data: _cdsDf,
     cds_scatter_data: _cdsScatter,
     total_data: _totalData,
+    message: _message,
     tabValue: 0,
-    indTabValue: 0,
-    scatterSelectOption: "",
-    isIndOption: false,
   };
 
   getMuiTheme = () =>
@@ -867,6 +868,7 @@ class SchemaEvaluator extends Component {
           },
           yaxis: { showgrid: false, showticklabels: false },
           plot_bgcolor: "rgba(0,0,0,0)",
+          hovermode: "closest",
         }}
         useResizeHandler={true}
         style={{ width: "100%", height: "700px" }}
@@ -908,6 +910,11 @@ class SchemaEvaluator extends Component {
     return (
       <Aux>
         <div>
+          <div style={{ marginTop: "40px", width: "100%" }}>
+            <Alert variant="outlined" severity="info">
+              {this.state.message}
+            </Alert>
+          </div>
           <div style={{ marginTop: "40px" }}>{total_data_table}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>

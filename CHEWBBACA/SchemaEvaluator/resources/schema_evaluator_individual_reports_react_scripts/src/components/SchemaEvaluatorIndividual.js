@@ -13,9 +13,11 @@ import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 // Material-UI ExpansionPanel components
 import Accordion from "@material-ui/core/Accordion";
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
+
+// Material-UI Lab components
+import Alert from "@material-ui/lab/Alert";
 
 // react-select import
 import Select from "react-select";
@@ -40,9 +42,6 @@ class SchemaEvaluator extends Component {
     testMSA: _msaData,
     phyloData: _phyloData,
     indTabValue: 0,
-    scatterSelectOption: "",
-    isIndOption: false,
-    showSnack: false,
     treeType: 0,
     zoom: false,
   };
@@ -114,54 +113,73 @@ class SchemaEvaluator extends Component {
 
     const phylocanvasComponent =
       this.state.phyloData === "undefined" ? (
-        <div />
-      ) : (
-        <div style={{ marginTop: "40px" }}>
-          <Accordion defaultExpanded>
-            <AccordionSummary>
-              <Typography variant="h5" className={classes.title}>
-                NJ tree
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <div style={style.root}>
-                <Grid container style={style.toolbar}>
-                  <div style={style.select}>
-                    <Typography>Tree type:</Typography>
-                    <Select
-                      closeMenuOnSelect={false}
-                      options={treeTypeOption}
-                      onChange={(val) => {
-                        this.handleSelectChange("treeType", val);
-                      }}
-                      value={treeTypeOption[this.state.treeType]}
-                    />
-                  </div>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        color={"primary"}
-                        onChange={() => {
-                          this.setState({ zoom: !this.state.zoom });
-                        }}
-                        checked={this.state.zoom}
-                      />
-                    }
-                    label={`Zoom is ${
-                      this.state.zoom ? "enabled" : "disabled"
-                    }`}
-                    style={style.zoom}
-                  />
-                </Grid>
-                <PhylogeneticTree
-                  zoom={this.state.zoom}
-                  treeType={treeTypeOption[this.state.treeType].label}
-                  newickString={this.state.phyloData.phylo_data}
-                />
-              </div>
-            </AccordionDetails>
-          </Accordion>
+        <div style={{ marginTop: "40px", width: "100%" }}>
+          <Alert variant="outlined" severity="warning">
+            <Typography variant="subtitle1">
+              The NJ tree and MSA were not generated because chewBBACA
+              determined that this locus does not have valid alleles.
+            </Typography>
+          </Alert>
         </div>
+      ) : (
+        <Aux>
+          <div style={{ marginTop: "40px", width: "100%" }}>
+            <Alert variant="outlined" severity="info">
+              <Typography variant="subtitle1">
+                Note: the first number of the name of each leaf corresponds to
+                the to the order the sequence appears in the input sequence
+                file. For example: '1_5' means that the first sequence of the
+                input file is named '5'.
+              </Typography>
+            </Alert>
+          </div>
+          <div style={{ marginTop: "40px" }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary>
+                <Typography variant="h5" className={classes.title}>
+                  NJ tree
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <div style={style.root}>
+                  <Grid container style={style.toolbar}>
+                    <div style={style.select}>
+                      <Typography>Tree type:</Typography>
+                      <Select
+                        closeMenuOnSelect={false}
+                        options={treeTypeOption}
+                        onChange={(val) => {
+                          this.handleSelectChange("treeType", val);
+                        }}
+                        value={treeTypeOption[this.state.treeType]}
+                      />
+                    </div>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          color={"primary"}
+                          onChange={() => {
+                            this.setState({ zoom: !this.state.zoom });
+                          }}
+                          checked={this.state.zoom}
+                        />
+                      }
+                      label={`Zoom is ${
+                        this.state.zoom ? "enabled" : "disabled"
+                      }`}
+                      style={style.zoom}
+                    />
+                  </Grid>
+                  <PhylogeneticTree
+                    zoom={this.state.zoom}
+                    treeType={treeTypeOption[this.state.treeType].label}
+                    newickString={this.state.phyloData.phylo_data}
+                  />
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          </div>
+        </Aux>
       );
 
     const hist_allele_sizes_x = this.state.locus_ind_data.data.allele_sizes;
@@ -242,9 +260,9 @@ class SchemaEvaluator extends Component {
     // Build table with additional information
     const cdsTableInfo = this.state.cds_df_data;
 
-    const alleleShorterColumn = Object.keys(
-      this.state.cds_df_data
-    ).find((k) => k.includes("Alleles shorter"));
+    const alleleShorterColumn = Object.keys(this.state.cds_df_data).find((k) =>
+      k.includes("Alleles shorter")
+    );
 
     const indData = {
       size_range: this.state.locus_ind_data.data.size_range,
@@ -372,7 +390,7 @@ class SchemaEvaluator extends Component {
       },
       {
         name: "CDS",
-        label: "CDS",
+        label: "Valid Alleles",
         options: {
           filter: false,
           sort: false,
@@ -533,7 +551,7 @@ class SchemaEvaluator extends Component {
       ) : (
         <div style={{ marginTop: "40px" }}>
           <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <AccordionSummary>
               <Typography variant="h5" className={classes.title}>
                 Multiple Sequence Analysis
               </Typography>

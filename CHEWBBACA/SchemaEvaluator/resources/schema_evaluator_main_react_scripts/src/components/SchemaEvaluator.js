@@ -994,7 +994,19 @@ class SchemaEvaluator extends Component {
               Loci Analysis
             </Typography>
             <div style={{ marginTop: "20px" }}>{cds_analysis_table}</div>
-            <div style={{ marginTop: "20px" }}>{cds_scatter_plot}</div>
+            <div style={{ marginTop: "20px" }}>
+              <Aux>
+                <div style={{ marginTop: "20px" }}>
+                  <Alert variant="outlined" severity="info">
+                    <Typography variant="subtitle1">
+                      The x-axis of the following scatter plot is in logarithmic
+                      scale for a more compact visualization.
+                    </Typography>
+                  </Alert>
+                </div>
+                {cds_scatter_plot}
+              </Aux>
+            </div>
           </div>
         </div>
       </Aux>

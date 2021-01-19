@@ -113,25 +113,36 @@ class SchemaEvaluator extends Component {
 
     const phylocanvasComponent =
       this.state.phyloData === "undefined" ? (
-        <div style={{ marginTop: "40px", width: "100%" }}>
+        <div style={{ marginTop: "20px", width: "100%" }}>
           <Alert variant="outlined" severity="warning">
             <Typography variant="subtitle1">
               The NJ tree and MSA were not generated because chewBBACA
-              determined that this locus does not have valid alleles.
+              determined that this locus does not have valid alleles or has only
+              one valid allele.
             </Typography>
           </Alert>
         </div>
       ) : (
         <Aux>
-          <div style={{ marginTop: "40px", width: "100%" }}>
-            <Alert variant="outlined" severity="info">
-              <Typography variant="subtitle1">
-                Note: the first number of the name of each leaf corresponds to
-                the to the order the sequence appears in the input sequence
-                file. For example: '1_5' means that the first sequence of the
-                input file is named '5'.
-              </Typography>
-            </Alert>
+          <div style={{ marginTop: "40px" }}>
+            <div style={{ width: "100%" }}>
+              <Alert variant="outlined" severity="info">
+                <Typography variant="subtitle1">
+                  Note: the first number of the name of each leaf corresponds to
+                  the order the sequence appears in the input sequence file. For
+                  example: '1_5' means that the first sequence of the input file
+                  is named '5'.
+                </Typography>
+              </Alert>
+            </div>
+            <div style={{ marginTop: "10px", width: "100%" }}>
+              <Alert variant="outlined" severity="info">
+                <Typography variant="subtitle1">
+                  If a tree is not being displayed it means that the distance
+                  between alleles is 0 and Phyloncavas won't render the tree.
+                </Typography>
+              </Alert>
+            </div>
           </div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>

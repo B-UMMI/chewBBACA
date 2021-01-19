@@ -54,12 +54,12 @@ def test_createschema_valid(test_args, expected):
     expected_files.sort()
 
     # get config files
-    genes_lists = [output_files.pop(0), expected_files.pop(0)]
-    schemas_configs = [output_files.pop(0), expected_files.pop(0)]
+    # genes_lists = [output_files.pop(0), expected_files.pop(0)]
+    # schemas_configs = [output_files.pop(0), expected_files.pop(0)]
 
     # compare configs
-    assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
-    assert pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
+    # assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
+    # assert pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
 
     files = output_files + expected_files
     basename_dict = {}

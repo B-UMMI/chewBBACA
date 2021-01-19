@@ -786,6 +786,32 @@ def isListEmpty(inList):
         return all(map(isListEmpty, inList)) if isinstance(inList, list) else False
 
 
+def is_file_empty(file_path):
+    """ Check if file is empty by confirming if its size is 0 bytes"""
+    # Check if file exist and it is empty
+    return os.path.exists(file_path) and os.stat(file_path).st_size == 0
+
+
+def is_file_empty_2(file_name):
+    """ Check if file is empty by confirming if its size is 0 bytes"""
+    # Check if file exist and it is empty
+    return os.path.isfile(file_name) and os.path.getsize(file_name) == 0
+
+
+def is_file_empty_3(file_name):
+    """ Check if file is empty by reading first character in it"""
+    # open ile in read mode
+    with open(file_name, 'r') as read_obj:
+        # read first character
+        one_char = read_obj.read(1)
+        # if not fetched then file is empty
+        if not one_char:
+           return True
+        elif one_char == " ":
+            return True
+    return False
+
+
 def read_blast_tabular(blast_tabular_file):
     """ Read a file with BLAST results in tabular format
 
@@ -1315,7 +1341,7 @@ def translate_dna(dna_sequence, table_id, min_len):
         Returns:
             If the sequence can be translated,
             a list with following elements:
-                sequence (list): a list with two elemets, the protein sequence
+                sequence (list): a list with two elements, the protein sequence
                 and the DNA sequence in the correct orientation.
                 coding_strand (str): the strand orientation that had could be
                 translated.
@@ -1684,8 +1710,27 @@ def get_data(sparql_query):
     return result
 
 
-def progress_bar(process, total, tickval, ticknum, completed):
-    """
+def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
+    """ Creates and prints progress bar to stdout.
+
+        Parameters
+        ----------
+        process : multiprocessing.pool.MapResult
+            Multiprocessing object.
+        total : int
+            Total number of inputs that have to be processed.
+        tickval : int
+            Progress completion percentage value for each
+            tick.
+        ticknum : int
+            Total number of ticks in progress bar.
+        completed : bool
+            Boolean indicating if process has completed.
+
+        Returns
+        -------
+        completed : bool
+            Boolean indicating if process has completed.
     """
 
     # check if process has finished
@@ -1785,3 +1830,22 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     stderr = blast_proc.stderr.readlines()
 
     return stderr
+
+
+def find_missing(lst):
+    """ Finds missing integers in list
+        of consecutive integers.
+
+        Parameters
+        ----------
+        lst : list
+            List containing consecutive integers.
+        
+        Returns
+        -------
+        list
+            Sorted list of missing integers.
+    """ 
+    start = lst[0] 
+    end = lst[-1] 
+    return sorted(set(range(start, end + 1)).difference(lst))

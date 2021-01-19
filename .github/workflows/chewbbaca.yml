@@ -2,9 +2,9 @@ name: chewbbaca
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev_SchemaEvaluator ]
   pull_request:
-    branches: [ main ]
+    branches: [ dev_SchemaEvaluator ]
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -39,6 +39,19 @@ jobs:
       run: |
         which blastp
         blastp -version
+
+    - name: install mafft
+      run: |
+        mkdir $GITHUB_WORKSPACE/mafft
+        pushd $GITHUB_WORKSPACE/mafft
+        wget https://mafft.cbrc.jp/alignment/software/mafft_7.475-1_amd64.deb
+        sudo dpkg -i mafft_7.475-1_amd64.deb
+        popd
+
+    - name: check mafft
+      run: |
+        which mafft
+        mafft --version
 
     - name: checkout prodigal
       uses: actions/checkout@v2

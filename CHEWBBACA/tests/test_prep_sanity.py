@@ -98,8 +98,8 @@ def test_prep_valid_input(test_args, expected):
     schemas_configs = [output_files.pop(0), expected_files.pop(0)]
 
     # compare configs
-    assert  pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
-    assert  pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
+    assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
+    assert pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
 
     # compare FASTA files
     files = output_files + expected_files

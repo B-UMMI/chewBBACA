@@ -999,8 +999,8 @@ class SchemaEvaluator extends Component {
                 <div style={{ marginTop: "20px" }}>
                   <Alert variant="outlined" severity="info">
                     <Typography variant="subtitle1">
-                      The x-axis of the following scatter plot is in logarithmic
-                      scale for a more compact visualization.
+                      The x-axis of the following plot is in logarithmic scale
+                      for a more compact visualization.
                     </Typography>
                   </Alert>
                 </div>

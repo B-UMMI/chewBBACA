@@ -642,7 +642,8 @@ def evaluate_schema():
 
     parser.add_argument('--light', action='store_true', required=False,
                         dest='light_mode',
-                        help='Skip mafft.')
+                        help='Skips the indepth analysis of the individual '
+                             'schema loci, including MAFFT.')
 
     parser.add_argument('--no-cleanup', action='store_true', required=False,
                         dest='no_cleanup',

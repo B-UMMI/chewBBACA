@@ -64,13 +64,15 @@ def replace_chars(column):
             numeric characters.
     """
 
+    # remove 'INF-' from inferred alleles
     replace_inf = column.replace(to_replace='INF-',
                                  value='', regex=True)
     # replace '*' in novel alleles from schemas in Chewie-NS
-    # double escape due to warning that might become error in future
-    replace_inf = replace_inf.replace(to_replace='\\*',
+    # before replacing missing data cases to avoid replacing '*' with '0'
+    replace_inf = replace_inf.replace(to_replace='\*',
                                       value='', regex=True)
-    replace_missing = replace_inf.replace(to_replace='\\D+.*',
+    # replace missing data with '0'
+    replace_missing = replace_inf.replace(to_replace='\D+.*',
                                           value='0', regex=True)
 
     return replace_missing
@@ -93,8 +95,7 @@ def binarize_matrix(column):
         for cells that had missing data.
     """
 
-    replace_missing = replace_chars(column)
-    coln = pd.to_numeric(replace_missing)
+    coln = pd.to_numeric(column)
 
     return np.int64(coln > 0)
 
@@ -305,14 +306,19 @@ def determine_cgMLST(input_file, output_directory, genesToRemove,
     # remove genomes
     genome_pruned = remove_genomes(matrix, genomesToRemove)
 
+    # mask missing data
+    print('\nMasking missing data...', end='')
+    masked_matrix = genome_pruned.apply(replace_chars)
+    print('done.')
+
     # build presence/absence matrix
-    print('\nBuilding presence and absence matrix...', end='')
-    presence_absence = presAbs(genome_pruned, output_directory)
+    print('Building presence and absence matrix...', end='')
+    presence_absence = presAbs(masked_matrix, output_directory)
     print('done.')
 
     # remove genes
     print('Determining genes in the core genome...', end='')
-    gene_pruned, removed_genes = remove_genes(genome_pruned, presence_absence,
+    gene_pruned, removed_genes = remove_genes(masked_matrix, presence_absence,
                                               genesToRemove, threshold)
     print('done.')
 

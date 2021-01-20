@@ -335,7 +335,7 @@ def allele_call():
                              'are temporary files from a previous '
                              'process that was interrupted.')
 
-    parser.add_argument('--db', required=False, action='store_false',
+    parser.add_argument('--db', required=False, action='store_true',
                         dest='store_profiles',
                         help='If the profiles in the output matrix '
                              'should be stored in the local SQLite '
@@ -620,21 +620,26 @@ def evaluate_schema():
     parser.add_argument('SchemaEvaluator', nargs='+',
                         help='Evaluates a set of loci.')
 
-    parser.add_argument('-i', type=str, required=True,
+    parser.add_argument('-i', '--input-files', type=str, required=True,
                         dest='input_files',
                         help='Path to the schema\'s directory or path to a file containing '
                              'the paths to the FASTA files of the loci that will be evaluated, '
                              'one per line.')
 
-    parser.add_argument('-o', type=str, required=True,
+    parser.add_argument('-o', '--output', type=str, required=True,
                         dest='output_file',
                         help='Path to the output directory where the report HTML '
                              'files will be generated.')
 
-    parser.add_argument('-ta', type=int, required=False,
+    parser.add_argument('--ta', '--translation-table', type=int, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to translate coding '
                              'sequences.')
+
+    parser.add_argument('--ml','--minimum-length', type=pv.minimum_sequence_length_type,
+                        required=False, default=201, dest='minimum_length',
+                        help='Minimum sequence length accepted for a '
+                        'coding sequence to be included in the schema.')
 
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
@@ -649,11 +654,6 @@ def evaluate_schema():
                         dest='no_cleanup',
                         help='Stops the removal of intermediate files created '
                              'during the report generation.')
-
-    parser.add_argument('--l', type=pv.minimum_sequence_length_type,
-                        required=False, default=201, dest='minimum_length',
-                        help='Minimum sequence length accepted for a '
-                        'coding sequence to be included in the schema.')
 
     args = parser.parse_args()
 

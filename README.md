@@ -31,6 +31,12 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carri√
 
 # Latest updates
 
+## 2.6.0
+
+The **SchemaEvaluator** module was refactored due to unsupported dependencies that were not allowing the report generation. The style of the report is similar to the what can be found on [Chewie-NS](https://chewbbaca.online/).
+
+More in-depth information can be found about the module on its [wiki page](https://github.com/B-UMMI/chewBBACA/wiki/4.-Schema-Evaluation).
+
 ## 2.5.0 - 2.5.6
 
 We've developed [Chewie-NS](https://chewbbaca.online/), a Nomenclature Server that is based on the [TypOn](https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-5-43) ontology and integrates with chewBBACA to provide access to gene-by-gene typing schemas and to allow a common and global allelic nomenclature to be maintained.

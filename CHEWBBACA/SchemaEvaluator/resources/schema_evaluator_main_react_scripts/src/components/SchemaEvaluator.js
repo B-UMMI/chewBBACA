@@ -31,6 +31,8 @@ class SchemaEvaluator extends Component {
     cds_df_data: _cdsDf,
     cds_scatter_data: _cdsScatter,
     total_data: _totalData,
+    notConserved: _notConserved,
+    notConservedMessage: _notConservedMessage,
     message: _message,
     tabValue: 0,
   };
@@ -907,6 +909,68 @@ class SchemaEvaluator extends Component {
       </MuiThemeProvider>
     );
 
+    let notConservedList = <div />;
+
+    if (this.state.notConserved === "undefined") {
+      notConservedList = (
+        <Alert variant="outlined" severity="info">
+          No loci with high length variability detected.
+        </Alert>
+      );
+    } else {
+      const notConservedColumns = [
+        {
+          name: "gene",
+          label: "Locus",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+      ];
+
+      const notConservedOptions = {
+        responsive: "vertical",
+        selectableRowsHeader: false,
+        selectableRows: "none",
+        selectableRowsOnClick: false,
+        print: false,
+        download: false,
+        filter: false,
+        search: false,
+        viewColumns: true,
+        pagination: false,
+      };
+
+      notConservedList = (
+        <Aux>
+          <div style={{ marginTop: "40px", width: "100%" }}>
+            <Alert variant="outlined" severity="info">
+              {this.state.notConservedMessage}
+            </Alert>
+          </div>
+          <div style={{ marginTop: "20px" }}>
+            <MuiThemeProvider theme={this.getMuiTheme()}>
+              <MUIDataTable
+                title={"Loci with high variability"}
+                data={this.state.notConserved}
+                columns={notConservedColumns}
+                options={notConservedOptions}
+              />
+            </MuiThemeProvider>
+          </div>
+        </Aux>
+      );
+    }
+
     return (
       <Aux>
         <div>
@@ -916,6 +980,7 @@ class SchemaEvaluator extends Component {
             </Alert>
           </div>
           <div style={{ marginTop: "40px" }}>{total_data_table}</div>
+          <div style={{ marginTop: "40px" }}>{notConservedList}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>

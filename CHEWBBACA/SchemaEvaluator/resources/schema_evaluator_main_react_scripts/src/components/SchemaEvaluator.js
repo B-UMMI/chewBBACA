@@ -776,8 +776,6 @@ class SchemaEvaluator extends Component {
       viewColumns: true,
       pagination: true,
       onCellClick: (cellData, cellMeta) => {
-        console.log(cellData, cellMeta);
-
         if (cellData.includes(".fasta")) {
           this.clickCdsTableHandler(cellData);
         }
@@ -947,7 +945,12 @@ class SchemaEvaluator extends Component {
         filter: false,
         search: false,
         viewColumns: true,
-        pagination: false,
+        pagination: true,
+        onCellClick: (cellData, cellMeta) => {
+          if (cellData.includes(".fasta")) {
+            this.clickCdsTableHandler(cellData);
+          }
+        },
       };
 
       notConservedList = (

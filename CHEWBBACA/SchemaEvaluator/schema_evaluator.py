@@ -115,29 +115,59 @@ def gene_seqs_info_schema_evaluator(gene, threshold, conserved):
     if not conserved and (
         ratio >= 1 or len(alleles_lengths) - alleles_within_threshold < 2
     ):
-        genes_info = {
-            "gene": gene,
-            "nr_alleles": nr_alleles,
-            "min_length": min_length,
-            "max_length": max_length,
-            "median_length": median_length,
-            "mean_length": mean_length,
-            "mode_length": mode_length,
-            "alleles_lengths": alleles_lengths,
-            "conserved": True,
-        }
+        if nr_alleles == 1:
+            genes_info = {
+                "gene": gene,
+                "nr_alleles": nr_alleles,
+                "min_length": min_length,
+                "max_length": max_length,
+                "median_length": median_length,
+                "mean_length": mean_length,
+                "mode_length": mode_length,
+                "alleles_lengths": alleles_lengths,
+                "conserved": True,
+                "one_allele_only": True,
+            }
+        else:
+            genes_info = {
+                "gene": gene,
+                "nr_alleles": nr_alleles,
+                "min_length": min_length,
+                "max_length": max_length,
+                "median_length": median_length,
+                "mean_length": mean_length,
+                "mode_length": mode_length,
+                "alleles_lengths": alleles_lengths,
+                "conserved": True,
+                "one_allele_only": False,
+            }
     elif conserved and ratio >= 1:
-        genes_info = {
-            "gene": gene,
-            "nr_alleles": nr_alleles,
-            "min_length": min_length,
-            "max_length": max_length,
-            "median_length": median_length,
-            "mean_length": mean_length,
-            "mode_length": mode_length,
-            "alleles_lengths": alleles_lengths,
-            "conserved": True,
-        }
+        if nr_alleles == 1:
+            genes_info = {
+                "gene": gene,
+                "nr_alleles": nr_alleles,
+                "min_length": min_length,
+                "max_length": max_length,
+                "median_length": median_length,
+                "mean_length": mean_length,
+                "mode_length": mode_length,
+                "alleles_lengths": alleles_lengths,
+                "conserved": True,
+                "one_allele_only": True,
+            }
+        else:
+            genes_info = {
+                "gene": gene,
+                "nr_alleles": nr_alleles,
+                "min_length": min_length,
+                "max_length": max_length,
+                "median_length": median_length,
+                "mean_length": mean_length,
+                "mode_length": mode_length,
+                "alleles_lengths": alleles_lengths,
+                "conserved": True,
+                "one_allele_only": False,
+            }
     else:
         genes_info = {
             "gene": gene,
@@ -149,6 +179,7 @@ def gene_seqs_info_schema_evaluator(gene, threshold, conserved):
             "mode_length": mode_length,
             "alleles_lengths": alleles_lengths,
             "conserved": False,
+            "one_allele_only": False,
         }
 
     return genes_info
@@ -499,6 +530,7 @@ def create_pre_computed_data(
         total_number_of_loci = 0
         total_number_of_alleles = 0
         not_conserved = []
+        one_allele_only = []
 
         for res in results:
 
@@ -540,10 +572,17 @@ def create_pre_computed_data(
             if not res["conserved"]:
                 not_conserved.append({"gene": os.path.split(res["gene"])[1]})
 
+            # get loci with only 1 allele
+            if res["one_allele_only"]:
+                one_allele_only.append({"gene": os.path.split(res["gene"])[1]})
+
         if len(not_conserved) == 0:
             not_conserved = "undefined"
 
-        not_conserved_message = '"Genes are considered not conserved if >1 allele are outside the mode +/- {0} size. Genes with only 1 allele outside the threshold are considered conserved."'.format(
+        if len(one_allele_only) == 0:
+            one_allele_only = "undefined"
+
+        not_conserved_message = '"Locus size is considered not conserved if >1 allele are outside the mode +/- {0} size. Loci with only 1 allele outside the threshold are considered conserved."'.format(
             threshold
         )
 
@@ -721,8 +760,9 @@ def create_pre_computed_data(
                 <script> const _cdsScatter = {4} </script>
                 <script> const _totalData = {5} </script>
                 <script> const _notConserved = {6} </script>
-                <script> const _message = {7} </script>
-                <script> const _notConservedMessage = {8} </script>
+                <script> const _oneAlleleOnly = {7} </script>
+                <script> const _message = {8} </script>
+                <script> const _notConservedMessage = {9} </script>
                 <script src="./main.js"></script>
             </body>
         </html>
@@ -734,6 +774,7 @@ def create_pre_computed_data(
             json.dumps(hist_data, sort_keys=True),
             json.dumps(total_data),
             json.dumps(not_conserved),
+            json.dumps(one_allele_only),
             message,
             not_conserved_message,
         )

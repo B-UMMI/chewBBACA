@@ -33,6 +33,7 @@ class SchemaEvaluator extends Component {
     total_data: _totalData,
     notConserved: _notConserved,
     notConservedMessage: _notConservedMessage,
+    oneAlleleOnly: _oneAlleleOnly,
     message: _message,
     tabValue: 0,
   };
@@ -974,6 +975,68 @@ class SchemaEvaluator extends Component {
       );
     }
 
+    let oneAlleleOnlyList = <div />;
+
+    if (this.state.oneAlleleOnly === "undefined") {
+      oneAlleleOnlyList = (
+        <Alert variant="outlined" severity="info">
+          No loci with only 1 allele were detected.
+        </Alert>
+      );
+    } else {
+      const oneAlleleOnlyColumns = [
+        {
+          name: "gene",
+          label: "Locus",
+          options: {
+            filter: true,
+            sort: true,
+            display: true,
+            setCellHeaderProps: (value) => {
+              return {
+                style: {
+                  fontWeight: "bold",
+                },
+              };
+            },
+          },
+        },
+      ];
+
+      const oneAlleleOnlyOptions = {
+        responsive: "vertical",
+        selectableRowsHeader: false,
+        selectableRows: "none",
+        selectableRowsOnClick: false,
+        print: false,
+        download: false,
+        filter: false,
+        search: false,
+        viewColumns: true,
+        pagination: true,
+        onCellClick: (cellData, cellMeta) => {
+          if (cellData.includes(".fasta")) {
+            this.clickCdsTableHandler(cellData);
+          }
+        },
+      };
+
+      oneAlleleOnlyList = (
+        <Aux>
+          <div>
+            <MuiThemeProvider theme={this.getMuiTheme()}>
+              <MUIDataTable
+                title={"Loci with only 1 allele"}
+                data={this.state.oneAlleleOnly}
+                columns={oneAlleleOnlyColumns}
+                options={oneAlleleOnlyOptions}
+              />
+            </MuiThemeProvider>
+          </div>
+        </Aux>
+      );
+    }
+
     return (
       <Aux>
         <div>
@@ -984,6 +1047,7 @@ class SchemaEvaluator extends Component {
           </div>
           <div style={{ marginTop: "40px" }}>{total_data_table}</div>
           <div style={{ marginTop: "40px" }}>{notConservedList}</div>
+          <div style={{ marginTop: "40px" }}>{oneAlleleOnlyList}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>

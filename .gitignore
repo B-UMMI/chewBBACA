@@ -9,6 +9,7 @@ __pycache__/
 *.so
 *~
 .idea/*
+.vscode/
 # due to using tox and pytest
 .tox
 .cache

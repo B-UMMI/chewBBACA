@@ -20,7 +20,7 @@ export default function Header() {
 
   Users are able to select an **individual locus** to be analysed, by clicking on:
   - each **point (locus)** of the **Locus Statistics** and **Locus Size Variation charts**;
-  - the **locus name** on the **Locus** column of the **CDS Analysis** table.
+  - the **locus name** on the **Locus** column of the **CDS Analysis** table, the **Loci with high variability** table or the **Loci with only 1 allele** table.
 
   By selecting a locus the following will be displayed:
   - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;

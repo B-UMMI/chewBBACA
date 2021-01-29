@@ -636,10 +636,22 @@ def evaluate_schema():
                         help='Genetic code used to translate coding '
                              'sequences.')
 
+    parser.add_argument('--th', '--threshold', type=float, required=False,
+                        default=0.05, dest='threshold',
+                        help='Allele size variation threshold. If an allele has '
+                             'a size within the interval of the locus mode -/+ '
+                             'the threshold, it will be considered a conserved '
+                             'allele.')
+
     parser.add_argument('--ml','--minimum-length', type=pv.minimum_sequence_length_type,
                         required=False, default=201, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
                         'coding sequence to be included in the schema.')
+
+    parser.add_argument('--cons', '--conserved', action='store_true',
+                        required=False, dest='conserved',
+                        help='If all alleles must be within the threshold for the '
+                                'locus to be considered as having low length variability.')
 
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
@@ -664,9 +676,11 @@ def evaluate_schema():
     input_files = args.input_files
     output_file = args.output_file
     translation_table = args.translation_table
+    threshold = args.threshold
+    minimum_length = args.minimum_length
+    conserved = args.conserved
     cpu_cores = args.cpu_cores
     light_mode = args.light_mode
-    minimum_length = args.minimum_length
     no_cleanup = args.no_cleanup
 
     cpu_to_use = aux.verify_cpu_usage(cpu_cores)
@@ -686,11 +700,26 @@ def evaluate_schema():
 
         # create pre-computed data
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files, translation_table, output_file, cpu_to_use, minimum_length, chewie_schema=True, show_progress=True)
+            input_files,
+            translation_table, 
+            output_file, 
+            cpu_to_use, 
+            minimum_length,
+            threshold,
+            conserved,
+            chewie_schema=True, 
+            show_progress=True)
     else:
         # create pre-computed data
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files, translation_table, output_file, cpu_to_use, minimum_length, show_progress=True)
+            input_files, 
+            translation_table, 
+            output_file, 
+            cpu_to_use, 
+            minimum_length, 
+            threshold,
+            conserved,
+            show_progress=True)
 
     schema_evaluator_main_path = os.path.join(
         output_file, "SchemaEvaluator_pre_computed_data"
@@ -712,7 +741,12 @@ def evaluate_schema():
 
         # Translate loci
         protein_file_path = schema_evaluator.create_protein_files(
-            input_files, pre_computed_data_path, cpu_to_use, minimum_length, translation_table, show_progress=True)
+            input_files, 
+            pre_computed_data_path, 
+            cpu_to_use, 
+            minimum_length, 
+            translation_table, 
+            show_progress=True)
 
         # Run MAFFT
         schema_evaluator.run_mafft(

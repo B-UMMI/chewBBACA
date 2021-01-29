@@ -139,7 +139,7 @@ class SchemaEvaluator extends Component {
               <Alert variant="outlined" severity="info">
                 <Typography variant="subtitle1">
                   If a tree is not being displayed it means that the distance
-                  between alleles is 0 and Phyloncavas won't render the tree.
+                  between alleles is 0 and Phylocanvas won't render the tree.
                 </Typography>
               </Alert>
             </div>

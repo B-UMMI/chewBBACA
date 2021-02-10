@@ -1,3 +1,10 @@
+
+[![PyPI](https://img.shields.io/badge/Install%20with-PyPI-blue)](https://pypi.org/project/chewBBACA/#description)
+[![Bioconda](https://img.shields.io/badge/Install%20with-bioconda-green)](https://anaconda.org/bioconda/chewbbaca)
+[![chewBBACA](https://github.com/B-UMMI/chewBBACA/workflows/chewbbaca/badge.svg)](https://github.com/B-UMMI/chewBBACA/actions?query=workflow%3Achewbbaca)
+[![License: GPL v3](https://img.shields.io/github/license/B-UMMI/chewBBACA)](https://www.gnu.org/licenses/gpl-3.0)
+[![DOI:10.1099/mgen.0.000166](https://img.shields.io/badge/DOI-10.1099%2Fmgen.0.000166-blue)](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166)
+
 # chewBBACA
 
 **chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
@@ -24,7 +31,13 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carri√
 
 # Latest updates
 
-## 2.5.0 - 2.5.4
+## 2.6.0
+
+The **SchemaEvaluator** module was refactored due to unsupported dependencies that were not allowing the report generation. The style of the report is similar to the what can be found on [Chewie-NS](https://chewbbaca.online/).
+
+More in-depth information can be found about the module on its [wiki page](https://github.com/B-UMMI/chewBBACA/wiki/4.-Schema-Evaluation).
+
+## 2.5.0 - 2.5.6
 
 We've developed [Chewie-NS](https://chewbbaca.online/), a Nomenclature Server that is based on the [TypOn](https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-5-43) ontology and integrates with chewBBACA to provide access to gene-by-gene typing schemas and to allow a common and global allelic nomenclature to be maintained.
 
@@ -87,6 +100,13 @@ conda install -c bioconda chewbbaca
 ```
 
 Install using pip:
+<<<<<<< HEAD
+
+```
+pip3 install chewbbaca
+```
+
+=======
 
 ```
 pip3 install chewbbaca
@@ -117,35 +137,48 @@ Installation through conda should take care of all dependencies. If you install 
 
 ## 1. wgMLST schema creation
 
-Create your own wgMLST schema based on a set of genomes fasta files. The command is the following:
+Create your own wgMLST schema based on a set of genomes fasta files.
+
+Basic usage:
 
 ```
-chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --cpu 4
+chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --ptf ProdigalTrainingFile --cpu 4
 ```
 
 **Parameters**
 
-`-i` Folder containing the genomes from which schema will be created. Alternatively a file 
- containing the path to the list of genomes. One file path (must be full path) 
- to any fasta/multifasta file containing all the complete or draft genomes you want to call alleles for.
+`-i` Path to the directory that contains the input FASTA
+     files. Alternatively, a single file with a list of
+     paths to FASTA files, one per line.
 
-`-o` prefix for the output folder for the schema
+`-o` Output directory where the schema will be created.
 
-`--cpu` Number of cpus to use
+`--cpu` (Optional) Number of CPU cores that will be used to run the
+        CreateSchema process (will be redefined to a lower
+        value if it is equal to or exceeds the total number
+        of available CPU cores)(default: 1).
 
-`--bsr` (Optional) Minimum BSR for defining locus similarity. Default at 0.6. 
+`--bsr` (Optional) BLAST Score Ratio value. Sequences with alignments
+        with a BSR value equal to or greater than this
+        value will be considered as sequences from the same
+        gene (default: 0.6).
 
-`--ptf` (Optional but recommended, contact for new species) path to file of prodigal training file to use.
+`--ptf` (Optional) Path to the Prodigal training file. We strongly
+	advise users to provide a Prodigal training file and to keep
+	using the same training file to ensure consistent results.
 
 **Outputs:** 
 
-One fasta file per gene in the `-o` directory that is created. 
-The fasta file names are the given according the FASTA annotation for each coding sequence. 
+One fasta file per distinct gene identified in the schema creation process in the `-o` directory that is created.
+The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly).
 
-**Optional:** 
+**Optional: determine annotations for loci in the schema** 
 
-Information about each locus is almost non existant at this point, the only information directly given by the schema creation is where are located each identified protein on the 
-genome (proteinID_Genome.tsv file). A function was added to fetch information on each locus based on the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
+The CreateSchema process creates a file, "proteinID_Genome.tsv", with the locations of the identified genes in each genome passed to create the schema.
+The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
+
+
+Basic usage:
 
 ```
 chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
@@ -153,89 +186,93 @@ chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
 
 **Parameters**
 
-`-i` Folder containing the reference genes of the schema.
+`-i` Path to the schema's directory or to a file with a list of
+     paths to loci FASTA files, one per line.
 
-`-t` proteinID_Genome.tsv output from the schema creation
+`-t` Path to the "proteinID_Genome.tsv" file created by the
+     CreateSchema process.
 
-`--cpu` Number of cpus to use
+`--cpu` The number of CPU cores to use during the process (default: 1).
 
-**Outputs:** 
+**Outputs:**
 
-A tsv file with the information of each fasta (new_protids.tsv), location on the genome, a name for which the protein sequence was submitted on uniprot and a link to that identified protein. 
+A tsv file (new_protids.tsv) that is the result of adding two columns to the "proteinID_Genome.tsv", one with the annotation determined for each locus and another with the URL to the annotation's page.
 
 ----------
 
 ## 2.  Allele call using the wgMLST schema 
 
 
-Then run is the following:
+Basic usage:
 
 ```
-chewBBACA.py AlleleCall -i ./genomes/ -g genes/ -o OutPrefix --cpu 3 
+chewBBACA.py AlleleCall -i ./genomes/ -g schema/ -o OutputFolderName --cpu 4
 ```
 
 **Parameters** 
 
 `-i` Folder containing the query genomes. Alternatively a file
- containing the list with the full path of the location of the query genomes.
+     containing the list with the full path of the location of the query genomes.
+
 `-g` Folder containing the reference genes of the schema. Alternatively a file
- containing the list with the full path of the location of the reference genes.  
+     containing the list with the full path of the location of the reference genes.  
 
-`-o` prefix for the output directory. ID for the allele call run.
+`-o` Output directory where the allele calling results will be stored.
 
-`--cpu` Number of cpus to use 
+`--cpu` Number of CPU cores/threads that will be used to
+        run the CreateSchema process (will be redefined to
+        a lower value if it is equal to or exceeds the
+        total number of available CPU cores/threads)(default: 1).
 
-`-b` (optional)Blastp full path. In case of slurm system BLAST version being outdated it may 
-be hard to use a different one, use this option using the full path of the updated blastp executable
+`-b` (Optional) Path to the BLASTp executables. Use this option if chewBBACA cannot find
+     BLASTp executables or if you want to use anoter BLAST istallation that is not
+     the one added to the PATH.
 
-`--ptf` (Optional but recommended, contact for new species) path to file of prodigal training file to use.
+By default, the AlleleCall process uses the Prodigal training file included in the schema's directory
+and it is not necessary to pass a training file to the `--ptf` argument.
 
 
 **Outputs files**:
 ```
-./< outPrefix >_< datestamp>/< outPrefix >/results_statistics.txt
-./< outPrefix >_< datestamp>/< outPrefix >/results_contigsInfo.txt
-./< outPrefix >_< datestamp>/< outPrefix >/results_Alleles.txt 
-./< outPrefix >_< datestamp>/< outPrefix >logging_info.txt 
-./< outPrefix >_< datestamp>/< outPrefix >RepeatedLoci.txt
+./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_statistics.txt
+./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_contigsInfo.txt
+./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_Alleles.txt 
+./< OutputFolderName >_< datestamp>/< OutputFolderName > logging_info.txt 
+./< OutputFolderName >_< datestamp>/< OutputFolderName > RepeatedLoci.txt
 ```
-
 
 ----------
 
 ## 3. Evaluate wgMLST call quality per genome
 
-
-Usage:
-
+Basic usage:
 
 ```
-chewBBACA.py TestGenomeQuality -i alleles.tsv -n 12 -t 200 -s 5 -o OutFolder
+chewBBACA.py TestGenomeQuality -i results_alleles.tsv -n 12 -t 200 -s 5 -o OutputFolderName
 ```
-	
-`-i` raw output file from an allele calling (i.e. results_Alleles.txt)
 
-`-n` maximum number of iterations. Each iteration removes a set of genomes over the defined threshold (-t) and recalculates all loci presence percentages.
+`-i` Path to file with a matrix of allelic profiles (i.e. results_alleles.tsv)
 
-`-t` maximum threshold, will start at 5. This threshold represents the maximum number of missing loci allowed, for each genome independently, before removing it (genome).
+`-n` Maximum number of iterations. Each iteration removes a set of genomes over the
+     defined threshold (-t) and recalculates loci presence percentages.
 
-`-s` step to add to each threshold (suggested 5)
+`-t` Maximum threshold. This threshold represents the maximum number of missing loci
+     allowed, for each genome independently, before removing the genome.
 
-`-o` Folder for the analysis files
+`-s` Step to add to each threshold (suggested 5).
 
-The output consists in a plot with all thresholds and a removedGenomes.txt file where its 
-informed of which genomes are removed per threshold when it reaches a stable point (no more genomes are removed).
+`-o` Path to the output directory that will store output files
 
-Example of an output can be seen [here](http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html) . This example uses an 
-original set of 714 genomes and a scheme consisting of 3266 loci, using a parameter `-n 12`,`-s 5` and `-t 300`.
+The output consists in a plot with all thresholds and a `removedGenomes.txt` file with
+information about which genomes were removed per threshold when it reaches a stable point
+(no more genomes are removed).
+
+Example of an output can be seen [here](http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html).
+The example uses an original set of 714 genomes and a scheme consisting of 3266 loci with `-n 12`, `-t 300` and `-s 5`
+passed to arguments.
 
 ----------
 ## 4. Defining the cgMLST schema
-
- **Creating a clean allelic profile for PHYLOViZ** 
- 
-Clean a raw output file from an allele calling to a phyloviz readable file.
-
 
 Basic usage:
 
@@ -243,15 +280,27 @@ Basic usage:
 chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 ```
 	
-`-i` raw output file from an allele calling
+`-i` Path to input file containing a matrix with allelic profiles.
 
-`-o` output folder (created by the script if not existant yet)
+`-o` Path to the directory where the process will store output files.
 
-`-r` (optional) list of genes to remove, one per line (e.g. the list of gene detected by ParalogPrunning.py)
+`-p` (Optional) Genes that constitute the core genome must be in a
+     proportion of genomes that is at least equal to this value.
+     (e.g 0.95 to get a matrix with the loci that are present in at 
+     least 95% of the genomes) (default: 1)
 
-`-g` (optional) list of genomes to remove, one per line (e.g. list of genomes to be removed selected based on testGenomeQuality results) 
+`-r` (Optional) Path to file with a list of genes/columns to remove 
+     from the matrix (one gene identifier per line, e.g. the list of
+     genes listed in the RepeatedLoci.txt file created by the AlleleCall
+     process)
 
-`-p` (optional) minimum percentage of loci presence (e.g 0.95 to get a matrix with the loci that are present in at least 95% of the genomes)
+`-g` (Optional) Path to file with a list of genomes/rows to remove from the
+     matrix (one genome identifier per line, e.g. list of genomes to be 
+     removed based on the results from the TestGenomeQuality process) 
+
+**Note:** The matrix with allelic profiles created by the ExtractCgMLST
+          process can be imported into [**PHYLOViZ**](https://online.phyloviz.net/index)
+	  to visualize and explore typing results.
 
 ----------
 ## 5. Visualize your schema
@@ -263,18 +312,23 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 Basic usage:
 
 ```
-chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 3 --title "my title"
+chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 4 --title "my title"
 ```
 	
-`-i` directory where the genes .fasta files are located or alternatively a .txt file containing the full path for each gene .fasta file per line
+`-i` Path to the schema's directory or path to a file containing the
+     paths to the FASTA files of the loci that will be evaluated, one 
+     per line.
 
-`-ta` (optional) which translation table to use (Default: 11 in case of bacteria)
+`-l` Path to the output HTML file.
 
-`--title` (optional) title to appear on the final html.
+`-ta` (Optional) Genetic code used to translate coding sequences.
+      (default: 11, Bacteria and Archaea)
 
-`-l` Location/name of the final html output
+`--title` (Optional) Title displayed on the html page. (default: My
+          Analyzed wg/cg MLST Schema - Rate My Schema)
 
-`--cpu` number of cpu to use, will be used for mafft and clustalw2
+`--cpu` Number of CPU cores to use to run the process (used for 
+        mafft and clustalw2 steps)
 
 ----------
 ## FAQ

@@ -790,6 +790,32 @@ def add_prefix(ids, prefix):
     return ids_map
 
 
+def is_file_empty(file_path):
+    """ Check if file is empty by confirming if its size is 0 bytes"""
+    # Check if file exist and it is empty
+    return os.path.exists(file_path) and os.stat(file_path).st_size == 0
+
+
+def is_file_empty_2(file_name):
+    """ Check if file is empty by confirming if its size is 0 bytes"""
+    # Check if file exist and it is empty
+    return os.path.isfile(file_name) and os.path.getsize(file_name) == 0
+
+
+def is_file_empty_3(file_name):
+    """ Check if file is empty by reading first character in it"""
+    # open ile in read mode
+    with open(file_name, 'r') as read_obj:
+        # read first character
+        one_char = read_obj.read(1)
+        # if not fetched then file is empty
+        if not one_char:
+           return True
+        elif one_char == " ":
+            return True
+    return False
+
+
 def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     """ Creates a dictionary mapping seqids to DNA sequences and
         another dictionary mapping protids to protein sequences.
@@ -1613,5 +1639,6 @@ def filter_stderr(stderr, ignore):
     """
 
     unique_sterr = list(set(stderr) - set(ignore))
+
 
     return unique_sterr

@@ -357,6 +357,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                                               ['{0}_blast_out.tsv'.format(gene_id)])
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
+
                 blast_stderr = but.run_blast(blastp_path, blastp_db, rep_file,
                                              blast_output, 1, 1, ids_file, blastp_task,
                                              100000)

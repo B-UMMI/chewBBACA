@@ -1,1 +1,3 @@
 include CHEWBBACA/prodigal_training_files/*
+include CHEWBBACA/SchemaEvaluator/resources/*
+include CHEWBBACA/SchemaEvaluator/assets/*

@@ -395,7 +395,8 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
 def clustering_component(sequences, word_size, clustering_sim,
                          clustering_mode, representatives, grow_clusters,
                          kmer_offset, minimizer, seq_num_cluster,
-                         temp_directory, cpu_cores, file_prefix, divide):
+                         temp_directory, cpu_cores, file_prefix, divide,
+                         clustering_type):
     """ Clusters sequences based on the proportion of shared kmers.
 
         Parameters
@@ -458,7 +459,8 @@ def clustering_component(sequences, word_size, clustering_sim,
 
     common_args = [word_size, clustering_sim, clustering_mode,
                    representatives, grow_clusters, kmer_offset,
-                   minimizer, seq_num_cluster, cu.cluster_sequences]
+                   minimizer, seq_num_cluster, clustering_type,
+                   cu.cluster_sequences]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
@@ -781,6 +783,24 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     return schema_files
 
 
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/test_paths.txt'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema'
+schema_name = 'sagalactiae_schema'
+ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+clustering_mode = 'greedy'
+word_size = 5
+clustering_sim = 0.20
+representative_filter = 0.9
+intra_filter = 0.9
+cpu_cores = 6
+blast_path = ''
+prodigal_mode = 'single'
+cds_input = False
+
 def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
                     blast_score_ratio, minimum_length, translation_table,
                     size_threshold, clustering_mode, word_size, clustering_sim,
@@ -916,7 +936,8 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
 
     clusters, intra_excluded = cip_results
 
-    # remove excluded seqids
+    # remove excluded seqids - we get set of sequences from clusters
+    # plus singletons
     schema_seqids = list(set(schema_seqids) - set(intra_excluded))
 
     # BLASTp clusters step
@@ -944,6 +965,23 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     blast_excluded_alleles = lu.flatten_list(blast_excluded_alleles)
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
+
+################### Final clustering step
+
+    # cluster based on percentage of coupled spaced minimizers
+    postCluster_file = os.path.join(temp_directory, 'postCluster.fasta')
+    fau.get_sequences_by_id(proteins, schema_seqids, postCluster_file)
+
+    final_clusters = clustering_component(proteins, word_size, clustering_sim,
+                                          clustering_mode, None, True,
+                                          1, True, 1, temp_directory, cpu_cores,
+                                          'postc', False, 'paired')
+
+
+
+
+
+
 
     # perform final BLAST to avoid creating a schema with paralogs
     print('Performing a final BLAST to check for paralogs...')

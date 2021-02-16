@@ -403,7 +403,7 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
 def clustering_component(sequences, word_size, window_size, clustering_sim,
                          representatives, grow_clusters, kmer_offset,
                          seq_num_cluster, temp_directory, cpu_cores,
-                         file_prefix, divide, clustering_type, position):
+                         file_prefix, divide, position):
     """ Clusters sequences based on the proportion of shared kmers.
 
         Parameters
@@ -464,7 +464,7 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
 
     common_args = [word_size, window_size, clustering_sim,
                    representatives, grow_clusters, kmer_offset,
-                   position, seq_num_cluster, clustering_type,
+                   position, seq_num_cluster,
                    cu.cluster_sequences]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
@@ -487,7 +487,7 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
                                             window_size, clustering_sim,
                                             representatives, grow_clusters,
                                             kmer_offset, position,
-                                            seq_num_cluster, clustering_type)
+                                            seq_num_cluster)
 
         merged_clusters = {}
         for k, v in rep_clusters[0].items():
@@ -921,7 +921,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     cs_results = clustering_component(proteins, word_size, window_size,
                                       clustering_sim, None, True,
                                       1, 1, temp_directory, cpu_cores,
-                                      'csi', True, 'minimizers', False)
+                                      'csi', True, False)
 
     # clustering pruning step
     cp_results = cluster_pruner_component(cs_results,
@@ -972,45 +972,43 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
 
-    # cluster based on 5-mer minimizers, size threshold and spaced minstrobes
-    postCluster_file = os.path.join(temp_directory, 'postCluster.fasta')
-    fau.get_sequences_by_id(proteins, schema_seqids, postCluster_file)
-    proteins = fau.import_sequences(postCluster_file)
+    # perform final BLAST to identify similar sequences that do not
+    # share many/any kmers
+    print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
 
-    final_clusters = clustering_component(proteins, word_size, window_size,
-                                          clustering_sim, None, True,
-                                          1, 1, temp_directory, cpu_cores,
-                                          'postc', False, 'minstrobes', False)
+    # sort seqids before final BLASTp to ensure consistent results
+    schema_seqids = aux.sort_data(schema_seqids, sort_key=lambda x: x.lower())
 
-    # remove reps and singletons
-    final_singletons = {k: v for k, v in final_clusters.items() if len(v) > 1}
-    final_singletons = {k: [r for r in v if r[0] != k] for k, v in final_singletons.items()}
+    beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
+    fau.get_sequences_by_id(proteins, schema_seqids, beta_file)
 
-    # BLASTp clusters step
-    blast_results, ids_dict = cluster_blaster_component(final_singletons,
-                                                        proteins,
-                                                        temp_directory,
-                                                        blastp_path,
-                                                        makeblastdb_path,
-                                                        cpu_cores,
-                                                        'cai')
+    integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')
+    ids_dict2 = fau.integer_headers(beta_file, integer_seqids)
 
-    blast_files = lu.flatten_list(blast_results)
+    blast_db = fu.join_paths(temp_directory, ['int_proteins_int'])
+    db_stderr = bu.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
 
-    # compute and exclude based on BSR
-    blast_excluded_alleles = [aux.apply_bsr(iu.read_tabular(file),
-                                            indexed_dna_file,
-                                            blast_score_ratio,
-                                            ids_dict)
-                              for file in blast_files]
+    if len(db_stderr) > 0:
+        sys.exit(db_stderr)
 
-    # merge bsr results
-    blast_excluded_alleles = lu.flatten_list(blast_excluded_alleles)
-    blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
-    schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
+    blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory,
+                                                  'beta_schema')
+    blast_stderr = bu.run_blast(blastp_path, blast_db, integer_seqids,
+                                blast_output, 1, cpu_cores)
 
-    print('Removed {0} loci that were too similar with other loci '
-         'in the schema.'.format(len(blast_excluded_alleles)))
+    if len(blast_stderr) > 0:
+        sys.exit(blast_stderr)
+
+    final_excluded = aux.apply_bsr(iu.read_tabular(blast_output),
+                                   indexed_dna_file,
+                                   blast_score_ratio,
+                                   ids_dict2)
+    final_excluded = [ids_dict2[seqid] for seqid in final_excluded]
+
+    schema_seqids = list(set(schema_seqids) - set(final_excluded))
+
+    print('Removed {0} loci that were similar to other loci '
+          'in the schema.'.format(len(final_excluded)))
 
     output_schema = os.path.join(temp_directory, 'schema_seed.fasta')
 

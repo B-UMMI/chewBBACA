@@ -131,75 +131,6 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     return [excluded_seqids, excluded_sims]
 
 
-def find_inexact_match(protein, selected_reps, spaced_matrix, reps_sequences,
-                       word_size, window_size, clustering_sim):
-    """
-    """
-
-    # determine minstrobes
-    minstrobes = su.determine_minstrobes(protein, word_size,
-                                         window_size, 1)
-
-    # determine if strobes are included in window/s
-    # not finding all minstrobes in sequence of origin! Check why!
-    # same kmer might occur twice or more, check all indexes for minstrobe!
-    valid_matches = []
-    for s in selected_reps:
-        current_rep = reps_sequences[s]
-        for m in minstrobes:
-            minstrobes_subs = [spaced_matrix[k[0]] for k in m]
-            # determine if any of the spaced kmers is in the rep
-            k1_matches = [k1 for k1 in minstrobes_subs[0] if k1 in current_rep]
-            try:
-                for m1 in k1_matches:
-                    kindex = current_rep.index(m1) + 3
-                    # get susequence that might include kmer and window/s
-                    sub_window = current_rep[kindex:kindex+(window_size+word_size-1)]
-                    match = set([any([s in sub_window for s in minstrobes_subs[1]])])
-                    if len(match) == 1 and True in match:
-                        valid_matches.append(s)
-            except:
-                pass
-
-    # count number of kmer hits per representative
-    counts = Counter(valid_matches)
-    selected_reps = [(k, v/len(minstrobes))
-                     for k, v in counts.items()
-                     if v/len(minstrobes) >= clustering_sim]
-    selected_reps = sorted(selected_reps, key=lambda x: x[0])
-    selected_reps = sorted(selected_reps, key=lambda x: x[1], reverse=True)
-
-    return selected_reps
-
-
-def select_minstrobe_cluster(kmers, reps_groups, reps_sequences,
-                             clustering_sim, protein, bot, top,
-                             spaced_matrix, word_size, window_size):
-    """
-    """
-
-    # identify sequences with minimum shared 3-mers
-    probe_reps = [reps_groups[k] for k in kmers if k in reps_groups]
-    probe_reps = lu.flatten_list(probe_reps)
-    probe_counts = Counter(probe_reps)
-    selected_probes = probe_counts.most_common()
-#    # only keep hits with at least 20% similar kmers
-#    selected_probes = [s[0] for s in selected_probes
-#                       if s[1] / len(kmers) >= 0.2]
-    # exclude representatives outside size threshold
-    selected_reps = [s[0] for s in selected_probes
-                     if len(reps_sequences[s[0]]) >= bot
-                     and len(reps_sequences[s[0]]) <= top]
-
-    if len(selected_reps) > 0:
-        selected_reps = find_inexact_match(protein, selected_reps,
-                                           spaced_matrix, reps_sequences,
-                                           word_size, window_size,
-                                           clustering_sim)
-
-    return selected_reps
-
-
 def select_minimizer_cluster(kmers, reps_groups, clustering_sim):
     """
     """
@@ -217,48 +148,6 @@ def select_minimizer_cluster(kmers, reps_groups, clustering_sim):
     selected_reps = sorted(selected_reps, key=lambda x: x[1], reverse=True)
 
     return selected_reps
-
-
-def minstrobe_clustering(sorted_sequences, word_size, window_size, position,
-                         offset, clusters, reps_sequences, reps_groups,
-                         spaced_matrix, seq_num_cluster, clustering_sim):
-    """
-    """
-
-    for protid, protein in sorted_sequences.items():
-
-        kmers = set(su.determine_minimizers(protein, window_size,
-                                            word_size, 1, position))
-
-        threshold = len(protein) * 0.2
-        bot = len(protein) - threshold
-        top = len(protein) + threshold
-        selected_reps = select_minstrobe_cluster(kmers, reps_groups,
-                                                 reps_sequences,
-                                                 clustering_sim, protein,
-                                                 bot, top, spaced_matrix,
-                                                 3, 5)
-
-        top = (len(selected_reps)
-               if len(selected_reps) < seq_num_cluster
-               else seq_num_cluster)
-
-        # sort to get most similar at index 0
-        if len(selected_reps) > 0:
-            for i in range(0, top):
-                clusters[selected_reps[i][0]].append((protid,
-                                                      selected_reps[i][1],
-                                                      len(protein)))
-        else:
-            for k in kmers:
-                #spaced_kmers = spaced_matrix[k]
-                #for spk in spaced_kmers:
-                reps_groups.setdefault(k, []).append(protid)
-
-            clusters[protid] = [(protid, 1.0, len(protein))]
-            reps_sequences[protid] = protein
-
-    return [clusters, reps_sequences, reps_groups]
 
 
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
@@ -321,8 +210,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 
 def cluster_sequences(sorted_sequences, word_size, window_size,
                       clustering_sim, representatives, grow,
-                      offset, position, seq_num_cluster,
-                      clustering_type):
+                      offset, position, seq_num_cluster):
     """ Cluster sequences based on shared percentage of kmers/minimizers.
 
         Parameters
@@ -346,8 +234,6 @@ def cluster_sequences(sorted_sequences, word_size, window_size,
             If it is allowed to create new clusters.
         offset : int
             Value to indicate offset of consecutive kmers.
-        minimizer : bool
-            If clustering should be based on shared minimizers.
         seq_num_cluster : int
             Maximum number of clusters that a sequence can be
             added to.
@@ -378,22 +264,11 @@ def cluster_sequences(sorted_sequences, word_size, window_size,
         clusters_ids = set(lu.flatten_list(list(reps_groups.values())))
         clusters = {rep: [] for rep in clusters_ids}
 
-    if clustering_type == 'minimizers':
-        cluster_results = minimizer_clustering(sorted_sequences, word_size,
-                                               window_size, position,
-                                               offset, clusters,
-                                               reps_sequences, reps_groups,
-                                               seq_num_cluster, clustering_sim)
-
-    elif clustering_type == 'minstrobes':
-        # import matrix with spaced 3-mers with high score
-        spaced_matrix = iu.pickle_loader(cnst.SPACED_MATRIX)
-        cluster_results = minstrobe_clustering(sorted_sequences, word_size,
-                                               window_size, position,
-                                               offset, clusters,
-                                               reps_sequences, reps_groups,
-                                               spaced_matrix, seq_num_cluster,
-                                               clustering_sim)
+    cluster_results = minimizer_clustering(sorted_sequences, word_size,
+                                           window_size, position,
+                                           offset, clusters,
+                                           reps_sequences, reps_groups,
+                                           seq_num_cluster, clustering_sim)
 
     return cluster_results[0:2]
 

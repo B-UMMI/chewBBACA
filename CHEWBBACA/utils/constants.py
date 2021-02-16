@@ -50,13 +50,13 @@ CLUSTERING_SIMILARITY_MIN = 0.20
 CLUSTERING_SIMILARITY_MAX = 0.20
 CLUSTERING_SIMILARITY_DEFAULT = 0.20
 
-REPRESENTATIVE_FILTER_MIN = 0.8
-REPRESENTATIVE_FILTER_MAX = 0.8
-REPRESENTATIVE_FILTER_DEFAULT = 0.8
+REPRESENTATIVE_FILTER_MIN = 0.9
+REPRESENTATIVE_FILTER_MAX = 0.9
+REPRESENTATIVE_FILTER_DEFAULT = 0.9
 
-INTRA_CLUSTER_MIN = 0.8
-INTRA_CLUSTER_MAX = 0.8
-INTRA_CLUSTER_DEFAULT = 0.8
+INTRA_CLUSTER_MIN = 0.9
+INTRA_CLUSTER_MAX = 0.9
+INTRA_CLUSTER_DEFAULT = 0.9
 
 # genetic codes/translation tables
 GENETIC_CODES = {1: 'Standard',
@@ -109,5 +109,3 @@ PRODIGAL_PATH = 'prodigal'
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time performance, please run '
 				 'blastdb_aliastool -seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
 				 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the argument to -seqidlist']
-
-SPACED_MATRIX = os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), 'spaced_matrix')

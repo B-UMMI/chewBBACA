@@ -344,30 +344,3 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
             previous = minimizer[0]
 
     return minimizers
-
-
-def determine_minstrobes(sequence, k_value, window, num_strobes):
-    """
-    """
-
-    # break sequence into kmers
-    kmers = sequence_kmerizer(sequence, k_value, position=True)
-
-    # get first strobe for each minstrobe
-    last_window = len(kmers)-(window*num_strobes)
-    strobes_kmers = [kmers[i] for i in range(0, last_window, (window*num_strobes)+k_value)]
-
-    minstrobes = []
-    for k in strobes_kmers:
-        k_start = k[1]
-        nstrobes = [k]
-        sstrobe_start = k_start + k_value
-        for i in range(num_strobes):
-            new_window = kmers[sstrobe_start:sstrobe_start+window]
-            new_strobe = min(new_window)
-            nstrobes.append(new_strobe)
-            sstrobe_start += window
-
-        minstrobes.append(nstrobes)
-
-    return minstrobes

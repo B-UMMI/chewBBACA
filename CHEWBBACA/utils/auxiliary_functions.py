@@ -265,7 +265,7 @@ def write_gene_list(schema_dir):
 
 def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
                         minimum_sequence_length, chewie_version, size_threshold,
-                        word_size, clustering_sim, representative_filter,
+                        word_size, window_size, clustering_sim, representative_filter,
                         intra_filter, output_directory):
     """ Writes chewBBACA's parameters values used to create
         a schema to a file.
@@ -329,6 +329,7 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     params['chewBBACA_version'] = [chewie_version]
     params['size_threshold'] = [size_threshold]
     params['word_size'] = [word_size]
+    params['window_size'] = [window_size]
     params['cluster_sim'] = [clustering_sim]
     params['representative_filter'] = [representative_filter]
     params['intraCluster_filter'] = [intra_filter]

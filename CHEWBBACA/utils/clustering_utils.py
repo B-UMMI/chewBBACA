@@ -9,7 +9,6 @@ DESCRIPTION
 
 
 import os
-import sys
 from collections import Counter
 
 from Bio import SeqIO
@@ -143,6 +142,7 @@ def find_inexact_match(protein, selected_reps, spaced_matrix, reps_sequences,
 
     # determine if strobes are included in window/s
     # not finding all minstrobes in sequence of origin! Check why!
+    # same kmer might occur twice or more, check all indexes for minstrobe!
     valid_matches = []
     for s in selected_reps:
         current_rep = reps_sequences[s]
@@ -150,14 +150,14 @@ def find_inexact_match(protein, selected_reps, spaced_matrix, reps_sequences,
             minstrobes_subs = [spaced_matrix[k[0]] for k in m]
             # determine if any of the spaced kmers is in the rep
             k1_matches = [k1 for k1 in minstrobes_subs[0] if k1 in current_rep]
-            print(current_rep.count(k1_matches[0]))
             try:
-                kindex = current_rep.index(k1_matches[0]) + 3
-                # get susequence that might include kmer and window/s
-                sub_window = current_rep[kindex:kindex+(window_size+word_size-1)]
-                match = set([any([s in sub_window for s in minstrobes_subs[1]])])
-                if len(match) == 1 and True in match:
-                    valid_matches.append(s)
+                for m1 in k1_matches:
+                    kindex = current_rep.index(m1) + 3
+                    # get susequence that might include kmer and window/s
+                    sub_window = current_rep[kindex:kindex+(window_size+word_size-1)]
+                    match = set([any([s in sub_window for s in minstrobes_subs[1]])])
+                    if len(match) == 1 and True in match:
+                        valid_matches.append(s)
             except:
                 pass
 
@@ -165,12 +165,11 @@ def find_inexact_match(protein, selected_reps, spaced_matrix, reps_sequences,
     counts = Counter(valid_matches)
     selected_reps = [(k, v/len(minstrobes))
                      for k, v in counts.items()
-                     if v/len(kmers) >= clustering_sim]
-
+                     if v/len(minstrobes) >= clustering_sim]
     selected_reps = sorted(selected_reps, key=lambda x: x[0])
     selected_reps = sorted(selected_reps, key=lambda x: x[1], reverse=True)
 
-    return valid_matches
+    return selected_reps
 
 
 def select_minstrobe_cluster(kmers, reps_groups, reps_sequences,
@@ -182,9 +181,12 @@ def select_minstrobe_cluster(kmers, reps_groups, reps_sequences,
     # identify sequences with minimum shared 3-mers
     probe_reps = [reps_groups[k] for k in kmers if k in reps_groups]
     probe_reps = lu.flatten_list(probe_reps)
-    # only keep hits with at least 5 3-mers
     probe_counts = Counter(probe_reps)
-    selected_probes = probe_counts.most_common(5)
+    selected_probes = probe_counts.most_common()
+#    # only keep hits with at least 20% similar kmers
+#    selected_probes = [s[0] for s in selected_probes
+#                       if s[1] / len(kmers) >= 0.2]
+    # exclude representatives outside size threshold
     selected_reps = [s[0] for s in selected_probes
                      if len(reps_sequences[s[0]]) >= bot
                      and len(reps_sequences[s[0]]) <= top]
@@ -192,7 +194,8 @@ def select_minstrobe_cluster(kmers, reps_groups, reps_sequences,
     if len(selected_reps) > 0:
         selected_reps = find_inexact_match(protein, selected_reps,
                                            spaced_matrix, reps_sequences,
-                                           word_size, window_size)
+                                           word_size, window_size,
+                                           clustering_sim)
 
     return selected_reps
 
@@ -218,13 +221,14 @@ def select_minimizer_cluster(kmers, reps_groups, clustering_sim):
 
 def minstrobe_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
-                         spaced_matrix):
+                         spaced_matrix, seq_num_cluster, clustering_sim):
     """
     """
 
     for protid, protein in sorted_sequences.items():
 
-        kmers = su.sequence_kmerizer(protein, word_size, offset=word_size)
+        kmers = set(su.determine_minimizers(protein, window_size,
+                                            word_size, 1, position))
 
         threshold = len(protein) * 0.2
         bot = len(protein) - threshold
@@ -233,10 +237,11 @@ def minstrobe_clustering(sorted_sequences, word_size, window_size, position,
                                                  reps_sequences,
                                                  clustering_sim, protein,
                                                  bot, top, spaced_matrix,
-                                                 word_size, window_size)
+                                                 3, 5)
 
-        # change this value to allow clustering into several clusters
-        top = 1
+        top = (len(selected_reps)
+               if len(selected_reps) < seq_num_cluster
+               else seq_num_cluster)
 
         # sort to get most similar at index 0
         if len(selected_reps) > 0:
@@ -245,12 +250,10 @@ def minstrobe_clustering(sorted_sequences, word_size, window_size, position,
                                                       selected_reps[i][1],
                                                       len(protein)))
         else:
-            seen = []
             for k in kmers:
-                for k2 in k:
-                    if k2 not in seen:
-                        reps_groups.setdefault(k2[0], []).append(protid)
-                        seen.append(k2)
+                #spaced_kmers = spaced_matrix[k]
+                #for spk in spaced_kmers:
+                reps_groups.setdefault(k, []).append(protid)
 
             clusters[protid] = [(protid, 1.0, len(protein))]
             reps_sequences[protid] = protein
@@ -259,7 +262,8 @@ def minstrobe_clustering(sorted_sequences, word_size, window_size, position,
 
 
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
-                         offset, clusters, reps_sequences, reps_groups):
+                         offset, clusters, reps_sequences, reps_groups,
+                         seq_num_cluster, clustering_sim):
     """
     """
 
@@ -293,30 +297,32 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
     return [clusters, reps_sequences, reps_groups]
 
 
-#sorted_sequences = {'GCA_000007265-protein1917': 'MNTNIPSQFLPFFIPLILLQVILIIIALLKLRKITKTNYLSKPVWVLIILFVNLLGPIAFLSLEGKNA',
-#                    'GCA_000007265-protein1969': 'MNTEIPNQLLPFLVPLIMLQGALIIISLVKLSKLKMTKHLSKPVWFLVIIFLNIIGPIAFLILEGNNE'}
-proteins_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp/postCluster.fasta'
-proteins = {rec.id: str(rec.seq) for rec in SeqIO.parse(proteins_file, 'fasta')}
-sorted_sequences = proteins
-word_size = 3
-window_size = 5
-position = True
-clustering_sim = 0.2
-clustering_mode = 'greedy'
-representatives = None
-grow = True
-offset = 3
-minimizer = True
-seq_num_cluster = 1
-temp_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp'
-cpu_cores = 6
-clustering_type = 'minstrobes'
-num_strobes = 1
-#clustering_type = 'minimizers'
+##sorted_sequences = {'GCA_000007265-protein1917': 'MNTNIPSQFLPFFIPLILLQVILIIIALLKLRKITKTNYLSKPVWVLIILFVNLLGPIAFLSLEGKNA',
+##                    'GCA_000007265-protein1969': 'MNTEIPNQLLPFLVPLIMLQGALIIISLVKLSKLKMTKHLSKPVWFLVIIFLNIIGPIAFLILEGNNE'}
+#proteins_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp/postCluster.fasta'
+#proteins = {rec.id: str(rec.seq) for rec in SeqIO.parse(proteins_file, 'fasta')}
+#sorted_sequences = proteins
+#word_size = 5
+#window_size = 5
+#position = True
+#clustering_sim = 0.2
+#clustering_mode = 'greedy'
+#representatives = None
+#grow = True
+#offset = 1
+#minimizer = True
+#seq_num_cluster = 1
+#temp_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp'
+#cpu_cores = 6
+#clustering_type = 'minstrobes'
+#num_strobes = 1
+##clustering_type = 'minimizers'
 
-def cluster_sequences(sorted_sequences, word_size, window_size, position,
-                      clustering_sim, mode, representatives, grow, offset,
-                      minimizer, seq_num_cluster, clustering_type):
+
+def cluster_sequences(sorted_sequences, word_size, window_size,
+                      clustering_sim, representatives, grow,
+                      offset, position, seq_num_cluster,
+                      clustering_type):
     """ Cluster sequences based on shared percentage of kmers/minimizers.
 
         Parameters
@@ -375,16 +381,19 @@ def cluster_sequences(sorted_sequences, word_size, window_size, position,
     if clustering_type == 'minimizers':
         cluster_results = minimizer_clustering(sorted_sequences, word_size,
                                                window_size, position,
-                                               offset, clusters, reps_sequences,
-                                               reps_groups)
+                                               offset, clusters,
+                                               reps_sequences, reps_groups,
+                                               seq_num_cluster, clustering_sim)
 
     elif clustering_type == 'minstrobes':
-        # import matrix with 3-mers and spaced 3-mers with high score
+        # import matrix with spaced 3-mers with high score
         spaced_matrix = iu.pickle_loader(cnst.SPACED_MATRIX)
         cluster_results = minstrobe_clustering(sorted_sequences, word_size,
                                                window_size, position,
-                                               offset, clusters, reps_sequences,
-                                               reps_groups, spaced_matrix)
+                                               offset, clusters,
+                                               reps_sequences, reps_groups,
+                                               spaced_matrix, seq_num_cluster,
+                                               clustering_sim)
 
     return cluster_results[0:2]
 
@@ -483,8 +492,8 @@ def representative_pruner(clusters, sim_cutoff):
         # excluded.extend(remove)
 
         pruned_clusters[rep] = [seqid
-                                 for seqid in seqids
-                                 if seqid[1] < sim_cutoff]
+                                for seqid in seqids
+                                if seqid[1] < sim_cutoff]
         excluded.extend([seqid
                          for seqid in seqids
                          if seqid[1] >= sim_cutoff and seqid[0] != rep])
@@ -536,8 +545,9 @@ def cluster_blaster(seqids, sequences, output_directory,
                                     '{0}_blast_out.tsv'.format(cluster_id))
 
         # Use subprocess to capture errors and warnings
-        stderr = bu.run_blast(blast_path, blastdb_path, fasta_file, blast_output,
-                              1, 1, ids_file, ignore=cnst.IGNORE_RAISED)
+        stderr = bu.run_blast(blast_path, blastdb_path, fasta_file,
+                              blast_output, 1, 1, ids_file,
+                              ignore=cnst.IGNORE_RAISED)
 
         if len(stderr) > 0:
             raise ValueError('\n'.join(stderr))

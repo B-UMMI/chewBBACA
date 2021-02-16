@@ -195,7 +195,7 @@ def validate_cv(arg, chewie_versions=cnts.CHEWIE_VERSIONS):
     return valid
 
 
-def validate_ws(arg, min_value=cnts.WS_MIN, max_value=cnts.WS_MAX):
+def validate_ws(arg, min_value=cnts.WORD_SIZE_MIN, max_value=cnts.WORD_SIZE_MAX):
     """
     """
 
@@ -219,7 +219,7 @@ def validate_ws(arg, min_value=cnts.WS_MIN, max_value=cnts.WS_MAX):
     return valid
 
 
-def validate_cs(arg, min_value=cnts.CS_MIN, max_value=cnts.CS_MAX):
+def validate_cs(arg, min_value=cnts.CLUSTERING_SIMILARITY_MIN, max_value=cnts.CLUSTERING_SIMILARITY_MAX):
     """
     """
 
@@ -243,7 +243,7 @@ def validate_cs(arg, min_value=cnts.CS_MIN, max_value=cnts.CS_MAX):
     return valid
 
 
-def validate_rf(arg, min_value=cnts.RF_MIN, max_value=cnts.RF_MAX):
+def validate_rf(arg, min_value=cnts.REPRESENTATIVE_FILTER_MIN, max_value=cnts.REPRESENTATIVE_FILTER_MAX):
     """
     """
 
@@ -266,7 +266,7 @@ def validate_rf(arg, min_value=cnts.RF_MIN, max_value=cnts.RF_MAX):
     return valid
 
 
-def validate_if(arg, min_value=cnts.IF_MIN, max_value=cnts.IF_MAX):
+def validate_if(arg, min_value=cnts.INTRA_CLUSTER_MIN, max_value=cnts.INTRA_CLUSTER_MAX):
     """
     """
 

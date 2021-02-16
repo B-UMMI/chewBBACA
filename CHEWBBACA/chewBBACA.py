@@ -144,39 +144,7 @@ def create_schema():
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM.')
-
-    parser.add_argument('--cm', type=str, required=False,
-                        default='greedy', dest='clustering_mode',
-                        help='The clustering mode. There are two modes: '
-                             'greedy and full. Greedy will add sequences '
-                             'to a single cluster. Full will add sequences '
-                             'to all clusters they share high similarity with.')
     
-    parser.add_argument('--ws', type=int, required=False,
-                        default=5, dest='word_size',
-                        help='Value of k used to decompose protein sequences '
-                             'into k-mers.')
-
-    parser.add_argument('--cs', type=float, required=False,
-                        default=0.20, dest='clustering_sim',
-                        help='Similarity threshold value necessary to '
-                             'consider adding a sequence to a cluster. This '
-                             'value corresponds to the percentage of shared k-mers.')
-
-    parser.add_argument('--rf', type=float, required=False,
-                        default=0.80, dest='representative_filter',
-                        help='Similarity threshold value that is considered '
-                             'to determine if a sequence belongs to the same '
-                             'gene as the cluster representative purely based '
-                             'on the percentage of shared k-mers.')
-    
-    parser.add_argument('--if', type=float, required=False,
-                        default=0.80, dest='intra_filter',
-                        help='Similarity threshold value that is considered '
-                             'to determine if sequences in the same custer '
-                             'belong to the same gene. Only one of those '
-                             'sequences is kept.')
-
     parser.add_argument('--cpu', type=pv.verify_cpu_usage, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
@@ -220,6 +188,13 @@ def create_schema():
     genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
     args.input_files = aux.check_input_type(args.input_files, genomes_list)
 
+    # add clustering config
+    args.word_size = cnst.WORD_SIZE_DEFAULT
+    args.window_size = cnst.WINDOW_SIZE_DEFAULT
+    args.clustering_sim = cnst.CLUSTERING_SIMILARITY_DEFAULT
+    args.representative_filter = cnst.REPRESENTATIVE_FILTER_DEFAULT
+    args.intra_filter = cnst.INTRA_CLUSTER_DEFAULT
+
     # start CreateSchema process
     CreateSchema.main(**vars(args))
 
@@ -235,9 +210,9 @@ def create_schema():
     schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
                                             args.translation_table, args.minimum_length,
                                             version, args.size_threshold,
-                                            args.word_size, args.clustering_sim,
-                                            args.representative_filter, args.intra_filter,
-                                            schema_dir)
+                                            args.word_size, args.window_size,
+                                            args.clustering_sim, args.representative_filter,
+                                            args.intra_filter, schema_dir)
 
     # create hidden file with genes/loci list
     genes_list_file = aux.write_gene_list(schema_dir)

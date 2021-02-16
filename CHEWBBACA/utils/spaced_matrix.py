@@ -12,9 +12,11 @@ from itertools import product
 from Bio.SubsMat.MatrixInfo import blosum62
 
 try:
-    from utils import constants as cnst
+    from utils import (constants as cnst,
+                       str_utils as su)
 except:
-    from CHEWBBACA.utils import constants as cnst
+    from CHEWBBACA.utils import (constants as cnst,
+                                 str_utils as su)
 
 
 # list of aminoacids
@@ -64,8 +66,7 @@ for k, v in possible_substitutions.items():
     # keep only 3-mers whose score is at least
     valid_scores = [mers3[i]
                     for i in range(len(mers3))
-                    if mers3_scores[i] >= 11] # BLASTp minimum score is 11
-                    #if mers3_scores[i] >= (main_score-max_score)]
+                    if mers3_scores[i] >= 11]  # BLASTp minimum score is 11
     matrix[k] = valid_scores
 
 
@@ -82,5 +83,25 @@ for k, v in matrix.items():
 matrix_file = '/home/rfm/Desktop/rfm/Cloned_repos/chewBBACA/CHEWBBACA/utils/spaced_matrix'
 with open(matrix_file, 'wb') as outfile:
     pickle.dump(spaced_kmers_matrix, outfile)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

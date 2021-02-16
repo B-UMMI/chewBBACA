@@ -230,7 +230,7 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
 
     dedup_inputs = [[file,
                      fu.join_paths(temp_directory,
-                                    [outfile_template.format(i+1)]),
+                                   [outfile_template.format(i+1)]),
                      aux.determine_distinct]
                     for i, file in enumerate(fasta_files)]
 
@@ -391,12 +391,19 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
 
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
-
-def clustering_component(sequences, word_size, clustering_sim,
-                         clustering_mode, representatives, grow_clusters,
-                         kmer_offset, minimizer, seq_num_cluster,
-                         temp_directory, cpu_cores, file_prefix, divide,
-                         clustering_type):
+#sequences = proteins
+#representatives = None
+#grow_clusters = True
+#kmer_offset = 1
+#seq_num_cluster = 1
+#file_prefix = 'postc'
+#divide = False
+#clustering_type = 'minstrobes'
+#position = False
+def clustering_component(sequences, word_size, window_size, clustering_sim,
+                         representatives, grow_clusters, kmer_offset,
+                         seq_num_cluster, temp_directory, cpu_cores,
+                         file_prefix, divide, clustering_type, position):
     """ Clusters sequences based on the proportion of shared kmers.
 
         Parameters
@@ -409,8 +416,6 @@ def clustering_component(sequences, word_size, clustering_sim,
         clustering_sim : float
             Similarity threshold to cluster a sequence into
             a cluster.
-        clustering_mode : str
-            Clustering mode.
         representatives : dict
             Dictionary with kmers as keys and a list with
             identifiers of sequences that contain that kmer
@@ -453,13 +458,13 @@ def clustering_component(sequences, word_size, clustering_sim,
         # do not divide based on number of available cores as it may
         # lead to different results with different number of cores
         cluster_inputs = du.split_iterable(sorted_seqs,
-                                            int(len(sorted_seqs)/40+10))
+                                           int(len(sorted_seqs)/40+10))
     else:
         cluster_inputs = [sorted_seqs]
 
-    common_args = [word_size, clustering_sim, clustering_mode,
+    common_args = [word_size, window_size, clustering_sim,
                    representatives, grow_clusters, kmer_offset,
-                   minimizer, seq_num_cluster, clustering_type,
+                   position, seq_num_cluster, clustering_type,
                    cu.cluster_sequences]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
@@ -479,10 +484,10 @@ def clustering_component(sequences, word_size, clustering_sim,
     if len(cluster_inputs) > 1:
         # cluster representatives
         rep_clusters = cu.cluster_sequences(rep_sequences, word_size,
-                                             clustering_sim, clustering_mode,
-                                             representatives, grow_clusters,
-                                             kmer_offset, minimizer,
-                                             seq_num_cluster)
+                                            window_size, clustering_sim,
+                                            representatives, grow_clusters,
+                                            kmer_offset, position,
+                                            seq_num_cluster, clustering_type)
 
         merged_clusters = {}
         for k, v in rep_clusters[0].items():
@@ -783,40 +788,41 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     return schema_files
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/test_paths.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema'
-schema_name = 'sagalactiae_schema'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-clustering_mode = 'greedy'
-word_size = 5
-clustering_sim = 0.20
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = ''
-prodigal_mode = 'single'
-cds_input = False
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/test_paths.txt'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema'
+#schema_name = 'sagalactiae_schema'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
+#blast_score_ratio = 0.6
+#minimum_length = 201
+#translation_table = 11
+#size_threshold = 0.2
+#clustering_mode = 'greedy'
+#word_size = 5
+#window_size = 5
+#clustering_sim = 0.20
+#representative_filter = 0.9
+#intra_filter = 0.9
+#cpu_cores = 6
+#blast_path = ''
+#prodigal_mode = 'single'
+#cds_input = False
 
 def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
                     blast_score_ratio, minimum_length, translation_table,
-                    size_threshold, clustering_mode, word_size, clustering_sim,
+                    size_threshold, word_size, window_size, clustering_sim,
                     representative_filter, intra_filter, cpu_cores, blast_path,
                     prodigal_mode, cds_input):
     """
     """
 
-    print('Training file: {0}'.format(ptf_path))
-    print('Number of cores: {0}'.format(cpu_cores))
+    print('Prodigal training file: {0}'.format(ptf_path))
+    print('CPU cores: {0}'.format(cpu_cores))
     print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
     print('Translation table: {0}'.format(translation_table))
     print('Minimum sequence length: {0}'.format(minimum_length))
     print('Size threshold: {0}'.format(size_threshold))
-    print('Clustering mode: {0}'.format(clustering_mode))
     print('Word size: {0}'.format(word_size))
+    print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
     print('Representative filter: {0}'.format(representative_filter))
     print('Intra filter: {0}'.format(intra_filter))
@@ -912,10 +918,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     proteins = fau.import_sequences(qc_protein_file)
 
     # change names of files created during components execution!!!
-    cs_results = clustering_component(proteins, word_size, clustering_sim,
-                                      clustering_mode, None, True,
-                                      1, True, 1, temp_directory, cpu_cores,
-                                      'csi', True)
+    cs_results = clustering_component(proteins, word_size, window_size,
+                                      clustering_sim, None, True,
+                                      1, 1, temp_directory, cpu_cores,
+                                      'csi', True, 'minimizers', False)
 
     # clustering pruning step
     cp_results = cluster_pruner_component(cs_results,
@@ -966,60 +972,45 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
 
-################### Final clustering step
-
-    # cluster based on percentage of coupled spaced minimizers
+    # cluster based on 5-mer minimizers, size threshold and spaced minstrobes
     postCluster_file = os.path.join(temp_directory, 'postCluster.fasta')
     fau.get_sequences_by_id(proteins, schema_seqids, postCluster_file)
+    proteins = fau.import_sequences(postCluster_file)
 
-    final_clusters = clustering_component(proteins, word_size, clustering_sim,
-                                          clustering_mode, None, True,
-                                          1, True, 1, temp_directory, cpu_cores,
-                                          'postc', False, 'paired')
+    final_clusters = clustering_component(proteins, word_size, window_size,
+                                          clustering_sim, None, True,
+                                          1, 1, temp_directory, cpu_cores,
+                                          'postc', False, 'minstrobes', False)
 
+    # remove reps and singletons
+    final_singletons = {k: v for k, v in final_clusters.items() if len(v) > 1}
+    final_singletons = {k: [r for r in v if r[0] != k] for k, v in final_singletons.items()}
 
+    # BLASTp clusters step
+    blast_results, ids_dict = cluster_blaster_component(final_singletons,
+                                                        proteins,
+                                                        temp_directory,
+                                                        blastp_path,
+                                                        makeblastdb_path,
+                                                        cpu_cores,
+                                                        'cai')
 
+    blast_files = lu.flatten_list(blast_results)
 
+    # compute and exclude based on BSR
+    blast_excluded_alleles = [aux.apply_bsr(iu.read_tabular(file),
+                                            indexed_dna_file,
+                                            blast_score_ratio,
+                                            ids_dict)
+                              for file in blast_files]
 
-
-
-    # perform final BLAST to avoid creating a schema with paralogs
-    print('Performing a final BLAST to check for paralogs...')
-    print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
-
-    # sort seqids before final BLASTp to ensure consistent results
-    schema_seqids = aux.sort_data(schema_seqids, sort_key=lambda x: x.lower())
-
-    beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
-    fau.get_sequences_by_id(proteins, schema_seqids, beta_file)
-
-    integer_seqids = os.path.join(temp_directory, 'int_proteins_int.fasta')
-    ids_dict2 = fau.integer_headers(beta_file, integer_seqids)
-
-    blast_db = fu.join_paths(temp_directory, ['int_proteins_int'])
-    db_stderr = bu.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
-
-    if len(db_stderr) > 0:
-        sys.exit(db_stderr)
-
-    blast_output = '{0}/{1}_blast_out.tsv'.format(temp_directory,
-                                                 'beta_schema')
-    blast_stderr = bu.run_blast(blastp_path, blast_db, integer_seqids,
-                                blast_output, 1, cpu_cores)
-
-    if len(blast_stderr) > 0:
-        sys.exit(blast_stderr)
-
-    final_excluded = aux.apply_bsr(iu.read_tabular(blast_output),
-                                  indexed_dna_file,
-                                  blast_score_ratio,
-                                  ids_dict2)
-    final_excluded = [ids_dict2[seqid] for seqid in final_excluded]
-
-    schema_seqids = list(set(schema_seqids) - set(final_excluded))
+    # merge bsr results
+    blast_excluded_alleles = lu.flatten_list(blast_excluded_alleles)
+    blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
+    schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
 
     print('Removed {0} loci that were too similar with other loci '
-         'in the schema.'.format(len(final_excluded)))
+         'in the schema.'.format(len(blast_excluded_alleles)))
 
     output_schema = os.path.join(temp_directory, 'schema_seed.fasta')
 
@@ -1034,24 +1025,23 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
 
 def main(input_files, output_directory, schema_name, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
-         size_threshold, clustering_mode, word_size, clustering_sim,
+         size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
          cds_input, prodigal_mode, no_cleanup):
 
-    schema_files, temp_directory = genomes_to_reps(input_files, output_directory, schema_name,
-                                   ptf_path, blast_score_ratio, minimum_length,
-                                   translation_table, size_threshold, clustering_mode,
-                                   word_size, clustering_sim, representative_filter,
-                                   intra_filter, cpu_cores, blast_path,
-                                   prodigal_mode, cds_input)
+    results = genomes_to_reps(input_files, output_directory, schema_name,
+                              ptf_path, blast_score_ratio, minimum_length,
+                              translation_table, size_threshold, word_size,
+                              window_size, clustering_sim, representative_filter,
+                              intra_filter, cpu_cores, blast_path,
+                              prodigal_mode, cds_input)
 
     # remove temporary files
     if no_cleanup is False:
-        fu.delete_directory(temp_directory)
+        fu.delete_directory(results[1])
 
     # print message about schema that was created
-
-    #return os.path.dirname(schema_files[0])
+    print('Created schema seed with {0} loci.'.format(len(results[0])))
 
 
 def parse_arguments():
@@ -1102,38 +1092,6 @@ def parse_arguments():
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM.')
 
-    parser.add_argument('--cm', type=str, required=False,
-                        default='greedy', dest='clustering_mode',
-                        help='The clustering mode. There are two modes: '
-                             'greedy and full. Greedy will add sequences '
-                             'to a single cluster. Full will add sequences '
-                             'to all clusters they share high similarity with.')
-
-    parser.add_argument('--ws', type=int, required=False,
-                        default=5, dest='word_size',
-                        help='Value of k used to decompose protein sequences '
-                             'into k-mers.')
-
-    parser.add_argument('--cs', type=float, required=False,
-                        default=0.20, dest='clustering_sim',
-                        help='Similarity threshold value necessary to '
-                             'consider adding a sequence to a cluster. This '
-                             'value corresponds to the percentage of shared k-mers.')
-
-    parser.add_argument('--rf', type=float, required=False,
-                        default=0.80, dest='representative_filter',
-                        help='Similarity threshold value that is considered '
-                             'to determine if a sequence belongs to the same '
-                             'gene as the cluster representative purely based '
-                             'on the percentage of shared k-mers.')
-
-    parser.add_argument('--if', type=float, required=False,
-                        default=0.80, dest='intra_filter',
-                        help='Similarity threshold value that is considered '
-                             'to determine if sequences in the same custer '
-                             'belong to the same gene. Only one of those '
-                             'sequences is kept.')
-
     parser.add_argument('--cpu', type=int, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
@@ -1142,7 +1100,7 @@ def parse_arguments():
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores).')
 
-    parser.add_argument('--b', type=pv.check_blast, required=False,
+    parser.add_argument('--b', type='blastp', required=False,
                         default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 

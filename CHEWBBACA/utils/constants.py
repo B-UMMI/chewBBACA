@@ -14,9 +14,11 @@ DESCRIPTION
 """
 
 
+import os
+import inspect
 import platform
 
-
+# remove this!
 CHEWIE_VERSIONS = ['2.5.0', '2.5.1', '2.5.2', '2.5.3',
 				   '2.5.4', '2.5.5', '2.5.6', '2.6.0']
 
@@ -35,17 +37,26 @@ ST_MIN = 0.0
 ST_MAX = 1.0
 SIZE_THRESHOLD_DEFAULT = 0.2
 
-WS_MIN = 0.0
-WS_MAX = 1.0
+# clustering config
+WORD_SIZE_MIN = 5
+WORD_SIZE_MAX = 5
+WORD_SIZE_DEFAULT = 5
 
-CS_MIN = 0.0
-CS_MAX = 1.0
+WINDOW_SIZE_MIN = 5
+WINDOW_SIZE_MAX = 5
+WINDOW_SIZE_DEFAULT = 5
 
-RF_MIN = 0.0
-RF_MAX = 1.0
+CLUSTERING_SIMILARITY_MIN = 0.20
+CLUSTERING_SIMILARITY_MAX = 0.20
+CLUSTERING_SIMILARITY_DEFAULT = 0.20
 
-IF_MIN = 0.0
-IF_MAX = 1.0
+REPRESENTATIVE_FILTER_MIN = 0.8
+REPRESENTATIVE_FILTER_MAX = 0.8
+REPRESENTATIVE_FILTER_DEFAULT = 0.8
+
+INTRA_CLUSTER_MIN = 0.8
+INTRA_CLUSTER_MAX = 0.8
+INTRA_CLUSTER_DEFAULT = 0.8
 
 # genetic codes/translation tables
 GENETIC_CODES = {1: 'Standard',
@@ -99,4 +110,4 @@ IGNORE_RAISED = ['Warning: [blastp] To obtain better run time performance, pleas
 				 'blastdb_aliastool -seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
 				 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the argument to -seqidlist']
 
-SPACED_MATRIX = 'CHEWBBACA/utils/spaced_matrix'
+SPACED_MATRIX = os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), 'spaced_matrix')

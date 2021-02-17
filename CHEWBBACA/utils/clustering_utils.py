@@ -343,29 +343,6 @@ def representative_pruner(clusters, sim_cutoff):
     excluded = []
     pruned_clusters = {}
     for rep, seqids in clusters.items():
-        # get high scoring elements
-        # determine if distribution is multimodal
-        # determine if rep length is considerably larger than first high scoring element
-
-        # this removes the representative from the cluster
-        # rep_info = clusters[rep][0]
-        # length_cutoff = rep_info[2] - (rep_info[2]*0.2)
-        # keep = []
-        # remove = []
-        # for s in seqids:
-        #     query_sim = s[1]
-        #     query_len = s[2]
-        #     if query_sim < sim_cutoff:
-        #         keep.append(s)
-        #     elif query_sim >= sim_cutoff and query_len < length_cutoff:
-        #         keep.append(s)
-        #     elif query_sim >= sim_cutoff and query_len > length_cutoff:
-        #         if s[0] != rep:
-        #             remove.append(s)
-
-        # pruned_clusters[rep] = keep
-        # excluded.extend(remove)
-
         pruned_clusters[rep] = [seqid
                                 for seqid in seqids
                                 if seqid[1] < sim_cutoff]

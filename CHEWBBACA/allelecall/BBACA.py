@@ -221,32 +221,9 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, blast_path, forceCont
          verbose, forceReset, contained, chosenTrainingFile, inputCDS, sizeTresh, translation_table,
          ns, prodigal_mode):
 
-    print("\nChecking dependencies...")
-    print("Blast installation..." + str(which(str(BlastpPath))))
-    print("Prodigal installation..." + str(which('prodigal')))
-
-    # check version of Blast
-    proc = subprocess.Popen([BlastpPath, '-version'], stdout=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-    version_string = stdout.decode('utf8')
-    version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
-    blast_version_pat = re.compile(version_pattern)
-
-    match = blast_version_pat.search(version_string)
-    if match is None:
-        print("Something went wrong. Your blast version is " + str(version_string))
-        print("Update your blast to 2.5.0 or above. Exited.")
-    version = {k: int(v) for k, v in match.groupdict().items()}
-    if version['MAJOR'] < 2 and 5 < version['MINOR']:
-        print("Blast version is " + str(version_string))
-        print("Please update your blast to 2.5.0 or above, will exit program")
-        sys.exit()
-    else:
-        print("Blast version meets minimum requirements (>=2.5.0).")
-
+    divideOutput = False
     start_date = dt.datetime.now()
     start_date_str = dt.datetime.strftime(start_date, '%H:%M:%S-%d/%m/%Y')
-    print('\nStarted at: {0}\n'.format(start_date_str))
 
     listOfGenomes = []
     listOfGenomesBasename = []

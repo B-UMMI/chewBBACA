@@ -552,7 +552,7 @@ def cluster_pruner_component(clusters, representative_filter,
 
     # remove sequences that are very similar to representatives
     pruning_results = cu.representative_pruner(clusters,
-                                                representative_filter)
+                                               representative_filter)
 
     pruned_clusters, excluded_seqids = pruning_results
 
@@ -634,9 +634,9 @@ def cluster_intra_pruner_component(clusters, sequences, word_size,
     intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
 
     excluded_seqids, excluded_sims = cu.intra_cluster_sim(intra_clusters,
-                                                           sequences,
-                                                           word_size,
-                                                           intra_filter)
+                                                          sequences,
+                                                          word_size,
+                                                          intra_filter)
 
     intra_excluded = [v for k, v in excluded_seqids.items()]
     intra_excluded = lu.flatten_list(intra_excluded)

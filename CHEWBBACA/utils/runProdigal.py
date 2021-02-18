@@ -5,11 +5,255 @@ import pickle
 import subprocess
 
 try:
-    from utils import (files_utils as fu,
-                       auxiliary_functions as aux)
+    from utils import (file_operations as fo,
+                       fasta_operations as fao,
+                       iterables_manipulation as im)
 except:
-    from CHEWBBACA.utils import (files_utils as fu,
-                                 auxiliary_functions as aux)
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 fasta_operations as fao,
+                                 iterables_manipulation as im)
+
+
+def check_ptf(ptf_path):
+    """ Determines if path to Prodigal training file exists.
+
+        Parameters
+        ----------
+        ptf_path : str
+            Path to the Prodigal training file.
+
+        Returns
+        -------
+        A list with a bool value that is True if the Prodigal
+        training file exists or False otherwise and the path
+        to the file if it exists or a message if it does not
+        exist.
+    """
+
+    if os.path.isfile(ptf_path) is False:
+        message = ('Cannot find specified Prodigal training file.'
+                   '\nPlease provide a valid training file.\n\nYou '
+                   'can create a training file for a species of '
+                   'interest with the following command:\n  prodigal '
+                   '-i <reference_genome> -t <training_file.trn> -p '
+                   'single\n\nIt is strongly advised to provide a '
+                   'high-quality and closed genome for the training '
+                   'process.')
+        return [False, message]
+    else:
+        return [True, ptf_path]
+
+
+def check_prodigal_results(prodigal_results, output_directory):
+    """ Determine if Prodigal could not predict genes for any input
+        assembly.
+
+        Parameters
+        ----------
+        prodigal_results : list
+            List with gene prediction results from Prodigal.
+        output_directory : str
+            Path to the output directory where the file with information
+            about failed cases will be written to.
+
+        Returns
+        -------
+        A list with the following elements:
+            failed : list
+                List with the stderr for the cases that Prodigal
+                failed to predict genes for.
+            failed_file : str
+                Path to the file with information about the failed
+                cases.
+    """
+
+    no_cds = [l for l in prodigal_results if l[1] == 0]
+    errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
+    failed = no_cds + errors
+
+    failed_file = os.path.join(output_directory, 'prodigal_fails.tsv')
+    if len(failed) > 0:
+        lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
+        fo.write_lines(lines, failed_file)
+
+    return [failed, failed_file]
+
+
+def extract_genome_cds(reading_frames, contigs, starting_id):
+    """ Extracts CDSs from contigs based on the start
+        and stop codon positions determined by Prodigal.
+
+        Parameters
+        ----------
+        reading_frames : str
+            Path to the ORF file created by Prodigal.
+        contigs : dict
+            Dictionary with contig ids as keys and contig
+            sequences as values.
+        starting_id : int
+            Integer identifier to give to the first CDS extracted
+            and that will be incremented to serve as identifier
+            for subsequent CDSs.
+
+        Returns
+        -------
+        coding_sequences : dict
+            Dictionary with coding sequences ids as keys and
+            coding sequences as values.
+        coding_sequences_info : list
+            List with a sublist for each extracted CDS. Sublists
+            have information about the extracted CDS (identifier
+            of the contig where the CDS was found, start position
+            in the contig, stop position in the contig, sequence
+            identifier attributed to that CDS and the strand that
+            coded for that CDS).
+    """
+
+    seqid = starting_id
+    coding_sequences = {}
+    coding_sequences_info = []
+    for contig_id, frames in reading_frames.items():
+        sequence = contigs[contig_id]
+        # for each start and stop codon in the contig
+        for cds in frames:
+            start_pos = cds[0]
+            stop_pos = cds[1]
+            strand = cds[2]
+            # extract CDS sequence
+            cds_sequence = im.extract_single_cds(sequence, *cds).upper()
+
+            # store CDS with unique id
+            coding_sequences[seqid] = cds_sequence
+
+            # store CDS information
+            coding_sequences_info.append([contig_id, str(start_pos),
+                                          str(stop_pos), str(seqid),
+                                          str(strand)])
+
+            # increment seqid
+            seqid += 1
+
+    return [coding_sequences, coding_sequences_info]
+
+
+def write_protein_table(output_file, genome_id, cds_info):
+    """ Writes information about coding sequences in a
+        genome to a file.
+
+        Parameters
+        ----------
+        output_file : str
+            Path to the output file to which info will
+            be saved.
+        genome_id : str
+            Identifier of the genome to add to first field
+            of every new line.
+        cds_info : list
+            List with information about each coding sequence
+            identified in the genome (contig identifier,
+            cds start position, cds stop position, cds
+            identifier and cds coding strand).
+    """
+
+    table_lines = [[genome_id] + protein_info
+                   for protein_info in cds_info]
+    table_lines = [im.join_list(line, '\t') for line in table_lines]
+    table_text = im.join_list(table_lines, '\n')
+    fo.write_to_file(table_text, output_file, 'a', '\n')
+
+
+def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
+    """ Extracts coding sequences from genome based on Prodigal
+        gene predictions. Writes coding sequences to FASTA file
+        and information about coding sequences to TSV file.
+
+        Parameters
+        ----------
+        genome : str
+            Path to the FASTA file with the FASTA sequences for
+            a genome.
+        identifier : str
+            Genome identifier to add to FASTA records headers
+            and to the first field in the TSV file.
+        orf_file : str
+            Path to the file with Prodigal results.
+        protein_table : str
+            Path to the TSV file to which coding sequences
+            information will be written.
+        cds_file : str
+            Path to the FASTA file to which coding sequences
+            will be written.
+
+        Returns
+        -------
+        total_cds : int
+            Total number of coding sequences extracted from
+            the genome.
+    """
+
+    # import contigs for current genome/assembly
+    contigs = fao.import_sequences(genome)
+    # extract coding sequences from contigs
+    reading_frames = fo.pickle_loader(orf_file)
+    genome_info = extract_genome_cds(reading_frames,
+                                           contigs, 1)
+    # save coding sequences to file
+    # create records and write them to file
+    cds_lines = fao.create_fasta_lines(genome_info[0], identifier)
+    fo.write_lines(cds_lines, cds_file)
+
+    write_protein_table(protein_table, identifier, genome_info[1])
+
+    total_cds = len(genome_info[0])
+
+    return total_cds
+
+
+def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
+    """ Extracts coding sequences from a set of genomes.
+
+        Parameters
+        ----------
+        input_data : list
+            List with a set of paths for FASTA files with
+            genomic sequences, followed by the path to the
+            directory with files with Prodigal resutls, the
+            path to the temporary directory for all files and
+            directories that will be read and written and
+            an index/identifier to add to the output files
+            with coding sequences and coding sequences info.
+
+        Returns
+        -------
+        A list with the following elements:
+            protein_table : str
+                Path to the TSV file to which coding sequences
+                info was written.
+            cds_file : str
+                Path to the FASTA file to which coding sequences
+                were written.
+            batch_total : int
+                Total number of coding sequences extracted from
+                the set of input genomes.
+    """
+
+    protein_table = fo.join_paths(temp_directory,
+                               ['protein_info_{0}.tsv'.format(index)])
+
+    cds_file = fo.join_paths(temp_directory,
+                          ['coding_sequences_{0}.fasta'.format(index)])
+
+    batch_total = 0
+    for g in genomes:
+        # determine Prodigal ORF file path for current genome
+        identifier = fo.file_basename(g, False)
+        orf_file_path = fo.join_paths(prodigal_path,
+                                   ['{0}_ORF.txt'.format(identifier)])
+        total = save_extracted_cds(g, identifier, orf_file_path,
+                                   protein_table, cds_file)
+        batch_total += total
+
+    return [protein_table, cds_file, batch_total]
 
 
 def run_prodigal(input_file, translation_table, mode, ptf_path):
@@ -40,7 +284,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
-    genome_basename = fu.file_basename(input_file, False)
+    genome_basename = fo.file_basename(input_file, False)
 
     if len(stderr) > 0:
         stderr = [line.decode('utf-8').strip() for line in stderr]

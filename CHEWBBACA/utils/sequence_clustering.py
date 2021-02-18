@@ -14,20 +14,18 @@ from collections import Counter
 from Bio import SeqIO
 
 try:
-    from utils import (io_utils as iu,
-                       str_utils as su,
-                       list_utils as lu,
-                       blast_utils as bu,
-                       fasta_utils as fau,
-                       constants as cnst,
+    from utils import (file_operations as fo,
+                       iterables_manipulation as im,
+                       blast_wrapper as bw,
+                       fasta_operations as fao,
+                       constants as ct,
                        auxiliary_functions as aux)
 except:
-    from CHEWBBACA.utils import (io_utils as iu,
-                                 str_utils as su,
-                                 list_utils as lu,
-                                 blast_utils as bu,
-                                 fasta_utils as fau,
-                                 constants as cnst,
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 iterables_manipulation as im,
+                                 blast_wrapper as bw,
+                                 fasta_operations as fao,
+                                 constants as ct,
                                  auxiliary_functions as aux)
 
 
@@ -83,7 +81,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         kmers_mapping = {}
         cluster_kmers = {}
         for seqid, seq in clustered_seqs.items():
-            minimizers = su.determine_minimizers(seq, word_size, word_size, position=False)
+            minimizers = im.determine_minimizers(seq, word_size, word_size, position=False)
             kmers = set(minimizers)
 
             # dict with sequence indentifiers and kmers
@@ -102,7 +100,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
                 query_kmers = kmers
                 # determine sequences that also have the same kmers
                 current_reps = [kmers_mapping[kmer] for kmer in query_kmers if kmer in kmers_mapping]
-                current_reps = lu.flatten_list(current_reps)
+                current_reps = im.flatten_list(current_reps)
 
                 # count number of common kmers with other sequences
                 counts = Counter(current_reps)
@@ -136,7 +134,7 @@ def select_minimizer_cluster(kmers, reps_groups, clustering_sim):
     """
 
     current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
-    current_reps = lu.flatten_list(current_reps)
+    current_reps = im.flatten_list(current_reps)
 
     # count number of kmer hits per representative
     counts = Counter(current_reps)
@@ -158,7 +156,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 
     for protid, protein in sorted_sequences.items():
 
-        minimizers = su.determine_minimizers(protein, window_size,
+        minimizers = im.determine_minimizers(protein, window_size,
                                              word_size, offset=offset,
                                              position=position)
         kmers = list(set(minimizers))
@@ -261,7 +259,7 @@ def cluster_sequences(sorted_sequences, word_size, window_size,
         reps_groups = {}
     else:
         reps_groups = representatives
-        clusters_ids = set(lu.flatten_list(list(reps_groups.values())))
+        clusters_ids = set(im.flatten_list(list(reps_groups.values())))
         clusters = {rep: [] for rep in clusters_ids}
 
     cluster_results = minimizer_clustering(sorted_sequences, word_size,
@@ -302,10 +300,10 @@ def write_clusters(clusters, outfile):
 
     # sort by number of lines to get clusters with more sequences first
     cluster_lines = aux.sort_data(cluster_lines, sort_key=lambda x: len(x), reverse=True)
-    cluster_lines = lu.flatten_list(cluster_lines)
-    cluster_text = lu.join_list(cluster_lines, '\n')
+    cluster_lines = im.flatten_list(cluster_lines)
+    cluster_text = im.join_list(cluster_lines, '\n')
 
-    iu.write_to_file(cluster_text, outfile, 'w', '\n')
+    fo.write_to_file(cluster_text, outfile, 'w', '\n')
 
 
 def representative_pruner(clusters, sim_cutoff):
@@ -391,15 +389,15 @@ def cluster_blaster(seqids, sequences, output_directory,
         fasta_file = os.path.join(output_directory,
                                   '{0}_protein.fasta'.format(cluster_id))
         # create file with protein sequences
-        fau.get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
+        fao.get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
 
         blast_output = os.path.join(output_directory,
                                     '{0}_blast_out.tsv'.format(cluster_id))
 
         # Use subprocess to capture errors and warnings
-        stderr = bu.run_blast(blast_path, blastdb_path, fasta_file,
+        stderr = bw.run_blast(blast_path, blastdb_path, fasta_file,
                               blast_output, 1, 1, ids_file,
-                              ignore=cnst.IGNORE_RAISED)
+                              ignore=ct.IGNORE_RAISED)
 
         if len(stderr) > 0:
             raise ValueError('\n'.join(stderr))
@@ -447,8 +445,8 @@ def blast_inputs(clusters, output_directory, ids_dict):
         cluster_file = os.path.join(output_directory,
                                     '{0}_ids.txt'.format(rev_ids[rep]))
         cluster_ids = [rev_ids[rep]] + [rev_ids[seqid[0]] for seqid in clusters[rep]]
-        cluster_lines = lu.join_list(cluster_ids, '\n')
-        iu.write_to_file(cluster_lines, cluster_file, 'w', '')
+        cluster_lines = im.join_list(cluster_ids, '\n')
+        fo.write_to_file(cluster_lines, cluster_file, 'w', '')
         ids_to_blast.append((rev_ids[rep], len(cluster_ids)))
 
     return ids_to_blast

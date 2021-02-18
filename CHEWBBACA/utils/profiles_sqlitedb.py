@@ -23,9 +23,9 @@ import hashlib
 import sqlite3
 
 try:
-    from utils import datetime_utils as dut
+    from utils import process_datetime as pd
 except:
-    from CHEWBBACA.utils import datetime_utils as dut
+    from CHEWBBACA.utils import process_datetime as pd
 
 
 def create_database_file(db_file):
@@ -449,7 +449,7 @@ def store_allelecall_results(output_directory, schema_directory):
     results_folders = [os.path.join(output_directory, file)
                        for file in os.listdir(output_directory) if 'results' in file]
     # create datetime objects and sort to get latest
-    insert_dates = [(file, dut.datetime_obj(file.split('_')[-1], '%Y%m%dT%H%M%S'))
+    insert_dates = [(file, pd.datetime_obj(file.split('_')[-1], '%Y%m%dT%H%M%S'))
                     for file in results_folders]
     sorted_insert_dates = sorted(insert_dates, key=lambda x: x[1], reverse=True)
     results_matrix = os.path.join(sorted_insert_dates[0][0], 'results_alleles.tsv')

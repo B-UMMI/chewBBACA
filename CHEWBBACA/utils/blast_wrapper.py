@@ -10,8 +10,7 @@ DESCRIPTION
 
 import subprocess
 
-from utils import (constants as cnst,
-                   auxiliary_functions as aux)
+from utils import auxiliary_functions as aux
 
 
 def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
@@ -71,8 +70,8 @@ def determine_blast_task(sequences):
     """
 
     blast_task = 'blastp'
-    proteins_lengths = [len(p) for p in sequences]
-    minimum_length = min(proteins_lengths)
+    sequences_lengths = [len(p) for p in sequences]
+    minimum_length = min(sequences_lengths)
     if minimum_length < 30:
         blast_task = 'blastp-short'
 

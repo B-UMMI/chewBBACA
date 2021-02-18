@@ -14,9 +14,9 @@ from getpass import getpass
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 try:
-    from utils import constants as cnst
+    from utils import constants as ct
 except:
-    from CHEWBBACA.utils import constants as cnst
+    from CHEWBBACA.utils import constants as ct
 
 
 def simple_get_request(url, headers, endpoint_list=None,
@@ -89,7 +89,7 @@ def simple_post_request(url, headers, endpoint_list=None,
     return [url, res]
 
 
-def check_connection(url, headers=cnst.HEADERS_GET_JSON):
+def check_connection(url, headers=ct.HEADERS_GET_JSON):
     """ Verifies connection to a chewie-NS instance.
 
         Parameters
@@ -339,7 +339,7 @@ def login_user_to_NS(server_url, email, password):
     auth_params['password'] = password
 
     auth_url, auth_r = simple_post_request(server_url,
-                                           cnst.HEADERS_POST_JSON,
+                                           ct.HEADERS_POST_JSON,
                                            ['auth', 'login'],
                                            data=json.dumps(auth_params))
 

@@ -10,6 +10,239 @@ DESCRIPTION
 
 import re
 import hashlib
+import itertools
+
+
+def join_list(lst, link):
+    """ Joins all elements in a list into a single string.
+
+        Parameters
+        ----------
+        lst : list
+            List with elements to be joined.
+        link : str
+            Character used to join list elements.
+
+        Returns
+        -------
+        joined_list : str
+            A single string with all elements in the input
+            list joined by the character chosen as link.
+    """
+
+    joined_list = link.join(lst)
+
+    return joined_list
+
+
+def concatenate_list(str_list, join_char):
+    """ Concatenates list elements with specified
+        character between each original list element.
+
+        Parameters
+        ----------
+        str_list : list
+            List with strings that will be concatenated.
+        join_char : str
+            Character that will be used to join list
+            elements.
+
+        Returns
+        -------
+        ids_str : str
+            String resulting from the concatenation of
+            all strings in the input list.
+    """
+
+    concat = join_char.join(str_list)
+
+    return concat
+
+
+def extend_list(input_list, *elements):
+    """
+    """
+
+    input_list.extend(elements)
+
+    return input_list
+
+
+def flatten_list(list_to_flatten):
+    """ Flattens one level of a nested list.
+
+        Parameters
+        ----------
+        list_to_flatten : list
+            List with nested lists.
+
+        Returns
+        -------
+        flattened_list : str
+            Input list flattened by one level.
+    """
+
+    flattened_list = list(itertools.chain(*list_to_flatten))
+
+    return flattened_list
+
+
+def isListEmpty(input_list):
+    """ Checks if a nested list is empty. """
+
+    if isinstance(input_list, list):
+        return all(map(isListEmpty, input_list)) if isinstance(input_list, list) else False
+
+
+def divide_list_into_n_chunks(list_to_divide, n):
+    """ Divides a list into a defined number of sublists.
+
+        Parameters
+        ----------
+        list_to_divide : list
+            List to divide into sublists.
+        n : int
+            Number of sublists to create.
+
+        Returns
+        -------
+        sublists : list
+            List with the sublists created by dividing
+            the input list.
+    """
+
+    sublists = []
+    d, r = divmod(len(list_to_divide), n)
+    for i in range(n):
+        si = (d+1)*(i if i < r else r) + d*(0 if i < r else i - r)
+        sublists.append(list_to_divide[si:si+(d+1 if i < r else d)])
+
+    # exclude lists that are empty due to small number of elements
+    sublists = [i for i in sublists if len(i) > 0]
+
+    return sublists
+
+
+def merge_dictionaries(dictionaries_list):
+    """ Merges several dictionaries into a single dictionary.
+
+        Parameters
+        ----------
+        dictionaries_list : list
+            A list with the dictionaries to merge.
+
+        Returns
+        -------
+        merged_dicts : dict
+            A dictionary resulting from merging
+            all input dictionaries.
+    """
+
+    merged_dicts = {}
+    for d in dictionaries_list:
+        merged_dicts = {**merged_dicts, **d}
+
+    return merged_dicts
+
+
+def invert_dictionary(dictionary):
+    """ Inverts a dictionary (Keys become values and vice-versa).
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary to be inverted.
+
+        Returns
+        -------
+        inverted_dict : dict
+            Inverted dictionary.
+    """
+
+    inverted_dict = {value: key for key, value in dictionary.items()}
+
+    return inverted_dict
+
+
+def split_iterable(iterable, size):
+    """ Splits a dictionary.
+
+        Parameters
+        ----------
+        iterable : dict
+            Dictionary to split.
+        size : int
+            Size of dictionaries created from the input
+            dictionary.
+
+        Returns
+        -------
+        chunks : list
+            List with dictionaries of defined size
+            resulting from splitting the input dictionary.
+    """
+
+    chunks = []
+    it = iter(iterable)
+    for i in range(0, len(iterable), size):
+        chunks.append({k: iterable[k] for k in itertools.islice(it, size)})
+
+    return chunks
+
+
+def select_clusters(clusters, cluster_size):
+    """ Determines clusters that contain a specified number
+        of sequences.
+
+        Parameters
+        ----------
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are clusters representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the percentage of shared
+            kmers/minimizers and the length of the clustered
+            sequence.
+        cluster_size : int
+            Number of sequences in the clusters that will
+            be selected.
+
+        Returns
+        -------
+        clusters_ids : list
+            List with cluster identifiers for clusters that
+            contain a number of sequences equal to specified
+            cluster size.
+    """
+
+    clusters_ids = [k for k, v in clusters.items() if len(v) == cluster_size]
+
+    return clusters_ids
+
+
+def remove_entries(dictionary, keys):
+    """ Creates new dictionary without entries with
+        specified keys.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Input dictionary.
+        keys : list
+            List of keys for the entries that should
+            not be included in the new dictionary.
+
+        Returns
+        -------
+        new_dict : dict
+            Dictionary without entries with keys in
+            the input list.
+    """
+
+    new_dict = {k: v for k, v in dictionary.items() if k not in keys}
+
+    return new_dict
 
 
 def extract_subsequence(sequence, start, stop):
@@ -344,3 +577,53 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
             previous = minimizer[0]
 
     return minimizers
+
+def decode_str(str_list, encoding):
+    """
+    """
+
+    decoded = [m.decode(encoding).strip()
+               if type(m) == bytes
+               else m.strip()
+               for m in str_list]
+
+    return decoded
+
+
+def sort_data(data, sort_key=None, reverse=False):
+    """ Sorts an iterable.
+
+        Parameters
+        ----------
+        data : iter
+            Iterable to sort.
+        sort_key
+            If provided, data will be sorted based
+            on this function.
+        reverse : bool
+            If sorting order should be inverted.
+
+        Returns
+        -------
+        sorted_data
+            List with sorted elements.
+    """
+
+    if sort_key is None:
+        sorted_data = sorted(data, reverse=reverse)
+    elif sort_key is not None:
+        sorted_data = sorted(data, key=sort_key, reverse=reverse)
+
+    return sorted_data
+
+
+def add_prefix(ids, prefix):
+    """
+    """
+
+    ids_map = {}
+    for i in ids:
+        new_id = '{0}_{1}'.format(prefix, i.split('_')[-1])
+        ids_map[i] = new_id
+
+    return ids_map

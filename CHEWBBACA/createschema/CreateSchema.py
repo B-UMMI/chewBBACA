@@ -36,23 +36,25 @@ import argparse
 from Bio import SeqIO
 
 try:
-    from PrepExternalSchema import PrepExternalSchema
     from utils import (runProdigal,
                        file_operations as fo,
                        iterables_manipulation as im,
                        blast_wrapper as bw,
                        fasta_operations as fao,
                        sequence_clustering as sc,
-                       constants as ct)
+                       constants as ct,
+                       multiprocessing_operations as mp,
+                       sequence_manipulation as sm)
 except:
-    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (runProdigal,
                                  file_operations as fo,
                                  iterables_manipulation as im,
                                  blast_wrapper as bw,
                                  fasta_operations as fao,
                                  sequence_clustering as sc,
-                                 constants as ct)
+                                 constants as ct,
+                                 multiprocessing_operations as mp,
+                                 sequence_manipulation as sm)
 
 
 def gene_prediction_component(fasta_files, ptf_path, translation_table,
@@ -109,21 +111,21 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
     # divide input genomes into equal number of sublists for
     # maximum process progress resolution
     prodigal_inputs = im.divide_list_into_n_chunks(fasta_files,
-                                                    len(fasta_files))
+                                                   len(fasta_files))
     # add common arguments to all sublists
     common_args = [prodigal_path, ptf_path, translation_table,
                    prodigal_mode, runProdigal.main]
     prodigal_inputs = [i+common_args for i in prodigal_inputs]
 
     # run Prodigal to predict genes
-    prodigal_results = aux.map_async_parallelizer(prodigal_inputs,
-                                                  aux.function_helper,
-                                                  cpu_cores,
-                                                  show_progress=True)
+    prodigal_results = mp.map_async_parallelizer(prodigal_inputs,
+                                                 mp.function_helper,
+                                                 cpu_cores,
+                                                 show_progress=True)
 
     # determine if Prodigal predicted genes for all genomes
-    failed, failed_file = aux.check_prodigal_results(prodigal_results,
-                                                     output_directory)
+    failed, failed_file = runProdigal.check_prodigal_results(prodigal_results,
+                                                             output_directory)
 
     if len(failed) > 0:
         print('Failed to predict genes for {0} genomes.'.format(len(failed)))
@@ -176,15 +178,15 @@ def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
     # add common arguments and unique index/identifier
     extractor_inputs = [[extractor_inputs[i-1], prodigal_path,
-                         temp_directory, i, aux.cds_batch_extractor]
+                         temp_directory, i, runProdigal.cds_batch_extractor]
                         for i in range(1, len(extractor_inputs)+1)]
 
     # extract coding sequences
     print('\n\nExtracting coding sequences...\n')
-    extracted_cdss = aux.map_async_parallelizer(extractor_inputs,
-                                                aux.function_helper,
-                                                cpu_cores,
-                                                show_progress=True)
+    extracted_cdss = mp.map_async_parallelizer(extractor_inputs,
+                                               mp.function_helper,
+                                               cpu_cores,
+                                               show_progress=True)
 
     total_extracted = sum([f[2] for f in extracted_cdss])
     print('\n\nExtracted a total of {0} coding sequences from {1} '
@@ -233,15 +235,15 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
     dedup_inputs = [[file,
                      fo.join_paths(temp_directory,
                                    [outfile_template.format(i+1)]),
-                     aux.determine_distinct]
+                     sm.determine_distinct]
                     for i, file in enumerate(fasta_files)]
 
     # determine distinct sequences (keeps 1 seqid per sequence)
     print('\nRemoving duplicated sequences...')
-    dedup_results = aux.map_async_parallelizer(dedup_inputs,
-                                               aux.function_helper,
-                                               cpu_cores,
-                                               show_progress=False)
+    dedup_results = mp.map_async_parallelizer(dedup_inputs,
+                                              mp.function_helper,
+                                              cpu_cores,
+                                              show_progress=False)
 
     # determine number of duplicated sequences
     repeated = sum([d[0] for d in dedup_results])
@@ -252,7 +254,7 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
         cds_file = fo.join_paths(temp_directory, ['sequences.fasta'])
         cds_file = fo.concatenate_files(dedup_files, cds_file)
         distinct_seqs = fo.join_paths(temp_directory, ['distinct_seqs.fasta'])
-        dedup_results = aux.determine_distinct(cds_file, distinct_seqs)
+        dedup_results = sm.determine_distinct(cds_file, distinct_seqs)
         repeated_seqs, distinct_seqids = dedup_results
 
         repeated += repeated_seqs
@@ -287,7 +289,7 @@ def small_sequences_component(fasta_file, minimum_length):
 
     # determine small sequences and keep their seqids
     print('\nRemoving sequences smaller than {0}...'.format(minimum_length))
-    small_seqids = aux.determine_small(fasta_file, minimum_length)
+    small_seqids = sm.determine_small(fasta_file, minimum_length)
 
     ss_lines = ['{0}: smaller than {1} chars'.format(seqid, minimum_length)
                 for seqid in small_seqids]
@@ -364,14 +366,14 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
     # add common args to sublists
     common_args = [sequences_file, translation_table, minimum_length]
     translation_inputs = [[translation_inputs[i], *common_args, dna_files[i],
-                           protein_files[i], aux.translate_coding_sequences]
+                           protein_files[i], sm.translate_coding_sequences]
                           for i in range(0, len(dna_files))]
 
     # translate sequences
-    translation_results = aux.map_async_parallelizer(translation_inputs,
-                                                     aux.function_helper,
-                                                     cpu_cores,
-                                                     show_progress=False)
+    translation_results = mp.map_async_parallelizer(translation_inputs,
+                                                    mp.function_helper,
+                                                    cpu_cores,
+                                                    show_progress=False)
 
     # concatenate files
     dna_file = fo.join_paths(temp_directory, ['dna.fasta'])
@@ -393,15 +395,7 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
 
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
-#sequences = proteins
-#representatives = None
-#grow_clusters = True
-#kmer_offset = 1
-#seq_num_cluster = 1
-#file_prefix = 'postc'
-#divide = False
-#clustering_type = 'minstrobes'
-#position = False
+
 def clustering_component(sequences, word_size, window_size, clustering_sim,
                          representatives, grow_clusters, kmer_offset,
                          seq_num_cluster, temp_directory, cpu_cores,
@@ -451,9 +445,9 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
     """
 
     # sort sequences by length
-    sorted_seqs = {k: v for k, v in aux.sort_data(sequences.items(),
-                                                  sort_key=lambda x: len(x[1]),
-                                                  reverse=True)}
+    sorted_seqs = {k: v for k, v in im.sort_data(sequences.items(),
+                                                 sort_key=lambda x: len(x[1]),
+                                                 reverse=True)}
 
     if divide is True:
         # divide sequences into sublists
@@ -472,9 +466,9 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
 
     # cluster proteins in parallel
     print('\nClustering sequences...')
-    clustering_results = aux.map_async_parallelizer(cluster_inputs,
-                                                    aux.function_helper,
-                                                    cpu_cores)
+    clustering_results = mp.map_async_parallelizer(cluster_inputs,
+                                                   mp.function_helper,
+                                                   cpu_cores)
 
     # merge clusters
     clusters = [d[0] for d in clustering_results]
@@ -493,9 +487,14 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
 
         merged_clusters = {}
         for k, v in rep_clusters[0].items():
-            # is this including the representatives of other clusters???
+            # merge clusters whose representatives are similar
             for n in v:
-                merged_clusters.setdefault(k, []).extend(clusters[n[0]])
+                # representatives from other clusters are added with
+                # similarity score against new representative
+                # clustered sequences from other clusters are added
+                # with similarity score against the old representative
+                add_seqids = [n] + [s for s in clusters[n[0]] if s[0] != n[0]]
+                merged_clusters.setdefault(k, []).extend(add_seqids)
 
         clusters = merged_clusters
 
@@ -503,7 +502,7 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
           'clusters'.format(len(sorted_seqs), len(clusters)))
 
     # sort clusters
-    clusters = {k: v for k, v in aux.sort_data(clusters.items())}
+    clusters = {k: v for k, v in im.sort_data(clusters.items())}
 
     # write file with clustering results
     clusters_out = os.path.join(temp_directory,
@@ -744,7 +743,7 @@ def cluster_blaster_component(clusters, sequences, output_directory,
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
-    splitted_seqids = aux.split_genes_by_core(seqids_to_blast,
+    splitted_seqids = mp.split_genes_by_core(seqids_to_blast,
                                               process_num,
                                               'seqcount')
 
@@ -757,8 +756,8 @@ def cluster_blaster_component(clusters, sequences, output_directory,
     print('BLASTing protein sequences in each cluster...\n')
 
     # BLAST each sequences in a cluster against every sequence in that cluster
-    blast_results = aux.map_async_parallelizer(splitted_seqids,
-                                               aux.function_helper,
+    blast_results = mp.map_async_parallelizer(splitted_seqids,
+                                               mp.function_helper,
                                                cpu_cores,
                                                show_progress=True)
 
@@ -773,7 +772,7 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     """
 
     # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(im.replace_multiple_characters(rec.id) + '_1', str(rec.seq))
+    schema_records = ['>{0}\n{1}'.format(im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS) + '_1', str(rec.seq))
                       for rec in SeqIO.parse(input_files, 'fasta')]
 
     final_records = os.path.join(temp_directory, 'schema_loci.fasta')
@@ -785,29 +784,10 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     # create directory and schema files
     filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
     schema_files = fao.split_fasta(final_records, schema_dir, 1, filenames)
-    aux.create_short(schema_files, schema_dir)
+    fo.create_short(schema_files, schema_dir)
 
     return schema_files
 
-
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/test_paths.txt'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema'
-#schema_name = 'sagalactiae_schema'
-#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
-#blast_score_ratio = 0.6
-#minimum_length = 201
-#translation_table = 11
-#size_threshold = 0.2
-#clustering_mode = 'greedy'
-#word_size = 5
-#window_size = 5
-#clustering_sim = 0.20
-#representative_filter = 0.9
-#intra_filter = 0.9
-#cpu_cores = 6
-#blast_path = ''
-#prodigal_mode = 'single'
-#cds_input = False
 
 def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
                     blast_score_ratio, minimum_length, translation_table,
@@ -837,7 +817,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     fasta_files = fo.read_lines(input_files, strip=True)
 
     # sort paths to FASTA files
-    fasta_files = aux.sort_data(fasta_files, sort_key=lambda x: x.lower())
+    fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
 
     if cds_input is False:
 
@@ -873,7 +853,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
 
     # exclude seqids of small sequences
     schema_seqids = list(set(schema_seqids) - set(small_seqids))
-    schema_seqids = aux.sort_data(schema_seqids, sort_key=lambda x: x.lower())
+    schema_seqids = im.sort_data(schema_seqids, sort_key=lambda x: x.lower())
 
     # sequence translation step
     ts_results = translation_component(schema_seqids, distinct_seqs_file,
@@ -963,10 +943,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     blast_files = im.flatten_list(blast_results)
 
     # compute and exclude based on BSR
-    blast_excluded_alleles = [aux.apply_bsr(fo.read_tabular(file),
-                                            indexed_dna_file,
-                                            blast_score_ratio,
-                                            ids_dict)
+    blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
+                                           indexed_dna_file,
+                                           blast_score_ratio,
+                                           ids_dict)
                               for file in blast_files]
 
     # merge bsr results
@@ -979,7 +959,7 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
 
     # sort seqids before final BLASTp to ensure consistent results
-    schema_seqids = aux.sort_data(schema_seqids, sort_key=lambda x: x.lower())
+    schema_seqids = im.sort_data(schema_seqids, sort_key=lambda x: x.lower())
 
     beta_file = os.path.join(temp_directory, 'beta_schema.fasta')
     fao.get_sequences_by_id(proteins, schema_seqids, beta_file)
@@ -1001,10 +981,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
 
-    final_excluded = aux.apply_bsr(fo.read_tabular(blast_output),
-                                   indexed_dna_file,
-                                   blast_score_ratio,
-                                   ids_dict2)
+    final_excluded = sm.apply_bsr(fo.read_tabular(blast_output),
+                                  indexed_dna_file,
+                                  blast_score_ratio,
+                                  ids_dict2)
     final_excluded = [ids_dict2[seqid] for seqid in final_excluded]
 
     schema_seqids = list(set(schema_seqids) - set(final_excluded))

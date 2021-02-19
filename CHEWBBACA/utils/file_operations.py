@@ -19,9 +19,11 @@ from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 
 try:
-    from utils import iterables_manipulation as im
+    from utils import (iterables_manipulation as im,
+                       file_operations as fo)
 except:
-    from CHEWBBACA.utils import iterables_manipulation as im
+    from CHEWBBACA.utils import (iterables_manipulation as im,
+                                 file_operations as fo)
 
 
 def file_basename(file_path, suffix=True):

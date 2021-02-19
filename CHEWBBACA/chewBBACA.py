@@ -64,8 +64,7 @@ def create_schema():
     def msg(name=None):
         # simple command to create schema from genomes
         simple_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
-                      '-o <output_directory> '
-                      '-ptf <ptf_path>')
+                      '-o <output_directory> --ptf <ptf_path>')
         # command to create schema from genomes with non-default parameters
         params_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
                       '-o <output_directory> '
@@ -75,7 +74,7 @@ def create_schema():
                       '--l <minimum_length>\n'
                       '\t\t\t    --t <translation_table> '
                       '--st <size_threshold>')
-        # command to create schema from single FASTA
+        # command to create schema from FASTA with coding sequences
         cds_cmd = ('chewBBACA.py CreateSchema -i <input_file> '
                    '-o <output_directory> '
                    '--ptf <ptf_path> '
@@ -83,7 +82,7 @@ def create_schema():
 
         usage_msg = ('\nCreate schema from input genomes:\n  {0}\n'
                      '\nCreate schema from input genomes with non-default parameters:\n  {1}\n'
-                     '\nCreate schema from single FASTA file:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+                     '\nCreate schema from FASTA files with coding sequences:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -153,8 +152,7 @@ def create_schema():
 
     parser.add_argument('--CDS', required=False, action='store_true',
                         dest='cds_input',
-                        help='Input is a FASTA file with one representative '
-                             'sequence per gene in the schema.')
+                        help='Input is sinlge or several FASTA files with coding sequences.')
 
     parser.add_argument('--pm', required=False, choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',

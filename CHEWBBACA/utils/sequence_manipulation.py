@@ -498,11 +498,11 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
 
         if len(dna_lines)//2 == line_limit or i+1 == len(seqids):
 
-            dna_lines = lut.join_list(dna_lines, '\n')
+            dna_lines = im.join_list(dna_lines, '\n')
             fo.write_to_file(dna_lines, dna_file, 'a', '\n')
             dna_lines = []
 
-            prot_lines = lut.join_list(prot_lines, '\n')
+            prot_lines = im.join_list(prot_lines, '\n')
             fo.write_to_file(prot_lines, protein_file, 'a', '\n')
             prot_lines = []
 

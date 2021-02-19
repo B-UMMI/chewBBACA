@@ -15,36 +15,6 @@ except:
                                  iterables_manipulation as im)
 
 
-def check_ptf(ptf_path):
-    """ Determines if path to Prodigal training file exists.
-
-        Parameters
-        ----------
-        ptf_path : str
-            Path to the Prodigal training file.
-
-        Returns
-        -------
-        A list with a bool value that is True if the Prodigal
-        training file exists or False otherwise and the path
-        to the file if it exists or a message if it does not
-        exist.
-    """
-
-    if os.path.isfile(ptf_path) is False:
-        message = ('Cannot find specified Prodigal training file.'
-                   '\nPlease provide a valid training file.\n\nYou '
-                   'can create a training file for a species of '
-                   'interest with the following command:\n  prodigal '
-                   '-i <reference_genome> -t <training_file.trn> -p '
-                   'single\n\nIt is strongly advised to provide a '
-                   'high-quality and closed genome for the training '
-                   'process.')
-        return [False, message]
-    else:
-        return [True, ptf_path]
-
-
 def check_prodigal_results(prodigal_results, output_directory):
     """ Determine if Prodigal could not predict genes for any input
         assembly.

@@ -127,7 +127,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     return [excluded_seqids, excluded_sims]
 
 
-def select_minimizer_cluster(kmers, reps_groups, clustering_sim):
+def select_cluster(kmers, reps_groups, clustering_sim):
     """
     """
 
@@ -157,10 +157,11 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
         minimizers = im.determine_minimizers(protein, window_size,
                                              word_size, offset=offset,
                                              position=position)
-        kmers = list(set(minimizers))
 
-        selected_reps = select_minimizer_cluster(kmers, reps_groups,
-                                                 clustering_sim)
+        distinct_minimizers = set(minimizers)
+
+        selected_reps = select_cluster(distinct_minimizers, reps_groups,
+                                       clustering_sim)
 
         top = (len(selected_reps)
                if len(selected_reps) < seq_num_cluster
@@ -171,37 +172,18 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
             for i in range(0, top):
                 clusters[selected_reps[i][0]].append((protid,
                                                       selected_reps[i][1],
-                                                      len(protein)))
+                                                      len(protein),
+                                                      len(minimizers),
+                                                      len(distinct_minimizers)))
         else:
-            for k in kmers:
+            for k in distinct_minimizers:
                 reps_groups.setdefault(k, []).append(protid)
 
-            clusters[protid] = [(protid, 1.0, len(protein))]
+            clusters[protid] = [(protid, 1.0, len(protein),
+                                len(minimizers), len(distinct_minimizers))]
             reps_sequences[protid] = protein
 
     return [clusters, reps_sequences, reps_groups]
-
-
-##sorted_sequences = {'GCA_000007265-protein1917': 'MNTNIPSQFLPFFIPLILLQVILIIIALLKLRKITKTNYLSKPVWVLIILFVNLLGPIAFLSLEGKNA',
-##                    'GCA_000007265-protein1969': 'MNTEIPNQLLPFLVPLIMLQGALIIISLVKLSKLKMTKHLSKPVWFLVIIFLNIIGPIAFLILEGNNE'}
-#proteins_file = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp/postCluster.fasta'
-#proteins = {rec.id: str(rec.seq) for rec in SeqIO.parse(proteins_file, 'fasta')}
-#sorted_sequences = proteins
-#word_size = 5
-#window_size = 5
-#position = True
-#clustering_sim = 0.2
-#clustering_mode = 'greedy'
-#representatives = None
-#grow = True
-#offset = 1
-#minimizer = True
-#seq_num_cluster = 1
-#temp_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_schema/temp'
-#cpu_cores = 6
-#clustering_type = 'minstrobes'
-#num_strobes = 1
-##clustering_type = 'minimizers'
 
 
 def cluster_sequences(sorted_sequences, word_size, window_size,
@@ -291,13 +273,14 @@ def write_clusters(clusters, outfile):
     for rep, seqids in clusters.items():
         current_cluster = []
         current_cluster.append('>{0}'.format(rep))
-        clustered = ['\t{0}, {1}, {2}'.format(s[0], s[1], s[2])
+        clustered = [', '.join(['{}']*len(s)).format(*s)
                      for s in seqids]
         current_cluster.extend(clustered)
         cluster_lines.append(current_cluster)
 
     # sort by number of lines to get clusters with more sequences first
-    cluster_lines = im.sort_data(cluster_lines, sort_key=lambda x: len(x), reverse=True)
+    cluster_lines = im.sort_data(cluster_lines,
+                                 sort_key=lambda x: len(x), reverse=True)
     cluster_lines = im.flatten_list(cluster_lines)
     cluster_text = im.join_list(cluster_lines, '\n')
 

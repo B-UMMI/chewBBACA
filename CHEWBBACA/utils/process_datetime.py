@@ -14,9 +14,9 @@ import functools
 import datetime as dt
 
 try:
-    from utils import auxiliary_functions as aux
+    from utils import parameters_validation as pv
 except:
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import parameters_validation as pv
 
 
 def get_datetime():
@@ -124,7 +124,7 @@ def process_timer(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # get process name and print header
-        aux.process_header(sys.argv[1])
+        pv.process_header(sys.argv[1])
 
         start = get_datetime()
         start_str = datetime_str(start)

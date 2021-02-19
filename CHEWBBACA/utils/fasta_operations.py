@@ -14,15 +14,11 @@ from Bio import SeqIO
 from Bio.SeqIO import FastaIO
 
 try:
-    from utils import (io_utils as io,
-                       str_utils as su,
-                       list_utils as lu,
-                       files_utils as fu)
+    from utils import (file_operations as fo,
+                       iterables_manipulation as im)
 except:
-    from CHEWBBACA.utils import (io_utils as io,
-                                 str_utils as su,
-                                 list_utils as lu,
-                                 files_utils as fu)
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 iterables_manipulation as im)
 
 
 def count_sequences(fasta_file):
@@ -96,7 +92,7 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
             exausted = True
 
         if len(seqs) == limit or exausted is True:
-            io.write_lines(seqs, output_fasta)
+            fo.write_lines(seqs, output_fasta)
             seqs = []
 
     return ids_map
@@ -301,8 +297,8 @@ def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
         records.append(record)
 
         if len(records) == limit or seq[0] == seqids[-1]:
-            lines = lu.join_list(records, '\n')
-            io.write_to_file(lines, out_file, 'a', '\n')
+            lines = im.join_list(records, '\n')
+            fo.write_to_file(lines, out_file, 'a', '\n')
             records = []
 
 
@@ -336,7 +332,7 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
         current_recs.append(record)
         if len(current_recs) == num_seqs or record.id == records[-1].id:
             file_name = filenames.__next__()
-            file_name = su.replace_multiple_characters(file_name)
+            file_name = im.replace_multiple_characters(file_name)
 
             new_file = fu.join_paths(output_path,
                                   ['{0}{1}'.format(file_name, '.fasta')])

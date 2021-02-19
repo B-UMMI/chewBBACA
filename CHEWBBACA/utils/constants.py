@@ -18,6 +18,7 @@ import os
 import inspect
 import platform
 
+
 # remove this!
 CHEWIE_VERSIONS = ['2.5.0', '2.5.1', '2.5.2', '2.5.3',
 				   '2.5.4', '2.5.5', '2.5.6', '2.6.0',
@@ -110,3 +111,9 @@ PRODIGAL_PATH = 'prodigal'
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time performance, please run '
 				 'blastdb_aliastool -seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
 				 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the argument to -seqidlist']
+
+UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
+
+CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
+    	            (")", ""), ("'", ""), ("\"", ""),
+        	        (":", "")]

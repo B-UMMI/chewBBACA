@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+
+
 import os
 import argparse
 import multiprocessing
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 

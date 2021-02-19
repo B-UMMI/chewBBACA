@@ -25,14 +25,11 @@ try:
     from PrepExternalSchema import PrepExternalSchema
     from utils import (TestGenomeQuality, profile_joiner,
                        uniprot_find, Extract_cgAlleles,
-                       RemoveGenes, sqlite_functions as sq,
-                       datetime_utils as dut,
-                       io_utils as iut,
-                       auxiliary_functions as aux,
-                       constants as cnst,
+                       RemoveGenes, profiles_sqlitedb as ps,
+                       process_datetime as pd,
+                       constants as ct,
                        parameters_validation as pv,
-                       files_utils as fu,
-                       sqlite_functions as squt)
+                       file_operations as fo)
 
     from utils.parameters_validation import ModifiedHelpFormatter
 
@@ -46,14 +43,11 @@ except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  uniprot_find, Extract_cgAlleles,
-                                 RemoveGenes, sqlite_functions as sq,
-                                 datetime_utils as dut,
-                                 io_utils as iut,
-                                 auxiliary_functions as aux,
-                                 constants as cnst,
+                                 RemoveGenes, profiles_sqlitedb as ps,
+                                 process_datetime as pd,
+                                 constants as ct,
                                  parameters_validation as pv,
-                                 files_utils as fu,
-                                 sqlite_functions as squt)
+                                 file_operations as fo)
 
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
@@ -64,7 +58,7 @@ except:
 version = __version__
 
 
-@dut.process_timer
+@pd.process_timer
 def create_schema():
 
     def msg(name=None):
@@ -173,7 +167,7 @@ def create_schema():
     args = parser.parse_args()
     del args.CreateSchema
 
-    prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
+    prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     # check if ptf exists
     if args.ptf_path is not False:
@@ -189,11 +183,11 @@ def create_schema():
     args.input_files = aux.check_input_type(args.input_files, genomes_list)
 
     # add clustering config
-    args.word_size = cnst.WORD_SIZE_DEFAULT
-    args.window_size = cnst.WINDOW_SIZE_DEFAULT
-    args.clustering_sim = cnst.CLUSTERING_SIMILARITY_DEFAULT
-    args.representative_filter = cnst.REPRESENTATIVE_FILTER_DEFAULT
-    args.intra_filter = cnst.INTRA_CLUSTER_DEFAULT
+    args.word_size = ct.WORD_SIZE_DEFAULT
+    args.window_size = ct.WINDOW_SIZE_DEFAULT
+    args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
+    args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
+    args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
     # start CreateSchema process
     CreateSchema.main(**vars(args))
@@ -204,7 +198,7 @@ def create_schema():
     if args.ptf_path is not False:
         shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
-        ptf_hash = fu.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
 
     # write schema config file
     schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
@@ -222,7 +216,7 @@ def create_schema():
     os.remove(args.input_files)
 
 
-@dut.process_timer
+@pd.process_timer
 def allele_call():
 
     def msg(name=None):
@@ -370,7 +364,7 @@ def allele_call():
 
     args = parser.parse_args()
 
-    prodigal_installed = pv.check_prodigal(cnst.PRODIGAL_PATH)
+    prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     config_file = os.path.join(args.schema_directory, '.schema_config')
     # legacy schemas do not have config file, create one if user wants to continue
@@ -383,7 +377,7 @@ def allele_call():
         args.translation_table, args.minimum_length, \
         args.size_threshold = upgraded
     else:
-        schema_params = iut.pickle_loader(config_file)
+        schema_params = fo.pickle_loader(config_file)
         # chek if user provided different values
         schema_params, unmatch_params, run_params = aux.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                            args.blast_score_ratio, args.translation_table,
@@ -416,13 +410,13 @@ def allele_call():
                args.translation_table, ns, args.prodigal_mode)
 
     if args.store_profiles is True:
-        updated = squt.store_allelecall_results(args.output_directory, args.schema_directory)
+        updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
-    fu.remove_files([schema_genes, genomes_files])
+    fo.remove_files([schema_genes, genomes_files])
 
 
-@dut.process_timer
+@pd.process_timer
 def evaluate_schema():
 
     def msg(name=None):
@@ -610,7 +604,7 @@ def evaluate_schema():
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 
 
-@dut.process_timer
+@pd.process_timer
 def test_schema():
 
     def msg(name=None):
@@ -665,7 +659,7 @@ def test_schema():
     TestGenomeQuality.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def extract_cgmlst():
 
     def msg(name=None):
@@ -739,7 +733,7 @@ def extract_cgmlst():
     Extract_cgAlleles.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def remove_genes():
 
     def msg(name=None):
@@ -785,7 +779,7 @@ def remove_genes():
     RemoveGenes.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def join_profiles():
 
     def msg(name=None):
@@ -819,7 +813,7 @@ def join_profiles():
     profile_joiner.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def prep_schema():
 
     def msg(name=None):
@@ -927,7 +921,7 @@ def prep_schema():
 
     # copy training file to schema directory
     if args.ptf_path is not False:
-        ptf_hash = fu.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
         shutil.copy(args.ptf_path, args.output_directory)
     else:
         ptf_hash = ''
@@ -942,7 +936,7 @@ def prep_schema():
     genes_list_file = aux.write_gene_list(args.output_directory)
 
 
-@dut.process_timer
+@pd.process_timer
 def find_uniprot():
 
     def msg(name=None):
@@ -986,7 +980,7 @@ def find_uniprot():
     uniprot_find.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def download_schema():
 
     def msg(name=None):
@@ -1072,7 +1066,7 @@ def download_schema():
     down_schema.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def upload_schema():
 
     def msg(name=None):
@@ -1182,7 +1176,7 @@ def upload_schema():
     load_schema.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def synchronize_schema():
 
     def msg(name=None):
@@ -1258,7 +1252,7 @@ def synchronize_schema():
     sync_schema.main(**vars(args))
 
 
-@dut.process_timer
+@pd.process_timer
 def ns_stats():
 
     def msg(name=None):
@@ -1366,11 +1360,11 @@ def main():
                                   ns_stats]}
 
     print('\nchewBBACA version: {0}'.format(version))
-    print('Authors: {0}'.format(cnst.authors))
-    print('Github: {0}'.format(cnst.repository))
-    print('Wiki: {0}'.format(cnst.wiki))
-    print('Tutorial: {0}'.format(cnst.tutorial))
-    print('Contacts: {0}\n'.format(cnst.contacts))
+    print('Authors: {0}'.format(ct.authors))
+    print('Github: {0}'.format(ct.repository))
+    print('Wiki: {0}'.format(ct.wiki))
+    print('Tutorial: {0}'.format(ct.tutorial))
+    print('Contacts: {0}\n'.format(ct.contacts))
 
     matches = ["--v", "-v", "-version", "--version"]
     if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):

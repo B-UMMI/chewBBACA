@@ -74,21 +74,23 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 
 try:
-    from utils import (io_utils as iut,
-                       list_utils as lut,
-                       constants as cnst,
-                       files_utils as fut,
-                       blast_utils as but,
-                       fasta_utils as faut,
-                       auxiliary_functions as aux)
+    from utils import (file_operations as fo,
+                       iterables_manipulation as im,
+                       constants as ct,
+                       blast_wrapper as bw,
+                       fasta_operations as fao,
+                       sequence_manipulation as sm,
+                       parameters_validation as pv,
+                       multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import (io_utils as iut,
-                                 list_utils as lut,
-                                 constants as cnst,
-                                 files_utils as fut,
-                                 blast_utils as but,
-                                 fasta_utils as faut,
-                                 auxiliary_functions as aux)
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 iterables_manipulation as im,
+                                 constants as ct,
+                                 blast_wrapper as bw,
+                                 fasta_operations as fao,
+                                 sequence_manipulation as sm,
+                                 parameters_validation as pv,
+                                 multiprocessing_operations as mo)
 
 
 def bsr_categorizer(blast_results, representatives,
@@ -284,23 +286,23 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
         gene_id = gene_basename.split('.f')[0]
 
         # create paths to gene files in new schema
-        gene_file = fut.join_paths(schema_path,
+        gene_file = fo.join_paths(schema_path,
                                    ['{0}{1}'.format(gene_id, '.fasta')])
 
-        gene_short_file = fut.join_paths(schema_short_path,
+        gene_short_file = fo.join_paths(schema_short_path,
                                          ['{0}{1}'.format(gene_id, '_short.fasta')])
 
         # create path to temp working directory for current gene
-        gene_temp_dir = fut.join_paths(schema_path,
+        gene_temp_dir = fo.join_paths(schema_path,
                                        ['{0}{1}'.format(gene_id, '_temp')])
 
         # create temp directory for the current gene
-        fut.create_directory(gene_temp_dir)
+        fo.create_directory(gene_temp_dir)
 
         # dictionaries mapping gene identifiers to DNA sequences
         # and Protein sequences
         gene_seqs, prot_seqs, gene_invalid, seqids_map, total_sequences = \
-            aux.get_seqs_dicts(gene, gene_id, table_id, min_len, size_threshold)
+            sm.get_seqs_dicts(gene, gene_id, table_id, min_len, size_threshold)
         invalid_alleles.extend(gene_invalid)
 
         # if locus has no valid CDS sequences,
@@ -313,59 +315,59 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
         if len(gene_seqs) > 1:
             # identify DNA sequences that code for same protein
-            equal_prots = aux.determine_duplicated_seqs(prot_seqs)
+            equal_prots = sm.determine_duplicated_seqs(prot_seqs)
 
             # get only one identifier per protein
             ids_to_blast = [protids[0] for protein, protids in equal_prots.items()]
 
             # get longest sequence as first representative
-            longest = aux.determine_longest(ids_to_blast, prot_seqs)
+            longest = sm.determine_longest(ids_to_blast, prot_seqs)
             representatives.append(longest)
             final_representatives.append(longest)
 
             # create FASTA file with distinct protein sequences
-            protein_file = fut.join_paths(gene_temp_dir,
+            protein_file = fo.join_paths(gene_temp_dir,
                                           ['{0}_protein.fasta'.format(gene_id)])
-            protein_lines = faut.fasta_lines(ids_to_blast, prot_seqs)
-            iut.write_list(protein_lines, protein_file)
+            protein_lines = fao.fasta_lines(ids_to_blast, prot_seqs)
+            fo.write_list(protein_lines, protein_file)
 
             # create blastdb with all distinct proteins
             blastp_db = os.path.join(gene_temp_dir, gene_id)
-            but.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
+            bw.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
 
             # determine appropriate blastp task (proteins < 30aa need blastp-short)
-            blastp_task = but.determine_blast_task(equal_prots)
+            blastp_task = bw.determine_blast_task(equal_prots)
 
             # cycles to BLAST representatives against non-representatives until
             # all non-representatives have a representative
             while len(set(ids_to_blast) - set(representatives)) != 0:
 
                 # create FASTA file with representative sequences
-                rep_file = fut.join_paths(gene_temp_dir,
+                rep_file = fo.join_paths(gene_temp_dir,
                                           ['{0}_rep_protein.fasta'.format(gene_id)])
-                rep_protein_lines = faut.fasta_lines(representatives, prot_seqs)
-                iut.write_list(rep_protein_lines, rep_file)
+                rep_protein_lines = fao.fasta_lines(representatives, prot_seqs)
+                fo.write_list(rep_protein_lines, rep_file)
 
                 # create file with seqids to BLAST against
-                ids_str = lut.concatenate_list([str(i) for i in ids_to_blast], '\n')
-                ids_file = fut.join_paths(gene_temp_dir,
+                ids_str = im.concatenate_list([str(i) for i in ids_to_blast], '\n')
+                ids_file = fo.join_paths(gene_temp_dir,
                                           ['{0}_ids.txt'.format(gene_id)])
-                iut.write_to_file(ids_str, ids_file, 'w', '')
+                fo.write_to_file(ids_str, ids_file, 'w', '')
 
                 # BLAST representatives against non-represented
-                blast_output = fut.join_paths(gene_temp_dir,
+                blast_output = fo.join_paths(gene_temp_dir,
                                               ['{0}_blast_out.tsv'.format(gene_id)])
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
 
-                blast_stderr = but.run_blast(blastp_path, blastp_db, rep_file,
+                blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
                                              blast_output, 1, 1, ids_file, blastp_task,
                                              100000)
                 if len(blast_stderr) > 0:
                     raise ValueError(blast_stderr)
 
                 # import BLAST results
-                blast_results = iut.read_tabular(blast_output)
+                blast_results = fo.read_tabular(blast_output)
 
                 # get self-score for representatives
                 rep_self_scores = {res[1]: res[2] for res in blast_results
@@ -390,7 +392,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
                 # determine smallest set of representatives that allow to get all cycle candidates
                 excluded = []
-                hotspot_reps = set(lut.flatten_list(list(hot_reps.values())))
+                hotspot_reps = set(im.flatten_list(list(hot_reps.values())))
                 for rep, hits in hot_reps.items():
                     common = hotspot_reps.intersection(set(hits))
                     if len(common) > 0:
@@ -425,16 +427,16 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
             final_representatives = list(prot_seqs.keys())
 
         # write schema file with all alleles
-        gene_lines = faut.fasta_lines(list(gene_seqs.keys()), gene_seqs)
-        iut.write_list(gene_lines, gene_file)
+        gene_lines = fao.fasta_lines(list(gene_seqs.keys()), gene_seqs)
+        fo.write_list(gene_lines, gene_file)
 
         # get total number of valid sequences
         valid_sequences = len(gene_lines)
 
         # write schema file with representatives
         final_representatives = [seqids_map[rep] for rep in final_representatives]
-        gene_rep_lines = faut.fasta_lines(final_representatives, gene_seqs)
-        iut.write_list(gene_rep_lines, gene_short_file)
+        gene_rep_lines = fao.fasta_lines(final_representatives, gene_seqs)
+        fo.write_list(gene_rep_lines, gene_short_file)
 
         # get number of representatives
         representatives_number = len(gene_rep_lines)
@@ -464,15 +466,15 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # define output paths
     schema_path = os.path.abspath(output_directory)
-    schema_short_path = fut.join_paths(schema_path, ['short'])
+    schema_short_path = fo.join_paths(schema_path, ['short'])
 
     # create output directories
     # check if they exist first
-    fut.create_directory(schema_path)
-    fut.create_directory(schema_short_path)
+    fo.create_directory(schema_path)
+    fo.create_directory(schema_short_path)
 
     # list schema gene files
-    genes_file = aux.check_input_type(input_files,
+    genes_file = pv.check_input_type(input_files,
                                       os.path.join(output_directory, 'schema_genes.txt'))
 
     # import list of schema files
@@ -488,20 +490,20 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     # count number of sequences and mean length per gene
     genes_info = []
     genes_pools = multiprocessing.Pool(processes=cpu_cores)
-    gp = genes_pools.map_async(faut.gene_seqs_info, genes_list,
+    gp = genes_pools.map_async(fao.gene_seqs_info, genes_list,
                                callback=genes_info.extend)
     gp.wait()
 
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
-    even_genes_groups = aux.split_genes_by_core(genes_info, cpu_cores*4,
+    even_genes_groups = mo.split_genes_by_core(genes_info, cpu_cores*4,
                                                 'seqcount')
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
 
     # add common arguments
-    blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
-    makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
+    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
     even_genes_groups = [[i, schema_path, schema_short_path,
                           blast_score_ratio, minimum_length,
                           translation_table, size_threshold,
@@ -510,8 +512,8 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     print('Adapting {0} genes...\n'.format(len(genes_list)))
 
-    invalid_data = aux.map_async_parallelizer(even_genes_groups,
-                                              aux.function_helper,
+    invalid_data = mo.map_async_parallelizer(even_genes_groups,
+                                              mo.function_helper,
                                               cpu_cores,
                                               show_progress=True)
 

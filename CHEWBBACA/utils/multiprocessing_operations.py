@@ -179,13 +179,3 @@ def split_genes_by_core(inputs, cores, method):
         i = splitted_values.index(min(splitted_values))
 
     return splitted_ids
-
-
-def filter_stderr(stderr, ignore):
-    """
-    """
-
-    unique_sterr = list(set(stderr) - set(ignore))
-
-
-    return unique_sterr

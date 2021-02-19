@@ -11,8 +11,15 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from SPARQLWrapper import SPARQLWrapper, JSON
 
+try:
+    from PrepExternalSchema import PrepExternalSchema
+    from utils import constants as ct
+except:
+    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import constants as ct
 
-virtuoso_server=SPARQLWrapper('http://sparql.uniprot.org/sparql')
+
+UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 class Result():
@@ -70,15 +77,15 @@ def check_if_list_or_folder(folder_or_list):
 
 
 def get_data(sparql_query):
-    virtuoso_server.setQuery(sparql_query)
-    virtuoso_server.setReturnFormat(JSON)
-    virtuoso_server.setTimeout(10)
+    UNIPROT_SERVER.setQuery(sparql_query)
+    UNIPROT_SERVER.setReturnFormat(JSON)
+    UNIPROT_SERVER.setTimeout(10)
     try:
-        result = virtuoso_server.query().convert()
+        result = UNIPROT_SERVER.query().convert()
     except:
         print ("A request to uniprot timed out, trying new request")
         time.sleep(5)
-        result = virtuoso_server.query().convert()
+        result = UNIPROT_SERVER.query().convert()
     return result
 
 
@@ -147,23 +154,18 @@ def proc_gene(gene,auxBar):
                 if not prevName=="":
                     name=prevName
                     url=prevUrl
-                #~ print("trying next allele")
                 continue
             else:
                 prevName=name
                 prevUrl=url
-                #~ print (name)
-                #~ print (url)
                 break
         except Exception as e:
-            #~ print (e)
-            #~ print("trying next allele")
             continue
 
     if gene in auxBar:
         auxlen=len(auxBar)
         index=auxBar.index(gene)
-        print ( "["+"="*index+">"+" "*(auxlen-index)+"] Querying "+str(int((float(index)/auxlen)*100))+"%")
+        print("["+"="*index+">"+" "*(auxlen-index)+"] Querying "+str(int((float(index)/auxlen)*100))+"%")
 
     return [gene, name, url]
 
@@ -207,7 +209,6 @@ def main(input_files, protein_table, cpu_cores):
 
     #test down bar
     auxBar=[]
-    #~ orderedkeys=sorted(newDict.keys())
     step=(int((len(listGenes))/10))+1
     counter=0
     while counter < len(listGenes):
@@ -224,7 +225,6 @@ def main(input_files, protein_table, cpu_cores):
     listResults=result.get_result()
 
     for result in listResults:
-        #~ lala=process_locus(gene,path2schema,newDict,auxBar)
         gene=result[0]
         name=result[1]
         url=result[2]

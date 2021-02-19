@@ -316,7 +316,7 @@ def escape_special_characters(input_string):
     return escaped_string
 
 
-def replace_multiple_characters(input_string):
+def replace_multiple_characters(input_string, replacements):
     """ Replaces multiple characters in a string.
 
         Parameters
@@ -330,15 +330,11 @@ def replace_multiple_characters(input_string):
             Input string without replaced characters.
     """
 
-    replaced = input_string.replace("|", "_")\
-                           .replace("_", "-")\
-                           .replace("(", "")\
-                           .replace(")", "")\
-                           .replace("'", "")\
-                           .replace("\"", "")\
-                           .replace(":", "")
+    for r in replacements:
+        if r[0] in input_string:
+            input_string = input_string.replace(*r)
 
-    return replaced
+    return input_string
 
 
 def reverse_complement(dna_sequence):
@@ -413,8 +409,7 @@ def check_str_alphabet(string, alphabet):
         it any of its characters is not in the alphabet.
     """
 
-    valid_chars = alphabet
-    if all(n in valid_chars for n in string) is True:
+    if all(n in alphabet for n in string) is True:
         return True
     else:
         return 'ambiguous or invalid characters'
@@ -578,6 +573,7 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
 
     return minimizers
 
+
 def decode_str(str_list, encoding):
     """
     """
@@ -627,3 +623,13 @@ def add_prefix(ids, prefix):
         ids_map[i] = new_id
 
     return ids_map
+
+
+def filter_list(lst, remove):
+    """
+    """
+
+    filtered_list = list(set(lst) - set(remove))
+
+
+    return filtered_list

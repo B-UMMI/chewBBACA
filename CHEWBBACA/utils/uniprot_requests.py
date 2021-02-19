@@ -11,7 +11,7 @@ DESCRIPTION
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 
-UNIPROT_SERVER = SPARQLWrapper("http://sparql.uniprot.org/sparql") 
+UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def select_name(result):

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-from Bio.Blast import NCBIXML
+
 import os
+
+from Bio.Blast import NCBIXML
 
 
 def ensure_dir(f):

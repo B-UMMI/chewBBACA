@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+
+
 import csv
-from numpy import array
 import argparse
+
+from numpy import array
 
 
 def main():

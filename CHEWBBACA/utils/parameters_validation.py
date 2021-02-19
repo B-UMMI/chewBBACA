@@ -25,13 +25,11 @@ import multiprocessing
 try:
     from utils import (constants as ct,
                        file_operations as fo,
-                       chewiens_requests as cr,
-                       auxiliary_functions as aux)
+                       chewiens_requests as cr)
 except:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
-                                 chewiens_requests as cr,
-                                 auxiliary_functions as aux)
+                                 chewiens_requests as cr)
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -519,25 +517,25 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
         prompt = ('BLAST score ratio value:\n')
         blast_score_ratio = fo.input_timeout(prompt, ct.prompt_timeout)
     
-    blast_score_ratio = pv.bsr_type(blast_score_ratio)
+    blast_score_ratio = bsr_type(blast_score_ratio)
 
     if translation_table is None:
         prompt = ('Translation table value:\n')
         translation_table = fo.input_timeout(prompt, ct.prompt_timeout)
 
-    translation_table = pv.translation_table_type(translation_table)
+    translation_table = translation_table_type(translation_table)
 
     if minimum_length is None:
         prompt = ('Minimum length value:\n')
         minimum_length = fo.input_timeout(prompt, ct.prompt_timeout)
 
-    minimum_length = pv.minimum_sequence_length_type(minimum_length)
+    minimum_length = minimum_sequence_length_type(minimum_length)
 
     if size_threshold is None:
         prompt = ('Size threshold value:\n')
         size_threshold = fo.input_timeout(prompt, ct.prompt_timeout)
 
-    size_threshold = pv.size_threshold_type(size_threshold)
+    size_threshold = size_threshold_type(size_threshold)
 
     return [ptf_path, blast_score_ratio, translation_table,
             minimum_length, size_threshold]
@@ -558,22 +556,22 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
     blast_score_ratio = (blast_score_ratio
                          if blast_score_ratio is not None
                          else ct.DEFAULT_BSR)
-    blast_score_ratio = pv.bsr_type(blast_score_ratio)
+    blast_score_ratio = bsr_type(blast_score_ratio)
 
     translation_table = (translation_table
                          if translation_table is not None
                          else ct.GENETIC_CODES_DEFAULT)
-    translation_table = pv.translation_table_type(translation_table)
+    translation_table = translation_table_type(translation_table)
 
     minimum_length = (minimum_length
                       if minimum_length is not None
                       else ct.MINIMUM_LENGTH_DEFAULT)
-    minimum_length = pv.minimum_sequence_length_type(minimum_length)
+    minimum_length = minimum_sequence_length_type(minimum_length)
 
     size_threshold = (size_threshold
                       if size_threshold is not None
                       else ct.SIZE_THRESHOLD_DEFAULT)
-    size_threshold = pv.size_threshold_type(size_threshold)
+    size_threshold = size_threshold_type(size_threshold)
 
     return [ptf_path, blast_score_ratio, translation_table,
             minimum_length, size_threshold]

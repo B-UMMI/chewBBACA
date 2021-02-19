@@ -18,15 +18,13 @@ try:
                        iterables_manipulation as im,
                        blast_wrapper as bw,
                        fasta_operations as fao,
-                       constants as ct,
-                       auxiliary_functions as aux)
+                       constants as ct)
 except:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
                                  blast_wrapper as bw,
                                  fasta_operations as fao,
-                                 constants as ct,
-                                 auxiliary_functions as aux)
+                                 constants as ct)
 
 
 def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
@@ -299,7 +297,7 @@ def write_clusters(clusters, outfile):
         cluster_lines.append(current_cluster)
 
     # sort by number of lines to get clusters with more sequences first
-    cluster_lines = aux.sort_data(cluster_lines, sort_key=lambda x: len(x), reverse=True)
+    cluster_lines = im.sort_data(cluster_lines, sort_key=lambda x: len(x), reverse=True)
     cluster_lines = im.flatten_list(cluster_lines)
     cluster_text = im.join_list(cluster_lines, '\n')
 

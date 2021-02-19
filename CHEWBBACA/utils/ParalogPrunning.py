@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
+
+
+import os
 import csv
-import numpy as np
-from numpy import array
 import argparse
 import operator
 from collections import Counter
-import os
+
+import numpy as np
+
 
 def main(contigsfile,out_folder):
-
-    #~ parser = argparse.ArgumentParser(description="Check if locus are being represented more than once")
-    #~ parser.add_argument('-i', nargs='?', type=str, help='contig info file', required=True)
-    #~ parser.add_argument('-o', nargs='?', type=str, help="Folder for the analysis files", required=False,default=".")
-    #~
-    #~
-    #~ args = parser.parse_args()
-    #~ contigsfile = args.i
-    #~ out_folder = args.o
 
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
@@ -25,7 +19,7 @@ def main(contigsfile,out_folder):
         reader = csv.reader(f, delimiter="\t")
         d = list(reader)
 
-    d2 = array(d)
+    d2 = np.array(d)
 
     genelist= d2[:1,:]
     genelist=genelist.tolist()[0]

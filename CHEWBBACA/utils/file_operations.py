@@ -394,18 +394,21 @@ def input_timeout(prompt, timeout=30):
 
 def is_file_empty(file_path):
     """ Check if file is empty by confirming if its size is 0 bytes"""
+
     # Check if file exist and it is empty
     return os.path.exists(file_path) and os.stat(file_path).st_size == 0
 
 
 def is_file_empty_2(file_name):
     """ Check if file is empty by confirming if its size is 0 bytes"""
+
     # Check if file exist and it is empty
     return os.path.isfile(file_name) and os.path.getsize(file_name) == 0
 
 
 def is_file_empty_3(file_name):
     """ Check if file is empty by reading first character in it"""
+
     # open ile in read mode
     with open(file_name, 'r') as read_obj:
         # read first character

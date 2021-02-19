@@ -10,7 +10,10 @@ DESCRIPTION
 
 import subprocess
 
-from utils import auxiliary_functions as aux
+try:
+    from utils import iterables_manipulation as im
+except:
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
@@ -45,9 +48,9 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
     stderr = makedb_cmd.stderr.readlines()
 
     if len(stderr) > 0:
-        stderr = aux.decode_str(stderr, 'utf8')
+        stderr = im.decode_str(stderr, 'utf8')
         if ignore is not None:
-            stderr = aux.filter_stderr(stderr, ignore)
+            stderr = im.filter_list(stderr, ignore)
 
     return stderr
 
@@ -137,8 +140,8 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     stderr = blast_proc.stderr.readlines()
 
     if len(stderr) > 0:
-        stderr = aux.decode_str(stderr, 'utf8')
+        stderr = im.decode_str(stderr, 'utf8')
         if ignore is not None:
-            stderr = aux.filter_stderr(stderr, ignore)
+            stderr = im.filter_list(stderr, ignore)
 
     return stderr

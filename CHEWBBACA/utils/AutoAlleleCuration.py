@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+
+
 import os
 import argparse
+
 from Bio import SeqIO
 
 

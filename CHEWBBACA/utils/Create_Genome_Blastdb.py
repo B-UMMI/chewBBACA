@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-import sys
+
+
 import os
+import sys
 
 
 def main(makeblastdb_path, questionDB, directory, genomeFile, nucleotide=False):

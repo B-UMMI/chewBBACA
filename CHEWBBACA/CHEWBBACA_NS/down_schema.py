@@ -78,19 +78,15 @@ from urllib3.exceptions import InsecureRequestWarning
 
 try:
     from PrepExternalSchema import PrepExternalSchema
-    from utils import (io_utils as iut,
-                       constants as cnst,
-                       files_utils as fut,
-                       chewiens_utils as cut,
-                       auxiliary_functions as aux,
+    from utils import (file_operations as fo,
+                       constants as ct,
+                       chewiens_requests as cr,
                        parameters_validation as pv)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.utils import (io_utils as iut,
-                                 constants as cnst,
-                                 files_utils as fut,
-                                 chewiens_utils as cut,
-                                 auxiliary_functions as aux,
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 constants as ct,
+                                 chewiens_requests as cr,
                                  parameters_validation as pv)
 
 
@@ -119,7 +115,7 @@ def check_compressed(schema_uri, headers_get):
               last modification date of the schema at time of compression.
     """
 
-    zip_uri, zip_response = cut.simple_get_request(schema_uri, headers_get, ['zip'],
+    zip_uri, zip_response = cr.simple_get_request(schema_uri, headers_get, ['zip'],
                                                    parameters={'request_type': 'check'})
     zip_info = zip_response.json()
     if 'zip' in zip_info:
@@ -317,7 +313,7 @@ def schema_loci(schema_uri, headers_get):
     """
 
     # get the list of loci
-    loci_url, loci_res = cut.simple_get_request(schema_uri, headers_get, ['loci'])
+    loci_url, loci_res = cr.simple_get_request(schema_uri, headers_get, ['loci'])
     loci_res = loci_res.json()['Loci']
 
     # locus URI to locus name
@@ -358,7 +354,7 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     print('Number of loci to download: {0}'.format(total_loci))
 
     # build the list of urls to get
-    fasta_urls = [cut.make_url(locus, 'fasta') for locus in loci]
+    fasta_urls = [cr.make_url(locus, 'fasta') for locus in loci]
 
     # multithread the requests
     print('Downloading schema files...')
@@ -425,10 +421,10 @@ def download_compressed(zip_uri, species_name, schema_name,
                                        schema_name)
     schema_path = os.path.join(download_folder,
                                zip_name.split('.zip')[0])
-    fut.create_directory(schema_path)
+    fo.create_directory(schema_path)
 
     # download ZIP archive
-    url, zip_response = cut.simple_get_request(zip_uri, headers_get,
+    url, zip_response = cr.simple_get_request(zip_uri, headers_get,
                                                parameters={'request_type': 'download'})
     zip_path = os.path.join(schema_path, zip_name)
     open(zip_path, 'wb').write(zip_response.content)
@@ -470,7 +466,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
         ptf_file : str
             Path to the Prodigal training file.
     """
-    ptf_url, ptf_response = cut.simple_get_request(base_url, headers_get,
+    ptf_url, ptf_response = cr.simple_get_request(base_url, headers_get,
                                                    ['species', species_id, 'schemas', schema_id, 'ptf'])
 
     ptf_file = os.path.join(download_folder,
@@ -485,11 +481,11 @@ def main(species_id, schema_id, download_folder, cpu_cores,
          nomenclature_server, date, latest, blast_path):
 
     # GET request headers
-    headers_get = cnst.HEADERS_GET_JSON
+    headers_get = ct.HEADERS_GET_JSON
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = cut.species_ids(species_id, nomenclature_server, headers_get)
+    species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
     else:
@@ -499,7 +495,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
     # check if user provided schema identifier or schema description
     # get info about all the species schemas
     schema_id, schema_uri,\
-        schema_name, schema_params = cut.get_species_schemas(schema_id,
+        schema_name, schema_params = cr.get_species_schemas(schema_id,
                                                              species_id,
                                                              nomenclature_server,
                                                              headers_get)
@@ -579,11 +575,11 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         os.remove(ptf_file)
 
         # remove FASTA files with sequences from the NS
-        fut.remove_files(ns_files)
+        fo.remove_files(ns_files)
 
         # write hidden schema config file
         del(schema_params_dict['Schema_lock'])
-        schema_config = aux.write_schema_config(schema_params_dict['bsr'],
+        schema_config = pv.write_schema_config(schema_params_dict['bsr'],
                                                 ptf_hash,
                                                 schema_params_dict['translation_table'],
                                                 schema_params_dict['minimum_locus_length'],
@@ -595,9 +591,9 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         ns_config = os.path.join(schema_path, '.ns_config')
         download_info = [schema_date, schema_uri]
         if not os.path.exists(ns_config):
-            iut.pickle_dumper(download_info, ns_config)
+            fo.pickle_dumper(download_info, ns_config)
 
-        genes_list_file = aux.write_gene_list(schema_path)
+        genes_list_file = pv.write_gene_list(schema_path)
 
     print('Schema is now available at: {0}'.format(schema_path))
 

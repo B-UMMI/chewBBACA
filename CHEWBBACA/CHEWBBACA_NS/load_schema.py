@@ -112,26 +112,28 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from utils import (io_utils as iut,
-                       constants as cnst,
-                       files_utils as fut,
-                       chewiens_utils as cut,
-                       auxiliary_functions as aux,
-                       parameters_validation as pv)
+    from utils import (file_operations as fo,
+                       constants as ct,
+                       chewiens_requests as cr,
+                       parameters_validation as pv,
+                       uniprot_requests as ur,
+                       sequence_manipulation as sm,
+                       fasta_operations as fao)
 except:
-    from CHEWBBACA.utils import (io_utils as iut,
-                                 constants as cnst,
-                                 files_utils as fut,
-                                 chewiens_utils as cut,
-                                 auxiliary_functions as aux,
-                                 parameters_validation as pv)
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 constants as ct,
+                                 chewiens_requests as cr,
+                                 parameters_validation as pv,
+                                 uniprot_requests as ur,
+                                 sequence_manipulation as sm,
+                                 fasta_operations as fao)
 
 
 # Suppress only the single warning from urllib3 needed.
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 
-uniprot_sparql = SPARQLWrapper(cnst.UNIPROT_SPARQL)
+uniprot_sparql = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def import_annotations(tsv_file):
@@ -166,7 +168,7 @@ def import_annotations(tsv_file):
     """
 
     # read file
-    lines = iut.read_tabular(tsv_file)
+    lines = fo.read_tabular(tsv_file)
 
     # fill missing values with N/A
     lines = [l + ['N/A']*(3-len(l)) for l in lines]
@@ -258,7 +260,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
     """
 
     schema_id = None
-    schemas_url, schemas_get = cut.simple_get_request(base_url, headers_get,
+    schemas_url, schemas_get = cr.simple_get_request(base_url, headers_get,
                                                       ['species', species_id, 'schemas'])
     schemas_status = schemas_get.status_code
     if schemas_status in [200, 201]:
@@ -282,7 +284,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
             elif continue_up is True:
                 schema_url, schema_id = schema_info
                 # determine if schema upload was complete
-                schema_get = cut.simple_get_request(base_url, headers_get,
+                schema_get = cr.simple_get_request(base_url, headers_get,
                                                     ['species', species_id,
                                                      'schemas', schema_id])[1]
                 current_schema = schema_get.json()[0]
@@ -290,7 +292,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
                 if schema_date != 'singularity':
                     sys.exit('Schema finished uploading. Cannot proceed.')
                 # determine if user was the one that started the upload
-                ask_admin = cut.simple_get_request(base_url, headers_get,
+                ask_admin = cr.simple_get_request(base_url, headers_get,
                                                    ['species', species_id,
                                                     'schemas', schema_id,
                                                     'administrated'])[1]
@@ -309,7 +311,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
     return [upload_type, schema_id]
 
 
-def create_uniprot_queries(file, max_queries=cnst.MAX_QUERIES):
+def create_uniprot_queries(file, max_queries=ct.MAX_QUERIES):
     """ Creates SPARQL queries to search for protein annotations
         on UniProt.
 
@@ -332,22 +334,22 @@ def create_uniprot_queries(file, max_queries=cnst.MAX_QUERIES):
     """
 
     # import dictionary with protein sequences as values
-    protein_seqs = iut.pickle_loader(file)
+    protein_seqs = fo.pickle_loader(file)
 
     # create queries based on unique sequences only
     unique_prots = set(list(protein_seqs.values()))
     selected = unique_prots if len(unique_prots) <= max_queries \
                                else list(unique_prots)[0:max_queries]
 
-    queries = [aux.uniprot_query(prot) for prot in selected]
+    queries = [ur.uniprot_query(prot) for prot in selected]
     # save SPARQL queries with pickle
     queries_file = '{0}_up'.format(file)
-    iut.pickle_dumper(queries, queries_file)
+    fo.pickle_dumper(queries, queries_file)
 
     return queries_file
 
 
-def get_annotation(queries_file, max_queries=cnst.MAX_QUERIES):
+def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
     """ Queries the UniProt SPARQL endpoint to retrieve
         protein annotations.
 
@@ -379,7 +381,7 @@ def get_annotation(queries_file, max_queries=cnst.MAX_QUERIES):
     locus = queries_file.split('/')[-1].split('_prots_up')[0]
 
     # load queries for locus
-    queries = iut.pickle_loader(queries_file)
+    queries = fo.pickle_loader(queries_file)
 
     uniprot_sparql.setReturnFormat(JSON)
     uniprot_sparql.setTimeout(10)
@@ -401,7 +403,7 @@ def get_annotation(queries_file, max_queries=cnst.MAX_QUERIES):
 
         try:
             result = uniprot_sparql.query().convert()
-            name, url, label = aux.select_name(result)
+            name, url, label = ur.select_name(result)
 
             if name != '':
                 if prev_name == 'N/A':
@@ -467,10 +469,10 @@ def quality_control(locus_input):
               (list of str).
     """
 
-    res = aux.get_seqs_dicts(*locus_input, max_proteins=cnst.MAX_QUERIES)
+    res = sm.get_seqs_dicts(*locus_input, max_proteins=ct.MAX_QUERIES)
 
     prots_file = '{0}_prots'.format(locus_input[0].split('.fasta')[0])
-    iut.pickle_dumper(res[1], prots_file)
+    fo.pickle_dumper(res[1], prots_file)
 
     if len(res[2]) > 0:
         print('  Found {0} invalid alleles for '
@@ -505,11 +507,11 @@ def create_lengths_files(loci_files, out_dir):
     length_files = []
     for file in loci_files:
         locus = os.path.basename(file).split('.fasta')[0]
-        locus_lengths = aux.sequences_lengths(file)
+        locus_lengths = fao.sequences_lengths(file)
         lengths_file = os.path.join(out_dir,
                                     '{0}_lengths'.format(locus))
 
-        iut.pickle_dumper(locus_lengths, lengths_file)
+        fo.pickle_dumper(locus_lengths, lengths_file)
         length_files.append(lengths_file)
 
     return length_files
@@ -559,7 +561,7 @@ def schema_completedness(base_url, species_id, schema_id, headers_get,
     """
 
     # get info about loci and alleles upload
-    schema_loci = cut.simple_get_request(base_url, headers_get,
+    schema_loci = cr.simple_get_request(base_url, headers_get,
                                          ['species', species_id,
                                           'schemas', schema_id,
                                           'loci', 'data'])[1]
@@ -634,7 +636,7 @@ def create_schema(base_url, headers_post, species_id, params):
             (str) and the schema identifier (str) in the Chewie-NS.
     """
 
-    schema_post = cut.simple_post_request(base_url, headers_post,
+    schema_post = cr.simple_post_request(base_url, headers_post,
                                           ['species', species_id, 'schemas'],
                                           data=json.dumps(params))[1]
     schema_status = schema_post.status_code
@@ -690,14 +692,14 @@ def create_loci_file(schema_files, annotations, schema_dir,
         if absent_loci is None or file in absent_loci:
 
             locus = os.path.basename(file).split('.fasta')[0]
-            locus_hash = fut.hash_file(file, 'rb')
+            locus_hash = fo.hash_file(file, 'rb')
 
             locus_annotations = annotations[locus]
 
             loci_data[1].append([locus, locus_hash]+locus_annotations)
 
     if len(loci_data[1]) > 0:
-        iut.pickle_dumper(loci_data, loci_file)
+        fo.pickle_dumper(loci_data, loci_file)
 
     return loci_file
 
@@ -746,15 +748,15 @@ def upload_loci_data(loci_file, base_url, species_id,
 
     # compress file with loci data to reduce upload size
     loci_zip_file = '{0}.zip'.format(loci_file)
-    iut.file_zipper(loci_file, loci_zip_file)
+    fo.file_zipper(loci_file, loci_zip_file)
 
-    zip_url = aux.make_url(base_url, 'species', species_id,
+    zip_url = cr.make_url(base_url, 'species', species_id,
                            'schemas', schema_id, 'loci',
                            'data')
 
     # upload file as multipart-encoded file
     filename = '{0}_{1}_loci.zip'.format(species_id, schema_id)
-    response = cut.upload_file(loci_zip_file, filename,
+    response = cr.upload_file(loci_zip_file, filename,
                                zip_url, headers_post,
                                False)
 
@@ -767,7 +769,7 @@ def upload_loci_data(loci_file, base_url, species_id,
     current_time = 0
     status = 'Inserting'
     while status != 'Complete' and (current_time < time_limit):
-        insertion_status = cut.simple_get_request(base_url, headers_get,
+        insertion_status = cr.simple_get_request(base_url, headers_get,
                                                   ['species', species_id,'schemas',
                                                    schema_id, 'loci', 'data'])[1]
         insertion_status = insertion_status.json()
@@ -863,7 +865,7 @@ def create_alleles_files(schema_files, loci_responses, invalid_alleles,
                                                          locus_id))
         alleles_files.append(alleles_file)
 
-        iut.pickle_dumper(post_inputs, alleles_file)
+        fo.pickle_dumper(post_inputs, alleles_file)
 
     return [alleles_files, loci_ids, loci_hashes, loci_names]
 
@@ -914,16 +916,16 @@ def upload_alleles_data(alleles_data, length_files, base_url,
 
         # get length of alleles from current locus
         current_len = length_files[i]
-        data = iut.pickle_loader(current_len)
+        data = fo.pickle_loader(current_len)
         data = {current_locus: data[next(iter(data))]}
         data = {'content': data, 'locus_hash': locus_hash}
 
         # send data to the NS
-        send_url = cut.make_url(base_url, 'species', species_id,
+        send_url = cr.make_url(base_url, 'species', species_id,
                                 'schemas', schema_id, 'loci',
                                 current_locus, 'lengths')
 
-        lengths_res = cut.simple_post_request(send_url, headers_post,
+        lengths_res = cr.simple_post_request(send_url, headers_post,
                                               data=json.dumps(data))
         length_status = lengths_res.status_code
 
@@ -931,11 +933,11 @@ def upload_alleles_data(alleles_data, length_files, base_url,
         current_zip = a[0]
 
         # send data to insert alleles in the NS
-        zip_url = cut.make_url(base_url, 'species', species_id,
+        zip_url = cr.make_url(base_url, 'species', species_id,
                                'schemas', schema_id, 'loci',
                                current_locus, 'data')
 
-        zip_res = cut.upload_file(current_zip, locus_hash,
+        zip_res = cr.upload_file(current_zip, locus_hash,
                                   zip_url, headers_post_bytes,
                                   False)
         zip_status = zip_res.status_code
@@ -1029,19 +1031,19 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
          annotations, cpu_cores, threads, nomenclature_server, continue_up):
 
     if 'tutorial' not in nomenclature_server:
-        token = aux.capture_login_credentials(nomenclature_server)
+        token = cr.capture_login_credentials(nomenclature_server)
     else:
         token = ''
 
     # verify user
     print('-- User Permissions --')
     # GET request headers
-    headers_get = cnst.HEADERS_GET_JSON
+    headers_get = ct.HEADERS_GET_JSON
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
     if 'tutorial' not in nomenclature_server:
-        user_id, user_role, user_auth = cut.user_info(nomenclature_server, headers_get)
+        user_id, user_role, user_auth = cr.user_info(nomenclature_server, headers_get)
     else:
         user_id, user_role, user_auth = ['', '', True]
 
@@ -1056,11 +1058,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
                  'Not allowed to upload schemas.')
 
     # POST requests headers
-    headers_post = cnst.HEADERS_POST_JSON
+    headers_post = ct.HEADERS_POST_JSON
     headers_post['Authorization'] = token
     headers_post['user_id'] = user_id
     # POST headers to send binary data
-    headers_post_bytes = cnst.HEADERS_POST
+    headers_post_bytes = ct.HEADERS_POST
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
 
@@ -1069,7 +1071,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
 
     # Get schema files from genes list file
     genes_list = os.path.join(schema_directory, '.genes_list')
-    genes = iut.pickle_loader(genes_list)
+    genes = fo.pickle_loader(genes_list)
 
     fasta_paths = [os.path.join(schema_directory, file) for file in genes]
     fasta_paths.sort()
@@ -1077,11 +1079,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     # total number of loci
     total_loci = len(fasta_paths)
     # total number of alelles
-    total_alleles = sum(list(map(aux.count_sequences, fasta_paths)))
+    total_alleles = sum(list(map(fao.count_sequences, fasta_paths)))
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = cut.species_ids(species_id, nomenclature_server, headers_get)
+    species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
         print("Schema's species: {0} (id={1})".format(species_name, species_id))
@@ -1094,7 +1096,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     # verify schema configs
     print('Verifying schema configs...')
     # load schema config file
-    configs = aux.read_configs(schema_directory, '.schema_config')
+    configs = pv.read_configs(schema_directory, '.schema_config')
 
     # validate arguments values
     ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', ''), schema_directory)
@@ -1148,7 +1150,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     if continue_up is False:
         if description_file is not None and os.path.isfile(description_file) is True:
             # determine file hash
-            description_hash = fut.hash_file(description_file, 'rb')
+            description_hash = fo.hash_file(description_file, 'rb')
             print('Schema description: {0}'.format(description_file))
         else:
             print('Could not get a description from a file. '
@@ -1156,14 +1158,14 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
             description_file = 'schema_description.txt'
             with open(description_file, 'w') as sd:
                 sd.write(schema_name)
-            description_hash = fut.hash_file(description_file, 'rb')
+            description_hash = fo.hash_file(description_file, 'rb')
 
         params['SchemaDescription'] = description_hash
 
     print('\n-- Schema Pre-processing --')
 
     # hash schema files to get unique identifiers based on content
-    hashed_files = {fut.hash_file(file, 'rb'): file for file in fasta_paths}
+    hashed_files = {fo.hash_file(file, 'rb'): file for file in fasta_paths}
     print('Determining data to upload...')
     absent_loci = fasta_paths
     if upload_type[0] == 'incomplete':
@@ -1264,10 +1266,10 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
                                               species_id,
                                               params)
         # send file with description
-        description_uri = cut.make_url(nomenclature_server, 'species', species_id,
+        description_uri = cr.make_url(nomenclature_server, 'species', species_id,
                                        'schemas', schema_id, 'description')
 
-        desc_res = cut.upload_file(description_file, description_hash,
+        desc_res = cr.upload_file(description_file, description_hash,
                                    description_uri, headers_post_bytes,
                                    False)
 
@@ -1329,7 +1331,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     # zip all files to reduce upload size
     print('  Compressing files with alleles data...')
     zipped_files = ['{0}.zip'.format(file) for file in alleles_files]
-    list(map(aux.file_zipper, alleles_files, zipped_files))
+    list(map(fo.file_zipper, alleles_files, zipped_files))
     alleles_data = list(zip(zipped_files, loci_ids, loci_hashes, loci_names))
 
     print('  Sending alleles data to the NS...')
@@ -1346,9 +1348,9 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     else:
         # send training file to NS
         print('\n\nUploading Prodigal training file...')
-        ptf_url = cut.make_url(nomenclature_server, 'species', species_id,
+        ptf_url = cr.make_url(nomenclature_server, 'species', species_id,
                                'schemas', schema_id, 'ptf')
-        ptf_res = cut.upload_file(ptf_file, ptf_hash,
+        ptf_res = cr.upload_file(ptf_file, ptf_hash,
                                   ptf_url, headers_post_bytes,
                                   False)
         print(list(ptf_res.json().values())[0])
@@ -1361,11 +1363,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
 
     # delete all intermediate files
     print('Removing intermediate files...')
-    fut.remove_files(prot_files)
-    fut.remove_files(queries_files)
-    fut.remove_files(length_files)
-    fut.remove_files(alleles_files)
-    fut.remove_files(zipped_files)
+    fo.remove_files(prot_files)
+    fo.remove_files(queries_files)
+    fo.remove_files(length_files)
+    fo.remove_files(alleles_files)
+    fo.remove_files(zipped_files)
 
     if len(absent_loci) > 0:
         os.remove(loci_file)

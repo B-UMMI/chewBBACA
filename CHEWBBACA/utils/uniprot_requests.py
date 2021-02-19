@@ -10,6 +10,11 @@ DESCRIPTION
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
+try:
+    from utils import constants as ct
+except:
+    from CHEWBBACA.utils import constants as ct
+
 
 UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 

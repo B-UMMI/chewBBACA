@@ -171,7 +171,7 @@ def create_schema():
 
     # check if ptf exists
     if args.ptf_path is not False:
-        ptf_val = aux.check_ptf(args.ptf_path)
+        ptf_val = pv.check_ptf(args.ptf_path)
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
@@ -180,7 +180,7 @@ def create_schema():
         os.makedirs(args.output_directory)
 
     genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
-    args.input_files = aux.check_input_type(args.input_files, genomes_list)
+    args.input_files = pv.check_input_type(args.input_files, genomes_list)
 
     # add clustering config
     args.word_size = ct.WORD_SIZE_DEFAULT
@@ -201,7 +201,7 @@ def create_schema():
         ptf_hash = fo.hash_file(args.ptf_path, 'rb')
 
     # write schema config file
-    schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
+    schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                             args.translation_table, args.minimum_length,
                                             version, args.size_threshold,
                                             args.word_size, args.window_size,
@@ -209,7 +209,7 @@ def create_schema():
                                             args.intra_filter, schema_dir)
 
     # create hidden file with genes/loci list
-    genes_list_file = aux.write_gene_list(schema_dir)
+    genes_list_file = pv.write_gene_list(schema_dir)
 
     # remove temporary file with paths
     # to genome files
@@ -369,7 +369,7 @@ def allele_call():
     config_file = os.path.join(args.schema_directory, '.schema_config')
     # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
-        upgraded = aux.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
+        upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                              args.blast_score_ratio, args.translation_table,
                                              args.minimum_length, version,
                                              args.size_threshold, args.force_continue)
@@ -379,7 +379,7 @@ def allele_call():
     else:
         schema_params = fo.pickle_loader(config_file)
         # chek if user provided different values
-        schema_params, unmatch_params, run_params = aux.solve_conflicting_arguments(schema_params, args.ptf_path,
+        schema_params, unmatch_params, run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                            args.blast_score_ratio, args.translation_table,
                                                            args.minimum_length, args.size_threshold,
                                                            args.force_continue, config_file, args.schema_directory)
@@ -392,11 +392,11 @@ def allele_call():
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
     if args.genes_list is not False:
-        schema_genes = aux.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
+        schema_genes = pv.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
     else:
-        schema_genes = aux.check_input_type(args.schema_directory, 'listGenes2Call.txt')
+        schema_genes = pv.check_input_type(args.schema_directory, 'listGenes2Call.txt')
 
-    genomes_files = aux.check_input_type(args.input_files, 'listGenomes2Call.txt')
+    genomes_files = pv.check_input_type(args.input_files, 'listGenomes2Call.txt')
 
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
@@ -504,7 +504,7 @@ def evaluate_schema():
     light_mode = args.light_mode
     no_cleanup = args.no_cleanup
 
-    cpu_to_use = aux.verify_cpu_usage(cpu_cores)
+    cpu_to_use = pv.verify_cpu_usage(cpu_cores)
 
     # check if input file path exists
     if not os.path.exists(input_files):
@@ -913,7 +913,7 @@ def prep_schema():
 
     # check if ptf exists
     if args.ptf_path is not False:
-        ptf_val = aux.check_ptf(args.ptf_path)
+        ptf_val = pv.check_ptf(args.ptf_path)
         if ptf_val[0] is False:
             sys.exit(ptf_val[1])
 
@@ -927,13 +927,13 @@ def prep_schema():
         ptf_hash = ''
 
     # write schema config file
-    schema_config = aux.write_schema_config(args.blast_score_ratio, ptf_hash,
+    schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                             args.translation_table, args.minimum_length,
                                             version, args.size_threshold, None,
                                             None, None, None, args.output_directory)
 
     # create hidden file with genes/loci list
-    genes_list_file = aux.write_gene_list(args.output_directory)
+    genes_list_file = pv.write_gene_list(args.output_directory)
 
 
 @pd.process_timer

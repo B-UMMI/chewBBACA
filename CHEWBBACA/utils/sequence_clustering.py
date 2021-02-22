@@ -186,9 +186,9 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
     return [clusters, reps_sequences, reps_groups]
 
 
-def cluster_sequences(sorted_sequences, word_size, window_size,
-                      clustering_sim, representatives, grow,
-                      offset, position, seq_num_cluster):
+def clusterer(sorted_sequences, word_size, window_size,
+              clustering_sim, representatives, grow,
+              offset, position, seq_num_cluster):
     """ Cluster sequences based on shared percentage of kmers/minimizers.
 
         Parameters

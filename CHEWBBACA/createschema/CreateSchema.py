@@ -36,9 +36,9 @@ import argparse
 from Bio import SeqIO
 
 try:
-    from utils import (gene_prediction,
-                       constants as ct,
+    from utils import (constants as ct,
                        blast_wrapper as bw,
+                       gene_prediction as gp,
                        file_operations as fo,
                        fasta_operations as fao,
                        sequence_clustering as sc,
@@ -46,9 +46,9 @@ try:
                        iterables_manipulation as im,
                        multiprocessing_operations as mp)
 except:
-    from CHEWBBACA.utils import (gene_prediction,
-                                 constants as ct,
+    from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
+                                 gene_prediction as gp,
                                  file_operations as fo,
                                  fasta_operations as fao,
                                  sequence_clustering as sc,
@@ -57,9 +57,9 @@ except:
                                  multiprocessing_operations as mp)
 
 
-def gene_prediction_component(fasta_files, ptf_path, translation_table,
-                              prodigal_mode, cpu_cores, temp_directory,
-                              output_directory):
+def predict_genes(fasta_files, ptf_path, translation_table,
+                  prodigal_mode, cpu_cores, temp_directory,
+                  output_directory):
     """ Runs Prodigal to predict coding sequences in FASTA
         files with genomic sequence.
 
@@ -114,7 +114,7 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
                                                    len(fasta_files))
     # add common arguments to all sublists
     common_args = [prodigal_path, ptf_path, translation_table,
-                   prodigal_mode, runProdigal.main]
+                   prodigal_mode, gp.main]
     prodigal_inputs = [i+common_args for i in prodigal_inputs]
 
     # run Prodigal to predict genes
@@ -124,7 +124,7 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
                                                  show_progress=True)
 
     # determine if Prodigal predicted genes for all genomes
-    failed, failed_file = runProdigal.check_prodigal_results(prodigal_results,
+    failed, failed_file = gp.check_prodigal_results(prodigal_results,
                                                              output_directory)
 
     if len(failed) > 0:
@@ -143,8 +143,8 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
     return [fasta_files, prodigal_path]
 
 
-def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
-                             temp_directory, output_directory):
+def extract_genes(fasta_files, prodigal_path, cpu_cores,
+                  temp_directory, output_directory):
     """ Extracts coding sequences from FASTA files with genomic
         sequences and saves coding sequences and info about coding
         sequences to files.
@@ -178,7 +178,7 @@ def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
     # add common arguments and unique index/identifier
     extractor_inputs = [[extractor_inputs[i-1], prodigal_path,
-                         temp_directory, i, runProdigal.cds_batch_extractor]
+                         temp_directory, i, gp.cds_batch_extractor]
                         for i in range(1, len(extractor_inputs)+1)]
 
     # extract coding sequences
@@ -204,8 +204,8 @@ def cds_extraction_component(fasta_files, prodigal_path, cpu_cores,
     return cds_files
 
 
-def deduplication_component(fasta_files, temp_directory, cpu_cores,
-                            outfile_template):
+def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
+                       outfile_template):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -268,7 +268,7 @@ def deduplication_component(fasta_files, temp_directory, cpu_cores,
         return [dedup_results[0][1], dedup_inputs[0][1]]
 
 
-def small_sequences_component(fasta_file, minimum_length):
+def exclude_small(fasta_file, minimum_length):
     """ Identifies sequences smaller that a specified length
         value.
 
@@ -300,8 +300,8 @@ def small_sequences_component(fasta_file, minimum_length):
     return [small_seqids, ss_lines]
 
 
-def translation_component(sequence_ids, sequences_file, temp_directory,
-                          translation_table, minimum_length, cpu_cores):
+def translate_sequences(sequence_ids, sequences_file, temp_directory,
+                        translation_table, minimum_length, cpu_cores):
     """ Translates DNA sequences, returns information about
         sequences that are untranslatable and saves
         translatable DNA sequences and proteins to FASTA
@@ -396,10 +396,10 @@ def translation_component(sequence_ids, sequences_file, temp_directory,
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
 
-def clustering_component(sequences, word_size, window_size, clustering_sim,
-                         representatives, grow_clusters, kmer_offset,
-                         seq_num_cluster, temp_directory, cpu_cores,
-                         file_prefix, divide, position):
+def cluster_sequences(sequences, word_size, window_size, clustering_sim,
+                      representatives, grow_clusters, kmer_offset,
+                      seq_num_cluster, temp_directory, cpu_cores,
+                      file_prefix, divide, position):
     """ Clusters sequences based on the proportion of shared kmers.
 
         Parameters
@@ -461,7 +461,7 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
     common_args = [word_size, window_size, clustering_sim,
                    representatives, grow_clusters, kmer_offset,
                    position, seq_num_cluster,
-                   sc.cluster_sequences]
+                   sc.clusterer]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
@@ -479,11 +479,11 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
     # perform clustering with representatives
     if len(cluster_inputs) > 1:
         # cluster representatives
-        rep_clusters = sc.cluster_sequences(rep_sequences, word_size,
-                                            window_size, clustering_sim,
-                                            representatives, grow_clusters,
-                                            kmer_offset, position,
-                                            seq_num_cluster)
+        rep_clusters = sc.clusterer(rep_sequences, word_size,
+                                    window_size, clustering_sim,
+                                    representatives, grow_clusters,
+                                    kmer_offset, position,
+                                    seq_num_cluster)
 
         merged_clusters = {}
         for k, v in rep_clusters[0].items():
@@ -512,8 +512,8 @@ def clustering_component(sequences, word_size, window_size, clustering_sim,
     return clusters
 
 
-def cluster_pruner_component(clusters, representative_filter,
-                             output_directory, file_prefix):
+def cluster_representative_filter(clusters, representative_filter,
+                                  output_directory, file_prefix):
     """ Excludes sequences from clusters based on the proportion
         of shared kmers with the representative. After removing
         highly similar sequences, excludes clusters that are
@@ -589,9 +589,9 @@ def cluster_pruner_component(clusters, representative_filter,
     return [pruned_clusters, excluded_seqids]
 
 
-def cluster_intra_pruner_component(clusters, sequences, word_size,
-                                   intra_filter, output_directory,
-                                   file_prefix):
+def cluster_intra_filter(clusters, sequences, word_size,
+                         intra_filter, output_directory,
+                         file_prefix):
     """ Determines similarity between clustered sequences and
         excludes sequences that are highly similar to other clustered
         sequences.
@@ -667,9 +667,9 @@ def cluster_intra_pruner_component(clusters, sequences, word_size,
     return [pruned_clusters, intra_excluded]
 
 
-def cluster_blaster_component(clusters, sequences, output_directory,
-                              blastp_path, makeblastdb_path, cpu_cores,
-                              file_prefix):
+def blast_clusters(clusters, sequences, output_directory,
+                   blastp_path, makeblastdb_path, cpu_cores,
+                   file_prefix):
     """ Performs all-against-all comparisons between sequences in
         the same cluster through alignments with BLAST.
 
@@ -789,11 +789,11 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     return schema_files
 
 
-def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
-                    blast_score_ratio, minimum_length, translation_table,
-                    size_threshold, word_size, window_size, clustering_sim,
-                    representative_filter, intra_filter, cpu_cores, blast_path,
-                    prodigal_mode, cds_input):
+def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
+                       blast_score_ratio, minimum_length, translation_table,
+                       size_threshold, word_size, window_size, clustering_sim,
+                       representative_filter, intra_filter, cpu_cores, blast_path,
+                       prodigal_mode, cds_input):
     """
     """
 
@@ -824,30 +824,30 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
         print('Number of genomes/assemblies: {0}'.format(len(fasta_files)))
 
         # gene prediction step
-        gp_results = gene_prediction_component(fasta_files, ptf_path,
-                                               translation_table, prodigal_mode,
-                                               cpu_cores, temp_directory,
-                                               output_directory)
+        gp_results = predict_genes(fasta_files, ptf_path,
+                                   translation_table, prodigal_mode,
+                                   cpu_cores, temp_directory,
+                                   output_directory)
 
         fasta_files, prodigal_path = gp_results
 
         # CDS extraction step
-        cds_files = cds_extraction_component(fasta_files, prodigal_path,
-                                             cpu_cores, temp_directory,
-                                             output_directory)
+        cds_files = extract_genes(fasta_files, prodigal_path,
+                                  cpu_cores, temp_directory,
+                                  output_directory)
     else:
         cds_files = fasta_files
         print('Number of inputs: {0}'.format(len(cds_files)))
 
     # DNA sequences deduplication step
     distinct_dna_template = 'distinct_seqs_{0}.fasta'
-    ds_results = deduplication_component(cds_files, temp_directory, cpu_cores,
-                                         distinct_dna_template)
+    ds_results = exclude_duplicates(cds_files, temp_directory, cpu_cores,
+                                    distinct_dna_template)
 
     schema_seqids, distinct_seqs_file = ds_results
 
     # determine small sequences step
-    ss_results = small_sequences_component(distinct_seqs_file, minimum_length)
+    ss_results = exclude_small(distinct_seqs_file, minimum_length)
 
     small_seqids, ss_lines = ss_results
 
@@ -856,9 +856,9 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     schema_seqids = im.sort_data(schema_seqids, sort_key=lambda x: x.lower())
 
     # sequence translation step
-    ts_results = translation_component(schema_seqids, distinct_seqs_file,
-                                       temp_directory, translation_table,
-                                       minimum_length, cpu_cores)
+    ts_results = translate_sequences(schema_seqids, distinct_seqs_file,
+                                     temp_directory, translation_table,
+                                     minimum_length, cpu_cores)
 
     dna_file, protein_file, ut_seqids, ut_lines = ts_results
 
@@ -871,10 +871,9 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
           'stored in {0}'.format(invalid_alleles_file))
 
     # protein sequences deduplication step
-    print('\nRemoving repeated Protein sequences...')
     distinct_prot_template = 'distinct_prots_{0}.fasta'
-    ds_results = deduplication_component([protein_file], temp_directory, 1,
-                                         distinct_prot_template)
+    ds_results = exclude_duplicates([protein_file], temp_directory, 1,
+                                    distinct_prot_template)
 
     distinct_protein_seqs, distinct_prots_file = ds_results
 
@@ -900,16 +899,16 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     proteins = fao.import_sequences(qc_protein_file)
 
     # change names of files created during components execution!!!
-    cs_results = clustering_component(proteins, word_size, window_size,
-                                      clustering_sim, None, True,
-                                      1, 1, temp_directory, cpu_cores,
-                                      'csi', True, False)
+    cs_results = cluster_sequences(proteins, word_size, window_size,
+                                   clustering_sim, None, True,
+                                   1, 1, temp_directory, cpu_cores,
+                                   'csi', True, False)
 
     # clustering pruning step
-    cp_results = cluster_pruner_component(cs_results,
-                                          representative_filter,
-                                          temp_directory,
-                                          'cpi')
+    cp_results = cluster_representative_filter(cs_results,
+                                               representative_filter,
+                                               temp_directory,
+                                               'cpi')
 
     clusters, excluded_seqids = cp_results
 
@@ -917,10 +916,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     schema_seqids = list(set(distinct_protein_seqs) - excluded_seqids)
 
     # intra cluster pruner step
-    cip_results = cluster_intra_pruner_component(clusters, proteins,
-                                                 word_size, intra_filter,
-                                                 temp_directory,
-                                                 'cipi')
+    cip_results = cluster_intra_filter(clusters, proteins,
+                                       word_size, intra_filter,
+                                       temp_directory,
+                                       'cipi')
 
     clusters, intra_excluded = cip_results
 
@@ -932,13 +931,10 @@ def genomes_to_reps(input_files, output_directory, schema_name, ptf_path,
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
 
-    blast_results, ids_dict = cluster_blaster_component(clusters,
-                                                        proteins,
-                                                        temp_directory,
-                                                        blastp_path,
-                                                        makeblastdb_path,
-                                                        cpu_cores,
-                                                        'cbi')
+    blast_results, ids_dict = blast_clusters(clusters, proteins,
+                                             temp_directory, blastp_path,
+                                             makeblastdb_path, cpu_cores,
+                                             'cbi')
 
     blast_files = im.flatten_list(blast_results)
 
@@ -1009,12 +1005,12 @@ def main(input_files, output_directory, schema_name, ptf_path,
          representative_filter, intra_filter, cpu_cores, blast_path,
          cds_input, prodigal_mode, no_cleanup):
 
-    results = genomes_to_reps(input_files, output_directory, schema_name,
-                              ptf_path, blast_score_ratio, minimum_length,
-                              translation_table, size_threshold, word_size,
-                              window_size, clustering_sim, representative_filter,
-                              intra_filter, cpu_cores, blast_path,
-                              prodigal_mode, cds_input)
+    results = create_schema_seed(input_files, output_directory, schema_name,
+                                 ptf_path, blast_score_ratio, minimum_length,
+                                 translation_table, size_threshold, word_size,
+                                 window_size, clustering_sim, representative_filter,
+                                 intra_filter, cpu_cores, blast_path,
+                                 prodigal_mode, cds_input)
 
     # remove temporary files
     if no_cleanup is False:

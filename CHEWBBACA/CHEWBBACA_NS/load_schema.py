@@ -1104,7 +1104,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
     st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
-    cv_val = pv.validate_cv(configs.get('chewBBACA_version', ''))
+    cv_val = configs.get('chewBBACA_version', '')
     ws_val = pv.validate_ws(configs.get('word_size', None))
     cs_val = pv.validate_cs(configs.get('cluster_sim', None))
     rf_val = pv.validate_rf(configs.get('representative_filter', None))

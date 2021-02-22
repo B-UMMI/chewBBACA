@@ -180,21 +180,6 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
     return valid
 
 
-def validate_cv(arg, chewie_versions=ct.CHEWIE_VERSIONS):
-    """
-    """
-
-    arg = arg_list(arg, 'chewBBACA version')
-
-    if arg in chewie_versions:
-        valid = arg
-    else:
-        sys.exit('\nSchema created with chewBBACA version that '
-                 'is not suitable to work with the NS.')
-
-    return valid
-
-
 def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
     """
     """

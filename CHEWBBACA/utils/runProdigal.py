@@ -42,7 +42,7 @@ def check_prodigal_results(prodigal_results, output_directory):
     errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
     failed = no_cds + errors
 
-    failed_file = os.path.join(output_directory, 'prodigal_fails.tsv')
+    failed_file = os.path.join(output_directory, 'prodigal_stderr.tsv')
     if len(failed) > 0:
         lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
         fo.write_lines(lines, failed_file)

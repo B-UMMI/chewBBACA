@@ -128,7 +128,7 @@ def gene_prediction_component(fasta_files, ptf_path, translation_table,
                                                              output_directory)
 
     if len(failed) > 0:
-        print('Failed to predict genes for {0} genomes.'.format(len(failed)))
+        print('\nFailed to predict genes for {0} genomes.'.format(len(failed)))
         print('Info for failed cases stored in: {0}'.format(failed_file))
 
     # remove failed genomes from paths

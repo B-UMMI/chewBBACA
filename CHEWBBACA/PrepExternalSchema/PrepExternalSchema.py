@@ -74,22 +74,22 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 
 try:
-    from utils import (file_operations as fo,
-                       iterables_manipulation as im,
-                       constants as ct,
+    from utils import (constants as ct,
                        blast_wrapper as bw,
+                       file_operations as fo,
                        fasta_operations as fao,
                        sequence_manipulation as sm,
                        parameters_validation as pv,
+                       iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 iterables_manipulation as im,
-                                 constants as ct,
+    from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
+                                 file_operations as fo,
                                  fasta_operations as fao,
                                  sequence_manipulation as sm,
                                  parameters_validation as pv,
+                                 iterables_manipulation as im,
                                  multiprocessing_operations as mo)
 
 

@@ -67,15 +67,15 @@ from Bio import SeqIO
 
 try:
     from PrepExternalSchema import PrepExternalSchema
-    from utils import (file_operations as fo,
-                       constants as ct,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        chewiens_requests as cr,
                        profiles_sqlitedb as ps,
                        parameters_validation as pv)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 constants as ct,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  chewiens_requests as cr,
                                  profiles_sqlitedb as ps,
                                  parameters_validation as pv)

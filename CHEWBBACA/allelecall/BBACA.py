@@ -17,16 +17,18 @@ from Bio.Seq import Seq
 
 try:
     from allelecall import callAlleles_protein3
-    from utils import (ParalogPrunning, runProdigal,
+    from utils import (ParalogPrunning,
+                       gene_prediction,
                        Create_Genome_Blastdb,
-                       parameters_validation as pv,
-                       constants as cnst)
+                       constants as ct,
+                       parameters_validation as pv)
 except:
     from CHEWBBACA.allelecall import callAlleles_protein3
-    from CHEWBBACA.utils import (ParalogPrunning, runProdigal,
+    from CHEWBBACA.utils import (ParalogPrunning,
+                                 gene_prediction,
                                  Create_Genome_Blastdb,
-                                 parameters_validation as pv,
-                                 constants as cnst)
+                                 constants as ct,
+                                 parameters_validation as pv)
 
 
 def prepGenomes(genomeFile, basepath, verbose, inputCDS):
@@ -389,7 +391,7 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, blast_path, forceCont
             print('Creating Blast databases for all genomes...\n')
             # creation of the Databases for each genome, one genome per core using n cores
             pool = multiprocessing.Pool(cpuToUse)
-            makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
+            makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
             for genomeFile in listOfGenomes:
                 filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
                 os.makedirs(os.path.join(basepath, str(os.path.basename(genomeFile))))

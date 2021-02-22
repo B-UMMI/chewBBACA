@@ -633,3 +633,24 @@ def filter_list(lst, remove):
 
 
     return filtered_list
+
+
+def find_missing(lst):
+    """ Finds missing integers in list
+        of consecutive integers.
+
+        Parameters
+        ----------
+        lst : list
+            List containing consecutive integers.
+
+        Returns
+        -------
+        list
+            Sorted list of missing integers.
+    """
+
+    start = lst[0]
+    end = lst[-1]
+
+    return sorted(set(range(start, end + 1)).difference(lst))

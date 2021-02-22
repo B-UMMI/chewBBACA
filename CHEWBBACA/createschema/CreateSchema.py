@@ -36,25 +36,25 @@ import argparse
 from Bio import SeqIO
 
 try:
-    from utils import (runProdigal,
-                       file_operations as fo,
-                       iterables_manipulation as im,
+    from utils import (gene_prediction,
+                       constants as ct,
                        blast_wrapper as bw,
+                       file_operations as fo,
                        fasta_operations as fao,
                        sequence_clustering as sc,
-                       constants as ct,
-                       multiprocessing_operations as mp,
-                       sequence_manipulation as sm)
+                       sequence_manipulation as sm,
+                       iterables_manipulation as im,
+                       multiprocessing_operations as mp)
 except:
-    from CHEWBBACA.utils import (runProdigal,
-                                 file_operations as fo,
-                                 iterables_manipulation as im,
+    from CHEWBBACA.utils import (gene_prediction,
+                                 constants as ct,
                                  blast_wrapper as bw,
+                                 file_operations as fo,
                                  fasta_operations as fao,
                                  sequence_clustering as sc,
-                                 constants as ct,
-                                 multiprocessing_operations as mp,
-                                 sequence_manipulation as sm)
+                                 sequence_manipulation as sm,
+                                 iterables_manipulation as im,
+                                 multiprocessing_operations as mp)
 
 
 def gene_prediction_component(fasta_files, ptf_path, translation_table,

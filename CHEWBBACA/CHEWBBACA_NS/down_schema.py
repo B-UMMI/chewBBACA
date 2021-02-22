@@ -78,14 +78,14 @@ from urllib3.exceptions import InsecureRequestWarning
 
 try:
     from PrepExternalSchema import PrepExternalSchema
-    from utils import (file_operations as fo,
-                       constants as ct,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        chewiens_requests as cr,
                        parameters_validation as pv)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 constants as ct,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  chewiens_requests as cr,
                                  parameters_validation as pv)
 

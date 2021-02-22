@@ -17,11 +17,11 @@ from Bio import BiopythonWarning
 from Bio.Blast.Applications import NcbiblastpCommandline
 
 try:
-    from utils import (CommonFastaFunctions,
-                       constants as cnst)
+    from utils import (constants as ct,
+                       CommonFastaFunctions)
 except:
-    from CHEWBBACA.utils import (CommonFastaFunctions,
-                                 constants as cnst)
+    from CHEWBBACA.utils import (constants as ct,
+                                 CommonFastaFunctions)
 
 
 warnings.simplefilter('ignore', BiopythonWarning)
@@ -207,8 +207,8 @@ def translateSeq(DNASeq):
 def main(input_file, temppath, blast_path, verbose, bsrTresh, sizeTresh, ns):
 
     # create BLASTp and MakeBLASTdb paths
-    blastp_path = os.path.join(blast_path, cnst.BLASTP_ALIAS)
-    makeblastdb_path = os.path.join(blast_path, cnst.MAKEBLASTDB_ALIAS)
+    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
 
     if verbose == 'True':
         verbose = True

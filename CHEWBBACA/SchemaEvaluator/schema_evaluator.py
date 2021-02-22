@@ -58,9 +58,17 @@ from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalwCommandline
 
 try:
-    from utils import auxiliary_functions as aux
+    from utils import (file_operations as fo,
+                       fasta_operations as fao,
+                       sequence_manipulation as sm,
+                       iterables_manipulation as im,
+                       multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 fasta_operations as fao,
+                                 sequence_manipulation as sm,
+                                 iterables_manipulation as im,
+                                 multiprocessing_operations as mo)
 
 
 # Schema Evaluator Auxiliary Functions
@@ -347,7 +355,7 @@ def create_cds_df(schema_file, minimum_length, translation_table):
 
     gene_res = {"Gene": os.path.split(schema_file)[1]}
 
-    gene_res["Number of alleles"] = aux.count_sequences(schema_file)
+    gene_res["Number of alleles"] = fao.count_sequences(schema_file)
 
     stopC = 0
     notStart = 0
@@ -365,7 +373,7 @@ def create_cds_df(schema_file, minimum_length, translation_table):
         else:
             allele_ids.append(int(allele.id))
 
-        ola = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
+        ola = sm.translate_dna(str(allele.seq), translation_table, minimum_length)
 
         if "sequence length is not a multiple of 3" in ola:
             notMultiple += 1
@@ -380,8 +388,8 @@ def create_cds_df(schema_file, minimum_length, translation_table):
         else:
             CDS += 1
 
-    if len(aux.find_missing(allele_ids)) > 0:
-        missing_allele_ids = aux.find_missing(allele_ids)
+    if len(im.find_missing(allele_ids)) > 0:
+        missing_allele_ids = im.find_missing(allele_ids)
     else:
         missing_allele_ids = ["None"]
 
@@ -450,8 +458,8 @@ def create_pre_computed_data(
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
 
     # Check if files are empty
-    empty_files_1 = [aux.is_file_empty(f) for f in schema_files]
-    empty_files_2 = [aux.is_file_empty_3(f) for f in schema_files]
+    empty_files_1 = [fo.is_file_empty(f) for f in schema_files]
+    empty_files_2 = [fo.is_file_empty_3(f) for f in schema_files]
 
     if True in empty_files_1:
         sys.exit("At least one file is empty or it doesn't exist. Exiting...")
@@ -480,7 +488,7 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_main, len(schema_files))
+                completed = mo.progress_bar(rawr_main, len(schema_files))
 
         rawr_main.wait()
 
@@ -501,7 +509,7 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_ind, len(schema_files))
+                completed = mo.progress_bar(rawr_ind, len(schema_files))
 
         rawr_ind.wait()
 
@@ -617,12 +625,12 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_cds, len(schema_files))
+                completed = mo.progress_bar(rawr_cds, len(schema_files))
 
         rawr_cds.wait()
 
         # flatten the CDS data output list
-        flat_multi_out = aux.flatten_list(cds_multi)
+        flat_multi_out = im.flatten_list(cds_multi)
 
         # sort data for the CDS table
         data_ind = sorted(
@@ -909,7 +917,7 @@ def create_protein_files(
     if show_progress is True:
         completed = False
         while completed is False:
-            completed = aux.progress_bar(rawr_prot, len(schema_files))
+            completed = mo.progress_bar(rawr_prot, len(schema_files))
 
     rawr_prot.wait()
 
@@ -952,7 +960,7 @@ def generate_protein_files(fasta, output_path, minimum_length, translation_table
     exceptions = []
 
     for allele in SeqIO.parse(fasta, "fasta"):
-        prot = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
+        prot = sm.translate_dna(str(allele.seq), translation_table, minimum_length)
 
         if isinstance(prot, list):
             tets = make_protein_record(prot[0][0], allele.id.split("_")[-1])
@@ -1041,7 +1049,7 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     if show_progress is True:
         completed = False
         while completed is False:
-            completed = aux.progress_bar(rawr, len(protein_files))
+            completed = mo.progress_bar(rawr, len(protein_files))
 
     rawr.wait()
 

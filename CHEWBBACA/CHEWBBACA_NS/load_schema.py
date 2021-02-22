@@ -112,21 +112,21 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from utils import (file_operations as fo,
-                       constants as ct,
-                       chewiens_requests as cr,
-                       parameters_validation as pv,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        uniprot_requests as ur,
-                       sequence_manipulation as sm,
-                       fasta_operations as fao)
+                       chewiens_requests as cr,
+                       fasta_operations as fao,
+                       parameters_validation as pv,
+                       sequence_manipulation as sm)
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 constants as ct,
-                                 chewiens_requests as cr,
-                                 parameters_validation as pv,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  uniprot_requests as ur,
-                                 sequence_manipulation as sm,
-                                 fasta_operations as fao)
+                                 chewiens_requests as cr,
+                                 fasta_operations as fao,
+                                 parameters_validation as pv,
+                                 sequence_manipulation as sm)
 
 
 # Suppress only the single warning from urllib3 needed.

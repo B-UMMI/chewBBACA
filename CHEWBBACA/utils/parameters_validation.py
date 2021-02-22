@@ -37,7 +37,7 @@ except:
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
     # prog is the name of the program 'ex: chewBBACA.py'
-    def __init__(self, prog, indent_increment=2, max_help_position=56, width=None):
+    def __init__(self, prog, indent_increment=2, max_help_position=56, width=100):
         super().__init__(prog, indent_increment, max_help_position, width)
 
     # override split lines method

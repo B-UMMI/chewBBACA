@@ -20,15 +20,13 @@ try:
     from utils import (ParalogPrunning,
                        gene_prediction,
                        Create_Genome_Blastdb,
-                       constants as ct,
-                       parameters_validation as pv)
+                       constants as ct)
 except:
     from CHEWBBACA.allelecall import callAlleles_protein3
     from CHEWBBACA.utils import (ParalogPrunning,
                                  gene_prediction,
                                  Create_Genome_Blastdb,
-                                 constants as ct,
-                                 parameters_validation as pv)
+                                 constants as ct)
 
 
 def prepGenomes(genomeFile, basepath, verbose, inputCDS):
@@ -338,7 +336,7 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, blast_path, forceCont
                 total = len(listOfGenomes)
                 processed = 0
                 for genome in listOfGenomes:
-                    pool.apply_async(runProdigal.main,
+                    pool.apply_async(gene_prediction.main,
                                      (str(genome), basepath, chosenTrainingFile, translation_table, prodigal_mode),
                                      callback=prodigal_results.append)
                     processed += 1

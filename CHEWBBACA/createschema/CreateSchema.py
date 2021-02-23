@@ -44,7 +44,7 @@ try:
                        sequence_clustering as sc,
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
-                       multiprocessing_operations as mp)
+                       multiprocessing_operations as mo)
 except:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
@@ -54,7 +54,7 @@ except:
                                  sequence_clustering as sc,
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
-                                 multiprocessing_operations as mp)
+                                 multiprocessing_operations as mo)
 
 
 def predict_genes(fasta_files, ptf_path, translation_table,
@@ -118,8 +118,8 @@ def predict_genes(fasta_files, ptf_path, translation_table,
     prodigal_inputs = [i+common_args for i in prodigal_inputs]
 
     # run Prodigal to predict genes
-    prodigal_results = mp.map_async_parallelizer(prodigal_inputs,
-                                                 mp.function_helper,
+    prodigal_results = mo.map_async_parallelizer(prodigal_inputs,
+                                                 mo.function_helper,
                                                  cpu_cores,
                                                  show_progress=True)
 
@@ -183,8 +183,8 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
     # extract coding sequences
     print('\n\nExtracting coding sequences...\n')
-    extracted_cdss = mp.map_async_parallelizer(extractor_inputs,
-                                               mp.function_helper,
+    extracted_cdss = mo.map_async_parallelizer(extractor_inputs,
+                                               mo.function_helper,
                                                cpu_cores,
                                                show_progress=True)
 
@@ -240,8 +240,8 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # determine distinct sequences (keeps 1 seqid per sequence)
     print('\nRemoving duplicated sequences...')
-    dedup_results = mp.map_async_parallelizer(dedup_inputs,
-                                              mp.function_helper,
+    dedup_results = mo.map_async_parallelizer(dedup_inputs,
+                                              mo.function_helper,
                                               cpu_cores,
                                               show_progress=False)
 
@@ -370,8 +370,8 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
                           for i in range(0, len(dna_files))]
 
     # translate sequences
-    translation_results = mp.map_async_parallelizer(translation_inputs,
-                                                    mp.function_helper,
+    translation_results = mo.map_async_parallelizer(translation_inputs,
+                                                    mo.function_helper,
                                                     cpu_cores,
                                                     show_progress=False)
 
@@ -466,8 +466,8 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
     # cluster proteins in parallel
     print('\nClustering sequences...')
-    clustering_results = mp.map_async_parallelizer(cluster_inputs,
-                                                   mp.function_helper,
+    clustering_results = mo.map_async_parallelizer(cluster_inputs,
+                                                   mo.function_helper,
                                                    cpu_cores)
 
     # merge clusters
@@ -743,7 +743,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
-    splitted_seqids = mp.split_genes_by_core(seqids_to_blast,
+    splitted_seqids = mo.split_genes_by_core(seqids_to_blast,
                                               process_num,
                                               'seqcount')
 
@@ -756,8 +756,8 @@ def blast_clusters(clusters, sequences, output_directory,
     print('BLASTing protein sequences in each cluster...\n')
 
     # BLAST each sequences in a cluster against every sequence in that cluster
-    blast_results = mp.map_async_parallelizer(splitted_seqids,
-                                               mp.function_helper,
+    blast_results = mo.map_async_parallelizer(splitted_seqids,
+                                               mo.function_helper,
                                                cpu_cores,
                                                show_progress=True)
 

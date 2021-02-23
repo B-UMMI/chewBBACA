@@ -18,15 +18,19 @@ from Bio.Seq import Seq
 try:
     from allelecall import callAlleles_protein3
     from utils import (ParalogPrunning,
-                       gene_prediction,
                        Create_Genome_Blastdb,
-                       constants as ct)
+                       constants as ct,
+                       gene_prediction as gp,
+                       iterables_manipulation as im,
+                       multiprocessing_operations as mo)
 except:
     from CHEWBBACA.allelecall import callAlleles_protein3
     from CHEWBBACA.utils import (ParalogPrunning,
-                                 gene_prediction,
                                  Create_Genome_Blastdb,
-                                 constants as ct)
+                                 constants as ct,
+                                 gene_prediction as gp,
+                                 iterables_manipulation as im,
+                                 multiprocessing_operations as mo)
 
 
 def prepGenomes(genomeFile, basepath, verbose, inputCDS):
@@ -331,35 +335,34 @@ def main(genomeFiles, genes, cpuToUse, gOutFile, BSRTresh, blast_path, forceCont
             if inputCDS is False:
 
                 print("\nStarting Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
-                prodigal_results = []
-                pool = multiprocessing.Pool(cpuToUse)
-                total = len(listOfGenomes)
-                processed = 0
-                for genome in listOfGenomes:
-                    pool.apply_async(gene_prediction.main,
-                                     (str(genome), basepath, chosenTrainingFile, translation_table, prodigal_mode),
-                                     callback=prodigal_results.append)
-                    processed += 1
-                    print('\r', 'Processed {0}/{1}'.format(processed, total), end='')
 
-                pool.close()
-                pool.join()
-                print()
+                # divide input genomes into equal number of sublists for
+                # maximum process progress resolution
+                prodigal_inputs = im.divide_list_into_n_chunks(listOfGenomes,
+                                                               len(listOfGenomes))
+                # add common arguments to all sublists
+                common_args = [basepath, chosenTrainingFile, translation_table,
+                               prodigal_mode, gp.main]
+                prodigal_inputs = [i+common_args for i in prodigal_inputs]
 
-                # get problematic cases
-                no_cds = [l for l in prodigal_results if l[1] == 0]
-                errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
-                failed = no_cds + errors
+                # run Prodigal to predict genes
+                prodigal_results = mo.map_async_parallelizer(prodigal_inputs,
+                                                             mo.function_helper,
+                                                             cpuToUse,
+                                                             show_progress=True)
+
+                # determine if Prodigal predicted genes for all genomes
+                failed_outdir = os.path.dirname(genepath)
+                failed, failed_file = gp.check_prodigal_results(prodigal_results,
+                                                                failed_outdir)
 
                 if len(failed) > 0:
-                    print('Failed to predict genes for {0} genomes.'.format(len(failed)))
-                    failed_genomes = '\n'.join([f[0] for f in failed])
-                    print('Failed for following genomes:\n{0}\nPlease remove '
-                          'these genomes and retry the analysis.'.format(failed_genomes))
+                    print('\n\nFailed to predict genes for {0} genomes.'.format(len(failed)))
+                    print('Info for failed cases stored in: {0}'.format(failed_file))
                     shutil.rmtree(basepath)
-                    sys.exit(0)
+                    sys.exit('Please remove invalid inputs and try again.')
 
-                print("Finishing Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+                print("\nFinishing Prodigal at: " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
                 print("\nChecking if Prodigal created all the necessary files...")
 

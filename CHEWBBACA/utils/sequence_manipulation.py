@@ -7,9 +7,9 @@ DESCRIPTION
 
 """
 
-
 from Bio import SeqIO
 from Bio.Seq import Seq
+from collections import Counter
 
 try:
     from utils import (file_operations as fo,
@@ -401,7 +401,7 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     # add locus identifier to headers
     # some headers might only have the allele identifier
     seqids = list(translated_seqs.keys())
-    new_seqids = add_prefix(seqids, gene_id)
+    new_seqids = im.add_prefix(seqids, gene_id)
 
     # switch ids
     sequences = {new_seqids[k]: v for k, v in translated_seqs.items()}

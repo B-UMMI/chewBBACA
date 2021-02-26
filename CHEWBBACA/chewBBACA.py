@@ -133,7 +133,7 @@ def create_schema():
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent will be classified as ASM/ALM.')
-    
+
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
@@ -197,11 +197,11 @@ def create_schema():
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                            args.translation_table, args.minimum_length,
-                                            version, args.size_threshold,
-                                            args.word_size, args.window_size,
-                                            args.clustering_sim, args.representative_filter,
-                                            args.intra_filter, schema_dir)
+                                           args.translation_table, args.minimum_length,
+                                           version, args.size_threshold,
+                                           args.word_size, args.window_size,
+                                           args.clustering_sim, args.representative_filter,
+                                           args.intra_filter, schema_dir)
 
     # create hidden file with genes/loci list
     genes_list_file = pv.write_gene_list(schema_dir)
@@ -366,19 +366,19 @@ def allele_call():
     # legacy schemas do not have config file, create one if user wants to continue
     if os.path.isfile(config_file) is False:
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
-                                             args.blast_score_ratio, args.translation_table,
-                                             args.minimum_length, version,
-                                             args.size_threshold, args.force_continue)
+                                            args.blast_score_ratio, args.translation_table,
+                                            args.minimum_length, version,
+                                            args.size_threshold, args.force_continue)
         args.ptf_path, args.blast_score_ratio, \
-        args.translation_table, args.minimum_length, \
-        args.size_threshold = upgraded
+            args.translation_table, args.minimum_length, \
+            args.size_threshold = upgraded
     else:
         schema_params = fo.pickle_loader(config_file)
         # chek if user provided different values
-        schema_params, unmatch_params, run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
-                                                           args.blast_score_ratio, args.translation_table,
-                                                           args.minimum_length, args.size_threshold,
-                                                           args.force_continue, config_file, args.schema_directory)
+        run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
+                                                    args.blast_score_ratio, args.translation_table,
+                                                    args.minimum_length, args.size_threshold,
+                                                    args.force_continue, config_file, args.schema_directory)
         args.ptf_path = run_params['ptf_path']
         args.blast_score_ratio = run_params['bsr']
         args.translation_table = run_params['translation_table']
@@ -396,14 +396,17 @@ def allele_call():
 
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
-    ns = os.path.isfile(ns_config)
+    args.ns = os.path.isfile(ns_config)
+    print(args.ns)
+    print(args)
 
+    # change to **vars(args)
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,
                args.blast_path, args.force_continue, args.json_report,
                args.verbose, args.force_reset, args.contained,
                args.ptf_path, args.cds_input, args.size_threshold,
-               args.translation_table, ns, args.prodigal_mode)
+               args.translation_table, args.ns, args.prodigal_mode)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

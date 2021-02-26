@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import csv
+import shutil
 import argparse
 import platform
 import subprocess
@@ -704,9 +705,24 @@ def check_prodigal(prodigal_path):
     return True
 
 
+def hash_ptf(ptf_path):
+    """ Determines hash value for a Prodigal training file.
+    """
+
+    if ptf_path is not False:
+        ptf_hash = fo.hash_file(ptf_path, 'rb')
+    else:
+        ptf_hash = False
+
+    return ptf_hash
+
+
 def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
                      minimum_length, size_threshold, version):
-    """
+    """ Detects if a valid argument value was passed and asks
+        for a value if the value of any argument is of type
+        NoneType. Raises SystemExit if a provided value is not
+        valid.
     """
 
     prompt = ('It seems that your schema was created with chewBBACA '
@@ -733,7 +749,8 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
                 sys.exit('Provided path is not a valid file.')
     else:
         if os.path.isfile(ptf_path) is False:
-            sys.exit('Provided path is not a valid file.')
+            sys.exit('Provided path for Prodigal training file is '
+                     'not a valid.')
 
     if blast_score_ratio is None:
         prompt = ('BLAST score ratio value:\n')
@@ -765,7 +782,9 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
 
 def auto_arguments(ptf_path, blast_score_ratio, translation_table,
                    minimum_length, size_threshold):
-    """
+    """ Detects if a valid argument value was passed and
+        selects default config values if the provided value
+        is of type NoneType.
     """
 
     if ptf_path is not None:
@@ -802,7 +821,38 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
 def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                           translation_table, minimum_length, version,
                           size_threshold, force_continue):
-    """
+    """ Upgrades a legacy schema to current version.
+        Determines configuration values and adds them to the
+        configuration file. Creates the file with the list of loci in
+        the schema.
+
+        Parameters
+        ----------
+        ptf_path : str or None
+            Path to the Prodigal training file or NoneType
+            if no value was provided.
+        schema_directory : str
+            Path to the schema's directory.
+        blast_score_ratio : float
+            BLAST Score Ratio value.
+        translation_table : int
+            Translation table integer identifier.
+        minimum_length : int
+            Minimum sequence length value.
+        version : str
+            chewBBACA's version.
+        size_threshold : float
+            Allele size variation threshold.
+        force_continue : bool
+            True if argument values should be automatically
+            validated and set to default values if their type
+            is NoneType. False to validate provided values and
+            ask for a value if the user did not provide one.
+
+        Returns
+        -------
+        Valid/selected values for ptf_path, blast_score_ratio,
+        translation_table, minimum_length and size_threshold.
     """
 
     if force_continue is False:
@@ -826,9 +876,7 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                                 os.path.basename(ptf_path))))
 
     # determine PTF hash
-    ptf_hash = (fo.hash_file(ptf_path, 'rb')
-                if ptf_path is not False
-                else False)
+    ptf_hash = hash_ptf(ptf_path)
 
     print('\nCreating file with schema configs...')
     # write schema config file
@@ -850,9 +898,31 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
             minimum_length, size_threshold]
 
 
-def validate_ptf(ptf_path, schema_directory, schema_params,
-                 unmatch_params):
-    """
+def validate_ptf_path(ptf_path, schema_directory):
+    """ Determines if the path to the Prodigal training file
+        is valid. Gets the training file in the schema's
+        directory if the input path is of type NoneType.
+
+        Parameters
+        ----------
+        ptf_path : str or NoneType
+            Path to the Prodigal training file or NoneType
+            if no value was provided.
+        schema_directory : str
+            Path to the schema's directory.
+
+        Returns
+        -------
+        ptf_path : str or bool
+            Path to the Prodigal training file or False if
+            no training file should be used.
+
+        Raises
+        ------
+        SystemExit
+            - If there is more than one training file in
+            the schema's directory.
+            - If a path was provided and it is not valid.
     """
 
     if ptf_path is None:
@@ -871,21 +941,52 @@ def validate_ptf(ptf_path, schema_directory, schema_params,
             print('There is no Prodigal training file in schema\'s '
                   'directory.')
             ptf_path = False
-    # if user provides a training file
+    # if user provides a value for the training file
     elif ptf_path == 'False':
         ptf_path = False
     else:
         if os.path.isfile(ptf_path) is False:
             sys.exit('Invalid path for Prodigal training file.')
 
-    # determine PTF checksum
-    if ptf_path is not False:
-        ptf_hash = fo.hash_file(ptf_path, 'rb')
-    else:
-        ptf_hash = False
+    return ptf_path
 
-    if ptf_hash not in schema_params['prodigal_training_file']:
-        ptf_num = len(schema_params['prodigal_training_file'])
+
+def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
+    """ Determines if the hash for the Prodigal training
+        file matches any of the hashes from training files
+        that have been used with the schema.
+
+        Paramters
+        ---------
+        ptf_hash : str
+            BLAKE2b hash computed based on the contents of
+            the training file.
+        schema_ptfs : list
+            List with the hashes of all training files that
+            have been used with the schema.
+        force_continue : bool
+            True if the hash should be added to the list with
+            all hashes from training files used with the
+            schema without prompting the user. False otherwise.
+
+        Returns
+        -------
+        unmatch : bool
+            True if the hash is not in the list with all hashes
+            from all training files used with the schema. False
+            otherwise.
+
+        Raises
+        ------
+        SystemExit
+            - If the user does not agree to add the hash from a
+            new training file to the list with all hashes for
+            training files that have been used with the schema.
+    """
+
+    unmatch = False
+    if ptf_hash not in schema_ptfs:
+        ptf_num = len(schema_ptfs)
         if force_continue is False:
             if ptf_num == 1:
                 print('Prodigal training file is not the one '
@@ -906,16 +1007,99 @@ def validate_ptf(ptf_path, schema_directory, schema_params,
         if ptf_answer.lower() not in ['y', 'yes']:
             sys.exit('Exited.')
         else:
-            schema_params['prodigal_training_file'].append(ptf_hash)
-            unmatch_params['prodigal_training_file'] = ptf_hash
+            unmatch = True
 
-    return [ptf_path, schema_params, unmatch_params]
+    return unmatch
+
+
+def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
+    """ Validates the path to the Prodigal training file and
+        its hash value.
+
+        Parameters
+        ----------
+        ptf_path : str or NoneType
+            Path to the Prodigal training file or NoneType
+            if no value was provided.
+        schema_directory : str
+            Path to the schema's directory.
+        schema_ptfs : list
+            List with the hashes of all training files that
+            have been used with the schema.
+        force_continue : bool
+            True if the path and hash of the training file
+            should be validated without prompting the user.
+            False otherwise.
+
+        Returns
+        -------
+        ptf_path : str or bool
+            Path to the training file if the user provided a
+            valid path or if no value was provided and the
+            schema has a training file. False if the user
+            passed 'False' or if no value was passed and the
+            schema has no training file.
+        ptf_hash : str
+            BLAKE2b hash computed based on the contents of
+            the training file.
+        unmatch : bool
+            True if the training file does not match any of
+            the training files previously used with the schema.
+    """
+
+    ptf_path = validate_ptf_path(ptf_path, schema_directory)
+
+    # determine PTF checksum
+    ptf_hash = hash_ptf(ptf_path)
+
+    unmatch = validate_ptf_hash(ptf_hash, schema_ptfs, force_continue)
+
+    return [ptf_path, ptf_hash, unmatch]
 
 
 def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
                                 translation_table, minimum_length,
                                 size_threshold, force_continue, config_file,
                                 schema_directory):
+    """ Compares schema parameters values stored in the config
+        file with values provided by the user to solve conflicting
+        cases. Adds/appends new values to the config file if the
+        user wants to use values that do not match schema's
+        default values.
+
+        Parameters
+        ----------
+        schema_params : dict
+            Dictionary with the schema's config values.
+        ptf_path : str or NoneType
+            Path to the Prodigal training file or NoneType
+            if no value was passed through the command line.
+        blast_score_ratio : float or NoneType
+            BLAST Score Ratio value. NoneType if no value was
+            passed.
+        translation_table : int
+            Translation table value. NoneType if no value was
+            passed.
+        minimum_length : int
+            Minimum sequence length value. NoneType if no value was
+            passed.
+        size_threshold : float
+            Allele size variation threshold. NoneType if no value was
+            passed.
+        force_continue : bool
+            True to validate parameters values without prompting users.
+            False otherwise.
+        config_file : str
+            Path to the schema's configuration file.
+        schema_directory : str
+            Path to the schema's directory.
+
+        Returns
+        -------
+        run_params : dict
+            Dictionary with the arguments validated values that
+            will be used for allele calling.
+    """
 
     # run parameters values
     run_params = {'bsr': blast_score_ratio,
@@ -965,15 +1149,20 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
                 schema_params[p].append(unmatch_params[p])
 
     # default is to get the training file in schema directory
-    ptf_path, schema_params, unmatch_params = validate_ptf(ptf_path, schema_directory,
-                                                           schema_params, unmatch_params)
+    schema_ptfs = schema_params['prodigal_training_file']
+    ptf_path, ptf_hash, unmatch = validate_ptf(ptf_path, schema_directory,
+                                               schema_ptfs, force_continue)
+
     run_params['ptf_path'] = ptf_path
+    if unmatch is True:
+        schema_params['prodigal_training_file'].append(ptf_hash)
+        unmatch_params['prodigal_training_file'] = ptf_hash
 
     # save updated schema config file
     if len(unmatch_params) > 0:
         fo.pickle_dumper(schema_params, config_file)
 
-    return [schema_params, unmatch_params, run_params]
+    return run_params
 
 
 def write_gene_list(schema_dir):

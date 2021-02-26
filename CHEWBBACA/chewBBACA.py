@@ -926,7 +926,7 @@ def prep_schema():
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                             args.translation_table, args.minimum_length,
                                             version, args.size_threshold, None,
-                                            None, None, None, args.output_directory)
+                                            None, None, None, None, args.output_directory)
 
     # create hidden file with genes/loci list
     genes_list_file = pv.write_gene_list(args.output_directory)

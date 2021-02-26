@@ -1099,7 +1099,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     configs = pv.read_configs(schema_directory, '.schema_config')
 
     # validate arguments values
-    ptf_val = pv.validate_ptf(configs.get('prodigal_training_file', ''), schema_directory)
+    ptf_val = pv.loadschema_validate_ptf(configs.get('prodigal_training_file', ''), schema_directory)
     bsr_val = pv.bsr_type(configs.get('bsr', ''))
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))

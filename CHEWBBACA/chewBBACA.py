@@ -359,6 +359,7 @@ def allele_call():
 
     args = parser.parse_args()
 
+    # determine if Prodigal is installed and in PATH
     prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     config_file = os.path.join(args.schema_directory, '.schema_config')

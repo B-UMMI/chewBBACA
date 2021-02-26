@@ -112,3 +112,5 @@ UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
     	            (")", ""), ("'", ""), ("\"", ""),
         	        (":", "")]
+
+MIN_PYTHON = [(3, 4, 0), '3.4.0']

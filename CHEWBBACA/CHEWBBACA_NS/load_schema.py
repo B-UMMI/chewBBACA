@@ -1099,7 +1099,15 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     configs = pv.read_configs(schema_directory, '.schema_config')
 
     # validate arguments values
-    ptf_val = pv.loadschema_validate_ptf(configs.get('prodigal_training_file', ''), schema_directory)
+    schema_ptfs = configs.get('prodigal_training_file', '')
+    if len(schema_ptfs) > 1:
+      sys.exit('Schema has been used with multiple training files. '
+               'Cannot be uploaded to Chewie-NS.')
+    ptf_info = pv.validate_ptf(None, schema_directory, schema_ptfs, True)
+    if ptf_info[0] is False or ptf_info[2] is True:
+      sys.exit('Please ensure that the schema\'s directory includes the '
+               'Prodigal training file used to create the schema.')
+
     bsr_val = pv.bsr_type(configs.get('bsr', ''))
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
@@ -1111,7 +1119,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     if_val = pv.validate_if(configs.get('intraCluster_filter', None))
 
     # dictionary with schema parameters values to send to the NS
-    params = {'bsr': bsr_val, 'prodigal_training_file': ptf_val[1],
+    params = {'bsr': bsr_val, 'prodigal_training_file': ptf_info[1],
               'translation_table': tt_val, 'minimum_locus_length': msl_val,
               'chewBBACA_version': cv_val, 'size_threshold': st_val,
               'word_size': ws_val, 'cluster_sim': cs_val,

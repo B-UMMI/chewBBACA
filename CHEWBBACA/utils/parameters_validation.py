@@ -448,34 +448,6 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
     return valid
 
 
-def loadschema_validate_ptf(arg, input_path):
-    """
-    """
-
-    arg = arg_list(arg, 'Prodigal training file')
-
-    # perform this check in LoadSchema!!!
-    #if arg == '':
-    #    sys.exit('Cannot upload a schema that was created '
-    #             'without a Prodigal training file.')
-
-    schema_ptfs = [os.path.join(input_path, file)
-                   for file in os.listdir(input_path) if '.trn' in file]
-    if len(schema_ptfs) == 1:
-        schema_ptf = schema_ptfs[0]
-        ptf_hash = fo.hash_file(schema_ptf, 'rb')
-        if ptf_hash == arg:
-            valid = [schema_ptf, arg]
-        else:
-            sys.exit('Training file in schema directory is not the original.')
-    elif len(schema_ptfs) > 1:
-        sys.exit('More than one training file in schema directory.')
-    elif len(schema_ptfs) == 0:
-        sys.exit('Could not find a valid training file in schema directory.')
-
-    return valid
-
-
 def validate_ns_url(arg):
     """ Verify if Chewie-NS URL passed to chewBBACA is valid.
 
@@ -946,7 +918,15 @@ def validate_ptf_path(ptf_path, schema_directory):
         ptf_path = False
     else:
         if os.path.isfile(ptf_path) is False:
-            sys.exit('Invalid path for Prodigal training file.')
+            message = ('Cannot find specified Prodigal training file.'
+                       '\nPlease provide a valid training file.\n\nYou '
+                       'can create a training file for a species of '
+                       'interest with the following command:\n  prodigal '
+                       '-i <reference_genome> -t <training_file.trn> -p '
+                       'single\n\nIt is strongly advised to provide a '
+                       'high-quality and closed genome for the training '
+                       'process.')
+            sys.exit(message)
 
     return ptf_path
 
@@ -1388,33 +1368,3 @@ def process_header(process):
     header = 'chewBBACA - {0}'.format(process)
     hf = '='*(len(header)+4)
     print('{0}\n  {1}\n{0}'.format(hf, header, hf))
-
-
-def check_ptf(ptf_path):
-    """ Determines if path to Prodigal training file exists.
-
-        Parameters
-        ----------
-        ptf_path : str
-            Path to the Prodigal training file.
-
-        Returns
-        -------
-        A list with a bool value that is True if the Prodigal
-        training file exists or False otherwise and the path
-        to the file if it exists or a message if it does not
-        exist.
-    """
-
-    if os.path.isfile(ptf_path) is False:
-        message = ('Cannot find specified Prodigal training file.'
-                   '\nPlease provide a valid training file.\n\nYou '
-                   'can create a training file for a species of '
-                   'interest with the following command:\n  prodigal '
-                   '-i <reference_genome> -t <training_file.trn> -p '
-                   'single\n\nIt is strongly advised to provide a '
-                   'high-quality and closed genome for the training '
-                   'process.')
-        return [False, message]
-    else:
-        return [True, ptf_path]

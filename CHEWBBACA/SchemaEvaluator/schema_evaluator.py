@@ -41,6 +41,7 @@ Code documentation
 """
 
 import os
+import csv
 import sys
 import json
 import pickle
@@ -48,27 +49,29 @@ import itertools
 import statistics
 import multiprocessing
 from operator import itemgetter
-from collections import Counter, defaultdict
+from collections import Counter
 
 
 from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align.Applications import MafftCommandline
-from Bio.Align.Applications import ClustalwCommandline
 
 try:
-    from utils import (file_operations as fo,
-                       fasta_operations as fao,
-                       sequence_manipulation as sm,
-                       iterables_manipulation as im,
-                       multiprocessing_operations as mo)
+    from utils import (
+        file_operations as fo,
+        fasta_operations as fao,
+        sequence_manipulation as sm,
+        iterables_manipulation as im,
+        multiprocessing_operations as mo,
+    )
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 fasta_operations as fao,
-                                 sequence_manipulation as sm,
-                                 iterables_manipulation as im,
-                                 multiprocessing_operations as mo)
+    from CHEWBBACA.utils import (
+        file_operations as fo,
+        fasta_operations as fao,
+        sequence_manipulation as sm,
+        iterables_manipulation as im,
+        multiprocessing_operations as mo,
+    )
 
 
 # Schema Evaluator Auxiliary Functions
@@ -412,6 +415,7 @@ def create_pre_computed_data(
     schema_dir,
     translation_table,
     output_path,
+    annotations,
     cpu_to_use,
     minimum_length,
     threshold,
@@ -431,6 +435,9 @@ def create_pre_computed_data(
     output_path : str
         the directory where the output files will
         be saved.
+    annotations : str
+        path to the output file of the UniprotFinder
+        module
     cpu_to_use: int
         number of CPU cores to use for multiprocessing.
     minimum_length: int
@@ -690,6 +697,64 @@ def create_pre_computed_data(
             for s in hist_data_sort
         ]
         hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in hist_data_sort]
+
+        # check if the user provided annotations
+        # annotations_data = "undefined"
+        if annotations is not None:
+            with open(annotations, "r") as a:
+                annotations_reader = csv.reader(a, delimiter="\t")
+                # skip header
+                next(annotations_reader, None)
+                annotations_data = {
+                    rows[0]: [
+                        rows[1],
+                        rows[2],
+                        rows[3],
+                        rows[4],
+                        rows[5],
+                        rows[6],
+                        rows[7],
+                    ]
+                    for rows in annotations_reader
+                }
+                # annotations_data = [
+                #     {
+                #         "locus": rows[0],
+                #         "genome": rows[1],
+                #         "contig": rows[2],
+                #         "start": rows[3],
+                #         "stop": rows[4],
+                #         "protID": rows[5],
+                #         "name": rows[6],
+                #         "url": rows[7],
+                #     }
+                #     for rows in annotations_reader
+                # ]
+
+        for d in data_ind:
+            try:
+                d["Gene"] in annotations_data
+                d.update(
+                    {
+                        "genome": annotations_data[d["Gene"]][0],
+                        "contig": annotations_data[d["Gene"]][1],
+                        "start": annotations_data[d["Gene"]][2],
+                        "stop": annotations_data[d["Gene"]][3],
+                        "name": annotations_data[d["Gene"]][5],
+                        "url": annotations_data[d["Gene"]][6],
+                    }
+                )
+            except KeyError:
+                d.update(
+                    {
+                        "genome": "-",
+                        "contig": "-",
+                        "start": "-",
+                        "stop": "-",
+                        "name": "-",
+                        "url": "-",
+                    }
+                )
 
         # check if it is a chewBBACA schema
         if chewie_schema:
@@ -1055,7 +1120,12 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
 
 
 def write_individual_html(
-    input_files, pre_computed_data_path, protein_file_path, output_path
+    input_files,
+    pre_computed_data_path,
+    protein_file_path,
+    output_path,
+    minimum_length,
+    chewie_schema=False,
 ):
     """Writes HTML files for each locus.
 
@@ -1073,6 +1143,10 @@ def write_individual_html(
     output_path : str
         the directory where the output
         files will be saved.
+    minimum_length: int
+        minimum sequence length accepted in nt.
+    chewie_schema: bool
+        identifies the schema as a chewBBACA created schema.
 
     Returns
     -------
@@ -1158,34 +1232,84 @@ def write_individual_html(
         else:
             phylo_data_json = "undefined"
 
-        html_template_individual = """
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Schema Evaluator - Individual Analysis</title>
-            </head>
-            <body style="background-color: #f6f6f6">
-                <noscript> You need to enable JavaScript to run this app. </noscript>
-                <div id="root"></div>
-                <script> const _preComputedDataInd = {0} </script>
-                <script> const _exceptions = {1} </script>
-                <script> const _cdsDf = {2} </script>
-                <script> const _msaData = {3} </script>
-                <script> const _phyloData = {4} </script>
-                <script src="./main_ind.js"></script>
-            </body>
-        </html>
-        """.format(
-            json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-            json.dumps(exc_data, sort_keys=True),
-            json.dumps(cds_ind_data, sort_keys=True),
-            json.dumps(msa_data, sort_keys=True),
-            json.dumps(phylo_data_json, sort_keys=True),
-        )
+        if chewie_schema:
+            # read config file to get chewBBACA parameters
+            config_file = os.path.join(input_files, ".schema_config")
+            with open(config_file, "rb") as cf:
+                chewie_schema_configs = pickle.load(cf)
 
-        html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))
+            minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
 
-        with open(html_file_path, "w") as html_fh:
-            html_fh.write(html_template_individual)
+            html_template_individual = """
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>Schema Evaluator - Individual Analysis</title>
+                </head>
+                <body style="background-color: #f6f6f6">
+                    <noscript> You need to enable JavaScript to run this app. </noscript>
+                    <div id="root"></div>
+                    <script> const _preComputedDataInd = {0} </script>
+                    <script> const _exceptions = {1} </script>
+                    <script> const _cdsDf = {2} </script>
+                    <script> const _msaData = {3} </script>
+                    <script> const _phyloData = {4} </script>
+                    <script> const _minLen = {5} </script>
+                    <script src="./main_ind.js"></script>
+                </body>
+            </html>
+            """.format(
+                json.dumps(pre_computed_data_individual_sf, sort_keys=True),
+                json.dumps(exc_data, sort_keys=True),
+                json.dumps(cds_ind_data, sort_keys=True),
+                json.dumps(msa_data, sort_keys=True),
+                json.dumps(phylo_data_json, sort_keys=True),
+                json.dumps(int(minimum_length_config), sort_keys=True),
+            )
+
+            html_file_path = os.path.join(
+                out_path, "{0}_individual_report.html".format(sf)
+            )
+
+            with open(html_file_path, "w") as html_fh:
+                html_fh.write(html_template_individual)
+
+        else:
+
+            html_template_individual = """
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>Schema Evaluator - Individual Analysis</title>
+                </head>
+                <body style="background-color: #f6f6f6">
+                    <noscript> You need to enable JavaScript to run this app. </noscript>
+                    <div id="root"></div>
+                    <script> const _preComputedDataInd = {0} </script>
+                    <script> const _exceptions = {1} </script>
+                    <script> const _cdsDf = {2} </script>
+                    <script> const _msaData = {3} </script>
+                    <script> const _phyloData = {4} </script>
+                    <script> const _minLen = {5} </script>
+                    <script src="./main_ind.js"></script>
+                </body>
+            </html>
+            """.format(
+                json.dumps(pre_computed_data_individual_sf, sort_keys=True),
+                json.dumps(exc_data, sort_keys=True),
+                json.dumps(cds_ind_data, sort_keys=True),
+                json.dumps(msa_data, sort_keys=True),
+                json.dumps(phylo_data_json, sort_keys=True),
+                json.dumps(int(minimum_length), sort_keys=True),
+            )
+
+            html_file_path = os.path.join(
+                out_path, "{0}_individual_report.html".format(sf)
+            )
+
+            with open(html_file_path, "w") as html_fh:
+                html_fh.write(html_template_individual)

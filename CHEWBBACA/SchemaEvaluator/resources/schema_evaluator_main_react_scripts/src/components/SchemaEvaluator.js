@@ -79,18 +79,18 @@ class SchemaEvaluator extends Component {
     anchor.click();
   };
 
-  clickCdsTableHandler = (cellData) => {
-    const locus_id = cellData;
-    console.log(locus_id);
+  // clickCdsTableHandler = (cellData) => {
+  //   const locus_id = cellData;
+  //   console.log(locus_id);
 
-    const anchor = document.createElement("a");
-    anchor.href = `../html_files/${
-      locus_id.split(".")[0]
-    }_individual_report.html`;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.click();
-  };
+  //   const anchor = document.createElement("a");
+  //   anchor.href = `../html_files/${
+  //     locus_id.split(".")[0]
+  //   }_individual_report.html`;
+  //   anchor.target = "_blank";
+  //   anchor.rel = "noopener noreferrer";
+  //   anchor.click();
+  // };
 
   totalDataColumnsHandler = (columnData, alleleShorterColumn) => {
     if ("chewBBACA_version" in columnData[0]) {
@@ -646,6 +646,118 @@ class SchemaEvaluator extends Component {
               },
             };
           },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a
+              href={`../html_files/${
+                value.split(".")[0]
+              }_individual_report.html`}
+              target={"_blank"}
+              rel={"noopener noreferrer"}
+            >
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: "name",
+        label: "Uniprot Annotation",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "url",
+        label: "Uniprot URL",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a href={value} target={"_blank"} rel={"noopener noreferrer"}>
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: "genome",
+        label: "Origin Genome",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "contig",
+        label: "Origin Genome Contig",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "start",
+        label: "Original Genome Start Position",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "stop",
+        label: "Original Genome Stop Position",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
         },
       },
       {
@@ -776,11 +888,11 @@ class SchemaEvaluator extends Component {
       search: true,
       viewColumns: true,
       pagination: true,
-      onCellClick: (cellData, cellMeta) => {
-        if (cellData.includes(".fasta")) {
-          this.clickCdsTableHandler(cellData);
-        }
-      },
+      // onCellClick: (cellData, cellMeta) => {
+      //   if (cellData.includes(".fasta")) {
+      //     this.clickCdsTableHandler(cellData);
+      //   }
+      // },
     };
 
     const cds_data = this.state.cds_df_data;
@@ -932,6 +1044,17 @@ class SchemaEvaluator extends Component {
                 },
               };
             },
+            customBodyRender: (value, tableMeta, updateValue) => (
+              <a
+                href={`../html_files/${
+                  value.split(".")[0]
+                }_individual_report.html`}
+                target={"_blank"}
+                rel={"noopener noreferrer"}
+              >
+                {value}
+              </a>
+            ),
           },
         },
       ];
@@ -947,11 +1070,11 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        onCellClick: (cellData, cellMeta) => {
-          if (cellData.includes(".fasta")) {
-            this.clickCdsTableHandler(cellData);
-          }
-        },
+        // onCellClick: (cellData, cellMeta) => {
+        //   if (cellData.includes(".fasta")) {
+        //     this.clickCdsTableHandler(cellData);
+        //   }
+        // },
       };
 
       notConservedList = (
@@ -999,6 +1122,17 @@ class SchemaEvaluator extends Component {
                 },
               };
             },
+            customBodyRender: (value, tableMeta, updateValue) => (
+              <a
+                href={`../html_files/${
+                  value.split(".")[0]
+                }_individual_report.html`}
+                target={"_blank"}
+                rel={"noopener noreferrer"}
+              >
+                {value}
+              </a>
+            ),
           },
         },
       ];
@@ -1014,11 +1148,11 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        onCellClick: (cellData, cellMeta) => {
-          if (cellData.includes(".fasta")) {
-            this.clickCdsTableHandler(cellData);
-          }
-        },
+        // onCellClick: (cellData, cellMeta) => {
+        //   if (cellData.includes(".fasta")) {
+        //     this.clickCdsTableHandler(cellData);
+        //   }
+        // },
       };
 
       oneAlleleOnlyList = (
@@ -1037,6 +1171,85 @@ class SchemaEvaluator extends Component {
       );
     }
 
+    let minLenTableColumns = [
+      {
+        name: "Gene",
+        label: "Locus",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a
+              href={`../html_files/${
+                value.split(".")[0]
+              }_individual_report.html`}
+              target={"_blank"}
+              rel={"noopener noreferrer"}
+            >
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: alleleShorterColumn,
+        label: alleleShorterColumn,
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+    ];
+
+    let minLenTableOptions = {
+      responsive: "vertical",
+      selectableRowsHeader: false,
+      selectableRows: "none",
+      selectableRowsOnClick: false,
+      print: false,
+      download: false,
+      filter: false,
+      search: false,
+      viewColumns: true,
+      pagination: true,
+      // onCellClick: (cellData, cellMeta) => {
+      //   if (cellData.includes(".fasta")) {
+      //     this.clickCdsTableHandler(cellData);
+      //   }
+      // },
+    };
+
+    let minLenTable = (
+      <Aux>
+        <div>
+          <MuiThemeProvider theme={this.getMuiTheme()}>
+            <MUIDataTable
+              title={`Loci with ${alleleShorterColumn}`}
+              data={cds_data}
+              columns={minLenTableColumns}
+              options={minLenTableOptions}
+            />
+          </MuiThemeProvider>
+        </div>
+      </Aux>
+    );
+
     return (
       <Aux>
         <div>
@@ -1048,6 +1261,7 @@ class SchemaEvaluator extends Component {
           <div style={{ marginTop: "40px" }}>{total_data_table}</div>
           <div style={{ marginTop: "40px" }}>{notConservedList}</div>
           <div style={{ marginTop: "40px" }}>{oneAlleleOnlyList}</div>
+          <div style={{ marginTop: "40px" }}>{minLenTable}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>

@@ -451,6 +451,10 @@ def evaluate_schema():
                         help='Path to the output directory where the report HTML '
                              'files will be generated.')
 
+    parser.add_argument('-a', '--annotations', type=str, required=False,
+                        dest='annotations',
+                        help='Path to the tsv table output from the Uniprot Finder module.')
+
     parser.add_argument('--ta', '--translation-table', type=pv.translation_table_type, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to translate coding '
@@ -492,6 +496,7 @@ def evaluate_schema():
 
     input_files = args.input_files
     output_file = args.output_file
+    annotations = args.annotations
     translation_table = args.translation_table
     threshold = args.threshold
     minimum_length = args.minimum_length
@@ -519,7 +524,8 @@ def evaluate_schema():
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(
             input_files,
             translation_table, 
-            output_file, 
+            output_file,
+            annotations,
             cpu_to_use, 
             minimum_length,
             threshold,
@@ -531,7 +537,8 @@ def evaluate_schema():
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(
             input_files, 
             translation_table, 
-            output_file, 
+            output_file,
+            annotations,
             cpu_to_use, 
             minimum_length, 
             threshold,
@@ -570,8 +577,12 @@ def evaluate_schema():
             protein_file_path, cpu_to_use, show_progress=True)
 
         # Write HTML files
-        schema_evaluator.write_individual_html(
-            input_files, pre_computed_data_path, protein_file_path, output_file)
+        if os.path.exists(config_file):
+            schema_evaluator.write_individual_html(
+                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length, chewie_schema=True)    
+        else:
+            schema_evaluator.write_individual_html(
+                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length)
 
         # html_files main.js
         shutil.copy(os.path.join(script_path, "SchemaEvaluator",

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHOR
+Purpose
+-------
 
-
-
-DESCRIPTION
+This module contains functions/classes related to parameters
+and arguments validation.
 
 """
 
@@ -681,10 +681,10 @@ def hash_ptf(ptf_path):
     """ Determines hash value for a Prodigal training file.
     """
 
-    if ptf_path is not False:
+    if ptf_path is not None:
         ptf_hash = fo.hash_file(ptf_path, 'rb')
     else:
-        ptf_hash = False
+        ptf_hash = None
 
     return ptf_hash
 
@@ -715,7 +715,7 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
         prompt = ('Full path to the Prodigal training file:\n')
         ptf_path = fo.input_timeout(prompt, ct.prompt_timeout)
         if ptf_path in ['', 'None']:
-            ptf_path = False
+            ptf_path = None
         else:
             if os.path.isfile(ptf_path) is False:
                 sys.exit('Provided path is not a valid file.')
@@ -764,7 +764,7 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
             sys.exit('Provided path to Prodigal training file '
                      'is not valid.')
     else:
-        ptf_path = False
+        ptf_path = None
 
     blast_score_ratio = (blast_score_ratio
                          if blast_score_ratio is not None
@@ -841,7 +841,7 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     translation_table, minimum_length, size_threshold = values
 
     # copy training file to schema directory
-    if ptf_path is not False:
+    if ptf_path is not None:
         print('\nAdding Prodigal training file to schema...')
         shutil.copy(ptf_path, schema_directory)
         print('Created {0}'.format(os.path.join(schema_directory,
@@ -855,7 +855,11 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     schema_config = write_schema_config(blast_score_ratio, ptf_hash,
                                         translation_table, minimum_length,
                                         version, size_threshold,
-                                        None, None, None, None,
+                                        ct.WORD_SIZE_DEFAULT,
+                                        ct.WINDOW_SIZE_DEFAULT,
+                                        ct.CLUSTERING_SIMILARITY_DEFAULT,
+                                        ct.REPRESENTATIVE_FILTER_DEFAULT,
+                                        ct.INTRA_CLUSTER_DEFAULT,
                                         schema_directory)
     print('Created {0}'.format(os.path.join(schema_directory,
                                             '.schema_config')))
@@ -908,14 +912,12 @@ def validate_ptf_path(ptf_path, schema_directory):
                      'only the training file used in the schema '
                      'creation process.')
         elif len(schema_ptfs) == 1:
-            ptf_path = os.path.join(schema_directory, schema_ptfs[0])
-        elif len(schema_ptfs) == 0:
-            print('There is no Prodigal training file in schema\'s '
-                  'directory.')
-            ptf_path = False
-    # if user provides a value for the training file
-    elif ptf_path == 'False':
-        ptf_path = False
+            if schema_ptfs[0] is not None:
+                ptf_path = os.path.join(schema_directory, schema_ptfs[0])
+            else:
+                print('There is no Prodigal training file in schema\'s '
+                      'directory.')
+                ptf_path = None
     else:
         if os.path.isfile(ptf_path) is False:
             message = ('Cannot find specified Prodigal training file.'
@@ -1030,7 +1032,10 @@ def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
     ptf_path = validate_ptf_path(ptf_path, schema_directory)
 
     # determine PTF checksum
-    ptf_hash = hash_ptf(ptf_path)
+    if ptf_path is not None:
+        ptf_hash = hash_ptf(ptf_path)
+    else:
+        ptf_hash = None
 
     unmatch = validate_ptf_hash(ptf_hash, schema_ptfs, force_continue)
 

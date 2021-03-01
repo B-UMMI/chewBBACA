@@ -231,13 +231,13 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     """
     """
 
-    if ptf_path is not False:
+    if ptf_path is not None:
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
                                  '-m', '-g', str(translation_table), '-p',
                                  mode, '-f', 'sco', '-q', '-t', ptf_path],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-    elif ptf_path is False:
+    elif ptf_path is None:
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
                                  '-m', '-g', str(translation_table), '-p',
                                  mode, '-f', 'sco', '-q'],

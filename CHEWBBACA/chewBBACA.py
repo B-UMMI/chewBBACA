@@ -108,7 +108,7 @@ def create_schema():
                         help='Name to give to folder that will store the schema files.')
 
     parser.add_argument('--ptf', '--training-file', type=str,
-                        required=False, default=False, dest='ptf_path',
+                        required=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
@@ -165,10 +165,10 @@ def create_schema():
     prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     # check if ptf exists
-    if args.ptf_path is not False:
-        ptf_val = pv.check_ptf(args.ptf_path)
-        if ptf_val[0] is False:
-            sys.exit(ptf_val[1])
+    if args.ptf_path is not None:
+        ptf_exists = os.path.isfile(args.ptf_path)
+        if ptf_exists is False:
+            sys.exit('Invalid path for Prodigal training file.')
 
     # create output directory
     if not os.path.exists(args.output_directory):
@@ -189,8 +189,8 @@ def create_schema():
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
     # copy training file to schema directory
-    ptf_hash = ''
-    if args.ptf_path is not False:
+    ptf_hash = None
+    if args.ptf_path is not None:
         shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
         ptf_hash = fo.hash_file(args.ptf_path, 'rb')
@@ -298,8 +298,7 @@ def allele_call():
     parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
                         required=False, dest='translation_table',
                         help='Genetic code used to predict genes and'
-                             ' to translate coding sequences '
-                             '(default=11).')
+                             ' to translate coding sequences.')
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
                         required=False, dest='size_threshold',
@@ -397,10 +396,8 @@ def allele_call():
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
     args.ns = os.path.isfile(ns_config)
-    print(args.ns)
     print(args)
 
-    # change to **vars(args)
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,
                args.blast_path, args.force_continue, args.json_report,
@@ -873,17 +870,17 @@ def prep_schema():
                              'exist).')
 
     parser.add_argument('--ptf', '--training-file', type=str,
-                        required=False, default=False, dest='ptf_path',
+                        required=False, dest='ptf_path',
                         help='Path to the Prodigal training file that '
                              'will be included in the adapted schema.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-                        required=False, default=0.6, dest='blast_score_ratio',
+                        required=False, default=ct.DEFAULT_BSR, dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be '
                              'used to adapt the external schema.')
 
     parser.add_argument('--l', '--minimum-length', type=pv.minimum_sequence_length_type,
-                        required=False, default=0, dest='minimum_length',
+                        required=False, default=ct.MSL_MIN, dest='minimum_length',
                         help='Minimum sequence length accepted. Sequences with'
                              ' a length value smaller than the value passed to this'
                              ' argument will be discarded.')
@@ -893,7 +890,7 @@ def prep_schema():
                         help='Genetic code to use for CDS translation.')
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
-                        required=False, default=0.2, dest='size_threshold',
+                        required=False, default=ct.SIZE_THRESHOLD_DEFAULT, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '
@@ -911,25 +908,27 @@ def prep_schema():
     del args.PrepExternalSchema
 
     # check if ptf exists
-    if args.ptf_path is not False:
-        ptf_val = pv.check_ptf(args.ptf_path)
-        if ptf_val[0] is False:
-            sys.exit(ptf_val[1])
+    if args.ptf_path is not None:
+        ptf_exists = os.path.isfile(args.ptf_path)
+        if ptf_exists is False:
+            sys.exit('Invalid path for Prodigal training file.')
 
     PrepExternalSchema.main(**vars(args))
 
     # copy training file to schema directory
-    if args.ptf_path is not False:
-        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
+    ptf_hash = None
+    if args.ptf_path is not None:
         shutil.copy(args.ptf_path, args.output_directory)
-    else:
-        ptf_hash = ''
+        # determine PTF checksum
+        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                            args.translation_table, args.minimum_length,
-                                            version, args.size_threshold, None,
-                                            None, None, None, None, args.output_directory)
+                                           args.translation_table, args.minimum_length,
+                                           version, args.size_threshold, ct.WORD_SIZE_DEFAULT,
+                                           ct.WINDOW_SIZE_DEFAULT, ct.CLUSTERING_SIMILARITY_DEFAULT,
+                                           ct.REPRESENTATIVE_FILTER_DEFAULT, ct.INTRA_CLUSTER_DEFAULT,
+                                           args.output_directory)
 
     # create hidden file with genes/loci list
     genes_list_file = pv.write_gene_list(args.output_directory)

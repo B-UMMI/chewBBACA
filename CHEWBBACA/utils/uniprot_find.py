@@ -166,7 +166,7 @@ def main(input_files, protein_table, output_directory, cpu_cores):
     new_lines = ['\t'.join(l) for l in new_lines]
     table_text = '\n'.join(new_lines)
 
-    print('\nFound: {0}, {1} of them uncharacterized/hypothetical. '
+    print('\n\nFound: {0}, {1} of them uncharacterized/hypothetical. '
           'Nothing found on: {2} '.format(got,
                                           len(uncharacterized),
                                           len(notgot)))
@@ -174,6 +174,9 @@ def main(input_files, protein_table, output_directory, cpu_cores):
     output_table = os.path.join(outpath, 'new_protids.tsv')
     with open(output_table, 'w') as outfile:
         outfile.write(table_text+'\n')
+
+    print('The table with new information can be '
+          'found at:\n{0}'.format(output_table))
 
 
 if __name__ == "__main__":

@@ -979,6 +979,12 @@ def find_uniprot():
                         help='Path to the "proteinID_Genome.tsv" file created by '
                              'the CreateSchema process.')
 
+    parser.add_argument('-o', '--output-directory', type=str,
+                        required=True, dest='output_directory',
+                        help='The directory where the output files will be '
+                             'saved (will create the directory if it does not '
+                             'exist).')
+
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, default=1, dest='cpu_cores',
                         help='The number of CPU cores to use during the process.')

@@ -13,10 +13,16 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
     from PrepExternalSchema import PrepExternalSchema
-    from utils import constants as ct
+    from utils import (
+        constants as ct,
+        file_operations as fo
+    )
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.utils import constants as ct
+    from CHEWBBACA.utils import (
+        constants as ct,
+        file_operations as fo
+    )
 
 
 UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
@@ -38,7 +44,7 @@ def translateSeq(DNASeq, verbose):
     if verbose:
         def verboseprint(*args):
             for arg in args:
-                print (arg),
+                print(arg),
             print
     else:
         verboseprint = lambda *a: None  # do-nothing function
@@ -70,7 +76,7 @@ def check_if_list_or_folder(folder_or_list):
                     break
                 list_files.append(os.path.abspath(genepath))
             except Exception as e:
-                print (e)
+                print(e)
                 pass
 
     return list_files
@@ -166,7 +172,14 @@ def proc_gene(gene,auxBar):
     return [gene, name, url]
 
 
-def main(input_files, protein_table, cpu_cores):
+def main(input_files, protein_table, output_directory, cpu_cores):
+
+    # define output paths
+    outpath = os.path.abspath(output_directory)
+
+    # create output directories
+    # check if they exist first
+    fo.create_directory(outpath)
 
     input_files = check_if_list_or_folder(input_files)
     if isinstance(input_files, list):
@@ -224,7 +237,7 @@ def main(input_files, protein_table, cpu_cores):
         name = result[1]
         url = result[2]
 
-        print ("final name: "+name)
+        print("final name: "+name)
         if "Uncharacterized protein" in name or "hypothetical" in name:
             uncharacterized.append(gene)
             got += 1
@@ -246,11 +259,11 @@ def main(input_files, protein_table, cpu_cores):
     for key in set(sorted(selected_prots,key=str)):
         newProfileStr += ('\t'.join(map(str, dictaux[key])))+"\n"
 
-    print ("Found : " +str(got)+ ", "+str(len(uncharacterized))+" of them uncharacterized/hypothetical. Nothing found on :"+str(len(notgot)))
-    with open("new_protids.tsv", "w") as f:
+    print("Found : " +str(got)+ ", "+str(len(uncharacterized))+" of them uncharacterized/hypothetical. Nothing found on :"+str(len(notgot)))
+    with open(os.path.join(outpath, "new_protids.tsv"), "w") as f:
         f.write(newProfileStr)
 
-    print ("Done")
+    print("Done")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ DESCRIPTION
 """
 
 
+import time
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:

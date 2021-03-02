@@ -1292,7 +1292,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
             Path to the output file with the list of FASTA
             files.
         parent_dir : str
-            Parent directiry to add to construct paths
+            Parent directory to add to construct paths
             to input files when users provide a file
             with file names.
 

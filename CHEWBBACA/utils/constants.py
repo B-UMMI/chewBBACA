@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTHOR
+Purpose
+-------
 
-    Pedro Cerqueira
-    github: @pedrorvc
 
-    Rafael Mamede
-    github: @rfm-targa
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions related to file operations,
+such as read and write files, create and delete files,
+manipulate file paths, compress files, verify file contents,
+etc.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -65,7 +71,7 @@ def remove_files(files):
 
 
 def hash_file(file, read_mode):
-    """ Creates a hash based on the contents of a file.
+    """ Computes BLAKE2b hash based on the contents of a file.
 
         Parameters
         ----------
@@ -100,7 +106,8 @@ def filter_files(files, suffixes, reverse=False):
             List with suffixes.
         reverse : bool
             True if files should be filtered out from
-            input list or False otherwise.
+            input list. False to filter out files without
+            any of the suffixes.
 
         Returns
         -------
@@ -135,7 +142,7 @@ def join_paths(parent_path, child_paths):
 
 
 def listdir_fullpath(directory_path):
-    """ Gets the full path of the files from a directory.
+    """ Gets the full path for all files in a directory.
 
         Parameters
         ----------
@@ -153,8 +160,7 @@ def listdir_fullpath(directory_path):
 
 
 def delete_directory(directory_path):
-    """ Deletes a directory.
-    """
+    """ Deletes a directory. """
 
     shutil.rmtree(directory_path)
 
@@ -395,21 +401,21 @@ def input_timeout(prompt, timeout=30):
 
 
 def is_file_empty(file_path):
-    """ Check if file is empty by confirming if its size is 0 bytes"""
+    """ Check if file is empty by confirming if its size is 0 bytes. """
 
     # Check if file exist and it is empty
     return os.path.exists(file_path) and os.stat(file_path).st_size == 0
 
 
 def is_file_empty_2(file_name):
-    """ Check if file is empty by confirming if its size is 0 bytes"""
+    """ Check if file is empty by confirming if its size is 0 bytes. """
 
     # Check if file exist and it is empty
     return os.path.isfile(file_name) and os.path.getsize(file_name) == 0
 
 
 def is_file_empty_3(file_name):
-    """ Check if file is empty by reading first character in it"""
+    """ Check if file is empty by reading first character in it. """
 
     # open ile in read mode
     with open(file_name, 'r') as read_obj:
@@ -417,7 +423,7 @@ def is_file_empty_3(file_name):
         one_char = read_obj.read(1)
         # if not fetched then file is empty
         if not one_char:
-           return True
+            return True
         elif one_char == " ":
             return True
     return False

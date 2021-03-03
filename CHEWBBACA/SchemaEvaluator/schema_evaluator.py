@@ -5,7 +5,7 @@ Purpose
 -------
 This module generates an interactive report that allows the user to explore
 the diversity (number of alleles) at each locus, the variation of allele
-sizes per locus and the presence of alleles that are not CDSs 
+sizes per locus and the presence of alleles that are not CDSs
 (when evaluating schemas called by other algorithms).
 
 Expected input

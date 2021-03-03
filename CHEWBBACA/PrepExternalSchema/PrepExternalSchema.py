@@ -63,15 +63,10 @@ Code documentation
 """
 
 import os
-import sys
 import shutil
 import argparse
-import traceback
 import itertools
 import multiprocessing
-
-from Bio import SeqIO
-from Bio.Seq import Seq
 
 try:
     from utils import (constants as ct,
@@ -231,7 +226,7 @@ def select_candidate(candidates, proteins, seqids,
 
     return [representatives, final_representatives]
 
-                          
+
 def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                table_id, size_threshold, blastp_path, makeblastdb_path):
     """ Adapts a set of genes/loci from an external schema so that
@@ -287,14 +282,14 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
         # create paths to gene files in new schema
         gene_file = fo.join_paths(schema_path,
-                                   ['{0}{1}'.format(gene_id, '.fasta')])
+                                  ['{0}{1}'.format(gene_id, '.fasta')])
 
         gene_short_file = fo.join_paths(schema_short_path,
-                                         ['{0}{1}'.format(gene_id, '_short.fasta')])
+                                        ['{0}{1}'.format(gene_id, '_short.fasta')])
 
         # create path to temp working directory for current gene
         gene_temp_dir = fo.join_paths(schema_path,
-                                       ['{0}{1}'.format(gene_id, '_temp')])
+                                      ['{0}{1}'.format(gene_id, '_temp')])
 
         # create temp directory for the current gene
         fo.create_directory(gene_temp_dir)
@@ -327,7 +322,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
             # create FASTA file with distinct protein sequences
             protein_file = fo.join_paths(gene_temp_dir,
-                                          ['{0}_protein.fasta'.format(gene_id)])
+                                         ['{0}_protein.fasta'.format(gene_id)])
             protein_lines = fao.fasta_lines(ids_to_blast, prot_seqs)
             fo.write_list(protein_lines, protein_file)
 
@@ -344,25 +339,25 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
                 # create FASTA file with representative sequences
                 rep_file = fo.join_paths(gene_temp_dir,
-                                          ['{0}_rep_protein.fasta'.format(gene_id)])
+                                         ['{0}_rep_protein.fasta'.format(gene_id)])
                 rep_protein_lines = fao.fasta_lines(representatives, prot_seqs)
                 fo.write_list(rep_protein_lines, rep_file)
 
                 # create file with seqids to BLAST against
                 ids_str = im.concatenate_list([str(i) for i in ids_to_blast], '\n')
                 ids_file = fo.join_paths(gene_temp_dir,
-                                          ['{0}_ids.txt'.format(gene_id)])
+                                         ['{0}_ids.txt'.format(gene_id)])
                 fo.write_to_file(ids_str, ids_file, 'w', '')
 
                 # BLAST representatives against non-represented
                 blast_output = fo.join_paths(gene_temp_dir,
-                                              ['{0}_blast_out.tsv'.format(gene_id)])
+                                             ['{0}_blast_out.tsv'.format(gene_id)])
                 # set max_target_seqs to huge number because BLAST only
                 # returns 500 hits by default
 
                 blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
-                                             blast_output, 1, 1, ids_file, blastp_task,
-                                             100000)
+                                            blast_output, 1, 1, ids_file,
+                                            blastp_task, 100000)
                 if len(blast_stderr) > 0:
                     raise ValueError(blast_stderr)
 
@@ -475,7 +470,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # list schema gene files
     genes_file = pv.check_input_type(input_files,
-                                      os.path.join(output_directory, 'schema_genes.txt'))
+                                     os.path.join(output_directory, 'schema_genes.txt'))
 
     # import list of schema files
     with open(genes_file, 'r') as gf:
@@ -497,7 +492,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
     even_genes_groups = mo.split_genes_by_core(genes_info, cpu_cores*4,
-                                                'seqcount')
+                                               'seqcount')
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
 
@@ -513,9 +508,9 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     print('Adapting {0} genes...\n'.format(len(genes_list)))
 
     invalid_data = mo.map_async_parallelizer(even_genes_groups,
-                                              mo.function_helper,
-                                              cpu_cores,
-                                              show_progress=True)
+                                             mo.function_helper,
+                                             cpu_cores,
+                                             show_progress=True)
 
     # define paths and write files with list of invalid
     # alleles and invalid genes
@@ -559,7 +554,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     print('\nSuccessfully adapted {0}/{1} genes present in the '
           'input schema.'.format(len(genes_list)-len(invalid_genes),
-                                    len(genes_list)))
+                                 len(genes_list)))
 
 
 def parse_arguments():

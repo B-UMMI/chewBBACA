@@ -27,7 +27,8 @@ except:
 warnings.simplefilter('ignore', BiopythonWarning)
 
 
-def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastp_path, makeblastdb_path):
+def getBlastScoreRatios(genefile, basepath, doAll, verbose,
+                        blastp_path, makeblastdb_path):
     if verbose:
         def verboseprint(*args):
             for arg in args:
@@ -45,7 +46,6 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastp_path, makebla
     listAllelesNames = []
     # calculate bsr for each allele
     for allele in SeqIO.parse(genefile, "fasta"):
-
         # usually first allele name is just > 1 and after that it has > gene_id_genome
         aux = allele.id.split("_")
         if len(aux) < 2:
@@ -119,7 +119,8 @@ def getBlastScoreRatios(genefile, basepath, doAll, verbose, blastp_path, makebla
     return var, alleleList, listAllelesNames
 
 
-def reDogetBlastScoreRatios(sequence, basepath, alleleI, allelescores2, newGene_Blast_DB_name, alleleList2, picklepath,
+def reDogetBlastScoreRatios(sequence, basepath, alleleI, allelescores2,
+                            newGene_Blast_DB_name, alleleList2, picklepath,
                             verbose, blastp_path, listAllelesNames):
     if verbose:
         def verboseprint(*args):

@@ -729,8 +729,9 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # create BLAST DB
     blast_db = fo.join_paths(output_directory,
-                              ['{0}_clustered_proteins_int'.format(file_prefix)])
-    db_stderr = bw.make_blast_db(makeblastdb_path, integer_clusters, blast_db, 'prot')
+                             ['{0}_clustered_proteins_int'.format(file_prefix)])
+    db_stderr = bw.make_blast_db(makeblastdb_path, integer_clusters,
+                                 blast_db, 'prot')
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
@@ -744,8 +745,8 @@ def blast_clusters(clusters, sequences, output_directory,
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
     splitted_seqids = mo.split_genes_by_core(seqids_to_blast,
-                                              process_num,
-                                              'seqcount')
+                                             process_num,
+                                             'seqcount')
 
     common_args = [integer_clusters, blast_results_dir, blastp_path,
                    blast_db, sc.cluster_blaster]
@@ -757,9 +758,9 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # BLAST each sequences in a cluster against every sequence in that cluster
     blast_results = mo.map_async_parallelizer(splitted_seqids,
-                                               mo.function_helper,
-                                               cpu_cores,
-                                               show_progress=True)
+                                              mo.function_helper,
+                                              cpu_cores,
+                                              show_progress=True)
 
     print('\n\nFinished BLASTp. Determining schema representatives...')
 
@@ -796,18 +797,6 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
                        prodigal_mode, cds_input):
     """
     """
-
-    print('Prodigal training file: {0}'.format(ptf_path))
-    print('CPU cores: {0}'.format(cpu_cores))
-    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
-    print('Translation table: {0}'.format(translation_table))
-    print('Minimum sequence length: {0}'.format(minimum_length))
-    print('Size threshold: {0}'.format(size_threshold))
-    print('Word size: {0}'.format(word_size))
-    print('Window size: {0}'.format(window_size))
-    print('Clustering similarity: {0}'.format(clustering_sim))
-    print('Representative filter: {0}'.format(representative_filter))
-    print('Intra filter: {0}'.format(intra_filter))
 
     # define directory for temporary files
     temp_directory = fo.join_paths(output_directory, ['temp'])
@@ -864,7 +853,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     # write info about invalid alleles to fle
     invalid_alleles_file = fo.join_paths(output_directory,
-                                          ['invalid_alleles.txt'])
+                                         ['invalid_alleles.txt'])
     invalid_alleles = im.join_list(ut_lines+ss_lines, '\n')
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
     print('Info about untranslatable and small sequences '
@@ -1005,6 +994,18 @@ def main(input_files, output_directory, schema_name, ptf_path,
          representative_filter, intra_filter, cpu_cores, blast_path,
          cds_input, prodigal_mode, no_cleanup):
 
+    print('Prodigal training file: {0}'.format(ptf_path))
+    print('CPU cores: {0}'.format(cpu_cores))
+    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
+    print('Translation table: {0}'.format(translation_table))
+    print('Minimum sequence length: {0}'.format(minimum_length))
+    print('Size threshold: {0}'.format(size_threshold))
+    print('Word size: {0}'.format(word_size))
+    print('Window size: {0}'.format(window_size))
+    print('Clustering similarity: {0}'.format(clustering_sim))
+    print('Representative filter: {0}'.format(representative_filter))
+    print('Intra filter: {0}'.format(intra_filter))
+
     results = create_schema_seed(input_files, output_directory, schema_name,
                                  ptf_path, blast_score_ratio, minimum_length,
                                  translation_table, size_threshold, word_size,
@@ -1035,11 +1036,13 @@ def parse_arguments():
     parser.add_argument('-o', type=str, required=True,
                         dest='output_directory',
                         help='Output directory where the process will store '
-                             'intermediate files and create the schema\'s directory.')
+                             'intermediate files and create the schema\'s '
+                             'directory.')
 
     parser.add_argument('--n', type=str, required=False,
                         default='schema_seed', dest='schema_name',
-                        help='Name to give to folder that will store the schema files.')
+                        help='Name to give to folder that will store '
+                             'the schema files.')
 
     parser.add_argument('--ptf', type=str, required=False,
                         default=False, dest='ptf_path',

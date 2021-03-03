@@ -98,9 +98,8 @@ Code documentation
 
 import os
 import sys
-import csv
 import json
-import pickle
+import time
 import argparse
 import requests
 import itertools
@@ -261,7 +260,7 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
 
     schema_id = None
     schemas_url, schemas_get = cr.simple_get_request(base_url, headers_get,
-                                                      ['species', species_id, 'schemas'])
+                                                     ['species', species_id, 'schemas'])
     schemas_status = schemas_get.status_code
     if schemas_status in [200, 201]:
         species_schemas = schemas_get.json()
@@ -285,17 +284,17 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
                 schema_url, schema_id = schema_info
                 # determine if schema upload was complete
                 schema_get = cr.simple_get_request(base_url, headers_get,
-                                                    ['species', species_id,
-                                                     'schemas', schema_id])[1]
+                                                   ['species', species_id,
+                                                    'schemas', schema_id])[1]
                 current_schema = schema_get.json()[0]
                 schema_date = current_schema['dateEntered']['value']
                 if schema_date != 'singularity':
                     sys.exit('Schema finished uploading. Cannot proceed.')
                 # determine if user was the one that started the upload
                 ask_admin = cr.simple_get_request(base_url, headers_get,
-                                                   ['species', species_id,
-                                                    'schemas', schema_id,
-                                                    'administrated'])[1]
+                                                  ['species', species_id,
+                                                   'schemas', schema_id,
+                                                   'administrated'])[1]
                 schema_admin = ask_admin.json()
                 if schema_admin is False:
                     sys.exit('Current user is not the user that '
@@ -339,7 +338,7 @@ def create_uniprot_queries(file, max_queries=ct.MAX_QUERIES):
     # create queries based on unique sequences only
     unique_prots = set(list(protein_seqs.values()))
     selected = unique_prots if len(unique_prots) <= max_queries \
-                               else list(unique_prots)[0:max_queries]
+        else list(unique_prots)[0:max_queries]
 
     queries = [ur.uniprot_query(prot) for prot in selected]
     # save SPARQL queries with pickle
@@ -469,7 +468,7 @@ def quality_control(locus_input):
               (list of str).
     """
 
-    res = sm.get_seqs_dicts(*locus_input, max_proteins=ct.MAX_QUERIES)
+    res = sm.get_seqs_dicts(*locus_input)
 
     prots_file = '{0}_prots'.format(locus_input[0].split('.fasta')[0])
     fo.pickle_dumper(res[1], prots_file)
@@ -562,9 +561,9 @@ def schema_completedness(base_url, species_id, schema_id, headers_get,
 
     # get info about loci and alleles upload
     schema_loci = cr.simple_get_request(base_url, headers_get,
-                                         ['species', species_id,
-                                          'schemas', schema_id,
-                                          'loci', 'data'])[1]
+                                        ['species', species_id,
+                                         'schemas', schema_id,
+                                         'loci', 'data'])[1]
     schema_loci = schema_loci.json()
     if 'Not found' in schema_loci:
         sys.exit('{0}'.format(schema_loci['Not found']))
@@ -637,8 +636,8 @@ def create_schema(base_url, headers_post, species_id, params):
     """
 
     schema_post = cr.simple_post_request(base_url, headers_post,
-                                          ['species', species_id, 'schemas'],
-                                          data=json.dumps(params))[1]
+                                         ['species', species_id, 'schemas'],
+                                         data=json.dumps(params))[1]
     schema_status = schema_post.status_code
 
     # check status code
@@ -751,14 +750,14 @@ def upload_loci_data(loci_file, base_url, species_id,
     fo.file_zipper(loci_file, loci_zip_file)
 
     zip_url = cr.make_url(base_url, 'species', species_id,
-                           'schemas', schema_id, 'loci',
-                           'data')
+                          'schemas', schema_id, 'loci',
+                          'data')
 
     # upload file as multipart-encoded file
     filename = '{0}_{1}_loci.zip'.format(species_id, schema_id)
     response = cr.upload_file(loci_zip_file, filename,
-                               zip_url, headers_post,
-                               False)
+                              zip_url, headers_post,
+                              False)
 
     response = response.json()
     start_nr_loci = int(response['nr_loci'])
@@ -770,8 +769,8 @@ def upload_loci_data(loci_file, base_url, species_id,
     status = 'Inserting'
     while status != 'Complete' and (current_time < time_limit):
         insertion_status = cr.simple_get_request(base_url, headers_get,
-                                                  ['species', species_id,'schemas',
-                                                   schema_id, 'loci', 'data'])[1]
+                                                 ['species', species_id, 'schemas',
+                                                  schema_id, 'loci', 'data'])[1]
         insertion_status = insertion_status.json()
 
         if insertion_status['status'] == 'complete':
@@ -922,24 +921,24 @@ def upload_alleles_data(alleles_data, length_files, base_url,
 
         # send data to the NS
         send_url = cr.make_url(base_url, 'species', species_id,
-                                'schemas', schema_id, 'loci',
-                                current_locus, 'lengths')
+                               'schemas', schema_id, 'loci',
+                               current_locus, 'lengths')
 
         lengths_res = cr.simple_post_request(send_url, headers_post,
-                                              data=json.dumps(data))
-        length_status = lengths_res.status_code
+                                             data=json.dumps(data))
+        length_status = lengths_res[1].status_code
 
         # get path to ZIP archive with data to insert alleles
         current_zip = a[0]
 
         # send data to insert alleles in the NS
         zip_url = cr.make_url(base_url, 'species', species_id,
-                               'schemas', schema_id, 'loci',
-                               current_locus, 'data')
+                              'schemas', schema_id, 'loci',
+                              current_locus, 'data')
 
         zip_res = cr.upload_file(current_zip, locus_hash,
-                                  zip_url, headers_post_bytes,
-                                  False)
+                                 zip_url, headers_post_bytes,
+                                 False)
         zip_status = zip_res.status_code
 
         # determine if upload was successful
@@ -1027,8 +1026,9 @@ def parse_arguments():
     return args
 
 
-def main(schema_directory, species_id, schema_name, loci_prefix, description_file,
-         annotations, cpu_cores, threads, nomenclature_server, continue_up):
+def main(schema_directory, species_id, schema_name, loci_prefix,
+         description_file, annotations, cpu_cores, threads,
+         nomenclature_server, continue_up):
 
     if 'tutorial' not in nomenclature_server:
         token = cr.capture_login_credentials(nomenclature_server)
@@ -1099,20 +1099,17 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     configs = pv.read_configs(schema_directory, '.schema_config')
 
     # validate arguments values
-    schema_ptfs = configs.get('prodigal_training_file', '')
-    if len(schema_ptfs) > 1:
-      sys.exit('Schema has been used with multiple training files. '
-               'Cannot be uploaded to Chewie-NS.')
+    schema_ptfs = configs['prodigal_training_file']
     ptf_info = pv.validate_ptf(None, schema_directory, schema_ptfs, True)
-    if ptf_info[0] is False or ptf_info[2] is True:
-      sys.exit('Please ensure that the schema\'s directory includes the '
-               'Prodigal training file used to create the schema.')
+    if ptf_info[0] is None or ptf_info[2] is True:
+        sys.exit('Please ensure that the schema\'s directory includes the '
+                 'Prodigal training file used to create the schema.')
 
     bsr_val = pv.bsr_type(configs.get('bsr', ''))
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
     st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
-    cv_val = configs.get('chewBBACA_version', '')
+    cv_val = configs.get('chewBBACA_version', '')[0]
     ws_val = pv.validate_ws(configs.get('word_size', None))
     cs_val = pv.validate_cs(configs.get('cluster_sim', None))
     rf_val = pv.validate_rf(configs.get('representative_filter', None))
@@ -1137,8 +1134,8 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
         print(params_text)
         print('All configurations successfully validated.\n')
         params['name'] = schema_name
-        ptf_file = ptf_val[0]
-        ptf_hash = ptf_val[1]
+        ptf_file = ptf_info[0]
+        ptf_hash = ptf_info[1]
 
     # determine schema status
     upload_type = schema_status(nomenclature_server, headers_get,
@@ -1148,7 +1145,8 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     if upload_type[0] == 'novel':
         print('New schema name: "{0}" '.format(schema_name))
     else:
-        schema_url = '{0}species/{1}/schemas/{2}'.format(nomenclature_server, species_id,
+        schema_url = '{0}species/{1}/schemas/{2}'.format(nomenclature_server,
+                                                         species_id,
                                                          upload_type[1])
         schema_id = schema_url.split('/')[-1]
         print('Schema exists and is incomplete '
@@ -1260,7 +1258,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
             else:
                 print('\nInvalid annotations file value.')
 
-    # convert parameters to string type because the Chewie-NS
+    # convert parameters to string type because Chewie-NS
     # expects strings
     params = {k: str(v) for k, v in params.items()}
     params['schema_hashes'] = list(hashed_files.keys())
@@ -1274,12 +1272,13 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
                                               species_id,
                                               params)
         # send file with description
-        description_uri = cr.make_url(nomenclature_server, 'species', species_id,
-                                       'schemas', schema_id, 'description')
+        description_uri = cr.make_url(nomenclature_server, 'species',
+                                      species_id, 'schemas', schema_id,
+                                      'description')
 
         desc_res = cr.upload_file(description_file, description_hash,
-                                   description_uri, headers_post_bytes,
-                                   False)
+                                  description_uri, headers_post_bytes,
+                                  False)
 
         print('Created schema with name {0} '
               '(id={1}).\n'.format(schema_name, schema_id))
@@ -1301,7 +1300,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
                                          schema_directory, species_id,
                                          schema_id, loci_prefix,
                                          absent_loci)
-            print('  Sending data to the NS...')
+            print('  Sending data to chewie-NS...')
             absent_data = upload_loci_data(loci_file, nomenclature_server,
                                            species_id, schema_id,
                                            headers_post_bytes, headers_get,
@@ -1316,7 +1315,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
         loci_file = create_loci_file(dna_files, loci_annotations,
                                      schema_directory, species_id,
                                      schema_id, loci_prefix)
-        print('  Sending data to the NS...')
+        print('  Sending data to chewie-NS...')
         response_data = upload_loci_data(loci_file, nomenclature_server,
                                          species_id, schema_id,
                                          headers_post_bytes, headers_get,
@@ -1342,11 +1341,12 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
     list(map(fo.file_zipper, alleles_files, zipped_files))
     alleles_data = list(zip(zipped_files, loci_ids, loci_hashes, loci_names))
 
-    print('  Sending alleles data to the NS...')
+    print('  Sending alleles data to chewie-NS...')
     # send POST with file contents and process each file in the NS
-    failed = upload_alleles_data(alleles_data, length_files, nomenclature_server,
-                                 headers_post, headers_post_bytes,
-                                 species_id, schema_id)
+    failed = upload_alleles_data(alleles_data, length_files,
+                                 nomenclature_server, headers_post,
+                                 headers_post_bytes, species_id,
+                                 schema_id)
 
     if len(failed) > 0:
         sys.exit('Could not upload data for alleles of following loci:\n'
@@ -1357,17 +1357,17 @@ def main(schema_directory, species_id, schema_name, loci_prefix, description_fil
         # send training file to NS
         print('\n\nUploading Prodigal training file...')
         ptf_url = cr.make_url(nomenclature_server, 'species', species_id,
-                               'schemas', schema_id, 'ptf')
+                              'schemas', schema_id, 'ptf')
         ptf_res = cr.upload_file(ptf_file, ptf_hash,
-                                  ptf_url, headers_post_bytes,
-                                  False)
+                                 ptf_url, headers_post_bytes,
+                                 False)
         print(list(ptf_res.json().values())[0])
-        print('\nThe NS has received the data and will insert '
+        print('\nchewie-NS has received the data and will insert '
               'the alleles into the database.')
         print('Schema will be available for download as soon as '
               'the process has completed.')
         print('Schema information will also be available on the '
-              'NS website.\n')
+              'chewie-NS website.\n')
 
     # delete all intermediate files
     print('Removing intermediate files...')

@@ -55,7 +55,6 @@ import sys
 import json
 import time
 import shutil
-import pickle
 import hashlib
 import argparse
 import requests
@@ -123,7 +122,7 @@ def create_lengths_files(upload, temp_dir):
         lengths = {locus: {h: info[2] for h, info in records.items()}}
 
         lengths_file = os.path.join(temp_dir, '{0}_lengths'.format(locus_id))
-        fo.pickle_dumper(lengths_file, lengths)
+        fo.pickle_dumper(lengths, lengths_file)
         length_files.append(lengths_file)
 
     return length_files
@@ -191,7 +190,7 @@ def create_alleles_files(upload, base_url, user_id, species_name,
                                                          locus_id))
         alleles_files.append(alleles_file)
 
-        fo.pickle_dumper(alleles_file, post_inputs)
+        fo.pickle_dumper(post_inputs, alleles_file)
 
     return [alleles_files, loci_ids, loci_names]
 
@@ -257,11 +256,11 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
 
         # send data to the NS
         send_url = cr.make_url(base_url, 'species', species_id,
-                                 'schemas', schema_id, 'loci',
-                                 locus_id, 'lengths')
+                               'schemas', schema_id, 'loci',
+                               locus_id, 'lengths')
 
         lengths_res = cr.simple_post_request(send_url, headers_post,
-                                               json.dumps(data))
+                                             data=json.dumps(data))[1]
         length_status = lengths_res.status_code
 
         # get path to ZIP archive with data to insert alleles
@@ -269,15 +268,15 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
 
         # send data to insert alleles in the NS
         zip_url = cr.make_url(base_url, 'species', species_id,
-                                'schemas', schema_id, 'loci',
-                                locus_id, 'update')
+                              'schemas', schema_id, 'loci',
+                              locus_id, 'update')
 
         if alleles_data[i] == alleles_data[-1]:
             headers_post_bytes['complete'] = 'True'
 
         zip_res = cr.upload_file(current_zip, os.path.basename(current_zip),
-                                   zip_url, headers_post_bytes,
-                                   False)
+                                 zip_url, headers_post_bytes,
+                                 False)
 
         # determine if upload was successful
         zip_status = zip_res.status_code
@@ -569,7 +568,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
             updated_records[int_seqid] = (seq[0], seq[1])
 
         temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-        fo.pickle_dumper(temp_file, updated_records)
+        fo.pickle_dumper(updated_records, temp_file)
 
         pickled_loci[locus] = temp_file
 
@@ -634,7 +633,7 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
                 updated_records[int_seqid] = (seq[0], seq[1])
 
             temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-            fo.pickle_dumper(temp_file, updated_records)
+            fo.pickle_dumper(updated_records, temp_file)
 
             pickled_loci[gene] = temp_file
 
@@ -943,7 +942,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                                             ['species', species_id,
                                              'schemas', schema_id,
                                              'lock'],
-                                             data={'action': 'lock'})[1]
+                                             data=json.dumps({'action': 'lock'}))[1]
         # if schema is already locked user cannot send alleles
         lock_status = lock_res.status_code
         if lock_status == 403:
@@ -956,8 +955,8 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
             # after locking, check if date matches ns_date
             date_res = cr.simple_get_request(nomenclature_server, headers_get,
-                                               ['species', species_id, 'schemas',
-                                                schema_id,'modified'])[1]
+                                              ['species', species_id, 'schemas',
+                                               schema_id,'modified'])[1]
 
             date_value = (date_res.json()).split(' ')[-1]
 
@@ -972,15 +971,15 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
                 # unlock schema
                 lock_res = cr.simple_post_request(nomenclature_server, headers_post,
-                                                    ['species', species_id, 'schemas',
-                                                     schema_id, 'lock'],
-                                                     data={'action': 'unlock'})[1]
+                                                  ['species', species_id, 'schemas',
+                                                   schema_id, 'lock'],
+                                                   data=json.dumps({'action': 'unlock'}))[1]
             else:
                 print('Collecting data and creating files to submit local alleles...')
                 # get list of loci for schema in the NS
                 loci_res = cr.simple_get_request(nomenclature_server, headers_get,
-                                                  ['species', species_id, 'schemas',
-                                                   schema_id, 'loci'])
+                                                 ['species', species_id, 'schemas',
+                                                  schema_id, 'loci'])[1]
                 # get loci files names from response
                 for l in loci_res.json()['Loci']:
                     locus_name = l['name']['value'] + '.fasta'
@@ -1010,7 +1009,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                                                       nomenclature_server, headers_post,
                                                       headers_post_bytes, species_id,
                                                       schema_id)
-
+                print(failed, start_count.json())
                 # track progress through endpoint
                 # set time limit for task completion (seconds)
                 print()
@@ -1020,10 +1019,10 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                 start_count = int(start_count.json()['nr_alleles'])
                 while status != 'Complete' and (current_time < time_limit):
                     insertion_status = cr.simple_get_request(nomenclature_server,
-                                                               headers_get,
-                                                               ['species', species_id,
-                                                                'schemas', schema_id,
-                                                                'loci', 'locus', 'update'])[1]
+                                                             headers_get,
+                                                             ['species', species_id,
+                                                              'schemas', schema_id,
+                                                              'loci', 'locus', 'update'])[1]
                     insertion_status = insertion_status.json()
                     if 'message' in insertion_status:
                         status = 'Complete'
@@ -1085,9 +1084,9 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
         # get last modification date
         last_modified = cr.simple_get_request(nomenclature_server, headers_get,
-                                                ['species', species_id,
-                                                 'schemas', schema_id,
-                                                 'modified'])[1]
+                                              ['species', species_id,
+                                               'schemas', schema_id,
+                                               'modified'])[1]
         last_modified = (last_modified.json()).split(' ')[-1]
         server_time = last_modified
 

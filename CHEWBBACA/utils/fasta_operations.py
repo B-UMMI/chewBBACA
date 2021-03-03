@@ -8,6 +8,7 @@ DESCRIPTION
 """
 
 
+import os
 import hashlib
 
 from Bio import SeqIO

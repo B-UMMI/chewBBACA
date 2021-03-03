@@ -68,7 +68,6 @@ Code documentation
 
 import os
 import sys
-import pickle
 import shutil
 import requests
 import argparse
@@ -80,12 +79,14 @@ try:
     from PrepExternalSchema import PrepExternalSchema
     from utils import (constants as ct,
                        file_operations as fo,
+                       process_datetime as pd,
                        chewiens_requests as cr,
                        parameters_validation as pv)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
+                                 process_datetime as pd,
                                  chewiens_requests as cr,
                                  parameters_validation as pv)
 
@@ -115,8 +116,9 @@ def check_compressed(schema_uri, headers_get):
               last modification date of the schema at time of compression.
     """
 
-    zip_uri, zip_response = cr.simple_get_request(schema_uri, headers_get, ['zip'],
-                                                   parameters={'request_type': 'check'})
+    zip_uri, zip_response = cr.simple_get_request(schema_uri,
+                                                  headers_get, ['zip'],
+                                                  parameters={'request_type': 'check'})
     zip_info = zip_response.json()
     if 'zip' in zip_info:
         zip_file = zip_info['zip'][0]
@@ -185,12 +187,12 @@ def download_date(user_date, zip_date, latest, insertion_date,
     # user wants schema at a particular time point
     elif user_date is not None:
         # get schema insertion and last modification date
-        insertion_date_obj = dtu.datetime_obj(insertion_date,
-                                              '%Y-%m-%dT%H:%M:%S.%f')
-        modification_date_obj = dtu.datetime_obj(modification_date,
-                                                 '%Y-%m-%dT%H:%M:%S.%f')
+        insertion_date_obj = pd.datetime_obj(insertion_date,
+                                             '%Y-%m-%dT%H:%M:%S.%f')
+        modification_date_obj = pd.datetime_obj(modification_date,
+                                                '%Y-%m-%dT%H:%M:%S.%f')
         # determine if date given by user is valid
-        user_date_obj = dtu.validate_date(user_date)
+        user_date_obj = pd.validate_date(user_date)
 
         if user_date_obj is False:
             sys.exit('Provided date is invalid. Please provide a date '
@@ -198,8 +200,8 @@ def download_date(user_date, zip_date, latest, insertion_date,
                      '"%Y-%m-%dT%H:%M:%S.%f"')
         if user_date_obj >= insertion_date_obj and \
            user_date_obj <= modification_date_obj:
-            schema_date = dtu.datetime_str(user_date_obj,
-                                           '%Y-%m-%dT%H:%M:%S.%f')
+            schema_date = pd.datetime_str(user_date_obj,
+                                          '%Y-%m-%dT%H:%M:%S.%f')
         elif user_date_obj < insertion_date_obj:
             sys.exit('Provided date is prior to the date of schema '
                      'insertion. Please provide a date later than '
@@ -287,7 +289,8 @@ def get_fasta_seqs(url, headers_get, schema_date):
     max_tries = 3
     downloaded = False
     while downloaded is False:
-        res = requests.get(url, headers_get, [], payload, False, 180)
+        res = cr.simple_get_request(url, headers_get,
+                                    [], payload, False, 180)[1]
         tries += 1
         if res.status_code in [200, 201] or tries == max_tries:
             downloaded = True
@@ -425,7 +428,7 @@ def download_compressed(zip_uri, species_name, schema_name,
 
     # download ZIP archive
     url, zip_response = cr.simple_get_request(zip_uri, headers_get,
-                                               parameters={'request_type': 'download'})
+                                              parameters={'request_type': 'download'})
     zip_path = os.path.join(schema_path, zip_name)
     open(zip_path, 'wb').write(zip_response.content)
     # uncompress
@@ -467,7 +470,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
             Path to the Prodigal training file.
     """
     ptf_url, ptf_response = cr.simple_get_request(base_url, headers_get,
-                                                   ['species', species_id, 'schemas', schema_id, 'ptf'])
+                                                  ['species', species_id, 'schemas', schema_id, 'ptf'])
 
     ptf_file = os.path.join(download_folder,
                             '{0}.trn'.format(species_name.replace(' ', '_')))
@@ -496,9 +499,9 @@ def main(species_id, schema_id, download_folder, cpu_cores,
     # get info about all the species schemas
     schema_id, schema_uri,\
         schema_name, schema_params = cr.get_species_schemas(schema_id,
-                                                             species_id,
-                                                             nomenclature_server,
-                                                             headers_get)
+                                                            species_id,
+                                                            nomenclature_server,
+                                                            headers_get)
 
     print('Schema id: {0}'.format(schema_id))
     print('Schema name: {0}'.format(schema_name))
@@ -539,6 +542,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
 
     if schema_date == zip_date:
         print('\nDownloading compressed version...')
+        # chewie-NS does not add clustering parameters to config, change that
         schema_path = download_compressed(zip_uri, species_name, schema_name,
                                           download_folder, headers_get)
     else:
@@ -580,12 +584,17 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         # write hidden schema config file
         del(schema_params_dict['Schema_lock'])
         schema_config = pv.write_schema_config(schema_params_dict['bsr'],
-                                                ptf_hash,
-                                                schema_params_dict['translation_table'],
-                                                schema_params_dict['minimum_locus_length'],
-                                                schema_params_dict['chewBBACA_version'],
-                                                schema_params_dict['size_threshold'],
-                                                schema_path)
+                                               ptf_hash,
+                                               schema_params_dict['translation_table'],
+                                               schema_params_dict['minimum_locus_length'],
+                                               schema_params_dict['chewBBACA_version'],
+                                               schema_params_dict['size_threshold'],
+                                               schema_params_dict['word_size'],
+                                               schema_params_dict.get('window_size', None),  # add window size to chewie-NS
+                                               schema_params_dict['cluster_sim'],
+                                               schema_params_dict['representative_filter'],
+                                               schema_params_dict['intraCluster_filter'],
+                                               schema_path)
 
         # create ns_config file
         ns_config = os.path.join(schema_path, '.ns_config')

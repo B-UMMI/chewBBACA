@@ -1110,6 +1110,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
     st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
     cv_val = configs.get('chewBBACA_version', '')[0]
+    # add window size
     ws_val = pv.validate_ws(configs.get('word_size', None))
     cs_val = pv.validate_cs(configs.get('cluster_sim', None))
     rf_val = pv.validate_rf(configs.get('representative_filter', None))

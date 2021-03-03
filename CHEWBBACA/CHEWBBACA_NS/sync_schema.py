@@ -838,12 +838,13 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
         # verify if user has authorization to submit
         url = cr.make_url(nomenclature_server, 'auth', 'check')
         response = cr.simple_get_request(url, headers_get)[1]
-        if response.status_code is 200:
+        if response.status_code == 200:
             user_auth = True
         else:
-            sys.exit('Current user has no authorization to submit novel alleles.\n'
-                     'You can request authorization to submit novel alleles by sending '
-                     'an e-mail to: imm-bioinfo@medicina.ulisboa.pt')
+            sys.exit('Current user has no authorization to submit novel '
+                     'alleles.\nYou can request authorization to submit '
+                     'novel alleles by sending an e-mail to: '
+                     'imm-bioinfo@medicina.ulisboa.pt')
         print('User id: {0}'.format(user_id))
         print('User role: {0}\n'.format(user_role))
     else:
@@ -863,23 +864,28 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
     schema_params = pv.read_configs(schema_directory, '.schema_config')
 
     # verify that local configs have a single value per parameter
-    if all([len(schema_params[k]) == 1 for k in schema_params if k != 'chewBBACA_version']) is not True:
+    if all([len(schema_params[k]) == 1
+            for k in schema_params
+            if k != 'chewBBACA_version']) is not True:
         sys.exit('Cannot sync schema with multiple values per parameter.')
 
     # check if schema exists in the NS
     schema_name, ns_params = cr.get_species_schemas(schema_id,
-                                                      species_id,
-                                                      nomenclature_server,
-                                                      headers_get)[2:]
+                                                    species_id,
+                                                    nomenclature_server,
+                                                    headers_get)[2:]
 
     # verify that local configs match NS configs
-    if all([str(schema_params[k][0]) == ns_params[k]['value'] for k in schema_params if k != 'chewBBACA_version']) is not True:
+    # add window size
+    if all([str(schema_params[k][0]) == ns_params[k]['value']
+            for k in schema_params
+            if k not in ['chewBBACA_version', 'window_size']]) is not True:
         sys.exit('Local configs do not match Chewie-NS configs.')
 
     # Get the name of the species from the provided id
     # or vice-versa
     species_id, species_name = cr.species_ids(species_id, nomenclature_server,
-                                                headers_get)
+                                              headers_get)
 
     print('Schema id: {0}'.format(schema_id))
     print('Schema name: {0}'.format(schema_name))
@@ -939,10 +945,10 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
         # attempt to lock schema
         lock_res = cr.simple_post_request(nomenclature_server, headers_post,
-                                            ['species', species_id,
-                                             'schemas', schema_id,
-                                             'lock'],
-                                             data=json.dumps({'action': 'lock'}))[1]
+                                          ['species', species_id,
+                                           'schemas', schema_id,
+                                           'lock'],
+                                          data=json.dumps({'action': 'lock'}))[1]
         # if schema is already locked user cannot send alleles
         lock_status = lock_res.status_code
         if lock_status == 403:
@@ -955,8 +961,8 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
 
             # after locking, check if date matches ns_date
             date_res = cr.simple_get_request(nomenclature_server, headers_get,
-                                              ['species', species_id, 'schemas',
-                                               schema_id,'modified'])[1]
+                                             ['species', species_id, 'schemas',
+                                              schema_id, 'modified'])[1]
 
             date_value = (date_res.json()).split(' ')[-1]
 
@@ -973,7 +979,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                 lock_res = cr.simple_post_request(nomenclature_server, headers_post,
                                                   ['species', species_id, 'schemas',
                                                    schema_id, 'lock'],
-                                                   data=json.dumps({'action': 'unlock'}))[1]
+                                                  data=json.dumps({'action': 'unlock'}))[1]
             else:
                 print('Collecting data and creating files to submit local alleles...')
                 # get list of loci for schema in the NS
@@ -1009,7 +1015,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                                                       nomenclature_server, headers_post,
                                                       headers_post_bytes, species_id,
                                                       schema_id)
-                print(failed, start_count.json())
+
                 # track progress through endpoint
                 # set time limit for task completion (seconds)
                 print()

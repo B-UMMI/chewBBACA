@@ -812,7 +812,8 @@ def parse_arguments():
     return args
 
 
-def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
+def main(schema_directory, cpu_cores, nomenclature_server,
+         submit, blast_path, update_profiles):
 
     # get ns configs
     local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
@@ -1065,7 +1066,7 @@ def main(schema_directory, cpu_cores, nomenclature_server, submit, blast_path):
                                      rearranged)
 
     # change identifiers in SQLite DB
-    if len(rearranged) > 0:
+    if len(rearranged) > 0 and update_profiles is True:
         print('\nUpdating local allele identifiers...')
         altered = ps.update_profiles(schema_directory, rearranged)
         if altered is not None:

@@ -396,7 +396,6 @@ def allele_call():
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
     args.ns = os.path.isfile(ns_config)
-    print(args)
 
     BBACA.main(genomes_files, schema_genes, args.cpu_cores,
                args.output_directory, args.blast_score_ratio,
@@ -1253,6 +1252,11 @@ def synchronize_schema():
                              'in the local schema and send them to the '
                              'NS. (only authorized users can submit '
                              'new alleles).')
+
+    parser.add_argument('--update-profiles', required=False,
+                        action='store_true', dest='update_profiles',
+                        help='If the process should update local profiles '
+                             'stored in the SQLite database.')
 
     args = parser.parse_args()
     del args.SyncSchema

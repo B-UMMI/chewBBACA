@@ -714,22 +714,10 @@ def create_pre_computed_data(
                         rows[5],
                         rows[6],
                         rows[7],
+                        rows[8],
                     ]
                     for rows in annotations_reader
                 }
-                # annotations_data = [
-                #     {
-                #         "locus": rows[0],
-                #         "genome": rows[1],
-                #         "contig": rows[2],
-                #         "start": rows[3],
-                #         "stop": rows[4],
-                #         "protID": rows[5],
-                #         "name": rows[6],
-                #         "url": rows[7],
-                #     }
-                #     for rows in annotations_reader
-                # ]
 
         for d in data_ind:
             try:
@@ -740,8 +728,11 @@ def create_pre_computed_data(
                         "contig": annotations_data[d["Gene"]][1],
                         "start": annotations_data[d["Gene"]][2],
                         "stop": annotations_data[d["Gene"]][3],
-                        "name": annotations_data[d["Gene"]][5],
-                        "url": annotations_data[d["Gene"]][6],
+                        "coding_strand": "sense"
+                        if annotations_data[d["Gene"]][5] == "1"
+                        else "antisense",
+                        "name": annotations_data[d["Gene"]][6],
+                        "url": annotations_data[d["Gene"]][7],
                     }
                 )
             except KeyError:
@@ -751,6 +742,7 @@ def create_pre_computed_data(
                         "contig": "-",
                         "start": "-",
                         "stop": "-",
+                        "coding_strand": "-",
                         "name": "-",
                         "url": "-",
                     }

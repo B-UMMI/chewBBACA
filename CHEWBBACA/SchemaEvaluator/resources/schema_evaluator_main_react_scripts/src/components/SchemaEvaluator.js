@@ -761,6 +761,22 @@ class SchemaEvaluator extends Component {
         },
       },
       {
+        name: "coding_strand",
+        label: "Coding Strand",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
         name: "Alleles not multiple of 3",
         label: "Alleles not multiple of 3",
         options: {

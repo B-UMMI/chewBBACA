@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions to 
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 

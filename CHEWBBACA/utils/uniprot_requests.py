@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions to perform requests to
+UniProts's SPARQL endpoint and process retrieved data.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -22,7 +26,7 @@ UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 def select_name(result):
     """ Extracts the annotation description from the result
-        of a query to the UniProt SPARQL endpoint.
+        of a query to UniProt's SPARQL endpoint.
 
         Parameters
         ----------
@@ -36,7 +40,7 @@ def select_name(result):
             name : str
                 The annotation descrition.
             url : str
-                The URI to the UniProt page for the protein.
+                The URL to the UniProt page about the protein record.
             label : str
                 A label that has descriptive value.
     """
@@ -117,7 +121,7 @@ def uniprot_query(sequence):
 
 
 def get_data(sparql_query):
-    """ Sends request to query UniProts's SPARQL endpoint.
+    """ Sends requests to query UniProts's SPARQL endpoint.
 
         Parameters
         ----------

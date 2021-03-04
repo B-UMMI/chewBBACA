@@ -9,7 +9,6 @@ DESCRIPTION
 
 
 import sys
-import time
 import functools
 import datetime as dt
 

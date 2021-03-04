@@ -41,6 +41,7 @@ class SchemaEvaluator extends Component {
     exceptions: _exceptions,
     testMSA: _msaData,
     phyloData: _phyloData,
+    minLen: _minLen,
     indTabValue: 0,
     treeType: 0,
     zoom: false,
@@ -215,10 +216,62 @@ class SchemaEvaluator extends Component {
           },
           xaxis: {
             title: { text: "Sequence size in bp" },
+            range: [
+              Math.min(...hist_allele_sizes_x) -
+                (this.state.locus_ind_data.data.alleles_mode / 100) * 20,
+              Math.max(...hist_allele_sizes_x) +
+                (this.state.locus_ind_data.data.alleles_mode / 100) * 20,
+            ],
           },
           yaxis: {
             title: { text: "Number of Alleles" },
           },
+          shapes: [
+            {
+              line: { color: "orange", width: 3 },
+              type: "line",
+              x0: this.state.minLen,
+              x1: this.state.minLen,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              line: { color: "red", width: 3 },
+              type: "line",
+              x0: this.state.minLen - (this.state.minLen / 100) * 20,
+              x1: this.state.minLen - (this.state.minLen / 100) * 20,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              fillcolor: "orange",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: this.state.minLen,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: this.state.minLen - (this.state.minLen / 100) * 20,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+          ],
         }}
         useResizeHandler={true}
         style={{ width: "100%", height: "100%" }}
@@ -258,6 +311,52 @@ class SchemaEvaluator extends Component {
           yaxis: {
             title: { text: "Sequence size in bp", tick0: 0, dtick: 1 },
           },
+          shapes: [
+            {
+              line: { color: "orange", width: 3 },
+              type: "line",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: this.state.minLen,
+              y1: this.state.minLen,
+              yref: "y",
+            },
+            {
+              line: { color: "red", width: 3 },
+              type: "line",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: this.state.minLen - (this.state.minLen / 100) * 20,
+              y1: this.state.minLen - (this.state.minLen / 100) * 20,
+              yref: "y",
+            },
+            {
+              fillcolor: "orange",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: 0,
+              y1: this.state.minLen,
+              yref: "y",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: 0,
+              y1: this.state.minLen - (this.state.minLen / 100) * 20,
+              yref: "y",
+            },
+          ],
           hovermode: "closest",
         }}
         useResizeHandler={true}

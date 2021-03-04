@@ -467,7 +467,7 @@ def evaluate_schema():
                              'allele.')
 
     parser.add_argument('--ml','--minimum-length', type=pv.minimum_sequence_length_type,
-                        required=False, default=201, dest='minimum_length',
+                        required=False, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
                         'coding sequence to be included in the schema.')
 
@@ -522,11 +522,12 @@ def evaluate_schema():
         # create pre-computed data
         pre_computed_data_path = schema_evaluator.create_pre_computed_data(
             input_files,
-            translation_table, 
+            translation_table,
             output_file,
             annotations,
-            cpu_to_use, 
+            cpu_to_use,
             minimum_length,
+            ct.SIZE_THRESHOLD_DEFAULT,
             threshold,
             conserved,
             chewie_schema=True, 
@@ -539,7 +540,8 @@ def evaluate_schema():
             output_file,
             annotations,
             cpu_to_use, 
-            minimum_length, 
+            minimum_length,
+            ct.SIZE_THRESHOLD_DEFAULT,
             threshold,
             conserved,
             show_progress=True)
@@ -563,13 +565,25 @@ def evaluate_schema():
     if not light_mode:
 
         # Translate loci
-        protein_file_path = schema_evaluator.create_protein_files(
-            input_files, 
-            pre_computed_data_path, 
-            cpu_to_use, 
-            minimum_length, 
-            translation_table, 
-            show_progress=True)
+        if os.path.exists(config_file):
+            protein_file_path = schema_evaluator.create_protein_files(
+                input_files,
+                pre_computed_data_path,
+                cpu_to_use,
+                minimum_length,
+                ct.SIZE_THRESHOLD_DEFAULT,
+                translation_table,
+                chewie_schema=True,
+                show_progress=True)
+        else:
+            protein_file_path = schema_evaluator.create_protein_files(
+                input_files,
+                pre_computed_data_path,
+                cpu_to_use,
+                minimum_length,
+                ct.SIZE_THRESHOLD_DEFAULT,
+                translation_table, 
+                show_progress=True)
 
         # Run MAFFT
         schema_evaluator.run_mafft(
@@ -578,7 +592,7 @@ def evaluate_schema():
         # Write HTML files
         if os.path.exists(config_file):
             schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length, chewie_schema=True)    
+                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length, chewie_schema=True)
         else:
             schema_evaluator.write_individual_html(
                 input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length)

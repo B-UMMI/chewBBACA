@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This modules contains functions used to paralellize
+function calls.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -14,7 +18,21 @@ from multiprocessing import Pool
 
 
 def function_helper(input_args):
-    """
+    """ Runs function by passing set of provided inputs and
+        captures exceptions raised during function execution.
+
+        Parameters
+        ----------
+        input_args : list
+            List with function inputs and function object to call
+            in the last index.
+
+        Returns
+        -------
+        results : list
+            List with the results returned by the function.
+            If an exception is raised it returns a list with
+            the name of the function and the exception traceback.
     """
 
     try:
@@ -54,7 +72,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
             of inputs with this number of elements.
         show_progress: bool
             True to show a progress bar with the percentage
-            of results that have been processed, False
+            of inputs that have been processed, False
             otherwise.
 
         Returns
@@ -157,7 +175,7 @@ def split_genes_by_core(inputs, cores, method):
         Returns
         -------
         splitted_ids : list
-            List with sublists that contain loci identifiers
+            List with sublists that contain loci identifiers.
             Sublists are balanced based on the chosen method.
     """
 

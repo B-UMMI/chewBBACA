@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions to manipulate iterables.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -57,15 +60,6 @@ def concatenate_list(str_list, join_char):
     concat = join_char.join(str_list)
 
     return concat
-
-
-def extend_list(input_list, *elements):
-    """
-    """
-
-    input_list.extend(elements)
-
-    return input_list
 
 
 def flatten_list(list_to_flatten):
@@ -198,7 +192,7 @@ def select_clusters(clusters, cluster_size):
         ----------
         clusters : dict
             Dictionary with the identifiers of sequences
-            that are clusters representatives as keys and
+            that are cluster representatives as keys and
             a list with tuples as values. Each tuple has
             the identifier of a sequence that was added to
             the cluster, the percentage of shared
@@ -269,7 +263,7 @@ def extract_subsequence(sequence, start, stop):
 
 
 def extract_single_cds(sequence, start, stop, strand):
-    """ Extract coding sequence from contig.
+    """ Extracts a coding sequence from another sequence.
 
         Parameters
         ----------
@@ -280,7 +274,7 @@ def extract_single_cds(sequence, start, stop, strand):
         stop : int
             Coding sequence stop position in contig.
         strand : int
-            Conding sequence orientation.
+            Coding sequence orientation.
 
         Returns
         -------
@@ -450,7 +444,8 @@ def hash_sequence(string):
         Returns
         -------
         sha256 : str
-            String representation of the sha256 HASH object.
+            String representation of the SHA256 HASH object
+            in hexadecimal digits.
     """
 
     sha256 = hashlib.sha256(string.encode('utf-8')).hexdigest()
@@ -466,7 +461,7 @@ def sequence_kmerizer(sequence, k_value, offset=1, position=False):
         sequence : str
             Sequence to divide into kmers.
         k_value : int
-            Value for the size k of kmers.
+            Value for the size of kmers.
         offset : int
             Value to indicate offset of consecutive kmers.
         position : bool
@@ -493,8 +488,9 @@ def sequence_kmerizer(sequence, k_value, offset=1, position=False):
     return kmers
 
 
-def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=False):
-    """ Determine the minimizers for a sequence based on
+def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1,
+                         position=False):
+    """ Determines minimizers for a sequence based on
         lexicographical order. Skips windows that
         cannot have a minimizer based on the minimizer
         computed in the previous iteration.
@@ -506,7 +502,9 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
         adjacent_kmers : int
             Window size value. Number of adjacent kmers per group.
         k_value : int
-            Value of k for kmer size.
+            Value of k for the kmer size.
+        offset : int
+            Value to indicate offset of consecutive kmers.
         position : bool
             If the start position of the kmers in the sequence
             should be stored.
@@ -519,7 +517,8 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
     """
 
     # break sequence into kmers
-    kmers = sequence_kmerizer(sequence, k_value, offset=offset, position=position)
+    kmers = sequence_kmerizer(sequence, k_value,
+                              offset=offset, position=position)
 
     i = 0
     previous = None
@@ -575,7 +574,23 @@ def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1, position=F
 
 
 def decode_str(str_list, encoding):
-    """
+    """ Decodes bytes objects in the input list and
+        strips decoded strings from whitespaces and
+        newlines.
+
+        Parameters
+        ----------
+        str_list
+            List with string or bytes objects to decode
+            and strip of whitespaces and newlines.
+        encoding : str
+            Encoding codec to use.
+
+        Returns
+        -------
+        decoded : list
+            List with strings without whitespaces or
+            newlines.
     """
 
     decoded = [m.decode(encoding).strip()
@@ -614,7 +629,23 @@ def sort_data(data, sort_key=None, reverse=False):
 
 
 def add_prefix(ids, prefix):
-    """
+    """ Adds a prefix to a set of identifiers.
+        Identifiers are split by underscore and
+        prefix is added to last element.
+
+        Parameters
+        ----------
+        ids : iter
+            Iterable with identifiers
+            (e.g.: list, set, dictionary keys).
+        prefix : str
+            Prefix to add to all identifiers.
+
+        Returns
+        -------
+        ids_map : dict
+            Dictionary with input identifiers as
+            keys and prefixed identifiers as values.
     """
 
     ids_map = {}
@@ -626,11 +657,22 @@ def add_prefix(ids, prefix):
 
 
 def filter_list(lst, remove):
-    """
+    """ Removes elements from a list.
+
+        Parameters
+        ----------
+        lst : list
+            Input list.
+        remove : list
+            List of elements to remove from input list.
+
+        Returns
+        -------
+        filtered_list : list
+            List without the removed elements.
     """
 
     filtered_list = list(set(lst) - set(remove))
-
 
     return filtered_list
 

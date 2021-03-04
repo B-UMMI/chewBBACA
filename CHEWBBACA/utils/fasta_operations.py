@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions to work with FASTA files and
+FASTA records.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -70,6 +74,11 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
             Path to the a FASTA file.
         output_fasta : str
             Path to the output file with modified headers.
+        start : int
+            Integer value of first identifier.
+        limit : int
+            Maximum number of FASTA records to keep in
+            memory.
 
         Returns
         -------
@@ -167,7 +176,6 @@ def is_fasta(file_path):
         except:
             fasta = [False]
 
-        # returns True if FASTA file, False otherwise
         return any(fasta)
 
 
@@ -183,7 +191,7 @@ def filter_non_fasta(files):
         Returns
         -------
         fasta_files : list
-            List with files names/paths that have a FASTA
+            List with files names/paths that have FASTA
             format.
     """
 
@@ -231,8 +239,8 @@ def sequences_lengths(fasta_file):
         -------
         lengths : dict
             Dictionary with the `fasta_file` basename as key and
-            a nested dictionary with sequences hashes as keys and
-            sequences lengths as values.
+            a nested dictionary with sequences SHA256 hashes as
+            keys and sequences lengths as values.
     """
 
     basename = os.path.basename(fasta_file)
@@ -338,7 +346,7 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
             file_name = im.replace_multiple_characters(file_name, ct.CHAR_REPLACEMENTS)
 
             new_file = fo.join_paths(output_path,
-                                  ['{0}{1}'.format(file_name, '.fasta')])
+                                     ['{0}{1}'.format(file_name, '.fasta')])
 
             splitted_files.append(new_file)
 
@@ -351,7 +359,7 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
 
 def gene_seqs_info(fasta_file):
     """ Determines the total number of sequences and the mean
-        length of sequences in a fasta file.
+        length of sequences in a FASTA file.
 
         Parameters
         ----------

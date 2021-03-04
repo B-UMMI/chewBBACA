@@ -11,10 +11,8 @@ This is the main script of the chewBBACA suite.
 
 import os
 import sys
-import time
 import pickle
 import shutil
-import datetime
 import argparse
 
 try:
@@ -153,7 +151,8 @@ def create_schema():
 
     parser.add_argument('--CDS', required=False, action='store_true',
                         dest='cds_input',
-                        help='Input is sinlge or several FASTA files with coding sequences.')
+                        help='Input is sinlge or several FASTA files '
+                             'with coding sequences.')
 
     parser.add_argument('--no-cleanup', required=False, action='store_true',
                         dest='no_cleanup',

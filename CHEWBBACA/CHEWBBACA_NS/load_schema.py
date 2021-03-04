@@ -769,8 +769,9 @@ def upload_loci_data(loci_file, base_url, species_id,
     status = 'Inserting'
     while status != 'Complete' and (current_time < time_limit):
         insertion_status = cr.simple_get_request(base_url, headers_get,
-                                                 ['species', species_id, 'schemas',
-                                                  schema_id, 'loci', 'data'])[1]
+                                                 ['species', species_id,
+                                                  'schemas', schema_id,
+                                                  'loci', 'data'])[1]
         insertion_status = insertion_status.json()
 
         if insertion_status['status'] == 'complete':

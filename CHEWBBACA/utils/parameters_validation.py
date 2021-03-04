@@ -7,6 +7,8 @@ Purpose
 This module contains functions/classes related to parameters
 and arguments validation.
 
+Code documentation
+------------------
 """
 
 
@@ -88,14 +90,13 @@ def arg_list(arg, arg_name):
     return arg
 
 
-# custom functions to validate arguments type and value
 def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
     """ Validates BLAST Score Ratio (BSR) value passed to chewBBACA.
 
         Parameters
         ----------
         arg : float
-            The BSR passed to chewBBACA. Must be of type float.
+            The BSR passed to chewBBACA.
         min_value : float
             Minimum acceptable BSR value.
         max_value : float
@@ -136,7 +137,7 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
         Parameters
         ----------
         arg : int
-            The MSL value passed to chewBBACA. Must be of type int.
+            The MSL value passed to chewBBACA.
         min_value : int
             Minimum acceptable MSL value.
         max_value : int
@@ -178,8 +179,7 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
         ----------
         arg : float
             The ST value passed to chewBBACA. Must be of type float
-            or NoneType if no size threshold filter should be applied
-            during execution.
+            or NoneType if no size threshold filter should be applied.
         min_value : float
             Minimum acceptable ST value.
         max_value : float
@@ -273,7 +273,7 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
         Parameters
         ----------
         arg : float
-            The WS value passed to chewBBACA. Must be of type float.
+            The WS value passed to chewBBACA.
         min_value : float
             Minimum acceptable WS value.
         max_value : float
@@ -461,6 +461,12 @@ def validate_ns_url(arg):
         -------
         ns_url : str
             URL to connect to the instance of Chewie-NS.
+
+        Raises
+        ------
+        SystemExit
+            - If it is not possible to connect to the
+            chewie-NS instance.
     """
 
     if arg in ct.HOST_NS:
@@ -557,7 +563,7 @@ def verify_cpu_usage(cpu_to_use):
 
 def is_exe(fpath):
     """ Determines if path points to a file and
-        if the file is executable.
+        if the file is an executable.
     """
 
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -658,7 +664,7 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
 
 
 def check_prodigal(prodigal_path):
-    """ Determines if Prodigal is installed and in PATH.
+    """ Determines if Prodigal is installed and in the PATH.
     """
 
     # check Prodigal version

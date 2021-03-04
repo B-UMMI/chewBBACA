@@ -79,19 +79,6 @@ class SchemaEvaluator extends Component {
     anchor.click();
   };
 
-  // clickCdsTableHandler = (cellData) => {
-  //   const locus_id = cellData;
-  //   console.log(locus_id);
-
-  //   const anchor = document.createElement("a");
-  //   anchor.href = `../html_files/${
-  //     locus_id.split(".")[0]
-  //   }_individual_report.html`;
-  //   anchor.target = "_blank";
-  //   anchor.rel = "noopener noreferrer";
-  //   anchor.click();
-  // };
-
   totalDataColumnsHandler = (columnData, alleleShorterColumn) => {
     if ("chewBBACA_version" in columnData[0]) {
       const totalDataColumns = [
@@ -904,11 +891,6 @@ class SchemaEvaluator extends Component {
       search: true,
       viewColumns: true,
       pagination: true,
-      // onCellClick: (cellData, cellMeta) => {
-      //   if (cellData.includes(".fasta")) {
-      //     this.clickCdsTableHandler(cellData);
-      //   }
-      // },
     };
 
     const cds_data = this.state.cds_df_data;
@@ -1086,11 +1068,6 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        // onCellClick: (cellData, cellMeta) => {
-        //   if (cellData.includes(".fasta")) {
-        //     this.clickCdsTableHandler(cellData);
-        //   }
-        // },
       };
 
       notConservedList = (
@@ -1164,11 +1141,6 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        // onCellClick: (cellData, cellMeta) => {
-        //   if (cellData.includes(".fasta")) {
-        //     this.clickCdsTableHandler(cellData);
-        //   }
-        // },
       };
 
       oneAlleleOnlyList = (
@@ -1187,9 +1159,20 @@ class SchemaEvaluator extends Component {
       );
     }
 
+    let minLenTableData = [];
+
+    for (let key in cds_data) {
+      if (cds_data[key][alleleShorterColumn] > 0) {
+        minLenTableData.push({
+          fasta_file: cds_data[key]["Gene"],
+          shorter: cds_data[key][alleleShorterColumn],
+        });
+      }
+    }
+
     let minLenTableColumns = [
       {
-        name: "Gene",
+        name: "fasta_file",
         label: "Locus",
         options: {
           filter: true,
@@ -1216,7 +1199,7 @@ class SchemaEvaluator extends Component {
         },
       },
       {
-        name: alleleShorterColumn,
+        name: "shorter",
         label: alleleShorterColumn,
         options: {
           filter: true,
@@ -1244,11 +1227,6 @@ class SchemaEvaluator extends Component {
       search: false,
       viewColumns: true,
       pagination: true,
-      // onCellClick: (cellData, cellMeta) => {
-      //   if (cellData.includes(".fasta")) {
-      //     this.clickCdsTableHandler(cellData);
-      //   }
-      // },
     };
 
     let minLenTable = (
@@ -1355,6 +1333,14 @@ class SchemaEvaluator extends Component {
             <Typography variant="h5" className={classes.title}>
               Loci Analysis
             </Typography>
+            <div style={{ marginTop: "20px", width: "100%" }}>
+              <Alert variant="outlined" severity="info">
+                The following table has hidden columns, by default, that contain
+                more information about the schema. Please click on the "View
+                Columns" button on the top-right corner of the table to select
+                which columns to display.
+              </Alert>
+            </div>
             <div style={{ marginTop: "20px" }}>{cds_analysis_table}</div>
             <div style={{ marginTop: "20px" }}>
               <Aux>

@@ -45,8 +45,8 @@ def test_createschema_valid(test_args, expected):
     output_files.sort()
 
     expected_seed = os.path.join(expected, 'schema_seed')
-    expected_files = [os.path.join(expected, file)
-                      for file in os.listdir(expected)
+    expected_files = [os.path.join(expected_seed, file)
+                      for file in os.listdir(expected_seed)
                       if 'short' != file]
     expected_files.sort()
 

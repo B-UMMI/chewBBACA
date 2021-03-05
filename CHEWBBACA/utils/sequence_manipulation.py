@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions related to biological sequence
+manipulation.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 from Bio import SeqIO
@@ -24,7 +28,7 @@ except:
 
 
 def translate_sequence(dna_str, table_id):
-    """ Translate a DNA sequence using the BioPython package.
+    """ Translates a DNA sequence using the BioPython package.
 
         Parameters
         ----------
@@ -119,6 +123,9 @@ def translate_dna(dna_sequence, table_id, min_len):
             String representing a DNA sequence.
         table_id : int
             Translation table identifier.
+        min_len : int
+            Minimum sequence length. Sequences shorter
+            than this value are not translated.
 
         Returns
         -------
@@ -228,7 +235,6 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
     return [translated_seq, exception_collector]
 
 
-
 def determine_duplicated_seqs(sequences):
     """ Creates a dictionary with sequences as keys and all sequence
         identifiers associated with a sequence as values.
@@ -311,7 +317,7 @@ def determine_mode(int_values):
     # get most common
     modes = [most_common[0][0]]
 
-    # determine if there are more length values that are as common
+    # determine if there are more length values that are just as common
     modes += [m[0] for m in most_common[1:] if m[1] == most_common[0][1]]
 
     return modes
@@ -372,24 +378,47 @@ def mode_filter(sequences, size_threshold):
 
 
 def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
-    """ Creates a dictionary mapping seqids to DNA sequences and
-        another dictionary mapping protids to protein sequences.
+    """ Translates the set of alleles from a gene. Identifies
+        sequences that cannot be translated according to the
+        criteria enforced by chewBBACA.
 
         Parameters
         ----------
-            gene_file (str): path/name of the FASTA file with
-            DNA sequences.
-            table_id (int): translation table identifier.
+        fasta_path : str
+            Path to the FASTA file with DNA sequences.
+        gene_id : str
+            Gene identifier.
+        table_id : int
+            Translation table identifier.
+        min_len : int
+            Minimum sequence length. Sequences shorter
+            than this value are not translated.
+        size_threshold : float
+            Sequences with +/- this value * mode will be
+            reported as above or below the mode.
 
-        Returns:
-            List with following elements:
-                dna_seqs (dict): dictionary with sequence identifiers as keys
+        Returns
+        -------
+        List with following elements:
+            dna_seqs : dict
+                Dictionary with sequence identifiers as keys
                 and DNA sequences as values.
-                prot_seqs (dict): dictionary with protein identifiers as keys
-                and Protein sequences as values.
-                invalid_alleles (list): list with sequence identifiers of
-                alleles that are not valid because they could not be
+            prot_seqs : dict
+                Dictionary with protein identifiers as keys
+                and Protein sequences as values. Keys are
+                consecutive integers to enable alignment
+                with BLASTp without getting exceptions due
+                to long sequence identifiers.
+            invalid : list
+                List with sequence identifiers of alleles
+                that are not valid because they could not be
                 translated.
+            seqids_map : dict
+                Dictionary with consecutive integers as keys
+                and original allele identifiers as values.
+            total_seqs : int
+                Total number of sequences that was processed
+                (including invalid alleles).
     """
 
     sequences = fao.import_sequences(fasta_path)
@@ -404,10 +433,15 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     new_seqids = im.add_prefix(seqids, gene_id)
 
     # switch ids
-    sequences = {new_seqids[k]: v for k, v in translated_seqs.items()}
+    sequences = {new_seqids[k]: v
+                 for k, v in translated_seqs.items()}
 
-    valid = {k: v for k, v in sequences.items() if isinstance(v, list) is True}
-    invalid = [[k, v] for k, v in sequences.items() if isinstance(v, list) is False]
+    valid = {k: v
+             for k, v in sequences.items()
+             if isinstance(v, list) is True}
+    invalid = [[k, v]
+               for k, v in sequences.items()
+               if isinstance(v, list) is False]
 
     seqid = 1
     seqids_map = {}
@@ -424,21 +458,29 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
         modes, alm, asm, alleles_lengths = mode_filter(dna_seqs, size_threshold)
         excluded = set(asm + alm)
 
-        dna_seqs = {seqid: seq for seqid, seq in dna_seqs.items() if seqid not in excluded}
-        prot_seqs = {seqid: seq for seqid, seq in prot_seqs.items() if seqids_map[seqid] not in excluded}
+        dna_seqs = {seqid: seq
+                    for seqid, seq in dna_seqs.items()
+                    if seqid not in excluded}
+        prot_seqs = {seqid: seq
+                     for seqid, seq in prot_seqs.items()
+                     if seqids_map[seqid] not in excluded}
 
         modes_concat = ':'.join(map(str, modes))
         st_percentage = int(size_threshold*100)
         invalid += [[s, 'allele greater than {0}% locus length mode '
-                                '({1}>{2})'.format(st_percentage, alleles_lengths[s], modes_concat)] for s in alm]
+                     '({1}>{2})'.format(st_percentage,
+                                        alleles_lengths[s],
+                                        modes_concat)]
+                    for s in alm]
         invalid += [[s, 'allele smaller than {0}% locus length mode '
-                                '({1}<{2})'.format(st_percentage, alleles_lengths[s], modes_concat)] for s in asm]
+                     '({1}<{2})'.format(st_percentage,
+                                        alleles_lengths[s],
+                                        modes_concat)]
+                    for s in asm]
 
     total_seqs = len(translated_seqs)
 
-    return [dna_seqs, prot_seqs,
-            invalid, seqids_map, total_seqs]
-
+    return [dna_seqs, prot_seqs, invalid, seqids_map, total_seqs]
 
 
 def translate_coding_sequences(seqids, sequences_file, translation_table,
@@ -447,14 +489,19 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
 
         Parameters
         ----------
-        input_data : list
-            A list with the sequence identifiers of the
-            sequences that should be translated, the path
-            to the FASTA file that contains the DNA sequences,
-            the translation table identifier, the minimum
-            sequence length value, the path to a file to
-            save DNA sequences and the path to a file to
-            save protein sequences.
+        seqids : list
+            List with the sequence identifiers of the sequences
+            to be translated.
+        sequences_file : str
+            Path to the FASTA file that contains the DNA sequences.
+        translation_table : int
+            Translation table identifier.
+        minimum_length : int
+            The minimum sequence length value.
+        dna_file : str
+            Path to a file to save DNA sequences.
+        protein_file : str
+            Path to a file to save protein sequences.
 
         Returns
         -------
@@ -583,7 +630,7 @@ def determine_small(sequences_file, minimum_length):
 
         Returns
         -------
-        small_seqs : list
+        small_seqids : list
             List with the identifiers of small sequences.
     """
 
@@ -599,37 +646,24 @@ def determine_small(sequences_file, minimum_length):
     return small_seqids
 
 
-def kmer_index(sequences, word_size):
-    """
-    """
-
-    kmers_mapping = {}
-    for seqid, seq in sequences.items():
-        minimizers = determine_minimizers(seq, word_size, word_size, position=False)
-        kmers = set(minimizers)
-
-        # create dict with kmers as keys and list
-        # of sequences with given kmers as values
-        for kmer in kmers:
-            kmers_mapping.setdefault(kmer, []).append(seqid)
-
-    return kmers_mapping
-
-
 def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
     """ Computes the BLAST Score Ratio value for BLAST
         alignments and returns the identifiers of the
-        sequences that are similar to sequences with
-        the same size or that are larger.
+        sequences that are similar to sequences of
+        equal or greater size.
 
         Parameters
         ----------
-        inputs : list
+        blast_results : list
             List with the path to a file with BLAST
-            results, the path to a FASTA file that
-            contains the sequences that were aligned,
-            the BSR value to use as threshold and a
-            dictionary with the mapping between
+            results in tabular format.
+        fasta_file : str
+            Path to a FASTA file that contains the
+            sequences that were aligned.
+        bsr : float
+            The BSR value to use as threshold
+        ids_dict : dict
+            Dictionary with the mapping between
             sequence identifiers used for BLAST and
             the original sequence identifiers.
 
@@ -637,8 +671,7 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         -------
         excluded_alleles : list
             List with the identifiers of the sequences
-            that were highly similar to larger sequences
-            or sequences of the same size.
+            that were highly similar to other sequences.
     """
 
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}

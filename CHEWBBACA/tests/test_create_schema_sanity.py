@@ -37,17 +37,14 @@ def test_createschema_valid(test_args, expected):
         chewBBACA.main()
         stdout, stderr = capture.reset()
 
-    # check text printed to stdout
-
-    # check if Prodigal created files
-    assert 'All files were created.' in stdout
-
     # check output files
-    output_files = [os.path.join(test_args[5], file)
-                    for file in os.listdir(test_args[5])
+    schema_seed = os.path.join(test_args[5], 'schema_seed')
+    output_files = [os.path.join(schema_seed, file)
+                    for file in os.listdir(schema_seed)
                     if 'short' != file]
     output_files.sort()
 
+    expected_seed = os.path.join(expected, 'schema_seed')
     expected_files = [os.path.join(expected, file)
                       for file in os.listdir(expected)
                       if 'short' != file]
@@ -78,36 +75,42 @@ def test_createschema_valid(test_args, expected):
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/invalid_genome_dir',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], 1)
-     ])
-def test_createschema_invalid_pairs(test_args, expected):
-    with pytest.raises(ValueError) as e:
-        with patch.object(sys, 'argv', test_args):
-            capture = py.io.StdCapture()
-            chewBBACA.main()
-            stdout, stderr = capture.reset()
-
-        assert 'BLAST Database error: No alias or index file found for protein database' in stdout
-
-        assert e.type == ValueError
-
-
-@pytest.mark.parametrize(
-    'test_args, expected',
-    [(['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
        '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files."),
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
+      '\nCould not get input files. Please provide a directory'
+      ' with FASTA files or a file with the list of full '
+      'paths to the FASTA files and ensure that filenames end '
+      'with one of the following suffixes: '
+      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
      (['chewBBACA.py', 'CreateSchema',
          '-i', 'data/createschema_data/zero_bytes_pair',
          '-o', 'createschema_results',
-         '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], "Could not get input files."),
+         '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
+      '\nCould not get input files. Please provide a directory'
+      ' with FASTA files or a file with the list of full '
+      'paths to the FASTA files and ensure that filenames end '
+      'with one of the following suffixes: '
+      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
      (['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/mock_schema_dir',
        '-o', 'createschema_results',
-       '--ptf', 'path/does/not/exist'], "Cannot find specified Prodigal training file.")
+       '--ptf', 'path/does/not/exist'],
+      'Invalid path for Prodigal training file.'),
+     (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/genome_dir_with_header_fasta_only',
+       '-o', 'createschema_results',
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
+      '\nCould not predict gene sequences from any '
+      'of the input files.\nPlease provide input files '
+      'in the accepted FASTA format.'),
+     (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/invalid_genome_dir',
+       '-o', 'createschema_results',
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
+      '\nCould not predict gene sequences from any '
+      'of the input files.\nPlease provide input files '
+      'in the accepted FASTA format.')
      ])
 def test_createschema_empty_pairs(test_args, expected):
     with pytest.raises(SystemExit) as e:
@@ -116,24 +119,3 @@ def test_createschema_empty_pairs(test_args, expected):
 
     assert e.type == SystemExit
     assert expected in e.value.code
-
-
-@pytest.mark.parametrize(
-    'test_args, expected',
-    [(['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/genome_dir_with_header_fasta_only',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'], 1)
-     ])
-def test_createschema_header_only_pairs(test_args, expected):
-    with pytest.raises(ValueError) as e:
-        with patch.object(sys, 'argv', test_args):
-            capture = py.io.StdCapture()
-            chewBBACA.main()
-            stdout, stderr = capture.reset()
-
-        assert 'Error:  no input sequences to analyze.' in stdout
-
-        assert 'BLAST Database error: No alias or index file found for protein database' in stdout
-
-        assert e.type == ValueError

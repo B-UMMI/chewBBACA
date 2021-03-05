@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions related to time measurement
+and date formatting.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -57,7 +61,7 @@ def datetime_obj(datetime_str, date_format='%Y-%m-%dT%H:%M:%S'):
         Parameters
         ----------
         datetime_str : str
-            String to conver to datetime object.
+            String to convert to datetime object.
         date_format : str
             Format of the string representation of the date
             object.
@@ -102,16 +106,29 @@ def datetime_diff(sdate, edate):
     return [minutes, seconds]
 
 
-def validate_date(date):
-    """ 
+def validate_date(date, date_format='%Y-%m-%dT%H:%M:%S.%f'):
+    """ Checks if date is in specified format.
+
+        Parameters
+        ----------
+        date : str
+            String representing a date.
+        date_format : str
+            Date format.
+
+        Returns
+        -------
+        valid : str
+            The string representing the date if it
+            is in the specified format.
     """
 
     valid = False
     try:
-        date = dt.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
+        date = dt.datetime.strptime(date, date_format)
         valid = date
     except ValueError:
-        date = dt.datetime.strptime(date+'.0', '%Y-%m-%dT%H:%M:%S.%f')
+        date = dt.datetime.strptime(date+'.0', date_format)
         valid = date
 
     return valid

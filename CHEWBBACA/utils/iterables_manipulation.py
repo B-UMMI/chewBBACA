@@ -696,3 +696,20 @@ def find_missing(lst):
     end = lst[-1]
 
     return sorted(set(range(start, end + 1)).difference(lst))
+
+
+def kmer_index(sequences, word_size):
+    """
+    """
+
+    kmers_mapping = {}
+    for seqid, seq in sequences.items():
+        minimizers = determine_minimizers(seq, word_size, word_size, position=False)
+        kmers = set(minimizers)
+
+        # create dict with kmers as keys and list
+        # of sequences with given kmers as values
+        for kmer in kmers:
+            kmers_mapping.setdefault(kmer, []).append(seqid)
+
+    return kmers_mapping

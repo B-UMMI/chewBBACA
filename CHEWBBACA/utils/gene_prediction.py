@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Purpose
+-------
+
+This module contains functions related to gene prediction
+with Prodigal and extraction of coding sequences from
+FASTA records.
+
+Code documentation
+------------------
+"""
 
 
 import os
@@ -16,7 +28,7 @@ except:
 
 
 def check_prodigal_results(prodigal_results, output_directory):
-    """ Determine if Prodigal could not predict genes for any input
+    """ Determines if Prodigal could not predict genes for any input
         assembly.
 
         Parameters
@@ -62,7 +74,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
             Dictionary with contig ids as keys and contig
             sequences as values.
         starting_id : int
-            Integer identifier to give to the first CDS extracted
+            Integer identifier attributed to the first CDS
             and that will be incremented to serve as identifier
             for subsequent CDSs.
 
@@ -74,7 +86,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
         coding_sequences_info : list
             List with a sublist for each extracted CDS. Sublists
             have information about the extracted CDS (identifier
-            of the contig where the CDS was found, start position
+            of the contig the CDS was identified in, start position
             in the contig, stop position in the contig, sequence
             identifier attributed to that CDS and the strand that
             coded for that CDS).
@@ -122,8 +134,8 @@ def write_protein_table(output_file, genome_id, cds_info):
         cds_info : list
             List with information about each coding sequence
             identified in the genome (contig identifier,
-            cds start position, cds stop position, cds
-            identifier and cds coding strand).
+            CDS start position, CDS stop position, CDS
+            identifier and CDS coding strand).
     """
 
     table_lines = [[genome_id] + protein_info
@@ -134,9 +146,10 @@ def write_protein_table(output_file, genome_id, cds_info):
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
-    """ Extracts coding sequences from genome based on Prodigal
-        gene predictions. Writes coding sequences to FASTA file
-        and information about coding sequences to TSV file.
+    """ Extracts coding sequences from a genome assembly based
+        on Prodigal's gene predictions. Writes coding sequences
+        to a FASTA file and information about coding sequences to
+        a TSV file.
 
         Parameters
         ----------
@@ -166,8 +179,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     contigs = fao.import_sequences(genome)
     # extract coding sequences from contigs
     reading_frames = fo.pickle_loader(orf_file)
-    genome_info = extract_genome_cds(reading_frames,
-                                           contigs, 1)
+    genome_info = extract_genome_cds(reading_frames, contigs, 1)
     # save coding sequences to file
     # create records and write them to file
     cds_lines = fao.create_fasta_lines(genome_info[0], identifier)
@@ -209,17 +221,17 @@ def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
     """
 
     protein_table = fo.join_paths(temp_directory,
-                               ['protein_info_{0}.tsv'.format(index)])
+                                  ['protein_info_{0}.tsv'.format(index)])
 
     cds_file = fo.join_paths(temp_directory,
-                          ['coding_sequences_{0}.fasta'.format(index)])
+                             ['coding_sequences_{0}.fasta'.format(index)])
 
     batch_total = 0
     for g in genomes:
         # determine Prodigal ORF file path for current genome
         identifier = fo.file_basename(g, False)
         orf_file_path = fo.join_paths(prodigal_path,
-                                   ['{0}_ORF.txt'.format(identifier)])
+                                      ['{0}_ORF.txt'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
                                    protein_table, cds_file)
         batch_total += total
@@ -228,7 +240,27 @@ def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
 
 
 def run_prodigal(input_file, translation_table, mode, ptf_path):
-    """
+    """ Executes Prodigal.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to input FASTA file.
+        translation_table : int
+            Genetic code.
+        mode : str
+            Prodigal execution mode ('single' is the default,
+            'meta' should be used to predict genes from smaller
+            contigs).
+        ptf_path : str or None
+            Path to the training file.
+
+        Returns
+        -------
+        stdout : bytes
+            Prodigal's stdout.
+        stderr : bytes
+            Prodigal's stderr.
     """
 
     if ptf_path is not None:

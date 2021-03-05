@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions related to BLAST process
+execution.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -22,6 +26,8 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
 
         Parameters
         ----------
+        makeblastdb_path : str
+            Path to the 'maskeblastdb' executable.
         input_fasta : str
             Path to the FASTA file that contains the sequences
             that should be added to the BLAST database.
@@ -32,6 +38,8 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
         db_type : str
             Type of the database, nucleotide (nuc) or
             protein (prot).
+        ignore : list of None
+            List with BLAST warnings that should be ignored.
 
         Returns
         -------
@@ -112,8 +120,10 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
         blast_task : str
             Type of BLAST task.
         max_targets : int
-            Maximum number of target of subject sequences
+            Maximum number of target/subject sequences
             to align against.
+        ignore : list or None
+            List with BLAST warnings that should be ignored.
 
         Returns
         -------

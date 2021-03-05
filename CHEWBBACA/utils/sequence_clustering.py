@@ -31,6 +31,88 @@ except:
                                  constants as ct)
 
 
+def select_representatives(kmers, reps_groups, clustering_sim):
+    """ Determines the set of clusters that a sequence
+        can be added to based on the decimal proportion
+        of shared distinct kmers.
+
+        Parameters
+        ----------
+        kmers : list or set
+            Set of kmers determined by decomposing a single
+            sequence.
+        reps_groups : dict
+            Dictionary with kmers as keys and sequence
+            identifiers of sequences that contain that
+            kmer as values.
+        clustering_sim : float
+            Sequences are added to clusters if they
+            share a minimum decimal proportion of
+            distinct kmers with a cluster representative.
+
+        Returns
+        -------
+        selected_reps : list
+            List with a tuple per cluster/representative
+            that the sequence can be added to. Each tuple
+            has the identifier of the cluster representative
+            and the decimal proportion of shared distinct
+            kmers.
+    """
+
+    current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
+    current_reps = im.flatten_list(current_reps)
+
+    # count number of kmer hits per representative
+    counts = Counter(current_reps)
+    selected_reps = [(k, v/len(kmers))
+                     for k, v in counts.items()
+                     if v/len(kmers) >= clustering_sim]
+
+    # sort by identifier and then by similarity to always get same order
+    selected_reps = sorted(selected_reps, key=lambda x: x[0])
+    selected_reps = sorted(selected_reps, key=lambda x: x[1], reverse=True)
+
+    return selected_reps
+
+
+def pick_excluded(query, match, query_seq, match_seq):
+    """ Determines which sequence should be excluded
+        based on sequence length.
+
+        Parameters
+        ----------
+        query : str
+            Query sequence identifier.
+        match : tup
+            Tuple with a sequence identifier and
+            the decimal proportion of shared
+            distinct kmers with the query sequence.
+        query_seq : str
+            Query sequence.
+        match_seq : str
+            Match sequence.
+
+        Returns
+        -------
+        picked : tup
+            Tuple with the sequence identifier of the
+            sequence that should be excluded, the sequence
+            identifier of the sequence that matched with
+            the excluded sequence and the decimal proportion
+            of shared distinct kmers between both sequences.
+    """
+
+    # if query sequence is longer, keep it and exclude candidate
+    if len(query_seq) >= len(match_seq):
+        picked = (match[0], query, match[1])
+    # otherwise, exclude query sequence
+    elif len(match_seq) > len(query_seq):
+        picked = (query, match[0], match[1])
+
+    return picked
+
+
 def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     """ Determines the percentage of shared kmers/minimizers
         between sequences in the same cluster and excludes
@@ -81,21 +163,8 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         clustered_ids = [c[0] for c in clustered]
         clustered_seqs = {seqid: sequences[seqid] for seqid in clustered_ids}
 
-        # get all kmers per sequence
-        kmers_mapping = {}
-        cluster_kmers = {}
-        for seqid, seq in clustered_seqs.items():
-            minimizers = im.determine_minimizers(seq, word_size,
-                                                 word_size, position=False)
-            kmers = set(minimizers)
-
-            # dict with sequence indentifiers and kmers
-            cluster_kmers[seqid] = kmers
-
-            # create dict with kmers as keys and list
-            # of sequences with given kmers as values
-            for kmer in kmers:
-                kmers_mapping.setdefault(kmer, []).append(seqid)
+        # create kmer index
+        kmers_mapping, cluster_kmers = im.kmer_index(clustered_seqs, word_size)
 
         excluded = []
         similarities = []
@@ -103,84 +172,27 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         for seqid, kmers in cluster_kmers.items():
             if seqid not in excluded:
                 query_kmers = kmers
-                # determine sequences that also have the same kmers
-                current_reps = [kmers_mapping[kmer]
-                                for kmer in query_kmers
-                                if kmer in kmers_mapping]
-                current_reps = im.flatten_list(current_reps)
 
-                # count number of common kmers with other sequences
-                counts = Counter(current_reps)
-                # determine sequences with similarity value
-                # equal or above threshold
-                current_reps = [(s, v/len(kmers))
-                                for s, v in counts.items()
-                                if v/len(kmers) >= intra_filter]
-                # sort to get most similar first
-                sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
+                # select sequences with same kmers
+                sims = select_representatives(query_kmers,
+                                              kmers_mapping,
+                                              intra_filter)
 
                 if len(sims) > 1:
                     # exclude current sequence
                     candidates = [s for s in sims if s[0] != seqid]
                     for c in candidates:
-                        # if query sequence is longer, keep it and exclude candidate
-                        if len(clustered_seqs[seqid]) >= len(clustered_seqs[c[0]]):
-                            similarities.append((c[0], seqid, c[1]))
-                            excluded.append(c[0])
-                        # otherwise, exclude query sequence
-                        elif len(clustered_seqs[c[0]]) > len(clustered_seqs[seqid]):
-                            similarities.append(([seqid, c[0], c[1]]))
-                            excluded.append(seqid)
+                        picked = pick_excluded(seqid, c,
+                                               clustered_seqs[seqid],
+                                               clustered_seqs[c[0]])
+                        similarities.append(picked)
+                        excluded.append(picked[0])
 
         # convert into set first to remove possible duplicates
         excluded_seqids[representative] = list(set(excluded))
         excluded_sims[representative] = similarities
 
     return [excluded_seqids, excluded_sims]
-
-
-def select_cluster(kmers, reps_groups, clustering_sim):
-    """ Determines the set of clusters that a sequence
-        can be added to based on the decimal proportion
-        of shared distinct kmers.
-
-        Parameters
-        ----------
-        kmers : list or set
-            Set of kmers determined by decomposing a single
-            sequence.
-        reps_groups : dict
-            Dictionary with kmers as keys and sequence
-            identifiers of sequences that contain that
-            kmer as values.
-        clustering_sim : float
-            Sequences are added to clusters if they
-            share a minimum decimal proportion of
-            distinct kmers with a cluster representative.
-
-        Returns
-        -------
-        selected_reps : list
-            List with a tuple per cluster/representative
-            that the sequence can be added to. Each tuple
-            has the identifier of the cluster representative
-            and the decimal proportion of shared distinct
-            kmers.
-    """
-
-    current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
-    current_reps = im.flatten_list(current_reps)
-
-    # count number of kmer hits per representative
-    counts = Counter(current_reps)
-    selected_reps = [(k, v/len(kmers))
-                     for k, v in counts.items()
-                     if v/len(kmers) >= clustering_sim]
-
-    selected_reps = sorted(selected_reps, key=lambda x: x[0])
-    selected_reps = sorted(selected_reps, key=lambda x: x[1], reverse=True)
-
-    return selected_reps
 
 
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
@@ -268,8 +280,9 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 
         distinct_minimizers = set(minimizers)
 
-        selected_reps = select_cluster(distinct_minimizers, reps_groups,
-                                       clustering_sim)
+        selected_reps = select_representatives(distinct_minimizers,
+                                               reps_groups,
+                                               clustering_sim)
 
         top = (len(selected_reps)
                if len(selected_reps) < seq_num_cluster

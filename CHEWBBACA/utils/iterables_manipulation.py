@@ -699,17 +699,43 @@ def find_missing(lst):
 
 
 def kmer_index(sequences, word_size):
-    """
+    """ Creates a kmer index based on a set
+        of sequences.
+
+        Parameters
+        ----------
+        sequences : dict
+            Dictionary with sequence identifiers
+            as keys and sequences as values.
+        word_size : int
+            Value k for the kmer size.
+
+        Returns
+        -------
+        kmers_mapping : dict
+            Dictionary with kmers as keys and the
+            list of sequence identifiers of the
+            sequences that contain the kmers as
+            values.
+        seqs_kmers : dict
+            Dictionary with sequence identifiers
+            as keys and the set of distinct kmers
+            for each sequence as values.
     """
 
     kmers_mapping = {}
+    seqs_kmers = {}
     for seqid, seq in sequences.items():
-        minimizers = determine_minimizers(seq, word_size, word_size, position=False)
+        minimizers = determine_minimizers(seq, word_size,
+                                          word_size, position=False)
         kmers = set(minimizers)
+
+        # dict with sequence indentifiers and kmers
+        seqs_kmers[seqid] = kmers
 
         # create dict with kmers as keys and list
         # of sequences with given kmers as values
         for kmer in kmers:
             kmers_mapping.setdefault(kmer, []).append(seqid)
 
-    return kmers_mapping
+    return [kmers_mapping, seqs_kmers]

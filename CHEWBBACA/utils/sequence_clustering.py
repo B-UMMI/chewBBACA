@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose
+-------
 
+This module contains functions related to sequence clustering
+based on k-mers.
 
-DESCRIPTION
-
+Code documentation
+------------------
 """
 
 
@@ -30,14 +34,14 @@ except:
 def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     """ Determines the percentage of shared kmers/minimizers
         between sequences in the same cluster and excludes
-        sequences from a clusters sequences that are similar
-        to other sequences in the cluster.
+        sequences that are similar to other sequences in the
+        cluster.
 
         Parameters
         ----------
         clusters : dict
             Dictionary with the identifiers of sequences
-            that are clusters representatives as keys and
+            that are cluster representatives as keys and
             a list with tuples as values. Each tuple has
             the identifier of a sequence that was added to
             the cluster, the percentage of shared
@@ -51,21 +55,23 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         intra_filter : float
             Similarity threshold value. If two sequences in
             the same cluster have a similarity value equal
-            or greater to this value, one of the sequences
+            or greater to this value, the shorter sequence
             will be excluded from the cluster.
 
         Returns
         -------
-        excluded_dict : dict
+        excluded_seqids : dict
             Dictionary with the identifiers of sequences
-            that are clusters representatives as keys and
-            lists as values. Each list has two elements:
-            a list with the identifiers of the sequences
-            that were excluded from the clusters and a
-            dictionary with sequences identifiers as keys
-            and tuples with sequence identifiers and the
-            similarity value for each match that led to
-            an eclusion.
+            that are cluster representatives as keys and
+            a list with the sequence identifiers of sequences
+            that were excluded from the cluster as values.
+        excluded_sims : dict
+            A dictionary with the identifiers of sequences
+            that are cluster representatives as keys
+            and a list with tuples as values. Each tuple
+            contains the sequence identifier and the
+            similarity value for a match that led to
+            an exclusion.
     """
 
     excluded_seqids = {}
@@ -79,7 +85,8 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         kmers_mapping = {}
         cluster_kmers = {}
         for seqid, seq in clustered_seqs.items():
-            minimizers = im.determine_minimizers(seq, word_size, word_size, position=False)
+            minimizers = im.determine_minimizers(seq, word_size,
+                                                 word_size, position=False)
             kmers = set(minimizers)
 
             # dict with sequence indentifiers and kmers
@@ -97,13 +104,18 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
             if seqid not in excluded:
                 query_kmers = kmers
                 # determine sequences that also have the same kmers
-                current_reps = [kmers_mapping[kmer] for kmer in query_kmers if kmer in kmers_mapping]
+                current_reps = [kmers_mapping[kmer]
+                                for kmer in query_kmers
+                                if kmer in kmers_mapping]
                 current_reps = im.flatten_list(current_reps)
 
                 # count number of common kmers with other sequences
                 counts = Counter(current_reps)
-                # determine sequences that are equal or above a similarty threshold
-                current_reps = [(s, v/len(kmers)) for s, v in counts.items() if v/len(kmers) >= intra_filter]
+                # determine sequences with similarity value
+                # equal or above threshold
+                current_reps = [(s, v/len(kmers))
+                                for s, v in counts.items()
+                                if v/len(kmers) >= intra_filter]
                 # sort to get most similar first
                 sims = sorted(current_reps, key=lambda x: x[1], reverse=True)
 
@@ -128,7 +140,32 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
 
 
 def select_cluster(kmers, reps_groups, clustering_sim):
-    """
+    """ Determines the set of clusters that a sequence
+        can be added to based on the decimal proportion
+        of shared distinct kmers.
+
+        Parameters
+        ----------
+        kmers : list or set
+            Set of kmers determined by decomposing a single
+            sequence.
+        reps_groups : dict
+            Dictionary with kmers as keys and sequence
+            identifiers of sequences that contain that
+            kmer as values.
+        clustering_sim : float
+            Sequences are added to clusters if they
+            share a minimum decimal proportion of
+            distinct kmers with a cluster representative.
+
+        Returns
+        -------
+        selected_reps : list
+            List with a tuple per cluster/representative
+            that the sequence can be added to. Each tuple
+            has the identifier of the cluster representative
+            and the decimal proportion of shared distinct
+            kmers.
     """
 
     current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
@@ -149,7 +186,78 @@ def select_cluster(kmers, reps_groups, clustering_sim):
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
                          seq_num_cluster, clustering_sim):
-    """
+    """ Cluster sequences based on the decimal proportion of
+        shared distinct minimizers.
+
+        Parameters
+        ----------
+        sorted_sequences : dict
+            Dictionary with sequence identifiers as keys and
+            sequences as values. Sorted by decreasing sequence
+            length.
+        word_size : int
+            Value k for the kmer size.
+        window_size : int
+            Window size used to determine minimizers.
+        position : bool
+            If minimizer sequence position should be stored.
+        offset : int
+            Value to indicate offset of consecutive kmers.
+        clusters : dict
+            Dictionary with the identifiers of sequences
+            that are cluster representatives as keys and
+            a list with tuples as values. Each tuple has
+            the identifier of a sequence that was added to
+            the cluster, the decimal proportion of shared
+            distinct minimizers and the length of the clustered
+            sequence. This dictionary should be empty at the
+            start of the clustering step during the CreateSchema
+            process. For the AlleleCall process, the dictionary
+            should contain the identifiers of the loci
+            representatives.
+        reps_sequences : dict
+            Dictionary with the identifiers of sequences
+            that are cluster representatives as keys and
+            their sequences as values. This dictionary should
+            be empty at the start of the clustering step
+            during the CreateSchema process. For the AlleleCall
+            process, the dictionary should contain the
+            identifiers of the loci representatives as keys
+            and their sequences as values.
+        reps_groups : dict
+            Dictionary with kmers as keys and a list with
+            identifiers of sequences that contain that kmer
+            as values. This dictionary should be empty at the
+            start of the clustering step during the CreateSchema
+            process. For the AlleleCall process, the dictionary
+            should contain all kmers contained in the set of
+            the schema's representatives sequences.
+        seq_num_cluster : int
+            Maximum number of clusters that a sequence can be
+            added to.
+        clustering_sim : float
+            Similarity threshold to cluster a sequence into
+            a cluster.
+
+        Returns
+        -------
+        A list with the following elements:
+            clusters : dict
+                Dictionary with the identifiers of sequences
+                that are clusters representatives as keys and
+                a list with tuples as values. Each tuple has
+                the identifier of a sequence that was added to
+                the cluster, the decimal proportion of shared
+                distinct minimizers and the length of the clustered
+                sequence.
+            reps_sequences : dict
+                Dictionary with the identifiers of sequences
+                that are cluster representatives as keys and
+                their sequences as values.
+            reps_groups : dict
+                Dictionary with kmers as keys and a list with
+                identifiers of sequences that contain that kmer
+                as values.
     """
 
     for protid, protein in sorted_sequences.items():
@@ -189,7 +297,8 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 def clusterer(sorted_sequences, word_size, window_size,
               clustering_sim, representatives, grow,
               offset, position, seq_num_cluster):
-    """ Cluster sequences based on shared percentage of kmers/minimizers.
+    """ Cluster sequences based on the decimal proportion of
+        shared distinct minimizers.
 
         Parameters
         ----------
@@ -199,11 +308,11 @@ def clusterer(sorted_sequences, word_size, window_size,
             length.
         word_size : int
             Value k for the kmer size.
+        window_size : int
+            Window size used to determine minimizers.
         clustering_sim : float
             Similarity threshold to cluster a sequence into
             a cluster.
-        mode : str
-            Clustering mode.
         representatives : dict
             Dictionary with kmers as keys and a list with
             identifiers of sequences that contain that kmer
@@ -212,6 +321,8 @@ def clusterer(sorted_sequences, word_size, window_size,
             If it is allowed to create new clusters.
         offset : int
             Value to indicate offset of consecutive kmers.
+        position : bool
+            If minimizer sequence position should be stored.
         seq_num_cluster : int
             Maximum number of clusters that a sequence can be
             added to.
@@ -221,15 +332,15 @@ def clusterer(sorted_sequences, word_size, window_size,
         A list with the following elements:
             clusters : dict
                 Dictionary with the identifiers of sequences
-                that are clusters representatives as keys and
+                that are cluster representatives as keys and
                 a list with tuples as values. Each tuple has
                 the identifier of a sequence that was added to
-                the cluster, the percentage of shared
-                kmers/minimizers and the length of the clustered
+                the cluster, the decimal proportion of shared
+                distinct minimizers and the length of the clustered
                 sequence.
             reps_sequences : dict
                 Dictionary with the identifiers of sequences
-                that are clusters representatives as keys and
+                that are cluster representatives as keys and
                 their sequences as values.
     """
 
@@ -252,21 +363,21 @@ def clusterer(sorted_sequences, word_size, window_size,
 
 
 def write_clusters(clusters, outfile):
-    """ Writes clusters to file.
+    """ Writes information about clusters to file.
 
         Parameters
         ----------
         clusters : dict
             Dictionary with the identifiers of sequences
-            that are clusters representatives as keys and
+            that are cluster representatives as keys and
             a list with tuples as values. Each tuple has
             the identifier of a sequence that was added to
-            the cluster, the percentage of shared
-            kmers/minimizers and the length of the clustered
-            sequence.
+            the cluster, the decimal proportion of shared
+            distinct kmers/minimizers and the length of the
+            clustered sequence.
         outfile : str
-            Path to the file that will be
-            created to save clusters.
+            Path to the file that will be created to save
+            information about clusters.
     """
 
     cluster_lines = []
@@ -338,20 +449,24 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         Parameters
         ----------
-        inputs : list
-            List with clusters identifiers, the path to
-            BLAST executables, the path to a BLAST database,
-            the path to the directory that contains files with
-            the identifiers of the sequences in each cluster
-            and where FASTA files with the sequences in each
-            cluster and files with BLAST results will be
-            written to and the path to the FASTA file with
-            the protein sequences in all clusters.
+        seqids : list
+            List with cluster identifiers.
+        sequences : str
+            Path to the FASTA file with the protein sequences
+            in all clusters.
+        output_directory : str
+            Path to the directory where FASTA files with
+            the sequences in each cluster and files with
+            BLAST results will be written to.
+        blast_path : str
+            Path to BLAST executables
+        blastdb_path : str
+            Path to a BLAST database.
 
         Returns
         -------
         out_files : list
-            List with the paths to the files with BLAST
+            List with the paths to the files with the BLAST
             results for each cluster.
     """
 
@@ -398,9 +513,9 @@ def blast_inputs(clusters, output_directory, ids_dict):
             Dictionary with the identifiers of cluster
             representatives as keys and a list with tuples
             as values (each tuple has the identifier of a
-            sequence that is in the cluster, the percentage
-            of shared minimizers and the length os that
-            sequence).
+            sequence that is in the cluster, the decimal
+            proportion of shared minimizers and the length
+            of that sequence).
         output_directory : str
             Path to the directory where files with identifiers
             will be created.

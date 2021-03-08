@@ -485,9 +485,6 @@ def create_pre_computed_data(
         os.makedirs(out_path)
 
     # Check minimum length value
-    minimum_length_to_translate = minimum_length - (
-        minimum_length * size_threshold
-    )  # set the minimum length value for translation
     if minimum_length is None:
 
         minimum_length = 0
@@ -503,6 +500,10 @@ def create_pre_computed_data(
             minimum_length_to_translate = minimum_length - (
                 minimum_length * chewie_schema_configs["size_threshold"][0]
             )
+
+    minimum_length_to_translate = minimum_length - (
+        minimum_length * size_threshold
+    )  # set the minimum length value for translation
 
     if not os.listdir(out_path):
         # Calculate the summary statistics and other information about each locus.

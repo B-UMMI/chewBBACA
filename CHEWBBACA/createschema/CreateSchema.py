@@ -7,6 +7,26 @@ Purpose
 This module enables the creation of a whole genome multi locus sequence
 typing (wgMLST) schema seed.
 
+The process starts by predicting and extracting genes from all input
+files/assemblies (skipped if a single or several FASTA files with coding
+sequences are passed as input and the ``--CDS`` flag is included in the
+command). This is followed by the identification and removal of repeated
+and small sequences from the set of coding sequences extracted from all
+files/assemblies. 'Distinct' DNA sequences are translated and the resulting
+protein sequences go through another deduplication step (repeated protein
+sequences result from DNA sequences that code for the same protein). Protein
+sequences are sorted and clustered based on the percentage of shared unique
+minimizers. Two filters are applied to each cluster to identify and exclude
+sequences that are highly similar to the cluster's representative or to other
+sequences in the cluster (the threshold is set at >=90% shared minimizers).
+BLASTp is used to determine the similarity of the remaining sequences in each
+cluster if the clusters are not singletons (have a single protein sequence),
+and exclude sequences based on high BLAST Score Ratio (BSR) values. A final
+step uses BLASTp to determine the similarity of this set of sequences and
+determine the 'distinct' set of loci that constitute the schema seed. The
+schema seed contains 1 FASTA file per distinct locus and a single
+representative allele for each locus.
+
 Expected input
 --------------
 
@@ -23,6 +43,83 @@ execution or invocation of the :py:func:`main` function:
   store intermediate files and create the schema's directory.
 
     - e.g.: ``/home/user/schemas/new_schema``
+
+- ``--n``, ``schema_name`` : Name given to the folder that will store the
+  schema files.
+
+    - e.g.: ``my_schema``
+
+- ``--ptf``, ``ptf_path`` : Path to the Prodigal training file.
+
+    - e.g.: ``/home/user/training_files/species.trn``
+
+- ``--bsr``, ``blast_score_ratio`` : BLAST Score Ratio value.
+
+    - e.g.: ``0.6``
+
+- ``--l``, ``minimum_length`` : Minimum sequence length. Coding sequences
+  shorter than this value are excluded.
+
+    - e.g.: ``201``
+
+- ``--t``, ``translation_table`` : Genetic code used to predict genes and
+  to translate coding sequences.
+
+    - e.g.: ``11``
+
+- ``--st``, ``size_threshold`` : CDS size variation threshold. Added to the
+  schema's config file and used to identify alleles with a length value that
+  deviates from the locus length mode during the allele calling process.
+
+    - e.g.: ``0.2``
+
+- ``--w``, ``word_size`` : word size used to generate k-mers during the
+  clustering step.
+
+    - e.g.: ``5``
+
+- ``--ws``, ``window_size`` : window size value. Number of consecutive
+  k-mers included in each window to determine a minimizer.
+
+    - e.g.: ``5``
+
+- ``--cs``, ``clustering_sim`` : clustering similarity threshold. Minimum
+  decimal proportion of shared distinct minimizers for a sequence to be
+  added to a cluster.
+
+    - e.g.: ``0.2``
+
+- ``--rf``, ``representative_filter`` : representative similarity threshold.
+  Clustered sequences are excluded if they share this proportion of distinct
+  minimizers with the cluster representative.
+
+    - e.g.: ``0.9``
+
+- ``--if``, ``intra_filter`` : intra-cluster similarity threshold. Clustered
+  sequences are excluded if they share this proportion of distinct minimizers
+  with another clustered sequence of equal or greater length.
+
+    - e.g.: ``0.9``
+
+- ``--cpu``, ``cpu_cores`` : Number of CPU cores used to run the process.
+
+    - e.g.: ``4``
+
+- ``--b``, ``blast_path`` : Path to the BLAST executables.
+
+    - e.g.: ``/home/software/blast``
+
+- ``--pm``, ``prodigal_mode`` : Prodigal running mode.
+
+    - e.g.: ``single``
+
+- ``--CDS``, ``cds_input`` : If provided, input is a single or several FASTA
+  files with coding sequences.
+
+    - e.g.: ``/home/user/coding_sequences_files``
+
+- ``--no-cleanup``, ``no_cleanup`` : If provided, intermediate files
+  generated during process execution are not removed at the end.
 
 Code documentation
 ------------------
@@ -60,30 +157,30 @@ except:
 def predict_genes(fasta_files, ptf_path, translation_table,
                   prodigal_mode, cpu_cores, temp_directory,
                   output_directory):
-    """ Runs Prodigal to predict coding sequences in FASTA
-        files with genomic sequence.
+    """ Runs Prodigal to predict coding sequences from FASTA
+        files with genomic sequences.
 
         Parameters
         ----------
         fasta_files : list
-            List with paths to FASTA files with genomic
+            List of paths to FASTA files with genomic
             sequences.
         ptf_path : str
             Path to the Prodigal training file. Should
-            be False if a training file is not provided.
+            be a NoneType if a training file is not provided.
         translation_table : int
             Genetic code used to predict and translate
             coding sequences.
         prodigal_mode : str
             Prodigal execution mode.
         cpu_cores : int
-            Number of process that will run Prodigal in
+            Number of processes that will run Prodigal in
             parallel.
         temp_directory : str
-            Path to the directory where temporary files
-            should be stored in.
+            Path to the directory where output files
+            with Prodigal's results will be stored in.
         output_directory : str
-            Path to the main directory of the process.
+            Path to the main outpt directory of the process.
 
         Returns
         -------
@@ -147,23 +244,23 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
                   temp_directory, output_directory):
     """ Extracts coding sequences from FASTA files with genomic
         sequences and saves coding sequences and info about coding
-        sequences to files.
+        sequences.
 
         Parameters
         ----------
         fasta_files : list
-            List with paths to FASTA files with genomic sequences.
+            List of paths to FASTA files with genomic sequences.
         prodigal_path : str
             Path to the directory with the files with Prodigal
             results.
         cpu_cores : int
-            Number of process that will extract coding sequences
+            Number of processes that will extract coding sequences
             in parallel.
         temp_directory : str
-            Path to the directory where temporary files should
-            be stored in.
+            Path to the directory where FASTA files with extracted
+            coding sequences will be stored in.
         output_directory : str
-            Path to the main directory of the process.
+            Path to the main output directory of the process.
 
         Returns
         -------
@@ -242,7 +339,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                     for i, file in enumerate(fasta_files)]
 
     # determine distinct sequences (keeps 1 seqid per sequence)
-    print('\nRemoving duplicated sequences...')
+    print('\nRemoving duplicated sequences...', end='')
     dedup_results = mo.map_async_parallelizer(dedup_inputs,
                                               mo.function_helper,
                                               cpu_cores,
@@ -262,11 +359,11 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
         repeated += repeated_seqs
 
-        print('Removed {0} repeated sequences.'.format(repeated))
+        print('removed {0} sequences.'.format(repeated))
 
         return [distinct_seqids, distinct_seqs]
     else:
-        print('Removed {0} repeated sequences.'.format(repeated))
+        print('removed {0} sequences.'.format(repeated))
 
         return [dedup_results[0][1], dedup_inputs[0][1]]
 
@@ -288,17 +385,21 @@ def exclude_small(fasta_file, minimum_length):
         small_seqids : list
             List with the sequence identifiers of small
             sequences.
+        ss_lines : list
+            List with one string per small sequence. Each string
+            represents an exception message for a sequence that
+            is small.
     """
 
     # determine small sequences and keep their seqids
-    print('\nRemoving sequences smaller than {0}...'.format(minimum_length))
+    print('\nRemoving sequences smaller than {0} '
+          'nucleotides...'.format(minimum_length), end='')
     small_seqids = sm.determine_small(fasta_file, minimum_length)
 
     ss_lines = ['{0}: smaller than {1} chars'.format(seqid, minimum_length)
                 for seqid in small_seqids]
 
-    print('Removed {0} sequences shorter than '
-          '{1}.'.format(len(small_seqids), minimum_length))
+    print('removed {0} sequences.'.format(len(small_seqids)))
 
     return [small_seqids, ss_lines]
 
@@ -316,13 +417,12 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
             List with the identifiers of the sequences that
             should be translated.
         sequences_file : str
-            Path to the FASTA files with the DNA sequences.
+            Path to the FASTA file with the DNA sequences.
         temp_directory : str
             Path to the directory where new files will be
             created.
         translation_table : int
-            Genetic code used to predict and translate
-            coding sequences.
+            Genetic code used to translate coding sequences.
         minimum_length : int
             Sequences with a length value below this value are
             considered small and are excluded.
@@ -403,7 +503,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                       representatives, grow_clusters, kmer_offset,
                       seq_num_cluster, temp_directory, cpu_cores,
                       file_prefix, divide, position):
-    """ Clusters sequences based on the proportion of shared kmers.
+    """ Clusters sequences based on the proportion of shared minimizers.
 
         Parameters
         ----------
@@ -411,20 +511,21 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
             Dictionary with sequence identifiers as keys and
             sequences as values.
         word_size : int
-            Value k for the kmer size.
+            Value k for the k-mer size.
+        window_size : int
+            Value for the window size/number of consecutive
+            k-mers per window.
         clustering_sim : float
-            Similarity threshold to cluster a sequence into
+            Similarity threshold to add a sequence to
             a cluster.
         representatives : dict
-            Dictionary with kmers as keys and a list with
-            identifiers of sequences that contain that kmer
+            Dictionary with k-mers as keys and a list with
+            identifiers of sequences that contain that k-mer
             as values.
         grow_clusters : bool
             If it is allowed to create new clusters.
         kmer_offset : int
             Value to indicate offset of consecutive kmers.
-        minimizer : bool
-            If clustering should be based on shared minimizers.
         seq_num_cluster : int
             Maximum number of clusters that a sequence can be
             added to.
@@ -435,6 +536,12 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
             Number of clustering processes to run in parallel.
         file_prefix : str
             A prefix to include in the names of created files.
+        divide : bool
+            If input sequences should be divided into smaller
+            groups that can be processed in parallel.
+        position : bool
+            True if the start position for each k-mer should be saved.
+            False otherwise.
 
         Returns
         -------
@@ -468,7 +575,8 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
-    print('\nClustering sequences...')
+    print('\nClustering sequences based on the proportion '
+          'of shared distinct minimizers...')
     clustering_results = mo.map_async_parallelizer(cluster_inputs,
                                                    mo.function_helper,
                                                    cpu_cores)
@@ -502,7 +610,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
         clusters = merged_clusters
 
     print('Clustered {0} sequences into {1} '
-          'clusters'.format(len(sorted_seqs), len(clusters)))
+          'clusters.'.format(len(sorted_seqs), len(clusters)))
 
     # sort clusters
     clusters = {k: v for k, v in im.sort_data(clusters.items())}
@@ -565,7 +673,7 @@ def cluster_representative_filter(clusters, representative_filter,
     excluded_seqids = set([e[0] for e in excluded_seqids])
 
     print('Removed {0} sequences based on high similarity with '
-          'cluster representative.'.format(len(excluded_seqids)))
+          'the cluster representative.'.format(len(excluded_seqids)))
 
     # remove excluded seqids from clusters without high representative
     # similarity
@@ -579,7 +687,7 @@ def cluster_representative_filter(clusters, representative_filter,
 
     # identify singletons and exclude those clusters
     singletons = im.select_clusters(pruned_clusters, 0)
-    print('Found {0} singletons.'.format(len(singletons)))
+    print('Identified and removed {0} singletons.'.format(len(singletons)))
 
     pruned_clusters = im.remove_entries(pruned_clusters, singletons)
 
@@ -612,7 +720,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
             Dictionary with sequence identifiers as keys and
             sequences as values.
         word_size : int
-            Value k for the kmer size.
+            Value k for the k-mer size.
         intra_filter : float
             Similarity threshold value. Sequences with
             equal or greater similarity value with other
@@ -647,7 +755,8 @@ def cluster_intra_filter(clusters, sequences, word_size,
     # get identifiers of excluded sequences
     # determine set because same seqids could be in several clusters
     intra_excluded = set(intra_excluded)
-    print('Removed {0} sequences.'.format(len(intra_excluded)))
+    print('Removed {0} sequences based on high similarity with '
+          'other clustered sequences.'.format(len(intra_excluded)))
 
     # remove excluded seqids from clusters without high intra-similarity
     pruned_clusters = {k: [e for e in v if e[0] not in intra_excluded]
@@ -664,7 +773,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
 
     # add key because it is representative identifier
     clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
-    print('Remaining sequences after intra cluster pruning: '
+    print('Remaining sequences after intra-cluster pruning: '
           '{0}'.format(clustered_sequences))
 
     return [pruned_clusters, intra_excluded]
@@ -673,8 +782,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
                    file_prefix):
-    """ Performs all-against-all comparisons between sequences in
-        the same cluster through alignments with BLAST.
+    """ Uses BLAST to align sequences in the same clusters.
 
         Parameters
         ----------
@@ -692,9 +800,11 @@ def blast_clusters(clusters, sequences, output_directory,
             Path to the directory where the clustering results
             will be saved to.
         blastp_path : str
-            Path to the BLAST executables.
+            Path to the `BLASTp` executable.
+        makeblastdb_path : str
+            Path to the `makeblastdb` executable.
         cpu_cores : int
-            Number of BLAST processes to run in parallel.
+            Number of BLASTp processes to run in parallel.
         file_prefix : str
             A prefix to include in the names of created files.
 
@@ -702,12 +812,12 @@ def blast_clusters(clusters, sequences, output_directory,
         -------
         A list with the following elements:
             blast_results : list
-                List with paths to the files with BLAST results
-                (one file per input).
+                List with paths to the files with BLASTp results
+                (one file per cluster).
             ids_dict : dict
                 Dictionary that maps sequence identifiers to
                 shorter and unique integer identifiers used
-                to avoid errors during BLAST related with
+                to avoid errors during BLAST execution related with
                 sequence headers/identifiers that exceed the
                 length limit allowed by BLAST.
     """
@@ -716,7 +826,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # create FASTA file with sequences in clusters
     clustered_seqs_file = fo.join_paths(output_directory,
-                                         ['{0}_clustered_proteins.fasta'.format(file_prefix)])
+                                        ['{0}_clustered_proteins.fasta'.format(file_prefix)])
     clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
     clustered_sequences = im.flatten_list(clustered_sequences)
     # do not include duplicate identifiers
@@ -727,7 +837,7 @@ def blast_clusters(clusters, sequences, output_directory,
     # create FASTA file with replaced headers to avoid header
     # length limitation in BLAST
     integer_clusters = fo.join_paths(output_directory,
-                                      ['{0}_clustered_proteins_int.fasta'.format(file_prefix)])
+                                     ['{0}_clustered_proteins_int.fasta'.format(file_prefix)])
     ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters)
 
     # create BLAST DB
@@ -765,19 +875,40 @@ def blast_clusters(clusters, sequences, output_directory,
                                               cpu_cores,
                                               show_progress=True)
 
-    print('\n\nFinished BLASTp. Determining schema representatives...')
+    print('\n\nFinished BLASTp.')
 
     return [blast_results, ids_dict]
 
 
-def create_schema_structure(input_files, output_directory, temp_directory,
-                            schema_name):
-    """
+def create_schema_structure(schema_seed_fasta, output_directory,
+                            temp_directory, schema_name):
+    """ Creates the schema seed directory with one FASTA file per
+        distinct locus and the `short` directory with the FASTA files
+        used to save the representative sequences.
+
+        Parameters
+        ----------
+        schema_seed_fasta : str
+            Path to the FASTA file that contains the sequences that
+            constitute the schema seed. Each FASTA record in the file
+            is a representative sequence chosen for a locus.
+        output_directory : str
+            Path to the main output directory of the process.
+        temp_directory : str
+            Path to the directory where the FASTA file with the
+            records for the schema seed will be saved to.
+        schema_name : str
+            Name for the schema's directory.
+
+        Returns
+        -------
+        schema_files : list
+            List with the paths to the FASTA files in the schema seed.
     """
 
     # add allele identifier to all sequences
     schema_records = ['>{0}\n{1}'.format(im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS) + '_1', str(rec.seq))
-                      for rec in SeqIO.parse(input_files, 'fasta')]
+                      for rec in SeqIO.parse(schema_seed_fasta, 'fasta')]
 
     final_records = os.path.join(temp_directory, 'schema_seed_final.fasta')
     fo.write_lines(schema_records, final_records)
@@ -793,12 +924,30 @@ def create_schema_structure(input_files, output_directory, temp_directory,
     return schema_files
 
 
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/aa.txt'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_finaltest'
+#schema_name = 'schema_seed'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
+#blast_score_ratio = 0.6
+#minimum_length = 201
+#translation_table = 11
+#size_threshold = 0.2
+#word_size = 5
+#window_size = 5
+#clustering_sim = 0.2
+#representative_filter = 0.9
+#intra_filter = 0.9
+#cpu_cores = 6
+#blast_path = ''
+#prodigal_mode = 'single'
+#cds_input = False
 def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,
                        representative_filter, intra_filter, cpu_cores, blast_path,
                        prodigal_mode, cds_input):
-    """
+    """ Creates a schema seed based on a set of FASTA files with
+        genome assemblies or with coding sequences.
     """
 
     # define directory for temporary files
@@ -949,8 +1098,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     # merge bsr results
     blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
-    #############################
-    ### write list of excluded alleles per cluster to file!!!!
+
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
 
@@ -977,6 +1125,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
+    print('Performing final BLASTp...', end='')
     blast_output = '{0}/{1}_blast_out.tsv'.format(final_blast_dir,
                                                   'pre_schema_seed')
     blast_stderr = bw.run_blast(blastp_path, blast_db, integer_seqids,
@@ -993,8 +1142,8 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     schema_seqids = list(set(schema_seqids) - set(final_excluded))
 
-    print('Removed {0} loci that were similar to other loci '
-          'in the schema.'.format(len(final_excluded)))
+    print('removed {0} sequences that were highly similar '
+          'to other sequences.'.format(len(final_excluded)))
 
     output_schema = os.path.join(final_blast_dir, 'schema_seed.fasta')
 
@@ -1042,78 +1191,83 @@ def main(input_files, output_directory, schema_name, ptf_path,
 
 def parse_arguments():
 
-
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-i', nargs='?', type=str, required=True,
-                        dest='input_files',
+    parser.add_argument('-i', '--input-files', nargs='?', type=str,
+                        required=True, dest='input_files',
                         help='Path to the directory that contains the input '
                              'FASTA files. Alternatively, a single file with '
                              'a list of paths to FASTA files, one per line.')
 
-    parser.add_argument('-o', type=str, required=True,
-                        dest='output_directory',
+    parser.add_argument('-o', '--output-directory', type=str,
+                        required=True, dest='output_directory',
                         help='Output directory where the process will store '
                              'intermediate files and create the schema\'s '
                              'directory.')
 
-    parser.add_argument('--n', type=str, required=False,
-                        default='schema_seed', dest='schema_name',
-                        help='Name to give to folder that will store '
+    parser.add_argument('--n', '--schema-name', type=str,
+                        required=False, default='schema_seed',
+                        dest='schema_name',
+                        help='Name given to the folder that will store '
                              'the schema files.')
 
-    parser.add_argument('--ptf', type=str, required=False,
-                        default=False, dest='ptf_path',
+    parser.add_argument('--ptf', '--training-file', type=str,
+                        required=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
-    parser.add_argument('--bsr', type=float,
+    parser.add_argument('--bsr', '--blast-score-ratio', type=float,
                         required=False, default=0.6, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
                              'as sequences from the same gene.')
 
-    parser.add_argument('--l', type=int,
+    parser.add_argument('--l', '--minimum-length', type=int,
                         required=False, default=201, dest='minimum_length',
-                        help='Minimum sequence length accepted for a '
-                             'coding sequence to be included in the schema.')
+                        help='Minimum sequence length value. Coding sequences '
+                             'shorter than this value are excluded.')
 
-    parser.add_argument('--t', type=int,
+    parser.add_argument('--t', '--translation-table', type=int,
                         required=False, default=11, dest='translation_table',
                         help='Genetic code used to predict genes and'
                              ' to translate coding sequences.')
 
-    parser.add_argument('--st', type=float,
+    parser.add_argument('--st', '--size-threshold', type=float,
                         required=False, default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM.')
+                        help='CDS size variation threshold. Added to the '
+                             'schema\'s config file and used to identify '
+                             'alleles with a length value that deviates from '
+                             'the locus length mode during the allele calling '
+                             'process.')
 
-    parser.add_argument('--cpu', type=int, required=False,
-                        default=1, dest='cpu_cores',
+    parser.add_argument('--cpu', '--cpu-cores', type=int,
+                        required=False, default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
                              'used to run the CreateSchema process '
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores).')
 
-    parser.add_argument('--b', type='blastp', required=False,
-                        default='', dest='blast_path',
+    parser.add_argument('--b', '--blast-path', type=str,
+                        required=False, default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
-    parser.add_argument('--CDS', required=False, action='store_true',
-                        dest='cds_input',
-                        help='Input is a FASTA file with one representative '
-                             'sequence per gene in the schema.')
-
-    parser.add_argument('--pm', required=False, choices=['single', 'meta'],
+    parser.add_argument('--pm', '--prodigal-mode', required=False,
+                        choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--no_cleanup', required=False,
-                        action='store_true', dest='no_cleanup',
-                        help='Delete intermediate files at the end.')
+    parser.add_argument('--CDS', required=False, action='store_true',
+                        dest='cds_input',
+                        help='If provided, input is a single or several FASTA '
+                             'files with coding sequences.')
+
+    parser.add_argument('--no-cleanup', required=False, action='store_true',
+                        dest='no_cleanup',
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed at '
+                             'the end.')
 
     args = parser.parse_args()
 

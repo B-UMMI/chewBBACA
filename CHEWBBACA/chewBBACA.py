@@ -103,7 +103,7 @@ def create_schema():
 
     parser.add_argument('--n', '--schema-name', type=str,
                         required=False, default='schema_seed', dest='schema_name',
-                        help='Name to give to folder that will store the schema files.')
+                        help='Name given to the folder that will store the schema files.')
 
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
@@ -118,8 +118,8 @@ def create_schema():
 
     parser.add_argument('--l', '--minimum-length', type=pv.minimum_sequence_length_type,
                         required=False, default=201, dest='minimum_length',
-                        help='Minimum sequence length accepted for a '
-                             'coding sequence to be included in the schema.')
+                        help='Minimum sequence length value. Coding sequences '
+                             'shorter than this value are excluded.')
 
     parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
                         required=False, default=11, dest='translation_table',
@@ -128,9 +128,11 @@ def create_schema():
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
                         required=False, default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM.')
+                        help='CDS size variation threshold. Added to the '
+                             'schema\'s config file and used to identify '
+                             'alleles with a length value that deviates from '
+                             'the locus length mode during the allele calling '
+                             'process.')
 
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
@@ -151,12 +153,13 @@ def create_schema():
 
     parser.add_argument('--CDS', required=False, action='store_true',
                         dest='cds_input',
-                        help='Input is sinlge or several FASTA files '
+                        help='If provided, input is a single or several FASTA files '
                              'with coding sequences.')
 
     parser.add_argument('--no-cleanup', required=False, action='store_true',
                         dest='no_cleanup',
-                        help='Delete intermediate files at the end.')
+                        help='If provided, intermediate files generated during '
+                             'process execution are not removed at the end.')
 
     args = parser.parse_args()
     del args.CreateSchema

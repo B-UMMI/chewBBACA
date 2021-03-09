@@ -15,12 +15,12 @@ and small sequences from the set of coding sequences extracted from all
 files/assemblies. 'Distinct' DNA sequences are translated and the resulting
 protein sequences go through another deduplication step (repeated protein
 sequences result from DNA sequences that code for the same protein). Protein
-sequences are sorted and clustered based on the percentage of shared unique
+sequences are sorted and clustered based on the percentage of shared distinct
 minimizers. Two filters are applied to each cluster to identify and exclude
 sequences that are highly similar to the cluster's representative or to other
 sequences in the cluster (the threshold is set at >=90% shared minimizers).
 BLASTp is used to determine the similarity of the remaining sequences in each
-cluster if the clusters are not singletons (have a single protein sequence),
+cluster, if the clusters are not singletons (have a single protein sequence),
 and exclude sequences based on high BLAST Score Ratio (BSR) values. A final
 step uses BLASTp to determine the similarity of this set of sequences and
 determine the 'distinct' set of loci that constitute the schema seed. The
@@ -114,7 +114,7 @@ execution or invocation of the :py:func:`main` function:
     - e.g.: ``single``
 
 - ``--CDS``, ``cds_input`` : If provided, input is a single or several FASTA
-  files with coding sequences.
+  files with coding sequences (skips gene prediction and CDS extraction).
 
     - e.g.: ``/home/user/coding_sequences_files``
 
@@ -273,10 +273,13 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     # progress resolution
     num_chunks = 20 if cpu_cores < 20 else cpu_cores
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
-    # add common arguments and unique index/identifier
+
+    # create output directory
     cds_extraction_path = os.path.join(temp_directory,
                                        '2_cds_extraction')
     fo.create_directory(cds_extraction_path)
+
+    # add common arguments and unique index/identifier
     extractor_inputs = [[extractor_inputs[i-1], prodigal_path,
                          cds_extraction_path, i, gp.cds_batch_extractor]
                         for i in range(1, len(extractor_inputs)+1)]
@@ -348,8 +351,9 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     # determine number of duplicated sequences
     repeated = sum([d[0] for d in dedup_results])
 
-    # one last round after concatenating files
+    # one last round after first round received several inputs
     if len(dedup_inputs) > 1:
+        # concatenate results from first round
         dedup_files = [f[1] for f in dedup_inputs]
         cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
         cds_file = fo.concatenate_files(dedup_files, cds_file)
@@ -603,7 +607,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                 # representatives from other clusters are added with
                 # similarity score against new representative
                 # clustered sequences from other clusters are added
-                # with similarity score against the old representative
+                # with similarity score against their representative
                 add_seqids = [n] + [s for s in clusters[n[0]] if s[0] != n[0]]
                 merged_clusters.setdefault(k, []).extend(add_seqids)
 
@@ -875,8 +879,6 @@ def blast_clusters(clusters, sequences, output_directory,
                                               cpu_cores,
                                               show_progress=True)
 
-    print('\n\nFinished BLASTp.')
-
     return [blast_results, ids_dict]
 
 
@@ -946,8 +948,8 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
                        size_threshold, word_size, window_size, clustering_sim,
                        representative_filter, intra_filter, cpu_cores, blast_path,
                        prodigal_mode, cds_input):
-    """ Creates a schema seed based on a set of FASTA files with
-        genome assemblies or with coding sequences.
+    """ Creates a schema seed based on a set of FASTA files that
+        contain genome assemblies or coding sequences.
     """
 
     # define directory for temporary files
@@ -1101,7 +1103,8 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
     schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
-
+    print('\n\nRemoved {0} sequences based on high BSR value with '
+          'other sequences.'.format(len(set(blast_excluded_alleles))))
     # perform final BLAST to identify similar sequences that do not
     # share many/any kmers
     print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
@@ -1172,7 +1175,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
     print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
     print('Representative filter: {0}'.format(representative_filter))
-    print('Intra filter: {0}'.format(intra_filter))
+    print('Intra-cluster filter: {0}'.format(intra_filter))
 
     results = create_schema_seed(input_files, output_directory, schema_name,
                                  ptf_path, blast_score_ratio, minimum_length,

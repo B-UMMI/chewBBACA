@@ -926,23 +926,6 @@ def create_schema_structure(schema_seed_fasta, output_directory,
     return schema_files
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/aa.txt'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/sagalactiae_finaltest'
-#schema_name = 'schema_seed'
-#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/Streptococcus_agalactiae.trn'
-#blast_score_ratio = 0.6
-#minimum_length = 201
-#translation_table = 11
-#size_threshold = 0.2
-#word_size = 5
-#window_size = 5
-#clustering_sim = 0.2
-#representative_filter = 0.9
-#intra_filter = 0.9
-#cpu_cores = 6
-#blast_path = ''
-#prodigal_mode = 'single'
-#cds_input = False
 def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,

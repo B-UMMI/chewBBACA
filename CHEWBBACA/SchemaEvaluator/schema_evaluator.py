@@ -5,7 +5,7 @@ Purpose
 -------
 This module generates an interactive report that allows the user to explore
 the diversity (number of alleles) at each locus, the variation of allele
-sizes per locus and the presence of alleles that are not CDSs 
+sizes per locus and the presence of alleles that are not CDSs
 (when evaluating schemas called by other algorithms).
 
 Expected input
@@ -41,6 +41,7 @@ Code documentation
 """
 
 import os
+import csv
 import sys
 import json
 import pickle
@@ -48,19 +49,29 @@ import itertools
 import statistics
 import multiprocessing
 from operator import itemgetter
-from collections import Counter, defaultdict
+from collections import Counter
 
 
 from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align.Applications import MafftCommandline
-from Bio.Align.Applications import ClustalwCommandline
 
 try:
-    from utils import auxiliary_functions as aux
+    from utils import (
+        file_operations as fo,
+        fasta_operations as fao,
+        sequence_manipulation as sm,
+        iterables_manipulation as im,
+        multiprocessing_operations as mo,
+    )
 except:
-    from CHEWBBACA.utils import auxiliary_functions as aux
+    from CHEWBBACA.utils import (
+        file_operations as fo,
+        fasta_operations as fao,
+        sequence_manipulation as sm,
+        iterables_manipulation as im,
+        multiprocessing_operations as mo,
+    )
 
 
 # Schema Evaluator Auxiliary Functions
@@ -324,7 +335,9 @@ def gene_seqs_info_boxplot(schema_dir):
 
 
 # Functions that obtain the data for panel E
-def create_cds_df(schema_file, minimum_length, translation_table):
+def create_cds_df(
+    schema_file, minimum_length, minimum_length_to_translate, translation_table
+):
     """Detects alleles that aren't CDSs.
 
     Parameters
@@ -347,7 +360,7 @@ def create_cds_df(schema_file, minimum_length, translation_table):
 
     gene_res = {"Gene": os.path.split(schema_file)[1]}
 
-    gene_res["Number of alleles"] = aux.count_sequences(schema_file)
+    gene_res["Number of alleles"] = fao.count_sequences(schema_file)
 
     stopC = 0
     notStart = 0
@@ -365,7 +378,9 @@ def create_cds_df(schema_file, minimum_length, translation_table):
         else:
             allele_ids.append(int(allele.id))
 
-        ola = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
+        ola = sm.translate_dna(
+            str(allele.seq), translation_table, minimum_length_to_translate
+        )
 
         if "sequence length is not a multiple of 3" in ola:
             notMultiple += 1
@@ -380,8 +395,8 @@ def create_cds_df(schema_file, minimum_length, translation_table):
         else:
             CDS += 1
 
-    if len(aux.find_missing(allele_ids)) > 0:
-        missing_allele_ids = aux.find_missing(allele_ids)
+    if len(im.find_missing(allele_ids)) > 0:
+        missing_allele_ids = im.find_missing(allele_ids)
     else:
         missing_allele_ids = ["None"]
 
@@ -404,8 +419,10 @@ def create_pre_computed_data(
     schema_dir,
     translation_table,
     output_path,
+    annotations,
     cpu_to_use,
     minimum_length,
+    size_threshold,
     threshold,
     conserved,
     chewie_schema=False,
@@ -423,10 +440,15 @@ def create_pre_computed_data(
     output_path : str
         the directory where the output files will
         be saved.
+    annotations : str
+        path to the output file of the UniprotFinder
+        module
     cpu_to_use: int
         number of CPU cores to use for multiprocessing.
     minimum_length: int
         minimum sequence length accepted in nt.
+    size_threshold: int
+        CDS size variation threshold.
     chewie_schema: bool
         identifies the schema as a chewBBACA created schema.
     show_progress: bool
@@ -450,8 +472,8 @@ def create_pre_computed_data(
         sys.exit("The schema directory is empty. Please check your path. Exiting...")
 
     # Check if files are empty
-    empty_files_1 = [aux.is_file_empty(f) for f in schema_files]
-    empty_files_2 = [aux.is_file_empty_3(f) for f in schema_files]
+    empty_files_1 = [fo.is_file_empty(f) for f in schema_files]
+    empty_files_2 = [fo.is_file_empty_3(f) for f in schema_files]
 
     if True in empty_files_1:
         sys.exit("At least one file is empty or it doesn't exist. Exiting...")
@@ -461,6 +483,27 @@ def create_pre_computed_data(
     out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
     if not os.path.exists(out_path):
         os.makedirs(out_path)
+
+    # Check minimum length value
+    if minimum_length is None:
+
+        minimum_length = 0
+        minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
+
+        if chewie_schema:
+            # read config file to get chewBBACA parameters
+            config_file = os.path.join(schema_dir, ".schema_config")
+            with open(config_file, "rb") as cf:
+                chewie_schema_configs = pickle.load(cf)
+
+            minimum_length = chewie_schema_configs["minimum_locus_length"][0]
+            minimum_length_to_translate = minimum_length - (
+                minimum_length * chewie_schema_configs["size_threshold"][0]
+            )
+
+    minimum_length_to_translate = minimum_length - (
+        minimum_length * size_threshold
+    )  # set the minimum length value for translation
 
     if not os.listdir(out_path):
         # Calculate the summary statistics and other information about each locus.
@@ -480,7 +523,7 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_main, len(schema_files))
+                completed = mo.progress_bar(rawr_main, len(schema_files))
 
         rawr_main.wait()
 
@@ -501,7 +544,7 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_ind, len(schema_files))
+                completed = mo.progress_bar(rawr_ind, len(schema_files))
 
         rawr_ind.wait()
 
@@ -608,6 +651,7 @@ def create_pre_computed_data(
             zip(
                 schema_files,
                 itertools.repeat(minimum_length),
+                itertools.repeat(minimum_length_to_translate),
                 itertools.repeat(translation_table),
             ),
             chunksize=1,
@@ -617,12 +661,12 @@ def create_pre_computed_data(
         if show_progress is True:
             completed = False
             while completed is False:
-                completed = aux.progress_bar(rawr_cds, len(schema_files))
+                completed = mo.progress_bar(rawr_cds, len(schema_files))
 
         rawr_cds.wait()
 
         # flatten the CDS data output list
-        flat_multi_out = aux.flatten_list(cds_multi)
+        flat_multi_out = im.flatten_list(cds_multi)
 
         # sort data for the CDS table
         data_ind = sorted(
@@ -682,6 +726,67 @@ def create_pre_computed_data(
             for s in hist_data_sort
         ]
         hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in hist_data_sort]
+
+        # check if the user provided annotations
+        if annotations is None:
+            uniprot_finder_missing_keys = [
+                "genome",
+                "contig",
+                "start",
+                "stop",
+                "coding_strand",
+                "name",
+                "url",
+            ]
+            for d in data_ind:
+                d.update(dict.fromkeys(uniprot_finder_missing_keys, "Not provided"))
+
+        else:
+            with open(annotations, "r") as a:
+                annotations_reader = csv.reader(a, delimiter="\t")
+                # skip header
+                next(annotations_reader, None)
+                annotations_data = {
+                    rows[0]: [
+                        rows[1],
+                        rows[2],
+                        rows[3],
+                        rows[4],
+                        rows[5],
+                        rows[6],
+                        rows[7],
+                        rows[8],
+                    ]
+                    for rows in annotations_reader
+                }
+
+            for d in data_ind:
+                try:
+                    d["Gene"] in annotations_data
+                    d.update(
+                        {
+                            "genome": annotations_data[d["Gene"]][0],
+                            "contig": annotations_data[d["Gene"]][1],
+                            "start": annotations_data[d["Gene"]][2],
+                            "stop": annotations_data[d["Gene"]][3],
+                            "coding_strand": "sense"
+                            if annotations_data[d["Gene"]][5] == "1"
+                            else "antisense",
+                            "name": annotations_data[d["Gene"]][6],
+                            "url": annotations_data[d["Gene"]][7],
+                        }
+                    )
+                except KeyError:
+                    uniprot_finder_missing_keys = [
+                        "genome",
+                        "contig",
+                        "start",
+                        "stop",
+                        "coding_strand",
+                        "name",
+                        "url",
+                    ]
+                    d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
 
         # check if it is a chewBBACA schema
         if chewie_schema:
@@ -846,7 +951,9 @@ def create_protein_files(
     output_path,
     cpu_to_use,
     minimum_length,
+    size_threshold,
     translation_table,
+    chewie_schema=False,
     show_progress=False,
 ):
     """Generates FASTA files with the protein
@@ -866,6 +973,8 @@ def create_protein_files(
         minimum sequence length accepted in nt.
     translation_table: int
         the translation table to be used.
+    chewie_schema: bool
+        identifies the schema as a chewBBACA created schema.
     show_progress: bool
         shows a progress bar for multiprocessing.
 
@@ -891,6 +1000,28 @@ def create_protein_files(
         if ".fasta" in file
     ]
 
+    # Check minimum length value
+    if minimum_length is None:
+
+        minimum_length = 0
+        minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
+
+        if chewie_schema:
+            # read config file to get chewBBACA parameters
+            config_file = os.path.join(schema_dir, ".schema_config")
+            with open(config_file, "rb") as cf:
+                chewie_schema_configs = pickle.load(cf)
+
+            minimum_length = chewie_schema_configs["minimum_locus_length"][0]
+            minimum_length_to_translate = minimum_length - (
+                minimum_length * chewie_schema_configs["size_threshold"][0]
+            )
+
+    # set the minimum length value for translation
+    minimum_length_to_translate = minimum_length - (
+        minimum_length * size_threshold
+    )
+
     print("\nTranslating....\n")
 
     pool_prot = multiprocessing.Pool(processes=cpu_to_use)
@@ -900,7 +1031,7 @@ def create_protein_files(
         zip(
             schema_files,
             itertools.repeat(output_path),
-            itertools.repeat(minimum_length),
+            itertools.repeat(minimum_length_to_translate),
             itertools.repeat(translation_table),
         ),
         chunksize=1,
@@ -909,7 +1040,7 @@ def create_protein_files(
     if show_progress is True:
         completed = False
         while completed is False:
-            completed = aux.progress_bar(rawr_prot, len(schema_files))
+            completed = mo.progress_bar(rawr_prot, len(schema_files))
 
     rawr_prot.wait()
 
@@ -952,7 +1083,7 @@ def generate_protein_files(fasta, output_path, minimum_length, translation_table
     exceptions = []
 
     for allele in SeqIO.parse(fasta, "fasta"):
-        prot = aux.translate_dna(str(allele.seq), translation_table, minimum_length)
+        prot = sm.translate_dna(str(allele.seq), translation_table, minimum_length)
 
         if isinstance(prot, list):
             tets = make_protein_record(prot[0][0], allele.id.split("_")[-1])
@@ -1041,13 +1172,18 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     if show_progress is True:
         completed = False
         while completed is False:
-            completed = aux.progress_bar(rawr, len(protein_files))
+            completed = mo.progress_bar(rawr, len(protein_files))
 
     rawr.wait()
 
 
 def write_individual_html(
-    input_files, pre_computed_data_path, protein_file_path, output_path
+    input_files,
+    pre_computed_data_path,
+    protein_file_path,
+    output_path,
+    minimum_length,
+    chewie_schema=False,
 ):
     """Writes HTML files for each locus.
 
@@ -1065,6 +1201,10 @@ def write_individual_html(
     output_path : str
         the directory where the output
         files will be saved.
+    minimum_length: int
+        minimum sequence length accepted in nt.
+    chewie_schema: bool
+        identifies the schema as a chewBBACA created schema.
 
     Returns
     -------
@@ -1150,34 +1290,129 @@ def write_individual_html(
         else:
             phylo_data_json = "undefined"
 
+        if minimum_length is None:
+
+            minimum_length = 0
+            if chewie_schema:
+                # read config file to get chewBBACA parameters
+                config_file = os.path.join(input_files, ".schema_config")
+                with open(config_file, "rb") as cf:
+                    chewie_schema_configs = pickle.load(cf)
+
+                minimum_length = chewie_schema_configs["minimum_locus_length"][0]
+
         html_template_individual = """
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Schema Evaluator - Individual Analysis</title>
-            </head>
-            <body style="background-color: #f6f6f6">
-                <noscript> You need to enable JavaScript to run this app. </noscript>
-                <div id="root"></div>
-                <script> const _preComputedDataInd = {0} </script>
-                <script> const _exceptions = {1} </script>
-                <script> const _cdsDf = {2} </script>
-                <script> const _msaData = {3} </script>
-                <script> const _phyloData = {4} </script>
-                <script src="./main_ind.js"></script>
-            </body>
-        </html>
-        """.format(
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>Schema Evaluator - Individual Analysis</title>
+                </head>
+                <body style="background-color: #f6f6f6">
+                    <noscript> You need to enable JavaScript to run this app. </noscript>
+                    <div id="root"></div>
+                    <script> const _preComputedDataInd = {0} </script>
+                    <script> const _exceptions = {1} </script>
+                    <script> const _cdsDf = {2} </script>
+                    <script> const _msaData = {3} </script>
+                    <script> const _phyloData = {4} </script>
+                    <script> const _minLen = {5} </script>
+                    <script src="./main_ind.js"></script>
+                </body>
+            </html>
+            """.format(
             json.dumps(pre_computed_data_individual_sf, sort_keys=True),
             json.dumps(exc_data, sort_keys=True),
             json.dumps(cds_ind_data, sort_keys=True),
             json.dumps(msa_data, sort_keys=True),
             json.dumps(phylo_data_json, sort_keys=True),
+            json.dumps(int(minimum_length), sort_keys=True),
         )
 
         html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))
 
         with open(html_file_path, "w") as html_fh:
             html_fh.write(html_template_individual)
+
+        # if chewie_schema:
+        #     # read config file to get chewBBACA parameters
+        #     config_file = os.path.join(input_files, ".schema_config")
+        #     with open(config_file, "rb") as cf:
+        #         chewie_schema_configs = pickle.load(cf)
+
+        #     minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
+
+        #     html_template_individual = """
+        #     <!DOCTYPE html>
+        #     <html lang="en">
+        #         <head>
+        #             <meta charset="UTF-8" />
+        #             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        #             <title>Schema Evaluator - Individual Analysis</title>
+        #         </head>
+        #         <body style="background-color: #f6f6f6">
+        #             <noscript> You need to enable JavaScript to run this app. </noscript>
+        #             <div id="root"></div>
+        #             <script> const _preComputedDataInd = {0} </script>
+        #             <script> const _exceptions = {1} </script>
+        #             <script> const _cdsDf = {2} </script>
+        #             <script> const _msaData = {3} </script>
+        #             <script> const _phyloData = {4} </script>
+        #             <script> const _minLen = {5} </script>
+        #             <script src="./main_ind.js"></script>
+        #         </body>
+        #     </html>
+        #     """.format(
+        #         json.dumps(pre_computed_data_individual_sf, sort_keys=True),
+        #         json.dumps(exc_data, sort_keys=True),
+        #         json.dumps(cds_ind_data, sort_keys=True),
+        #         json.dumps(msa_data, sort_keys=True),
+        #         json.dumps(phylo_data_json, sort_keys=True),
+        #         json.dumps(int(minimum_length_config), sort_keys=True),
+        #     )
+
+        #     html_file_path = os.path.join(
+        #         out_path, "{0}_individual_report.html".format(sf)
+        #     )
+
+        #     with open(html_file_path, "w") as html_fh:
+        #         html_fh.write(html_template_individual)
+
+        # else:
+
+        # html_template_individual = """
+        # <!DOCTYPE html>
+        # <html lang="en">
+        #     <head>
+        #         <meta charset="UTF-8" />
+        #         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        #         <title>Schema Evaluator - Individual Analysis</title>
+        #     </head>
+        #     <body style="background-color: #f6f6f6">
+        #         <noscript> You need to enable JavaScript to run this app. </noscript>
+        #         <div id="root"></div>
+        #         <script> const _preComputedDataInd = {0} </script>
+        #         <script> const _exceptions = {1} </script>
+        #         <script> const _cdsDf = {2} </script>
+        #         <script> const _msaData = {3} </script>
+        #         <script> const _phyloData = {4} </script>
+        #         <script> const _minLen = {5} </script>
+        #         <script src="./main_ind.js"></script>
+        #     </body>
+        # </html>
+        # """.format(
+        #     json.dumps(pre_computed_data_individual_sf, sort_keys=True),
+        #     json.dumps(exc_data, sort_keys=True),
+        #     json.dumps(cds_ind_data, sort_keys=True),
+        #     json.dumps(msa_data, sort_keys=True),
+        #     json.dumps(phylo_data_json, sort_keys=True),
+        #     json.dumps(int(minimum_length), sort_keys=True),
+        # )
+
+        # html_file_path = os.path.join(
+        #     out_path, "{0}_individual_report.html".format(sf)
+        # )
+
+        # with open(html_file_path, "w") as html_fh:
+        #     html_fh.write(html_template_individual)

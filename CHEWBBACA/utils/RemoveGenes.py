@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
+
 import csv
 import argparse
 
 
-def main(mainListFile, toRemoveListFile, outputfileName, inverse):
+def main(input_file, genes_list, output_file, inverse):
 
     if inverse:
         FilesToRemove = ['File', 'FILE', 'file']
     else:
         FilesToRemove = []
 
-    with open(toRemoveListFile) as f:
+    with open(genes_list) as f:
         i = 0
         for File in f:
             File = File.rstrip('\n')
@@ -22,7 +23,7 @@ def main(mainListFile, toRemoveListFile, outputfileName, inverse):
 
     print('\nProvided list has {0} genes.'.format(i-1))
 
-    with open(mainListFile, 'r') as tsvin, open(outputfileName + ".tsv", "w") as csvout:
+    with open(input_file, 'r') as tsvin, open(output_file + ".tsv", "w") as csvout:
         tsvin = csv.reader(tsvin, delimiter='\t')
 
         listindextoremove = []

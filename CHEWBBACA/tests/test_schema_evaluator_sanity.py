@@ -9,30 +9,54 @@ import pytest
 import shutil
 import filecmp
 from unittest.mock import patch
-#from contextlib import nullcontext as does_not_raise
+
+# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
 
 
 @pytest.mark.parametrize(
-        'test_args, expected',
-        [(['chewBBACA.py', 'SchemaEvaluator',
-           '-i', 'data/schemaEvaluatorData/empty_files',
-           '-o', 'schema_report'],
-          'At least one file is empty'),
-         (['chewBBACA.py', 'SchemaEvaluator',
-           '-i', 'data/schemaEvaluatorData/zero_bytes_pair',
-           '-o', 'schema_report'],
-          'At least one file is empty'),
-         (['chewBBACA.py', 'SchemaEvaluator',
-           '-i', 'this/path/aint/real',
-           '-o', 'schema_report'],
-          'Input argument is not a valid directory')
-         ])
+    "test_args, expected",
+    [
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-i",
+                "data/schemaEvaluatorData/empty_files",
+                "-o",
+                "schema_report",
+            ],
+            "At least one file is empty",
+        ),
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-i",
+                "data/schemaEvaluatorData/zero_bytes_pair",
+                "-o",
+                "schema_report",
+            ],
+            "At least one file is empty",
+        ),
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-i",
+                "this/path/aint/real",
+                "-o",
+                "schema_report",
+            ],
+            "Input argument is not a valid directory",
+        ),
+    ],
+)
 def test_schemaEvaluator_invalid_input(test_args, expected):
 
     with pytest.raises(SystemExit) as e:
-        with patch.object(sys, 'argv', test_args):
+        with patch.object(sys, "argv", test_args):
             chewBBACA.main()
 
     try:
@@ -45,36 +69,57 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
 
 
 @pytest.mark.parametrize(
-    'test_args, expected',
-    [(['chewBBACA.py', 'SchemaEvaluator',
-       '-i', 'data/schemaEvaluatorData/test_schema',
-       '-o', './schemaEvaluatorData_results',
-       '--no-cleanup' ],
-      'data/schemaEvaluatorData/expected_results')
-     ])
+    "test_args, expected",
+    [
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-i",
+                "data/schemaEvaluatorData/test_schema",
+                "-o",
+                "./schemaEvaluatorData_results",
+                "--ml",
+                "201",
+                "--no-cleanup",
+            ],
+            "data/schemaEvaluatorData/expected_results",
+        )
+    ],
+)
 def test_schemaEvaluator_valid(test_args, expected):
-    with patch.object(sys, 'argv', test_args):
+    with patch.object(sys, "argv", test_args):
         capture = py.io.StdCapture()
         chewBBACA.main()
         stdout, stderr = capture.reset()
 
-    # check if the report has been created 
-    assert 'The report has been created.' in stdout
+    # check if the report has been created
+    assert "The report has been created." in stdout
 
     # check output HTML files
-    output_html_files = [os.path.join(test_args[5], "html_files", file)
-                         for file in os.listdir(os.path.join(test_args[5], "html_files"))
-                         ]
+    output_html_files = [
+        os.path.join(test_args[5], "html_files", file)
+        for file in os.listdir(os.path.join(test_args[5], "html_files"))
+    ]
     output_html_files.sort()
 
-    expected_html_files = [os.path.join(expected, "html_files", file)
-                           for file in os.listdir(os.path.join(expected, "html_files"))
-                           ]
+    expected_html_files = [
+        os.path.join(expected, "html_files", file)
+        for file in os.listdir(os.path.join(expected, "html_files"))
+    ]
     expected_html_files.sort()
 
-    output_prot_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file)
-                        for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"))
-                        if "exceptions" != file]
+    output_prot_files = [
+        os.path.join(
+            test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file
+        )
+        for file in os.listdir(
+            os.path.join(
+                test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"
+            )
+        )
+        if "exceptions" != file
+    ]
     output_prot_files.sort()
 
     html_files = output_html_files + expected_html_files
@@ -91,14 +136,22 @@ def test_schemaEvaluator_valid(test_args, expected):
     assert all(file_cmps_html) is True
 
     # check output MAIN files
-    output_main_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", file)
-                         for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data"))
-                         if "prot_files" != file]
+    output_main_files = [
+        os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", file)
+        for file in os.listdir(
+            os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data")
+        )
+        if "prot_files" != file
+    ]
     output_main_files.sort()
 
-    expected_main_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
-                           for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data"))
-                           if "prot_files" != file]
+    expected_main_files = [
+        os.path.join(expected, "SchemaEvaluator_pre_computed_data", file)
+        for file in os.listdir(
+            os.path.join(expected, "SchemaEvaluator_pre_computed_data")
+        )
+        if "prot_files" != file
+    ]
     expected_main_files.sort()
 
     main_files = output_main_files + expected_main_files
@@ -115,14 +168,26 @@ def test_schemaEvaluator_valid(test_args, expected):
     assert all(file_cmps_main) is True
 
     # check output PROTEIN files
-    output_prot_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file)
-                         for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"))
-                         if "exceptions" != file]
+    output_prot_files = [
+        os.path.join(
+            test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", file
+        )
+        for file in os.listdir(
+            os.path.join(
+                test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files"
+            )
+        )
+        if "exceptions" != file
+    ]
     output_prot_files.sort()
 
-    expected_prot_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files", file)
-                           for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files"))
-                           if "exceptions" != file]
+    expected_prot_files = [
+        os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files", file)
+        for file in os.listdir(
+            os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files")
+        )
+        if "exceptions" != file
+    ]
     expected_prot_files.sort()
 
     prot_files = output_prot_files + expected_prot_files
@@ -139,14 +204,42 @@ def test_schemaEvaluator_valid(test_args, expected):
     assert all(file_cmps_prot) is True
 
     # check output EXCEPTION files
-    output_exc_files = [os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions", file)
-                         for file in os.listdir(os.path.join(test_args[5], "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions"))
-                        ]
+    output_exc_files = [
+        os.path.join(
+            test_args[5],
+            "SchemaEvaluator_pre_computed_data",
+            "prot_files",
+            "exceptions",
+            file,
+        )
+        for file in os.listdir(
+            os.path.join(
+                test_args[5],
+                "SchemaEvaluator_pre_computed_data",
+                "prot_files",
+                "exceptions",
+            )
+        )
+    ]
     output_exc_files.sort()
 
-    expected_exc_files = [os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions", file)
-                           for file in os.listdir(os.path.join(expected, "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions"))
-                          ]
+    expected_exc_files = [
+        os.path.join(
+            expected,
+            "SchemaEvaluator_pre_computed_data",
+            "prot_files",
+            "exceptions",
+            file,
+        )
+        for file in os.listdir(
+            os.path.join(
+                expected,
+                "SchemaEvaluator_pre_computed_data",
+                "prot_files",
+                "exceptions",
+            )
+        )
+    ]
     expected_exc_files.sort()
 
     exc_files = output_exc_files + expected_exc_files

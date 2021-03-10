@@ -55,11 +55,9 @@ import sys
 import json
 import time
 import shutil
-import pickle
 import hashlib
 import argparse
 import requests
-import datetime as dt
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper
 from urllib3.exceptions import InsecureRequestWarning
@@ -67,24 +65,26 @@ from urllib3.exceptions import InsecureRequestWarning
 from Bio import SeqIO
 
 try:
-    from utils import constants as cnst
-    from utils import sqlite_functions as sq
-    from utils import auxiliary_functions as aux
-    from utils import parameters_validation as pv
     from PrepExternalSchema import PrepExternalSchema
+    from utils import (constants as ct,
+                       file_operations as fo,
+                       chewiens_requests as cr,
+                       profiles_sqlitedb as ps,
+                       parameters_validation as pv)
 except:
-    from CHEWBBACA.utils import constants as cnst
-    from CHEWBBACA.utils import sqlite_functions as sq
-    from CHEWBBACA.utils import auxiliary_functions as aux
-    from CHEWBBACA.utils import parameters_validation as pv
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
+                                 chewiens_requests as cr,
+                                 profiles_sqlitedb as ps,
+                                 parameters_validation as pv)
 
 
 # Suppress only the single warning from urllib3 needed.
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 
-uniprot_sparql = SPARQLWrapper(cnst.UNIPROT_SPARQL)
+uniprot_sparql = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def create_lengths_files(upload, temp_dir):
@@ -122,7 +122,7 @@ def create_lengths_files(upload, temp_dir):
         lengths = {locus: {h: info[2] for h, info in records.items()}}
 
         lengths_file = os.path.join(temp_dir, '{0}_lengths'.format(locus_id))
-        aux.pickle_dumper(lengths_file, lengths)
+        fo.pickle_dumper(lengths, lengths_file)
         length_files.append(lengths_file)
 
     return length_files
@@ -190,7 +190,7 @@ def create_alleles_files(upload, base_url, user_id, species_name,
                                                          locus_id))
         alleles_files.append(alleles_file)
 
-        aux.pickle_dumper(alleles_file, post_inputs)
+        fo.pickle_dumper(post_inputs, alleles_file)
 
     return [alleles_files, loci_ids, loci_names]
 
@@ -250,32 +250,33 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
 
         # get length of alleles from current locus
         current_len = length_files[i]
-        data = aux.pickle_loader(current_len)
+        data = fo.pickle_loader(current_len)
         data = {locus_id: data[next(iter(data))]}
-        data = json.dumps({'content': data})
+        data = {'content': data}
 
         # send data to the NS
-        send_url = aux.make_url(base_url, 'species', species_id,
-                                'schemas', schema_id, 'loci',
-                                locus_id, 'lengths')
+        send_url = cr.make_url(base_url, 'species', species_id,
+                               'schemas', schema_id, 'loci',
+                               locus_id, 'lengths')
 
-        lengths_res = aux.upload_data(data, send_url, headers_post, False)
+        lengths_res = cr.simple_post_request(send_url, headers_post,
+                                             data=json.dumps(data))[1]
         length_status = lengths_res.status_code
 
         # get path to ZIP archive with data to insert alleles
         current_zip = a[0]
 
         # send data to insert alleles in the NS
-        zip_url = aux.make_url(base_url, 'species', species_id,
-                               'schemas', schema_id, 'loci',
-                               locus_id, 'update')
+        zip_url = cr.make_url(base_url, 'species', species_id,
+                              'schemas', schema_id, 'loci',
+                              locus_id, 'update')
 
         if alleles_data[i] == alleles_data[-1]:
             headers_post_bytes['complete'] = 'True'
 
-        zip_res = aux.upload_file(current_zip, os.path.basename(current_zip),
-                                  zip_url, headers_post_bytes,
-                                  False)
+        zip_res = cr.upload_file(current_zip, os.path.basename(current_zip),
+                                 zip_url, headers_post_bytes,
+                                 False)
 
         # determine if upload was successful
         zip_status = zip_res.status_code
@@ -334,7 +335,7 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
     if locus in reassigned:
         inv_reassigned = {v: k for k, v in reassigned[locus].items()}
 
-    locus_sequences = aux.pickle_loader(pickled_file)
+    locus_sequences = fo.pickle_loader(pickled_file)
 
     natsorted_locus = sorted(locus_sequences)
 
@@ -423,13 +424,12 @@ def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
     """
 
     # request the new alleles starting on the date given
-    url = aux.make_url(schema_uri, 'loci')
+    url = cr.make_url(schema_uri, 'loci')
     payload = {'local_date': server_time, 'ns_date': ns_date}
     # get the new alleles
-    response = requests.get(url, headers=headers_get,
-                            timeout=30, params=payload)
-
+    response = cr.simple_get_request(url, headers_get, parameters=payload)[1]
     response_content = response.json()
+
     # get info about sequences that were added since last date
     new_alleles = response_content['newAlleles']
 
@@ -568,7 +568,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
             updated_records[int_seqid] = (seq[0], seq[1])
 
         temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-        aux.pickle_dumper(temp_file, updated_records)
+        fo.pickle_dumper(updated_records, temp_file)
 
         pickled_loci[locus] = temp_file
 
@@ -633,7 +633,7 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
                 updated_records[int_seqid] = (seq[0], seq[1])
 
             temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-            aux.pickle_dumper(temp_file, updated_records)
+            fo.pickle_dumper(updated_records, temp_file)
 
             pickled_loci[gene] = temp_file
 
@@ -803,84 +803,90 @@ def parse_arguments():
                              'NS. (only users with permissions level of '
                              'Contributor can submit new alleles).')
 
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
 
-    return [args.schema_directory, args.cpu_cores,
-            args.nomenclature_server, args.submit]
+    return args
 
 
-def main(schema_dir, core_num, base_url, submit):
+def main(schema_directory, cpu_cores, nomenclature_server,
+         submit, blast_path, update_profiles):
 
     # get ns configs
-    local_date, schema_uri = aux.read_configs(schema_dir, '.ns_config')
+    local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
     # get schema and species identifiers
     schema_id = schema_uri.split('/')[-1]
     species_id = schema_uri.split('/')[-3]
-    if base_url is None:
-        base_url = schema_uri.split('species/')[0]
+    if nomenclature_server is None:
+        nomenclature_server = schema_uri.split('species/')[0]
 
-    if submit is True and 'tutorial' not in base_url:
+    if submit is True and 'tutorial' not in nomenclature_server:
         print('\nOnly authorized registered users may submit new alleles.')
-        token = aux.capture_login_credentials(base_url)
+        token = cr.capture_login_credentials(nomenclature_server)
     else:
         token = ''
 
     # GET request headers
-    headers_get = cnst.HEADERS_GET_JSON
+    headers_get = ct.HEADERS_GET_JSON
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
-    if submit is True and 'tutorial' not in base_url:
-        user_id, user_role, user_auth = aux.user_info(base_url, headers_get)
+    if submit is True and 'tutorial' not in nomenclature_server:
+        user_id, user_role, user_auth = cr.user_info(nomenclature_server, headers_get)
         # verify if user has authorization to submit
-        url = aux.make_url(base_url, 'auth', 'check')
-        response = requests.get(url, headers=headers_get)
-        if response.status_code is 200:
+        url = cr.make_url(nomenclature_server, 'auth', 'check')
+        response = cr.simple_get_request(url, headers_get)[1]
+        if response.status_code == 200:
             user_auth = True
         else:
-            sys.exit('Current user has no authorization to submit novel alleles.\n'
-                     'You can request authorization to submit novel alleles by sending '
-                     'an e-mail to: imm-bioinfo@medicina.ulisboa.pt')
+            sys.exit('Current user has no authorization to submit novel '
+                     'alleles.\nYou can request authorization to submit '
+                     'novel alleles by sending an e-mail to: '
+                     'imm-bioinfo@medicina.ulisboa.pt')
         print('User id: {0}'.format(user_id))
         print('User role: {0}\n'.format(user_role))
     else:
         user_id = ''
         user_role = ''
-        user_auth = True if 'tutorial' in base_url else False
-
-    start_date = dt.datetime.now()
-    start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
-    print('Started at: {0}\n'.format(start_date_str))
+        user_auth = True if 'tutorial' in nomenclature_server else False
 
     # POST requests headers
-    headers_post = cnst.HEADERS_POST_JSON
+    headers_post = ct.HEADERS_POST_JSON
     headers_post['Authorization'] = token
     headers_post['user_id'] = user_id
     # POST headers to send binary data
-    headers_post_bytes = cnst.HEADERS_POST
+    headers_post_bytes = ct.HEADERS_POST
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
 
-    schema_params = aux.read_configs(schema_dir, '.schema_config')
+    schema_params = pv.read_configs(schema_directory, '.schema_config')
 
     # verify that local configs have a single value per parameter
-    if all([len(schema_params[k]) == 1 for k in schema_params if k != 'chewBBACA_version']) is not True:
+    if all([len(schema_params[k]) == 1
+            for k in schema_params
+            if k != 'chewBBACA_version']) is not True:
         sys.exit('Cannot sync schema with multiple values per parameter.')
 
     # check if schema exists in the NS
-    schema_name, ns_params = aux.get_species_schemas(schema_id,
-                                                     species_id,
-                                                     base_url,
-                                                     headers_get)[2:]
+    schema_name, ns_params = cr.get_species_schemas(schema_id,
+                                                    species_id,
+                                                    nomenclature_server,
+                                                    headers_get)[2:]
 
     # verify that local configs match NS configs
-    if all([str(schema_params[k][0]) == ns_params[k]['value'] for k in schema_params if k != 'chewBBACA_version']) is not True:
+    # add window size
+    if all([str(schema_params[k][0]) == ns_params[k]['value']
+            for k in schema_params
+            if k not in ['chewBBACA_version', 'window_size']]) is not True:
         sys.exit('Local configs do not match Chewie-NS configs.')
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_id, species_name = aux.species_ids(species_id, base_url,
-                                               headers_get)
+    species_id, species_name = cr.species_ids(species_id, nomenclature_server,
+                                              headers_get)
 
     print('Schema id: {0}'.format(schema_id))
     print('Schema name: {0}'.format(schema_name))
@@ -901,7 +907,7 @@ def main(schema_dir, core_num, base_url, submit):
                  'process. Local schema is up-to-date.')
 
     # Create a temporary dir for the new alleles
-    temp_dir = os.path.join(os.path.dirname(schema_dir), 'temp')
+    temp_dir = os.path.join(os.path.dirname(schema_directory), 'temp')
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
@@ -915,15 +921,14 @@ def main(schema_dir, core_num, base_url, submit):
           ''.format(count, len(loci_alleles)))
 
     # Get schema files from genes list file
-    genes_list = os.path.join(schema_dir, '.genes_list')
-    with open(genes_list, 'rb') as gl:
-        genes = pickle.load(gl)
+    genes_list = os.path.join(schema_directory, '.genes_list')
+    genes = fo.pickle_loader(genes_list)
 
     # update loci structure
     not_in_ns, pickled_loci, \
         updated, not_update, \
         rearranged = update_loci_files(loci_alleles, genes,
-                                       schema_dir, temp_dir)
+                                       schema_directory, temp_dir)
 
     total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
     print('Local schema has {0} novel alleles for {1} '
@@ -940,10 +945,11 @@ def main(schema_dir, core_num, base_url, submit):
     if submit is True and user_auth is True and len(not_in_ns) > 0:
 
         # attempt to lock schema
-        lock_res = aux.simple_post_request(base_url, headers_post,
-                                           ['species', species_id,
-                                            'schemas', schema_id,
-                                            'lock'], {'action': 'lock'})
+        lock_res = cr.simple_post_request(nomenclature_server, headers_post,
+                                          ['species', species_id,
+                                           'schemas', schema_id,
+                                           'lock'],
+                                          data=json.dumps({'action': 'lock'}))[1]
         # if schema is already locked user cannot send alleles
         lock_status = lock_res.status_code
         if lock_status == 403:
@@ -955,10 +961,9 @@ def main(schema_dir, core_num, base_url, submit):
         else:
 
             # after locking, check if date matches ns_date
-            date_res = aux.simple_get_request(base_url, headers_get,
-                                              ['species', species_id,
-                                               'schemas', schema_id,
-                                               'modified'])
+            date_res = cr.simple_get_request(nomenclature_server, headers_get,
+                                             ['species', species_id, 'schemas',
+                                              schema_id, 'modified'])[1]
 
             date_value = (date_res.json()).split(' ')[-1]
 
@@ -972,18 +977,16 @@ def main(schema_dir, core_num, base_url, submit):
                       'from the Chewie-NS.')
 
                 # unlock schema
-                lock_res = aux.simple_post_request(base_url, headers_post,
-                                                   ['species', species_id,
-                                                    'schemas', schema_id,
-                                                    'lock'],
-                                                   {'action': 'unlock'})
+                lock_res = cr.simple_post_request(nomenclature_server, headers_post,
+                                                  ['species', species_id, 'schemas',
+                                                   schema_id, 'lock'],
+                                                  data=json.dumps({'action': 'unlock'}))[1]
             else:
                 print('Collecting data and creating files to submit local alleles...')
                 # get list of loci for schema in the NS
-                loci_res = aux.simple_get_request(base_url, headers_get,
-                                                  ['species', species_id,
-                                                   'schemas', schema_id,
-                                                   'loci'])
+                loci_res = cr.simple_get_request(nomenclature_server, headers_get,
+                                                 ['species', species_id, 'schemas',
+                                                  schema_id, 'loci'])[1]
                 # get loci files names from response
                 for l in loci_res.json()['Loci']:
                     locus_name = l['name']['value'] + '.fasta'
@@ -997,20 +1000,20 @@ def main(schema_dir, core_num, base_url, submit):
                 # create new alleles data
                 alleles_files, \
                     loci_ids, \
-                    loci_names = create_alleles_files(not_in_ns, base_url,
+                    loci_names = create_alleles_files(not_in_ns, nomenclature_server,
                                                       user_id, species_name,
                                                       species_id, schema_id,
                                                       temp_dir)
 
                 # compress files with new alleles
                 zipped_files = ['{0}.zip'.format(file) for file in alleles_files]
-                list(map(aux.file_zipper, alleles_files, zipped_files))
+                list(map(fo.file_zipper, alleles_files, zipped_files))
                 alleles_data = list(zip(zipped_files, loci_ids, loci_names))
 
                 print('Sending and inserting new alleles...')
                 failed, \
                     start_count = upload_alleles_data(alleles_data, length_files,
-                                                      base_url, headers_post,
+                                                      nomenclature_server, headers_post,
                                                       headers_post_bytes, species_id,
                                                       schema_id)
 
@@ -1022,10 +1025,11 @@ def main(schema_dir, core_num, base_url, submit):
                 status = 'Updating'
                 start_count = int(start_count.json()['nr_alleles'])
                 while status != 'Complete' and (current_time < time_limit):
-                    insertion_status = aux.simple_get_request(
-                        base_url, headers_get, ['species', species_id,
-                                                'schemas', schema_id,
-                                                'loci', 'locus', 'update'])
+                    insertion_status = cr.simple_get_request(nomenclature_server,
+                                                             headers_get,
+                                                             ['species', species_id,
+                                                              'schemas', schema_id,
+                                                              'loci', 'locus', 'update'])[1]
                     insertion_status = insertion_status.json()
                     if 'message' in insertion_status:
                         status = 'Complete'
@@ -1052,9 +1056,9 @@ def main(schema_dir, core_num, base_url, submit):
                           'the new identifiers for the submitted alleles.')
 
                 # remove files in temp folder
-                aux.remove_files(length_files)
-                aux.remove_files(alleles_files)
-                aux.remove_files(zipped_files)
+                fo.remove_files(length_files)
+                fo.remove_files(alleles_files)
+                fo.remove_files(zipped_files)
 
     # change pickled files to FASTA files
     for locus, pick in pickled_loci.items():
@@ -1062,9 +1066,9 @@ def main(schema_dir, core_num, base_url, submit):
                                      rearranged)
 
     # change identifiers in SQLite DB
-    if len(rearranged) > 0:
+    if len(rearranged) > 0 and update_profiles is True:
         print('\nUpdating local allele identifiers...')
-        altered = sq.update_profiles(schema_dir, rearranged)
+        altered = ps.update_profiles(schema_directory, rearranged)
         if altered is not None:
             print('Updated {0} profiles.\n'.format(altered))
         else:
@@ -1072,32 +1076,30 @@ def main(schema_dir, core_num, base_url, submit):
 
     # Re-determine the representative sequences
     if attributed > 0 or count > 0:
-        PrepExternalSchema.main(temp_dir, schema_dir,
-                                core_num, float(schema_params['bsr'][0]),
+        PrepExternalSchema.main(temp_dir, schema_directory,
+                                cpu_cores, float(schema_params['bsr'][0]),
                                 int(schema_params['minimum_locus_length'][0]),
-                                11, '', None)
+                                11, '', None, blast_path)
 
         # delete invalid alleles and genes files
-        parent_dir = os.path.dirname(schema_dir)
+        parent_dir = os.path.dirname(schema_directory)
         files = [os.path.join(parent_dir, file)
                  for file in os.listdir(parent_dir)
                  if 'invalid' in file]
 
-        for f in files:
-            os.remove(f)
+        fo.remove_files(files)
 
         # get last modification date
-        last_modified = aux.simple_get_request(base_url, headers_get,
-                                               ['species', species_id,
-                                                'schemas', schema_id,
-                                                'modified'])
+        last_modified = cr.simple_get_request(nomenclature_server, headers_get,
+                                              ['species', species_id,
+                                               'schemas', schema_id,
+                                               'modified'])[1]
         last_modified = (last_modified.json()).split(' ')[-1]
         server_time = last_modified
 
         # update NS config file with latest server time
-        ns_configs = os.path.join(schema_dir, '.ns_config')
-        with open(ns_configs, 'wb') as nc:
-            pickle.dump([server_time, schema_uri], nc)
+        ns_configs = os.path.join(schema_directory, '.ns_config')
+        fo.pickle_dumper([server_time, schema_uri], ns_configs)
 
     print('Received {0} new alleles for {1} loci and sent '
           '{2} for {3} loci. '.format(count, len(pickled_loci),
@@ -1108,22 +1110,15 @@ def main(schema_dir, core_num, base_url, submit):
 
     # delete pre-computed BSR values from 'short' directory
     # representatives might have changed and BSR values are outdated
-    short_dir = os.path.join(schema_dir, 'short')
-    bsr_files = [f for f in os.listdir(short_dir) if f.endswith('_bsr.txt')]
-    for f in bsr_files:
-        os.remove(os.path.join(short_dir, f))
-
-    end_date = dt.datetime.now()
-    end_date_str = dt.datetime.strftime(end_date, '%Y-%m-%dT%H:%M:%S')
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
+    short_dir = os.path.join(schema_directory, 'short')
+    bsr_files = [os.path.join(short_dir, f)
+                 for f in os.listdir(short_dir)
+                 if f.endswith('_bsr.txt')]
+    fo.remove_files(bsr_files)
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
-    main(args[0], args[1], args[2], args[3])
+
+    main(**vars(args))

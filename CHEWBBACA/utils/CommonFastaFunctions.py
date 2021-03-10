@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-from Bio.Blast import NCBIXML
+
 import os
+
+from Bio.Blast import NCBIXML
 
 
 def ensure_dir(f):
@@ -11,7 +13,7 @@ def ensure_dir(f):
 
 
 # overwrite has to be 1 or 0 (True or False)
-def Create_Blastdb(questionDB, overwrite, dbtypeProt):
+def Create_Blastdb(makeblastdb_path, questionDB, overwrite, dbtypeProt):
     base = os.path.basename(questionDB)
     dirname = os.path.dirname(questionDB)
     isProt = dbtypeProt
@@ -22,22 +24,20 @@ def Create_Blastdb(questionDB, overwrite, dbtypeProt):
     ensure_dir(dirname + "/blastdbs")
     name = dirname + "/blastdbs/" + basename + "_db"
 
+    cmd_template = '{0} -in {1} -out {2} -dbtype {3} -logfile {2}_blast.log'
+
     if not os.path.isfile(name + ".nin") and not os.path.isfile(name + ".nhr") and not os.path.isfile(name + ".nsq"):
 
         if not isProt:
-            os.system(
-                "makeblastdb -in " + questionDB + " -out " + name + " -dbtype nucl -logfile " + name + "_blast.log")
+            os.system(cmd_template.format(makeblastdb_path, questionDB, name, 'nucl'))
         else:
-            os.system(
-                "makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
+            os.system(cmd_template.format(makeblastdb_path, questionDB, name, 'prot'))
 
     elif overwrite:
         if not isProt:
-            os.system(
-                "makeblastdb -in " + questionDB + " -out " + name + " -dbtype nucl -logfile " + name + "_blast.log")
+            os.system(cmd_template.format(makeblastdb_path, questionDB, name, 'nucl'))
         else:
-            os.system(
-                "makeblastdb -in " + questionDB + " -out " + name + " -dbtype prot -logfile " + name + "_blast.log")
+            os.system(cmd_template.format(makeblastdb_path, questionDB, name, 'prot'))
 
     else:
         print("BLAST DB files found. Using existing DBs..")
@@ -45,7 +45,7 @@ def Create_Blastdb(questionDB, overwrite, dbtypeProt):
     return name
 
 
-def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
+def Create_Blastdb_no_fasta(makeblastdb_path, questionDB, overwrite, dbtypeProt, sequence):
 
     base = os.path.basename(questionDB)
     dirname = os.path.dirname(questionDB)
@@ -57,19 +57,20 @@ def Create_Blastdb_no_fasta(questionDB, overwrite, dbtypeProt, sequence):
     ensure_dir(dirname + "/blastdbs")
     name = dirname + "/blastdbs/" + basename + "_db"
 
+    cmd_template = 'echo "{0}" | {1} -in - -title titulo -out {2} -dbtype {3} -logfile {2}_blast.log'
+
     if not os.path.isfile(name + ".nin") and not os.path.isfile(name + ".nhr") and not os.path.isfile(name + ".nsq"):
 
         if not isProt:
-            os.system('echo "'+sequence+'" | makeblastdb -in - -title titulo -out ' + name + ' -dbtype nucl -logfile ' + name + '_blast.log')
+            os.system(cmd_template.format(sequence, makeblastdb_path, name, 'nucl'))
         else:
-            os.system('echo "'+sequence+'" | makeblastdb -in - -title titulo -out ' + name + ' -dbtype prot -logfile ' + name + '_blast.log')
-
+            os.system(cmd_template.format(sequence, makeblastdb_path, name, 'prot'))
 
     elif overwrite:
         if not isProt:
-            os.system('echo "'+sequence+'" | makeblastdb -in - -title titulo -out ' + name + ' -dbtype nucl -logfile ' + name + '_blast.log')
+            os.system(cmd_template.format(sequence, makeblastdb_path, name, 'nucl'))
         else:
-            os.system('echo "'+sequence+'" | makeblastdb -in - -title titulo -out ' + name + ' -dbtype prot -logfile ' + name + '_blast.log')
+            os.system(cmd_template.format(sequence, makeblastdb_path, name, 'prot'))
 
     else:
         print("BLAST DB files found. Using existing DBs..")
@@ -93,10 +94,5 @@ def runBlastParser(cline, bOutFile):
     os.system(str(cline))
     rec = open(bOutFile)
     blast_records = NCBIXML.parse(rec)
-
-    #	if os.path.isfile(locus_sbjct):
-    #		os.remove(locus_sbjct)
-
-    # os.remove(bOutFile)
 
     return blast_records

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-import argparse
+
 import csv
+import argparse
 from collections import defaultdict
 
-def main(profile1,profile2,outputFile):
+
+def main(profile1, profile2, output_file):
 
 	dictaux= defaultdict(list)
 
@@ -17,7 +19,6 @@ def main(profile1,profile2,outputFile):
 		for row in reader:
 			i=0
 			for elem in row:
-				#~ print (elem)
 				dictaux[headers[i]].append(elem)
 				i+=1
 			len1+=1
@@ -31,7 +32,6 @@ def main(profile1,profile2,outputFile):
 		for row in reader:
 			i=0
 			for elem in row:
-				#~ print (elem)
 				dictaux[headers[i]].append(elem)
 				i+=1
 			len2+=1
@@ -56,12 +56,12 @@ def main(profile1,profile2,outputFile):
 	for elem in lists2print:
 		newProfileStr += ('\t'.join(map(str, elem)))+"\n"
 
-	with open(outputFile, "w") as f:
+	with open(output_file, "w") as f:
 		f.write(newProfileStr)
-
 
 	print ("Done")
 
 
 if __name__ == "__main__":
+
 	main()

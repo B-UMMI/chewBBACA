@@ -100,6 +100,13 @@ conda install -c bioconda chewbbaca
 ```
 
 Install using pip:
+<<<<<<< HEAD
+
+```
+pip3 install chewbbaca
+```
+
+=======
 
 ```
 pip3 install chewbbaca
@@ -170,6 +177,7 @@ The name attributed to each fasta file in the schema is based on the genome of o
 The CreateSchema process creates a file, "proteinID_Genome.tsv", with the locations of the identified genes in each genome passed to create the schema.
 The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
 
+
 Basic usage:
 
 ```
@@ -198,7 +206,7 @@ A tsv file (new_protids.tsv) that is the result of adding two columns to the "pr
 Basic usage:
 
 ```
-chewBBACA.py AlleleCall -i ./genomes/ -g schema/ -o OutputFolderName --cpu 4 
+chewBBACA.py AlleleCall -i ./genomes/ -g schema/ -o OutputFolderName --cpu 4
 ```
 
 **Parameters** 

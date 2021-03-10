@@ -79,19 +79,6 @@ class SchemaEvaluator extends Component {
     anchor.click();
   };
 
-  clickCdsTableHandler = (cellData) => {
-    const locus_id = cellData;
-    console.log(locus_id);
-
-    const anchor = document.createElement("a");
-    anchor.href = `../html_files/${
-      locus_id.split(".")[0]
-    }_individual_report.html`;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.click();
-  };
-
   totalDataColumnsHandler = (columnData, alleleShorterColumn) => {
     if ("chewBBACA_version" in columnData[0]) {
       const totalDataColumns = [
@@ -646,6 +633,134 @@ class SchemaEvaluator extends Component {
               },
             };
           },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a
+              href={`../html_files/${
+                value.split(".")[0]
+              }_individual_report.html`}
+              target={"_blank"}
+              rel={"noopener noreferrer"}
+            >
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: "name",
+        label: "Uniprot Annotation",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "url",
+        label: "Uniprot URL",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a href={value} target={"_blank"} rel={"noopener noreferrer"}>
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: "genome",
+        label: "Origin Genome",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "contig",
+        label: "Origin Genome Contig",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "start",
+        label: "Original Genome Start Position",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "stop",
+        label: "Original Genome Stop Position",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "coding_strand",
+        label: "Coding Strand",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
         },
       },
       {
@@ -776,11 +891,6 @@ class SchemaEvaluator extends Component {
       search: true,
       viewColumns: true,
       pagination: true,
-      onCellClick: (cellData, cellMeta) => {
-        if (cellData.includes(".fasta")) {
-          this.clickCdsTableHandler(cellData);
-        }
-      },
     };
 
     const cds_data = this.state.cds_df_data;
@@ -932,6 +1042,17 @@ class SchemaEvaluator extends Component {
                 },
               };
             },
+            customBodyRender: (value, tableMeta, updateValue) => (
+              <a
+                href={`../html_files/${
+                  value.split(".")[0]
+                }_individual_report.html`}
+                target={"_blank"}
+                rel={"noopener noreferrer"}
+              >
+                {value}
+              </a>
+            ),
           },
         },
       ];
@@ -947,11 +1068,6 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        onCellClick: (cellData, cellMeta) => {
-          if (cellData.includes(".fasta")) {
-            this.clickCdsTableHandler(cellData);
-          }
-        },
       };
 
       notConservedList = (
@@ -999,6 +1115,17 @@ class SchemaEvaluator extends Component {
                 },
               };
             },
+            customBodyRender: (value, tableMeta, updateValue) => (
+              <a
+                href={`../html_files/${
+                  value.split(".")[0]
+                }_individual_report.html`}
+                target={"_blank"}
+                rel={"noopener noreferrer"}
+              >
+                {value}
+              </a>
+            ),
           },
         },
       ];
@@ -1014,11 +1141,6 @@ class SchemaEvaluator extends Component {
         search: false,
         viewColumns: true,
         pagination: true,
-        onCellClick: (cellData, cellMeta) => {
-          if (cellData.includes(".fasta")) {
-            this.clickCdsTableHandler(cellData);
-          }
-        },
       };
 
       oneAlleleOnlyList = (
@@ -1037,6 +1159,91 @@ class SchemaEvaluator extends Component {
       );
     }
 
+    let minLenTableData = [];
+
+    for (let key in cds_data) {
+      if (cds_data[key][alleleShorterColumn] > 0) {
+        minLenTableData.push({
+          fasta_file: cds_data[key]["Gene"],
+          shorter: cds_data[key][alleleShorterColumn],
+        });
+      }
+    }
+
+    let minLenTableColumns = [
+      {
+        name: "fasta_file",
+        label: "Locus",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+          customBodyRender: (value, tableMeta, updateValue) => (
+            <a
+              href={`../html_files/${
+                value.split(".")[0]
+              }_individual_report.html`}
+              target={"_blank"}
+              rel={"noopener noreferrer"}
+            >
+              {value}
+            </a>
+          ),
+        },
+      },
+      {
+        name: "shorter",
+        label: alleleShorterColumn,
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+    ];
+
+    let minLenTableOptions = {
+      responsive: "vertical",
+      selectableRowsHeader: false,
+      selectableRows: "none",
+      selectableRowsOnClick: false,
+      print: false,
+      download: false,
+      filter: false,
+      search: false,
+      viewColumns: true,
+      pagination: true,
+    };
+
+    let minLenTable = (
+      <Aux>
+        <div>
+          <MuiThemeProvider theme={this.getMuiTheme()}>
+            <MUIDataTable
+              title={`Loci with ${alleleShorterColumn}`}
+              data={cds_data}
+              columns={minLenTableColumns}
+              options={minLenTableOptions}
+            />
+          </MuiThemeProvider>
+        </div>
+      </Aux>
+    );
+
     return (
       <Aux>
         <div>
@@ -1048,6 +1255,7 @@ class SchemaEvaluator extends Component {
           <div style={{ marginTop: "40px" }}>{total_data_table}</div>
           <div style={{ marginTop: "40px" }}>{notConservedList}</div>
           <div style={{ marginTop: "40px" }}>{oneAlleleOnlyList}</div>
+          <div style={{ marginTop: "40px" }}>{minLenTable}</div>
           <div style={{ marginTop: "40px" }}>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -1125,6 +1333,14 @@ class SchemaEvaluator extends Component {
             <Typography variant="h5" className={classes.title}>
               Loci Analysis
             </Typography>
+            <div style={{ marginTop: "20px", width: "100%" }}>
+              <Alert variant="outlined" severity="info">
+                The following table has hidden columns, by default, that contain
+                more information about the schema. Please click on the "View
+                Columns" button on the top-right corner of the table to select
+                which columns to display.
+              </Alert>
+            </div>
             <div style={{ marginTop: "20px" }}>{cds_analysis_table}</div>
             <div style={{ marginTop: "20px" }}>
               <Aux>

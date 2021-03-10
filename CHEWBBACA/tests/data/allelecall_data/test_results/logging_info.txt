@@ -1,5 +1,5 @@
-Started Script at: 12:27:14-03/12/2020
-Finished Script at: 12:27:17-03/12/2020
+Started Script at: 16:02:54-05/03/2021
+Finished Script at: 16:02:57-05/03/2021
 Number of genomes: 1
 Number of loci: 10
 Used this number of CPU cores: 1

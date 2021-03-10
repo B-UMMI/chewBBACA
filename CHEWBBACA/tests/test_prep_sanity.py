@@ -33,20 +33,35 @@ def pickle_loader(pickle_in):
         [(['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/empty_dir',
            '-o', 'adapted_schema'],
-          'Could not get input files.'),
+         '\nCould not get input files. Please provide a directory'
+         ' with FASTA files or a file with the list of full '
+         'paths to the FASTA files and ensure that filenames end '
+         'with one of the following suffixes: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/empty_files',
            '-o', 'adapted_schema'],
-          'Could not get input files.'),
+         '\nCould not get input files. Please provide a directory'
+         ' with FASTA files or a file with the list of full '
+         'paths to the FASTA files and ensure that filenames end '
+         'with one of the following suffixes: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/zero_bytes_pair',
            '-o', 'adapted_schema'],
-          'Could not get input files.'),
+         '\nCould not get input files. Please provide a directory'
+         ' with FASTA files or a file with the list of full '
+         'paths to the FASTA files and ensure that filenames end '
+         'with one of the following suffixes: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'this/path/aint/real',
            '-o', 'adapted_schema'],
-          'Input argument is not a valid directory or '
-          'file with a list of paths.')
+          '\nInput argument is not a valid directory or '
+          'file with a list of paths. Please provide a '
+          'valid input, either a folder with FASTA files '
+          'or a file with the list of full paths to FASTA '
+          'files (one per line).')
          ])
 def test_prep_invalid_input(test_args, expected):
 
@@ -79,8 +94,6 @@ def test_prep_valid_input(test_args, expected):
         capture = py.io.StdCapture()
         chewBBACA.main()
         stdout, stderr = capture.reset()
-
-    assert 'Done!' in stdout
 
     # check output files
     output_files = [os.path.join(test_args[5], file)

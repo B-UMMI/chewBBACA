@@ -55,13 +55,13 @@ import argparse
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from utils import constants as cnst
-    from utils import auxiliary_functions as aux
-    from utils import parameters_validation as pv
+    from utils import (constants as ct,
+                       chewiens_requests as cr,
+                       parameters_validation as pv)
 except:
-    from CHEWBBACA.utils import constants as cnst
-    from CHEWBBACA.utils import auxiliary_functions as aux
-    from CHEWBBACA.utils import parameters_validation as pv
+    from CHEWBBACA.utils import (constants as ct,
+                                 chewiens_requests as cr,
+                                 parameters_validation as pv)
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -140,7 +140,7 @@ def schema_stats(species_id, base_url, headers_get):
 
     endpoint_list = ['stats', 'species', species_id, 'totals']
     # unpack list of sequential endpoints and pass to create URI
-    res = aux.simple_get_request(base_url, headers_get, endpoint_list)
+    res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     status_code = res.status_code
     if status_code not in [200, 201]:
         res = None
@@ -172,7 +172,7 @@ def species_schemas_count(base_url, headers_get):
 
     endpoint_list = ['stats', 'species']
     # unpack list of sequential endpoints and pass to create URI
-    res = aux.simple_get_request(base_url, headers_get, endpoint_list)
+    res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
     if 'message' in res:
@@ -221,7 +221,7 @@ def species_schemas(species_id, base_url, headers_get):
 
     endpoint_list = ['species', species_id]
     # unpack list of sequential endpoints and pass to create URI
-    res = aux.simple_get_request(base_url, headers_get, endpoint_list)
+    res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
     return res
@@ -424,20 +424,20 @@ def parse_arguments():
             args.species_id, args.schema_id]
 
 
-def main(mode, base_url, species_id, schema_id):
+def main(mode, nomenclature_server, species_id, schema_id):
 
-    headers_get = cnst.HEADERS_GET_JSON
+    headers_get = ct.HEADERS_GET_JSON
 
     print('\nRetrieving data...')
     if mode == 'species':
-        stats = species_stats(base_url, headers_get)
+        stats = species_stats(nomenclature_server, headers_get)
     elif mode == 'schemas':
         if species_id is not None:
             if schema_id is not None:
                 stats = single_schema(species_id, schema_id,
-                                      base_url, headers_get)
+                                      nomenclature_server, headers_get)
             else:
-                stats = single_species(species_id, base_url,
+                stats = single_species(species_id, nomenclature_server,
                                        headers_get)
         else:
             sys.exit('\nPlease provide a valid species identifier '

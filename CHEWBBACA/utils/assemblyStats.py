@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+
+
 import os
-from Bio import SeqIO
+import math
 import argparse
+
 import plotly
+from Bio import SeqIO
 import plotly.graph_objs as go
 
-import math
 
 def calculateN_50(input_file,ratio):
 

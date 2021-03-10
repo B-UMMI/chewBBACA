@@ -68,25 +68,27 @@ Code documentation
 
 import os
 import sys
-import pickle
 import shutil
 import requests
 import argparse
-import datetime as dt
 import concurrent.futures
 from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from utils import constants as cnst
-    from utils import auxiliary_functions as aux
-    from utils import parameters_validation as pv
     from PrepExternalSchema import PrepExternalSchema
+    from utils import (constants as ct,
+                       file_operations as fo,
+                       process_datetime as pd,
+                       chewiens_requests as cr,
+                       parameters_validation as pv)
 except:
-    from CHEWBBACA.utils import constants as cnst
-    from CHEWBBACA.utils import auxiliary_functions as aux
-    from CHEWBBACA.utils import parameters_validation as pv
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
+                                 process_datetime as pd,
+                                 chewiens_requests as cr,
+                                 parameters_validation as pv)
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -114,9 +116,9 @@ def check_compressed(schema_uri, headers_get):
               last modification date of the schema at time of compression.
     """
 
-    zip_uri = '{0}/zip'.format(schema_uri)
-    zip_response = requests.get(zip_uri, headers=headers_get,
-                                params={'request_type': 'check'}, verify=False)
+    zip_uri, zip_response = cr.simple_get_request(schema_uri,
+                                                  headers_get, ['zip'],
+                                                  parameters={'request_type': 'check'})
     zip_info = zip_response.json()
     if 'zip' in zip_info:
         zip_file = zip_info['zip'][0]
@@ -185,12 +187,12 @@ def download_date(user_date, zip_date, latest, insertion_date,
     # user wants schema at a particular time point
     elif user_date is not None:
         # get schema insertion and last modification date
-        insertion_date_obj = dt.datetime.strptime(insertion_date,
-                                                  '%Y-%m-%dT%H:%M:%S.%f')
-        modification_date_obj = dt.datetime.strptime(modification_date,
-                                                     '%Y-%m-%dT%H:%M:%S.%f')
+        insertion_date_obj = pd.datetime_obj(insertion_date,
+                                             '%Y-%m-%dT%H:%M:%S.%f')
+        modification_date_obj = pd.datetime_obj(modification_date,
+                                                '%Y-%m-%dT%H:%M:%S.%f')
         # determine if date given by user is valid
-        user_date_obj = aux.validate_date(user_date)
+        user_date_obj = pd.validate_date(user_date)
 
         if user_date_obj is False:
             sys.exit('Provided date is invalid. Please provide a date '
@@ -198,8 +200,8 @@ def download_date(user_date, zip_date, latest, insertion_date,
                      '"%Y-%m-%dT%H:%M:%S.%f"')
         if user_date_obj >= insertion_date_obj and \
            user_date_obj <= modification_date_obj:
-            schema_date = dt.datetime.strftime(user_date_obj,
-                                               '%Y-%m-%dT%H:%M:%S.%f')
+            schema_date = pd.datetime_str(user_date_obj,
+                                          '%Y-%m-%dT%H:%M:%S.%f')
         elif user_date_obj < insertion_date_obj:
             sys.exit('Provided date is prior to the date of schema '
                      'insertion. Please provide a date later than '
@@ -287,9 +289,8 @@ def get_fasta_seqs(url, headers_get, schema_date):
     max_tries = 3
     downloaded = False
     while downloaded is False:
-        res = requests.get(url, headers=headers_get, timeout=180,
-                           params=payload, verify=False)
-
+        res = cr.simple_get_request(url, headers_get,
+                                    [], payload, False, 180)[1]
         tries += 1
         if res.status_code in [200, 201] or tries == max_tries:
             downloaded = True
@@ -315,8 +316,7 @@ def schema_loci(schema_uri, headers_get):
     """
 
     # get the list of loci
-    loci_uri = aux.make_url(schema_uri, 'loci')
-    loci_res = requests.get(loci_uri, headers=headers_get, verify=False)
+    loci_url, loci_res = cr.simple_get_request(schema_uri, headers_get, ['loci'])
     loci_res = loci_res.json()['Loci']
 
     # locus URI to locus name
@@ -357,7 +357,7 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     print('Number of loci to download: {0}'.format(total_loci))
 
     # build the list of urls to get
-    fasta_urls = [aux.make_url(locus, 'fasta') for locus in loci]
+    fasta_urls = [cr.make_url(locus, 'fasta') for locus in loci]
 
     # multithread the requests
     print('Downloading schema files...')
@@ -424,12 +424,11 @@ def download_compressed(zip_uri, species_name, schema_name,
                                        schema_name)
     schema_path = os.path.join(download_folder,
                                zip_name.split('.zip')[0])
-    os.mkdir(schema_path)
+    fo.create_directory(schema_path)
 
     # download ZIP archive
-    zip_response = requests.get(zip_uri, headers=headers_get,
-                                params={'request_type': 'download'},
-                                verify=False)
+    url, zip_response = cr.simple_get_request(zip_uri, headers_get,
+                                              parameters={'request_type': 'download'})
     zip_path = os.path.join(schema_path, zip_name)
     open(zip_path, 'wb').write(zip_response.content)
     # uncompress
@@ -470,11 +469,8 @@ def download_ptf(ptf_hash, download_folder, schema_id,
         ptf_file : str
             Path to the Prodigal training file.
     """
-
-    ptf_uri = aux.make_url(base_url, *['species', species_id,
-                                       'schemas', schema_id, 'ptf'])
-
-    ptf_response = requests.get(ptf_uri, headers=headers_get, verify=False)
+    ptf_url, ptf_response = cr.simple_get_request(base_url, headers_get,
+                                                  ['species', species_id, 'schemas', schema_id, 'ptf'])
 
     ptf_file = os.path.join(download_folder,
                             '{0}.trn'.format(species_name.replace(' ', '_')))
@@ -484,19 +480,15 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-def main(species_id, schema_id, download_folder, core_num,
-         base_url, date, latest):
-
-    start_date = dt.datetime.now()
-    start_date_str = dt.datetime.strftime(start_date, '%Y-%m-%dT%H:%M:%S')
-    print('Started at: {0}\n'.format(start_date_str))
+def main(species_id, schema_id, download_folder, cpu_cores,
+         nomenclature_server, date, latest, blast_path):
 
     # GET request headers
-    headers_get = cnst.HEADERS_GET_JSON
+    headers_get = ct.HEADERS_GET_JSON
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_info = aux.species_ids(species_id, base_url, headers_get)
+    species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
     else:
@@ -506,10 +498,10 @@ def main(species_id, schema_id, download_folder, core_num,
     # check if user provided schema identifier or schema description
     # get info about all the species schemas
     schema_id, schema_uri,\
-        schema_name, schema_params = aux.get_species_schemas(schema_id,
-                                                             species_id,
-                                                             base_url,
-                                                             headers_get)
+        schema_name, schema_params = cr.get_species_schemas(schema_id,
+                                                            species_id,
+                                                            nomenclature_server,
+                                                            headers_get)
 
     print('Schema id: {0}'.format(schema_id))
     print('Schema name: {0}'.format(schema_name))
@@ -550,6 +542,7 @@ def main(species_id, schema_id, download_folder, core_num,
 
     if schema_date == zip_date:
         print('\nDownloading compressed version...')
+        # chewie-NS does not add clustering parameters to config, change that
         schema_path = download_compressed(zip_uri, species_name, schema_name,
                                           download_folder, headers_get)
     else:
@@ -563,7 +556,7 @@ def main(species_id, schema_id, download_folder, core_num,
         ptf_hash = schema_params_dict['prodigal_training_file']
         ptf_file = download_ptf(ptf_hash, download_folder, schema_id,
                                 species_id, species_name, headers_get,
-                                base_url)
+                                nomenclature_server)
 
         # use PrepExternalSchema main to determine representatives
         genus, epithet = species_name.split(' ')
@@ -573,50 +566,45 @@ def main(species_id, schema_id, download_folder, core_num,
         # determine representatives and create schema
         PrepExternalSchema.main(download_folder,
                                 schema_path,
-                                core_num,
+                                cpu_cores,
                                 float(schema_params_dict['bsr']),
                                 int(schema_params_dict['minimum_locus_length']),
                                 int(schema_params_dict['translation_table']),
                                 ptf_file,
-                                None)
+                                None,
+                                blast_path)
 
         # copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)
         os.remove(ptf_file)
 
         # remove FASTA files with sequences from the NS
-        for file in ns_files:
-            os.remove(file)
+        fo.remove_files(ns_files)
 
         # write hidden schema config file
         del(schema_params_dict['Schema_lock'])
-        schema_config = aux.write_schema_config(schema_params_dict['bsr'],
-                                                ptf_hash,
-                                                schema_params_dict['translation_table'],
-                                                schema_params_dict['minimum_locus_length'],
-                                                schema_params_dict['chewBBACA_version'],
-                                                schema_params_dict['size_threshold'],
-                                                schema_path)
+        schema_config = pv.write_schema_config(schema_params_dict['bsr'],
+                                               ptf_hash,
+                                               schema_params_dict['translation_table'],
+                                               schema_params_dict['minimum_locus_length'],
+                                               schema_params_dict['chewBBACA_version'],
+                                               schema_params_dict['size_threshold'],
+                                               schema_params_dict['word_size'],
+                                               schema_params_dict.get('window_size', None),  # add window size to chewie-NS
+                                               schema_params_dict['cluster_sim'],
+                                               schema_params_dict['representative_filter'],
+                                               schema_params_dict['intraCluster_filter'],
+                                               schema_path)
 
         # create ns_config file
         ns_config = os.path.join(schema_path, '.ns_config')
+        download_info = [schema_date, schema_uri]
         if not os.path.exists(ns_config):
-            with open(ns_config, 'wb') as nc:
-                download_info = [schema_date, schema_uri]
-                pickle.dump(download_info, nc)
+            fo.pickle_dumper(download_info, ns_config)
 
-        genes_list_file = aux.write_gene_list(schema_path)
+        genes_list_file = pv.write_gene_list(schema_path)
 
     print('Schema is now available at: {0}'.format(schema_path))
-
-    end_date = dt.datetime.now()
-    end_date_str = dt.datetime.strftime(end_date, '%Y-%m-%dT%H:%M:%S')
-
-    delta = end_date - start_date
-    minutes, seconds = divmod(delta.total_seconds(), 60)
-
-    print('\nFinished at: {0}'.format(end_date_str))
-    print('Elapsed time: {0:.0f}m{1:.0f}s'.format(minutes, seconds))
 
 
 def parse_arguments():
@@ -670,15 +658,17 @@ def parse_arguments():
                              'is not the latest, downloads all loci and '
                              'constructs schema locally.')
 
+    parser.add_argument('--b', type=pv.check_blast, required=False,
+                        default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
 
-    return [args.species_id, args.schema_id, args.download_folder,
-            args.cpu_cores, args.nomenclature_server, args.date,
-            args.latest]
+    return args
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
-    main(args[0], args[1], args[2], args[3],
-         args[4], args[5], args[6])
+
+    main(**vars(args))

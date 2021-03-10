@@ -1120,9 +1120,10 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     # dictionary with schema parameters values to send to the NS
     params = {'bsr': bsr_val, 'prodigal_training_file': ptf_info[1],
               'translation_table': tt_val, 'minimum_locus_length': msl_val,
-              'chewBBACA_version': cv_val, 'size_threshold': st_val,
-              'word_size': ws_val, 'cluster_sim': cs_val,
-              'representative_filter': rf_val, 'intraCluster_filter': if_val}
+              'chewBBACA_version': 'chewBBACA {0}'.format(cv_val),
+              'size_threshold': st_val, 'word_size': ws_val,
+              'cluster_sim': cs_val, 'representative_filter': rf_val,
+              'intraCluster_filter': if_val}
 
     params_values = list(params.values())
 

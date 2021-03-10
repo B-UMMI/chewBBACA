@@ -100,13 +100,6 @@ conda install -c bioconda chewbbaca
 ```
 
 Install using pip:
-<<<<<<< HEAD
-
-```
-pip3 install chewbbaca
-```
-
-=======
 
 ```
 pip3 install chewbbaca

@@ -1001,9 +1001,6 @@ def create_protein_files(
     ]
 
     # Check minimum length value
-    minimum_length_to_translate = minimum_length - (
-        minimum_length * size_threshold
-    )  # set the minimum length value for translation
     if minimum_length is None:
 
         minimum_length = 0
@@ -1019,6 +1016,11 @@ def create_protein_files(
             minimum_length_to_translate = minimum_length - (
                 minimum_length * chewie_schema_configs["size_threshold"][0]
             )
+
+    # set the minimum length value for translation
+    minimum_length_to_translate = minimum_length - (
+        minimum_length * size_threshold
+    )
 
     print("\nTranslating....\n")
 

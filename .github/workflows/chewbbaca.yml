@@ -2,9 +2,9 @@ name: chewbbaca
 
 on:
   push:
-    branches: [ dev_CreateSchema ]
+    branches: [ main ]
   pull_request:
-    branches: [ dev_CreateSchema ]
+    branches: [ main ]
 
 jobs:
   build:

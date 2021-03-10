@@ -825,7 +825,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     if submit is True and 'tutorial' not in nomenclature_server:
         print('\nOnly authorized registered users may submit new alleles.')
-        token = pv.capture_login_credentials(nomenclature_server)
+        token = cr.capture_login_credentials(nomenclature_server)
     else:
         token = ''
 

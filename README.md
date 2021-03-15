@@ -121,7 +121,7 @@ Python dependencies (defined in the [requirements](https://github.com/B-UMMI/che
 * pandas>=0.22.0
 
 Main dependencies:
-* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/). **We strongly recommend BLAST 2.9.0+.**
+* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/).
 * [Prodigal 2.6.0](https://github.com/hyattpd/prodigal/releases/) or above
 
 Other dependencies (for schema evaluation only):

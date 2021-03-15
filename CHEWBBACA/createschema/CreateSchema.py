@@ -226,6 +226,7 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
     if len(failed) > 0:
         print('\nFailed to predict genes for {0} genomes.'.format(len(failed)))
+        print('Make sure that Prodigal runs in meta mode (--pm meta) if any input file has less than 100kbp.')
         print('Info for failed cases stored in: {0}'.format(failed_file))
 
     # remove failed genomes from paths

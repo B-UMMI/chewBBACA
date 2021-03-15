@@ -27,6 +27,7 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, CarriÃ
 # IMPORTANT
 
 - chewBBACA only works with **python 3** (automatic testing for Python 3.7 and Python 3.8 with GitHub Actions).
+- We strongly recommend that users install and use BLAST 2.9.0+ with chewBBACA, as chewBBACA's processes have been extensively tested with that version of BLAST.
 - chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
 
 # Latest updates
@@ -37,7 +38,7 @@ New implementation of the **CreateSchema** process. This new implementation sign
 
 ### Additional changes
 
-- Better detection of invalid inputs (inputs that do not contain coding sequences (CDS), that contain invalid sequences/characters, empty files, etc).
+- Improved detection of invalid inputs (inputs that do not contain coding sequences (CDSs), that contain invalid sequences/characters, empty files, etc).
 - New parameter `--pm` allows users to set Prodigal's execution mode. The `single` mode is the default mode. Use the `meta` mode for input files that have less than 100kbp (e.g.: plasmids, viruses).
 - `CreateSchema` accepts a single or several FASTA files with CDSs if the `--CDS` option is included in the command. This option skips the gene prediction step with Prodigal and creates a schema seed based on the CDSs in the input files.
 - `AlleleCall` can automatically detect parameter values previously used with a schema. Users only need to provide values for the `-i`, `-g` and `-o` parameters.
@@ -120,11 +121,10 @@ Python dependencies (defined in the [requirements](https://github.com/B-UMMI/che
 * pandas>=0.22.0
 
 Main dependencies:
-* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/) or above
-* [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/) or above
+* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/). **We strongly recommend BLAST 2.9.0+.**
+* [Prodigal 2.6.0](https://github.com/hyattpd/prodigal/releases/) or above
 
 Other dependencies (for schema evaluation only):
-* [ClustalW2](http://www.clustal.org/download/current/)
 * [mafft](https://mafft.cbrc.jp/alignment/software/)
 
 Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST and Prodigal installed and added to the PATH.

@@ -53,15 +53,15 @@ More in-depth information can be found about the module on its [wiki page](https
 
 We've developed [Chewie-NS](https://chewbbaca.online/), a Nomenclature Server that is based on the [TypOn](https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-5-43) ontology and integrates with chewBBACA to provide access to gene-by-gene typing schemas and to allow a common and global allelic nomenclature to be maintained.
 
-To allow all users to interact with the Chewie-NS, we've implemented the following set of modules:
+To allow all users to interact with Chewie-NS, we've implemented the following set of modules:
 
-- `LoadSchema`: enables upload of new schemas to the Chewie-NS.
-- `DownloadSchema`: enables download of any schema from the Chewie-NS.
-- `SyncSchema`: compares local schemas, previously downloaded from the Chewie-NS, with the remote versions in the Chewie-NS to download and add new alleles to local schemas, submit new alleles to update remote schemas and ensure that a common allele identifier nomenclature is maintained.
-- `NSStats`:  retrieves basic information about species and schemas in the Chewie-NS.
+- `LoadSchema`: enables upload of new schemas to Chewie-NS.
+- `DownloadSchema`: enables download of any schema from Chewie-NS.
+- `SyncSchema`: compares local schemas, previously downloaded from Chewie-NS, with the remote versions in Chewie-NS to download and add new alleles to local schemas, submit new alleles to update remote schemas and ensure that a common allele identifier nomenclature is maintained.
+- `NSStats`:  retrieves basic information about species and schemas in Chewie-NS.
 
 The [documentation](https://chewie-ns.readthedocs.io/en/latest/) includes information about the integration with chewBBACA and how to run the new [LoadSchema](https://chewie-ns.readthedocs.io/en/latest/user/upload_api.html), [DownloadSchema](https://chewie-ns.readthedocs.io/en/latest/user/download_api.html), [SyncSchema](https://chewie-ns.readthedocs.io/en/latest/user/synchronize_api.html) and [NSStats](https://chewie-ns.readthedocs.io/en/latest/user/nsstats_api.html) processes.
-The Chewie-NS [source code](https://github.com/B-UMMI/Nomenclature_Server_docker_compose) is freely available and deployment of local instances can be easily achieved through Docker Compose.
+Chewie-NS' [source code](https://github.com/B-UMMI/Nomenclature_Server_docker_compose) is freely available and deployment of local instances can be easily achieved through Docker Compose.
 
 ---------
 ## Check the [wiki pages](https://github.com/B-UMMI/chewBBACA/wiki)...
@@ -163,14 +163,14 @@ chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --ptf ProdigalTraini
 	advise users to provide a Prodigal training file and to keep
 	using the same training file to ensure consistent results.
 
-**Outputs:** 
+**Outputs:**
 
 One fasta file per distinct gene identified in the schema creation process in the `-o` directory that is created.
 The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly).
 
-**Optional: determine annotations for loci in the schema** 
+**Optional: determine annotations for loci in the schema**
 
-The CreateSchema process creates a file, "proteinID_Genome.tsv", with the locations of the identified genes in each genome passed to create the schema.
+The CreateSchema process creates a file, "cds_info.tsv", with the locations of the identified genes in each genome passed to create the schema.
 The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
 
 
@@ -192,7 +192,7 @@ chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
 
 **Outputs:**
 
-A tsv file (new_protids.tsv) that is the result of adding two columns to the "proteinID_Genome.tsv", one with the annotation determined for each locus and another with the URL to the annotation's page.
+A tsv file (new_protids.tsv) that is the result of adding two columns to the "cds_info.tsv", one with the annotation determined for each locus and another with the URL to the annotation's page.
 
 ----------
 
@@ -299,29 +299,24 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 	  to visualize and explore typing results.
 
 ----------
-## 5. Visualize your schema
+## 5. Evaluate your schema
 
- **Create an html to help visualize your schema** 
+ **Create a html report to help evaluate your schema**
  
  See an example [here](http://im.fm.ul.pt/chewBBACA/SchemaEval/rms/RmS.html)
 
 Basic usage:
 
 ```
-chewBBACA.py SchemaEvaluator -i genes/ -ta 11 -l rms/ratemyschema.html --cpu 4 --title "my title"
+chewBBACA.py SchemaEvaluator -i schema_directory/ -o schema_evaluation --cpu 4
 ```
 	
 `-i` Path to the schema's directory or path to a file containing the
      paths to the FASTA files of the loci that will be evaluated, one 
      per line.
 
-`-l` Path to the output HTML file.
-
-`-ta` (Optional) Genetic code used to translate coding sequences.
-      (default: 11, Bacteria and Archaea)
-
-`--title` (Optional) Title displayed on the html page. (default: My
-          Analyzed wg/cg MLST Schema - Rate My Schema)
+`-o` Path to the output directory where the report HTML
+     files will be generated.
 
 `--cpu` Number of CPU cores to use to run the process (used for 
         mafft and clustalw2 steps)
@@ -342,7 +337,7 @@ A: You probably forgot to eliminate from the analysis genomes responsible for a 
 Try to run again step 4, remove some of those genomes and check if the cgMLST loci number rises.
 
 ### Q: Can I use a schema from an external source?
-A: Yes. Be sure to have a single fasta for each locus and use the "PrepExternalSchema​" function.
+A: Yes. Be sure to have a single fasta for each locus and use the "PrepExternalSchema" process.
 
 ### Q: Which species already have a training file?  
 A: At the moment:

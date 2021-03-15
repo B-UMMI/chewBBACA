@@ -1064,30 +1064,32 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
 
-    blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
-    fo.create_directory(blasting_dir)
+    if len(clusters) > 0:
+        blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
+        fo.create_directory(blasting_dir)
 
-    blast_results, ids_dict = blast_clusters(clusters, proteins,
-                                             blasting_dir, blastp_path,
-                                             makeblastdb_path, cpu_cores,
-                                             'blast')
+        blast_results, ids_dict = blast_clusters(clusters, proteins,
+                                                 blasting_dir, blastp_path,
+                                                 makeblastdb_path, cpu_cores,
+                                                 'blast')
 
-    blast_files = im.flatten_list(blast_results)
+        blast_files = im.flatten_list(blast_results)
 
-    # compute and exclude based on BSR
-    blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
-                                           indexed_dna_file,
-                                           blast_score_ratio,
-                                           ids_dict)
-                              for file in blast_files]
+        # compute and exclude based on BSR
+        blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
+                                               indexed_dna_file,
+                                               blast_score_ratio,
+                                               ids_dict)
+                                  for file in blast_files]
 
-    # merge bsr results
-    blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
+        # merge bsr results
+        blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
 
-    blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
-    schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
-    print('\n\nRemoved {0} sequences based on high BSR value with '
-          'other sequences.'.format(len(set(blast_excluded_alleles))))
+        blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
+        schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
+        print('\n\nRemoved {0} sequences based on high BSR value with '
+              'other sequences.'.format(len(set(blast_excluded_alleles))))
+
     # perform final BLAST to identify similar sequences that do not
     # share many/any kmers
     print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))

@@ -967,7 +967,7 @@ def find_uniprot():
 
         # simple command to determine annotations for the loci in a schema
         simple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
-                      '-t <protein_table> '
+                      '-t <protein_table> -o <output_directory>'
                       '--cpu <cpu_cores>')
 
         usage_msg = (
@@ -999,6 +999,15 @@ def find_uniprot():
                         help='The directory where the output files will be '
                              'saved (will create the directory if it does not '
                              'exist).')
+
+    parser.add_argument('-s', '--species', type=str,
+                        required=False, dest='species',
+                        help='')
+
+    parser.add_argument('--bsr', type=float, required=False,
+                        dest='blast_score_ratio',
+                        default=0.6,
+                        help='')
 
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, default=1, dest='cpu_cores',

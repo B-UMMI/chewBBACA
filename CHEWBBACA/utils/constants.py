@@ -136,3 +136,7 @@ CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
 
 # minimum Python version
 MIN_PYTHON = [(3, 4, 0), '3.4.0']
+
+# FTP to get UniProt's reference proteomes
+UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
+                         '/current_release/knowledgebase/reference_proteomes/')

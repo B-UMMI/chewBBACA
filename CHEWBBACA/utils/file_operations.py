@@ -304,7 +304,7 @@ def write_to_file(text, output_file, write_mode, end_char):
         out.write(text+end_char)
 
 
-def write_lines(lines, output_file):
+def write_lines(lines, output_file, joiner='\n'):
     """ Writes a list of strings to a file. The strings
         are joined with newlines before being written to
         file.
@@ -318,7 +318,7 @@ def write_lines(lines, output_file):
             Path to the output file.
     """
 
-    joined_lines = im.join_list(lines, '\n')
+    joined_lines = im.join_list(lines, joiner)
 
     write_to_file(joined_lines, output_file, 'a', '\n')
 

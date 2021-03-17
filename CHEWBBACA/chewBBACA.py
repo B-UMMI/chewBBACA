@@ -1000,10 +1000,6 @@ def find_uniprot():
                              'saved (will create the directory if it does not '
                              'exist).')
 
-    parser.add_argument('-s', '--species', type=str,
-                        required=False, dest='species',
-                        help='')
-
     parser.add_argument('--bsr', type=float, required=False,
                         dest='blast_score_ratio',
                         default=0.6,
@@ -1012,6 +1008,14 @@ def find_uniprot():
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, default=1, dest='cpu_cores',
                         help='The number of CPU cores to use during the process.')
+
+    parser.add_argument('--no-cleanup', action='store_true',
+                        required=False, dest='no_cleanup',
+                        help='')
+
+    parser.add_argument('--taxa', nargs='+', type=str,
+                        required=False, dest='taxa',
+                        help='')
 
     args = parser.parse_args()
     del args.UniprotFinder

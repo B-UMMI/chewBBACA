@@ -742,51 +742,124 @@ def create_pre_computed_data(
                 d.update(dict.fromkeys(uniprot_finder_missing_keys, "Not provided"))
 
         else:
+            annotations_data = {}
+            row_len = 0
             with open(annotations, "r") as a:
                 annotations_reader = csv.reader(a, delimiter="\t")
                 # skip header
                 next(annotations_reader, None)
-                annotations_data = {
-                    rows[0]: [
-                        rows[1],
-                        rows[2],
-                        rows[3],
-                        rows[4],
-                        rows[5],
-                        rows[6],
-                        rows[7],
-                        rows[8],
-                    ]
-                    for rows in annotations_reader
-                }
+                for r in annotations_reader:
+                    if len(r) == 9:
+                        annotations_data[r[0]] = [
+                            r[1],
+                            r[2],
+                            r[3],
+                            r[4],
+                            r[5],
+                            r[6],
+                            r[7],
+                            r[8],
+                        ]
+                        row_len = len(r)
+                    elif len(r) == 14:
+                        annotations_data[r[0]] = [
+                            r[1],
+                            r[2],
+                            r[3],
+                            r[4],
+                            r[5],
+                            r[6],
+                            r[7],
+                            r[8],
+                            r[9],
+                            r[10],
+                            r[11],
+                            r[12],
+                            r[13],
+                        ]
+                        row_len = len(r)
+
+                # annotations_data = {
+                #     rows[0]: [
+                #         rows[1],
+                #         rows[2],
+                #         rows[3],
+                #         rows[4],
+                #         rows[5],
+                #         rows[6],
+                #         rows[7],
+                #         rows[8],
+                #     ]
+                #     for rows in annotations_reader
+                # }
 
             for d in data_ind:
-                try:
-                    d["Gene"] in annotations_data
-                    d.update(
-                        {
-                            "genome": annotations_data[d["Gene"]][0],
-                            "contig": annotations_data[d["Gene"]][1],
-                            "start": annotations_data[d["Gene"]][2],
-                            "stop": annotations_data[d["Gene"]][3],
-                            "coding_strand": "sense"
-                            if annotations_data[d["Gene"]][5] == "1"
-                            else "antisense",
-                            "name": annotations_data[d["Gene"]][6],
-                            "url": annotations_data[d["Gene"]][7],
-                        }
-                    )
-                except KeyError:
-                    uniprot_finder_missing_keys = [
-                        "genome",
-                        "contig",
-                        "start",
-                        "stop",
-                        "coding_strand",
-                        "name",
-                        "url",
-                    ]
-                    d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
+                if row_len == 9:
+                    try:
+                        d["Gene"] in annotations_data
+                        d.update(
+                            {
+                                "genome": annotations_data[d["Gene"]][0],
+                                "contig": annotations_data[d["Gene"]][1],
+                                "start": annotations_data[d["Gene"]][2],
+                                "stop": annotations_data[d["Gene"]][3],
+                                "coding_strand": "sense"
+                                if annotations_data[d["Gene"]][5] == "1"
+                                else "antisense",
+                                "name": annotations_data[d["Gene"]][6],
+                                "url": annotations_data[d["Gene"]][7],
+                            }
+                        )
+                    except KeyError:
+                        uniprot_finder_missing_keys = [
+                            "genome",
+                            "contig",
+                            "start",
+                            "stop",
+                            "coding_strand",
+                            "name",
+                            "url",
+                        ]
+                        d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
+                elif row_len == 14:
+                    try:
+                        d["Gene"] in annotations_data
+                        d.update(
+                            {
+                                "genome": annotations_data[d["Gene"]][0],
+                                "contig": annotations_data[d["Gene"]][1],
+                                "start": annotations_data[d["Gene"]][2],
+                                "stop": annotations_data[d["Gene"]][3],
+                                "coding_strand": "sense"
+                                if annotations_data[d["Gene"]][5] == "1"
+                                else "antisense",
+                                "name": annotations_data[d["Gene"]][6],
+                                "url": annotations_data[d["Gene"]][7],
+                                "proteome_id": annotations_data[d["Gene"]][8],
+                                "proteome_product": annotations_data[d["Gene"]][9],
+                                "proteome_gene_name": annotations_data[d["Gene"]][10],
+                                "proteome_species": annotations_data[d["Gene"]][11],
+                                "proteome_bsr": annotations_data[d["Gene"]][12],
+                            }
+                        )
+                    except KeyError:
+                        uniprot_finder_missing_keys = [
+                            "genome",
+                            "contig",
+                            "start",
+                            "stop",
+                            "coding_strand",
+                            "name",
+                            "url",
+                            "proteome_id",
+                            "proteome_product",
+                            "proteome_gene_name",
+                            "proteome_species",
+                            "proteome_bsr",
+                            
+                        ]
+                        d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
+
 
         # check if it is a chewBBACA schema
         if chewie_schema:
@@ -1018,9 +1091,7 @@ def create_protein_files(
             )
 
     # set the minimum length value for translation
-    minimum_length_to_translate = minimum_length - (
-        minimum_length * size_threshold
-    )
+    minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
 
     print("\nTranslating....\n")
 

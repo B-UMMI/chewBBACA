@@ -233,7 +233,7 @@ def get_self_scores(fasta_file, temp_directory, threads):
 
 
 def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
-                         cpu_cores):
+                         cpu_cores, proteome_matches):
     """
     """
 
@@ -292,7 +292,7 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
 
     # BLASTp to determine annotations
     blast_inputs = [['blastp', proteome_blastdb, file, file+'_blastout.tsv',
-                     1, 1, None, None, 1, None, bw.run_blast] for file in reps_protein_files]
+                     1, 1, None, None, proteome_matches, None, bw.run_blast] for file in reps_protein_files]
 
     print('\nBLASTing representatives against proteomes...')
     blast_results = mo.map_async_parallelizer(blast_inputs,
@@ -313,16 +313,19 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
     for file in blastout_files:
         locus_id = fo.file_basename(file).split('_short')[0]
         results = fo.read_tabular(file)
+        proteome_results[locus_id] = []
         if len(results) > 0:
             # compute BSR values
             for r in results:
                 r.append(float(r[2])/float(self_scores[r[0]]))
             # sort based on BSR
             sorted_results = sorted(results, key=lambda x: x[-1])
-            if sorted_results[0][-1] > blast_score_ratio:
-                proteome_results[locus_id] = sorted_results[0]
+            # get results equal or above BSR
+            high_bsr_results = [r for r in sorted_results if r[-1] >= blast_score_ratio]
+            for res in high_bsr_results[0:proteome_matches]:
+                proteome_results[locus_id].append(res)
                 # get record and extract relevant info
-                hit = indexed_proteome[sorted_results[0][1]]
+                hit = indexed_proteome[res[1]]
                 hit_dict = vars(hit)
                 # some tags might be missing
                 hit_id = hit_dict.get('id', '')
@@ -338,25 +341,91 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
                         hit_gene_name = (hit_description.split('GN=')[1]).split(' PE=')[0]
                     else:
                         hit_gene_name = ''
-                proteome_results[locus_id].extend([hit_id, hit_product, hit_gene_name, hit_species])
-                hit_info += 1
+                proteome_results[locus_id][-1].extend([hit_id, hit_product, hit_gene_name, hit_species])
+        # sort from highest to lowest BSR
+        proteome_results[locus_id] = sorted(proteome_results[locus_id], key=lambda x: x[3], reverse=True)
+
+    return proteome_results
+
+
+def sparql_annotations(listGenes, cpu_cores):
+    """
+    """
+
+    # create inputs to multiprocessing
+    uniprot_args = [[gene, proc_gene] for gene in listGenes]
+
+    # this should work with all alleles in the loci to maximize chance of finding info
+    workers = cpu_cores if cpu_cores <= 4 else 4
+    listResults = mo.map_async_parallelizer(uniprot_args,
+                                            mo.function_helper,
+                                            workers,
+                                            show_progress=True)
+
+    return listResults
+
+
+def join_annotations(listResults, proteome_results, loci_info):
+    """
+    """
+
+    selected = {}
+    for result in listResults:
+        gene, name, url = result
+
+        gene_basename = fo.file_basename(gene, suffix=False)
+
+        loci_info[gene_basename].append(str(name))
+        loci_info[gene_basename].append(str(url))
+        loci_info[gene_basename].insert(0, os.path.basename(gene))
+
+        proteome_info = []
+        if len(proteome_results) > 0:
+            if len(proteome_results[gene_basename]) > 0:
+                proteome_info = proteome_results[gene_basename]
             else:
-                proteome_results[locus_id] = []
-        else:
-            proteome_results[locus_id] = results
+                proteome_info = []
 
-    print('Found information for {0} based on proteomes.'.format(hit_info))
+            loci_info[gene_basename].append(proteome_info)
 
-    return [proteome_results, True]
+        selected[gene_basename] = loci_info[gene_basename]
+
+    return selected
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
-#protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
-#blast_score_ratio = 0.6
-#cpu_cores = 4
-#no_cleanup = True
-#taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
+def create_annotations_table(annotations, output_directory, header,
+                             schema_name):
+    """
+    """
+
+    new_lines = [header]
+    for locus, data in annotations.items():
+        new_line = [locus] + data[1:9]
+        if len(data[-1]) > 0:
+            relevant_data = [d[4:]+[str(round(d[3],2))] for d in data[-1]]
+            proteome_data = list(zip(*relevant_data))
+            proteome_data = [';'.join(list(map(str, d))) for d in proteome_data]
+            new_line.extend(proteome_data)
+        new_lines.append(new_line)
+
+    new_lines = ['\t'.join(l) for l in new_lines]
+    table_text = '\n'.join(new_lines)
+
+    output_table = os.path.join(output_directory, '{0}_annotations.tsv'.format(schema_name))
+    with open(output_table, 'w') as outfile:
+        outfile.write(table_text+'\n')
+
+    return output_table
+
+
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
+protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
+blast_score_ratio = 0.6
+cpu_cores = 4
+no_cleanup = True
+taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
+proteome_matches = 2
 def main(input_files, protein_table, output_directory, blast_score_ratio,
          cpu_cores, no_cleanup, taxa):
 
@@ -374,92 +443,43 @@ def main(input_files, protein_table, output_directory, blast_score_ratio,
 
     print('Schema: {0}'.format(os.path.dirname(listGenes[0])))
     print('Number of loci: {0}'.format(len(listGenes)))
-
+    schema_basename = fo.file_basename(os.path.dirname(listGenes[0]))
     # check if loci identifiers are in cds_info table
 
     # find annotations based on reference proteomes for species
-    found = True
+    proteome_results = {}
     if taxa is not None:
-        proteome_results, found = proteome_annotations(input_files,
-                                                       temp_directory,
-                                                       taxa,
-                                                       blast_score_ratio,
-                                                       cpu_cores)
+        proteome_results = proteome_annotations(input_files, temp_directory,
+                                                taxa, blast_score_ratio,
+                                                cpu_cores, proteome_matches)
 
-############################################################################
-# find annotations in SPARQL endpoint
-
-    # create inputs to multiprocessing
-    uniprot_args = [[gene, proc_gene] for gene in listGenes]
-
-    # this should work with all alleles in the loci to maximize chance of finding info
-    workers = cpu_cores if cpu_cores <= 4 else 4
-    listResults = mo.map_async_parallelizer(uniprot_args,
-                                            mo.function_helper,
-                                            workers,
-                                            show_progress=True)
+    # find annotations in SPARQL endpoint
+    listResults = sparql_annotations(listGenes, cpu_cores)
 
     # read "cds_info.tsv" file created by CreateSchema
     table_lines = fo.read_tabular(protein_table)
-    header = table_lines[0]
     loci_info = {}
     for l in table_lines[1:]:
         locus_id = l[0].replace('_', '-')
         locus_id = locus_id + '-protein{0}'.format(l[-2])
         loci_info[locus_id] = l
 
-    # create table lines
-    got = 0
-    notgot = []
-    uncharacterized = []
-    selected_prots = []
-    for result in listResults:
-        gene, name, url = result
+    annotations = join_annotations(listResults, proteome_results, loci_info)
 
-        if "Uncharacterized protein" in name or "hypothetical" in name:
-            uncharacterized.append(gene)
-            got += 1
+    # table header
+    header = ['Locus_ID'] + table_lines[0] + ['Uniprot_Name', 'UniProt_URL']
+    if len(proteome_results) > 0:
+        header.extend(['Proteome_ID', 'Proteome_Product',
+                       'Proteome_Gene_Name', 'Proteome_Species',
+                       'Proteome_BSR'])
 
-        elif name == "":
-            notgot.append(gene)
-        else:
-            got += 1
-
-        gene_basename = os.path.basename(gene)
-        gene_basename = gene_basename.split('.fasta')[0]
-
-        loci_info[gene_basename].append(str(name))
-        loci_info[gene_basename].append(str(url))
-        loci_info[gene_basename].insert(0, os.path.basename(gene))
-        selected_prots.append(gene_basename)
-
-    new_header = ['Locus_ID'] + header + ['Uniprot_Name', 'UniProt_URL']
-    if found is True:
-        new_header.extend(['Proteome_ID', 'Proteome_Product', 'Proteome_Gene_Name', 'Proteome_Species', 'Proteome_BSR'])
-
-    new_lines = [new_header]
-    for key in set(sorted(selected_prots, key=str)):
-        if found is False:
-            new_lines.append(loci_info[key])
-        else:
-            if len(proteome_results[key]) > 0:
-                proteome_info = proteome_results[key][4:]+[str(proteome_results[key][3])]
-            else:
-                proteome_info = ['']*5
-
-            new_lines.append(loci_info[key]+proteome_info)
-
-    new_lines = ['\t'.join(l) for l in new_lines]
-    table_text = '\n'.join(new_lines)
+    output_table = create_annotations_table(annotations, output_directory,
+                                            header, schema_basename)
 
     print('\n\nFound: {0}, {1} of them uncharacterized/hypothetical. '
           'Nothing found on: {2} '.format(got,
                                           len(uncharacterized),
                                           len(notgot)))
-
-    output_table = os.path.join(output_directory, 'new_protids.tsv')
-    with open(output_table, 'w') as outfile:
-        outfile.write(table_text+'\n')
 
     if no_cleanup is False:
         shutil.rmtree(temp_directory)

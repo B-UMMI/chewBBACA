@@ -1261,22 +1261,30 @@ def write_individual_html(
         with open(exceptions_filename_path, "r") as ef:
             exc_data = json.load(ef)
 
-        # get the msa data
-        msa_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
+        # path to the protein files
+        prot_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
 
+        # get the msa data
         msa_data = {"sequences": []}
 
-        msa_seq_gen = SeqIO.parse(msa_file_path, "fasta")
+        msa_seq_gen = SeqIO.parse(prot_file_path, "fasta")
 
         allele_ids = [allele.id for allele in msa_seq_gen]
 
         if len(allele_ids) > 1:
-            for allele in SeqIO.parse(msa_file_path, "fasta"):
+            for allele in SeqIO.parse(prot_file_path, "fasta"):
                 msa_data["sequences"].append(
                     {"name": allele.id, "sequence": str(allele.seq)}
                 )
         else:
             msa_data = "undefined"
+
+        # get the fasta for the sequence logo
+        if os.path.exists(prot_file_path):
+            with open(prot_file_path, "r") as fas:
+                fasta_file_content = fas.read()
+        else:
+            fasta_file_content = "undefined"
 
         # get the phylocanvas data
         phylo_file_path = os.path.join(
@@ -1318,6 +1326,7 @@ def write_individual_html(
                     <script> const _msaData = {3} </script>
                     <script> const _phyloData = {4} </script>
                     <script> const _minLen = {5} </script>
+                    <script> const _fasta = `{6}` </script>
                     <script src="./main_ind.js"></script>
                 </body>
             </html>
@@ -1328,91 +1337,10 @@ def write_individual_html(
             json.dumps(msa_data, sort_keys=True),
             json.dumps(phylo_data_json, sort_keys=True),
             json.dumps(int(minimum_length), sort_keys=True),
+            fasta_file_content
         )
 
         html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))
 
         with open(html_file_path, "w") as html_fh:
             html_fh.write(html_template_individual)
-
-        # if chewie_schema:
-        #     # read config file to get chewBBACA parameters
-        #     config_file = os.path.join(input_files, ".schema_config")
-        #     with open(config_file, "rb") as cf:
-        #         chewie_schema_configs = pickle.load(cf)
-
-        #     minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
-
-        #     html_template_individual = """
-        #     <!DOCTYPE html>
-        #     <html lang="en">
-        #         <head>
-        #             <meta charset="UTF-8" />
-        #             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        #             <title>Schema Evaluator - Individual Analysis</title>
-        #         </head>
-        #         <body style="background-color: #f6f6f6">
-        #             <noscript> You need to enable JavaScript to run this app. </noscript>
-        #             <div id="root"></div>
-        #             <script> const _preComputedDataInd = {0} </script>
-        #             <script> const _exceptions = {1} </script>
-        #             <script> const _cdsDf = {2} </script>
-        #             <script> const _msaData = {3} </script>
-        #             <script> const _phyloData = {4} </script>
-        #             <script> const _minLen = {5} </script>
-        #             <script src="./main_ind.js"></script>
-        #         </body>
-        #     </html>
-        #     """.format(
-        #         json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-        #         json.dumps(exc_data, sort_keys=True),
-        #         json.dumps(cds_ind_data, sort_keys=True),
-        #         json.dumps(msa_data, sort_keys=True),
-        #         json.dumps(phylo_data_json, sort_keys=True),
-        #         json.dumps(int(minimum_length_config), sort_keys=True),
-        #     )
-
-        #     html_file_path = os.path.join(
-        #         out_path, "{0}_individual_report.html".format(sf)
-        #     )
-
-        #     with open(html_file_path, "w") as html_fh:
-        #         html_fh.write(html_template_individual)
-
-        # else:
-
-        # html_template_individual = """
-        # <!DOCTYPE html>
-        # <html lang="en">
-        #     <head>
-        #         <meta charset="UTF-8" />
-        #         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        #         <title>Schema Evaluator - Individual Analysis</title>
-        #     </head>
-        #     <body style="background-color: #f6f6f6">
-        #         <noscript> You need to enable JavaScript to run this app. </noscript>
-        #         <div id="root"></div>
-        #         <script> const _preComputedDataInd = {0} </script>
-        #         <script> const _exceptions = {1} </script>
-        #         <script> const _cdsDf = {2} </script>
-        #         <script> const _msaData = {3} </script>
-        #         <script> const _phyloData = {4} </script>
-        #         <script> const _minLen = {5} </script>
-        #         <script src="./main_ind.js"></script>
-        #     </body>
-        # </html>
-        # """.format(
-        #     json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-        #     json.dumps(exc_data, sort_keys=True),
-        #     json.dumps(cds_ind_data, sort_keys=True),
-        #     json.dumps(msa_data, sort_keys=True),
-        #     json.dumps(phylo_data_json, sort_keys=True),
-        #     json.dumps(int(minimum_length), sort_keys=True),
-        # )
-
-        # html_file_path = os.path.join(
-        #     out_path, "{0}_individual_report.html".format(sf)
-        # )
-
-        # with open(html_file_path, "w") as html_fh:
-        #     html_fh.write(html_template_individual)

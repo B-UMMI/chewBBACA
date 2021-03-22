@@ -34,6 +34,9 @@ import MSAViewer from "react-msa-viewer";
 // Phylocanvas
 import { PhylogeneticTree } from "./Phylocanvas";
 
+// SeqLogo component
+import { ProteinLogo } from "logojs-react";
+
 class SchemaEvaluator extends Component {
   state = {
     locus_ind_data: _preComputedDataInd,
@@ -42,6 +45,7 @@ class SchemaEvaluator extends Component {
     testMSA: _msaData,
     phyloData: _phyloData,
     minLen: _minLen,
+    fasta: _fasta,
     indTabValue: 0,
     treeType: 0,
     zoom: false,
@@ -186,6 +190,38 @@ class SchemaEvaluator extends Component {
                     zoom={this.state.zoom}
                     treeType={treeTypeOption[this.state.treeType].label}
                     newickString={this.state.phyloData.phylo_data}
+                  />
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          </div>
+        </Aux>
+      );
+
+    const seqLogo =
+      this.state.fasta === "undefined" ? (
+        <div style={{ marginTop: "20px", width: "100%" }}>
+          <Alert variant="outlined" severity="warning">
+            <Typography variant="subtitle1">
+              No valid alignment.
+            </Typography>
+          </Alert>
+        </div>
+      ) : (
+        <Aux>
+          <div style={{ marginTop: "40px" }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary>
+                <Typography variant="h5" className={classes.title}>
+                  Sequence Logo
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <div id="logo" style={{ width: "100%", height: "100%" }}>
+                  <ProteinLogo
+                    fasta={this.state.fasta}
+                    noFastaNames
+                    mode={"FREQUENCY"}
                   />
                 </div>
               </AccordionDetails>
@@ -745,6 +781,7 @@ class SchemaEvaluator extends Component {
             </div>
             {locusIndHist}
             {phylocanvasComponent}
+            {seqLogo}
             {msa_component}
           </div>
         </div>

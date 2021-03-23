@@ -4,11 +4,61 @@
 Purpose
 -------
 
-This module
+This module enables the creation of a TSV file with annotation
+terms for the loci in a schema.
+
+The process queries UniProt's SPARQL endpoint to find exact
+matches and retrieve the product name and page URL for those
+matches. If users provide a taxon/taxa name/s, the process
+will also search for reference proteomes for the specified
+taxon/taxa and use BLASTp to align local sequences against
+reference sequences to assign annotation terms based on the
+BSR value.
 
 Expected input
 --------------
 
+The process expects the following variables whether through command line
+execution or invocation of the :py:func:`main` function:
+
+- ``-i``, ``input_files`` : Path to the schema's directory or to a file
+  with a list of paths to loci FASTA files, one per line.
+
+    - e.g.: ``/home/user/schemas/my_schema``
+
+- ``-t``, ``protein_table`` : Path to the "cds_info.tsv" file created by
+  the CreateSchema process.
+
+    - e.g.: ``/home/user/schemas/my_schema/cds_info.tsv``
+
+- ``-o``, ``output_directory`` : Output directory where the process will
+  store intermediate files and save the final TSV file with the annotations.
+
+    - e.g.: ``/home/user/schemas/my_schema/annotations``
+
+- ``--bsr``, ``blast_score_ratio`` : BLAST Score Ratio value. This
+  value is only used when a taxon/taxa is provided and local sequences
+  are aligned against reference proteomes.
+
+    - e.g.: ``0.6``
+
+- ``--cpu``, ``cpu_cores`` : Number of CPU cores used to run the process.
+
+    - e.g.: ``4``
+
+- ``--taxa``, ``taxa`` : List of scientific names for a set of taxa. The
+  process will search for and download reference proteomes with terms that
+  match any of the provided taxa.
+
+    - e.g.: ``"Streptococcus pyogenes"``
+
+- ``--pm``, ``proteome_matches`` : Maximum number of proteome matches to
+  report.
+
+    - e.g.: ``2``
+
+- ``--no-cleanup``, ``no_cleanup`` : If provided, intermediate files
+  generated during process execution are not removed at the end.
 
 Code documentation
 ------------------
@@ -32,7 +82,6 @@ try:
         fasta_operations as fao,
         parameters_validation as pv,
         sequence_manipulation as sm,
-        iterables_manipulation as im,
         multiprocessing_operations as mo
     )
 except:
@@ -44,7 +93,6 @@ except:
         fasta_operations as fao,
         parameters_validation as pv,
         sequence_manipulation as sm,
-        iterables_manipulation as im,
         multiprocessing_operations as mo
     )
 
@@ -507,29 +555,39 @@ def parse_arguments():
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
-                        help='The directory where the output files will be '
-                             'saved (will create the directory if it does not '
-                             'exist).')
+                        help='Output directory where the process will '
+                             'store intermediate files and save the final '
+                             'TSV file with the annotations.')
 
     parser.add_argument('--bsr', type=float, required=False,
                         dest='blast_score_ratio',
-                        default=0.6, help='')
+                        default=0.6,
+                        help='BLAST Score Ratio value. This value is only '
+                             'used when a taxon/taxa is provided and local '
+                             'sequences are aligned against reference '
+                             'proteomes.')
 
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, dest='cpu_cores',
-                        default=1, help='')
+                        default=1,
+                        help='Number of CPU cores used to run the process.')
 
     parser.add_argument('--taxa', nargs='+', type=str,
                         required=False, dest='taxa',
-                        help='')
+                        help='List of scientific names for a set of taxa. The '
+                             'process will search for and download reference '
+                             'proteomes with terms that match any of the '
+                             'provided taxa.')
 
     parser.add_argument('--pm', type=int, required=False,
                         default=1, dest='proteome_matches',
-                        help='')
+                        help='Maximum number of proteome matches to report.')
 
     parser.add_argument('--no-cleanup', action='store_true',
                         required=False, dest='no_cleanup',
-                        help='')
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed '
+                             'at the end.')
 
     args = parser.parse_args()
 

@@ -7,6 +7,7 @@ import classes from "./SchemaEvaluatorIndividual.css";
 import Grid from "@material-ui/core/Grid";
 import Switch from "@material-ui/core/Switch";
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Typography from "@material-ui/core/Typography";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
@@ -46,6 +47,9 @@ class SchemaEvaluator extends Component {
     phyloData: _phyloData,
     minLen: _minLen,
     fasta: _fasta,
+    logoMode: 0,
+    logoModeButtonName: "Change Mode to Frequency",
+    counter: 2,
     indTabValue: 0,
     treeType: 0,
     zoom: false,
@@ -71,6 +75,32 @@ class SchemaEvaluator extends Component {
     newState[selectType] = val.value;
 
     this.setState(newState);
+  };
+
+  handleLogoMode = () => {
+    switch (this.state.logoMode) {
+      case 0:
+        this.setState({
+          logoMode: 1,
+          logoModeButtonName: "Change Mode to Information Content",
+        });
+        break;
+
+      case 1:
+        this.setState({
+          logoMode: 0,
+          logoModeButtonName: "Change Mode to Frequency",
+        });
+        break;
+    }
+  };
+
+  handleIncrement = () => {
+    this.setState((state) => ({ counter: state.counter + 1 }));
+  };
+
+  handleDecrement = () => {
+    this.setState((state) => ({ counter: state.counter - 1 }));
   };
 
   render() {
@@ -198,12 +228,14 @@ class SchemaEvaluator extends Component {
         </Aux>
       );
 
+    const displayCounter = this.state.counter > 0;
+
     const seqLogo =
-      this.state.fasta === "undefined" ? (
+      this.state.fasta.split(">").length - 1 === 1 ? (
         <div style={{ marginTop: "20px", width: "100%" }}>
           <Alert variant="outlined" severity="warning">
             <Typography variant="subtitle1">
-              No valid alignment.
+              No sequence logo was displayed due to an invalid alignment.
             </Typography>
           </Alert>
         </div>
@@ -221,8 +253,39 @@ class SchemaEvaluator extends Component {
                   <ProteinLogo
                     fasta={this.state.fasta}
                     noFastaNames
-                    mode={"FREQUENCY"}
+                    mode={
+                      this.state.logoMode === 0
+                        ? "INFORMATION_CONTENT"
+                        : "FREQUENCY"
+                    }
+                    yAxisMax={2}
                   />
+                  <br />
+                  <br />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => this.handleLogoMode()}
+                  >
+                    {this.state.logoModeButtonName}
+                  </Button>
+                  <div style={{ marginTop: "30px" }}>
+                    <Typography variant="body1">Change y-axis size.</Typography>
+                    <ButtonGroup
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      aria-label="small outlined button group"
+                    >
+                      <Button onClick={this.handleIncrement}>+</Button>
+                      {displayCounter && (
+                        <Button disabled>{this.state.counter}</Button>
+                      )}
+                      {displayCounter && (
+                        <Button onClick={this.handleDecrement}>-</Button>
+                      )}
+                    </ButtonGroup>
+                  </div>
                 </div>
               </AccordionDetails>
             </Accordion>

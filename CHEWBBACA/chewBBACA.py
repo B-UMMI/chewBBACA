@@ -1009,12 +1009,16 @@ def find_uniprot():
                         required=False, default=1, dest='cpu_cores',
                         help='The number of CPU cores to use during the process.')
 
-    parser.add_argument('--no-cleanup', action='store_true',
-                        required=False, dest='no_cleanup',
-                        help='')
-
     parser.add_argument('--taxa', nargs='+', type=str,
                         required=False, dest='taxa',
+                        help='')
+
+    parser.add_argument('--pm', type=int, required=False,
+                        default=1, dest='proteome_matches',
+                        help='')
+
+    parser.add_argument('--no-cleanup', action='store_true',
+                        required=False, dest='no_cleanup',
                         help='')
 
     args = parser.parse_args()

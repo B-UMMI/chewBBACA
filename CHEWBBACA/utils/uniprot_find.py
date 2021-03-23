@@ -411,23 +411,24 @@ def create_annotations_table(annotations, output_directory, header,
     new_lines = ['\t'.join(l) for l in new_lines]
     table_text = '\n'.join(new_lines)
 
-    output_table = os.path.join(output_directory, '{0}_annotations.tsv'.format(schema_name))
+    table_basename = '{0}_annotations.tsv'.format(schema_name)
+    output_table = fo.join_paths(output_directory, [table_basename])
     with open(output_table, 'w') as outfile:
         outfile.write(table_text+'\n')
 
     return output_table
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
-protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
-blast_score_ratio = 0.6
-cpu_cores = 4
-no_cleanup = True
-taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
-proteome_matches = 2
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
+#protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
+#blast_score_ratio = 0.6
+#cpu_cores = 4
+#no_cleanup = True
+#taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
+#proteome_matches = 2
 def main(input_files, protein_table, output_directory, blast_score_ratio,
-         cpu_cores, no_cleanup, taxa):
+         cpu_cores, taxa, proteome_matches, no_cleanup):
 
     # create output directory
     fo.create_directory(output_directory)
@@ -476,16 +477,16 @@ def main(input_files, protein_table, output_directory, blast_score_ratio,
     output_table = create_annotations_table(annotations, output_directory,
                                             header, schema_basename)
 
-    print('\n\nFound: {0}, {1} of them uncharacterized/hypothetical. '
-          'Nothing found on: {2} '.format(got,
-                                          len(uncharacterized),
-                                          len(notgot)))
+#    print('\n\nFound: {0}, {1} of them uncharacterized/hypothetical. '
+#          'Nothing found on: {2} '.format(got,
+#                                          len(uncharacterized),
+#                                          len(notgot)))
 
     if no_cleanup is False:
         shutil.rmtree(temp_directory)
 
-    print('The table with new information can be '
-          'found at:\n{0}'.format(output_table))
+    print('The table with new information can be found at:'
+          '\n{0}'.format(output_table))
 
 
 def parse_arguments():
@@ -510,19 +511,24 @@ def parse_arguments():
                              'saved (will create the directory if it does not '
                              'exist).')
 
-    parser.add_argument('--bsr', type=float, required=False, dest='blast_score_ratio',
+    parser.add_argument('--bsr', type=float, required=False,
+                        dest='blast_score_ratio',
                         default=0.6, help='')
 
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, dest='cpu_cores',
                         default=1, help='')
 
-    parser.add_argument('--no-cleanup', action='store_true',
-                        required=False, dest='no_cleanup',
-                        help='')
-
     parser.add_argument('--taxa', nargs='+', type=str,
                         required=False, dest='taxa',
+                        help='')
+
+    parser.add_argument('--pm', type=int, required=False,
+                        default=1, dest='proteome_matches',
+                        help='')
+
+    parser.add_argument('--no-cleanup', action='store_true',
+                        required=False, dest='no_cleanup',
                         help='')
 
     args = parser.parse_args()

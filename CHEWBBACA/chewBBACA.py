@@ -1049,6 +1049,10 @@ def find_uniprot():
                              'during process execution are not removed '
                              'at the end.')
 
+    parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+                        required=False, default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
+
     args = parser.parse_args()
     del args.UniprotFinder
 

@@ -17,6 +17,7 @@ Code documentation
 import os
 import sys
 import csv
+import time
 import shutil
 import pickle
 import hashlib
@@ -250,6 +251,62 @@ def file_zipper(input_file, zip_file):
         zf.write(input_file, os.path.basename(input_file))
 
     return zip_file
+
+
+def unzip_file(compressed_file, archive_type='.gz'):
+    """ Uncompresses a file.
+
+        Parameters
+        ----------
+        compressed_file : str
+            Path to the compressed file.
+        archive_type : str
+            Archive format.
+
+        Returns
+        -------
+        uncompressed_file : str
+            Path to the uncompressed file.
+    """
+
+    lines = []
+    with gzip.open(compressed_file, 'rb') as f:
+        for line in f:
+            lines.append(line.decode())
+
+    # save uncompressed contents
+    uncompressed_file = compressed_file.rstrip('.gz')
+    fo.write_lines(lines, uncompressed_file, joiner='')
+
+    return uncompressed_file
+
+
+def download_file(file_url, outfile, max_tries=3):
+    """ Downloads a file.
+
+        Parameters
+        ----------
+        file_url : str
+            URL to download file.
+        outfile : str
+            Path to the downloaded file.
+        max_tries : int
+            Maximum number of retries if the download
+            fails.
+    """
+
+    tries = 0
+    downloaded = False
+    while downloaded is False and tries <= max_tries:
+        try:
+            res = urllib.request.urlretrieve(file_url, outfile)
+        except:
+            time.sleep(1)
+        tries += 1
+        if os.path.isfile(outfile) is True:
+            downloaded = True
+
+    return downloaded
 
 
 def concatenate_files(files, output_file, header=None):

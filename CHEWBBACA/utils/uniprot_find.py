@@ -66,7 +66,6 @@ Code documentation
 
 
 import os
-import gzip
 import shutil
 import argparse
 import urllib.request
@@ -82,6 +81,7 @@ try:
         fasta_operations as fao,
         parameters_validation as pv,
         sequence_manipulation as sm,
+        iterables_manipulation as im,
         multiprocessing_operations as mo
     )
 except:
@@ -93,6 +93,7 @@ except:
         fasta_operations as fao,
         parameters_validation as pv,
         sequence_manipulation as sm,
+        iterables_manipulation as im,
         multiprocessing_operations as mo
     )
 
@@ -175,74 +176,14 @@ def proc_gene(gene):
     return [gene, name, url]
 
 
-def download_file(file_url, outfile):
-    """
-    """
-
-    urllib.request.urlretrieve(file_url, outfile)
-
-
-def species_lines(uniprot_readme, taxa):
-    """
-    """
-
-    proteomes = []
-    for line in uniprot_readme:
-        if any([taxon in line for taxon in taxa]) is True:
-            proteomes.append(line)
-
-    proteomes = [line.strip('\n') for line in proteomes]
-    proteomes = [line.split('\t') for line in proteomes]
-
-    return proteomes
-
-
-def get_proteomes(proteomes, output_dir):
-    """
-    """
-
-    print('Downloading reference proteomes...')
-    # construct FTP URLs for each proteome
-    downloaded = 0
-    proteomes_files = []
-    for l in proteomes:
-        domain = '{0}{1}'.format(l[3][0].upper(), l[3][1:])
-        proteome_id = '{0}_{1}'.format(l[0], l[1])
-        proteome_file = '{0}.fasta.gz'.format(proteome_id)
-        local_proteome_file = os.path.join(output_dir, proteome_file)
-        proteome_url = os.path.join(ct.UNIPROT_PROTEOMES_FTP, domain, l[0], proteome_file)
-        proteomes_files.append(local_proteome_file)
-        download_file(proteome_url, local_proteome_file)
-        downloaded += 1
-        print('\r', 'Downloaded {0}/{1}'.format(downloaded, len(proteomes)), end='')
-
-    return proteomes_files
-
-
-def unzip_file(compressed_file, archive_type='.gz'):
-    """
-    """
-
-    lines = []
-    with gzip.open(compressed_file, 'rb') as f:
-        for line in f:
-            lines.append(line.decode())
-
-    # save uncompressed contents
-    uncompressed_file = compressed_file.rstrip('.gz')
-    fo.write_lines(lines, uncompressed_file, joiner='')
-
-    return uncompressed_file
-
-
-def translate_fastas(fasta_paths, output_directory):
+def translate_fastas(fasta_paths, output_directory, translation_table):
     """
     """
 
     protein_files = []
     for path in fasta_paths:
         records = fao.import_sequences(path)
-        translated_records = {seqid: str(sm.translate_dna(seq, 11, 0)[0][0])
+        translated_records = {seqid: str(sm.translate_dna(seq, translation_table, 0)[0][0])
                               for seqid, seq in records.items()}
         translated_lines = fao.fasta_lines(list(translated_records.keys()),
                                            translated_records)
@@ -256,23 +197,26 @@ def translate_fastas(fasta_paths, output_directory):
     return protein_files
 
 
-def get_self_scores(fasta_file, temp_directory, threads):
-    """
+def get_self_scores(fasta_file, output_directory, blast_threads,
+                    blastp_path, makeblastdb_path):
+    """ Aligns a set of sequences against itself to determine
+        the raw score of the self-alignment.
     """
 
     basename = fo.file_basename(fasta_file, suffix=False)
 
-    integer_seqids = fo.join_paths(temp_directory,
+    integer_seqids = fo.join_paths(output_directory,
                                    ['{0}_int.fasta'.format(basename)])
     ids_dict = fao.integer_headers(fasta_file, integer_seqids)
 
-    blastdb = fo.join_paths(temp_directory, ['{0}_db'.format(basename)])
-    stderr = bw.make_blast_db('makeblastdb', integer_seqids,
+    blastdb = fo.join_paths(output_directory, ['{0}_db'.format(basename)])
+    stderr = bw.make_blast_db(makeblastdb_path, integer_seqids,
                               blastdb, 'prot')
 
-    blastout = fo.join_paths(temp_directory, ['self_blastout.tsv'])
-    self_results = bw.run_blast('blastp', blastdb, integer_seqids,
-                                blastout, threads=threads, max_targets=1)
+    blastout = fo.join_paths(output_directory, ['self_blastout.tsv'])
+    self_results = bw.run_blast(blastp_path, blastdb, integer_seqids,
+                                blastout, threads=blast_threads,
+                                max_targets=1)
 
     self_lines = fo.read_tabular(blastout)
     self_lines_ids = {ids_dict[l[0]]: l[-1] for l in self_lines}
@@ -280,13 +224,60 @@ def get_self_scores(fasta_file, temp_directory, threads):
     return self_lines_ids
 
 
-def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
-                         cpu_cores, proteome_matches):
+def extract_annotations(blastout_files, indexed_proteome, self_scores,
+                        blast_score_ratio):
+    """
+    """
+
+    proteome_results = {}
+    for file in blastout_files:
+        locus_id = fo.file_basename(file).split('_short')[0]
+        results = fo.read_tabular(file)
+        proteome_results[locus_id] = []
+        if len(results) > 0:
+            # compute BSR values
+            for r in results:
+                r.append(float(r[2])/float(self_scores[r[0]]))
+            # sort based on BSR
+            sorted_results = sorted(results, key=lambda x: x[-1])
+            # get results equal or above BSR
+            high_bsr_results = [r for r in sorted_results if r[-1] >= blast_score_ratio]
+            for res in high_bsr_results[0:proteome_matches]:
+                proteome_results[locus_id].append(res)
+                # get record and extract relevant info
+                hit = indexed_proteome[res[1]]
+                hit_dict = vars(hit)
+                # some tags might be missing
+                hit_id = hit_dict.get('id', 'not_found')
+                hit_description = hit_dict.get('description', 'not_found')
+                if hit_description != '':
+                    if 'OS=' in hit_description:
+                        # get organism name
+                        hit_species = (hit_description.split('OS=')[1]).split(' OX=')[0]
+                        hit_product = (hit_description.split(hit_id+' ')[1]).split(' OS=')[0]
+                    else:
+                        hit_species = 'not_found'
+                        hit_product = 'not_found'
+
+                    if 'GN=' in hit_description:
+                        hit_gene_name = (hit_description.split('GN=')[1]).split(' PE=')[0]
+                    else:
+                        hit_gene_name = 'not_found'
+
+                proteome_results[locus_id][-1].extend([hit_id, hit_product, hit_gene_name, hit_species])
+        # sort from highest to lowest BSR
+        proteome_results[locus_id] = sorted(proteome_results[locus_id], key=lambda x: x[3], reverse=True)
+
+    return proteome_results
+
+
+def proteome_annotations(schema_directory, temp_directory, taxa, blast_score_ratio,
+                         cpu_cores, proteome_matches, blast_path):
     """
     """
 
     # get paths to files with representative sequences
-    short_directory = fo.join_paths(input_files, ['short'])
+    short_directory = fo.join_paths(schema_directory, ['short'])
     reps_paths = [fo.join_paths(short_directory, [file])
                   for file in os.listdir(short_directory)
                   if file.endswith('.fasta') is True]
@@ -299,26 +290,29 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
     reps_protein_files = translate_fastas(reps_paths, translated_reps)
 
     print('Downloading list of reference proteomes...')
-    remote_readme = os.path.join(ct.UNIPROT_PROTEOMES_FTP, 'README')
-    local_readme = os.path.join(temp_directory, 'reference_proteomes_readme.txt')
+    remote_readme = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, ['README'])
+    local_readme = fo.join_paths(temp_directory,
+                                 ['reference_proteomes_readme.txt'])
 
     # get README file with list of reference proteomes
-    download_file(remote_readme, local_readme)
+    res = fo.download_file(remote_readme, local_readme)
 
     # get lines with proteomes info for species of interest
     readme_lines = fo.read_lines(local_readme, strip=False)
 
-    selected_proteomes = species_lines(readme_lines, taxa)
+    selected_proteomes = im.contained_terms(readme_lines, taxa)
+    selected_proteomes = [line.strip('\n') for line in selected_proteomes]
+    selected_proteomes = [line.split('\t') for line in selected_proteomes]
     print('Found {0} reference proteomes for {1}.'.format(len(selected_proteomes), taxa))
     if len(selected_proteomes) > 0:
         # create directory to store proteomes
-        proteomes_directory = os.path.join(temp_directory, 'proteomes')
+        proteomes_directory = fo.join_paths(temp_directory, ['proteomes'])
         fo.create_directory(proteomes_directory)
 
-        proteomes_files = get_proteomes(selected_proteomes, proteomes_directory)
+        proteomes_files = ur.get_proteomes(selected_proteomes, proteomes_directory)
 
     # uncompress files and concatenate into single FASTA
-    uncompressed_proteomes = [unzip_file(file) for file in proteomes_files]
+    uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
     proteomes_concat = fo.join_paths(proteomes_directory,
                                      ['full_proteome.fasta'])
     proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
@@ -330,7 +324,10 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
                                        fo.join_paths(temp_directory, ['reps_concat.fasta']))
 
     print('\nDetermining self-score of representatives...')
-    self_scores = get_self_scores(reps_concat, temp_directory, cpu_cores)
+    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+    self_scores = get_self_scores(reps_concat, temp_directory, cpu_cores,
+                                  blastp_path, makeblastdb_path)
 
     # create BLASTdb with proteome sequences
     proteome_blastdb = fo.join_paths(proteomes_directory,
@@ -356,61 +353,46 @@ def proteome_annotations(input_files, temp_directory, taxa, blast_score_ratio,
     indexed_proteome = SeqIO.index(proteomes_concat, 'fasta')
 
     # process results for each BLASTp
-    proteome_results = {}
-    hit_info = 0
-    for file in blastout_files:
-        locus_id = fo.file_basename(file).split('_short')[0]
-        results = fo.read_tabular(file)
-        proteome_results[locus_id] = []
-        if len(results) > 0:
-            # compute BSR values
-            for r in results:
-                r.append(float(r[2])/float(self_scores[r[0]]))
-            # sort based on BSR
-            sorted_results = sorted(results, key=lambda x: x[-1])
-            # get results equal or above BSR
-            high_bsr_results = [r for r in sorted_results if r[-1] >= blast_score_ratio]
-            for res in high_bsr_results[0:proteome_matches]:
-                proteome_results[locus_id].append(res)
-                # get record and extract relevant info
-                hit = indexed_proteome[res[1]]
-                hit_dict = vars(hit)
-                # some tags might be missing
-                hit_id = hit_dict.get('id', '')
-                hit_description = hit_dict.get('description', '')
-                if hit_description != '':
-                    if 'OS=' in hit_description:
-                        # get organism name
-                        hit_species = (hit_description.split('OS=')[1]).split(' OX=')[0]
-                        hit_product = (hit_description.split(hit_id+' ')[1]).split(' OS=')[0]
-                    else:
-                        hit_product = ''
-                    if 'GN=' in hit_description:
-                        hit_gene_name = (hit_description.split('GN=')[1]).split(' PE=')[0]
-                    else:
-                        hit_gene_name = ''
-                proteome_results[locus_id][-1].extend([hit_id, hit_product, hit_gene_name, hit_species])
-        # sort from highest to lowest BSR
-        proteome_results[locus_id] = sorted(proteome_results[locus_id], key=lambda x: x[3], reverse=True)
+    proteome_results = extract_annotations(blastout_files,
+                                           indexed_proteome,
+                                           self_scores,
+                                           blast_score_ratio)
 
     return proteome_results
 
 
-def sparql_annotations(listGenes, cpu_cores):
-    """
+def sparql_annotations(loci_files, cpu_cores):
+    """ Retrieves annotations from UniProt's SPARQL endpoint.
+
+        Parameters
+        ----------
+        loci_files : list
+            List with the paths to the loci FASTA files.
+        cpu_cores : int
+            Number of files to process in parallel.
+
+        Returns
+        -------
+        annotations : list
+            List with sublists. Each sublist contains
+            the path to the FASTA file of a locus, the
+            product name found for that locus and the
+            URL to the page of the record that matched the
+            locus.
     """
 
     # create inputs to multiprocessing
-    uniprot_args = [[gene, proc_gene] for gene in listGenes]
+    uniprot_args = [[gene, proc_gene] for gene in loci_files]
 
-    # this should work with all alleles in the loci to maximize chance of finding info
+    # this works with all alleles in the loci to maximize
+    # chance of finding info
     workers = cpu_cores if cpu_cores <= 4 else 4
-    listResults = mo.map_async_parallelizer(uniprot_args,
+    annotations = mo.map_async_parallelizer(uniprot_args,
                                             mo.function_helper,
                                             workers,
                                             show_progress=True)
 
-    return listResults
+    return annotations
 
 
 def join_annotations(listResults, proteome_results, loci_info):
@@ -467,53 +449,57 @@ def create_annotations_table(annotations, output_directory, header,
     return output_table
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
-#protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
-#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
-#blast_score_ratio = 0.6
-#cpu_cores = 4
-#no_cleanup = True
-#taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
-#proteome_matches = 2
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/schema_seed'
+protein_table = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/cds_info.tsv'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/spyogenes_schema/annotations'
+blast_score_ratio = 0.6
+cpu_cores = 2
+no_cleanup = True
+taxa = ['Streptococcus agalactiae', 'Streptococcus pyogenes']
+proteome_matches = 2
 def main(input_files, protein_table, output_directory, blast_score_ratio,
-         cpu_cores, taxa, proteome_matches, no_cleanup):
+         cpu_cores, taxa, proteome_matches, no_cleanup, blast_path):
 
     # create output directory
     fo.create_directory(output_directory)
 
     # create temp directory
-    temp_directory = os.path.join(output_directory, 'temp')
+    temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
     # validate input files
-    genes_list = os.path.join(temp_directory, 'listGenes.txt')
+    genes_list = fo.join_paths(temp_directory, ['listGenes.txt'])
     genes_list = pv.check_input_type(input_files, genes_list)
-    listGenes = fo.read_lines(genes_list)
+    loci_paths = fo.read_lines(genes_list)
 
-    print('Schema: {0}'.format(os.path.dirname(listGenes[0])))
-    print('Number of loci: {0}'.format(len(listGenes)))
-    schema_basename = fo.file_basename(os.path.dirname(listGenes[0]))
-    # check if loci identifiers are in cds_info table
+    schema_directory = os.path.dirname(loci_paths[0])
+    schema_basename = fo.file_basename(schema_directory)
+    print('Schema: {0}'.format(schema_directory))
+    print('Number of loci: {0}'.format(len(loci_paths)))
 
     # find annotations based on reference proteomes for species
     proteome_results = {}
     if taxa is not None:
-        proteome_results = proteome_annotations(input_files, temp_directory,
+        proteome_results = proteome_annotations(schema_directory, temp_directory,
                                                 taxa, blast_score_ratio,
-                                                cpu_cores, proteome_matches)
+                                                cpu_cores, proteome_matches,
+                                                blast_path)
 
     # find annotations in SPARQL endpoint
-    listResults = sparql_annotations(listGenes, cpu_cores)
+    sparql_results = sparql_annotations(loci_paths, cpu_cores)
 
+    # read cds_info table
     # read "cds_info.tsv" file created by CreateSchema
     table_lines = fo.read_tabular(protein_table)
     loci_info = {}
     for l in table_lines[1:]:
+        # create locus identifier based on genome identifier and
+        # cds identifier in file
         locus_id = l[0].replace('_', '-')
         locus_id = locus_id + '-protein{0}'.format(l[-2])
         loci_info[locus_id] = l
 
-    annotations = join_annotations(listResults, proteome_results, loci_info)
+    annotations = join_annotations(sparql_results, proteome_results, loci_info)
 
     # table header
     header = ['Locus_ID'] + table_lines[0] + ['Uniprot_Name', 'UniProt_URL']
@@ -588,6 +574,10 @@ def parse_arguments():
                         help='If provided, intermediate files generated '
                              'during process execution are not removed '
                              'at the end.')
+
+    parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+                        required=False, default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     args = parser.parse_args()
 

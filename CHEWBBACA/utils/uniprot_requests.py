@@ -16,9 +16,11 @@ import time
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
-    from utils import constants as ct
+    from utils import (constants as ct,
+                       file_operations as fo)
 except:
-    from CHEWBBACA.utils import constants as ct
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo)
 
 
 UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
@@ -179,11 +181,12 @@ def get_proteomes(proteome_ids, output_dir):
         domain = '{0}{1}'.format(pid[3][0].upper(), pid[3][1:])
         proteome_id = '{0}_{1}'.format(pid[0], pid[1])
         proteome_file = '{0}.fasta.gz'.format(proteome_id)
-        local_proteome_file = os.path.join(output_dir, proteome_file)
-        proteome_url = os.path.join(ct.UNIPROT_PROTEOMES_FTP, domain, pid[0], proteome_file)
+        local_proteome_file = fo.join_paths(output_dir, [proteome_file])
+        proteome_url = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, [domain, pid[0], proteome_file])
         res = fo.download_file(proteome_url, local_proteome_file)
         proteomes_files.append(local_proteome_file)
         downloaded += 1
-        print('\r', 'Downloaded {0}/{1}'.format(downloaded, len(proteomes)), end='')
+        print('\r', 'Downloaded {0}/{1}'.format(downloaded, len(proteome_ids)), end='')
+        time.sleep(0.1)
 
     return proteomes_files

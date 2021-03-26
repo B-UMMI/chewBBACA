@@ -1009,16 +1009,16 @@ def find_uniprot():
                              'with a list of paths to loci FASTA files, one '
                              'per line.')
 
-    parser.add_argument('-t', '--protein-table', type=str,
-                        required=True, dest='protein_table',
-                        help='Path to the "cds_info.tsv" file created by '
-                             'the CreateSchema process.')
-
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
                         help='Output directory where the process will '
                              'store intermediate files and save the final '
                              'TSV file with the annotations.')
+
+    parser.add_argument('-t', '--protein-table', type=str,
+                        required=False, dest='protein_table',
+                        help='Path to the "cds_info.tsv" file created by '
+                             'the CreateSchema process.')
 
     parser.add_argument('--bsr', type=float, required=False,
                         dest='blast_score_ratio',

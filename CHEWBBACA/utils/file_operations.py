@@ -18,12 +18,14 @@ import os
 import sys
 import csv
 import time
+import gzip
 import shutil
 import pickle
 import hashlib
 import zipfile
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
+import urllib.request
 
 try:
     from utils import (iterables_manipulation as im,
@@ -300,7 +302,8 @@ def download_file(file_url, outfile, max_tries=3):
     while downloaded is False and tries <= max_tries:
         try:
             res = urllib.request.urlretrieve(file_url, outfile)
-        except:
+        except Exception as e:
+            print(e)
             time.sleep(1)
         tries += 1
         if os.path.isfile(outfile) is True:

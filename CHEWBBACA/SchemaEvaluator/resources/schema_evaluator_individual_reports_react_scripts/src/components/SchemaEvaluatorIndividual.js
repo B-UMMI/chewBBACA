@@ -37,6 +37,7 @@ import { PhylogeneticTree } from "./Phylocanvas";
 
 // SeqLogo component
 import { ProteinLogo } from "logojs-react";
+import { UncontrolledReactSVGPanZoom } from "react-svg-pan-zoom";
 
 class SchemaEvaluator extends Component {
   state = {
@@ -250,16 +251,17 @@ class SchemaEvaluator extends Component {
               </AccordionSummary>
               <AccordionDetails>
                 <div id="logo" style={{ width: "100%", height: "100%" }}>
-                  <ProteinLogo
-                    fasta={this.state.fasta}
-                    noFastaNames
-                    mode={
-                      this.state.logoMode === 0
-                        ? "INFORMATION_CONTENT"
-                        : "FREQUENCY"
-                    }
-                    yAxisMax={2}
-                  />
+                  <UncontrolledReactSVGPanZoom width={500} height={500}>
+                    <ProteinLogo
+                      fasta={this.state.fasta}
+                      mode={
+                        this.state.logoMode === 0
+                          ? "INFORMATION_CONTENT"
+                          : "FREQUENCY"
+                      }
+                      yAxisMax={this.state.counter}
+                    />
+                  </UncontrolledReactSVGPanZoom>
                   <br />
                   <br />
                   <Button

@@ -55,6 +55,8 @@
     "react-msa-viewer": "^1.0.1",
     "react-plotly.js": "^2.5.0",
     "react-select": "^3.1.1",
+    "react-seqlogo": "0.0.10",
+    "react-svg-pan-zoom": "^3.10.0",
     "remark-gfm": "^1.0.0",
     "remark-loader": "^1.0.1",
     "remark-react": "^8.0.0",

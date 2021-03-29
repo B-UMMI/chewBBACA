@@ -21,9 +21,10 @@ try:
     from createschema import CreateSchema
     from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
+    from UniprotFinder import uniprot_find
     from utils import (TestGenomeQuality, profile_joiner,
-                       uniprot_find, Extract_cgAlleles,
-                       RemoveGenes, profiles_sqlitedb as ps,
+                       Extract_cgAlleles, RemoveGenes,
+                       profiles_sqlitedb as ps,
                        process_datetime as pd,
                        constants as ct,
                        parameters_validation as pv,
@@ -39,9 +40,10 @@ except:
     from CHEWBBACA.createschema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.UniprotFinder import uniprot_find
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
-                                 uniprot_find, Extract_cgAlleles,
-                                 RemoveGenes, profiles_sqlitedb as ps,
+                                 Extract_cgAlleles, RemoveGenes,
+                                 profiles_sqlitedb as ps,
                                  process_datetime as pd,
                                  constants as ct,
                                  parameters_validation as pv,

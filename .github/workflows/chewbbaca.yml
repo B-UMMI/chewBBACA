@@ -2,9 +2,9 @@ name: chewbbaca
 
 on:
   push:
-    branches: [ master ]
+    branches: [ dev_UniprotFinder ]
   pull_request:
-    branches: [ master ]
+    branches: [ dev_UniprotFinder ]
 
 jobs:
   build:

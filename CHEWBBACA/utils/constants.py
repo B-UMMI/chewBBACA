@@ -140,3 +140,6 @@ MIN_PYTHON = [(3, 4, 0), '3.4.0']
 # FTP to get UniProt's reference proteomes
 UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
                          '/current_release/knowledgebase/reference_proteomes/')
+
+# list of UniProt's uninformative terms
+UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']

@@ -17,8 +17,8 @@ import argparse
 
 try:
     from __init__ import __version__
-    from allelecall import BBACA
-    from createschema import CreateSchema
+    from AlleleCall import AlleleCall
+    from CreateSchema import CreateSchema
     from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
     from UniprotFinder import uniprot_find
@@ -36,8 +36,8 @@ try:
                               sync_schema, stats_requests)
 except:
     from CHEWBBACA import __version__
-    from CHEWBBACA.allelecall import BBACA
-    from CHEWBBACA.createschema import CreateSchema
+    from CHEWBBACA.AlleleCall import AlleleCall
+    from CHEWBBACA.CreateSchema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.UniprotFinder import uniprot_find
@@ -327,24 +327,24 @@ def allele_call():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--contained', action='store_true',
-                        required=False, default=False, dest='contained',
-                        help=argparse.SUPPRESS)
+    # parser.add_argument('--contained', action='store_true',
+    #                     required=False, default=False, dest='contained',
+    #                     help=argparse.SUPPRESS)
 
     parser.add_argument('--CDS', action='store_true',
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
 
-    parser.add_argument('--fc', '--force-continue', action='store_true',
-                        required=False, dest='force_continue',
-                        help='Continue allele call process that '
-                             'was interrupted.')
+    # parser.add_argument('--fc', '--force-continue', action='store_true',
+    #                     required=False, dest='force_continue',
+    #                     help='Continue allele call process that '
+    #                          'was interrupted.')
 
-    parser.add_argument('--fr', '--force-reset', action='store_true',
-                        required=False, dest='force_reset',
-                        help='Force process reset even if there '
-                             'are temporary files from a previous '
-                             'process that was interrupted.')
+    # parser.add_argument('--fr', '--force-reset', action='store_true',
+    #                     required=False, dest='force_reset',
+    #                     help='Force process reset even if there '
+    #                          'are temporary files from a previous '
+    #                          'process that was interrupted.')
 
     parser.add_argument('--db', '--store-profiles', required=False, action='store_true',
                         dest='store_profiles',
@@ -352,13 +352,13 @@ def allele_call():
                              'should be stored in the local SQLite '
                              'database.')
 
-    parser.add_argument('--json', action='store_true',
-                        required=False, dest='json_report',
-                        help='Output report in JSON format.')
+    # parser.add_argument('--json', action='store_true',
+    #                     required=False, dest='json_report',
+    #                     help='Output report in JSON format.')
 
-    parser.add_argument('--v', '--verbose', required=False, action='store_true',
-                        dest='verbose',
-                        help='Increased output verbosity during execution.')
+    # parser.add_argument('--v', '--verbose', required=False, action='store_true',
+    #                     dest='verbose',
+    #                     help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
 
@@ -401,12 +401,19 @@ def allele_call():
     ns_config = os.path.join(args.schema_directory, '.ns_config')
     args.ns = os.path.isfile(ns_config)
 
-    BBACA.main(genomes_files, schema_genes, args.cpu_cores,
-               args.output_directory, args.blast_score_ratio,
-               args.blast_path, args.force_continue, args.json_report,
-               args.verbose, args.force_reset, args.contained,
-               args.ptf_path, args.cds_input, args.size_threshold,
-               args.translation_table, args.ns, args.prodigal_mode)
+    # add clustering config
+    args.word_size = ct.WORD_SIZE_DEFAULT
+    args.window_size = ct.WINDOW_SIZE_DEFAULT
+    args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
+    args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
+    args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
+
+    AlleleCall.main(genomes_files, args.output_directory, args.ptf_path,
+                    args.blast_score_ratio, args.minimum_length, args.translation_table,
+                    args.size_threshold, args.word_size, args.window_size,
+                    args.clustering_sim, args.representative_filter, args.intra_filter,
+                    args.cpu_cores, args.blast_path, args.cds_input,
+                    args.prodigal_mode, args.ns, args.no_cleanup)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

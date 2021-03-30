@@ -556,7 +556,7 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
     return [invalid_alleles, total_seqs]
 
 
-def determine_distinct(sequences_file, unique_fasta):
+def determine_distinct(sequences_file, unique_fasta, all_ids=False):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -597,10 +597,12 @@ def determine_distinct(sequences_file, unique_fasta):
 
             # store only the hash for distinct sequences
             if seq_hash not in seqs_dict:
-                seqs_dict[seq_hash] = seqid
+                seqs_dict[seq_hash] = [seqid]
                 recout = fao.fasta_str_record(seqid, sequence)
                 out_seqs.append(recout)
             elif seq_hash in seqs_dict:
+                if all_ids is True:
+                    seqs_dict[seq_hash].append(seqid)
                 total += 1
         else:
             exausted = True
@@ -611,9 +613,11 @@ def determine_distinct(sequences_file, unique_fasta):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
-    unique_seqids = list(seqs_dict.values())
-
-    return [total, unique_seqids]
+    if all_ids is False:
+        unique_seqids = im.flatten_list(list(seqs_dict.values()))
+        return [total, unique_seqids]
+    else:
+        return [total, seqs_dict]
 
 
 def determine_small(sequences_file, minimum_length):

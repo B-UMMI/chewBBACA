@@ -1135,7 +1135,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
                      blast_outputs[i], 1, 1, bw.run_blast]
                     for i, file in enumerate(splitted_fastas)]
 
-    print('Performing final BLASTp...', end='')
+    print('Performing final BLASTp...')
     blast_stderr = mo.map_async_parallelizer(blast_inputs,
                                              mo.function_helper,
                                              cpu_cores,

@@ -228,6 +228,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     selected_proteomes = [line.split('\t') for line in selected_proteomes]
     print('Found {0} reference proteomes for '
           '{1}.'.format(len(selected_proteomes), taxa))
+    proteome_results = {}
     if len(selected_proteomes) > 0:
         # create directory to store proteomes
         proteomes_directory = fo.join_paths(temp_directory, ['proteomes'])
@@ -236,56 +237,56 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         proteomes_files = ur.get_proteomes(selected_proteomes,
                                            proteomes_directory)
 
-    # uncompress files and concatenate into single FASTA
-    uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
-    proteomes_concat = fo.join_paths(proteomes_directory,
-                                     ['full_proteome.fasta'])
-    proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
-                                            proteomes_concat)
+        # uncompress files and concatenate into single FASTA
+        uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
+        proteomes_concat = fo.join_paths(proteomes_directory,
+                                         ['full_proteome.fasta'])
+        proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
+                                                proteomes_concat)
 
-    # get self-scores
-    # concatenate protein files
-    reps_concat = fo.concatenate_files(reps_protein_files,
-                                       fo.join_paths(temp_directory,
-                                                     ['reps_concat.fasta']))
+        # get self-scores
+        # concatenate protein files
+        reps_concat = fo.concatenate_files(reps_protein_files,
+                                           fo.join_paths(temp_directory,
+                                                         ['reps_concat.fasta']))
 
-    print('\nDetermining self-score of representatives...', end='')
-    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-    self_scores = fao.get_self_scores(reps_concat, temp_directory, cpu_cores,
-                                      blastp_path, makeblastdb_path)
-    print('done.')
+        print('\nDetermining self-score of representatives...', end='')
+        blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+        makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+        self_scores = fao.get_self_scores(reps_concat, temp_directory, cpu_cores,
+                                          blastp_path, makeblastdb_path)
+        print('done.')
 
-    # create BLASTdb with proteome sequences
-    proteome_blastdb = fo.join_paths(proteomes_directory,
-                                     ['proteomes_db'])
-    stderr = bw.make_blast_db('makeblastdb', proteomes_concat,
-                              proteome_blastdb, 'prot')
+        # create BLASTdb with proteome sequences
+        proteome_blastdb = fo.join_paths(proteomes_directory,
+                                         ['proteomes_db'])
+        stderr = bw.make_blast_db('makeblastdb', proteomes_concat,
+                                  proteome_blastdb, 'prot')
 
-    # BLASTp to determine annotations
-    blast_inputs = [['blastp', proteome_blastdb, file, file+'_blastout.tsv',
-                     1, 1, None, None, proteome_matches, None, bw.run_blast]
-                    for file in reps_protein_files]
+        # BLASTp to determine annotations
+        blast_inputs = [['blastp', proteome_blastdb, file, file+'_blastout.tsv',
+                         1, 1, None, None, proteome_matches, None, bw.run_blast]
+                        for file in reps_protein_files]
 
-    print('\nBLASTing representatives against proteomes...')
-    blast_results = mo.map_async_parallelizer(blast_inputs,
-                                              mo.function_helper,
-                                              cpu_cores,
-                                              show_progress=True)
+        print('\nBLASTing representatives against proteomes...')
+        blast_results = mo.map_async_parallelizer(blast_inputs,
+                                                  mo.function_helper,
+                                                  cpu_cores,
+                                                  show_progress=True)
 
-    blastout_files = [fo.join_paths(translated_reps, [file])
-                      for file in os.listdir(translated_reps)
-                      if 'blastout' in file]
+        blastout_files = [fo.join_paths(translated_reps, [file])
+                          for file in os.listdir(translated_reps)
+                          if 'blastout' in file]
 
-    # index proteome file
-    indexed_proteome = SeqIO.index(proteomes_concat, 'fasta')
+        # index proteome file
+        indexed_proteome = SeqIO.index(proteomes_concat, 'fasta')
 
-    # process results for each BLASTp
-    proteome_results = extract_annotations(blastout_files,
-                                           indexed_proteome,
-                                           self_scores,
-                                           blast_score_ratio,
-                                           proteome_matches)
+        # process results for each BLASTp
+        proteome_results = extract_annotations(blastout_files,
+                                               indexed_proteome,
+                                               self_scores,
+                                               blast_score_ratio,
+                                               proteome_matches)
 
     return proteome_results
 

@@ -413,7 +413,6 @@ def main(input_file, temppath, blast_path, verbose, bsrTresh, sizeTresh, ns):
                 moda = alleleSizes[0]
 
             try:
-
                 # iterate through the blast results
                 for blast_record in blast_records:
 

@@ -684,6 +684,86 @@ class SchemaEvaluator extends Component {
         },
       },
       {
+        name: "proteome_id",
+        label: "Proteome ID",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "proteome_product",
+        label: "Proteome Product",
+        options: {
+          filter: true,
+          sort: true,
+          display: true,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "proteome_gene_name",
+        label: "Proteome Gene Name",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "proteome_species",
+        label: "Proteome Species",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
+        name: "proteome_bsr",
+        label: "Proteome BSR",
+        options: {
+          filter: true,
+          sort: true,
+          display: false,
+          setCellHeaderProps: (value) => {
+            return {
+              style: {
+                fontWeight: "bold",
+              },
+            };
+          },
+        },
+      },
+      {
         name: "genome",
         label: "Origin Genome",
         options: {

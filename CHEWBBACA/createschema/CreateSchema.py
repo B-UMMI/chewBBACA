@@ -128,6 +128,7 @@ Code documentation
 
 import os
 import sys
+import math
 import argparse
 
 from Bio import SeqIO
@@ -1102,26 +1103,51 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     final_blast_dir = fo.join_paths(temp_directory, ['5_final_blast'])
     fo.create_directory(final_blast_dir)
 
+    # create FASTA file with remaining sequences
     beta_file = os.path.join(final_blast_dir, 'pre_schema_seed.fasta')
     fao.get_sequences_by_id(proteins, schema_seqids, beta_file)
 
+    # change sequence identifiers to avoid BLAST error
+    # related to sequence header ength limite
     integer_seqids = os.path.join(final_blast_dir, 'pre_schema_seed_int.fasta')
     ids_dict2 = fao.integer_headers(beta_file, integer_seqids)
 
+    # create BLASTp database
     blast_db = fo.join_paths(final_blast_dir, ['pre_schema_seed_int'])
     db_stderr = bw.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
 
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
-    print('Performing final BLASTp...', end='')
-    blast_output = '{0}/{1}_blast_out.tsv'.format(final_blast_dir,
-                                                  'pre_schema_seed')
-    blast_stderr = bw.run_blast(blastp_path, blast_db, integer_seqids,
-                                blast_output, 1, cpu_cores)
+    # divide FASTA file into groups of 100 sequences to reduce
+    # execution time for large sequence sets
+    file_num = math.ceil(len(schema_seqids)/100)
+    filenames = ('split{0}'.format(i+1) for i in range(0, file_num))
+    splitted_fastas = fao.split_fasta(integer_seqids, final_blast_dir,
+                                      100, filenames)
 
+    blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blast_dir,
+                                                    fo.file_basename(file, suffix=False))
+                     for file in splitted_fastas]
+
+    # add common arguments to all sublists
+    blast_inputs = [[blastp_path, blast_db, file,
+                     blast_outputs[i], 1, 1, bw.run_blast]
+                    for i, file in enumerate(splitted_fastas)]
+
+    print('Performing final BLASTp...')
+    blast_stderr = mo.map_async_parallelizer(blast_inputs,
+                                             mo.function_helper,
+                                             cpu_cores,
+                                             show_progress=True)
+
+    blast_stderr = im.flatten_list(blast_stderr)
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
+
+    # concatenate files with BLASTp results
+    blast_output = fo.join_paths(final_blast_dir, ['blast_out_concat.tsv'])
+    blast_output = fo.concatenate_files(blast_outputs, blast_output)
 
     final_excluded = sm.apply_bsr(fo.read_tabular(blast_output),
                                   indexed_dna_file,
@@ -1131,7 +1157,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     schema_seqids = list(set(schema_seqids) - set(final_excluded))
 
-    print('removed {0} sequences that were highly similar '
+    print('\nRemoved {0} sequences that were highly similar '
           'to other sequences.'.format(len(final_excluded)))
 
     output_schema = os.path.join(final_blast_dir, 'schema_seed.fasta')

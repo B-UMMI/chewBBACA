@@ -21,10 +21,14 @@ from Bio.SeqIO import FastaIO
 try:
     from utils import (file_operations as fo,
                        iterables_manipulation as im,
+                       sequence_manipulation as sm,
+                       blast_wrapper as bw,
                        constants as ct)
 except:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
+                                 sequence_manipulation as sm,
+                                 blast_wrapper as bw,
                                  constants as ct)
 
 
@@ -326,8 +330,8 @@ def split_fasta(fasta_path, output_path, num_seqs, filenames):
         num_seqs : int
             Split FASTA file into files with this number
             of sequences.
-        filenames : list
-            List with names to attribute to new files.
+        filenames : gen
+            Generator with names to attribute to new files.
 
         Returns
         -------
@@ -382,3 +386,88 @@ def gene_seqs_info(fasta_file):
     stats = [fasta_file, total_seqs, mean_length]
 
     return stats
+
+
+def get_self_scores(fasta_file, output_directory, blast_threads,
+                    blastp_path, makeblastdb_path):
+    """ Aligns a set of sequences against itself to determine
+        the raw score of the self-alignment.
+
+        Parameters
+        ----------
+        fasta_file : str
+            Path to a FASTA file with protein sequences.
+        output_directory : str
+            Path to the directory where intermediate files
+            will be created.
+        blast_threads : int
+            Number of threads for BLASTp execution.
+        blastp_path : str
+            Path to the BLASTp executable.
+        makeblastdb_path : str
+            Path to the makeblastdb executable.
+
+        Returns
+        -------
+        self_lines_ids : dict
+            Dictionary with sequences identifiers as keys
+            and the BLASTp raw score from self-alignment.
+    """
+
+    basename = fo.file_basename(fasta_file, suffix=False)
+
+    integer_seqids = fo.join_paths(output_directory,
+                                   ['{0}_int.fasta'.format(basename)])
+    ids_dict = integer_headers(fasta_file, integer_seqids)
+
+    blastdb = fo.join_paths(output_directory, ['{0}_db'.format(basename)])
+    stderr = bw.make_blast_db(makeblastdb_path, integer_seqids,
+                              blastdb, 'prot')
+
+    blastout = fo.join_paths(output_directory, ['self_blastout.tsv'])
+    self_results = bw.run_blast(blastp_path, blastdb, integer_seqids,
+                                blastout, threads=blast_threads,
+                                max_targets=1)
+
+    self_lines = fo.read_tabular(blastout)
+    self_lines_ids = {ids_dict[l[0]]: l[-1] for l in self_lines}
+
+    return self_lines_ids
+
+
+def translate_fastas(fasta_paths, output_directory, translation_table):
+    """ Translates DNA sequences in a set of FASTA files.
+
+        Parameters
+        ----------
+        fasta_paths : list
+            List with the paths to the FASTA files that contain
+            the DNA sequences to translate.
+        output_directory : str
+            Path to the output directory where FASTA files with
+            protein sequences will be writen to.
+        translation_table : int
+            Genetic code used to translate DNA sequences.
+
+        Returns
+        -------
+        protein_files : list
+            List that contains the paths to the FASTA files with
+            translated sequences.
+    """
+
+    protein_files = []
+    for path in fasta_paths:
+        records = import_sequences(path)
+        translated_records = {seqid: str(sm.translate_dna(seq, translation_table, 0)[0][0])
+                              for seqid, seq in records.items()}
+        translated_lines = fasta_lines(list(translated_records.keys()),
+                                       translated_records)
+
+        basename = fo.file_basename(path).replace('.fasta', '_protein.fasta')
+        prot_file = fo.join_paths(output_directory, [basename])
+
+        fo.write_lines(translated_lines, prot_file)
+        protein_files.append(prot_file)
+
+    return protein_files

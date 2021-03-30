@@ -739,3 +739,31 @@ def kmer_index(sequences, word_size):
             kmers_mapping.setdefault(kmer, []).append(seqid)
 
     return [kmers_mapping, seqs_kmers]
+
+
+
+def contained_terms(iterable, terms):
+    """ Finds elements in an iterable that contain
+        any term from a set of terms.
+
+        Parameters
+        ----------
+        iterable
+            An iterable such as a list with strings
+            or a dictionary.
+        terms : list
+            Terms to search for.
+
+        Returns
+        -------
+        matches : list
+            List with the elements of the iterable
+            that contain any of the searched terms.
+    """
+
+    matches = []
+    for e in iterable:
+        if any([term in e for term in terms]) is True:
+            matches.append(e)
+
+    return matches

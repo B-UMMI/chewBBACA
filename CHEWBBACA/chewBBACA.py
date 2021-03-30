@@ -21,9 +21,10 @@ try:
     from createschema import CreateSchema
     from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
+    from UniprotFinder import uniprot_find
     from utils import (TestGenomeQuality, profile_joiner,
-                       uniprot_find, Extract_cgAlleles,
-                       RemoveGenes, profiles_sqlitedb as ps,
+                       Extract_cgAlleles, RemoveGenes,
+                       profiles_sqlitedb as ps,
                        process_datetime as pd,
                        constants as ct,
                        parameters_validation as pv,
@@ -39,9 +40,10 @@ except:
     from CHEWBBACA.createschema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.UniprotFinder import uniprot_find
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
-                                 uniprot_find, Extract_cgAlleles,
-                                 RemoveGenes, profiles_sqlitedb as ps,
+                                 Extract_cgAlleles, RemoveGenes,
+                                 profiles_sqlitedb as ps,
                                  process_datetime as pd,
                                  constants as ct,
                                  parameters_validation as pv,
@@ -965,19 +967,38 @@ def find_uniprot():
 
     def msg(name=None):
 
-        # simple command to determine annotations for the loci in a schema
+        # simple command to find annotations by querying Uniprot's SPARQL endpoint
+        # and aligning against reference proteomes
         simple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
-                      '-t <protein_table> '
+                      '-t <protein_table> -o <output_directory>\n'
+                      '\t\t\t     --taxa "Streptococcus agalactiae" '
                       '--cpu <cpu_cores>')
 
-        usage_msg = (
-            '\nFind annotations for loci in a schema:\n\n{0}\n'.format(simple_cmd))
+        # command to align against the reference proteomes of several species
+        multiple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+                        '-t <protein_table> -o <output_directory>\n'
+                        '\t\t\t     --taxa "Streptococcus agalactiae" "Streptococcus pyogenes" '
+                        '--cpu <cpu_cores>')
+
+        # command to align against the reference proteomes of several species
+        genus_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+                      '-t <protein_table> -o <output_directory>\n'
+                      '\t\t\t     --taxa "Streptococcus" '
+                      '--cpu <cpu_cores>')
+
+        usage_msg = ('\nFind annotations for loci in a schema:\n\n{0}\n'
+                     '\nAlign against reference proteomes of several species:\n\n{1}\n'
+                     '\nAlign against reference proteomes of a genus:\n\n{2}\n'.format(simple_cmd,
+                                                                                       multiple_cmd,
+                                                                                       genus_cmd))
 
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='UniprotFinder',
                                      description='Determines loci annotations based '
-                                                 'on exact matches found in the UniProt database.',
+                                                 'on exact matches found in UniProt\'s '
+                                                 'database and based on alignment against '
+                                                 'reference proteomes for a set of taxa.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
@@ -986,23 +1007,53 @@ def find_uniprot():
 
     parser.add_argument('-i', '--input-files', type=str,
                         required=True, dest='input_files',
-                        help='Path to the schema\'s directory or to a file with '
-                             'a list of paths to loci FASTA files, one per line.')
-
-    parser.add_argument('-t', '--protein-table', type=str,
-                        required=True, dest='protein_table',
-                        help='Path to the "proteinID_Genome.tsv" file created by '
-                             'the CreateSchema process.')
+                        help='Path to the schema\'s directory or to a file '
+                             'with a list of paths to loci FASTA files, one '
+                             'per line.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
-                        help='The directory where the output files will be '
-                             'saved (will create the directory if it does not '
-                             'exist).')
+                        help='Output directory where the process will '
+                             'store intermediate files and save the final '
+                             'TSV file with the annotations.')
+
+    parser.add_argument('-t', '--protein-table', type=str,
+                        required=False, dest='protein_table',
+                        help='Path to the "cds_info.tsv" file created by '
+                             'the CreateSchema process.')
+
+    parser.add_argument('--bsr', type=float, required=False,
+                        dest='blast_score_ratio',
+                        default=0.6,
+                        help='BLAST Score Ratio value. This value is only '
+                             'used when a taxon/taxa is provided and local '
+                             'sequences are aligned against reference '
+                             'proteomes.')
 
     parser.add_argument('--cpu', '--cpu-cores', type=int,
                         required=False, default=1, dest='cpu_cores',
-                        help='The number of CPU cores to use during the process.')
+                        help='Number of CPU cores used to run the process.')
+
+    parser.add_argument('--taxa', nargs='+', type=str,
+                        required=False, dest='taxa',
+                        help='List of scientific names for a set of taxa. The '
+                             'process will search for and download reference '
+                             'proteomes with terms that match any of the '
+                             'provided taxa.')
+
+    parser.add_argument('--pm', type=int, required=False,
+                        default=1, dest='proteome_matches',
+                        help='Maximum number of proteome matches to report.')
+
+    parser.add_argument('--no-cleanup', action='store_true',
+                        required=False, dest='no_cleanup',
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed '
+                             'at the end.')
+
+    parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+                        required=False, default='', dest='blast_path',
+                        help='Path to the BLAST executables.')
 
     args = parser.parse_args()
     del args.UniprotFinder
@@ -1376,15 +1427,15 @@ def main():
                                        join_profiles],
                       'UniprotFinder': ['Retrieve annotations for loci in a schema.',
                                         find_uniprot],
-                      'DownloadSchema': ['Download a schema from the Chewie-NS.',
+                      'DownloadSchema': ['Download a schema from Chewie-NS.',
                                          download_schema],
-                      'LoadSchema': ['Upload a schema to the Chewie-NS.',
+                      'LoadSchema': ['Upload a schema to Chewie-NS.',
                                      upload_schema],
                       'SyncSchema': ['Synchronize a schema with its remote version '
-                                     'in the Chewie-NS.',
+                                     'in Chewie-NS.',
                                      synchronize_schema],
                       'NSStats': ['Retrieve basic information about the species '
-                                  'and schemas in the Chewie-NS.',
+                                  'and schemas in Chewie-NS.',
                                   ns_stats]}
 
     print('\nchewBBACA version: {0}'.format(version))

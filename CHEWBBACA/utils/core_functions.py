@@ -237,13 +237,10 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     if len(dedup_inputs) > 1:
         if all_ids is True:
             all_dicts = [d[1] for d in dedup_results]
-            previous_distinct = {}
-            for d in all_dicts:
-                for k, v in d.items():
-                    if k in previous_distinct:
-                        previous_distinct[k] = list(set.union(set(v), set(previous_distinct[k])))
-                    else:
-                        previous_distinct[k] = v
+            previous_distinct = im.merge_dictionaries({},
+                                                      all_dicts,
+                                                      overwrite=False)
+
         # concatenate results from first round
         dedup_files = [f[1] for f in dedup_inputs]
         cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
@@ -254,10 +251,10 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
         # create dict with all identifiers for duplicated sequences
         if all_ids is True:
-            for k, v in distinct_seqids.items():
-                # this should only be a list during testing stages!!!
-                previous_distinct[k] = list(set.union(set(v), set(previous_distinct[k])))
-                distinct_seqids = previous_distinct
+            previous_distinct = im.merge_dictionaries(previous_distinct,
+                                                      [distinct_seqids],
+                                                      overwrite=False)
+            distinct_seqids = previous_distinct
 
         repeated += repeated_seqs
 
@@ -271,7 +268,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
         return [dedup_results[0][1], dedup_inputs[0][1]]
 
 
-def exclude_small(fasta_file, minimum_length):
+def exclude_small(fasta_file, minimum_length, variation=0):
     """ Identifies sequences smaller that a specified length
         value.
 
@@ -297,7 +294,7 @@ def exclude_small(fasta_file, minimum_length):
     # determine small sequences and keep their seqids
     print('\nRemoving sequences smaller than {0} '
           'nucleotides...'.format(minimum_length), end='')
-    small_seqids = sm.determine_small(fasta_file, minimum_length)
+    small_seqids = sm.determine_small(fasta_file, minimum_length, variation)
 
     ss_lines = ['{0}: smaller than {1} chars'.format(seqid, minimum_length)
                 for seqid in small_seqids]

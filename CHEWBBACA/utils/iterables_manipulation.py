@@ -117,7 +117,7 @@ def divide_list_into_n_chunks(list_to_divide, n):
     return sublists
 
 
-def merge_dictionaries(dictionaries_list):
+def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):
     """ Merges several dictionaries into a single dictionary.
 
         Parameters
@@ -132,9 +132,17 @@ def merge_dictionaries(dictionaries_list):
             all input dictionaries.
     """
 
-    merged_dicts = {}
-    for d in dictionaries_list:
-        merged_dicts = {**merged_dicts, **d}
+    merged_dicts = starting_dictionary
+    if overwrite is True:
+        for d in dictionaries_list:
+            merged_dicts = {**merged_dicts, **d}
+    elif overwrite is False:
+        for d in dictionaries_list:
+            for k, v in d.items():
+                if k in merged_dicts:
+                    merged_dicts[k] = list(set.union(set(v), set(merged_dicts[k])))
+                else:
+                    merged_dicts[k] = v
 
     return merged_dicts
 

@@ -147,7 +147,8 @@ cpu_cores = 6
 blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
 prodigal_mode = 'single'
 cds_input = False
-def allele_calling(input_files, output_directory, ptf_path,
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/saga32_schema/schema_seed'
+def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    representative_filter, intra_filter, cpu_cores, blast_path,
@@ -198,17 +199,96 @@ def allele_calling(input_files, output_directory, ptf_path,
     # instead of returning the dictionary with all identfiers, save dictionary to pickle?
     unique_seqids, distinct_seqs_file = ds_results
 
+    # save dictionary with all ids to file
+    identifiers_file = fo.join_paths(preprocess_dir, ['distinct_identifiers'])
+    fo.pickle_dumper(unique_seqids, identifiers_file)
+
+    # determine small sequences step
+    ss_results = cf.exclude_small(distinct_seqs_file, minimum_length)
+    small_seqids, ss_lines = ss_results
+
+    excluded = [k
+                for k, v in unique_seqids.items()
+                if any([i in small_seqids for i in v])]
+
+    valid_seqids = {rec.id: im.hash_sequence(str(rec.seq))
+                    for rec in SeqIO.parse(distinct_seqs_file, 'fasta')}
+
+    valid_seqids = {k: v
+                    for k, v in valid_seqids.items()
+                    if v not in excluded}
+
+    # sequence translation step
+    ts_results = cf.translate_sequences(list(valid_seqids.keys()), distinct_seqs_file,
+                                        preprocess_dir, translation_table,
+                                        minimum_length, cpu_cores)
+
+    dna_file, protein_file, ut_seqids, ut_lines = ts_results
+
+    excluded += [valid_seqids[seqid] for seqid in ut_seqids]
+    valid_dna_seqids = {k: v
+                        for k, v in valid_seqids.items()
+                        if k not in ut_seqids}
+
+    # write info about invalid alleles to file
+    invalid_alleles_file = fo.join_paths(output_directory,
+                                         ['invalid_cds.txt'])
+    invalid_alleles = im.join_list(ut_lines+ss_lines, '\n')
+    fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
+    print('Info about untranslatable and small sequences '
+          'stored in {0}'.format(invalid_alleles_file))
+
+    # protein sequences deduplication step
+    distinct_prot_template = 'distinct_prots_{0}.fasta'
+    ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
+                                       distinct_prot_template, True)
+
+    distinct_protein_seqs, distinct_prots_file = ds_results
+
+    distinct_protein_seqids = [v[0] for k, v in distinct_protein_seqs.items()]
+    distinct_protein_seqids.sort(key=lambda y: y.lower())
+
+    # write protein FASTA file
+    qc_protein_file = os.path.join(preprocess_dir, 'filtered_proteins.fasta')
+    indexed_protein_file = SeqIO.index(protein_file, 'fasta')
+    fao.get_sequences_by_id(indexed_protein_file, distinct_protein_seqids,
+                            qc_protein_file)
+
+    # write DNA FASTA file
+    qc_dna_file = os.path.join(preprocess_dir, 'filtered_dna.fasta')
+    indexed_dna_file = SeqIO.index(dna_file, 'fasta')
+    fao.get_sequences_by_id(indexed_dna_file, distinct_protein_seqids,
+                            qc_dna_file)
+
+    print('\nKept {0} sequences after filtering the initial '
+          'sequences.'.format(len(distinct_protein_seqids)))
+
+    # determine DNA and protein exact matches to schema seqs
+    schema_loci = os.listdir(schema_directory)
+    schema_loci = [fo.join_paths(schema_directory, [file])
+                   for file in schema_loci]
+
+    def exact_matches(fasta_file, seqs):
+        """
+        """
+
+        # import fasta records
+        records = fao.import_sequences(fasta_file)
+
+        records_hashes = {im.hash_sequence(seq): seqid
+                          for seqid, seq in records.items()}
+
+        matches = {k: records_hashes[k]
+                   for k in seqs
+                   if k in records_hashes}
+        
+    
+
+    # only perform clustering after that
+    
 
 
-
-
-
-
-
-
-
-
-def main(input_files, output_directory, ptf_path,
+def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
@@ -226,7 +306,7 @@ def main(input_files, output_directory, ptf_path,
     print('Representative filter: {0}'.format(representative_filter))
     print('Intra-cluster filter: {0}'.format(intra_filter))
 
-    results = allele_calling(input_files, output_directory,
+    results = allele_calling(input_files, schema_directory, output_directory,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, representative_filter,
@@ -248,6 +328,10 @@ def parse_arguments():
                         help='Path to the directory that contains the input '
                              'FASTA files. Alternatively, a single file with '
                              'a list of paths to FASTA files, one per line.')
+
+    parser.add_argument('-g', '--schema-directory', type=str,
+                        required=True, dest='schema_directory',
+                        help='')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',

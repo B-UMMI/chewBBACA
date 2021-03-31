@@ -529,7 +529,8 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
         try:
             sequence = str(cds_index.get(seqid).seq)
         except Exception as e:
-            print(e)
+            print(seqid)
+            #print(e)
 
         translation = sm.translate_dna(sequence, translation_table, minimum_length)
         if isinstance(translation, list):
@@ -620,7 +621,7 @@ def determine_distinct(sequences_file, unique_fasta, all_ids=False):
         return [total, seqs_dict]
 
 
-def determine_small(sequences_file, minimum_length):
+def determine_small(sequences_file, minimum_length, variation=0):
     """ Find protein sequences that are shorter than
         desired length.
 
@@ -638,13 +639,14 @@ def determine_small(sequences_file, minimum_length):
             List with the identifiers of small sequences.
     """
 
+    variation = minimum_length - (minimum_length*variation)
     small_seqids = []
     for record in SeqIO.parse(sequences_file, 'fasta'):
         # seq object has to be converted to string
         sequence = str(record.seq)
         seqid = record.id
 
-        if len(sequence) < minimum_length:
+        if len(sequence) < variation:
             small_seqids.append(seqid)
 
     return small_seqids

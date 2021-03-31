@@ -408,7 +408,7 @@ def allele_call():
     args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
     args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
-    AlleleCall.main(genomes_files, args.output_directory, args.ptf_path,
+    AlleleCall.main(genomes_files, args.schema_directory, args.output_directory, args.ptf_path,
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size,
                     args.clustering_sim, args.representative_filter, args.intra_filter,

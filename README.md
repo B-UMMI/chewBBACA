@@ -284,17 +284,17 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 
 `-o` Path to the directory where the process will store output files.
 
-`-p` (Optional) Genes that constitute the core genome must be in a
+`--t` (Optional) Genes that constitute the core genome must be in a
      proportion of genomes that is at least equal to this value.
      (e.g 0.95 to get a matrix with the loci that are present in at 
      least 95% of the genomes) (default: 1)
 
-`-r` (Optional) Path to file with a list of genes/columns to remove 
+`--r` (Optional) Path to file with a list of genes/columns to remove 
      from the matrix (one gene identifier per line, e.g. the list of
      genes listed in the RepeatedLoci.txt file created by the AlleleCall
      process)
 
-`-g` (Optional) Path to file with a list of genomes/rows to remove from the
+`--g` (Optional) Path to file with a list of genomes/rows to remove from the
      matrix (one genome identifier per line, e.g. list of genomes to be 
      removed based on the results from the TestGenomeQuality process) 
 

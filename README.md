@@ -307,12 +307,12 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 
  **Create a html report to help evaluate your schema**
  
- See an example [here](http://im.fm.ul.pt/chewBBACA/SchemaEval/rms/RmS.html)
+ See an example [here](https://saureus-report.herokuapp.com/)
 
 Basic usage:
 
 ```
-chewBBACA.py SchemaEvaluator -i schema_directory/ -o schema_evaluation --cpu 4
+chewBBACA.py SchemaEvaluator -i schema_directory/ -o output_dir --ta 11 --th 0.05 --ml 201 --cpu 3
 ```
 	
 `-i` Path to the schema's directory or path to a file containing the
@@ -321,9 +321,16 @@ chewBBACA.py SchemaEvaluator -i schema_directory/ -o schema_evaluation --cpu 4
 
 `-o` Path to the output directory where the report HTML
      files will be generated.
+     
+`--ta` (optional) which translation table to use. (default: [11](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1))
 
-`--cpu` Number of CPU cores to use to run the process (used for 
-        mafft and clustalw2 steps)
+`--th` (optional) Allele size variation threshold. If an allele has a size within the interval of the locus mode -/+ the threshold, it will be considered a conserved allele. (default=0.05)
+
+`--ml` (optional) minimum sequence length accepted for a coding sequence (CDS) to be included in the schema. (default=201)
+
+`--cpu` Number of CPU cores to use to run the process
+
+Please consult the [SchemaEvaluator's wiki page](https://github.com/B-UMMI/chewBBACA/wiki/4.-Schema-Evaluation) for more information.
 
 ----------
 ## FAQ

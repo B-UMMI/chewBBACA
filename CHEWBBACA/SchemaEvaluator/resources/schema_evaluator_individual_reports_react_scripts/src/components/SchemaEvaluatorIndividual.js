@@ -62,12 +62,13 @@ class SchemaEvaluator extends Component {
     this.logo = React.createRef();
   }
 
-
-  componentDidMount(){
-    this.Viewer.current.zoom(0, 250, 10);
+  componentDidMount() {
+    if (this.Viewer == !null) {
+      this.Viewer.current.zoom(0, 250, 10);
+    }
   }
 
-  componentDidUpdate(){
+  componentDidUpdate() {
     this.Viewer.current.zoom(0, 250, 10);
   }
 
@@ -164,8 +165,8 @@ class SchemaEvaluator extends Component {
       position: POSITION_NONE,
       background: "#fff",
       width: 0,
-      height: 0
-    }
+      height: 0,
+    };
 
     const phylocanvasComponent =
       this.state.phyloData === "undefined" ? (
@@ -271,25 +272,30 @@ class SchemaEvaluator extends Component {
               </AccordionSummary>
               <AccordionDetails>
                 <div id="logo" style={{ width: "100%", height: "100%" }}>
-                <UncontrolledReactSVGPanZoom  width= {1200} height ={500}
-              scaleFactorMin={9} scaleFactorMax={20} scaleFactor={1.1}
-              ref={this.Viewer}
-              detectWheel={false}
-              scaleFactorOnWheel={1}
-              detectAutoPan={false}
-              miniatureProps={miniatureProps}>
-                <div width= {1200} height ={500}  >
-                <ProteinLogo
-                  fasta={this.state.fasta}
-                  mode={
-                    this.state.logoMode === 0
-                      ? "INFORMATION_CONTENT"
-                      : "FREQUENCY"
-                  }
-                  yAxisMax={this.state.counter}
-                />
-                          </div>
-                          </UncontrolledReactSVGPanZoom>
+                  <UncontrolledReactSVGPanZoom
+                    width={1200}
+                    height={500}
+                    scaleFactorMin={9}
+                    scaleFactorMax={20}
+                    scaleFactor={1.1}
+                    ref={this.Viewer}
+                    detectWheel={false}
+                    scaleFactorOnWheel={1}
+                    detectAutoPan={false}
+                    miniatureProps={miniatureProps}
+                  >
+                    <div width={1200} height={500}>
+                      <ProteinLogo
+                        fasta={this.state.fasta}
+                        mode={
+                          this.state.logoMode === 0
+                            ? "INFORMATION_CONTENT"
+                            : "FREQUENCY"
+                        }
+                        yAxisMax={this.state.counter}
+                      />
+                    </div>
+                  </UncontrolledReactSVGPanZoom>
                   <br />
                   <br />
                   <Button

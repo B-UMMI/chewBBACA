@@ -1,0 +1,1 @@
+data/allelecall_data/test_genome/GCA_000007265.1_ASM726v1_genomic.fna

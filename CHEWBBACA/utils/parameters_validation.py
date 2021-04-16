@@ -1318,6 +1318,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
+        # list of input genomes must have full paths
         if parent_dir is not None:
 
             with open(input_path, 'r') as infile:
@@ -1335,6 +1336,8 @@ def check_input_type(input_path, output_file, parent_dir=None):
                 outfile.write('\n'.join(lines))
 
             list_files = output_file
+        else:
+            list_files = input_path
 
     elif os.path.isdir(input_path):
         # we need to get only files with FASTA extension

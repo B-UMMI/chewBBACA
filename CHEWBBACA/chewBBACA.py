@@ -179,6 +179,7 @@ def create_schema():
         os.makedirs(args.output_directory)
 
     genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
+    input_type = os.path.isdir(args.input_files)
     args.input_files = pv.check_input_type(args.input_files, genomes_list)
 
     # add clustering config
@@ -212,7 +213,8 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    os.remove(args.input_files)
+    if input_type is True:
+        os.remove(args.input_files)
 
 
 @pd.process_timer
@@ -392,9 +394,12 @@ def allele_call():
     # if not check if is a folder or a txt with a list of paths
     if args.genes_list is not False:
         schema_genes = pv.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
+        input_type = [False]
     else:
         schema_genes = pv.check_input_type(args.schema_directory, 'listGenes2Call.txt')
+        input_type = [True]
 
+    input_type.append(os.path.isdir(args.input_files))
     genomes_files = pv.check_input_type(args.input_files, 'listGenomes2Call.txt')
 
     # determine if schema was downloaded from Chewie-NS
@@ -412,7 +417,10 @@ def allele_call():
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
-    fo.remove_files([schema_genes, genomes_files])
+    if input_type[0] is True:
+        fo.remove_files([schema_genes])
+    if input_type[1] is True:
+        fo.remove_files([genomes_files])
 
 
 @pd.process_timer

@@ -29,13 +29,12 @@ def pickle_loader(pickle_in):
        '-i', 'data/createschema_data/mock_genome_dir',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'data/createschema_data/expected_results')
-     ],
-    [(['chewBBACA.py', 'CreateSchema',
+      'data/createschema_data/expected_results'),
+     (['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/mock_genome_list/mock_genomes.txt',
-       '-o', 'createschema_results_list',
+       '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'data/createschema_data/expected_results')
+      'data/createschema_data/expected_results'),
      ])
 def test_createschema_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):

@@ -1323,6 +1323,8 @@ def check_input_type(input_path, output_file, parent_dir=None):
             with open(input_path, 'r') as infile:
                 lines = list(csv.reader(infile))
 
+            lines = [f[0] for f in lines]
+
             # add parent directory path if necessary
             lines = [os.path.join(parent_dir, f)
                      if parent_dir not in f

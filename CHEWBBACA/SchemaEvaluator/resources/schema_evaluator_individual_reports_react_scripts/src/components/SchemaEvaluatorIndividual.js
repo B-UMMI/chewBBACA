@@ -37,7 +37,15 @@ import { PhylogeneticTree } from "./Phylocanvas";
 
 // SeqLogo component
 import { ProteinLogo } from "logojs-react";
-import { UncontrolledReactSVGPanZoom, POSITION_NONE } from "react-svg-pan-zoom";
+import {
+  UncontrolledReactSVGPanZoom,
+  POSITION_NONE,
+  ALIGN_TOP,
+  POSITION_RIGHT,
+  INITIAL_VALUE,
+  TOOL_NONE,
+} from "react-svg-pan-zoom";
+import Toolbar from "./ui-toolbar/toolbar.jsx";
 
 class SchemaEvaluator extends Component {
   state = {
@@ -54,6 +62,8 @@ class SchemaEvaluator extends Component {
     indTabValue: 0,
     treeType: 0,
     zoom: false,
+    tool: TOOL_NONE,
+    value: INITIAL_VALUE,
   };
 
   constructor(props) {
@@ -70,6 +80,14 @@ class SchemaEvaluator extends Component {
 
   componentDidUpdate() {
     this.Viewer.current.zoom(0, 250, 10);
+  }
+
+  changeTool(nextTool) {
+    this.setState({ tool: nextTool });
+  }
+
+  changeValue(nextValue) {
+    this.setState({ value: nextValue });
   }
 
   getMuiTheme = () =>
@@ -167,6 +185,11 @@ class SchemaEvaluator extends Component {
       width: 0,
       height: 0,
     };
+    // const toolbarProps = {
+    //   position: POSITION_RIGHT,
+    //   //   SVGAlignY: ALIGN_TOP,
+    //   //   SVGAlignX: ALIGN_TOP,
+    // };
 
     const phylocanvasComponent =
       this.state.phyloData === "undefined" ? (
@@ -282,6 +305,15 @@ class SchemaEvaluator extends Component {
                     detectWheel={false}
                     scaleFactorOnWheel={1}
                     detectAutoPan={false}
+                    customToolbar={
+                        <Toolbar
+                          tool={this.state.tool}
+                          onChangeTool={(tool) => this.changeTool(tool)}
+                          value={this.state.value}
+                          onChangeValue={(value) => this.changeValue(value)}
+                        />
+                    }
+                    // toolbarProps={toolbarProps}
                     miniatureProps={miniatureProps}
                   >
                     <div width={1200} height={500}>

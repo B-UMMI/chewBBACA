@@ -426,6 +426,34 @@ def create_annotations_table(annotations, output_directory, header,
     return output_table
 
 
+def import_cds_info(protein_table, loci_identifiers, loci_info):
+    """
+    """
+
+    with open(protein_table, 'r') as infile:
+        table_header = infile.readline()
+        table_header = table_header.strip().split('\t')
+        processed = 0
+        some_left = True
+        while some_left:
+            lines = infile.readlines(1000000)
+            if len(lines) > 0:
+                for l in lines:
+                    fields = l.strip().split('\t')
+                    locus_id = fields[0].replace('_', '-')
+                    locus_id = locus_id + '-protein{0}'.format(fields[-2])
+                    if locus_id in loci_identifiers:
+                        loci_info[locus_id] = fields
+                        processed += 1
+                        print('\r', 'Extracted info for {0}/{1} '
+                              'loci'.format(processed, len(loci_identifiers)),
+                              end='')
+            else:
+                some_left = False
+
+    return [loci_info, table_header]
+
+
 def main(input_files, output_directory, protein_table, blast_score_ratio,
          cpu_cores, taxa, proteome_matches, no_cleanup, blast_path):
 
@@ -473,27 +501,13 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
     if protein_table is not None:
         # read cds_info table
         # read "cds_info.tsv" file created by CreateSchema
-        sparql_results_ids = [fo.file_basename(f[0], suffix=False)
-                              for f in sparql_results]
+        print('\nExtracting loci data from {0}'.format(protein_table))
+        loci_identifiers = [fo.file_basename(f[0], suffix=False)
+                            for f in sparql_results]
 
-        with open(protein_table, 'r') as infile:
-            table_header = infile.readline()
-            table_header = table_header.strip().split('\t')
-            processed = 0
-            some_left = True
-            while some_left:
-                lines = infile.readlines(1000000)
-                if len(lines) > 0:
-                    for l in lines:
-                        fields = l.strip().split('\t')
-                        locus_id = fields[0].replace('_', '-')
-                        locus_id = locus_id + '-protein{0}'.format(fields[-2])
-                        if locus_id in sparql_results_ids:
-                            loci_info[locus_id] = fields
-                    processed += len(lines)
-                    print('\r', 'Processed: {0}'.format(processed), end='')
-                else:
-                    some_left = False
+        loci_info, table_header = import_cds_info(protein_table,
+                                                  loci_identifiers,
+                                                  loci_info)
 
     annotations = join_annotations(sparql_results, proteome_results, loci_info)
 

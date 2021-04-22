@@ -2,9 +2,9 @@ name: chewbbaca
 
 on:
   push:
-    branches: [ master, gene_list_bugfix ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, gene_list_bugfix ]
+    branches: [ master ]
 
 jobs:
   build:

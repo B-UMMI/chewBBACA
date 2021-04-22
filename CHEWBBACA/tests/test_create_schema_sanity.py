@@ -29,7 +29,12 @@ def pickle_loader(pickle_in):
        '-i', 'data/createschema_data/mock_genome_dir',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'data/createschema_data/expected_results')
+      'data/createschema_data/expected_results'),
+     (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/mock_genome_list/mock_genomes.txt',
+       '-o', 'createschema_results',
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
+      'data/createschema_data/expected_results'),
      ])
 def test_createschema_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
@@ -70,6 +75,12 @@ def test_createschema_valid(test_args, expected):
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
+
+    # delete results
+    try:
+        shutil.rmtree(test_args[5])
+    except Exception as e2:
+        pass
 
 
 @pytest.mark.parametrize(

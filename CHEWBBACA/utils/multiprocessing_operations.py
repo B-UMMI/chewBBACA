@@ -42,7 +42,7 @@ def function_helper(input_args):
         traceback_lines = traceback.format_exception(etype=type(e), value=e,
                                                      tb=e.__traceback__)
         traceback_text = ''.join(traceback_lines)
-        print('Error on {0}:\n{1}\n'.format(func_name, traceback_text))
+        print('\nError on {0}:\n{1}\n'.format(func_name, traceback_text))
         results = [func_name, traceback_text]
 
     return results

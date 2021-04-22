@@ -1,0 +1,7 @@
+sagalactiae-protein10.fasta
+sagalactiae-protein1.fasta
+sagalactiae-protein2.fasta
+sagalactiae-protein3.fasta
+sagalactiae-protein4.fasta
+sagalactiae-protein5.fasta
+sagalactiae-protein6.fasta

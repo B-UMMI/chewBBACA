@@ -1,0 +1,2 @@
+data/createschema_data/mock_genome_dir/GCA_000007265.1_ASM726v1_genomic.fna
+data/createschema_data/mock_genome_dir/GCA_001190865.1_ASM119086v1_genomic.fna

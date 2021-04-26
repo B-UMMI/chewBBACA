@@ -728,6 +728,7 @@ def create_pre_computed_data(
         hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in hist_data_sort]
 
         # check if the user provided annotations
+        annotations_data = {}
         if annotations is None:
             uniprot_finder_missing_keys = [
                 "genome",
@@ -737,28 +738,52 @@ def create_pre_computed_data(
                 "coding_strand",
                 "name",
                 "url",
+                "proteome_id",
+                "proteome_product",
+                "proteome_gene_name",
+                "proteome_species",
+                "proteome_bsr",
             ]
             for d in data_ind:
                 d.update(dict.fromkeys(uniprot_finder_missing_keys, "Not provided"))
 
         else:
             with open(annotations, "r") as a:
-                annotations_reader = csv.reader(a, delimiter="\t")
-                # skip header
-                next(annotations_reader, None)
-                annotations_data = {
-                    rows[0]: [
-                        rows[1],
-                        rows[2],
-                        rows[3],
-                        rows[4],
-                        rows[5],
-                        rows[6],
-                        rows[7],
-                        rows[8],
-                    ]
-                    for rows in annotations_reader
-                }
+                annotations_reader = csv.DictReader(a, delimiter="\t", restval="-")
+                for row in annotations_reader:
+                    if len(row.keys()) == 14:
+                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                                row["Genome"],
+                                row["Contig"],
+                                row["Start"],
+                                row["Stop"],
+                                row["Protein_ID"],
+                                row["Coding_Strand"],
+                                row["Uniprot_Name"],
+                                row["UniProt_URL"],
+                                row["Proteome_ID"],
+                                row["Proteome_Product"],
+                                row["Proteome_Gene_Name"],
+                                row["Proteome_Species"],
+                                row["Proteome_BSR"]
+                            ]
+                        
+                    else:
+                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                                row["Genome"],
+                                row["Contig"],
+                                row["Start"],
+                                row["Stop"],
+                                row["Protein_ID"],
+                                row["Coding_Strand"],
+                                row["Uniprot_Name"],
+                                row["UniProt_URL"],
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided"
+                            ]
 
             for d in data_ind:
                 try:
@@ -774,6 +799,11 @@ def create_pre_computed_data(
                             else "antisense",
                             "name": annotations_data[d["Gene"]][6],
                             "url": annotations_data[d["Gene"]][7],
+                            "proteome_id": annotations_data[d["Gene"]][8],
+                            "proteome_product": annotations_data[d["Gene"]][9],
+                            "proteome_gene_name": annotations_data[d["Gene"]][10],
+                            "proteome_species": annotations_data[d["Gene"]][11],
+                            "proteome_bsr": annotations_data[d["Gene"]][12],
                         }
                     )
                 except KeyError:
@@ -785,6 +815,11 @@ def create_pre_computed_data(
                         "coding_strand",
                         "name",
                         "url",
+                        "proteome_id",
+                        "proteome_product",
+                        "proteome_gene_name",
+                        "proteome_species",
+                        "proteome_bsr",
                     ]
                     d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
 
@@ -1018,9 +1053,7 @@ def create_protein_files(
             )
 
     # set the minimum length value for translation
-    minimum_length_to_translate = minimum_length - (
-        minimum_length * size_threshold
-    )
+    minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
 
     print("\nTranslating....\n")
 
@@ -1337,7 +1370,7 @@ def write_individual_html(
             json.dumps(msa_data, sort_keys=True),
             json.dumps(phylo_data_json, sort_keys=True),
             json.dumps(int(minimum_length), sort_keys=True),
-            fasta_file_content
+            fasta_file_content,
         )
 
         html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))

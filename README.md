@@ -32,9 +32,14 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carri√
 
 # Latest updates
 
-## 2.8.0
+## 2.8.0 - 2.8.3
 
-New implementation of the **UniprotFinder** process. A new feature allows users to specify a set of taxa and determine annotation terms based on matches against UniProt's reference proteomes for those taxa.
+Added the Sequence Logo component to the individual reports of SchemaEvaluator. New implementation of the **UniprotFinder** process. A new feature allows users to specify a set of taxa and determine annotation terms based on matches against UniProt's reference proteomes for those taxa.
+
+### Additional changes
+
+- Bugfix to fix issue in the PrepExternalSchema when BLAST 2.10.x was used.
+- Bugfix to fix issue when users provided a text file with the paths to the input genome assemblies or genes to use in the CreateSchema or AlleleCall processes.
 
 ## 2.7.0
 

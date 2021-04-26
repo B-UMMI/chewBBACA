@@ -38,7 +38,7 @@ Added the Sequence Logo component to the individual reports of SchemaEvaluator. 
 
 ### Additional changes
 
-- Bugfix to fix issue in the PrepExternalSchema when BLAST 2.10.x was used.
+- Bugfix to fix issue in the PrepExternalSchema process when BLAST >= v2.10 was used.
 - Bugfix to fix issue when users provided a text file with the paths to the input genome assemblies or genes to use in the CreateSchema or AlleleCall processes.
 
 ## 2.7.0

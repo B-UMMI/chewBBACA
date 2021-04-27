@@ -234,7 +234,7 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
         total number of available CPU cores/threads)(default: 1).
 
 `-b` (Optional) Path to the BLASTp executables. Use this option if chewBBACA cannot find
-     BLASTp executables or if you want to use anoter BLAST istallation that is not
+     BLASTp executables or if you want to use anoter BLAST installation that is not
      the one added to the PATH.
 
 `--pm` (Optional) Prodigal running mode (default: single).
@@ -251,12 +251,14 @@ By default, the AlleleCall process uses the Prodigal training file included in t
 
 **Outputs files**:
 
+The following files will be saved into the `/path/to/OutputFolderName/results_datestamp` directory:
+
 ```
-./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_statistics.txt
-./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_contigsInfo.txt
-./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_Alleles.txt 
-./< OutputFolderName >_< datestamp>/< OutputFolderName > logging_info.txt 
-./< OutputFolderName >_< datestamp>/< OutputFolderName > RepeatedLoci.txt
+results_statistics.tsv
+results_contigsInfo.tsv
+results_alleles.tsv
+logging_info.txt
+RepeatedLoci.txt
 ```
 
 **Optional: determine annotations for loci in the schema**

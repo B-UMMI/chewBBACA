@@ -199,44 +199,6 @@ chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderNa
 
 One fasta file per distinct gene identified in the schema creation process in the `/path/to/OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The CreateSchema process also creates a file, "cds_info.tsv", in `/path/to/OutputFolderName/` with the locations of the identified genes in each genome passed to create the schema.
 
-**Optional: determine annotations for loci in the schema**
-
-The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to [UniProt's SPARQL endpoint](http://sparql.uniprot.org/sparql) and through alignment against the reference proteomes for a set of taxa.
-
-Basic usage:
-
-```
-chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_info.tsv --taxa "Species Name" --cpu 4
-```
-
-**Parameters**
-
-`-i` Path to the schema's directory or to a file with a list of
-     paths to loci FASTA files, one per line.
-
-`-o` Output directory where the process will store
-     intermediate files and save the final TSV file with the
-     annotations.
-
-`-t` (Optional) Path to the "cds_info.tsv" file created by the
-     CreateSchema process.
-
-`--bsr` (Optional) BLAST Score Ratio value. This value is only used when a
-        taxon/taxa is provided and local sequences are aligned
-        against reference proteomes (default: 0.6).
-
-`--cpu` (Optional) Number of CPU cores used to run the process (default: 1).
-
-`--taxa` (Optional) List of scientific names for a set of taxa. The process
-         will search for and download reference proteomes with
-         terms that match any of the provided taxa (default: None).
-
-`--pm` (Optional) Maximum number of proteome matches to report (default: 1).
-
-**Outputs:**
-
-The `/path/to/OutputFolderName` directory contains a TSV file, `schema_annotations.tsv`, with the information found for each locus. The process will always search for annotations through UniProt's SPARQL endpoint, reporting the product name and UniProt URL for local loci with an exact match in UniProt's database. If the `cds_info.tsv` file is passed to the `-t` parameter, the output file will also include the information in that file. The `--taxa` parameter receives a set of taxa names and searches for reference proteomes that match the provided terms. The reference proteomes are downloaded and the process aligns schema representative sequences against the reference proteomes to include additional information in the `schema_annotations.tsv` file based on matches against the sequences in the reference proteomes.
-
 ----------
 
 ## 2.  Allele call using the wgMLST schema 
@@ -285,6 +247,8 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 
 By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` argument. If a text file with a list of gene identifiers is passed to the `--gl` parameter, the process will only perform allele calling for the genes in the list.
 
+----------
+
 **Outputs files**:
 
 ```
@@ -294,6 +258,44 @@ By default, the AlleleCall process uses the Prodigal training file included in t
 ./< OutputFolderName >_< datestamp>/< OutputFolderName > logging_info.txt 
 ./< OutputFolderName >_< datestamp>/< OutputFolderName > RepeatedLoci.txt
 ```
+
+**Optional: determine annotations for loci in the schema**
+
+The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to [UniProt's SPARQL endpoint](http://sparql.uniprot.org/sparql) and through alignment against the reference proteomes for a set of taxa.
+
+Basic usage:
+
+```
+chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_info.tsv --taxa "Species Name" --cpu 4
+```
+
+**Parameters**
+
+`-i` Path to the schema's directory or to a file with a list of
+     paths to loci FASTA files, one per line.
+
+`-o` Output directory where the process will store
+     intermediate files and save the final TSV file with the
+     annotations.
+
+`-t` (Optional) Path to the "cds_info.tsv" file created by the
+     CreateSchema process.
+
+`--bsr` (Optional) BLAST Score Ratio value. This value is only used when a
+        taxon/taxa is provided and local sequences are aligned
+        against reference proteomes (default: 0.6).
+
+`--cpu` (Optional) Number of CPU cores used to run the process (default: 1).
+
+`--taxa` (Optional) List of scientific names for a set of taxa. The process
+         will search for and download reference proteomes with
+         terms that match any of the provided taxa (default: None).
+
+`--pm` (Optional) Maximum number of proteome matches to report (default: 1).
+
+**Outputs:**
+
+The `/path/to/OutputFolderName` directory contains a TSV file, `schema_annotations.tsv`, with the information found for each locus. The process will always search for annotations through UniProt's SPARQL endpoint, reporting the product name and UniProt URL for local loci with an exact match in UniProt's database. If the `cds_info.tsv` file is passed to the `-t` parameter, the output file will also include the information in that file. The `--taxa` parameter receives a set of taxa names and searches for reference proteomes that match the provided terms. The reference proteomes are downloaded and the process aligns schema representative sequences against the reference proteomes to include additional information in the `schema_annotations.tsv` file based on matches against the sequences in the reference proteomes.
 
 ----------
 

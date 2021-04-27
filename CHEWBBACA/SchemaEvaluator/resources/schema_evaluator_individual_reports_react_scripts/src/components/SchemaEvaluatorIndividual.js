@@ -70,7 +70,9 @@ class SchemaEvaluator extends Component {
   }
 
   componentDidUpdate() {
-    this.Viewer.current.zoom(0, 250, 10);
+    if (this.Viewer == !null) {
+      this.Viewer.current.zoom(0, 250, 10);
+    }
   }
 
   getMuiTheme = () =>

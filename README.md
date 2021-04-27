@@ -141,14 +141,14 @@ Installation through conda should take care of all dependencies. If you install 
 
 ----------
 
-## 1. wgMLST schema creation
+## 1. Whole Genome Multilocus Sequence Typing (wgMLST) schema creation
 
-Create your own wgMLST schema based on a set of genomes fasta files.
+Create a schema seed based on a set of FASTA files with genome assemblies or coding sequences.
 
 Basic usage:
 
 ```
-chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --ptf ProdigalTrainingFile --cpu 4
+chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderName --n SchemaName --ptf /path/to/ProdigalTrainingFile --cpu 4
 ```
 
 **Parameters**
@@ -157,37 +157,56 @@ chewBBACA.py CreateSchema -i ./genomes/ -o OutputFolderName --ptf ProdigalTraini
      files. Alternatively, a single file with a list of
      paths to FASTA files, one per line.
 
-`-o` Output directory where the schema will be created.
+`-o` Output directory where the process will store
+     intermediate files and create the schema's
+     directory.
 
-`--cpu` (Optional) Number of CPU cores that will be used to run the
-        CreateSchema process (will be redefined to a lower
-        value if it is equal to or exceeds the total number
-        of available CPU cores)(default: 1).
+`--n` Name given to the folder that will store the schema
+      files.
+
+`--ptf` (Optional) Path to the Prodigal training file. We strongly
+        advise users to provide a Prodigal training file and to keep
+        using the same training file to ensure consistent results
+        (default: None).
 
 `--bsr` (Optional) BLAST Score Ratio value. Sequences with alignments
         with a BSR value equal to or greater than this
         value will be considered as sequences from the same
         gene (default: 0.6).
 
-`--ptf` (Optional) Path to the Prodigal training file. We strongly
-	advise users to provide a Prodigal training file and to keep
-	using the same training file to ensure consistent results.
+`--l` (Optional) Minimum sequence length value. Coding sequences
+      shorter than this value are excluded (default: 201).
+
+`--t` (Optional) Genetic code used to predict genes and to translate
+      coding sequences (default: 11).
+
+`--st` (Optional) CDS size variation threshold. Added to the schema's
+       config file and used to identify alleles with a
+       length value that deviates from the locus length
+       mode during the allele calling process (default: 0.2).
+
+`--cpu` (Optional) Number of CPU cores that will be used to run the
+        CreateSchema process (will be redefined to a lower
+        value if it is equal to or exceeds the total number
+        of available CPU cores)(default: 1).
+
+`--pm` (Optional) Prodigal running mode (default: single).
+
+`--CDS` (Optional) If provided, input is a single or several FASTA
+        files with coding sequences (default: False).
 
 **Outputs:**
 
-One fasta file per distinct gene identified in the schema creation process in the `-o` directory that is created.
-The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly).
+One fasta file per distinct gene identified in the schema creation process in the `/path/to/OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The CreateSchema process also creates a file, "cds_info.tsv", in `/path/to/OutputFolderName/` with the locations of the identified genes in each genome passed to create the schema.
 
 **Optional: determine annotations for loci in the schema**
 
-The CreateSchema process creates a file, "cds_info.tsv", with the locations of the identified genes in each genome passed to create the schema.
-The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to the [uniprot SPARQL endpoint](http://sparql.uniprot.org/sparql).
-
+The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to [UniProt's SPARQL endpoint](http://sparql.uniprot.org/sparql) and through alignment against the reference proteomes for a set of taxa.
 
 Basic usage:
 
 ```
-chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
+chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_info.tsv --taxa "Species Name" --cpu 4
 ```
 
 **Parameters**
@@ -195,35 +214,57 @@ chewBBACA.py UniprotFinder -i schema_seed/ -t proteinID_Genome.tsv --cpu 4
 `-i` Path to the schema's directory or to a file with a list of
      paths to loci FASTA files, one per line.
 
-`-t` Path to the "proteinID_Genome.tsv" file created by the
+`-o` Output directory where the process will store
+     intermediate files and save the final TSV file with the
+     annotations.
+
+`-t` (Optional) Path to the "cds_info.tsv" file created by the
      CreateSchema process.
 
-`--cpu` The number of CPU cores to use during the process (default: 1).
+`--bsr` (Optional) BLAST Score Ratio value. This value is only used when a
+        taxon/taxa is provided and local sequences are aligned
+        against reference proteomes (default: 0.6).
+
+`--cpu` (Optional) Number of CPU cores used to run the process (default: 1).
+
+`--taxa` (Optional) List of scientific names for a set of taxa. The process
+         will search for and download reference proteomes with
+         terms that match any of the provided taxa (default: None).
+
+`--pm` (Optional) Maximum number of proteome matches to report (default: 1).
 
 **Outputs:**
 
-A tsv file (new_protids.tsv) that is the result of adding two columns to the "cds_info.tsv", one with the annotation determined for each locus and another with the URL to the annotation's page.
+The `/path/to/OutputFolderName` directory contains a TSV file, `schema_annotations.tsv`, with the information found for each locus. The process will always search for annotations through UniProt's SPARQL endpoint, reporting the product name and UniProt URL for local loci with an exact match in UniProt's database. If the `cds_info.tsv` file is passed to the `-t` parameter, the output file will also include the information in that file. The `--taxa` parameter receives a set of taxa names and searches for reference proteomes that match the provided terms. The reference proteomes are downloaded and the process aligns schema representative sequences against the reference proteomes to include additional information in the `schema_annotations.tsv` file based on matches against the sequences in the reference proteomes.
 
 ----------
 
 ## 2.  Allele call using the wgMLST schema 
 
+Perform allele calling to determine the allelic profiles of a set of samples in FASTA format. The
+process identifies new alleles, assigns an integer identifier to those alleles and adds them to the
+schema.
 
 Basic usage:
 
 ```
-chewBBACA.py AlleleCall -i ./genomes/ -g schema/ -o OutputFolderName --cpu 4
+chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
 ```
 
 **Parameters** 
 
-`-i` Folder containing the query genomes. Alternatively a file
-     containing the list with the full path of the location of the query genomes.
+`-i` Path to the directory with the genome FASTA files or to a file
+     with a list of paths to the FASTA files, one per line.
 
-`-g` Folder containing the reference genes of the schema. Alternatively a file
-     containing the list with the full path of the location of the reference genes.  
+`-g` Path to the schema directory with the genes FASTA files.  
 
 `-o` Output directory where the allele calling results will be stored.
+
+`--ptf` (Optional) Path to the Prodigal training file. Default is to
+        get training file from the schema's directory (default: None).
+
+`--gl` (Optional) Path to a file with the list of genes in the schema
+       that the process should identify alleles for.
 
 `--cpu` Number of CPU cores/threads that will be used to
         run the CreateSchema process (will be redefined to
@@ -234,11 +275,18 @@ chewBBACA.py AlleleCall -i ./genomes/ -g schema/ -o OutputFolderName --cpu 4
      BLASTp executables or if you want to use anoter BLAST istallation that is not
      the one added to the PATH.
 
-By default, the AlleleCall process uses the Prodigal training file included in the schema's directory
-and it is not necessary to pass a training file to the `--ptf` argument.
+`--pm` (Optional) Prodigal running mode (default: single).
 
+`--fc` (Optional) Continue the previous allele calling process if it was
+       interrupted (default: False).
+
+`--fr` (Optional) Force process reset even if there are temporary
+       files from a previous process that was interrupted (default: False).
+
+By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` argument. If a text file with a list of gene identifiers is passed to the `--gl` parameter, the process will only perform allele calling for the genes in the list.
 
 **Outputs files**:
+
 ```
 ./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_statistics.txt
 ./< OutputFolderName >_< datestamp>/< OutputFolderName > /results_contigsInfo.txt
@@ -254,10 +302,10 @@ and it is not necessary to pass a training file to the `--ptf` argument.
 Basic usage:
 
 ```
-chewBBACA.py TestGenomeQuality -i results_alleles.tsv -n 12 -t 200 -s 5 -o OutputFolderName
+chewBBACA.py TestGenomeQuality -i /path/to/AlleleCall/results/results_alleles.tsv -n 12 -t 200 -s 5 -o /path/to/OutputFolderName
 ```
 
-`-i` Path to file with a matrix of allelic profiles (i.e. results_alleles.tsv)
+`-i` Path to file with a matrix of allelic profiles (i.e. results_alleles.tsv).
 
 `-n` Maximum number of iterations. Each iteration removes a set of genomes over the
      defined threshold (-t) and recalculates loci presence percentages.
@@ -267,9 +315,9 @@ chewBBACA.py TestGenomeQuality -i results_alleles.tsv -n 12 -t 200 -s 5 -o Outpu
 
 `-s` Step to add to each threshold (suggested 5).
 
-`-o` Path to the output directory that will store output files
+`-o` Path to the output directory that will store output files.
 
-The output consists in a plot with all thresholds and a `removedGenomes.txt` file with
+The output is a HTML file with a plot with all thresholds and a `removedGenomes.txt` file with
 information about which genomes were removed per threshold when it reaches a stable point
 (no more genomes are removed).
 
@@ -280,10 +328,12 @@ passed to arguments.
 ----------
 ## 4. Defining the cgMLST schema
 
+Determine the set of loci that constitute the core genome based on a threshold.
+
 Basic usage:
 
 ```
-chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
+chewBBACA.py ExtractCgMLST -i /path/to/AlleleCall/results/results_alleles.tsv -o /path/to/OutputFolderName
 ```
 	
 `-i` Path to input file containing a matrix with allelic profiles.
@@ -291,34 +341,37 @@ chewBBACA.py ExtractCgMLST -i rawDataToClean.tsv -o output_folders
 `-o` Path to the directory where the process will store output files.
 
 `--t` (Optional) Genes that constitute the core genome must be in a
-     proportion of genomes that is at least equal to this value.
-     (e.g 0.95 to get a matrix with the loci that are present in at 
-     least 95% of the genomes) (default: 1)
+      proportion of genomes that is at least equal to this value.
+      (e.g 0.95 to get a matrix with the loci that are present in at 
+      least 95% of the genomes) (default: 1).
 
 `--r` (Optional) Path to file with a list of genes/columns to remove 
-     from the matrix (one gene identifier per line, e.g. the list of
-     genes listed in the RepeatedLoci.txt file created by the AlleleCall
-     process)
+      from the matrix (one gene identifier per line, e.g. the list of
+      genes listed in the RepeatedLoci.txt file created by the AlleleCall
+      process).
 
 `--g` (Optional) Path to file with a list of genomes/rows to remove from the
-     matrix (one genome identifier per line, e.g. list of genomes to be 
-     removed based on the results from the TestGenomeQuality process) 
+      matrix (one genome identifier per line, e.g. list of genomes to be 
+      removed based on the results from the TestGenomeQuality process).
 
 **Note:** The matrix with allelic profiles created by the ExtractCgMLST
           process can be imported into [**PHYLOViZ**](https://online.phyloviz.net/index)
-	  to visualize and explore typing results.
+	      to visualize and explore typing results.
 
 ----------
 ## 5. Evaluate your schema
 
- **Create a html report to help evaluate your schema**
+Evaluate the number of alelles and allele size variation for the loci in a schema or for a set of
+selected loci. Provide information about problematic alleles per locus and individual pages for each
+locus with a plot with allele size, a Neighbor Joining tree based on a multiple sequence alignment
+(MSA) and a visualization of the MSA.
  
- See an example [here](https://saureus-report.herokuapp.com/)
+See an example [here](https://saureus-report.herokuapp.com/)
 
 Basic usage:
 
 ```
-chewBBACA.py SchemaEvaluator -i schema_directory/ -o output_dir --ta 11 --th 0.05 --ml 201 --cpu 3
+chewBBACA.py SchemaEvaluator -i /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
 ```
 	
 `-i` Path to the schema's directory or path to a file containing the
@@ -328,13 +381,20 @@ chewBBACA.py SchemaEvaluator -i schema_directory/ -o output_dir --ta 11 --th 0.0
 `-o` Path to the output directory where the report HTML
      files will be generated.
      
-`--ta` (optional) which translation table to use. (default: [11](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1))
+`--ta` (Optional) Genetic code used to translate coding sequences
+       (default: [11](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1)).
 
-`--th` (optional) Allele size variation threshold. If an allele has a size within the interval of the locus mode -/+ the threshold, it will be considered a conserved allele. (default=0.05)
+`--th` (Optional) Allele size variation threshold. If an allele has a
+       size within the interval of the locus mode -/+ the
+       threshold, it will be considered a conserved allele (default: 0.05).
 
-`--ml` (optional) minimum sequence length accepted for a coding sequence (CDS) to be included in the schema. (default=201)
+`--ml` (Optional) Minimum sequence length accepted for a coding
+       sequence to be included in the schema.
 
-`--cpu` Number of CPU cores to use to run the process
+`--cpu` (Optional) Number of CPU cores to use to run the process (default: 1).
+
+`--light` (Optional) Skips the indepth analysis of the individual schema
+          loci, including MAFFT (default: False).
 
 Please consult the [SchemaEvaluator's wiki page](https://github.com/B-UMMI/chewBBACA/wiki/4.-Schema-Evaluation) for more information.
 

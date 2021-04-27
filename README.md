@@ -380,6 +380,9 @@ chewBBACA.py SchemaEvaluator -i /path/to/SchemaName -o /path/to/OutputFolderName
 
 `-o` Path to the output directory where the report HTML
      files will be generated.
+
+`-a` (Optional) Path to the TSV table created by the UniprotFinder
+     process.
      
 `--ta` (Optional) Genetic code used to translate coding sequences
        (default: [11](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1)).

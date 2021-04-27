@@ -249,7 +249,7 @@ By default, the AlleleCall process uses the Prodigal training file included in t
 
 ----------
 
-**Outputs files**:
+**Outputs**:
 
 The following files will be saved into the `/path/to/OutputFolderName/results_datestamp` directory:
 

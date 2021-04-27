@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.4 - 2021-04-27
+
+- Fixed issue related with absence of UniprotFinder module from setup.py.
+
 ## 2.8.3 - 2021-04-23
 
 Added the Sequence Logo component to the individual reports of SchemaEvaluator.

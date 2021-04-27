@@ -32,7 +32,7 @@ Silva M, Machado M, Silva D, Rossi M, Moran-Gilad J, Santos S, Ramirez M, CarriÃ
 
 # Latest updates
 
-## 2.8.0 - 2.8.3
+## 2.8.0 - 2.8.4
 
 Added the Sequence Logo component to the individual reports of SchemaEvaluator. New implementation of the **UniprotFinder** process. A new feature allows users to specify a set of taxa and determine annotation terms based on matches against UniProt's reference proteomes for those taxa.
 
@@ -40,6 +40,7 @@ Added the Sequence Logo component to the individual reports of SchemaEvaluator. 
 
 - Bugfix to fix issue in the PrepExternalSchema process when BLAST >= v2.10 was used.
 - Bugfix to fix issue when users provided a text file with the paths to the input genome assemblies or genes to use in the CreateSchema or AlleleCall processes.
+- Fixed issue related with absence of UniprotFinder module from setup.py.
 
 ## 2.7.0
 

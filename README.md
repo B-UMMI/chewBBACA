@@ -107,13 +107,13 @@ https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changes
 
 **Installing chewBBACA**
 
-Install using conda:
+Install using [conda](https://anaconda.org/bioconda/chewbbaca):
 
 ```
 conda install -c bioconda chewbbaca
 ```
 
-Install using pip:
+Install using [pip](https://pypi.org/project/chewBBACA/):
 
 ```
 pip3 install chewbbaca

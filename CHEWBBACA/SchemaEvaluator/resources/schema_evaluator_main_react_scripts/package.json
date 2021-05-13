@@ -10,7 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "serve": "^11.3.2"
+    "hosted-git-info": "^4.0.2",
+    "lodash": "^4.17.21",
+    "postcss": "^8.2.15",
+    "serve": "^11.3.2",
+    "trim": "^1.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.3",

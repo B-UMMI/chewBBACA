@@ -188,8 +188,12 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     return cds_files
 
 
+#fasta_files = cds_files
+#temp_directory = preprocess_dir
+#cpu_cores = 6
+#outfile_template = distinct_dna_template
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, all_ids=False):
+                       outfile_template):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -219,7 +223,6 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     dedup_inputs = [[file,
                      fo.join_paths(temp_directory,
                                    [outfile_template.format(i+1)]),
-                     all_ids,
                      sm.determine_distinct]
                     for i, file in enumerate(fasta_files)]
 
@@ -230,42 +233,26 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                               cpu_cores,
                                               show_progress=False)
 
-    # determine number of duplicated sequences
-    repeated = sum([d[0] for d in dedup_results])
-
     # one last round after first round received several inputs
     if len(dedup_inputs) > 1:
-        if all_ids is True:
-            all_dicts = [d[1] for d in dedup_results]
-            previous_distinct = im.merge_dictionaries({},
-                                                      all_dicts,
-                                                      overwrite=False)
+        # merge all shelves
+        all_shelves = [d for d in dedup_results]
+        shelve_name = os.path.join(temp_directory, 'intermediate_dna_shelve')
+        total_distinct = im.merge_shelves(all_shelves, shelve_name)
 
         # concatenate results from first round
-        dedup_files = [f[1] for f in dedup_inputs]
+        dedup_files = [d[1] for d in dedup_inputs]
         cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
         cds_file = fo.concatenate_files(dedup_files, cds_file)
-        distinct_seqs = fo.join_paths(temp_directory, ['distinct_seqs.fasta'])
-        dedup_results = sm.determine_distinct(cds_file, distinct_seqs, all_ids)
-        repeated_seqs, distinct_seqids = dedup_results
 
-        # create dict with all identifiers for duplicated sequences
-        if all_ids is True:
-            previous_distinct = im.merge_dictionaries(previous_distinct,
-                                                      [distinct_seqids],
-                                                      overwrite=False)
-            distinct_seqids = previous_distinct
+        # get first seqid for each distinct seq
+        # index concat with BioPython
+        # open shelve file and get the first record for each distinct seqid through the index
+        
 
-        repeated += repeated_seqs
-
-        print('removed {0} sequences.'.format(repeated))
-
-        return [distinct_seqids, distinct_seqs]
+        return [distinct_seqs, shelve_name, total_distinct]
     else:
-        # is this returning the correct results???
-        print('removed {0} sequences.'.format(repeated))
-
-        return [dedup_results[0][1], dedup_inputs[0][1]]
+        return [dedup_inputs[0][1], dedup_results[0], total_distinct]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):

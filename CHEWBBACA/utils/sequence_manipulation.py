@@ -11,6 +11,9 @@ Code documentation
 ------------------
 """
 
+
+import shelve
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 from collections import Counter
@@ -557,7 +560,24 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
     return [invalid_alleles, total_seqs]
 
 
-def determine_distinct(sequences_file, unique_fasta, all_ids=False):
+def update_shelves(new_entries, shelve_file):
+    """
+    """
+
+    total = 0
+    with shelve.open(shelve_file) as db:
+        for k, v in new_entries.items():
+            try:
+                current = db[k] + v
+                db[k] = current
+            except:
+                db[k] = v
+            total += len(v)
+
+    return total
+
+
+def determine_distinct(sequences_file, unique_fasta):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -582,12 +602,14 @@ def determine_distinct(sequences_file, unique_fasta, all_ids=False):
                 distinct sequence is the one stored in the list.
     """
 
-    total = 0
-    seqs_dict = {}
-    out_limit = 10000
+    duplicates = {}
+    out_limit = 20000
+    distinct = []
     out_seqs = []
     exausted = False
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
+    shelves = 0
+    shelve_file = unique_fasta.split('.fasta')[0] + '_identifiers'
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -596,17 +618,23 @@ def determine_distinct(sequences_file, unique_fasta, all_ids=False):
             seqid = record.id
             seq_hash = im.hash_sequence(sequence)
 
-            # store only the hash for distinct sequences
-            if seq_hash not in seqs_dict:
-                seqs_dict[seq_hash] = [seqid]
+            # this condition takes some time
+            # try to find a method that is faster
+            if seq_hash not in distinct:
+                # store only the hash for distinct sequences
+                distinct.append(seq_hash)
                 recout = fao.fasta_str_record(seqid, sequence)
                 out_seqs.append(recout)
-            elif seq_hash in seqs_dict:
-                if all_ids is True:
-                    seqs_dict[seq_hash].append(seqid)
-                total += 1
+
+            duplicates.setdefault(seq_hash, []).append(seqid)
+            shelves += 1
+            if shelves >= 200000:
+                added = update_shelves(duplicates, shelve_file)
+                shelves = 0
+                duplicates = {}
         else:
             exausted = True
+            added = update_shelves(duplicates, shelve_file)
 
         if len(out_seqs) == out_limit or exausted is True:
             if len(out_seqs) > 0:
@@ -614,11 +642,7 @@ def determine_distinct(sequences_file, unique_fasta, all_ids=False):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
-    if all_ids is False:
-        unique_seqids = im.flatten_list(list(seqs_dict.values()))
-        return [total, unique_seqids]
-    else:
-        return [total, seqs_dict]
+    return shelve_file
 
 
 def determine_small(sequences_file, minimum_length, variation=0):

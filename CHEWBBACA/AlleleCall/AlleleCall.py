@@ -131,7 +131,26 @@ except:
                                  multiprocessing_operations as mo)
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+def exact_matches(fasta_file, hashes):
+    """
+    """
+
+    # import fasta records
+    records = fao.import_sequences(fasta_file)
+
+    # translate records
+    translated_records = set([str(sm.translate_sequence(seq, 11))
+                              for seq in records.values()])
+
+    records_hashes = [im.hash_sequence(seq)
+                      for seq in translated_records]
+
+    matches = [h for h in hashes if h in records_hashes]
+
+    return matches
+
+
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
@@ -147,7 +166,7 @@ cpu_cores = 6
 blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
 prodigal_mode = 'single'
 cds_input = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/CreateSchema_tests/new_create_schema_scripts/saga32_schema/schema_seed'
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -192,31 +211,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # DNA sequences deduplication step
     distinct_dna_template = 'distinct_cds_{0}.fasta'
-    # not returning the identifiers of all sequences? check!
-    ds_results = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
-                                       distinct_dna_template, True)
-
-    # instead of returning the dictionary with all identfiers, save dictionary to pickle?
-    unique_seqids, distinct_seqs_file = ds_results
-
-    # save dictionary with all ids to file
-    identifiers_file = fo.join_paths(preprocess_dir, ['distinct_identifiers'])
-    fo.pickle_dumper(unique_seqids, identifiers_file)
-
-    # determine small sequences step
-    ss_results = cf.exclude_small(distinct_seqs_file, minimum_length)
-    small_seqids, ss_lines = ss_results
-
-    excluded = [k
-                for k, v in unique_seqids.items()
-                if any([i in small_seqids for i in v])]
-
-    valid_seqids = {rec.id: im.hash_sequence(str(rec.seq))
-                    for rec in SeqIO.parse(distinct_seqs_file, 'fasta')}
-
-    valid_seqids = {k: v
-                    for k, v in valid_seqids.items()
-                    if v not in excluded}
+    distinct_seqs_file, dna_shelve = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
+                                                           distinct_dna_template)
 
     # sequence translation step
     ts_results = cf.translate_sequences(list(valid_seqids.keys()), distinct_seqs_file,
@@ -263,29 +259,40 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('\nKept {0} sequences after filtering the initial '
           'sequences.'.format(len(distinct_protein_seqids)))
 
-    # determine DNA and protein exact matches to schema seqs
-    schema_loci = os.listdir(schema_directory)
+    # determine protein exact matches to schema seqs
+    schema_loci = [file for file in os.listdir(schema_directory) if '.fasta' in file]
     schema_loci = [fo.join_paths(schema_directory, [file])
                    for file in schema_loci]
 
-    def exact_matches(fasta_file, seqs):
-        """
-        """
+    # use protein sequences hashes to search for exact matches in loci
+    prot_hashes = list(distinct_protein_seqs.keys())
 
-        # import fasta records
-        records = fao.import_sequences(fasta_file)
+    # find exact matches
+    prot_matches = {}
+    for locus in schema_loci:
+        matches = exact_matches(locus, prot_hashes)
+        if len(matches) > 0:
+            prot_matches[locus] = matches
 
-        records_hashes = {im.hash_sequence(seq): seqid
-                          for seqid, seq in records.items()}
+    # get identifiers for alleles that code for proteins
+    prot_matches_ids = {}
+    for locus, v in prot_matches.items():
+        matches_ids = []
+        for h in v:
+            matches_ids += distinct_protein_seqs[h]
+        prot_matches_ids[locus] = matches_ids
 
-        matches = {k: records_hashes[k]
-                   for k in seqs
-                   if k in records_hashes}
-        
+    # determine the allele identifier for exact matches
+    # for each locus with exact matches
+    # import DNA sequences from locus
+    # use index for file with distinct DNA sequences to get DNA sequences
+    # check if they are in locus sequences
+    # assign ID if they are
+    # new allele if they are not
     
 
-    # only perform clustering after that
-    
+    # remove identifiers from exact matches and perform clustering
+
 
 
 def main(input_files, schema_directory, output_directory, ptf_path,

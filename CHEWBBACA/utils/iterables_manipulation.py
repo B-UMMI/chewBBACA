@@ -12,6 +12,7 @@ Code documentation
 
 
 import re
+import shelve
 import hashlib
 import itertools
 
@@ -115,6 +116,39 @@ def divide_list_into_n_chunks(list_to_divide, n):
     sublists = [i for i in sublists if len(i) > 0]
 
     return sublists
+
+
+def merge_shelves(shelves, merged_shelve):
+    """
+    """
+
+    with shelve.open(merged_shelve) as db:
+        for s in shelves:
+            with shelve.open(s) as subdb:
+                shelve_keys = list(subdb.keys())
+                for k in shelve_keys:
+                    if k in db:
+                        subdb_current = subdb[k]
+                        db_current = db[k]
+                        db_current += subdb_current
+                        db[k] = list(set(db_current))
+                    else:
+                        subdb_current = subdb[k]
+                        db[k] = subdb_current
+        shelve_size = len(db.keys())
+
+    return shelve_size
+
+
+def seqid_shelve(shelve_file):
+    """
+    """
+
+    with shelve.open(shelve_file) as db:
+        dbkeys = db.keys()
+        
+
+    return shelve_size
 
 
 def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):

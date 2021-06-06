@@ -12,7 +12,9 @@ Code documentation
 """
 
 
+import json
 import shelve
+import sqlite3
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -577,6 +579,155 @@ def update_shelves(new_entries, shelve_file):
     return total
 
 
+def create_database_file(db_file):
+    """ Creates a SQLite database file.
+        If the database file already exists,
+        it will establish and close connection.
+
+        Parameters
+        ----------
+        df_file : str
+            Path to the SQLite database file.
+
+        Returns
+        -------
+        error : None or sqlite3.OperationalError
+            None if the SQLite database file was
+            successfully created, OperationalError
+            if it could not create/establish connection
+    """
+
+    conn = None
+    error = None
+    try:
+        # creates db file if it does not exist
+        conn = sqlite3.connect(db_file)
+    except Exception as e:
+        error = e
+    finally:
+        if conn:
+            conn.close()
+
+    return error
+
+
+def create_connection(db_file):
+    """ Creates a database connection to a SQLite
+        database.
+
+        Parameters
+        ----------
+        db_file: str
+            Path to the SQLite database file.
+
+        Returns
+        -------
+        conn : sqlite3.Connection or sqlite3.OperationalError
+            SQLite Connection object if connection was
+            successfull or error if it was not possible
+            to connect to the database.
+    """
+
+    try:
+        conn = sqlite3.connect(db_file)
+    except Exception as e:
+        conn = e
+
+    return conn
+
+
+def update_sqlitedb(db_file, new_entries):
+    """
+    """
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+    except Error as e:
+        print(e)
+
+    # create select statements
+    select_sql = []
+    for k in new_entries:
+        query = ("SELECT hash, values FROM mydict WHERE hash = '{0}';".format(k))
+        select_sql.append(query)
+
+    # execute selects
+    responses = []
+    for query in select_sql:
+        print(query)
+        c = execute_statement(conn, query)
+        res = c.fetchall()
+        responses.append(res)
+
+    print(responses)
+
+
+def create_database(db_file):
+    """ Creates the database file and tables of a SQLite database
+        that will store the allelic profiles determined with
+        a schema.
+
+        Parameters
+        ----------
+        db_file : str
+            Path to the SQLite database file.
+
+        Returns
+        -------
+        True if the SQLite database file and tables were
+        successfully created, SQLite OperationalError otherwise.
+    """
+
+    message = create_database_file(db_file)
+
+    # samples table
+    sql_samples_table = ('CREATE TABLE IF NOT EXISTS mydict ('
+                             'id TEXT PRIMARY KEY,'
+                             'kkkj TEXT'
+                             ');')
+
+    # create tables
+    conn = create_connection(db_file)
+
+    if isinstance(conn, str) is True:
+        return conn
+    else:
+        row = execute_statement(conn, sql_samples_table)
+        conn.commit()
+        conn.close()
+
+        return True
+
+
+def execute_statement(conn, statement):
+    """ Executes a SQL statement.
+
+        Parameters
+        ----------
+        conn : sqlite3.Connection
+            SQLite Connection object.
+        statement : str
+            SQL statement to execute.
+
+        Returns
+        -------
+        error : None or sqlite3.OperationalError
+            None if the SQLite database file was
+            successfully created, OperationalError
+            if it could not create/establish connection
+    """
+
+    error = None
+    try:
+        c = conn.cursor()
+        c.execute(statement)
+        return c
+    except Exception as e:
+        error = e
+        return error
+
+
 def determine_distinct(sequences_file, unique_fasta):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
@@ -609,7 +760,9 @@ def determine_distinct(sequences_file, unique_fasta):
     exausted = False
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
     shelves = 0
-    shelve_file = unique_fasta.split('.fasta')[0] + '_identifiers'
+    #shelve_file = unique_fasta.split('.fasta')[0] + '_identifiers'
+    sqlite_file = unique_fasta.split('.fasta')[0] + '_identifiers'
+    create_database(sqlite_file)
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -629,12 +782,14 @@ def determine_distinct(sequences_file, unique_fasta):
             duplicates.setdefault(seq_hash, []).append(seqid)
             shelves += 1
             if shelves >= 200000:
-                added = update_shelves(duplicates, shelve_file)
+                #added = update_shelves(duplicates, shelve_file)
+                added = update_sqlitedb(sqlite_file, duplicates)
                 shelves = 0
                 duplicates = {}
         else:
             exausted = True
-            added = update_shelves(duplicates, shelve_file)
+            #added = update_shelves(duplicates, shelve_file)
+            added = update_sqlitedb(sqlite_file, duplicates)
 
         if len(out_seqs) == out_limit or exausted is True:
             if len(out_seqs) > 0:
@@ -642,7 +797,7 @@ def determine_distinct(sequences_file, unique_fasta):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
-    return shelve_file
+    return sqlite_file
 
 
 def determine_small(sequences_file, minimum_length, variation=0):

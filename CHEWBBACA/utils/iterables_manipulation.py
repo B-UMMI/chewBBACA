@@ -16,6 +16,11 @@ import shelve
 import hashlib
 import itertools
 
+try:
+    from utils import (file_operations as fo)
+except:
+    from CHEWBBACA.utils import (file_operations as fo)
+
 
 def join_list(lst, link):
     """ Joins all elements in a list into a single string.
@@ -131,7 +136,7 @@ def merge_shelves(shelves, merged_shelve):
                         subdb_current = subdb[k]
                         db_current = db[k]
                         db_current += subdb_current
-                        db[k] = list(set(db_current))
+                        db[k] = db_current
                     else:
                         subdb_current = subdb[k]
                         db[k] = subdb_current
@@ -140,15 +145,29 @@ def merge_shelves(shelves, merged_shelve):
     return shelve_size
 
 
-def seqid_shelve(shelve_file):
+def seqid_shelve(shelve_file, indexed_fasta, outfile):
     """
     """
 
+    records = []
+    limit = 10000
     with shelve.open(shelve_file) as db:
-        dbkeys = db.keys()
-        
+        dbkeys = list(db.keys())
+        for k in dbkeys:
+            try:
+                rep = db[k][0]
+                seq = str(indexed_fasta[rep].seq)
+            except Exception as e:
+                print(rep, db[k])
+            record = '>{0}\n{1}'.format(rep, seq)
+            records.append(record)
 
-    return shelve_size
+        if len(records) == limit or k == dbkeys[-1]:
+            lines = join_list(records, '\n')
+            fo.write_to_file(lines, outfile, 'a', '\n')
+            records = []
+
+    return True
 
 
 def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):

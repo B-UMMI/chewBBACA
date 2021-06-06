@@ -103,6 +103,7 @@ Code documentation
 import os
 import sys
 import math
+import shelve
 import argparse
 
 from Bio import SeqIO
@@ -131,7 +132,7 @@ except:
                                  multiprocessing_operations as mo)
 
 
-def exact_matches(fasta_file, hashes):
+def exact_matches(fasta_file, hashes_shelf, dbkeys):
     """
     """
 
@@ -141,11 +142,17 @@ def exact_matches(fasta_file, hashes):
     # translate records
     translated_records = set([str(sm.translate_sequence(seq, 11))
                               for seq in records.values()])
-
+    
+    # determine hashes
     records_hashes = [im.hash_sequence(seq)
                       for seq in translated_records]
 
-    matches = [h for h in hashes if h in records_hashes]
+    matches = [h for h in records_hashes if h in dbkeys]
+
+    if len(matches) > 0:
+        # open shelve and get matches
+        with shelve.open(hashes_shelf) as db:
+            matches = [db[h] for h in matches]
 
     return matches
 
@@ -211,25 +218,21 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # DNA sequences deduplication step
     distinct_dna_template = 'distinct_cds_{0}.fasta'
-    distinct_seqs_file, dna_shelve = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
-                                                           distinct_dna_template)
+    distinct_seqs_file, dna_shelve, repeated = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
+                                                                     distinct_dna_template)
 
     # sequence translation step
-    ts_results = cf.translate_sequences(list(valid_seqids.keys()), distinct_seqs_file,
+    seqids = [rec.id for rec in SeqIO.parse(distinct_seqs_file, 'fasta')]
+    ts_results = cf.translate_sequences(seqids, distinct_seqs_file,
                                         preprocess_dir, translation_table,
                                         minimum_length, cpu_cores)
 
     dna_file, protein_file, ut_seqids, ut_lines = ts_results
 
-    excluded += [valid_seqids[seqid] for seqid in ut_seqids]
-    valid_dna_seqids = {k: v
-                        for k, v in valid_seqids.items()
-                        if k not in ut_seqids}
-
     # write info about invalid alleles to file
     invalid_alleles_file = fo.join_paths(output_directory,
                                          ['invalid_cds.txt'])
-    invalid_alleles = im.join_list(ut_lines+ss_lines, '\n')
+    invalid_alleles = im.join_list(ut_lines, '\n')
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
     print('Info about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
@@ -237,27 +240,32 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # protein sequences deduplication step
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
-                                       distinct_prot_template, True)
+                                       distinct_prot_template)
 
-    distinct_protein_seqs, distinct_prots_file = ds_results
+    distinct_protein_seqs, distinct_prots_shelve = ds_results
 
-    distinct_protein_seqids = [v[0] for k, v in distinct_protein_seqs.items()]
-    distinct_protein_seqids.sort(key=lambda y: y.lower())
+########
 
-    # write protein FASTA file
-    qc_protein_file = os.path.join(preprocess_dir, 'filtered_proteins.fasta')
-    indexed_protein_file = SeqIO.index(protein_file, 'fasta')
-    fao.get_sequences_by_id(indexed_protein_file, distinct_protein_seqids,
-                            qc_protein_file)
+    # create shelve with protein hash to DNA hash!
+    out_shelve = os.path.join(preprocess_dir, 'hashes_protein_dna')
+    dna_index = SeqIO.index(dna_file, 'fasta')
+    hashes = {}
+    with shelve.open(distinct_prots_shelve) as db:
+        dbkeys = list(db.keys())
+        for k in dbkeys:
+            seqids = db[k]
+            # get seqs
+            seqs = [str(dna_index[s].seq) for s in seqids]
+            # hash
+            seqs_hashes = [im.hash_sequence(s) for s in seqs]
+            hashes[k] = seqs_hashes
 
-    # write DNA FASTA file
-    qc_dna_file = os.path.join(preprocess_dir, 'filtered_dna.fasta')
-    indexed_dna_file = SeqIO.index(dna_file, 'fasta')
-    fao.get_sequences_by_id(indexed_dna_file, distinct_protein_seqids,
-                            qc_dna_file)
+    # save to shelve
+    with shelve.open(out_shelve) as hdb:
+        for k, v in hashes.items():
+            hdb[k] = v
 
-    print('\nKept {0} sequences after filtering the initial '
-          'sequences.'.format(len(distinct_protein_seqids)))
+########
 
     # determine protein exact matches to schema seqs
     schema_loci = [file for file in os.listdir(schema_directory) if '.fasta' in file]
@@ -265,14 +273,19 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    for file in schema_loci]
 
     # use protein sequences hashes to search for exact matches in loci
-    prot_hashes = list(distinct_protein_seqs.keys())
+
+    with shelve.open(out_shelve) as db:
+        dbkeys = list(db.keys())
 
     # find exact matches
     prot_matches = {}
     for locus in schema_loci:
-        matches = exact_matches(locus, prot_hashes)
+        matches = exact_matches(locus, out_shelve, dbkeys)
         if len(matches) > 0:
             prot_matches[locus] = matches
+
+
+
 
     # get identifiers for alleles that code for proteins
     prot_matches_ids = {}

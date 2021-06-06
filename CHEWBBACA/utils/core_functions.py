@@ -14,6 +14,8 @@ Code documentation
 import os
 import sys
 
+from Bio import SeqIO
+
 try:
     from utils import (blast_wrapper as bw,
                        gene_prediction as gp,
@@ -248,11 +250,13 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
         # get first seqid for each distinct seq
         # index concat with BioPython
         # open shelve file and get the first record for each distinct seqid through the index
-        
+        indexed_file = SeqIO.index(cds_file, 'fasta')
+        distinct_seqs = os.path.join(temp_directory, 'distinct_dna')
+        im.seqid_shelve(shelve_name, indexed_file, distinct_seqs)
 
         return [distinct_seqs, shelve_name, total_distinct]
     else:
-        return [dedup_inputs[0][1], dedup_results[0], total_distinct]
+        return [dedup_inputs[0][1], dedup_results[0]]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):

@@ -812,32 +812,41 @@ def remove_genes():
 def join_profiles():
 
     def msg(name=None):
-        return '''chewBBACA.py JoinProfiles [RemoveGenes ...][-h]
-                  -p1 -p2 -o [O]'''
 
-    parser = argparse.ArgumentParser(description='This program joins two '
+        # simple command to adapt external schema with default arguments values
+        simple_cmd = ('  chewBBACA.py JoinProfiles -p <profiles1> <profiles2> '
+                      '-o <output_file> ')
+
+        usage_msg = ('\nConcatenate two files with results for the '
+                     'same set of loci:\n\n{0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='JoinProfiles',
+                                     description='This program joins '
                                                  'profiles, returning a '
                                                  'single profile file with '
-                                                 'the common loci',
-                                     usage=msg())
+                                                 'the common loci.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('JoinProfiles', nargs='+',
-                        help='join profiles')
+                        help='')
 
-    parser.add_argument('-p1', '--profile1', type=str,
-                        required=True, dest='profile1',
-                        help='Path to file containing a matrix '
-                             'with allelic profiles.')
-
-    parser.add_argument('-p2', '--profile2', type=str,
-                        required=True, dest='profile2',
-                        help='Path to file containing a matrix '
+    parser.add_argument('-p', '--profiles', nargs='+', type=str,
+                        required=True, dest='profiles',
+                        help='Path to files containing matrices '
                              'with allelic profiles.')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='Paht to output file with result '
-                             'of joining both inputs.')
+                        help='Path to output file with the result '
+                             'of joining all input files.')
+
+    parser.add_argument('--common', action='store_true',
+                        required=False, dest='common',
+                        help='Create file with profiles for '
+                             'the set of common loci.')
 
     args = parser.parse_args()
     del args.JoinProfiles

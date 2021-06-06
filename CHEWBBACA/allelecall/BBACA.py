@@ -640,13 +640,13 @@ def main(genomes_files, schema_genes, cpu_cores, output_directory,
 
         elif not divideOutput:
             with open(os.path.join(outputfolder, "results_alleles.tsv"), 'w') as f:
-                f.write(finalphylovinput)
+                f.write(finalphylovinput+'\n')
 
             with open(os.path.join(outputfolder, "results_statistics.tsv"), 'w') as f:
-                f.write(str(statswrite))
+                f.write(str(statswrite)+'\n')
 
             with open(os.path.join(outputfolder, "results_contigsInfo.tsv"), 'w') as f:
-                f.write(str(finalphylovinput2))
+                f.write(str(finalphylovinput2)+'\n')
             if contained:
                 with open(os.path.join(outputfolder, "results_contained.txt"), 'w') as f:
                     f.write(str(containedOutpWrite))
@@ -656,7 +656,7 @@ def main(genomes_files, schema_genes, cpu_cores, output_directory,
                 f.write("\nNumber of genomes: " + str(len(listOfGenomes)))
                 f.write("\nNumber of loci: " + str(len(lGenesFiles)))
                 f.write("\nUsed this number of CPU cores: " + str(cpu_cores))
-                f.write("\nUsed a bsr of: " + str(blast_score_ratio))
+                f.write("\nUsed a bsr of: " + str(blast_score_ratio)+'\n')
 
             print('\nChecking the existence of paralog genes...')
 

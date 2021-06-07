@@ -1435,8 +1435,8 @@ def main():
                       'PrepExternalSchema': ['Adapt an external schema to be '
                                              'used with chewBBACA.',
                                              prep_schema],
-                      'JoinProfiles': ['Join two profiles in a single profile '
-                                       'file.',
+                      'JoinProfiles': ['Joins allele calling results from '
+                                       'different runs.',
                                        join_profiles],
                       'UniprotFinder': ['Retrieve annotations for loci in a schema.',
                                         find_uniprot],

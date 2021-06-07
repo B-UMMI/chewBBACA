@@ -33,6 +33,7 @@ Code documentation
 
 import csv
 import argparse
+
 import pandas as pd
 
 
@@ -63,10 +64,6 @@ def get_headers(files, delimiter='\t'):
     return headers
 
 
-#input_file = '/home/rfm/Lab_Analyses/GAS_PrepExternalSchema/wgMLST_schema/spyogenes_schema/AlleleCall_final_rounds/05_06_2021/spyogenes_ena_results/results_alleles_ena1.tsv'
-#genes_list = '/home/rfm/Lab_Analyses/GAS_PrepExternalSchema/wgMLST_schema/spyogenes_schema/AlleleCall_final_rounds/05_06_2021/spyogenes_ena_results/rm_genes.txt'
-#output_file = '/home/rfm/Lab_Analyses/GAS_PrepExternalSchema/wgMLST_schema/spyogenes_schema/AlleleCall_final_rounds/05_06_2021/spyogenes_ena_results/rm_matrix.tsv'
-#inverse = 'False'
 def main(input_file, genes_list, output_file, inverse):
 
     # read genes list

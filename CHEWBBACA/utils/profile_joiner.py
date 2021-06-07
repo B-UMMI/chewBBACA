@@ -33,10 +33,12 @@ Code documentation
 """
 
 
+import os
 import csv
 import sys
-import shutil
 import argparse
+
+import pandas as pd
 
 
 def count_lines(file):
@@ -86,7 +88,7 @@ def get_headers(files, delimiter='\t'):
     return headers
 
 
-def concatenate_profiles(profiles, output_file):
+def concatenate_profiles(profiles, loci_list, output_file):
     """ Concatenates TSV files with allele calling results
         for the same set of loci.
 
@@ -105,60 +107,14 @@ def concatenate_profiles(profiles, output_file):
     """
 
     total_profiles = 0
-    with open(output_file, 'w') as outfile:
-        for i, file in enumerate(profiles):
-            with open(file, 'r') as infile:
-                # skip header if not first file
-                if i != 0:
-                    infile.readline()
-                # copy file content to output file
-                shutil.copyfileobj(infile, outfile)
-                # count number of profiles (excluding header)
-                total_profiles += count_lines(file) - 1
-
-    return total_profiles
-
-
-def concatenate_common_loci(profiles, common_loci, output_file):
-    """ Creates a file with the allele calling results for a set
-        of loci common to several profiles.
-
-        Parameters
-        ----------
-        profiles : list
-            List with the paths to the TSV files with
-            allele calling results.
-        common_loci : list
-            List with loci identifiers that are common
-            between all profiles.
-        output_file : str
-            Path to the output file.
-
-        Returns
-        -------
-        total_profiles : int
-            Number of profiles written to the output file.
-    """
-
-    total_profiles = 0
-    with open(output_file, 'w') as outfile:
-        # write header
-        outfile.write('\t'.join(common_loci)+'\n')
-        for file in profiles:
-            with open(file, 'r') as infile:
-                lines = list(csv.reader(infile, delimiter='\t'))
-                header = lines[0]
-                profiles = lines[1:]
-                total_profiles += len(profiles)
-                # get loci indexes
-                loci_indexes = [header.index(l) for l in common_loci]
-                # get all profiles
-                common_profiles = [[p[l] for l in loci_indexes]
-                                   for p in profiles]
-                # write profiles to file
-                tsv_profiles = ['\t'.join(p) for p in common_profiles]
-                text_profiles = '\n'.join(tsv_profiles)
-                outfile.write(text_profiles+'\n')
+    for file in profiles:
+        df = pd.read_csv(file, sep='\t',
+                         usecols=loci_list, dtype=str)
+        total_profiles += len(df)
+        # save dataframe to file
+        df.to_csv(output_file, mode='a',
+                  header=not os.path.exists(output_file),
+                  sep='\t', index=False)
 
     return total_profiles
 
@@ -174,7 +130,9 @@ def main(profiles, output_file, common):
         # check if headers are equal
         if all([set(headers[0]) == set(h) for h in headers[1:]]) is True:
             print('Profiles have {0} loci.'.format(len(headers[0])-1))
-            total_profiles = concatenate_profiles(profiles, output_file)
+            total_profiles = concatenate_profiles(profiles,
+                                                  headers[0],
+                                                  output_file)
         else:
             sys.exit('Files have different sets of loci. Please provide '
                      'files with the results for the same set of loci or '
@@ -194,9 +152,9 @@ def main(profiles, output_file, common):
 
         print('Profiles have {0} loci in common.'
               ''.format(len(latest_common)-1))
-        total_profiles = concatenate_common_loci(profiles,
-                                                 latest_common,
-                                                 output_file)
+        total_profiles = concatenate_profiles(profiles,
+                                              latest_common,
+                                              output_file)
 
     print('Joined {0} files with a total of {1} '
           'profiles.'.format(len(profiles), total_profiles))

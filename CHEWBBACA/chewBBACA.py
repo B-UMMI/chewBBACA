@@ -817,16 +817,13 @@ def join_profiles():
         simple_cmd = ('  chewBBACA.py JoinProfiles -p <profiles1> <profiles2> '
                       '-o <output_file> ')
 
-        usage_msg = ('\nConcatenate two files with results for the '
-                     'same set of loci:\n\n{0}\n'.format(simple_cmd))
+        usage_msg = ('\nJoin allele calling results from two files:\n\n{0}\n'.format(simple_cmd))
 
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='JoinProfiles',
-                                     description='This program joins '
-                                                 'profiles, returning a '
-                                                 'single profile file with '
-                                                 'the common loci.',
+                                     description='Joins allele calling results from '
+                                                 'different runs.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
@@ -835,13 +832,12 @@ def join_profiles():
 
     parser.add_argument('-p', '--profiles', nargs='+', type=str,
                         required=True, dest='profiles',
-                        help='Path to files containing matrices '
-                             'with allelic profiles.')
+                        help='Path to files containing the results from '
+                             'the AlleleCall process (results_alleles.tsv).')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='Path to output file with the result '
-                             'of joining all input files.')
+                        help='Path to the output file.')
 
     parser.add_argument('--common', action='store_true',
                         required=False, dest='common',

@@ -62,7 +62,7 @@ def main(input_file, genes_list, output_file, inverse):
     else:
         columns_to_keep = [g for g in loci if g not in genes_list]
 
-    columns_to_remove = (len(loci)-1) - len(columns_to_keep)
+    columns_to_remove = (len(loci)) - len(columns_to_keep)
     print('Loci to remove: {0}'.format(columns_to_remove))
 
     # include first column with sample ids

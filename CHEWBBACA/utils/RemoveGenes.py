@@ -4,7 +4,8 @@
 Purpose
 -------
 
-This module 
+This module removes a set of loci from a TSV file with
+results from the AlleleCall process.
 
 Expected input
 --------------
@@ -12,19 +13,22 @@ Expected input
 The process expects the following variables whether through command
 line execution or invocation of the :py:func:`main` function:
 
-- ``-i``, ``input_file`` : 
+- ``-i``, ``input_file`` : TSV file that contains a matrix with
+  allelic profiles determined by the AlleleCall process.
 
     - e.g.: ``/home/user/results_alleles.tsv``
 
-- ``-gl``, ``genes_list`` : 
+- ``-gl``, ``genes_list`` : File with the list of genes to
+  remove, one identifier per line.
 
     - e.g.: ``/home/user/genes_list.txt``
 
-- ``-o``, ``output_file`` : 
+- ``-o``, ``output_file`` : Path to the output file.
 
     - e.g.: ``/home/user/selected_results.tsv``
 
-- ``--inverse`` : 
+- ``--inverse`` : List of genes that is provided is the
+  list of genes to keep and all other genes should be removed.
 
 Code documentation
 ------------------
@@ -36,32 +40,7 @@ import argparse
 
 import pandas as pd
 
-
-def get_headers(files, delimiter='\t'):
-    """ Gets the headers (first line) from a set of
-        files.
-
-        Parameters
-        ----------
-        files : list
-            List with paths to files.
-
-        Returns
-        -------
-        headers : list
-            List with the first line in each file
-            (each header is a sublist of elements
-            separated based on the delimiter).
-    """
-
-    headers = []
-    for file in files:
-        with open(file, 'r') as infile:
-            reader = csv.reader(infile, delimiter=delimiter)
-            header = next(reader)
-            headers.append(header)
-
-    return headers
+from utils import file_operations as fo
 
 
 def main(input_file, genes_list, output_file, inverse):
@@ -72,7 +51,7 @@ def main(input_file, genes_list, output_file, inverse):
         genes_list = [g[0] for g in genes_list]
 
     # get list of loci in allele call results
-    loci = get_headers([input_file])[0]
+    loci = fo.get_headers([input_file])[0]
     print('Total loci: {0}'.format(len(loci)-1))
 
     if inverse is True:
@@ -99,19 +78,24 @@ def parse_arguments():
 
     parser.add_argument('-i', '--input-file', type=str,
                         required=True, dest='input_file',
-                        help='')
+                        help='TSV file that contains a matrix with '
+                             'allelic profiles determined by the '
+                             'AlleleCall process.')
 
     parser.add_argument('-gl', '--genes-list', type=str,
                         required=True, dest='genes_list',
-                        help='')
+                        help='File with the list of genes to '
+                             'remove, one identifier per line.')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='')
+                        help='Path to the output file.')
 
     parser.add_argument('--inverse', action='store_true',
                         required=False, dest='inverse',
-                        help='')
+                        help='List of genes that is provided '
+                             'is the list of genes to keep and '
+                             'all other genes should be removed.')
 
     args = parser.parse_args()
 

@@ -34,69 +34,25 @@ Code documentation
 
 
 import os
-import csv
 import sys
 import argparse
 
 import pandas as pd
 
-
-def count_lines(file):
-    """ Counts the number of lines in a file.
-
-        Parameters
-        ----------
-        file : str
-            Path to a file.
-
-        Returns
-        -------
-        num_lines : int
-            Total number of lines in the file.
-    """
-
-    with open(file, 'rb') as infile:
-        num_lines = sum(1 for line in infile)
-
-    return num_lines
+from utils import file_operations as fo
 
 
-def get_headers(files, delimiter='\t'):
-    """ Gets the headers (first line) from a set of
-        files.
+def concatenate_profiles(files, loci_list, output_file):
+    """ Concatenates TSV files with allele calling results
+        for a common set of loci.
 
         Parameters
         ----------
         files : list
-            List with paths to files.
-
-        Returns
-        -------
-        headers : list
-            List with the first line in each file
-            (each header is a sublist of elements
-            separated based on the delimiter).
-    """
-
-    headers = []
-    for file in files:
-        with open(file, 'r') as infile:
-            reader = csv.reader(infile, delimiter=delimiter)
-            header = next(reader)
-            headers.append(header)
-
-    return headers
-
-
-def concatenate_profiles(profiles, loci_list, output_file):
-    """ Concatenates TSV files with allele calling results
-        for the same set of loci.
-
-        Parameters
-        ----------
-        profiles : list
             List with the paths to the TSV files with
             allele calling results.
+        loci_list : list
+            List with the identifiers of common loci.
         output_file : str
             Path to the output file.
 
@@ -107,14 +63,14 @@ def concatenate_profiles(profiles, loci_list, output_file):
     """
 
     total_profiles = 0
-    for file in profiles:
-        df = pd.read_csv(file, sep='\t',
-                         usecols=loci_list, dtype=str)
-        total_profiles += len(df)
+    for f in files:
+        profiles = pd.read_csv(f, sep='\t',
+                               usecols=loci_list, dtype=str)
+        total_profiles += len(profiles)
         # save dataframe to file
-        df.to_csv(output_file, mode='a',
-                  header=not os.path.exists(output_file),
-                  sep='\t', index=False)
+        profiles.to_csv(output_file, mode='a',
+                        header=not os.path.exists(output_file),
+                        sep='\t', index=False)
 
     return total_profiles
 
@@ -124,7 +80,7 @@ def main(profiles, output_file, common):
     if len(profiles) == 1:
         sys.exit('Provided a single file. Nothing to do.')
 
-    headers = get_headers(profiles)
+    headers = fo.get_headers(profiles)
 
     if common is False:
         # check if headers are equal

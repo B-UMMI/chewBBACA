@@ -790,12 +790,12 @@ def remove_genes():
 
     parser.add_argument('-g', '--genes-list', type=str,
                         required=True, dest='genes_list',
-                        help='File with the list of genes to remove.')
+                        help='File with the list of genes to remove, one identifier '
+                             'per line.')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='Path to the output file that will be created with the '
-                             'new matrix.')
+                        help='Path to the output file.')
 
     parser.add_argument('--inverse', action='store_true',
                         default=False, dest='inverse',

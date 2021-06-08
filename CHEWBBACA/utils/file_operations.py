@@ -516,3 +516,50 @@ def create_short(schema_files, schema_dir):
         shutil.copy(file, short_file)
 
     return True
+
+
+def count_lines(file):
+    """ Counts the number of lines in a file.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file.
+
+        Returns
+        -------
+        num_lines : int
+            Total number of lines in the file.
+    """
+
+    with open(file, 'r') as infile:
+        num_lines = sum(1 for line in infile)
+
+    return num_lines
+
+
+def get_headers(files, delimiter='\t'):
+    """ Gets the headers (first line) from a set of
+        files.
+
+        Parameters
+        ----------
+        files : list
+            List with paths to files.
+
+        Returns
+        -------
+        headers : list
+            List with the first line in each file
+            (each header is a sublist of elements
+            separated based on the delimiter).
+    """
+
+    headers = []
+    for file in files:
+        with open(file, 'r') as infile:
+            reader = csv.reader(infile, delimiter=delimiter)
+            header = next(reader)
+            headers.append(header)
+
+    return headers

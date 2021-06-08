@@ -777,8 +777,10 @@ def remove_genes():
 
         return usage_msg
 
-    parser = argparse.ArgumentParser(description='Remove loci from a matrix with allelic profiles.',
-                                     usage=msg())
+    parser = argparse.ArgumentParser(prog='RemoveGenes',
+                                     description='Remove loci from a matrix with allelic profiles.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('RemoveGenes', nargs='+',
                         help='Remove loci from a matrix with allelic profiles.')
@@ -790,12 +792,12 @@ def remove_genes():
 
     parser.add_argument('-g', '--genes-list', type=str,
                         required=True, dest='genes_list',
-                        help='File with the list of genes to remove.')
+                        help='File with the list of genes to remove, one identifier '
+                             'per line.')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='Path to the output file that will be created with the '
-                             'new matrix.')
+                        help='Path to the output file.')
 
     parser.add_argument('--inverse', action='store_true',
                         default=False, dest='inverse',
@@ -812,32 +814,37 @@ def remove_genes():
 def join_profiles():
 
     def msg(name=None):
-        return '''chewBBACA.py JoinProfiles [RemoveGenes ...][-h]
-                  -p1 -p2 -o [O]'''
 
-    parser = argparse.ArgumentParser(description='This program joins two '
-                                                 'profiles, returning a '
-                                                 'single profile file with '
-                                                 'the common loci',
-                                     usage=msg())
+        # simple command to adapt external schema with default arguments values
+        simple_cmd = ('  chewBBACA.py JoinProfiles -p <profiles1> <profiles2> '
+                      '-o <output_file> ')
+
+        usage_msg = ('\nJoin allele calling results from two files:\n\n{0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='JoinProfiles',
+                                     description='Joins allele calling results from '
+                                                 'different runs.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('JoinProfiles', nargs='+',
-                        help='join profiles')
+                        help='')
 
-    parser.add_argument('-p1', '--profile1', type=str,
-                        required=True, dest='profile1',
-                        help='Path to file containing a matrix '
-                             'with allelic profiles.')
-
-    parser.add_argument('-p2', '--profile2', type=str,
-                        required=True, dest='profile2',
-                        help='Path to file containing a matrix '
-                             'with allelic profiles.')
+    parser.add_argument('-p', '--profiles', nargs='+', type=str,
+                        required=True, dest='profiles',
+                        help='Path to files containing the results from '
+                             'the AlleleCall process (results_alleles.tsv).')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
-                        help='Paht to output file with result '
-                             'of joining both inputs.')
+                        help='Path to the output file.')
+
+    parser.add_argument('--common', action='store_true',
+                        required=False, dest='common',
+                        help='Create file with profiles for '
+                             'the set of common loci.')
 
     args = parser.parse_args()
     del args.JoinProfiles
@@ -1430,8 +1437,8 @@ def main():
                       'PrepExternalSchema': ['Adapt an external schema to be '
                                              'used with chewBBACA.',
                                              prep_schema],
-                      'JoinProfiles': ['Join two profiles in a single profile '
-                                       'file.',
+                      'JoinProfiles': ['Joins allele calling results from '
+                                       'different runs.',
                                        join_profiles],
                       'UniprotFinder': ['Retrieve annotations for loci in a schema.',
                                         find_uniprot],

@@ -39,7 +39,10 @@ import argparse
 
 import pandas as pd
 
-from utils import file_operations as fo
+try:
+  from utils import file_operations as fo
+except:
+  from CHEWBBACA.utils import file_operations as fo
 
 
 def concatenate_profiles(files, loci_list, output_file):

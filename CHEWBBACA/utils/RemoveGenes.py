@@ -40,7 +40,10 @@ import argparse
 
 import pandas as pd
 
-from utils import file_operations as fo
+try:
+  from utils import file_operations as fo
+except:
+  from CHEWBBACA.utils import file_operations as fo
 
 
 def main(input_file, genes_list, output_file, inverse):

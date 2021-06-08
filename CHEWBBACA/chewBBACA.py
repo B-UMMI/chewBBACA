@@ -777,8 +777,10 @@ def remove_genes():
 
         return usage_msg
 
-    parser = argparse.ArgumentParser(description='Remove loci from a matrix with allelic profiles.',
-                                     usage=msg())
+    parser = argparse.ArgumentParser(prog='JoinProfiles',
+                                     description='Remove loci from a matrix with allelic profiles.',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('RemoveGenes', nargs='+',
                         help='Remove loci from a matrix with allelic profiles.')

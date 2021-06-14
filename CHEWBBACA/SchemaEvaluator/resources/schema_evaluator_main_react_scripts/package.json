@@ -15,7 +15,8 @@
     "lodash": "^4.17.21",
     "postcss": "^8.2.15",
     "serve": "^11.3.2",
-    "trim": "^1.0.1"
+    "trim": "^1.0.1",
+    "trim-newlines": "^4.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.3",

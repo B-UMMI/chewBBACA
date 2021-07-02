@@ -40,9 +40,9 @@ import argparse
 import pandas as pd
 
 try:
-  from utils import file_operations as fo
+    from utils import file_operations as fo
 except:
-  from CHEWBBACA.utils import file_operations as fo
+    from CHEWBBACA.utils import file_operations as fo
 
 
 def concatenate_profiles(files, loci_list, output_file):
@@ -67,8 +67,12 @@ def concatenate_profiles(files, loci_list, output_file):
 
     total_profiles = 0
     for f in files:
+        # create dataframe with columns for loci in list
         profiles = pd.read_csv(f, sep='\t',
                                usecols=loci_list, dtype=str)
+        # reorder columns to prevent concatenating results
+        # with same loci but with different loci/column order
+        profiles = profiles[loci_list]
         total_profiles += len(profiles)
         # save dataframe to file
         profiles.to_csv(output_file, mode='a',
@@ -89,6 +93,7 @@ def main(profiles, output_file, common):
         # check if headers are equal
         if all([set(headers[0]) == set(h) for h in headers[1:]]) is True:
             print('Profiles have {0} loci.'.format(len(headers[0])-1))
+
             total_profiles = concatenate_profiles(profiles,
                                                   headers[0],
                                                   output_file)
@@ -99,12 +104,12 @@ def main(profiles, output_file, common):
                      'with the results for the set of common loci.')
     else:
         # determine set of common loci
-        common_loci = set(headers[0])
+        common_loci = headers[0]
         for h in headers[1:]:
-            # determine common loci ordered
-            latest_common = [l for l in h if l in common_loci]
+            # determine common loci ordered based on headers in first file
+            latest_common = [l for l in common_loci if l in h]
             # update set of common loci so far
-            common_loci = set(latest_common)
+            common_loci = latest_common
 
         if len(latest_common) <= 1:
             sys.exit('Profiles do not have loci in common.')

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.5 - 2021-07-05
+
+- Updated **JoinProfiles** process to accept any number of files to join. Added `--common` flag to identify and join results for the set of loci common to all input files.
+- Added line breaks at the ed of file for **AlleleCall** outputs.
+- Improved code readability and efficiency for the **RemoveGenes** process.
+
 ## 2.8.4 - 2021-04-27
 
 - Fixed issue related with absence of UniprotFinder module from setup.py.

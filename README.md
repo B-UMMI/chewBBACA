@@ -33,9 +33,11 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 
 # Latest updates
 
-## 2.8.0 - 2.8.4
+## 2.8.0 - 2.8.5
 
-Added the Sequence Logo component to the individual reports of SchemaEvaluator. New implementation of the **UniprotFinder** process. A new feature allows users to specify a set of taxa and determine annotation terms based on matches against UniProt's reference proteomes for those taxa.
+- Updated **JoinProfiles** process to accept any number of files to join. Added `--common` flag to identify and join results for the set of loci common to all input files.
+- Added the Sequence Logo component to the individual reports of SchemaEvaluator.
+- New implementation of the **UniprotFinder** process. A new feature allows users to specify a set of taxa and determine annotation terms based on matches against UniProt's reference proteomes for those taxa.
 
 ### Additional changes
 

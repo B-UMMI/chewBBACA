@@ -819,13 +819,13 @@ def join_profiles():
         simple_cmd = ('  chewBBACA.py JoinProfiles -p <profiles1> <profiles2> '
                       '-o <output_file> ')
 
-        usage_msg = ('\nJoin allele calling results from two files:\n\n{0}\n'.format(simple_cmd))
+        usage_msg = ('\nJoin allele calling results from two runs:\n\n{0}\n'.format(simple_cmd))
 
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='JoinProfiles',
                                      description='Joins allele calling results from '
-                                                 'different runs.',
+                                                 'multiple runs.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 

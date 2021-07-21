@@ -90,9 +90,8 @@ Below you can find a list of commands for a quick usage of the software.
 ## A ready to use [docker image](https://hub.docker.com/r/ummidock/chewbbaca)...
 ...automatically built from the latest version of chewBBACA in Ubuntu 16.04.
 
-## chewBBACA is available as a Galaxy module.
-Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome! 
-https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
+## chewBBACA is available as a [Galaxy module](https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303).
+Many Thanks to Stefano Morabito and [Arnold Knijn](https://github.com/aknijn) for EURL VTEC in ISS, Rome!
 
 ----------
 

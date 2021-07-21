@@ -104,7 +104,7 @@ https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changes
  to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will 
  automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
  - All the referenced lists of files *must contain full path* for the files.
- - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](http://linuxcommand.org/man_pages/dos2unix1.html).
+ - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
 
 ## 0. Setting up the analysis
 

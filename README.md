@@ -315,7 +315,7 @@ chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -
         taxon/taxa is provided and local sequences are aligned
         against reference proteomes (default: 0.6).
 
-`--cpu` (Optional) Number of CPU cores used to run the process (default: 1).
+`--cpu`, `--cpu-cores` (Optional) Number of CPU cores used to run the process (default: 1).
 
 `--taxa` (Optional) List of scientific names for a set of taxa. The process
          will search for and download reference proteomes with
@@ -439,6 +439,8 @@ Please consult the [SchemaEvaluator's wiki page](https://github.com/B-UMMI/chewB
 ----------
 ## 6. Adapt an external schema
 
+The PrepExternalSchema process enables the adaptation of external schemas so that it is possible to use those schemas with chewBBACA. An external schema may be a set of sequences from any number of genes that have been selected for a particular study or it may be a schema that has already been defined and is available for download from some well known databases, such as [Ridom](https://www.cgmlst.org/ncs), [BIGSdb](https://pubmlst.org/) and [Enterobase](http://enterobase.warwick.ac.uk/).
+
 Basic usage:
 
 ```
@@ -480,14 +482,14 @@ of CPUs you have selected, the computing time used will vary. The more variable 
 comparisons will be made, meaning more time will be needed for finishing the analysis.
 
 ### Q: Step 3 just crashed at 99% after 2 days running, do I need to start over?  
-A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag --fc.
+A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`.
 
 ### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  
 A: You probably forgot to eliminate from the analysis genomes responsible for a considerable loss of loci. 
 Try to run again step 4, remove some of those genomes and check if the cgMLST loci number rises.
 
 ### Q: Can I use a schema from an external source?
-A: Yes. Be sure to have a single fasta for each locus and use the "PrepExternalSchema" process.
+A: Yes. Be sure to have a single fasta for each locus and use the `PrepExternalSchema` process.
 
 ### Q: Which species already have a training file?  
 A: At the moment:
@@ -502,18 +504,18 @@ A: At the moment:
  - *Staphylococcus aureus*
  - *Staphylococcus haemolyticus*
  - *Streptococcus agalactiae*
- - *Streptococcus canis
- - *Streptococcus dysgalactiae
- - *Streptococcus equi
- - *Streptococcus pneumoniae
- - *Streptococcus pyogenes
+ - *Streptococcus canis*
+ - *Streptococcus dysgalactiae*
+ - *Streptococcus equi*
+ - *Streptococcus pneumoniae*
+ - *Streptococcus pyogenes*
  - *Yersinia enterocolitica*
 
 get them [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files).
 
 ### Q: My favorite species has no training file. What can I do?
 A: You can propose a new one to be added to the repository or create your own training 
-files. To create a training file do:
+files. To create a training file make sure you have Prodigal installed and run the following command:
 
 ```
 prodigal -i myGoldStandardGenome.fna -t myTrainedFile.trn -p single

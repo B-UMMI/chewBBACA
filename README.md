@@ -42,7 +42,7 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
   4. [Evaluate wgMLST call quality per genome]().
   5. [Defining the cgMLST schema]().
   6. [Evaluate your schema]().
-  7. [Adapt an external schema]().
+  7. [Adapt an external schema](#vii-adapt-an-external-schema).
 - [FAQ](#faq).
 - [Citation](#citation).
 

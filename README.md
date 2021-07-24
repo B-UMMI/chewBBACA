@@ -254,9 +254,14 @@ OutputFolderName
 ```
 
 The `results_statistics.tsv` file contains the total number of exact matches (EXC), inferred new alleles (INF), loci not found (LNF), loci on contig tips (PLOT), non-informative paralogous hits (NIPH), alleles larger than locus length mode (ALM) and alleles smaller than locus length mode (ASM) classifications attributed for each genome.
+
 The `results_contigsInfo.tsv` file contains the loci positions in the genomes analyzed. The first column contains the name of the genome files used in the allele calling and the other columns (with loci names in the headers) the locus position information or the classification attributed by chewBBACA if it was not and exact match or inferred allele.
+
 The `results_alleles.tsv` file contains the allelic profiles determined for the input samples. The first column has the identifiers of the genome assemblies for which the allele call was performed. The remaining columns contain the allele call data for loci present in the schema, with the column headers being the locus identifiers.
+
 The `RepeatedLoci.txt` file provides information about homologous loci detection. This output is useful to identify loci in the schema that are highly similar and loci that have a high number of CDS hits that are not exact matches or new inferred alleles.
+
+Please visit the Wiki section about [Allele Calling](https://github.com/B-UMMI/chewBBACA/wiki/2.-Allele-Calling) if you want to know more about the types of classifications attributed by chewBBACA and the output files.
 
 --------------
 

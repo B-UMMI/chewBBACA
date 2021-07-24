@@ -22,17 +22,9 @@ When using chewBBACA please use the following citation:
 
 Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
 
-## IMPORTANT
-
-- chewBBACA only works with **python 3** (automatic testing for Python 3.7 and Python 3.8 with GitHub Actions).
-- We strongly recommend that users install and use BLAST 2.9.0+ with chewBBACA, as chewBBACA's processes have been extensively tested with that version of BLAST.
-- chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
-- chewBBACA defines an allele as a complete Coding DNA Sequence, with start and stop codons according 
- to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
-- Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
-
 ## Contents
 
+- [Important Notes](#important-notes).
 - [Useful links](#useful-links).
 - [Installation](#installation).
 - [Detailed Usage](#detailed-usage).
@@ -45,6 +37,15 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
   7. [Adapt an external schema](#vii-adapt-an-external-schema).
 - [FAQ](#faq).
 - [Citation](#citation).
+
+## Important Notes
+
+- chewBBACA only works with **python 3** (automatic testing for Python 3.7 and Python 3.8 with GitHub Actions).
+- We strongly recommend that users install and use BLAST 2.9.0+ with chewBBACA, as chewBBACA's processes have been extensively tested with that version of BLAST.
+- chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
+- chewBBACA defines an allele as a complete Coding DNA Sequence, with start and stop codons according 
+ to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
+- Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
 
 ## Useful links
 

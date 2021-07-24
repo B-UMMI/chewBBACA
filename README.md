@@ -36,12 +36,12 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 - [Useful links](#useful-links).
 - [Installation](#installation).
 - [Detailed Usage](#detailed-usage).
-  1. [Whole Genome Multilocus Sequence Typing (wgMLST) schema creation]().
-  2. [Allele call using a cg/wgMLST schema]().
-  3. [Determine annotations for loci in the schema]().
-  4. [Evaluate wgMLST call quality per genome]().
-  5. [Defining the cgMLST schema]().
-  6. [Evaluate your schema]().
+  1. [Whole Genome Multilocus Sequence Typing (wgMLST) schema creation](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation).
+  2. [Allele call using a cg/wgMLST schema](#ii-allele-call-using-a-cgwgmlst-schema).
+  3. [Determine annotations for loci in the schema](#iii-determine-annotations-for-loci-in-the-schema).
+  4. [Evaluate wgMLST call quality per genome](#iv-evaluate-wgmlst-call-quality-per-genome).
+  5. [Defining the cgMLST schema](#v-defining-the-cgmlst-schema).
+  6. [Evaluate your schema](#vi-evaluate-your-schema).
   7. [Adapt an external schema](#vii-adapt-an-external-schema).
 - [FAQ](#faq).
 - [Citation](#citation).

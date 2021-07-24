@@ -87,9 +87,9 @@ Main dependencies:
 * [Prodigal 2.6.0](https://github.com/hyattpd/prodigal/releases/) or above
 
 Other dependencies (for schema evaluation only):
-* [mafft](https://mafft.cbrc.jp/alignment/software/)
+* [MAFFT](https://mafft.cbrc.jp/alignment/software/)
 
-Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST and Prodigal installed and added to the PATH.
+Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST, Prodigal and MAFFT installed and added to the PATH.
 
 ## Detailed Usage
 
@@ -103,7 +103,7 @@ Basic usage:
 chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderName --n SchemaName --ptf /path/to/ProdigalTrainingFile --cpu 4
 ```
 
-**Parameters**
+**Parameters:**
 
 `-i`, `--input-files` Path to the directory that contains the input FASTA
      files. Alternatively, a single file with a list of
@@ -155,7 +155,22 @@ chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderNa
 
 **Outputs:**
 
-One fasta file per distinct gene identified in the schema creation process in the `/path/to/OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The CreateSchema process also creates a file, "cds_info.tsv", in `/path/to/OutputFolderName/` with the locations of the identified genes in each genome passed to create the schema.
+```
+OutputFolderName
+├── SchemaName
+│   ├── short
+│   │   ├── GenomeID_proteinN_short.fasta
+│   │   ├── ...
+│   │   └── GenomeID_proteinN_short.fasta
+│   ├── GenomeID_proteinN.fasta
+│   ├── ...
+│   ├── GenomeID_proteinN.fasta
+│   └── Training_file.trn
+├── invalid_alleles.txt
+└── cds_info.tsv
+```
+
+One fasta file per distinct gene identified in the schema creation process in the `OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele identified for that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The `OutputFolderName/SchemaName` directory also contains a directory named `short` that includes fasta files with the representative sequences for each locus. The training file passed to create the schema is also included in `OutputFolderName/SchemaName` and will be automatically detected during the allele calling process. A file with the locations of the identified genes in each genome passed to create the schema, `cds_info.tsv`, and a file with the list of alleles predicted by Prodigal that were excluded in the subsequent steps , `invalid_alleles.txt`, are included in `OutputFolderName`.
 
 --------------
 
@@ -171,7 +186,7 @@ Basic usage:
 chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
 ```
 
-**Parameters** 
+**Parameters:** 
 
 `-i`, `--input-files` Path to the directory with the genome FASTA files or to a file
      with a list of paths to the FASTA files, one per line.
@@ -223,20 +238,25 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 	stored in a local SQLite database. The SQLite database is stored in the "profiles_database"
 	folder inside the schema's directory (default: False).
 
-By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` argument. If a text file with a list of gene identifiers is passed to the `--gl` parameter, the process will only perform allele calling for the genes in the list.
+By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` argument. If a text file with a list of gene identifiers, one per line, is passed to the `--gl` parameter, the process will only perform allele calling for the genes in the list.
 
 
 **Outputs**:
 
-The following files will be saved into the `/path/to/OutputFolderName/results_datestamp` directory:
+```
+OutputFolderName
+└── results_datestamp
+    ├── results_statistics.tsv
+    ├── results_contigsInfo.tsv
+    ├── results_alleles.tsv
+    ├── RepeatedLoci.txt
+    └── logging_info.txt
+```
 
-```
-results_statistics.tsv
-results_contigsInfo.tsv
-results_alleles.tsv
-logging_info.txt
-RepeatedLoci.txt
-```
+The `results_statistics.tsv` file contains the total number of exact matches (EXC), inferred new alleles (INF), loci not found (LNF), loci on contig tips (PLOT), non-informative paralogous hits (NIPH), alleles larger than locus length mode (ALM) and alleles smaller than locus length mode (ASM) classifications attributed for each genome.
+The `results_contigsInfo.tsv` file contains the loci positions in the genomes analyzed. The first column contains the name of the genome files used in the allele calling and the other columns (with loci names in the headers) the locus position information or the classification attributed by chewBBACA if it was not and exact match or inferred allele.
+The `results_alleles.tsv` file contains the allelic profiles determined for the input samples. The first column has the identifiers of the genome assemblies for which the allele call was performed. The remaining columns contain the allele call data for loci present in the schema, with the column headers being the locus identifiers.
+The `RepeatedLoci.txt` file provides information about homologous loci detection. This output is useful to identify loci in the schema that are highly similar and loci that have a high number of CDS hits that are not exact matches or new inferred alleles.
 
 --------------
 
@@ -250,7 +270,7 @@ Basic usage:
 chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_info.tsv --taxa "Species Name" --cpu 4
 ```
 
-**Parameters**
+**Parameters:**
 
 `-i`, `--input-files` Path to the schema's directory or to a file with a list of
      paths to loci FASTA files, one per line.
@@ -341,8 +361,6 @@ chewBBACA.py ExtractCgMLST -i /path/to/AlleleCall/results/results_alleles.tsv -o
 **Note:** The matrix with allelic profiles created by the ExtractCgMLST
           process can be imported into [**PHYLOViZ**](https://online.phyloviz.net/index)
 	  to visualize and explore typing results.
-
-...Add info about performing allele calling only for the loci in the cgMLST...
 
 --------------
 

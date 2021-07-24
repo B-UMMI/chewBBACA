@@ -156,6 +156,7 @@ chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderNa
 
 One fasta file per distinct gene identified in the schema creation process in the `/path/to/OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele of that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The CreateSchema process also creates a file, "cds_info.tsv", in `/path/to/OutputFolderName/` with the locations of the identified genes in each genome passed to create the schema.
 
+--------------
 
 ### ii. Allele call using a cg/wgMLST schema 
 
@@ -236,6 +237,8 @@ logging_info.txt
 RepeatedLoci.txt
 ```
 
+--------------
+
 ### iii. Determine annotations for loci in the schema
 
 The UniprotFinder process can be used to retrieve annotations for the loci in the schema through requests to [UniProt's SPARQL endpoint](http://sparql.uniprot.org/sparql) and through alignment against the reference proteomes for a set of taxa.
@@ -274,6 +277,7 @@ chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -
 
 The `/path/to/OutputFolderName` directory contains a TSV file, `schema_annotations.tsv`, with the information found for each locus. The process will always search for annotations through UniProt's SPARQL endpoint, reporting the product name and UniProt URL for local loci with an exact match in UniProt's database. If the `cds_info.tsv` file is passed to the `-t` parameter, the output file will also include the information in that file. The `--taxa` parameter receives a set of taxa names and searches for reference proteomes that match the provided terms. The reference proteomes are downloaded and the process aligns schema representative sequences against the reference proteomes to include additional information in the `schema_annotations.tsv` file based on matches against the sequences in the reference proteomes.
 
+--------------
 
 ### iv. Evaluate wgMLST call quality per genome
 
@@ -303,6 +307,7 @@ Example of an output can be seen [here](http://im.fm.ul.pt/chewBBACA/GenomeQual/
 The example uses an original set of 714 genomes and a scheme consisting of 3266 loci with `-n 12`, `-t 300` and `-s 5`
 passed to arguments.
 
+--------------
 
 ### v. Defining the cgMLST schema
 
@@ -337,6 +342,8 @@ chewBBACA.py ExtractCgMLST -i /path/to/AlleleCall/results/results_alleles.tsv -o
 	  to visualize and explore typing results.
 
 ...Add info about performing allele calling only for the loci in the cgMLST...
+
+--------------
 
 ### vi. Evaluate your schema
 
@@ -383,6 +390,7 @@ chewBBACA.py SchemaEvaluator -i /path/to/SchemaName -o /path/to/OutputFolderName
 
 Please consult the [SchemaEvaluator's wiki page](https://github.com/B-UMMI/chewBBACA/wiki/4.-Schema-Evaluation) for more information.
 
+--------------
 
 ### vii. Adapt an external schema
 
@@ -420,15 +428,16 @@ chewBBACA.py PrepExternalSchema -i /path/to/ExternalSchemaFastaFiles -o /path/to
 
 `--cpu`, `--cpu-cores` The number of CPU cores to use (default: 1).
 
+--------------
 
 ## FAQ
 
-### Q: Step 2 is taking hours, will it ever end?  
+### Q: Step [i](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation) is taking hours, will it ever end?  
 A: Depending on the variability of the strains used to create the schema and the number 
 of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
 comparisons will be made, meaning more time will be needed for finishing the analysis.
 
-### Q: Step 3 just crashed at 99% after 2 days running, do I need to start over?  
+### Q: Step [iii](#ii-allele-call-using-a-cgwgmlst-schema) just crashed at 99%, do I need to start over?  
 A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`.
 
 ### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  

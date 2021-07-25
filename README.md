@@ -456,12 +456,12 @@ chewBBACA.py PrepExternalSchema -i /path/to/ExternalSchemaFastaFiles -o /path/to
 
 ## FAQ
 
-### Q: Step [i](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation) is taking hours, will it ever end?  
+### Q: [Schema creation](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation) is taking hours, will it ever end?  
 A: Depending on the variability of the strains used to create the schema and the number 
 of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
 comparisons will be made, meaning more time will be needed for finishing the analysis.
 
-### Q: Step [iii](#ii-allele-call-using-a-cgwgmlst-schema) just crashed at 99%, do I need to start over?  
+### Q: [Allele calling](#ii-allele-call-using-a-cgwgmlst-schema) just crashed at 99%, do I need to start over?  
 A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`.
 
 ### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  

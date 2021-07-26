@@ -461,15 +461,15 @@ A: Depending on the variability of the strains used to create the schema and the
 of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
 comparisons will be made, meaning more time will be needed for finishing the analysis.
 
-### Q: [Allele calling](#ii-allele-call-using-a-cgwgmlst-schema) just crashed at 99%, do I need to start over?  
-A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`.
+### Q: [Allele calling](#ii-allele-call-using-a-cgwgmlst-schema) just crashed, do I need to start over?  
+A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`. If the process keeps crashing with the same set of inputs, it is very likely that one or more of the inputs is misformatted or has a format that is incompatible with chewBBACA. Please ensure that your input files are genome assemblies or coding sequences in FASTA format. Consider opening an [issue](https://github.com/B-UMMI/chewBBACA/issues) to report the problem, we will do our best to help solve the issue and user feedback is very important for the continued improvement of chewBBACA.
 
 ### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  
-A: You probably forgot to eliminate from the analysis genomes responsible for a considerable loss of loci. 
-Try to run again step 4, remove some of those genomes and check if the cgMLST loci number rises.
+A: In order to have a robust definition of a cgMLST schema for a given bacterial species, a set of representative strains of the diversity of a given species should be selected. Furthermore, since cgMLST schema definition is based on pre-defined thresholds, only when a sufficient number of strains have been analyzed can the cgMLST schema be considered stable. This number will always depend on the population structure and diversity of the species in question. cgMLST schemas are defined as the set of loci that are present in all strains under analysis, but defining a smaller loci presence threshold, such as 95%, might be necessary to include very frequent genes or ubiquitous genes that are not present in some strains due to sequencing/assembly limitations.
+The quality of the genome assemblies is also an important factor that can impact profoundly the MLST schema definition (e.g.: genome assemblies with a high number of missing loci, contaminated genome assemblies, misclassified genome assemblies). The [TestGenomeQuality](#iv-evaluate-wgmlst-call-quality-per-genome) process can be used to identify genome assemblies that are responsible for a considerable loss of loci. You can pass a list of genomes to remove to the [ExtractCgMLST](#v-defining-the-cgmlst-schema) process to exclude those genomes from the analysis that determines the set of loci that constitute the core-genome. Identifying and removing low quality genome assemblies can significantly improve the determination of the core-genome.
 
-### Q: Can I use a schema from an external source?
-A: Yes. Be sure to have a single fasta for each locus and use the `PrepExternalSchema` process.
+### Q: Can I use a schema from an external source?  
+A: Yes. The [PrepExternalSchema](#vii-adapt-an-external-schema) process enables the adaptation of external schemas so that it is possible to use those schemas with chewBBACA. An external schema may be a set of sequences from any number of genes that have been selected for a particular study or it may be a schema that has already been defined and is available for download from some well known databases, such as [Ridom cgMLST](http://www.cgmlst.org/ncs), [BIGSdb](https://pubmlst.org/) and [Enterobase](http://enterobase.warwick.ac.uk/).
 
 ### Q: Which species already have a training file?  
 A: At the moment:

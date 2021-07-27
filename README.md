@@ -456,10 +456,8 @@ chewBBACA.py PrepExternalSchema -i /path/to/ExternalSchemaFastaFiles -o /path/to
 
 ## FAQ
 
-### Q: [Schema creation](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation) is taking hours, will it ever end?  
-A: Depending on the variability of the strains used to create the schema and the number 
-of CPUs you have selected, the computing time used will vary. The more variable the strains, the more BLAST 
-comparisons will be made, meaning more time will be needed for finishing the analysis.
+### Q: What strains should I use for [Schema Creation](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation)?
+A: The set of genome assemblies used for schema creation should be carefully selected to avoid the inclusion of spurious loci in the schema seed that result from low quality assemblies (e.g.: genome assemblies resulting from low quality sequencing data, highly fragmented genome assemblies, genome assemblies with many frameshifted proteins, genome length too large or too small). A set of high quality genome assemblies, ideally complete genomes, that capture the diversity of the species or lineage of interest should result in a good schema seed.
 
 ### Q: [Allele calling](#ii-allele-call-using-a-cgwgmlst-schema) just crashed, do I need to start over?  
 A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`. If the process keeps crashing with the same set of inputs, it is very likely that one or more of the inputs is misformatted or has a format that is incompatible with chewBBACA. Please ensure that your input files are genome assemblies or coding sequences in FASTA format. Consider opening an [issue](https://github.com/B-UMMI/chewBBACA/issues) to report the problem, we will do our best to help solve the issue and user feedback is very important for the continued improvement of chewBBACA.

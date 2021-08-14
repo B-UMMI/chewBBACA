@@ -192,10 +192,10 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
 #fasta_files = cds_files
 #temp_directory = preprocess_dir
-#cpu_cores = 6
 #outfile_template = distinct_dna_template
+#ids_map = map_ids
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template):
+                       outfile_template, ids_map):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -225,6 +225,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     dedup_inputs = [[file,
                      fo.join_paths(temp_directory,
                                    [outfile_template.format(i+1)]),
+                     ids_map,
                      sm.determine_distinct]
                     for i, file in enumerate(fasta_files)]
 
@@ -235,28 +236,33 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                               cpu_cores,
                                               show_progress=False)
 
+    # merge results from first round
+    merged_results = {}
+    for r in dedup_results:
+        for k, v in r[0].items():
+            merged_results.setdefault(k, []).extend(v)
+
+    # determine number of duplicated sequences
+    repeated = sum([d[1] for d in dedup_results])
+
     # one last round after first round received several inputs
     if len(dedup_inputs) > 1:
-        # merge all shelves
-        all_shelves = [d for d in dedup_results]
-        shelve_name = os.path.join(temp_directory, 'intermediate_dna_shelve')
-        total_distinct = im.merge_shelves(all_shelves, shelve_name)
-
         # concatenate results from first round
-        dedup_files = [d[1] for d in dedup_inputs]
+        dedup_files = [f[1] for f in dedup_inputs]
         cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
         cds_file = fo.concatenate_files(dedup_files, cds_file)
+        distinct_seqs = fo.join_paths(temp_directory, ['distinct_seqs.fasta'])
+        dedup_results2 = sm.determine_distinct(cds_file, distinct_seqs, ids_map)
 
-        # get first seqid for each distinct seq
-        # index concat with BioPython
-        # open shelve file and get the first record for each distinct seqid through the index
-        indexed_file = SeqIO.index(cds_file, 'fasta')
-        distinct_seqs = os.path.join(temp_directory, 'distinct_dna')
-        im.seqid_shelve(shelve_name, indexed_file, distinct_seqs)
+        repeated += dedup_results2[1]
 
-        return [distinct_seqs, shelve_name, total_distinct]
+        print('removed {0} sequences.'.format(repeated))
+
+        return [merged_results, distinct_seqs, repeated]
     else:
-        return [dedup_inputs[0][1], dedup_results[0]]
+        print('removed {0} sequences.'.format(repeated))
+
+        return [merged_results, dedup_inputs[0][1], dedup_results[0][1]]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
@@ -390,6 +396,14 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
 
+#sequences = proteins
+#grow_clusters = False
+#kmer_offset = 1
+#seq_num_cluster = 1
+#temp_directory = clustering_dir
+#file_prefix = 'clusters'
+#divide = True
+#position = False
 def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                       representatives, grow_clusters, kmer_offset,
                       seq_num_cluster, temp_directory, cpu_cores,
@@ -474,12 +488,13 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
     # merge clusters
     clusters = [d[0] for d in clustering_results]
-    clusters = im.merge_dictionaries(clusters)
+    clusters = im.merge_dictionaries(clusters[0], clusters[1:])
     rep_sequences = [d[1] for d in clustering_results]
-    rep_sequences = im.merge_dictionaries(rep_sequences)
+    rep_sequences = im.merge_dictionaries(rep_sequences[0], rep_sequences[1:])
 
     # perform clustering with representatives
-    if len(cluster_inputs) > 1:
+    # this step does not run for AlleleCall!
+    if len(cluster_inputs) > 1 and any(len(r) > 0 for r in rep_sequences) is True:
         # cluster representatives
         rep_clusters = sc.clusterer(rep_sequences, word_size,
                                     window_size, clustering_sim,

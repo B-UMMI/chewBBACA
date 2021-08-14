@@ -197,7 +197,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
 
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
-                         seq_num_cluster, clustering_sim):
+                         seq_num_cluster, clustering_sim, grow):
     """ Cluster sequences based on the decimal proportion of
         shared distinct minimizers.
 
@@ -297,12 +297,13 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                                                       len(minimizers),
                                                       len(distinct_minimizers)))
         else:
-            for k in distinct_minimizers:
-                reps_groups.setdefault(k, []).append(protid)
+            if grow is True:
+                for k in distinct_minimizers:
+                    reps_groups.setdefault(k, []).append(protid)
 
-            clusters[protid] = [(protid, 1.0, len(protein),
-                                len(minimizers), len(distinct_minimizers))]
-            reps_sequences[protid] = protein
+                clusters[protid] = [(protid, 1.0, len(protein),
+                                    len(minimizers), len(distinct_minimizers))]
+                reps_sequences[protid] = protein
 
     return [clusters, reps_sequences, reps_groups]
 
@@ -370,7 +371,8 @@ def clusterer(sorted_sequences, word_size, window_size,
                                            window_size, position,
                                            offset, clusters,
                                            reps_sequences, reps_groups,
-                                           seq_num_cluster, clustering_sim)
+                                           seq_num_cluster, clustering_sim,
+                                           grow)
 
     return cluster_results[0:2]
 

@@ -132,29 +132,8 @@ except:
                                  multiprocessing_operations as mo)
 
 
-def exact_matches(fasta_file, hashes_shelf, dbkeys):
-    """
-    """
-
-    # import fasta records
-    records = fao.import_sequences(fasta_file)
-
-    # translate records
-    translated_records = set([str(sm.translate_sequence(seq, 11))
-                              for seq in records.values()])
-    
-    # determine hashes
-    records_hashes = [im.hash_sequence(seq)
-                      for seq in translated_records]
-
-    matches = [h for h in records_hashes if h in dbkeys]
-
-    if len(matches) > 0:
-        # open shelve and get matches
-        with shelve.open(hashes_shelf) as db:
-            matches = [db[h] for h in matches]
-
-    return matches
+# import module to determine variable size
+import get_varSize_deep as gs
 
 
 input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
@@ -191,6 +170,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # sort paths to FASTA files
     fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
+    i = 1
+    map_ids = {}
+    for f in fasta_files:            
+        # determine Prodigal ORF file path for current genome
+        identifier = fo.file_basename(f, False)
+        map_ids[identifier] = i
+        i += 1
 
     if cds_input is False:
 
@@ -217,13 +203,60 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fo.create_directory(preprocess_dir)
 
     # DNA sequences deduplication step
+    # keep hash of unique sequences and a list with the integer identifiers of genomes that have those sequences
     distinct_dna_template = 'distinct_cds_{0}.fasta'
-    distinct_seqs_file, dna_shelve, repeated = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
-                                                                     distinct_dna_template)
+    distinct_seqids, distinct_seqs_file, repeated = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
+                                                                          distinct_dna_template, map_ids)
 
+    size1 = gs.convert_bytes(distinct_seqids, set())
+
+    # remove small sequences!?
+
+    # simulate variable to to measure RAM usage with huge dataset
+    # generate hashes for 1 million sequences and add lists with 1000 integers
+
+    # find exact matches
+    loci_list = [os.path.join(schema_directory, f) for f in os.listdir(schema_directory) if '.fasta' in f]
+    # key can be reduced to basename and allele match to allele identifier
+    exact_dna = {}
+    exact_hashes = []
+    for l in loci_list:
+        exact_dna[l] = []
+        seq_generator = SeqIO.parse(l, 'fasta')
+        for rec in seq_generator:
+            sequence = str(rec.seq.upper())
+            seqid = rec.id
+            seq_hash = im.hash_sequence(sequence)
+            if seq_hash in distinct_seqids:
+                exact_dna[l].append((seqid, distinct_seqids[seq_hash]))
+                exact_hashes.append(seq_hash)
+
+    size2 = gs.convert_bytes(exact_dna, set())
+    size3 = gs.convert_bytes(exact_hashes, set())
+
+    # create file with info for exact matches
+
+    # remove DNA sequences that were exact matches from the file with all distinct CDSs
+    seq_generator = SeqIO.parse(distinct_seqs_file, 'fasta')
+    out_seqs = []
+    for rec in seq_generator:
+        sequence = str(rec.seq.upper())
+        seqid = rec.id
+        seq_hash = im.hash_sequence(sequence)
+    
+        if seq_hash not in exact_hashes:
+            recout = fao.fasta_str_record(seqid, sequence)
+            out_seqs.append(recout)
+
+    unique_fasta = fo.join_paths(preprocess_dir, ['dna_non_exact.fasta'])
+    out_seqs = im.join_list(out_seqs, '\n')
+    fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
+    out_seqs = []
+
+    # translate DNA sequences and identify duplicates
     # sequence translation step
-    seqids = [rec.id for rec in SeqIO.parse(distinct_seqs_file, 'fasta')]
-    ts_results = cf.translate_sequences(seqids, distinct_seqs_file,
+    seqids = [rec.id for rec in SeqIO.parse(unique_fasta, 'fasta')]
+    ts_results = cf.translate_sequences(seqids, unique_fasta,
                                         preprocess_dir, translation_table,
                                         minimum_length, cpu_cores)
 
@@ -240,72 +273,124 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # protein sequences deduplication step
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
-                                       distinct_prot_template)
+                                       distinct_prot_template, map_ids)
 
-    distinct_protein_seqs, distinct_prots_shelve = ds_results
-
-########
-
-    # create shelve with protein hash to DNA hash!
-    out_shelve = os.path.join(preprocess_dir, 'hashes_protein_dna')
-    dna_index = SeqIO.index(dna_file, 'fasta')
-    hashes = {}
-    with shelve.open(distinct_prots_shelve) as db:
-        dbkeys = list(db.keys())
-        for k in dbkeys:
-            seqids = db[k]
-            # get seqs
-            seqs = [str(dna_index[s].seq) for s in seqids]
-            # hash
-            seqs_hashes = [im.hash_sequence(s) for s in seqs]
-            hashes[k] = seqs_hashes
-
-    # save to shelve
-    with shelve.open(out_shelve) as hdb:
-        for k, v in hashes.items():
-            hdb[k] = v
-
-########
-
-    # determine protein exact matches to schema seqs
-    schema_loci = [file for file in os.listdir(schema_directory) if '.fasta' in file]
-    schema_loci = [fo.join_paths(schema_directory, [file])
-                   for file in schema_loci]
-
-    # use protein sequences hashes to search for exact matches in loci
-
-    with shelve.open(out_shelve) as db:
-        dbkeys = list(db.keys())
-
-    # find exact matches
-    prot_matches = {}
-    for locus in schema_loci:
-        matches = exact_matches(locus, out_shelve, dbkeys)
-        if len(matches) > 0:
-            prot_matches[locus] = matches
-
-
-
-
-    # get identifiers for alleles that code for proteins
-    prot_matches_ids = {}
-    for locus, v in prot_matches.items():
-        matches_ids = []
-        for h in v:
-            matches_ids += distinct_protein_seqs[h]
-        prot_matches_ids[locus] = matches_ids
-
-    # determine the allele identifier for exact matches
-    # for each locus with exact matches
-    # import DNA sequences from locus
-    # use index for file with distinct DNA sequences to get DNA sequences
-    # check if they are in locus sequences
-    # assign ID if they are
-    # new allele if they are not
+    distinct_pseqids = ds_results[0]
+    size4 = gs.convert_bytes(distinct_pseqids, set())
     
+    # translate loci files and identify exact matches at protein level
+    # exact matches are new alleles that can be added to the schema
+    # find exact matches
+    # key can be reduced to basename and allele match to allele identifier
 
-    # remove identifiers from exact matches and perform clustering
+    # translate loci files
+    protein_files = []
+    protein_dir = os.path.join(temp_directory, '4_protein_dir')
+    fo.create_directory(protein_dir)
+    for l in loci_list:
+        protein_l = os.path.join(protein_dir, os.path.basename(l).replace('.fasta', '_protein.fasta'))
+        protein_files.append(protein_l)
+        translated_seqs = [(rec.id, str(sm.translate_sequence(str(rec.seq), 11))) for rec in SeqIO.parse(l, 'fasta')]
+        records = [fao.fasta_str_record(s[0], s[1]) for s in translated_seqs]
+        out_seqs = im.join_list(records, '\n')
+        fo.write_to_file(out_seqs, protein_l, 'a', '\n')
+    
+    exact_protein = {}
+    exact_phashes = []
+    for l in protein_files:
+        exact_protein[l] = []
+        seq_generator = SeqIO.parse(l, 'fasta')
+        for rec in seq_generator:
+            sequence = str(rec.seq)
+            seqid = rec.id
+            seq_hash = im.hash_sequence(sequence)
+            if seq_hash in distinct_pseqids:
+                exact_protein[l].append((seqid, distinct_pseqids[seq_hash]))
+                exact_phashes.append(seq_hash)
 
+    # remove exact matches from file  with translated seqs before clustering
+    seq_generator = SeqIO.parse(ds_results[1], 'fasta')
+    out_seqs = []
+    for rec in seq_generator:
+        sequence = str(rec.seq.upper())
+        seqid = rec.id
+        seq_hash = im.hash_sequence(sequence)
+    
+        if seq_hash not in exact_phashes:
+            recout = fao.fasta_str_record(seqid, sequence)
+            out_seqs.append(recout)
+
+    unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
+    out_seqs = im.join_list(out_seqs, '\n')
+    fo.write_to_file(out_seqs, unique_pfasta, 'a', '\n')
+    out_seqs = []
+
+    # cluster protein sequences
+    # protein clustering step
+    # read protein sequences
+    proteins = fao.import_sequences(unique_pfasta)
+
+    # create directory to store clustering data
+    clustering_dir = fo.join_paths(temp_directory, ['5_clustering'])
+    fo.create_directory(clustering_dir)
+
+    # create index for representative sequences
+    rep_dir = os.path.join(schema_directory, 'short')
+    rep_list = [os.path.join(rep_dir, f) for f in os.listdir(rep_dir) if f.endswith('.fasta')]
+    protein_repfiles = []
+    for l in rep_list:
+        protein_l = os.path.join(protein_dir, os.path.basename(l).replace('.fasta', '_protein.fasta'))
+        protein_repfiles.append(protein_l)
+        translated_seqs = [(rec.id, str(sm.translate_sequence(str(rec.seq), 11))) for rec in SeqIO.parse(l, 'fasta')]
+        records = [fao.fasta_str_record(s[0], s[1]) for s in translated_seqs]
+        out_seqs = im.join_list(records, '\n')
+        fo.write_to_file(out_seqs, protein_l, 'a', '\n')
+
+    # concatenate all representative
+    concat_reps = os.path.join(protein_dir, 'concat_reps.fasta')
+    fo.concatenate_files(protein_repfiles, concat_reps)
+    rep_proteins = fao.import_sequences(concat_reps)
+
+    representatives = im.kmer_index(rep_proteins, 5)[0]
+    cs_results = cf.cluster_sequences(proteins, word_size, window_size,
+                                      clustering_sim, representatives, False,
+                                      1, 1, clustering_dir, cpu_cores,
+                                      'clusters', True, False)
+
+    # remove singletons
+    clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
+
+    # BLASTp clusters step
+    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+
+
+    # create file with all proteins, including loci representatives???
+    if len(clusters) > 0:
+        blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
+        fo.create_directory(blasting_dir)
+
+        blast_results, ids_dict = cf.blast_clusters(clusters, proteins,
+                                                    blasting_dir, blastp_path,
+                                                    makeblastdb_path, cpu_cores,
+                                                    'blast')
+
+        blast_files = im.flatten_list(blast_results)
+
+        # compute and exclude based on BSR
+        blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
+                                               indexed_dna_file,
+                                               blast_score_ratio,
+                                               ids_dict)
+                                  for file in blast_files]
+
+        # merge bsr results
+        blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
+
+        blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
+        schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
+        print('\n\nRemoved {0} sequences based on high BSR value with '
+              'other sequences.'.format(len(set(blast_excluded_alleles))))
 
 
 def main(input_files, schema_directory, output_directory, ptf_path,

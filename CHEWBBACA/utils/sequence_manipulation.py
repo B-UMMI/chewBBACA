@@ -728,7 +728,7 @@ def execute_statement(conn, statement):
         return error
 
 
-def determine_distinct(sequences_file, unique_fasta):
+def determine_distinct(sequences_file, unique_fasta, map_ids):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -753,16 +753,13 @@ def determine_distinct(sequences_file, unique_fasta):
                 distinct sequence is the one stored in the list.
     """
 
+    total = 0
     duplicates = {}
     out_limit = 20000
     distinct = []
     out_seqs = []
     exausted = False
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
-    shelves = 0
-    #shelve_file = unique_fasta.split('.fasta')[0] + '_identifiers'
-    sqlite_file = unique_fasta.split('.fasta')[0] + '_identifiers'
-    create_database(sqlite_file)
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -778,18 +775,14 @@ def determine_distinct(sequences_file, unique_fasta):
                 distinct.append(seq_hash)
                 recout = fao.fasta_str_record(seqid, sequence)
                 out_seqs.append(recout)
+            else:
+                total += 1
 
-            duplicates.setdefault(seq_hash, []).append(seqid)
-            shelves += 1
-            if shelves >= 200000:
-                #added = update_shelves(duplicates, shelve_file)
-                added = update_sqlitedb(sqlite_file, duplicates)
-                shelves = 0
-                duplicates = {}
+            genome_id = seqid.split('-protein')[0]
+            genome_int = map_ids[genome_id]
+            duplicates.setdefault(seq_hash, []).append(genome_int)
         else:
             exausted = True
-            #added = update_shelves(duplicates, shelve_file)
-            added = update_sqlitedb(sqlite_file, duplicates)
 
         if len(out_seqs) == out_limit or exausted is True:
             if len(out_seqs) > 0:
@@ -797,7 +790,7 @@ def determine_distinct(sequences_file, unique_fasta):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
-    return sqlite_file
+    return [duplicates, total]
 
 
 def determine_small(sequences_file, minimum_length, variation=0):

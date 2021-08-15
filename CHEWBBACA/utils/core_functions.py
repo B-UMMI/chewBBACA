@@ -245,6 +245,18 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     # determine number of duplicated sequences
     repeated = sum([d[1] for d in dedup_results])
 
+    # No need to run a second round?
+    # I can just get the first identifier for each sequence hash and index the concat to get the sequences with those identifers?
+    # That would avoid iterating over the concat to determine distinct sequences again.
+    # for each sequence hash, get the integer identifier for the genome and use the ids_map variable to get the genome string identifier
+    # and open the pickle file with CDS info for the genome to get the seqid and then get the sequence from the indexed file?
+    # or just create another file during deduplication? Instead of a FASTA file with deduplicated sequences, create a pickle/TSV with the hashes
+    # to DNA sequence and the identifier of the CDS for the first time that CDS was identified.
+    # Just add identifier of first CDS for the sequence to the variable that is already used to store genome integer identifiers and then get the list of CDS to extract from indexed file
+    # after that?
+    # We can also run the second deduplciations tep without creating the dictionary with the integer ids for all genomes because we already merged the results from the first iteration.
+    # this optimization will reduce memory usage? Indexing the file might be faster but adding the string id to each sequence hash might increate memory usage.
+
     # one last round after first round received several inputs
     if len(dedup_inputs) > 1:
         # concatenate results from first round

@@ -104,6 +104,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
             strand = cds[2]
             # extract CDS sequence
             cds_sequence = im.extract_single_cds(sequence, *cds).upper()
+            seq_hash = im.hash_sequence(cds_sequence)
 
             # store CDS with unique id
             coding_sequences[seqid] = cds_sequence
@@ -111,7 +112,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
             # store CDS information
             coding_sequences_info.append([contig_id, str(start_pos),
                                           str(stop_pos), str(seqid),
-                                          str(strand)])
+                                          str(strand), seq_hash])
 
             # increment seqid
             seqid += 1
@@ -138,11 +139,23 @@ def write_protein_table(output_file, genome_id, cds_info):
             identifier and CDS coding strand).
     """
 
-    table_lines = [[genome_id] + protein_info
+    # write TSV file
+    table_lines = [[genome_id] + protein_info[:-1]
                    for protein_info in cds_info]
     table_lines = [im.join_list(line, '\t') for line in table_lines]
     table_text = im.join_list(table_lines, '\n')
     fo.write_to_file(table_text, output_file, 'a', '\n')
+
+    # write pickle with CDS hash to CDS info dictionary
+    pickle_out = os.path.join(os.path.dirname(output_file), genome_id+'_cds_hash')
+    pickle_data = {}
+    # create dictionary to map CDS hash to CDS location
+    for p in cds_info:
+        # make sure to store CDS duplicated in the genome
+        pickle_data.setdefault(p[-1], []).append(p[:-1])
+
+    with open(pickle_out, 'wb') as outfile:
+        pickle.dump(pickle_data, outfile)
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
@@ -231,7 +244,7 @@ def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
         # determine Prodigal ORF file path for current genome
         identifier = fo.file_basename(g, False)
         orf_file_path = fo.join_paths(prodigal_path,
-                                      ['{0}_ORF.txt'.format(identifier)])
+                                      ['{0}_ORF'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
                                    protein_table, cds_file)
         batch_total += total
@@ -287,6 +300,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
+    # this has to be changed to include the full file name!
     genome_basename = fo.file_basename(input_file, False)
 
     if len(stderr) > 0:
@@ -323,7 +337,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     if total_genome > 0:
         # save positions in file
-        filepath = os.path.join(output_dir, genome_basename + '_ORF.txt')
+        filepath = os.path.join(output_dir, genome_basename + '_ORF')
         with open(filepath, 'wb') as f:
             pickle.dump(contigs_pos, f)
 

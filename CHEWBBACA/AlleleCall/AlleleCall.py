@@ -103,7 +103,6 @@ Code documentation
 import os
 import sys
 import math
-import shelve
 import argparse
 
 from Bio import SeqIO
@@ -136,23 +135,23 @@ except:
 import get_varSize_deep as gs
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
-prodigal_mode = 'single'
-cds_input = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_agalactiae.trn'
+#blast_score_ratio = 0.6
+#minimum_length = 201
+#translation_table = 11
+#size_threshold = 0.2
+#word_size = 5
+#window_size = 5
+#clustering_sim = 0.2
+#representative_filter = 0.9
+#intra_filter = 0.9
+#cpu_cores = 6
+#blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
+#prodigal_mode = 'single'
+#cds_input = False
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -381,15 +380,15 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                                     'blast', True)
 
         blast_files = im.flatten_list(blast_results)
-
-        # import results for each locus, compute BSR and determine classification!
+        
+        # import results and determine classifications
 
 
 def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
-         cds_input, prodigal_mode, no_cleanup):
+         cds_input, prodigal_mode):#, no_cleanup):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -411,8 +410,8 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                              prodigal_mode, cds_input)
 
     # remove temporary files
-    if no_cleanup is False:
-        fo.delete_directory(results[1])
+#    if no_cleanup is False:
+#        fo.delete_directory(results[1])
 
 
 def parse_arguments():

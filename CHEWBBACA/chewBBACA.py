@@ -335,10 +335,10 @@ def allele_call():
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
 
-    # parser.add_argument('--fc', '--force-continue', action='store_true',
-    #                     required=False, dest='force_continue',
-    #                     help='Continue allele call process that '
-    #                          'was interrupted.')
+    parser.add_argument('--fc', '--force-continue', action='store_true',
+                        required=False, dest='force_continue',
+                        help='Continue allele call process that '
+                             'was interrupted.')
 
     # parser.add_argument('--fr', '--force-reset', action='store_true',
     #                     required=False, dest='force_reset',
@@ -413,7 +413,7 @@ def allele_call():
                     args.size_threshold, args.word_size, args.window_size,
                     args.clustering_sim, args.representative_filter, args.intra_filter,
                     args.cpu_cores, args.blast_path, args.cds_input,
-                    args.prodigal_mode, args.ns, args.no_cleanup)
+                    args.prodigal_mode)#, args.ns, args.no_cleanup)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

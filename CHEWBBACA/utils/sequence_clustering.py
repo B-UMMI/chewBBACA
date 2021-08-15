@@ -458,8 +458,14 @@ def representative_pruner(clusters, sim_cutoff):
     return [pruned_clusters, excluded]
 
 
+#seqids = splitted_seqids[0][0]
+#sequences = splitted_seqids[0][1]
+#output_directory = splitted_seqids[0][2]
+#blast_path = splitted_seqids[0][3]
+#blastdb_path = splitted_seqids[0][4]
+#only_rep = True
 def cluster_blaster(seqids, sequences, output_directory,
-                    blast_path, blastdb_path):
+                    blast_path, blastdb_path, only_rep=False):
     """ Aligns sequences in the same cluster with BLAST.
 
         Parameters
@@ -499,8 +505,12 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         fasta_file = os.path.join(output_directory,
                                   '{0}_protein.fasta'.format(cluster_id))
-        # create file with protein sequences
-        fao.get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
+        
+        if only_rep is False:
+            # create file with protein sequences
+            fao.get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
+        else:
+            fao.get_sequences_by_id(indexed_fasta, [cluster_ids[0]], fasta_file)
 
         blast_output = os.path.join(output_directory,
                                     '{0}_blast_out.tsv'.format(cluster_id))

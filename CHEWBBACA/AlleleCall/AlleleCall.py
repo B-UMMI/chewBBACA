@@ -352,6 +352,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     rep_proteins = fao.import_sequences(concat_reps)
 
     representatives = im.kmer_index(rep_proteins, 5)[0]
+    size5 = gs.convert_bytes(representatives, set())
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, representatives, False,
                                       1, 1, clustering_dir, cpu_cores,
@@ -364,33 +365,24 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
 
-
-    # create file with all proteins, including loci representatives???
+    # create file with all proteins, including loci representatives
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
         fo.create_directory(blasting_dir)
 
-        blast_results, ids_dict = cf.blast_clusters(clusters, proteins,
+        fo.concatenate_files([unique_pfasta, concat_reps], os.path.join(blasting_dir, 'all_prots.fasta'))
+
+        all_prots = os.path.join(blasting_dir, 'all_prots.fasta')
+        all_proteins = fao.import_sequences(all_prots)
+
+        blast_results, ids_dict = cf.blast_clusters(clusters, all_proteins,
                                                     blasting_dir, blastp_path,
                                                     makeblastdb_path, cpu_cores,
-                                                    'blast')
+                                                    'blast', True)
 
         blast_files = im.flatten_list(blast_results)
 
-        # compute and exclude based on BSR
-        blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
-                                               indexed_dna_file,
-                                               blast_score_ratio,
-                                               ids_dict)
-                                  for file in blast_files]
-
-        # merge bsr results
-        blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
-
-        blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
-        schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
-        print('\n\nRemoved {0} sequences based on high BSR value with '
-              'other sequences.'.format(len(set(blast_excluded_alleles))))
+        # import results for each locus, compute BSR and determine classification!
 
 
 def main(input_files, schema_directory, output_directory, ptf_path,

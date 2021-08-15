@@ -684,10 +684,12 @@ def cluster_intra_filter(clusters, sequences, word_size,
 
     return [pruned_clusters, intra_excluded]
 
-
+#sequences = all_proteins
+#output_directory = blasting_dir
+#file_prefix = 'blast'
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
-                   file_prefix):
+                   file_prefix, only_rep=False):
     """ Uses BLAST to align sequences in the same clusters.
 
         Parameters
@@ -768,11 +770,10 @@ def blast_clusters(clusters, sequences, output_directory,
                                              'seqcount')
 
     common_args = [integer_clusters, blast_results_dir, blastp_path,
-                   blast_db, sc.cluster_blaster]
+                   blast_db, only_rep, sc.cluster_blaster]
 
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
-    # create the FASTA files with the protein sequences before BLAST?
     print('BLASTing protein sequences in each cluster...\n')
 
     # BLAST each sequences in a cluster against every sequence in that cluster

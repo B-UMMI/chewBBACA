@@ -230,7 +230,6 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                     for i, file in enumerate(fasta_files)]
 
     # determine distinct sequences (keeps 1 seqid per sequence)
-    print('\nRemoving duplicated sequences...', end='')
     dedup_results = mo.map_async_parallelizer(dedup_inputs,
                                               mo.function_helper,
                                               cpu_cores,
@@ -238,43 +237,35 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # merge results from first round
     merged_results = {}
-    for r in dedup_results:
-        for k, v in r[0].items():
-            merged_results.setdefault(k, []).extend(v)
+    for p in dedup_results:
+        r = fo.pickle_loader(p)
+        for k, v in r.items():
+            merged_results.setdefault(k, [v[0]]).extend(v[1:])
 
     # determine number of duplicated sequences
-    repeated = sum([d[1] for d in dedup_results])
+    # minus 2 so we do not count the seqid and genome integer
+    # identifier for the representative record
+    repeated = sum([len(v)-2 for k, v in merged_results.items()])
 
-    # No need to run a second round?
-    # I can just get the first identifier for each sequence hash and index the concat to get the sequences with those identifers?
-    # That would avoid iterating over the concat to determine distinct sequences again.
-    # for each sequence hash, get the integer identifier for the genome and use the ids_map variable to get the genome string identifier
-    # and open the pickle file with CDS info for the genome to get the seqid and then get the sequence from the indexed file?
-    # or just create another file during deduplication? Instead of a FASTA file with deduplicated sequences, create a pickle/TSV with the hashes
-    # to DNA sequence and the identifier of the CDS for the first time that CDS was identified.
-    # Just add identifier of first CDS for the sequence to the variable that is already used to store genome integer identifiers and then get the list of CDS to extract from indexed file
-    # after that?
-    # We can also run the second deduplciations tep without creating the dictionary with the integer ids for all genomes because we already merged the results from the first iteration.
-    # this optimization will reduce memory usage? Indexing the file might be faster but adding the string id to each sequence hash might increate memory usage.
+    # get representative identifiers for each distinct sequence
+    distinct_seqids = [v[0] for k, v in merged_results.items()]
 
-    # one last round after first round received several inputs
-    if len(dedup_inputs) > 1:
-        # concatenate results from first round
-        dedup_files = [f[1] for f in dedup_inputs]
-        cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
-        cds_file = fo.concatenate_files(dedup_files, cds_file)
-        distinct_seqs = fo.join_paths(temp_directory, ['distinct_seqs.fasta'])
-        dedup_results2 = sm.determine_distinct(cds_file, distinct_seqs, ids_map)
+    # concatenate results from first round
+    dedup_files = [f[1] for f in dedup_inputs]
+    cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
+    cds_file = fo.concatenate_files(dedup_files, cds_file)
 
-        repeated += dedup_results2[1]
+    # create index for large file
+    cds_index = SeqIO.index(cds_file, 'fasta')
 
-        print('removed {0} sequences.'.format(repeated))
+    # define filename for file with distinct sequences
+    distinct_seqs = fo.join_paths(temp_directory, [outfile_template.format('d')])
 
-        return [merged_results, distinct_seqs, repeated]
-    else:
-        print('removed {0} sequences.'.format(repeated))
+    # get distinct sequences
+    fao.get_sequences_by_id(cds_index, distinct_seqids,
+                            distinct_seqs, 20000)
 
-        return [merged_results, dedup_inputs[0][1], dedup_results[0][1]]
+    return [merged_results, distinct_seqs, repeated]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
@@ -411,7 +402,7 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
 #sequences = proteins
 #grow_clusters = False
 #kmer_offset = 1
-#seq_num_cluster = 1
+#seq_num_cluster = 30
 #temp_directory = clustering_dir
 #file_prefix = 'clusters'
 #divide = True

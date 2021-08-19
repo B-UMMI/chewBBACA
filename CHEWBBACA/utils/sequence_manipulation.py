@@ -753,10 +753,8 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
                 distinct sequence is the one stored in the list.
     """
 
-    total = 0
     duplicates = {}
     out_limit = 20000
-    distinct = []
     out_seqs = []
     exausted = False
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
@@ -768,19 +766,15 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
             seqid = record.id
             seq_hash = im.hash_sequence(sequence)
 
-            # this condition takes some time
-            # try to find a method that is faster
-            if seq_hash not in distinct:
-                # store only the hash for distinct sequences
-                distinct.append(seq_hash)
-                recout = fao.fasta_str_record(seqid, sequence)
-                out_seqs.append(recout)
-            else:
-                total += 1
-
             genome_id = seqid.split('-protein')[0]
             genome_int = map_ids[genome_id]
-            duplicates.setdefault(seq_hash, []).append(genome_int)
+
+            if seq_hash not in duplicates:
+                recout = fao.fasta_str_record(seqid, sequence)
+                out_seqs.append(recout)
+                duplicates[seq_hash] = [seqid]
+
+            duplicates[seq_hash].append(genome_int)
         else:
             exausted = True
 
@@ -790,7 +784,11 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 out_seqs = []
 
-    return [duplicates, total]
+    # save to pickle and only return file path
+    pickle_out = unique_fasta + '_duplicates'
+    fo.pickle_dumper(duplicates, pickle_out)
+
+    return pickle_out
 
 
 def determine_small(sequences_file, minimum_length, variation=0):

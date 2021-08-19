@@ -102,7 +102,7 @@ Code documentation
 
 import os
 import sys
-import math
+import time
 import argparse
 
 from Bio import SeqIO
@@ -135,9 +135,9 @@ except:
 import get_varSize_deep as gs
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
 #output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_agalactiae.trn'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Clostridioides_difficile.trn'
 #blast_score_ratio = 0.6
 #minimum_length = 201
 #translation_table = 11
@@ -151,7 +151,7 @@ import get_varSize_deep as gs
 #blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
 #prodigal_mode = 'single'
 #cds_input = False
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/cdifficile32_schema/schema_seed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -203,58 +203,78 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # DNA sequences deduplication step
     # keep hash of unique sequences and a list with the integer identifiers of genomes that have those sequences
+    start = time.time()
+    print('\nRemoving duplicated DNA sequences...', end='')
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     distinct_seqids, distinct_seqs_file, repeated = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
                                                                           distinct_dna_template, map_ids)
+    print('removed {0} sequences.'.format(repeated))
+    end = time.time()
+    delta = end - start
+    print(delta)
 
+    #sys.exit(0)
+    # get size of hash table
     size1 = gs.convert_bytes(distinct_seqids, set())
+    print(size1)
 
     # remove small sequences!?
 
-    # simulate variable to to measure RAM usage with huge dataset
-    # generate hashes for 1 million sequences and add lists with 1000 integers
-
+    print('Finding DNA exact matches...', end='')
     # find exact matches
     loci_list = [os.path.join(schema_directory, f) for f in os.listdir(schema_directory) if '.fasta' in f]
     # key can be reduced to basename and allele match to allele identifier
-    exact_dna = {}
     exact_hashes = []
+    total = 0
     for l in loci_list:
-        exact_dna[l] = []
+        exact_dna = []
         seq_generator = SeqIO.parse(l, 'fasta')
+        pickle_out = os.path.join(preprocess_dir, os.path.basename(l)+'exact_dna_matches')
         for rec in seq_generator:
             sequence = str(rec.seq.upper())
             seqid = rec.id
             seq_hash = im.hash_sequence(sequence)
             if seq_hash in distinct_seqids:
-                exact_dna[l].append((seqid, distinct_seqids[seq_hash]))
+                exact_dna.append((seqid, distinct_seqids[seq_hash]))
                 exact_hashes.append(seq_hash)
 
-    size2 = gs.convert_bytes(exact_dna, set())
-    size3 = gs.convert_bytes(exact_hashes, set())
+        fo.pickle_dumper(exact_dna, pickle_out)
+
+        total += len(exact_dna)
+
+    print('found {0} exact matches.'.format(total))
 
     # create file with info for exact matches
 
     # remove DNA sequences that were exact matches from the file with all distinct CDSs
     seq_generator = SeqIO.parse(distinct_seqs_file, 'fasta')
-    out_seqs = []
-    for rec in seq_generator:
-        sequence = str(rec.seq.upper())
-        seqid = rec.id
-        seq_hash = im.hash_sequence(sequence)
-    
-        if seq_hash not in exact_hashes:
-            recout = fao.fasta_str_record(seqid, sequence)
-            out_seqs.append(recout)
-
     unique_fasta = fo.join_paths(preprocess_dir, ['dna_non_exact.fasta'])
-    out_seqs = im.join_list(out_seqs, '\n')
-    fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
     out_seqs = []
+    out_limit = 20000
+    exausted = False
+    while exausted is False:
+        rec = next(seq_generator, None)
+        if rec is not None:
+            sequence = str(rec.seq.upper())
+            seqid = rec.id
+            seq_hash = im.hash_sequence(sequence)
+
+            if seq_hash not in exact_hashes:
+                recout = fao.fasta_str_record(seqid, sequence)
+                out_seqs.append(recout)
+        else:
+            exausted = True
+
+        if len(out_seqs) == out_limit or exausted is True:
+            if len(out_seqs) > 0:
+                out_seqs = im.join_list(out_seqs, '\n')
+                fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
+                out_seqs = []
 
     # translate DNA sequences and identify duplicates
     # sequence translation step
     seqids = [rec.id for rec in SeqIO.parse(unique_fasta, 'fasta')]
+
     ts_results = cf.translate_sequences(seqids, unique_fasta,
                                         preprocess_dir, translation_table,
                                         minimum_length, cpu_cores)
@@ -270,13 +290,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
           'stored in {0}'.format(invalid_alleles_file))
 
     # protein sequences deduplication step
+    print('\nRemoving duplicated protein sequences...', end='')
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
                                        distinct_prot_template, map_ids)
-
+    print('removed {0} sequences.'.format(ds_results[2]))
     distinct_pseqids = ds_results[0]
-    size4 = gs.convert_bytes(distinct_pseqids, set())
-    
+
     # translate loci files and identify exact matches at protein level
     # exact matches are new alleles that can be added to the schema
     # find exact matches
@@ -293,36 +313,51 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         records = [fao.fasta_str_record(s[0], s[1]) for s in translated_seqs]
         out_seqs = im.join_list(records, '\n')
         fo.write_to_file(out_seqs, protein_l, 'a', '\n')
-    
-    exact_protein = {}
+
+    print('Finding protein exact matches...', end='')
+    total = 0
     exact_phashes = []
     for l in protein_files:
-        exact_protein[l] = []
+        exact_protein = []
         seq_generator = SeqIO.parse(l, 'fasta')
+        pickle_out = os.path.join(preprocess_dir, os.path.basename(l)+'exact_protein_matches')
         for rec in seq_generator:
             sequence = str(rec.seq)
             seqid = rec.id
             seq_hash = im.hash_sequence(sequence)
             if seq_hash in distinct_pseqids:
-                exact_protein[l].append((seqid, distinct_pseqids[seq_hash]))
+                exact_protein.append((seqid, distinct_pseqids[seq_hash]))
                 exact_phashes.append(seq_hash)
 
-    # remove exact matches from file  with translated seqs before clustering
-    seq_generator = SeqIO.parse(ds_results[1], 'fasta')
-    out_seqs = []
-    for rec in seq_generator:
-        sequence = str(rec.seq.upper())
-        seqid = rec.id
-        seq_hash = im.hash_sequence(sequence)
-    
-        if seq_hash not in exact_phashes:
-            recout = fao.fasta_str_record(seqid, sequence)
-            out_seqs.append(recout)
+        fo.pickle_dumper(exact_protein, pickle_out)
+        total += len(exact_protein)
 
+    print('found {0} exact matches.'.format(total))
+
+    # remove exact matches from file with translated seqs before clustering
+    seq_generator = SeqIO.parse(ds_results[1], 'fasta')
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
-    out_seqs = im.join_list(out_seqs, '\n')
-    fo.write_to_file(out_seqs, unique_pfasta, 'a', '\n')
     out_seqs = []
+    out_limit = 20000
+    exausted = False
+    while exausted is False:
+        rec = next(seq_generator, None)
+        if rec is not None:
+            sequence = str(rec.seq.upper())
+            seqid = rec.id
+            seq_hash = im.hash_sequence(sequence)
+
+            if seq_hash not in exact_phashes:
+                recout = fao.fasta_str_record(seqid, sequence)
+                out_seqs.append(recout)
+        else:
+            exausted = True
+
+        if len(out_seqs) == out_limit or exausted is True:
+            if len(out_seqs) > 0:
+                out_seqs = im.join_list(out_seqs, '\n')
+                fo.write_to_file(out_seqs, unique_pfasta, 'a', '\n')
+                out_seqs = []
 
     # cluster protein sequences
     # protein clustering step
@@ -351,10 +386,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     rep_proteins = fao.import_sequences(concat_reps)
 
     representatives = im.kmer_index(rep_proteins, 5)[0]
-    size5 = gs.convert_bytes(representatives, set())
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, representatives, False,
-                                      1, 1, clustering_dir, cpu_cores,
+                                      1, 30, clustering_dir, cpu_cores,
                                       'clusters', True, False)
 
     # remove singletons
@@ -380,7 +414,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                                     'blast', True)
 
         blast_files = im.flatten_list(blast_results)
-        
+
         # import results and determine classifications
 
 
@@ -399,8 +433,6 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     print('Word size: {0}'.format(word_size))
     print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
-    print('Representative filter: {0}'.format(representative_filter))
-    print('Intra-cluster filter: {0}'.format(intra_filter))
 
     results = allele_calling(input_files, schema_directory, output_directory,
                              ptf_path, blast_score_ratio, minimum_length,

@@ -296,6 +296,11 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     return [stdout, stderr]
 
 
+#input_file = prodigal_inputs[0][0]
+#output_dir = prodigal_inputs[0][1]
+#ptf_path = prodigal_inputs[0][2]
+#translation_table = prodigal_inputs[0][3]
+#mode = prodigal_inputs[0][4]
 def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)

@@ -23,13 +23,11 @@ from collections import Counter
 try:
     from utils import (file_operations as fo,
                        iterables_manipulation as im,
-                       fasta_operations as fao,
-                       sequence_manipulation as sm)
+                       fasta_operations as fao)
 except:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
-                                 fasta_operations as fao,
-                                 sequence_manipulation as sm)
+                                 fasta_operations as fao)
 
 
 def translate_sequence(dna_str, table_id):
@@ -429,7 +427,7 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     sequences = fao.import_sequences(fasta_path)
 
     # translate sequences
-    translated_seqs = {k: sm.translate_dna(v, table_id, min_len)
+    translated_seqs = {k: translate_dna(v, table_id, min_len)
                        for k, v in sequences.items()}
 
     # add locus identifier to headers
@@ -488,8 +486,8 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     return [dna_seqs, prot_seqs, invalid, seqids_map, total_seqs]
 
 
-def translate_coding_sequences(seqids, sequences_file, translation_table,
-                               minimum_length, dna_file, protein_file):
+def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
+                               translation_table, minimum_length):
     """ Translates CDSs into protein sequences.
 
         Parameters
@@ -525,19 +523,14 @@ def translate_coding_sequences(seqids, sequences_file, translation_table,
     dna_lines = []
     total_seqs = 0
     prot_lines = []
-    line_limit = 5000
+    line_limit = 20000
     invalid_alleles = []
-
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
     for i, seqid in enumerate(seqids):
-        try:
-            sequence = str(cds_index.get(seqid).seq)
-        except Exception as e:
-            print(seqid)
-            #print(e)
+        sequence = str(cds_index.get(seqid).seq)
 
-        translation = sm.translate_dna(sequence, translation_table, minimum_length)
+        translation = translate_dna(sequence, translation_table, minimum_length)
         if isinstance(translation, list):
             dna_lines.append('>{0}'.format(seqid))
             dna_lines.append(translation[0][1])
@@ -728,7 +721,7 @@ def execute_statement(conn, statement):
         return error
 
 
-def determine_distinct(sequences_file, unique_fasta, map_ids):
+def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -753,38 +746,51 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
                 distinct sequence is the one stored in the list.
     """
 
-    duplicates = {}
-    out_limit = 20000
     out_seqs = []
+    duplicates = {}
     exausted = False
+    # limit of 20000 Fasta records in memory
+    out_limit = 20000
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
             # seq object has to be converted to string
-            sequence = str(record.seq.upper())
             seqid = record.id
+            sequence = str(record.seq.upper())
             seq_hash = im.hash_sequence(sequence)
 
-            genome_id = seqid.split('-protein')[0]
-            genome_int = map_ids[genome_id]
-
+            # add unseen sequence to Fasta file with distinct sequences
             if seq_hash not in duplicates:
                 recout = fao.fasta_str_record(seqid, sequence)
                 out_seqs.append(recout)
+                # add sequence hash as key to dict with list of genomes with sequence
+                # start by creating entry and adding a string representative identifier
+                # that can be used to fetch Fasta records later
                 duplicates[seq_hash] = [seqid]
 
-            duplicates[seq_hash].append(genome_int)
+            if ids is False:
+                # switch from string identifier to integer identifier
+                genome_id = seqid.split('-protein')[0]
+                genome_id = map_ids[genome_id]
+                # add genome integer for all inputs that have that sequence
+                duplicates[seq_hash].append(genome_id)
+            else:
+                duplicates[seq_hash].append(seqid)
         else:
             exausted = True
 
+        # write Fasta records to file
         if len(out_seqs) == out_limit or exausted is True:
             if len(out_seqs) > 0:
                 out_seqs = im.join_list(out_seqs, '\n')
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
+                # reset list to avoid writing same records multiple times
                 out_seqs = []
 
-    # save to pickle and only return file path
+    # save dictionary with genome integer identifiers per distinct sequence
+    # to pickle and only return file path to avoid keeping all dicts from
+    # parallel processes in memory
     pickle_out = unique_fasta + '_duplicates'
     fo.pickle_dumper(duplicates, pickle_out)
 

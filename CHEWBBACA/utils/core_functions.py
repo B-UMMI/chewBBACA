@@ -37,8 +37,8 @@ except:
 
 
 def predict_genes(fasta_files, ptf_path, translation_table,
-                  prodigal_mode, cpu_cores, temp_directory,
-                  output_directory):
+                  prodigal_mode, cpu_cores, output_directory,
+                  parent_directory):
     """ Runs Prodigal to predict coding sequences from FASTA
         files with genomic sequences.
 
@@ -62,7 +62,7 @@ def predict_genes(fasta_files, ptf_path, translation_table,
             Path to the directory where output files
             with Prodigal's results will be stored in.
         output_directory : str
-            Path to the main outpt directory of the process.
+            Path to the main output directory of the process.
 
         Returns
         -------
@@ -81,20 +81,18 @@ def predict_genes(fasta_files, ptf_path, translation_table,
             the input files.
     """
 
-    # create directory to store files with Prodigal results
-    prodigal_path = fo.join_paths(temp_directory, ['1_gene_prediction'])
-    fo.create_directory(prodigal_path)
-
-    # run Prodigal to determine CDSs for all input genomes
-    print('\nPredicting gene sequences...\n')
     # divide input genomes into equal number of sublists for
     # maximum process progress resolution
     prodigal_inputs = im.divide_list_into_n_chunks(fasta_files,
                                                    len(fasta_files))
+
+    common_args = [output_directory, ptf_path,
+                   translation_table, prodigal_mode]
+
     # add common arguments to all sublists
-    common_args = [prodigal_path, ptf_path, translation_table,
-                   prodigal_mode, gp.main]
-    prodigal_inputs = [i+common_args for i in prodigal_inputs]
+    prodigal_inputs = im.multiprocessing_inputs(prodigal_inputs,
+                                                common_args,
+                                                gp.main)
 
     # run Prodigal to predict genes
     prodigal_results = mo.map_async_parallelizer(prodigal_inputs,
@@ -104,27 +102,13 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
     # determine if Prodigal predicted genes for all genomes
     failed, failed_file = gp.check_prodigal_results(prodigal_results,
-                                                    output_directory)
+                                                    parent_directory)
 
-    if len(failed) > 0:
-        print('\nFailed to predict genes for {0} genomes.'.format(len(failed)))
-        print('Make sure that Prodigal runs in meta mode (--pm meta) if any input file has less than 100kbp.')
-        print('Info for failed cases stored in: {0}'.format(failed_file))
-
-    # remove failed genomes from paths
-    for f in failed:
-        fasta_files.remove(f[0])
-
-    if len(fasta_files) == 0:
-        sys.exit('\nCould not predict gene sequences from any '
-                 'of the input files.\nPlease provide input files '
-                 'in the accepted FASTA format.')
-
-    return [fasta_files, prodigal_path]
+    return [failed, failed_file]
 
 
 def extract_genes(fasta_files, prodigal_path, cpu_cores,
-                  temp_directory, output_directory):
+                  temp_directory, parent_directory):
     """ Extracts coding sequences from FASTA files with genomic
         sequences and saves coding sequences and info about coding
         sequences.
@@ -157,37 +141,31 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     num_chunks = 20 if cpu_cores < 20 else cpu_cores
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
 
-    # create output directory
-    cds_extraction_path = os.path.join(temp_directory,
-                                       '2_cds_extraction')
-    fo.create_directory(cds_extraction_path)
-
     # add common arguments and unique index/identifier
-    extractor_inputs = [[extractor_inputs[i-1], prodigal_path,
-                         cds_extraction_path, i, gp.cds_batch_extractor]
-                        for i in range(1, len(extractor_inputs)+1)]
+    output_index = [i+1 for i in range(len(extractor_inputs))]
+    extractor_inputs = im.aggregate_iterables([extractor_inputs, output_index])
+    extractor_inputs = im.multiprocessing_inputs(extractor_inputs,
+                                                 [prodigal_path, temp_directory],
+                                                 gp.cds_batch_extractor)
 
     # extract coding sequences
-    print('\n\nExtracting coding sequences...\n')
     extracted_cdss = mo.map_async_parallelizer(extractor_inputs,
                                                mo.function_helper,
                                                cpu_cores,
                                                show_progress=True)
 
     total_extracted = sum([f[2] for f in extracted_cdss])
-    print('\n\nExtracted a total of {0} coding sequences from {1} '
-          'genomes.'.format(total_extracted, len(fasta_files)))
 
     # create full table file
     table_files = [f[0] for f in extracted_cdss]
-    table_file = fo.join_paths(output_directory, ['cds_info.tsv'])
+    table_file = fo.join_paths(parent_directory, ['cds_info.tsv'])
     table_header = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
     fo.concatenate_files(table_files, table_file, table_header)
     fo.remove_files(table_files)
 
     cds_files = [f[1] for f in extracted_cdss]
 
-    return cds_files
+    return [cds_files, total_extracted]
 
 
 #fasta_files = cds_files
@@ -195,7 +173,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 #outfile_template = distinct_dna_template
 #ids_map = map_ids
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, ids_map):
+                       outfile_template, ids_map, ids=False):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -222,12 +200,16 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                 Path to the FASTA file with distinct sequences.
     """
 
-    dedup_inputs = [[file,
-                     fo.join_paths(temp_directory,
-                                   [outfile_template.format(i+1)]),
-                     ids_map,
-                     sm.determine_distinct]
+    # create groups of inputs for multiprocessing
+    output_files = [fo.join_paths(temp_directory,
+                                  [outfile_template.format(i+1)])
                     for i, file in enumerate(fasta_files)]
+
+    inputs = im.aggregate_iterables([fasta_files, output_files])
+
+    dedup_inputs = im.multiprocessing_inputs(inputs,
+                                             [ids_map, ids],
+                                             sm.determine_distinct)
 
     # determine distinct sequences (keeps 1 seqid per sequence)
     dedup_results = mo.map_async_parallelizer(dedup_inputs,
@@ -245,23 +227,25 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     # determine number of duplicated sequences
     # minus 2 so we do not count the seqid and genome integer
     # identifier for the representative record
-    repeated = sum([len(v)-2 for k, v in merged_results.items()])
+    repeated = sum([len(v)-2
+                    for k, v in merged_results.items()])
 
     # get representative identifiers for each distinct sequence
-    distinct_seqids = [v[0] for k, v in merged_results.items()]
+    distinct_seqids = [v[0]
+                       for k, v in merged_results.items()]
 
-    # concatenate results from first round
+    # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]
     cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
     cds_file = fo.concatenate_files(dedup_files, cds_file)
 
-    # create index for large file
+    # create index for concatenated Fasta
     cds_index = SeqIO.index(cds_file, 'fasta')
 
     # define filename for file with distinct sequences
-    distinct_seqs = fo.join_paths(temp_directory, [outfile_template.format('d')])
-
-    # get distinct sequences
+    distinct_seqs = fo.join_paths(temp_directory,
+                                  [outfile_template.format('d')])
+    # get the representative record for each distinct sequence
     fao.get_sequences_by_id(cds_index, distinct_seqids,
                             distinct_seqs, 20000)
 
@@ -350,9 +334,6 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
                 translated.
     """
 
-    # translate distinct DNA sequences
-    print('\nTranslating {0} DNA sequences...'.format(len(sequence_ids)))
-
     # divide inputs into sublists
     translation_inputs = im.divide_list_into_n_chunks(sequence_ids, cpu_cores)
 
@@ -368,9 +349,12 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
 
     # add common args to sublists
     common_args = [sequences_file, translation_table, minimum_length]
-    translation_inputs = [[translation_inputs[i], *common_args, dna_files[i],
-                           protein_files[i], sm.translate_coding_sequences]
-                          for i in range(0, len(dna_files))]
+    translation_inputs = im.aggregate_iterables([translation_inputs,
+                                                 dna_files,
+                                                 protein_files])
+    translation_inputs = im.multiprocessing_inputs(translation_inputs,
+                                                   common_args,
+                                                   sm.translate_coding_sequences)
 
     # translate sequences
     translation_results = mo.map_async_parallelizer(translation_inputs,
@@ -392,9 +376,6 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
             untrans_lines.extend(['{0}: {1}'.format(r[0], r[1])
                                   for r in res[0]])
             untrans_seqids.extend([r[0] for r in res[0]])
-
-    print('Removed {0} DNA sequences that could not be '
-          'translated.'.format(len(untrans_seqids)))
 
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 

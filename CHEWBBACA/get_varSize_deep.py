@@ -24,7 +24,7 @@ for the size of a variable.
 sys.getsizeof(5) # 28 bytes per integer
 sys.getsizeof(5.3) # 24 bytes per float
 sys.getsizeof('') # 49 bytes for an empty string
-sys.getsizeof('12') # 51 bytes - 37 for empty string and 1 for each char
+sys.getsizeof('12') # 51 bytes - 49 for empty string and 1 for each char
 sys.getsizeof([]) # 64 bytes for an empty list
 sys.getsizeof([1]) # 72 bytes - 64 for the empty list and 8 for each added object
 sys.getsizeof(['2']) # 72 bytes - 64 for the empty list and 8 for each added object

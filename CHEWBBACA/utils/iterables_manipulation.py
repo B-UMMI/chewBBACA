@@ -17,9 +17,9 @@ import hashlib
 import itertools
 
 try:
-    from utils import (file_operations as fo)
+    from utils import file_operations as fo
 except:
-    from CHEWBBACA.utils import (file_operations as fo)
+    from CHEWBBACA.utils import file_operations as fo
 
 
 def join_list(lst, link):
@@ -828,3 +828,37 @@ def contained_terms(iterable, terms):
             matches.append(e)
 
     return matches
+
+
+def integer_mapping(values, inverse=False):
+    """
+    """
+
+    mapping = {}
+    if inverse is False:
+        mapping = {values[i]: i+1 for i in range(len(values))}
+    elif inverse is True:
+        mapping = {i+1: values[i] for i in range(len(values))}
+
+    return mapping
+
+
+def multiprocessing_inputs(inputs, common_args, function):
+    """
+    """
+
+    input_groups = inputs
+    for g in input_groups:
+        g.extend(common_args)
+        g.append(function)
+
+    return input_groups
+
+
+def aggregate_iterables(iterables):
+    """
+    """
+
+    aggregated_inputs = [list(i) for i in zip(*iterables)]
+
+    return aggregated_inputs

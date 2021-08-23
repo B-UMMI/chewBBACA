@@ -464,7 +464,7 @@ def translate_fastas(fasta_paths, output_directory, translation_table):
         translated_lines = fasta_lines(list(translated_records.keys()),
                                        translated_records)
 
-        basename = fo.file_basename(path).replace('.fasta', '_protein.fasta')
+        basename = fo.file_basename(path, True).replace('.fasta', '_protein.fasta')
         prot_file = fo.join_paths(output_directory, [basename])
 
         fo.write_lines(translated_lines, prot_file)

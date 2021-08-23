@@ -23,19 +23,17 @@ import shutil
 import pickle
 import hashlib
 import zipfile
+import urllib.request
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
-import urllib.request
 
 try:
-    from utils import (iterables_manipulation as im,
-                       file_operations as fo)
+    from utils import iterables_manipulation as im
 except:
-    from CHEWBBACA.utils import (iterables_manipulation as im,
-                                 file_operations as fo)
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
-def file_basename(file_path, suffix=True):
+def file_basename(file_path, suffix):
     """ Extract file basename from path.
 
         Parameters
@@ -58,6 +56,15 @@ def file_basename(file_path, suffix=True):
         basename = basename.split('.')[0]
 
     return basename
+
+
+def mapping_function(values, function, args):
+    """
+    """
+
+    mapping = {v: function(v, *args) for v in values}
+
+    return mapping
 
 
 def remove_files(files):
@@ -144,7 +151,7 @@ def join_paths(parent_path, child_paths):
     return joined_paths
 
 
-def listdir_fullpath(directory_path):
+def listdir_fullpath(directory_path, substring_filter=False):
     """ Gets the full path for all files in a directory.
 
         Parameters
@@ -158,8 +165,15 @@ def listdir_fullpath(directory_path):
         in the input directory.
     """
 
-    return [os.path.join(directory_path, f)
-            for f in os.listdir(directory_path)]
+    if filter is False:
+        file_list = [os.path.join(directory_path, f)
+                     for f in os.listdir(directory_path)]
+    else:
+        file_list = [os.path.join(directory_path, f)
+                     for f in os.listdir(directory_path)
+                     if substring_filter in f]
+
+    return file_list
 
 
 def delete_directory(directory_path):
@@ -511,7 +525,7 @@ def create_short(schema_files, schema_dir):
     create_directory(short_path)
 
     for file in schema_files:
-        short_file = join_paths(short_path, [fo.file_basename(file)])
+        short_file = join_paths(short_path, [file_basename(file)])
         short_file = short_file.replace('.fasta', '_short.fasta')
         shutil.copy(file, short_file)
 

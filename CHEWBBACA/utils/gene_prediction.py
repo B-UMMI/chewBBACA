@@ -205,7 +205,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     return total_cds
 
 
-def cds_batch_extractor(genomes, prodigal_path, temp_directory, index):
+def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
     """ Extracts coding sequences from a set of genomes.
 
         Parameters

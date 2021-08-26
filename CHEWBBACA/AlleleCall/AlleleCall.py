@@ -235,8 +235,134 @@ def update_classification(genome_id, locus_results, classification,
     return locus_results
 
 
+def classify_alleles(genomes_matches, representatives_info, inv_map,
+                     contigs_lengths, locus_results, locus_mode,
+                     temp_directory, size_threshold):
+    """
+    """
+
+    seen_dna = []
+    seen_prot = []
+    excluded = []
+    inf_matches = 0
+    genome_coordinates = {}
+    representative_candidates = []
+    for genome, matches in genomes_matches.items():
+        current_g = inv_map[genome]
+        clen = contigs_lengths[current_g]
+
+        # open pickle for genome and get coordinates
+        genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
+        genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
+        for m in matches:
+            target_seqid = m[0]
+            excluded.append(target_seqid)
+            target_dna_len = m[3]
+            bsr = m[4][0]
+            rep_length = representatives_info[m[4][3]][0]
+            rep_alleleid = m[4][4]
+            target_prot_hash = m[1]
+            target_dna_hash = m[2]
+
+            # careful about offset!!!
+            # determine right match position on representative allele
+            rep_right_pos = rep_length - m[4][2]
+            # determine left match position on representative allele
+            rep_left_pos = m[4][1]
+
+            if target_dna_hash in seen_dna:
+                locus_results = update_classification(genome, locus_results, 'EXC',
+                                                      rep_alleleid, 1.0)
+                inf_matches += 1
+                continue
+
+            # check if CDS DNA sequence is not in schema but matches a translated allele
+            if target_prot_hash in seen_prot:
+                locus_results = update_classification(genome, locus_results, 'INF',
+                                                      rep_alleleid, 1.0)
+                inf_matches += 1
+                # add DNA hash to classify the next match as exact
+                seen_dna.append(target_dna_hash)
+                continue
+
+            # there is no exact match in the schema, perform full evaluation
+            # get contig lengths
+            genome_coordinates[target_seqid] = genome_cds_coordinates[target_dna_hash][0]
+            contig_left_pos = int(genome_coordinates[target_seqid][1])
+            contig_right_pos = int(genome_coordinates[target_seqid][2])
+            matched_contig_len = clen[genome_coordinates[target_seqid][0]]
+            ###########################################################
+            # need to invert when necessary
+            # check if this is necessary
+            # get total number of bases left outside match in contig
+            if contig_right_pos > contig_left_pos:
+                contig_right_rest = matched_contig_len - contig_right_pos
+                contig_left_rest = contig_left_pos
+                rep_right_rest = rep_right_pos
+                rep_left_rest = rep_left_pos
+            # reverse values because CDS was identified in reverse strand
+            elif contig_right_pos < contig_left_pos:
+                print('lol')
+                contig_left_rest = matched_contig_len - contig_right_pos
+                contig_right_rest = contig_left_pos
+                # also need to reverse values for representative
+                rep_right_rest = rep_left_pos
+                rep_left_rest = rep_right_pos
+                sys.exit()
+
+            # check LOTSC
+            if contig_left_rest < rep_left_rest and contig_right_rest < rep_right_rest:
+                locus_results = update_classification(genome, locus_results, 'LOTSC',
+                                                      rep_alleleid, bsr)
+                continue
+            # check if PLOT
+            elif contig_left_rest < rep_left_rest:
+                locus_results = update_classification(genome, locus_results, 'PLOT3',
+                                                      rep_alleleid, bsr)
+                continue
+            elif contig_right_rest < rep_right_rest:
+                locus_results = update_classification(genome, locus_results, 'PLOT5',
+                                                      rep_alleleid, bsr)
+                continue
+
+            # check if ASM or ALM
+            # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
+            if target_dna_len < (locus_mode[0]-(locus_mode[0])*size_threshold):
+                locus_results = update_classification(genome, locus_results, 'ASM',
+                                                      rep_alleleid, bsr)
+                continue
+            elif target_dna_len > (locus_mode[0]+(locus_mode[0])*size_threshold):
+                locus_results = update_classification(genome, locus_results, 'ALM',
+                                                      rep_alleleid, bsr)
+                continue
+
+            # add INF
+            locus_results = update_classification(genome, locus_results, 'INF',
+                                                  rep_alleleid, bsr)
+
+            # also add sequence as representative candidate
+            if bsr >= blast_score_ratio and bsr < blast_score_ratio+0.1:
+                representative_candidates.append((genome, target_seqid))
+
+            # add hash of newly inferred allele
+            seen_dna.append(target_dna_hash)
+            seen_prot.append(target_prot_hash)
+
+        # update locus mode value if a new allele was inferred
+        if locus_results[genome][0] == 'INF':
+            # append length of inferred allele to list with allele sizes
+            locus_mode[1].append(target_dna_len)
+            #loci_modes[locus][1].append(target_dna_len)
+            # compute mode
+            #loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
+            locus_mode[0] = sm.determine_mode(locus_mode[1])[0]
+
+    return [locus_results, locus_mode, inf_matches, excluded, representative_candidates]
+
+
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
 input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
@@ -260,7 +386,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    prodigal_mode, cds_input):
     """
     """
-    
+
     start = time.time()
     # define directory for temporary files
     temp_directory = fo.join_paths(output_directory, ['temp'])
@@ -273,7 +399,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
     inputs_basenames = fo.mapping_function(fasta_files,
                                            fo.file_basename, [False])
-    inv_basenames = im.invert_dictionary(inputs_basenames)
+    #inv_basenames = im.invert_dictionary(inputs_basenames)
 
     # create dictionary with integer mapping for inputs
     # this reduces memory usage during sequence deduplication
@@ -591,281 +717,59 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
         genomes_hits[locus][1] = {**genomes_hits[locus][1], **representatives_info}
 
+    # get contig length for all genomes
+    contigs_lengths = {}
+    for f in fasta_files:
+        contigs = SeqIO.parse(f, 'fasta')
+        lengths = {rec.id: len(rec.seq) for rec in contigs}
+        contigs_lengths[inputs_basenames[f]] = lengths
+
     # process results per genome and per locus
     print('')
     processed = 0
     excluded = []
     inf_matches = 0
-    representative_candidates = {}
     for locus, hits in genomes_hits.items():
-        genomes_hits, representatives_info = hits
+        genomes_matches, representatives_info = hits
 
         # get locus length mode
-        locus_mode = loci_modes[locus][0]
+        locus_mode = loci_modes[locus]
 
         # import file with locus classifications
         locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
         locus_results = fo.pickle_loader(locus_results_file)
 
-        seen_dna = []
-        seen_prot = []
-        genome_coordinates = {}
-        for genome, matches in genomes_hits.items():
-            current_g = inv_map[genome]
-            contigs = SeqIO.parse(inv_basenames[current_g], 'fasta')
-            contigs_lengths = {rec.id: len(rec.seq) for rec in contigs}
+        results = classify_alleles(genomes_matches, representatives_info,
+                                   inv_map, contigs_lengths,
+                                   locus_results, locus_mode,
+                                   temp_directory, size_threshold)
 
-            # open pickle for genome and get coordinates
-            genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
-            genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
-            for m in matches:
-                target_seqid = m[0]
-                excluded.append(target_seqid)
-                target_dna_len = m[3]
-                bsr = m[4][0]
-                rep_length = representatives_info[m[4][3]][0]
-                rep_alleleid = m[4][4]
-                target_prot_hash = m[1]
-                target_dna_hash = m[2]
+        # this step should not return representative candidates
+        # we are only processing results with BSR above the threshold
+        # defined to consider newly inferred alleles as new representatives
+        updated_results, updated_mode, locus_inf_matches, excluded_ids, inf_reps = results
 
-                # careful about offset!!!
-                # determine right match position on representative allele
-                rep_right_pos = rep_length - m[4][2]
-                # determine left match position on representative allele
-                rep_left_pos =  m[4][1]
-
-                if target_dna_hash in seen_dna:
-                    locus_results = update_classification(genome, locus_results, 'EXC',
-                                                          rep_alleleid, 1.0)
-                    inf_matches += 1
-                    continue
-
-                # check if CDS DNA sequence is not in schema but matches a translated allele
-                if target_prot_hash in seen_prot:
-                    locus_results = update_classification(genome, locus_results, 'INF',
-                                                          rep_alleleid, 1.0)
-                    inf_matches += 1
-                    # add DNA hash to classify the next match as exact
-                    seen_dna.append(target_dna_hash)
-                    continue
-
-                # there is no exact match in the schema, perform full evaluation
-                # get contig lengths
-                genome_coordinates[target_seqid] = genome_cds_coordinates[target_dna_hash][0]
-                ###########################################################
-                # need to invert when necessary
-                if genome_cds_coordinates[target_dna_hash][0][1] > genome_cds_coordinates[target_dna_hash][0][2]:
-                    print('lol')
-
-                matched_contig_len = contigs_lengths[genome_coordinates[target_seqid][0]]
-                contig_left_pos = int(genome_coordinates[target_seqid][1])
-                contig_right_pos = matched_contig_len - int(genome_coordinates[target_seqid][2])
-
-                # check LOTSC
-                if contig_left_pos < rep_left_pos and contig_right_pos < rep_right_pos:
-                    locus_results = update_classification(genome, locus_results, 'LOTSC',
-                                                          rep_alleleid, bsr)
-                    continue
-                # check if PLOT
-                elif contig_left_pos < rep_left_pos:
-                    locus_results = update_classification(genome, locus_results, 'PLOT3',
-                                                          rep_alleleid, bsr)
-                    continue
-                elif contig_right_pos < rep_right_pos:
-                    locus_results = update_classification(genome, locus_results, 'PLOT5',
-                                                          rep_alleleid, bsr)
-                    continue
-
-                # check if ASM or ALM
-                # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
-                if target_dna_len < (locus_mode-(locus_mode)*size_threshold):
-                    locus_results = update_classification(genome, locus_results, 'ASM',
-                                                          rep_alleleid, bsr)
-                    continue
-                elif target_dna_len > (locus_mode+(locus_mode)*size_threshold):
-                    locus_results = update_classification(genome, locus_results, 'ALM',
-                                                          rep_alleleid, bsr)
-                    continue
-
-                # add INF
-                locus_results = update_classification(genome, locus_results, 'INF',
-                                                      rep_alleleid, bsr)
-
-                # add hash of newly inferred allele
-                seen_dna.append(target_dna_hash)
-                seen_prot.append(target_prot_hash)
-
-                # update locus mode value if a new allele was inferred
-                if locus_results[genome][0] == 'INF':
-                    # append length of inferred allele to list with allele sizes
-                    loci_modes[locus][1].append(target_dna_len)
-                    # compute mode
-                    loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
-
-                    # also add sequence as representative candidate
-                    if bsr >= blast_score_ratio and bsr < blast_score_ratio+0.1:
-                        representative_candidates.setdefault(locus, []).append((genome, target_seqid))
+        inf_matches += locus_inf_matches
+        loci_modes[locus] = updated_mode
+        excluded.extend(excluded_ids)
 
         # save updated results
-        fo.pickle_dumper(locus_results, locus_results_file)
+        fo.pickle_dumper(updated_results, locus_results_file)
 
         processed += 1
         print('\r', 'Processed: {}'.format(processed), end='')
 
-    # if a new allele is inferred and it is the BSR thresold to be a representative
+    # if a new allele is inferred and it is the BSR threshold to be a representative
     # BLAST that allele against remaining sequences and check if it enables the identification of new
     # alleles and representatives
 
-
-##################################################################################################
-# process results per locus, with results aggregated by locus and not by genome
-
-    # import and classify high BSR matches
-    # need to compute the mode every time a new allele is inferred?
-#    print('')
-#    processed = 0
-#    excluded = []
-#    inf_matches = 0
-#    for f in high_bsr_files:
-#        high_bsr, representatives_info, locus = fo.pickle_loader(f)
-#        # get locus length mode
-#        locus_mode = loci_modes[locus][0]
-#
-#        # import file with locus classifications
-#        locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
-#        locus_results = fo.pickle_loader(locus_results_file)
-#
-#        # import allele calling results for locus
-#        seen_dna = []
-#        seen_prot = []
-#        for k, v in high_bsr.items():
-#            bsr = v[0]
-#            rep_length = representatives_info[v[3]][0]
-#            rep_alleleid = v[4]
-#            # careful about offset!!!
-#            # determine right match position on representative allele
-#            rep_right_pos = rep_length - v[2]
-#            # determine left match position on representative allele
-#            rep_left_pos = v[1]
-#            # get Protein hash
-#            target_prot_hash = im.hash_sequence(all_proteins[k])
-#            # use hash to get all CDS identifiers that coded for the same protein
-#            target_seqids = distinct_pseqids[target_prot_hash][1:]
-#
-#            # open file with CDS coordinates for each genome and get coordinates
-#            genome_coordinates = {}
-#            for g in target_seqids:
-#                excluded.append(g)
-#                # get CDS DNA sequence
-#                target_dna = str(dna_cds_index.get(g).seq)
-#                target_dna_len = len(target_dna)
-#                target_dna_hash = im.hash_sequence(target_dna)
-#
-#                # get ids for all genomes with same CDS as representative
-#                all_genomes_with_cds = distinct_htable[target_dna_hash][1:]
-#
-#                # check if CDS DNA sequence was previously identified as new allele
-#                
-#                ########################
-#                # try to check if we can attribute the same classification to all genomes with same CDS!
-#                
-#                for og in all_genomes_with_cds:
-#                    # switch this up and give same classification to all?
-#                    if target_dna_hash in seen_dna:
-#                        locus_results = update_classification(og, locus_results, 'EXC',
-#                                                              rep_alleleid, 1.0)
-#                        inf_matches += 1
-#                        continue
-#
-#                    # check if CDS DNA sequence is not in schema but matches a translated allele
-#                    if target_prot_hash in seen_prot:
-#                        locus_results = update_classification(og, locus_results, 'INF',
-#                                                              rep_alleleid, 1.0)
-#                        inf_matches += 1
-#                        # add DNA hash to classify the next match as exact
-#                        seen_dna.append(target_dna_hash)
-#                        # append length of inferred allele to list with allele sizes
-#                        loci_modes[locus][1].append(target_dna_len)
-#                        # compute mode
-#                        loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
-#                        continue
-#
-#                    # there is no exact match in the schema, perform full evaluation
-#                    # get contig lengths
-#                    current_g = inv_map[og]
-#                    contigs = SeqIO.parse(inv_basenames[current_g], 'fasta')
-#                    contigs_lengths = {rec.id: len(rec.seq) for rec in contigs}
-#
-#                    # open pickle for genome and get coordinates
-#                    genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
-#                    genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
-#
-#                    genome_coordinates[g] = genome_cds_coordinates[target_dna_hash][0]
-#                    ###########################################################
-#                    # need to invert when necessary
-#                    if genome_cds_coordinates[target_dna_hash][0][1] > genome_cds_coordinates[target_dna_hash][0][2]:
-#                        print('lol')
-#
-#                    matched_contig_len = contigs_lengths[genome_coordinates[g][0]]
-#                    contig_left_pos = int(genome_coordinates[g][1])
-#                    contig_right_pos = matched_contig_len - int(genome_coordinates[g][2])
-#
-#                    # check LOTSC
-#                    if contig_left_pos < rep_left_pos and contig_right_pos < rep_right_pos:
-#                        locus_results = update_classification(og, locus_results, 'LOTSC',
-#                                                              rep_alleleid, bsr)
-#                        continue
-#                    # check if PLOT
-#                    elif contig_left_pos < rep_left_pos:
-#                        locus_results = update_classification(og, locus_results, 'PLOT3',
-#                                                              rep_alleleid, bsr)
-#                        continue
-#                    elif contig_right_pos < rep_right_pos:
-#                        locus_results = update_classification(og, locus_results, 'PLOT5',
-#                                                              rep_alleleid, bsr)
-#                        continue
-#
-#                    # check if ASM or ALM
-#                    # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
-#                    if target_dna_len < (locus_mode-(locus_mode)*size_threshold):
-#                        locus_results = update_classification(og, locus_results, 'ASM',
-#                                                              rep_alleleid, bsr)
-#                        continue
-#                    elif target_dna_len > (locus_mode+(locus_mode)*size_threshold):
-#                        locus_results = update_classification(og, locus_results, 'ALM',
-#                                                              rep_alleleid, bsr)
-#                        continue
-#
-#                    # add INF
-#                    locus_results = update_classification(og, locus_results, 'INF',
-#                                                          rep_alleleid, bsr)
-#
-#                    # add hash of newly inferred allele
-#                    seen_dna.append(target_dna_hash)
-#                    seen_prot.append(target_prot_hash)
-#
-#                    # append length of inferred allele to list with allele sizes
-#                    loci_modes[locus][1].append(target_dna_len)
-#                    # compute mode
-#                    loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
-#
-#
-#        # save updated results
-#        fo.pickle_dumper(locus_results, locus_results_file)
-#
-#        processed += 1
-#        print('\r', 'Processed: {}'.format(processed), end='')
-
-    # order representatives based on genome of origin/input processing order
-########################################################################################
-
     # convert to set, some ids might be duplicated and operations are faster with set
     excluded = set(excluded)
-    print('Excluded: {0}'.format(len(excluded)))
+    print('\nExcluded: {0}'.format(len(excluded)))
     # BLASTp to align representatives against remaining sequences
     # create file with remaining sequences
     remaining_ids = [rec.id for rec in SeqIO.parse(unique_pfasta, 'fasta') if rec.id not in excluded]
-    print('Remaining: {0}'.format(remaining_ids))
+    print('Remaining: {0}'.format(len(remaining_ids)))
     remaining_seqs_file = fo.join_paths(clustering_dir, ['remaining_prots.fasta'])
     # create Fasta with sequences that were not classified
     fao.get_sequences_by_id(prot_index, remaining_ids, remaining_seqs_file, limit=20000)
@@ -955,7 +859,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             locus = locus.split('_short_protein')[0]
             all_high_bsrs[locus] = high_bsr
 
-    print('Loci with representative candidates: {0}'.format(len(all_high_bsrs)))
+    print('\nLoci with representative candidates: {0}'.format(len(all_high_bsrs)))
     end = time.time()
     delta = end - start
     print(delta/60)
@@ -970,15 +874,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # in the end BLAST representative candidates for a locus and determine which should be added? (some representatives might have high BSR)
     # or BLAST detected representatives before/after (better after...) allele calling just to determine if both should be used for BLAST?
 
-
-
-
-
-
-
-
-
-
     # count number of cases or each locus
     exc = 0
     # we will get more NIPH/EM classifications because the current implementation stops when it detects an exact match
@@ -992,6 +887,10 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     plot3 = 0
     plot5 = 0
     # get total number of classified CDSs! NIPHEM and NIPH encompass multiple CDSs
+    ################################################################
+    # there are a lot of CDSs that are not being classified!
+    # probably losing some sequences along the way, need to check for that
+    # the new algorithm classifies more or less CDSs per genome?
     total_cds = 0
     for file in classification_files:
         locus_results = fo.pickle_loader(file)
@@ -1023,7 +922,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # create results_statistics.tsv file
 
 
-# implement mode that only detects exact matches
+# implement mode that only detects exact matches (ultrafast)
 # implement mode that infers new alleles and that only adds inferred alleles to schema if requested
 def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,

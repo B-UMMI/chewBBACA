@@ -89,6 +89,7 @@ Code documentation
 
 
 import os
+import re
 import sys
 import time
 import argparse
@@ -133,6 +134,17 @@ def sequences_lengths(fasta_file):
     return lengths
 
 
+def get_locus_id(file_path):
+    """
+    """
+
+    basename = fo.file_basename(file_path, True)
+    match = re.search(r'-protein[0-9]+', basename).span()
+    locus_id = basename[0:match[1]]
+
+    return locus_id
+
+
 def select_high_score(input_file, blast_score_ratio, ids_map, output_directory):
     """
     """
@@ -145,7 +157,7 @@ def select_high_score(input_file, blast_score_ratio, ids_map, output_directory):
     # only save and evaluate results for loci that
     # had at least one high BSR match
     if len(current_results[0]) > 0:
-        locus = list(current_results[1].keys())[0].split('_')[0]
+        locus = get_locus_id(input_file)
         current_results.append(locus)
         # save data to pickle
         pickle_out = fo.join_paths(output_directory, [locus+'_bsr'])
@@ -171,58 +183,95 @@ def group_by_genome(file, sequences, cds_hashtable, prot_hashtable, cds_index):
             # get ids for all genomes with same CDS as representative
             all_genomes_with_cds = cds_hashtable[target_dna_hash][1:]
             for a in all_genomes_with_cds:
-                genomes_hits[0].setdefault(a, []).append((k, target_prot_hash, target_dna_hash, target_dna_len, high_bsr[k]))
+                genomes_hits[0].setdefault(a, []).append((k, target_prot_hash,
+                                                          target_dna_hash, target_dna_len,
+                                                          high_bsr[k]))
 
     return [locus, genomes_hits]
 
 
-def exact_matches(locus_file, locus_basename, distinct_table, output_dir, map_ids=False, match_type='EXCDNA'):
+def dna_exact_matches(fasta_file, distinct_table, output_file):
     """
     """
 
-    seq_generator = SeqIO.parse(locus_file, 'fasta')
-    pickle_out = fo.join_paths(output_dir, [locus_basename+'_results'])
+    seq_generator = SeqIO.parse(fasta_file, 'fasta')
 
     total = 0
+    exact_hits = {}
     exact_hashes = []
-    exact_matches = {}
     for rec in seq_generator:
-        seqid = (rec.id).split('_')[-1]
+        seqid = rec.id
         sequence = str(rec.seq.upper())
         seq_hash = im.hash_sequence(sequence)
         if seq_hash in distinct_table:
+            # exclude element in index 0, it is the seqid chosen as
+            # representative and is repeated in index 1
             current_matches = distinct_table[seq_hash]
-            if map_ids is not False:
-                current_matches = [current_matches[0]] + [map_ids[c.split('-protein')[0]] for c in current_matches[1:]]
             total += len(current_matches) - 1
             for m in current_matches[1:]:
-                if m not in exact_matches:
-                    exact_matches[m] = ['EXC', (seqid, match_type)]
+                if m not in exact_hits:
+                    exact_hits[m] = ['EXC', (seqid, 'EXC')]
                 else:
-                    if all([i[1] == 'EXCDNA' for i in exact_matches[m][1:]]) is True:
-                        exact_matches[m][0] = 'NIPHEM'
-                        exact_matches[m].append((seqid, match_type))
-                    else:
-                        exact_matches[m][0] = 'NIPH'
-                        exact_matches[m].append((seqid, match_type))
+                    exact_hits[m][0] = 'NIPHEM'
+                    exact_hits[m].append((seqid, 'EXC'))
             exact_hashes.append(current_matches[0])
 
-    # update classifications
-    if os.path.isfile(pickle_out) is False:
-        fo.pickle_dumper(exact_matches, pickle_out)
+    # save classifications
+    fo.pickle_dumper(exact_hits, output_file)
+
+    return [exact_hashes, total]
+
+# is this adding too many INF classifications?
+# or is that normal based on how it is working?
+def protein_exact_matches(fasta_file, distinct_prot_table,
+                          distinct_dna_table, output_file,
+                          protein_index, dna_index):
+    """
+    """
+
+    seq_generator = SeqIO.parse(fasta_file, 'fasta')
+
+    total_cds = 0
+    total_prots = 0
+    exact_hits = {}
+    exact_prot_hashes = []
+    #########################
+    # NEED to store hashes here to avoid classifying always as INF!!!
+    seen = []
+    for rec in seq_generator:
+        protein = str(rec.seq.upper())
+        prot_hash = im.hash_sequence(protein)
+        if prot_hash in distinct_prot_table:
+            # get protids for distinct CDSs
+            protids = distinct_prot_table[prot_hash][1:]
+            total_prots += len(protids)
+            exact_prot_hashes.extend(protids)
+            for p in protids:
+                cds = str(dna_index.get(p).seq)
+                cds_hash = im.hash_sequence(cds)
+                # get all CDS ids associated associated to hash
+                seqids = distinct_dna_table[cds_hash]
+                total_cds += len(seqids) - 1
+                for s in seqids[1:]:
+                    if s not in exact_hits:
+                        exact_hits[s] = ['INF', (seqids[0], 'INF')]
+                    else:
+                        exact_hits[s][0] = 'NIPH'
+                        exact_hits[s].append((seqids[0], 'EXC'))
+
+    # merge results with DNA exact matches
+    if os.path.isfile(output_file) is False:
+        fo.pickle_dumper(exact_hits, output_file)
     else:
-        locus_results = fo.pickle_loader(pickle_out)
-        for k, v in exact_matches.items():
+        locus_results = fo.pickle_loader(output_file)
+        for k, v in exact_hits.items():
             locus_results.setdefault(k, [v[0]]).extend(v[1:])
             if len(v[1:]) > 1:
-                if all([i[1] == 'EXCDNA' for i in locus_results[k][1:]]) is True:
-                    locus_results[k][0] = 'NIPHEM'
-                else:
-                    locus_results[k][0] = 'NIPH'
+                locus_results[k][0] = 'NIPH'
 
-        fo.pickle_dumper(locus_results, pickle_out)
+        fo.pickle_dumper(locus_results, output_file)
 
-    return [exact_hashes, pickle_out, total]
+    return [exact_prot_hashes, total_prots, total_cds]
 
 
 def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
@@ -427,8 +476,8 @@ def classify_alleles(genomes_matches, representatives_info, inv_map,
     return [locus_results, locus_mode, inf_matches, excluded, representative_candidates]
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
@@ -532,7 +581,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # DNA sequences deduplication step
     # keep hash of unique sequences and a list with the integer
     # identifiers of genomes that have those sequences
-    start = time.time()
     print('\nRemoving duplicated DNA sequences...', end='')
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     dna_dedup_results = cf.exclude_duplicates(cds_files, preprocess_dir,
@@ -541,22 +589,16 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     distinct_htable, distinct_file, repeated = dna_dedup_results
     print('removed {0} sequences.'.format(repeated))
-    end = time.time()
-    delta = end - start
-    print(delta)
 
     # get size of hash table
     size1 = gs.convert_bytes(distinct_htable, set())
-    print(size1)
+    print(size1.split('\n')[2])
 
     # remove small sequences!?
-    #####################
-    ## Add classification information as genome_id --> classification, BSR e.g.: {4: ['EXC', ('1', 1)]}
-    print('Finding DNA exact matches...', end='')
-    #####################
-    ## Check if reverse complement matches?
-    # find DNA exact matches
 
+    print('Finding DNA exact matches...', end='')
+
+    ## Check if reverse complement matches?
     # get list of loci files
     loci_files = fo.listdir_fullpath(schema_directory,
                                      substring_filter='.fasta')
@@ -572,17 +614,18 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
 
     # find exact DNA matches
-    exc_dna = 0
+    dna_exc_hits = 0
     exact_hashes = []
     classification_files = []
     for file in loci_files:
-        em_results = exact_matches(file, loci_basenames[file],
-                                   distinct_htable, preprocess_dir)
+        pickle_out = fo.join_paths(preprocess_dir, [loci_basenames[file]+'_results'])
+        em_results = dna_exact_matches(file, distinct_htable, pickle_out)
+        classification_files.append(pickle_out)
         exact_hashes.extend(em_results[0])
-        classification_files.append(em_results[1])
-        exc_dna += em_results[2]
+        dna_exc_hits += em_results[1]
 
-    print('found {0} exact matches (matching {1} alleles).'.format(exc_dna, len(exact_hashes)))
+    print('found {0} exact matches (matching {1} alleles).'
+          ''.format(dna_exc_hits, len(exact_hashes)))
 
     # remove DNA sequences that were exact matches from the file with all distinct CDSs
     seq_generator = SeqIO.parse(distinct_file, 'fasta')
@@ -632,33 +675,38 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fo.create_directory(protein_dir)
     protein_files = fao.translate_fastas(loci_files, protein_dir, 11)
 
-    # get the integer identifier of the last allele for all loci
-    loci_topid = {}
-    for f in loci_files:
-        records = SeqIO.parse(f, 'fasta')
-        allele_ids = [int((rec.id).split('_')[-1]) for rec in records]
-        topid = max(allele_ids)
-        loci_topid[loci_basenames[f]] = topid
-
+    # create protein file index
+    protein_index = SeqIO.index(ds_results[1], 'fasta')
     print('Finding protein exact matches...', end='')
+    exc_cds = 0
     exc_prot = 0
     exact_phashes = []
     for file in protein_files:
-        em_results = exact_matches(file, loci_basenames[os.path.join(schema_directory, os.path.basename(file)).replace('_protein', '')],
-                                   distinct_pseqids, preprocess_dir, map_ids, 'EXCPROT')
+        locus = get_locus_id(file)
+        pickle_out = fo.join_paths(preprocess_dir, [locus+'_results'])
+        em_results = protein_exact_matches(file, distinct_pseqids,
+                                           distinct_htable, pickle_out,
+                                           protein_index, cds_index)
         exact_phashes.extend(em_results[0])
-        exc_prot += em_results[2]
+        exc_prot += em_results[1]
+        exc_cds += em_results[2]
 
-    print('found {0} exact matches (matching {1} proteins).'.format(exc_prot, len(exact_phashes)))
+    # need to determine number of distinct proteins to print correct info!!!
+    print('found {0} protein exact matches (matching {1} distinct proteins).'
+          ''.format(exc_prot, len(exact_phashes)))
 
-    # remove Protein sequences that were exact matches from the file with all distinct proteins
+    print('Protein matches correspond to {0} DNA matches.'.format(exc_cds))
+
+    # remove Protein sequences that were exact matches
+    # from the file with all distinct proteins
     seq_generator = SeqIO.parse(ds_results[1], 'fasta')
     selected_pids = [rec.id
-                    for rec in seq_generator
-                    if rec.id not in exact_phashes]
+                     for rec in seq_generator
+                     if rec.id not in exact_phashes]
     prot_index = SeqIO.index(ds_results[1], 'fasta')
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
-    fao.get_sequences_by_id(prot_index, selected_pids, unique_pfasta, limit=20000)
+    fao.get_sequences_by_id(prot_index, selected_pids,
+                            unique_pfasta, limit=20000)
 
     # translate schema representatives
     rep_dir = os.path.join(schema_directory, 'short')
@@ -770,7 +818,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     processed = 0
     excluded = []
     inf_matches = 0
-    for locus, hits in genomes_hits.items():
+    for locus, hits in loci_results.items():
         genomes_matches, representatives_info = hits
 
         # get locus length mode
@@ -803,195 +851,209 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     #######################################
     # Determine representatives iteratively
-
-    # create directory to store temp results
-    iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
-    fo.create_directory(iterative_rep_dir)
-
-    # variable to store Fasta files for representatives in each iteration
-
     # convert to set, some ids might be duplicated and operations are faster with set
     excluded = set(excluded)
     print('\nExcluded: {0}'.format(len(excluded)))
     # BLASTp to align representatives against remaining sequences
     # create file with remaining sequences
-    remaining_ids = [rec.id for rec in SeqIO.parse(unique_pfasta, 'fasta') if rec.id not in excluded]
+    remaining_ids = [rec.id
+                     for rec in SeqIO.parse(unique_pfasta, 'fasta')
+                     if rec.id not in excluded]
+    reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
     print('Remaining: {0}'.format(len(remaining_ids)))
-    remaining_seqs_file = fo.join_paths(clustering_dir, ['remaining_prots.fasta'])
-    # create Fasta with sequences that were not classified
-    fao.get_sequences_by_id(prot_index, remaining_ids, remaining_seqs_file, limit=20000)
-    unique_pfasta = remaining_seqs_file
-    # create a BLASTdb for the remining sequences
-    # include representative sequences to get self-score
-    blast_db_fasta = os.path.join(clustering_dir, 'all_prots_blast.fasta')
-    fo.concatenate_files([unique_pfasta, concat_reps], blast_db_fasta)
 
-    # change identifiers to shorten and avoid BLASTp error?
-    blast_db = fo.join_paths(clustering_dir, ['pre_schema_seed_int'])
-    db_stderr = bw.make_blast_db(makeblastdb_path, blast_db_fasta, blast_db, 'prot')
+    # create directory to store temp results
+    iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
+    fo.create_directory(iterative_rep_dir)
 
-    if len(db_stderr) > 0:
-        sys.exit(db_stderr)
+    # create Fasta file with protein sequences of reminaing alleles and
+    # loci representatives
+    new_prot_file = fo.join_paths(iterative_rep_dir, ['iterative_proteins.fasta'])
+    fo.concatenate_files([fo.join_paths(preprocess_dir, ['protein.fasta']), concat_reps],
+                          new_prot_file)
+    prot_index = SeqIO.index(new_prot_file, 'fasta')
 
-    # BLAST representatives against remaining sequences
-    # iterative process until the process does not detect new representatives
-    # pre-compute self-score for representatives
-    output_files = []
-    done = 0
-    for file in protein_repfiles:
-        locus_base = fo.file_basename(file, False)
-        outfile = fo.join_paths(clustering_dir, [locus_base+'_blast_results'])
-        output_files.append(outfile)
-        # create file with ids to BLAST against
-        # get rep ids
-        current_repids = [rec.id for rec in SeqIO.parse(file, 'fasta')]
-        # add remaining ids
-        current_repids.extend(remaining_ids)
-        # save file with ids
-        current_int_file = fo.join_paths(clustering_dir, [locus_base+'_ids.txt'])
-        with open(current_int_file, 'w') as outkadgk:
-            joined_ids = '\n'.join(current_repids)
-            outkadgk.write(joined_ids)
-
-        bw.run_blast(blastp_path, blast_db, file, outfile, ids_file=current_int_file)
-        done += 1
-        print('\r', 'Done: {0}'.format(done), end='')
-
-    # prepare results for allele calling
-    high_scoring = []
-    for f in output_files:
-        outfile = select_high_score(f, blast_score_ratio, ids_dict, clustering_dir)
-        if outfile is not None:
-            high_scoring.append(outfile)
-
-    loci_results = {}
-    for f in high_scoring:
-        results = group_by_genome(f, all_proteins, distinct_htable,
-                                  distinct_pseqids, dna_cds_index)
-        loci_results[results[0]] = results[1]
-
-    print('\nLoci with representative candidates: {0}'.format(len(loci_results)))
-
-    # perform allele calling
-    print('')
-    processed = 0
-    excluded = []
-    #inf_matches = 0
-    representative_candidates = {}
-    for locus, hits in loci_results.items():
-        genomes_matches, representatives_info = hits
-
-        # get locus length mode
-        locus_mode = loci_modes[locus]
-
-        # import file with locus classifications
-        locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
-        locus_results = fo.pickle_loader(locus_results_file)
-
-        results = classify_alleles(genomes_matches, representatives_info,
-                                   inv_map, contigs_lengths,
-                                   locus_results, locus_mode,
-                                   temp_directory, size_threshold)
-
-        # this step returns representative candidates
-        updated_results, updated_mode, locus_inf_matches, excluded_ids, inf_reps = results
-
-        inf_matches += locus_inf_matches
-        loci_modes[locus] = updated_mode
-        excluded.extend(excluded_ids)
-        representative_candidates[locus] = inf_reps
-
-        # save updated results
-        fo.pickle_dumper(updated_results, locus_results_file)
-
-        processed += 1
-        print('\r', 'Processed: {}'.format(processed), end='')
-
-    # exclude sequences that were classified
-    remaining_ids = set(remaining_ids) - set(excluded)
-
-    # determine representatives and then BLAST new representatives against remaining again!
-    # if only one representative candidate there is no need to determine which are the best representatives!
-    representatives = {}
     iteration = 1
-    # sorted inputs
-    sorted_inputs = [v for k, v in inputs_basenames.items()]
-    # select representatives for loci that have representative candidates
-    for k, v in representative_candidates.items():
-        if len(v) == 1:
-            representatives.setdefault(k, []).append(v[0][1])
-        # select for loci that have multiple candidates
-        elif len(v) > 1:
-            # create Fasta file with all candidates
-            reps_ids = [s[1] for s in v]
-            tmp_file = fo.join_paths(clustering_dir, ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-            fao.get_sequences_by_id(prot_index, reps_ids,
-                                    tmp_file)
-            # BLAST all against all
-            # change identifiers to shorten and avoid BLASTp error?
-            blast_db = fo.join_paths(clustering_dir, ['{0}_reps_iter{1}_blastdb'.format(k, iteration)])
-            db_stderr = bw.make_blast_db(makeblastdb_path, tmp_file, blast_db, 'prot')
+    exausted = False
+    # add schema representatives to get self-score
+    #remaining_ids += reps_ids
+    while exausted is False:
+        ######################################################
+        # Need to remove schema representatives from ids!!!! #
+        ######################################################
+        remaining_seqs_file = fo.join_paths(iterative_rep_dir,
+                                            ['remaining_prots_iter{0}.fasta'.format(iteration)])
+        # create Fasta with sequences that were not classified
+        fao.get_sequences_by_id(prot_index, remaining_ids+reps_ids,
+                                remaining_seqs_file, limit=20000)
 
-            outfile = fo.join_paths(clustering_dir, ['{0}_reps_iter{1}_blast_results'.format(k, iteration)])
-            bw.run_blast(blastp_path, blast_db, tmp_file, outfile)
+        # change identifiers to shorten and avoid BLASTp error?
+        blast_db = fo.join_paths(iterative_rep_dir, ['blastdb_iter{0}'.format(iteration)])
+        db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
+                                     blast_db, 'prot')
 
-            blast_results = fo.read_tabular(outfile)
-            self_scores = {r[0]: float(r[5]) for r in blast_results if r[0] == r[4]}
+        # BLAST representatives against remaining sequences
+        # iterative process until the process does not detect new representatives
+        # pre-compute self-score for representatives?
+        done = 0
+        output_files = []
+        print('Representative sets to BLAST against remaining '
+              'sequences: {0}\n'.format(len(protein_repfiles)))
+        for file in protein_repfiles:
+            locus_base = fo.file_basename(file, False)
+            outfile = fo.join_paths(iterative_rep_dir,
+                                    [locus_base+'_blast_results_iter{0}.tsv'.format(iteration)])
+            output_files.append(outfile)
+            # create file with ids to BLAST against
+            # get rep ids
+            current_repids = [rec.id
+                              for rec in SeqIO.parse(file, 'fasta')]
+            # add remaining ids
+            current_repids.extend(remaining_ids)
+            # save file with ids
+            current_file = fo.join_paths(iterative_rep_dir,
+                                         [locus_base+'_ids_iter{0}.txt'.format(iteration)])
+            with open(current_file, 'w') as outkadgk:
+                joined_ids = '\n'.join(current_repids)
+                outkadgk.write(joined_ids)
 
-            # filter self-alignment lines
-            filtered_results = [r for r in blast_results if r[0] != r[4]]
+            bw.run_blast(blastp_path, blast_db, file,
+                         outfile, ids_file=current_file)
+            done += 1
+            print('\r', 'Done: {0}'.format(done), end='')
 
-            # sort based on input order
-            sorted_results = sorted(filtered_results,
-                                    key= lambda x: x[4].split('-protein')[0])
+        # prepare results for allele calling
+        high_scoring = []
+        for f in output_files:
+            outfile = select_high_score(f, blast_score_ratio,
+                                        None, iterative_rep_dir)
+            if outfile is not None:
+                high_scoring.append(outfile)
 
-            # compute BSR
-            for r in sorted_results:
-                r.append(float(r[-1])/self_scores[r[0]])
+        loci_results = {}
+        for f in high_scoring:
+            results = group_by_genome(f, all_proteins, distinct_htable,
+                                      distinct_pseqids, dna_cds_index)
+            loci_results[results[0]] = results[1]
 
-            to_remove = []
-            for r in sorted_results:
-                if r[0] not in to_remove:
-                    if r[-1] >= blast_score_ratio+0.1:
-                        to_remove.append(r[4])
+        print('\nLoci with new representative candidates: '
+              '{0}'.format(len(loci_results)))
 
-            selected = [r[0] for r in sorted_results if r[0] not in to_remove]
-            selected = list(set(selected))
-            representatives.setdefault(k, []).extend(selected)
+        if len(loci_results) == 0:
+            exausted = True
+            continue
 
-            # remove candidates that were not selected
-            remaining_ids = remaining_ids - set(to_remove)
+        # perform allele calling
+        print('Classifying and selecting representative candidates.\n')
+        processed = 0
+        excluded = []
+        representative_candidates = {}
+        for locus, hits in loci_results.items():
+            genomes_matches, representatives_info = hits
 
-            print(sorted_results,
-                  selected)
+            # get locus length mode
+            locus_mode = loci_modes[locus]
 
-    blast_db = fo.join_paths(clustering_dir, ['pre_schema_seed_int'])
+            # import file with locus classifications
+            locus_results_file = fo.join_paths(preprocess_dir,
+                                               [locus+'_results'])
+            locus_results = fo.pickle_loader(locus_results_file)
 
-    iteration += 1
-    # create files with representatives and BLAST against remaining by passing file with ids
-    output_files = []
-    done = 0
-    for k, v in representatives.items():
-        outfile = fo.join_paths(clustering_dir, ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-        # create file with ids to BLAST against
-        # get rep ids
-        current_repids = v
-        fao.get_sequences_by_id(prot_index, current_repids, outfile)
-        # save file with ids
-        current_int_file = fo.join_paths(clustering_dir, ['{0}_ids_iter{1}.txt'.format(k, iteration)])
-        with open(current_int_file, 'w') as outkadgk:
-            joined_ids = '\n'.join(remaining_ids)
-            outkadgk.write(joined_ids)
+            results = classify_alleles(genomes_matches, representatives_info,
+                                       inv_map, contigs_lengths,
+                                       locus_results, locus_mode,
+                                       temp_directory, size_threshold)
 
-        blastout = fo.join_paths(clustering_dir, ['{0}_blastout_iter{1}.tsv'.format(k, iteration)])
-        output_files.append(blastout)
-        bw.run_blast(blastp_path, blast_db, outfile, blastout, ids_file=current_int_file)
-        done += 1
-        print('\r', 'Done: {0}'.format(done), end='')
+            # this step returns representative candidates
+            updated_results, updated_mode, locus_inf_matches, excluded_ids, inf_reps = results
 
-#######################################################################################
-# END of cycle, blast results need to be processed and fed into allele calling function
-#######################################################################################
+            inf_matches += locus_inf_matches
+            loci_modes[locus] = updated_mode
+            excluded.extend(excluded_ids)
+            representative_candidates[locus] = inf_reps
+
+            # save updated results
+            fo.pickle_dumper(updated_results, locus_results_file)
+
+            processed += 1
+            print('\r', 'Processed: {}'.format(processed), end='')
+
+        print('Classified {0} alleles.'.format(len(excluded)))
+        # exclude sequences that were classified
+        remaining_ids = list(set(remaining_ids) - set(excluded))
+
+        print('Selecting representatives for next iteration.')
+        # determine representatives and then BLAST new representatives
+        # against remaining again. If only one representative candidate
+        # there is no need to determine which are the best representatives!
+        total_selected = 0
+        representatives = {}
+        # select representatives for loci that have representative candidates
+        for k, v in representative_candidates.items():
+            if len(v) == 1:
+                representatives.setdefault(k, []).append(v[0][1])
+            # select for loci that have multiple candidates
+            elif len(v) > 1:
+                # create Fasta file with all candidates
+                reps_candidates_ids = [s[1] for s in v]
+                tmp_file = fo.join_paths(iterative_rep_dir, ['{0}_reps_selection_iter{1}.fasta'.format(k, iteration)])
+                fao.get_sequences_by_id(prot_index, reps_candidates_ids, tmp_file)
+                # BLAST all against all
+                # change identifiers to shorten and avoid BLASTp error?
+                blast_db = fo.join_paths(iterative_rep_dir,
+                                         ['{0}_reps_iter{1}_blastdb'.format(k, iteration)])
+                db_stderr = bw.make_blast_db(makeblastdb_path, tmp_file,
+                                             blast_db, 'prot')
+
+                outfile = fo.join_paths(iterative_rep_dir,
+                                        ['{0}_reps_iter{1}_blast_results'.format(k, iteration)])
+                bw.run_blast(blastp_path, blast_db, tmp_file, outfile)
+
+                blast_results = fo.read_tabular(outfile)
+                self_scores = {r[0]: float(r[5]) for r in blast_results if r[0] == r[4]}
+
+                # filter self-alignment lines
+                filtered_results = [r for r in blast_results if r[0] != r[4]]
+
+                # sort based on input order
+                sorted_results = sorted(filtered_results,
+                                        key= lambda x: x[4].split('-protein')[0])
+
+                # compute BSR
+                for r in sorted_results:
+                    r.append(float(r[-1])/self_scores[r[0]])
+
+                to_remove = []
+                for r in sorted_results:
+                    if r[0] not in to_remove:
+                        if r[-1] >= blast_score_ratio+0.1:
+                            to_remove.append(r[4])
+
+                selected = [r[0] for r in sorted_results if r[0] not in to_remove]
+                selected = list(set(selected))
+                total_selected += len(selected)
+                if len(selected) > 0:
+                    representatives.setdefault(k, []).extend(selected)
+
+                # remove candidates that were not selected
+                remaining_ids = list(set(remaining_ids) - set(to_remove))
+
+        print('Remaining unclassified alleles: {0}'.format(len(remaining_ids)))
+
+        # stop iterating if it is not possible to identify representatives
+        if len(representatives) == 0:
+            exausted = True
+        else:
+            iteration += 1
+            # create files with representative sequences
+            reps_ids = []
+            protein_repfiles = []
+            for k, v in representatives.items():
+                reps_ids += v
+                rep_file = fo.join_paths(iterative_rep_dir,
+                                         ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
+                fao.get_sequences_by_id(prot_index, v, rep_file)
+                protein_repfiles.append(rep_file)
 
     end = time.time()
     delta = end - start
@@ -1048,15 +1110,27 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
           'alm: {}\n'
           'lotsc: {}\n'
           'plot3: {}\n'
-          'plot5: {}'.format(exc, niphem, niph, inf, asm, alm, lotsc, plot3, plot5))
+          'plot5: {}'.format(exc, niphem, niph,
+                             inf, asm, alm,
+                             lotsc, plot3, plot5))
 
     print(inf_matches)
-
-
-
+    print('Classified a total of {0} CDSs.'.format(total_cds))
 
 # implement mode that only detects exact matches (ultrafast)
 # implement mode that infers new alleles and that only adds inferred alleles to schema if requested
+#######################################################################################
+# The protein exact matches, that are not detected at DNA level, are inferred alleles!?
+# They have BSR=1, but the DNA sequences are different than the ones in the schema.
+# We can classify them as inferred, but we do not need to check if they are representatives
+# because the BSR=1. We can classify as INF and it might be altered later
+# The protein exact matches are not being properly counted? I think I am not addin/counting the
+# number of DNA alleles that match those protein exact matches
+# need to make sure that protein exact matches that are inferred do not count all as INF, only one can count as INF
+# other genomes with same protein/CDS need to have EXC
+##########################
+# Check all steps that remove sequences/seqids to verify that we are not removing sequences that
+# should not be removed or keeping some that we should not!!!
 def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,

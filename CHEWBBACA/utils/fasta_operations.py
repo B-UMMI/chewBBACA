@@ -52,6 +52,29 @@ def count_sequences(fasta_file):
     return total_seqs
 
 
+def sequences_lengths(fasta_file):
+    """ Read Fasta file and create dictionary
+        with mapping between sequence identifier
+        and sequence length.
+
+        Parameters
+        ----------
+        fasta_file : str
+            Path to Fasta file.
+
+        Returns
+        -------
+        lengths : dict
+            Dictionary with sequence identifiers
+            as keys and sequence lengths as values.
+    """
+
+    sequences = SeqIO.parse(fasta_file, 'fasta')
+    lengths = {rec.id: len(rec.seq) for rec in sequences}
+
+    return lengths
+
+
 def write_records(records, output_file):
     """ Writes FASTA records (BioPython SeqRecord) to a file.
 
@@ -315,6 +338,22 @@ def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
             lines = im.join_list(records, '\n')
             fo.write_to_file(lines, out_file, 'a', '\n')
             records = []
+
+
+def exclude_sequences_by_id(fasta_file, exclude_ids, fasta_index, output_file):
+    """
+    """
+
+    seq_generator = SeqIO.parse(fasta_file, 'fasta')
+    selected_ids = [rec.id
+                    for rec in seq_generator
+                    if rec.id not in exclude_ids]
+    get_sequences_by_id(fasta_index, selected_ids,
+                        output_file, limit=20000)
+
+    total_selected = len(selected_ids)
+
+    return total_selected
 
 
 def split_fasta(fasta_path, output_path, num_seqs, filenames):

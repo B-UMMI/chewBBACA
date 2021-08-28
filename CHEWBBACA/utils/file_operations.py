@@ -15,6 +15,7 @@ Code documentation
 
 
 import os
+import re
 import sys
 import csv
 import time
@@ -56,6 +57,28 @@ def file_basename(file_path, suffix):
         basename = basename.split('.')[0]
 
     return basename
+
+
+def get_locus_id(file_path):
+    """ Extracts the locus identifier from a file path.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to a locus Fasta file.
+
+        Returns
+        -------
+        locus_id : str
+            Locus identifier without the '.fasta' file
+            extension.
+    """
+
+    basename = file_basename(file_path, True)
+    match = re.search(r'-protein[0-9]+', basename).span()
+    locus_id = basename[0:match[1]]
+
+    return locus_id
 
 
 def mapping_function(values, function, args):

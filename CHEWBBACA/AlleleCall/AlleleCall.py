@@ -89,7 +89,6 @@ Code documentation
 
 
 import os
-import re
 import sys
 import time
 import argparse
@@ -124,27 +123,6 @@ except:
 import get_varSize_deep as gs
 
 
-def sequences_lengths(fasta_file):
-    """
-    """
-
-    contigs = SeqIO.parse(fasta_file, 'fasta')
-    lengths = {rec.id: len(rec.seq) for rec in contigs}
-
-    return lengths
-
-
-def get_locus_id(file_path):
-    """
-    """
-
-    basename = fo.file_basename(file_path, True)
-    match = re.search(r'-protein[0-9]+', basename).span()
-    locus_id = basename[0:match[1]]
-
-    return locus_id
-
-
 def select_high_score(input_file, blast_score_ratio, ids_map, output_directory):
     """
     """
@@ -157,7 +135,7 @@ def select_high_score(input_file, blast_score_ratio, ids_map, output_directory):
     # only save and evaluate results for loci that
     # had at least one high BSR match
     if len(current_results[0]) > 0:
-        locus = get_locus_id(input_file)
+        locus = fo.get_locus_id(input_file)
         current_results.append(locus)
         # save data to pickle
         pickle_out = fo.join_paths(output_directory, [locus+'_bsr'])
@@ -190,39 +168,53 @@ def group_by_genome(file, sequences, cds_hashtable, prot_hashtable, cds_index):
     return [locus, genomes_hits]
 
 
+def update_classification(genome_id, locus_results, classification,
+                          representative_id, blast_score_ratio,
+                          multiple_classification='NIPH'):
+    """
+    """
+
+    if genome_id in locus_results:
+        locus_results[genome_id][0] = multiple_classification
+        locus_results[genome_id].append((representative_id,
+                                         classification,
+                                         blast_score_ratio))
+    else:
+        locus_results[genome_id] = [classification,
+                                    (representative_id,
+                                     classification,
+                                     blast_score_ratio)]
+
+    return locus_results
+
+
 def dna_exact_matches(fasta_file, distinct_table, output_file):
     """
     """
 
     seq_generator = SeqIO.parse(fasta_file, 'fasta')
 
-    total = 0
     exact_hits = {}
-    exact_hashes = []
+    matches_ids = []
+    total_matches = 0
     for rec in seq_generator:
         seqid = rec.id
         sequence = str(rec.seq.upper())
-        seq_hash = im.hash_sequence(sequence)
-        if seq_hash in distinct_table:
+        sequence_hash = im.hash_sequence(sequence)
+        if sequence_hash in distinct_table:
             # exclude element in index 0, it is the seqid chosen as
             # representative and is repeated in index 1
-            current_matches = distinct_table[seq_hash]
-            total += len(current_matches) - 1
+            current_matches = distinct_table[sequence_hash]
+            total_matches += len(current_matches) - 1
             for m in current_matches[1:]:
-                if m not in exact_hits:
-                    exact_hits[m] = ['EXC', (seqid, 'EXC')]
-                else:
-                    exact_hits[m][0] = 'NIPHEM'
-                    exact_hits[m].append((seqid, 'EXC'))
-            exact_hashes.append(current_matches[0])
+                exact_hits = update_classification(m, exact_hits, 'EXC',
+                                                   seqid, 1.0, 'NIPHEM')
 
-    # save classifications
-    fo.pickle_dumper(exact_hits, output_file)
+            matches_ids.append(current_matches[0])
 
-    return [exact_hashes, total]
+    return [exact_hits, matches_ids, total_matches]
 
-# is this adding too many INF classifications?
-# or is that normal based on how it is working?
+
 def protein_exact_matches(fasta_file, distinct_prot_table,
                           distinct_dna_table, output_file,
                           protein_index, dna_index):
@@ -235,9 +227,7 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
     total_prots = 0
     exact_hits = {}
     exact_prot_hashes = []
-    #########################
-    # NEED to store hashes here to avoid classifying always as INF!!!
-    seen = []
+    seen_dna = []
     for rec in seq_generator:
         protein = str(rec.seq.upper())
         prot_hash = im.hash_sequence(protein)
@@ -254,10 +244,17 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
                 total_cds += len(seqids) - 1
                 for s in seqids[1:]:
                     if s not in exact_hits:
-                        exact_hits[s] = ['INF', (seqids[0], 'INF')]
+                        if cds_hash not in seen_dna:
+                            exact_hits[s] = ['INF', (seqids[0], 'INF')]
+                            seen_dna.append(cds_hash)
+                        else:
+                            exact_hits[s] = ['EXC', (seqids[0], 'EXC')]
                     else:
                         exact_hits[s][0] = 'NIPH'
-                        exact_hits[s].append((seqids[0], 'EXC'))
+                        if cds_hash not in seen_dna:
+                            exact_hits[s].append((seqids[0], 'INF'))
+                        else:
+                            exact_hits[s].append((seqids[0], 'EXC'))
 
     # merge results with DNA exact matches
     if os.path.isfile(output_file) is False:
@@ -329,25 +326,6 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
                 if v[0] >= blast_score_ratio}
 
     return [high_bsr, representatives_info]
-
-
-def update_classification(genome_id, locus_results, classification,
-                          representative_id, blast_score_ratio):
-    """
-    """
-
-    if genome_id in locus_results:
-        locus_results[genome_id][0] = 'NIPH'
-        locus_results[genome_id].append((representative_id,
-                                         classification,
-                                         blast_score_ratio))
-    else:
-        locus_results[genome_id] = [classification,
-                                    (representative_id,
-                                     classification,
-                                     blast_score_ratio)]
-
-    return locus_results
 
 
 def classify_alleles(genomes_matches, representatives_info, inv_map,
@@ -494,12 +472,14 @@ cpu_cores = 6
 blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
 prodigal_mode = 'single'
 cds_input = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+only_exact = True
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    representative_filter, intra_filter, cpu_cores, blast_path,
-                   prodigal_mode, cds_input):
+                   prodigal_mode, cds_input, only_exact):
     """
     """
 
@@ -614,27 +594,33 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
 
     # find exact DNA matches
-    dna_exc_hits = 0
-    exact_hashes = []
+    dna_exact_hits = 0
+    dna_matches_ids = []
     classification_files = []
     for file in loci_files:
         pickle_out = fo.join_paths(preprocess_dir, [loci_basenames[file]+'_results'])
         em_results = dna_exact_matches(file, distinct_htable, pickle_out)
+        # save classifications
+        fo.pickle_dumper(em_results[0], pickle_out)
         classification_files.append(pickle_out)
-        exact_hashes.extend(em_results[0])
-        dna_exc_hits += em_results[1]
+        # extend list of matched seqids
+        dna_matches_ids.extend(em_results[1])
+        dna_exact_hits += em_results[2]
 
     print('found {0} exact matches (matching {1} alleles).'
-          ''.format(dna_exc_hits, len(exact_hashes)))
+          ''.format(dna_exact_hits, len(dna_matches_ids)))
 
-    # remove DNA sequences that were exact matches from the file with all distinct CDSs
-    seq_generator = SeqIO.parse(distinct_file, 'fasta')
-    selected_ids = [rec.id
-                    for rec in seq_generator
-                    if rec.id not in exact_hashes]
-    cds_index = SeqIO.index(distinct_file, 'fasta')
+    if only_exact is True:
+        end = time.time()
+        delta = end - start
+        print('\n', delta/60)
+        sys.exit('Finished allele calling.')
+
+    # create new Fasta file without the DNA sequences that were exact matches
+    dna_index = SeqIO.index(distinct_file, 'fasta')
     unique_fasta = fo.join_paths(preprocess_dir, ['dna_non_exact.fasta'])
-    fao.get_sequences_by_id(cds_index, selected_ids, unique_fasta, limit=20000)
+    selected_ids = fao.exclude_sequences_by_id(distinct_file, dna_matches_ids,
+                                               dna_index, unique_fasta)
 
     # translate DNA sequences and identify duplicates
     # sequence translation step
@@ -682,11 +668,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     exc_prot = 0
     exact_phashes = []
     for file in protein_files:
-        locus = get_locus_id(file)
+        locus = fo.get_locus_id(file)
         pickle_out = fo.join_paths(preprocess_dir, [locus+'_results'])
         em_results = protein_exact_matches(file, distinct_pseqids,
                                            distinct_htable, pickle_out,
-                                           protein_index, cds_index)
+                                           protein_index, dna_index)
         exact_phashes.extend(em_results[0])
         exc_prot += em_results[1]
         exc_cds += em_results[2]
@@ -697,16 +683,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     print('Protein matches correspond to {0} DNA matches.'.format(exc_cds))
 
-    # remove Protein sequences that were exact matches
-    # from the file with all distinct proteins
-    seq_generator = SeqIO.parse(ds_results[1], 'fasta')
-    selected_pids = [rec.id
-                     for rec in seq_generator
-                     if rec.id not in exact_phashes]
-    prot_index = SeqIO.index(ds_results[1], 'fasta')
+    # create new Fasta file without the Protein sequences that were exact matches
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
-    fao.get_sequences_by_id(prot_index, selected_pids,
-                            unique_pfasta, limit=20000)
+    protein_index = SeqIO.index(ds_results[1], 'fasta')
+    selected_ids = fao.exclude_sequences_by_id(ds_results[1], exact_phashes,
+                                               protein_index, unique_pfasta)
 
     # translate schema representatives
     rep_dir = os.path.join(schema_directory, 'short')
@@ -810,7 +791,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # get contig length for all genomes
     contigs_lengths = {}
     for f in fasta_files:
-        lengths = sequences_lengths(f)
+        lengths = fao.sequences_lengths(f)
         contigs_lengths[inputs_basenames[f]] = lengths
 
     # process results per genome and per locus
@@ -1081,6 +1062,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     lotsc = 0
     plot3 = 0
     plot5 = 0
+    total_niph = 0
+    total_niphem = 0
     # get total number of classified CDSs! NIPHEM and NIPH encompass multiple CDSs
     ################################################################
     # there are a lot of CDSs that are not being classified!
@@ -1093,7 +1076,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         all_classifications = [c[0] for g, c in locus_results.items()]
         exc += sum([1 for c in all_classifications if 'EXC' in c])
         niphem += all_classifications.count('NIPHEM')
+        total_niphem += sum([len(c)-1 for g, c in locus_results.items() if c[0] == 'NIPHEM'])
         niph += all_classifications.count('NIPH')
+        total_niph += sum([len(c)-1 for g, c in locus_results.items() if c[0] == 'NIPH'])
         inf += all_classifications.count('INF')
         asm += all_classifications.count('ASM')
         alm += all_classifications.count('ALM')
@@ -1135,7 +1120,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
-         cds_input, prodigal_mode):#, no_cleanup):
+         cds_input, prodigal_mode, only_exact, no_cleanup):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -1152,7 +1137,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, representative_filter,
                              intra_filter, cpu_cores, blast_path,
-                             prodigal_mode, cds_input)
+                             prodigal_mode, cds_input, only_exact)
 
     # remove temporary files
 #    if no_cleanup is False:
@@ -1230,6 +1215,11 @@ def parse_arguments():
                         dest='cds_input',
                         help='If provided, input is a single or several FASTA '
                              'files with coding sequences.')
+
+    parser.add_argument('--only-exact', required=False, action='store_true',
+                        dest='only_exact',
+                        help='If provided, the process will only determine '
+                             'exact matches.')
 
     parser.add_argument('--no-cleanup', required=False, action='store_true',
                         dest='no_cleanup',

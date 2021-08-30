@@ -1251,11 +1251,12 @@ def create_outputs(classification_files, inv_map, output_directory):
         new_line = [k] + [str(v[c]) for c in classes]
         lines.append(new_line)
 
+    outlines = ['\t'.join(l) for l in lines]
+
     results_statistics_outfile = fo.join_paths(results_dir, ['results_statistics.tsv'])
-    with open(results_alleles_outfile, 'w') as outfile:
-        writer = csv.writer(outfile, delimiter='\t')
-        for row in lines_generator:
-            writer.writerow(row)
+    with open(results_statistics_outfile, 'w') as outfile:
+        text = '\n'.join(outlines)
+        outfile.write(text+'\n')
 
 # implement mode that only detects exact matches (ultrafast)
 # implement mode that infers new alleles and that only adds inferred alleles to schema if requested

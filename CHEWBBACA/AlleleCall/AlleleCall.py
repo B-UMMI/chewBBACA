@@ -3,8 +3,7 @@
 """
 Purpose
 -------
-
-This module enables ...
+This module enables
 
 Expected input
 --------------
@@ -89,9 +88,12 @@ Code documentation
 
 
 import os
+import re
+import csv
 import sys
 import time
 import argparse
+from collections import Counter
 
 from Bio import SeqIO
 
@@ -99,10 +101,8 @@ try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
                        core_functions as cf,
-                       gene_prediction as gp,
                        file_operations as fo,
                        fasta_operations as fao,
-                       sequence_clustering as sc,
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
@@ -110,10 +110,8 @@ except:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  core_functions as cf,
-                                 gene_prediction as gp,
                                  file_operations as fo,
                                  fasta_operations as fao,
-                                 sequence_clustering as sc,
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
@@ -123,7 +121,44 @@ except:
 import get_varSize_deep as gs
 
 
-def select_high_score(input_file, blast_score_ratio, ids_map, output_directory):
+def match_regex(text, pattern):
+    """
+    """
+
+    match_span = re.search(pattern, text).span()
+    match_str = text[match_span[0]:match_span[1]]
+
+    return match_str
+
+
+###############################
+# Translating everything, maybe we should only create Fasta files with distinct records
+def translate_fastas(fasta_files, output_directory,
+                     translation_table, cpu_cores):
+    """
+    """
+
+    translation_inputs = im.divide_list_into_n_chunks(fasta_files,
+                                                      len(fasta_files))
+
+    common_args = [output_directory, translation_table]
+
+    # add common arguments to all sublists
+    translation_inputs = im.multiprocessing_inputs(translation_inputs,
+                                                   common_args,
+                                                   fao.translate_fasta)
+
+    # run Prodigal to predict genes
+    protein_files = mo.map_async_parallelizer(translation_inputs,
+                                              mo.function_helper,
+                                              cpu_cores,
+                                              show_progress=True)
+
+    return protein_files
+
+
+def select_high_score(input_file, blast_score_ratio,
+                      ids_map, output_directory):
     """
     """
 
@@ -188,7 +223,29 @@ def update_classification(genome_id, locus_results, classification,
     return locus_results
 
 
-def dna_exact_matches(fasta_file, distinct_table, output_file):
+def schema_exact_matches(loci_files, output_directory,
+                         distinct_htable, loci_basenames):
+    """
+    """
+
+    dna_exact_hits = 0
+    dna_matches_ids = []
+    classification_files = []
+    for file in loci_files:
+        pickle_out = fo.join_paths(output_directory,
+                                   [loci_basenames[file]+'_results'])
+        em_results = locus_exact_matches(file, distinct_htable)
+        # save classifications
+        fo.pickle_dumper(em_results[0], pickle_out)
+        classification_files.append(pickle_out)
+        # extend list of matched seqids
+        dna_matches_ids.extend(em_results[1])
+        dna_exact_hits += em_results[2]
+
+    return [classification_files, dna_matches_ids, dna_exact_hits]
+
+
+def locus_exact_matches(fasta_file, distinct_table):
     """
     """
 
@@ -198,9 +255,11 @@ def dna_exact_matches(fasta_file, distinct_table, output_file):
     matches_ids = []
     total_matches = 0
     for rec in seq_generator:
-        seqid = rec.id
+        seqid = (rec.id).split('_')[0]
         sequence = str(rec.seq.upper())
         sequence_hash = im.hash_sequence(sequence)
+        # file cannot have duplicated alleles or it will
+        # classify based on same DNA sequence twice
         if sequence_hash in distinct_table:
             # exclude element in index 0, it is the seqid chosen as
             # representative and is repeated in index 1
@@ -215,6 +274,15 @@ def dna_exact_matches(fasta_file, distinct_table, output_file):
     return [exact_hits, matches_ids, total_matches]
 
 
+
+# fasta_file = protein_files[0]
+# distinct_prot_table = distinct_pseqids
+# distinct_dna_table = dna_distinct_htable
+# locus = fo.get_locus_id(fasta_file)
+# pickle_out = fo.join_paths(preprocess_dir, [locus+'_results'])
+# output_file = pickle_out
+# protein_index = protein_index
+# dna_index = dna_index
 def protein_exact_matches(fasta_file, distinct_prot_table,
                           distinct_dna_table, output_file,
                           protein_index, dna_index):
@@ -223,15 +291,19 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
 
     seq_generator = SeqIO.parse(fasta_file, 'fasta')
 
+    seen_dna = []
+    seen_prot = []
     total_cds = 0
     total_prots = 0
     exact_hits = {}
     exact_prot_hashes = []
-    seen_dna = []
     for rec in seq_generator:
+        protid = (rec.id).split('_')[0]
         protein = str(rec.seq.upper())
         prot_hash = im.hash_sequence(protein)
-        if prot_hash in distinct_prot_table:
+        # do not proceed if distinct protein sequence has already been seen
+        # different alleles might code for the same protein
+        if prot_hash in distinct_prot_table and prot_hash not in seen_prot:
             # get protids for distinct CDSs
             protids = distinct_prot_table[prot_hash][1:]
             total_prots += len(protids)
@@ -245,28 +317,31 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
                 for s in seqids[1:]:
                     if s not in exact_hits:
                         if cds_hash not in seen_dna:
-                            exact_hits[s] = ['INF', (seqids[0], 'INF')]
+                            exact_hits = update_classification(s, exact_hits,
+                                                               'INF', p, 1.0)
                             seen_dna.append(cds_hash)
                         else:
-                            exact_hits[s] = ['EXC', (seqids[0], 'EXC')]
+                            exact_hits = update_classification(s, exact_hits,
+                                                               'EXC', p, 1.0)
                     else:
-                        exact_hits[s][0] = 'NIPH'
                         if cds_hash not in seen_dna:
+                            exact_hits = update_classification(s, exact_hits,
+                                                               'INF', p, 1.0)
                             exact_hits[s].append((seqids[0], 'INF'))
                         else:
-                            exact_hits[s].append((seqids[0], 'EXC'))
+                            exact_hits = update_classification(s, exact_hits,
+                                                               'EXC', p, 1.0)
+
+            seen_prot.append(prot_hash)
 
     # merge results with DNA exact matches
-    if os.path.isfile(output_file) is False:
-        fo.pickle_dumper(exact_hits, output_file)
-    else:
-        locus_results = fo.pickle_loader(output_file)
-        for k, v in exact_hits.items():
-            locus_results.setdefault(k, [v[0]]).extend(v[1:])
-            if len(v[1:]) > 1:
-                locus_results[k][0] = 'NIPH'
+    locus_results = fo.pickle_loader(output_file)
+    for k, v in exact_hits.items():
+        locus_results.setdefault(k, [v[0]]).extend(v[1:])
+        if len(v[1:]) > 1:
+            locus_results[k][0] = 'NIPH'
 
-        fo.pickle_dumper(locus_results, output_file)
+    fo.pickle_dumper(locus_results, output_file)
 
     return [exact_prot_hashes, total_prots, total_cds]
 
@@ -328,11 +403,13 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
     return [high_bsr, representatives_info]
 
 
-def classify_alleles(genomes_matches, representatives_info, inv_map,
-                     contigs_lengths, locus_results, locus_mode,
-                     temp_directory, size_threshold):
+def classify_alleles(locus, genomes_matches, representatives_info,
+                     inv_map, contigs_lengths, locus_results_file,
+                     locus_mode, temp_directory, size_threshold):
     """
     """
+
+    locus_results = fo.pickle_loader(locus_results_file)
 
     seen_dna = []
     seen_prot = []
@@ -451,14 +528,20 @@ def classify_alleles(genomes_matches, representatives_info, inv_map,
             #loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
             locus_mode[0] = sm.determine_mode(locus_mode[1])[0]
 
-    return [locus_results, locus_mode, inf_matches, excluded, representative_candidates]
+    # save updated results
+    fo.pickle_dumper(locus_results, locus_results_file)
+
+    return {locus: [locus_results_file, locus_mode, inf_matches,
+                    excluded, representative_candidates]}
 
 
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
 blast_score_ratio = 0.6
 minimum_length = 201
 translation_table = 11
@@ -469,12 +552,13 @@ clustering_sim = 0.2
 representative_filter = 0.9
 intra_filter = 0.9
 cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/ns/bin'
+blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 prodigal_mode = 'single'
 cds_input = False
-only_exact = True
+only_exact = False
 #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
 schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -493,9 +577,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # sort paths to FASTA files
     fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
+    # map input basenames to
     inputs_basenames = fo.mapping_function(fasta_files,
                                            fo.file_basename, [False])
-    #inv_basenames = im.invert_dictionary(inputs_basenames)
 
     # create dictionary with integer mapping for inputs
     # this reduces memory usage during sequence deduplication
@@ -540,8 +624,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # CDS extraction step
         print('\n\nExtracting coding sequences...\n')
         # create output directory
-        cds_extraction_path = os.path.join(temp_directory,
-                                           '2_cds_extraction')
+        cds_extraction_path = fo.join_paths(temp_directory,
+                                            ['2_cds_extraction'])
         fo.create_directory(cds_extraction_path)
         eg_results = cf.extract_genes(fasta_files, prodigal_path,
                                       cpu_cores, cds_extraction_path,
@@ -567,50 +651,38 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                               cpu_cores, distinct_dna_template,
                                               map_ids, False)
 
-    distinct_htable, distinct_file, repeated = dna_dedup_results
+    dna_distinct_htable, distinct_file, repeated = dna_dedup_results
     print('removed {0} sequences.'.format(repeated))
 
     # get size of hash table
-    size1 = gs.convert_bytes(distinct_htable, set())
+    size1 = gs.convert_bytes(dna_distinct_htable, set())
     print(size1.split('\n')[2])
 
     # remove small sequences!?
 
-    print('Finding DNA exact matches...', end='')
-
     ## Check if reverse complement matches?
     # get list of loci files
+    print('Getting list of loci...', end='')
     loci_files = fo.listdir_fullpath(schema_directory,
                                      substring_filter='.fasta')
 
-    loci_basenames = fo.mapping_function(loci_files, fo.file_basename, [False])
+    loci_basenames = fo.mapping_function(loci_files, fo.get_locus_id, [])
+    print('schema has {0} loci.'.format(len(loci_files)))
 
-    # determine size mode for each locus
-    loci_modes = {}
-    for file in loci_files:
-        seq_generator = SeqIO.parse(file, 'fasta')
-        alleles_sizes = [len(rec.seq)
-                         for rec in seq_generator]
-        loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
-
+    print('Finding DNA exact matches...', end='')
     # find exact DNA matches
-    dna_exact_hits = 0
-    dna_matches_ids = []
-    classification_files = []
-    for file in loci_files:
-        pickle_out = fo.join_paths(preprocess_dir, [loci_basenames[file]+'_results'])
-        em_results = dna_exact_matches(file, distinct_htable, pickle_out)
-        # save classifications
-        fo.pickle_dumper(em_results[0], pickle_out)
-        classification_files.append(pickle_out)
-        # extend list of matched seqids
-        dna_matches_ids.extend(em_results[1])
-        dna_exact_hits += em_results[2]
+    # Add multiprocessing?
+    # use psutil library to get free memory and decide maximum number of processes to spawn?
+    dna_em_results = schema_exact_matches(loci_files, preprocess_dir,
+                                          dna_distinct_htable, loci_basenames)
+
+    classification_files, dna_matches_ids, dna_exact_hits = dna_em_results
 
     print('found {0} exact matches (matching {1} alleles).'
           ''.format(dna_exact_hits, len(dna_matches_ids)))
 
     if only_exact is True:
+        # return classification files for creation of output files
         end = time.time()
         delta = end - start
         print('\n', delta/60)
@@ -619,12 +691,14 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # create new Fasta file without the DNA sequences that were exact matches
     dna_index = SeqIO.index(distinct_file, 'fasta')
     unique_fasta = fo.join_paths(preprocess_dir, ['dna_non_exact.fasta'])
-    selected_ids = fao.exclude_sequences_by_id(distinct_file, dna_matches_ids,
-                                               dna_index, unique_fasta)
+    total_selected, selected_ids = fao.exclude_sequences_by_id(distinct_file,
+                                                               dna_matches_ids,
+                                                               dna_index,
+                                                               unique_fasta)
 
     # translate DNA sequences and identify duplicates
     # sequence translation step
-    print('\nTranslating {0} DNA sequences...'.format(len(selected_ids)))
+    print('\nTranslating {0} DNA sequences...'.format(total_selected))
 
     ts_results = cf.translate_sequences(selected_ids, unique_fasta,
                                         preprocess_dir, translation_table,
@@ -651,19 +725,18 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('removed {0} sequences.'.format(ds_results[2]))
     distinct_pseqids = ds_results[0]
 
-    # translate loci files and identify exact matches at protein level
-    # exact matches are new alleles that can be added to the schema
-    # find exact matches
-    # key can be reduced to basename and allele match to allele identifier
-
     # translate loci files
+    print('Translating schema alleles...')
     protein_dir = os.path.join(temp_directory, '4_protein_dir')
     fo.create_directory(protein_dir)
-    protein_files = fao.translate_fastas(loci_files, protein_dir, 11)
+    protein_files = translate_fastas(loci_files, protein_dir,
+                                     translation_table, cpu_cores)
 
     # create protein file index
     protein_index = SeqIO.index(ds_results[1], 'fasta')
-    print('Finding protein exact matches...', end='')
+    # identify exact matches at protein level
+    # exact matches are new alleles that can be added to the schema
+    print('\nFinding protein exact matches...', end='')
     exc_cds = 0
     exc_prot = 0
     exact_phashes = []
@@ -671,7 +744,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         locus = fo.get_locus_id(file)
         pickle_out = fo.join_paths(preprocess_dir, [locus+'_results'])
         em_results = protein_exact_matches(file, distinct_pseqids,
-                                           distinct_htable, pickle_out,
+                                           dna_distinct_htable, pickle_out,
                                            protein_index, dna_index)
         exact_phashes.extend(em_results[0])
         exc_prot += em_results[1]
@@ -690,9 +763,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                                protein_index, unique_pfasta)
 
     # translate schema representatives
+    print('Translating schema representatives...')
     rep_dir = os.path.join(schema_directory, 'short')
     rep_list = [os.path.join(rep_dir, f) for f in os.listdir(rep_dir) if f.endswith('.fasta')]
-    protein_repfiles = fao.translate_fastas(rep_list, protein_dir, 11)
+    protein_repfiles = translate_fastas(rep_list, protein_dir,
+                                        translation_table, cpu_cores)
 
     # cluster protein sequences
     # protein clustering step
@@ -709,7 +784,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # concatenate all representative
     concat_reps = os.path.join(protein_dir, 'concat_reps.fasta')
-    # adding space between each record!
     fo.concatenate_files(protein_repfiles, concat_reps)
 
     prot_index = SeqIO.index(fo.join_paths(preprocess_dir, ['protein.fasta']), 'fasta')
@@ -759,9 +833,10 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # group files for representatives of the same locus
     loci_results = {}
     for f in blast_files:
-        locus = fo.file_basename(f, True)
-        locus = ids_dict[locus.split('_blast_out.tsv')[0]].split('_')[0]
-        loci_results.setdefault(locus, []).append(f)
+        # create function to accept regex pattern and extract string?
+        locus_rep = ids_dict[match_regex(f, r'seq_[0-9]+')]
+        locus_id = match_regex(locus_rep, r'^.+-protein[0-9]+')
+        loci_results.setdefault(locus_id, []).append(f)
 
     # concatenate results for representatives of the same locus
     concatenated_files = []
@@ -777,28 +852,33 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     for f in concatenated_files:
         # exclude results in the BSR+0.1 threshold
         # that might be representative candidates
-        outfile = select_high_score(f, blast_score_ratio+0.1, ids_dict, clustering_dir)
+        outfile = select_high_score(f, blast_score_ratio+0.1,
+                                    ids_dict, clustering_dir)
         if outfile is not None:
             high_scoring.append(outfile)
 
     # group results for each locus per genome
     loci_results = {}
     for f in high_scoring:
-        results = group_by_genome(f, all_proteins, distinct_htable,
+        results = group_by_genome(f, all_proteins, dna_distinct_htable,
                                   distinct_pseqids, dna_cds_index)
         loci_results[results[0]] = results[1]
 
     # get contig length for all genomes
-    contigs_lengths = {}
-    for f in fasta_files:
-        lengths = fao.sequences_lengths(f)
-        contigs_lengths[inputs_basenames[f]] = lengths
+    contigs_lengths = {inputs_basenames[f]: fao.sequences_lengths(f)
+                       for f in fasta_files}
+
+    # determine size mode for each locus
+    print('\nDetermining sequence length mode for all loci...', end='')
+    loci_modes = {}
+    for file in loci_files:
+        alleles_sizes = list(fao.sequences_lengths(file).values())
+        loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
+
+    print('done.')
 
     # process results per genome and per locus
-    print('')
-    processed = 0
-    excluded = []
-    inf_matches = 0
+    classification_inputs = []
     for locus, hits in loci_results.items():
         genomes_matches, representatives_info = hits
 
@@ -807,28 +887,27 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
         # import file with locus classifications
         locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
-        locus_results = fo.pickle_loader(locus_results_file)
+        
+        classification_inputs.append([locus, genomes_matches,
+                                      representatives_info,
+                                      inv_map, contigs_lengths,
+                                      locus_results_file, locus_mode,
+                                      temp_directory, size_threshold,
+                                      classify_alleles])
 
-        results = classify_alleles(genomes_matches, representatives_info,
-                                   inv_map, contigs_lengths,
-                                   locus_results, locus_mode,
-                                   temp_directory, size_threshold)
+    class_results = mo.map_async_parallelizer(classification_inputs,
+                                              mo.function_helper,
+                                              cpu_cores,
+                                              show_progress=True)
 
-        # this step should not return representative candidates
-        # we are only processing results with BSR above the threshold
-        # defined to consider newly inferred alleles as new representatives
-        updated_results, updated_mode, locus_inf_matches, excluded_ids, inf_reps = results
-
-        inf_matches += locus_inf_matches
-        loci_modes[locus] = updated_mode
-        excluded.extend(excluded_ids)
-
-        # save updated results
-        fo.pickle_dumper(updated_results, locus_results_file)
-
-        processed += 1
-        print('\r', 'Processed: {}'.format(processed), end='')
-
+    inf_matches = 0
+    excluded = []
+    for r in class_results:
+        locus = list(r.keys())[0]
+        results = r[locus]
+        inf_matches += results[2]
+        excluded.extend(results[3])
+        loci_modes[locus] = results[1]
 
     #######################################
     # Determine representatives iteratively
@@ -876,10 +955,12 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
         # pre-compute self-score for representatives?
-        done = 0
-        output_files = []
         print('Representative sets to BLAST against remaining '
               'sequences: {0}\n'.format(len(protein_repfiles)))
+
+        # create BLASTp inputs
+        output_files = []
+        blast_inputs = []
         for file in protein_repfiles:
             locus_base = fo.file_basename(file, False)
             outfile = fo.join_paths(iterative_rep_dir,
@@ -898,10 +979,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                 joined_ids = '\n'.join(current_repids)
                 outkadgk.write(joined_ids)
 
-            bw.run_blast(blastp_path, blast_db, file,
-                         outfile, ids_file=current_file)
-            done += 1
-            print('\r', 'Done: {0}'.format(done), end='')
+            blast_inputs.append([blastp_path, blast_db, file, outfile,
+                                 1, 1, current_file, bw.run_blast])
+
+        blastp_results = mo.map_async_parallelizer(blast_inputs,
+                                                   mo.function_helper,
+                                                   cpu_cores,
+                                                   show_progress=True)
 
         # prepare results for allele calling
         high_scoring = []
@@ -913,7 +997,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
         loci_results = {}
         for f in high_scoring:
-            results = group_by_genome(f, all_proteins, distinct_htable,
+            results = group_by_genome(f, all_proteins, dna_distinct_htable,
                                       distinct_pseqids, dna_cds_index)
             loci_results[results[0]] = results[1]
 
@@ -924,11 +1008,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             exausted = True
             continue
 
-        # perform allele calling
-        print('Classifying and selecting representative candidates.\n')
-        processed = 0
-        excluded = []
-        representative_candidates = {}
+        # process results per genome and per locus
+        classification_inputs = []
         for locus, hits in loci_results.items():
             genomes_matches, representatives_info = hits
 
@@ -936,28 +1017,29 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             locus_mode = loci_modes[locus]
 
             # import file with locus classifications
-            locus_results_file = fo.join_paths(preprocess_dir,
-                                               [locus+'_results'])
-            locus_results = fo.pickle_loader(locus_results_file)
+            locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
 
-            results = classify_alleles(genomes_matches, representatives_info,
-                                       inv_map, contigs_lengths,
-                                       locus_results, locus_mode,
-                                       temp_directory, size_threshold)
+            classification_inputs.append([locus, genomes_matches,
+                                          representatives_info,
+                                          inv_map, contigs_lengths,
+                                          locus_results_file, locus_mode,
+                                          temp_directory, size_threshold,
+                                          classify_alleles])
 
-            # this step returns representative candidates
-            updated_results, updated_mode, locus_inf_matches, excluded_ids, inf_reps = results
+        class_results = mo.map_async_parallelizer(classification_inputs,
+                                                  mo.function_helper,
+                                                  cpu_cores,
+                                                  show_progress=True)
 
-            inf_matches += locus_inf_matches
-            loci_modes[locus] = updated_mode
-            excluded.extend(excluded_ids)
-            representative_candidates[locus] = inf_reps
-
-            # save updated results
-            fo.pickle_dumper(updated_results, locus_results_file)
-
-            processed += 1
-            print('\r', 'Processed: {}'.format(processed), end='')
+        excluded = []
+        representative_candidates = {}
+        for r in class_results:
+            locus = list(r.keys())[0]
+            results = r[locus]
+            inf_matches += results[2]
+            excluded.extend(results[3])
+            loci_modes[locus] = results[1]
+            representative_candidates[locus] = results[4]
 
         print('Classified {0} alleles.'.format(len(excluded)))
         # exclude sequences that were classified
@@ -1064,6 +1146,10 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     plot5 = 0
     total_niph = 0
     total_niphem = 0
+    total_plot3 = 0
+    total_plot5 = 0
+    total_asm = 0
+    total_alm = 0
     # get total number of classified CDSs! NIPHEM and NIPH encompass multiple CDSs
     ################################################################
     # there are a lot of CDSs that are not being classified!
@@ -1081,6 +1167,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         total_niph += sum([len(c)-1 for g, c in locus_results.items() if c[0] == 'NIPH'])
         inf += all_classifications.count('INF')
         asm += all_classifications.count('ASM')
+        total_asm += sum([len([r for r in c[1:] if r[1] == 'ASM']) for g, c in locus_results.items()])
         alm += all_classifications.count('ALM')
         lotsc += all_classifications.count('LOTSC')
         plot3 += all_classifications.count('PLOT3')
@@ -1099,8 +1186,76 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                              inf, asm, alm,
                              lotsc, plot3, plot5))
 
-    print(inf_matches)
     print('Classified a total of {0} CDSs.'.format(total_cds))
+    print(inf_matches)
+
+    return classification_files
+
+
+def create_outputs(classification_files, inv_map, output_directory):
+    """
+    """
+
+    # create output folder
+    results_dir = fo.join_paths(output_directory,
+                                ['results_{0}'.format(str(time.strftime("%Y%m%dT%H%M%S")))])
+    fo.create_directory(results_dir)
+
+    # create results_alleles.tsv
+    total_inputs = len(inv_map)
+    file_cols = []
+    inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
+    file_cols.append(inputs_col)
+    for file in classification_files:
+        locus = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+        col = [locus]
+        col += [locus_results[i][0] if i in locus_results else 'LNF'
+                for i in range(1, total_inputs+1)]
+
+        file_cols.append(col)
+
+    lines_generator = zip(*file_cols)
+
+    results_alleles_outfile = fo.join_paths(results_dir, ['results_alleles.tsv'])
+    with open(results_alleles_outfile, 'w') as outfile:
+        writer = csv.writer(outfile, delimiter='\t')
+        for row in lines_generator:
+            writer.writerow(row)
+
+    # create results_statsitics.tsv
+    class_counts = {i: [] for i in range(1, total_inputs+1)}
+    for file in classification_files:
+        locus = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+
+        for i in range(1, total_inputs+1):
+            if i in locus_results:
+                class_counts[i].append(locus_results[i][0])
+            else:
+                class_counts[i].append('LNF')
+
+    total_counts = {i: Counter(v).most_common() for i, v in class_counts.items()}
+    classes = ['EXC', 'INF', 'LNF', 'PLOT3', 'PLOT5', 'LOTSC', 'NIPH', 'NIPHEM', 'ALM', 'ASM']
+    template_counts = {i: {c: 0 for c in classes} for i in total_counts}
+
+    for k, v in total_counts.items():
+        for r in v:
+            template_counts[k][r[0]] = r[1]
+
+    final_counts = {inv_map[i]: v for i, v in template_counts.items()}
+
+    header = ['FILE'] + classes
+    lines = [header]
+    for k, v in final_counts.items():
+        new_line = [k] + [str(v[c]) for c in classes]
+        lines.append(new_line)
+
+    results_statistics_outfile = fo.join_paths(results_dir, ['results_statistics.tsv'])
+    with open(results_alleles_outfile, 'w') as outfile:
+        writer = csv.writer(outfile, delimiter='\t')
+        for row in lines_generator:
+            writer.writerow(row)
 
 # implement mode that only detects exact matches (ultrafast)
 # implement mode that infers new alleles and that only adds inferred alleles to schema if requested

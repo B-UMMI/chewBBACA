@@ -248,13 +248,13 @@ def fasta_lines(identifiers, sequences_dictionary):
             sequence identifiers.
     """
 
-    seqs_lines = ['>{0}\n{1}\n'.format(seqid, sequences_dictionary[seqid])
+    seqs_lines = ['>{0}\n{1}'.format(seqid, sequences_dictionary[seqid])
                   for seqid in identifiers]
 
     return seqs_lines
 
 
-def sequences_lengths(fasta_file):
+def sequences_lengths_hash(fasta_file):
     """ Determines the length of all sequences in a FASTA file.
 
         Parameters
@@ -353,7 +353,7 @@ def exclude_sequences_by_id(fasta_file, exclude_ids, fasta_index, output_file):
 
     total_selected = len(selected_ids)
 
-    return total_selected
+    return [total_selected, selected_ids]
 
 
 def split_fasta(fasta_path, output_path, num_seqs, filenames):
@@ -474,39 +474,35 @@ def get_self_scores(fasta_file, output_directory, blast_threads,
     return self_lines_ids
 
 
-def translate_fastas(fasta_paths, output_directory, translation_table):
-    """ Translates DNA sequences in a set of FASTA files.
+def translate_fasta(input_fasta, output_directory, translation_table):
+    """ Translates DNA sequences in a FASTA file.
 
         Parameters
         ----------
-        fasta_paths : list
-            List with the paths to the FASTA files that contain
-            the DNA sequences to translate.
+        input_fasta : str
+            Path to the FASTA file that contains the DNA
+            sequences to translate.
         output_directory : str
-            Path to the output directory where FASTA files with
-            protein sequences will be writen to.
+            Path to the output directory where the FASTA file
+            with protein sequences will be writen to.
         translation_table : int
             Genetic code used to translate DNA sequences.
 
         Returns
         -------
-        protein_files : list
-            List that contains the paths to the FASTA files with
-            translated sequences.
+        protein_file : str
+            Path to the FASTA file with translated sequences.
     """
 
-    protein_files = []
-    for path in fasta_paths:
-        records = import_sequences(path)
-        translated_records = {seqid: str(sm.translate_dna(seq, translation_table, 0)[0][0])
-                              for seqid, seq in records.items()}
-        translated_lines = fasta_lines(list(translated_records.keys()),
-                                       translated_records)
+    records = import_sequences(input_fasta)
+    translated_records = {seqid: str(sm.translate_dna(seq, translation_table, 0)[0][0])
+                          for seqid, seq in records.items()}
+    translated_lines = fasta_lines(list(translated_records.keys()),
+                                   translated_records)
 
-        basename = fo.file_basename(path, True).replace('.fasta', '_protein.fasta')
-        prot_file = fo.join_paths(output_directory, [basename])
+    basename = fo.file_basename(input_fasta, True).replace('.fasta', '_protein.fasta')
+    protein_file = fo.join_paths(output_directory, [basename])
 
-        fo.write_lines(translated_lines, prot_file)
-        protein_files.append(prot_file)
+    fo.write_lines(translated_lines, protein_file)
 
-    return protein_files
+    return protein_file

@@ -34,7 +34,7 @@ except:
     from CHEWBBACA.utils import iterables_manipulation as im
 
 
-def file_basename(file_path, suffix):
+def file_basename(file_path, file_extension=True, delimiter='.'):
     """ Extract file basename from path.
 
         Parameters
@@ -53,8 +53,8 @@ def file_basename(file_path, suffix):
 
     basename = os.path.basename(file_path)
 
-    if suffix is False:
-        basename = basename.split('.')[0]
+    if file_extension is False:
+        basename = basename.split(delimiter)[0]
 
     return basename
 
@@ -81,11 +81,11 @@ def get_locus_id(file_path):
     return locus_id
 
 
-def mapping_function(values, function, args):
+def mapping_function(inputs, function, args):
     """
     """
 
-    mapping = {v: function(v, *args) for v in values}
+    mapping = {i: function(i, *args) for i in inputs}
 
     return mapping
 

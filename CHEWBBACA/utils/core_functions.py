@@ -168,10 +168,6 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     return [cds_files, total_extracted]
 
 
-#fasta_files = cds_files
-#temp_directory = preprocess_dir
-#outfile_template = distinct_dna_template
-#ids_map = map_ids
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                        outfile_template, ids_map, ids=False):
     """ Identifies duplicated sequences in FASTA files and

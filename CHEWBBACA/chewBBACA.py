@@ -327,11 +327,6 @@ def allele_call():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--only-exact', required=False, action='store_true',
-                        dest='only_exact',
-                        help='If provided, the process will only determine '
-                             'exact matches.')
-
     # parser.add_argument('--contained', action='store_true',
     #                     required=False, default=False, dest='contained',
     #                     help=argparse.SUPPRESS)
@@ -340,10 +335,26 @@ def allele_call():
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
 
+    parser.add_argument('--only-exact', required=False, action='store_true',
+                        dest='only_exact',
+                        help='If provided, the process will only determine '
+                             'exact matches.')
+
     parser.add_argument('--fc', '--force-continue', action='store_true',
                         required=False, dest='force_continue',
                         help='Continue allele call process that '
                              'was interrupted.')
+
+    parser.add_argument('--add-inferred', required=False, action='store_true',
+                        dest='add_inferred',
+                        help='If provided, the process will add the sequences '
+                             'of inferred alleles to the schema.')
+
+    parser.add_argument('--no-cleanup', required=False, action='store_true',
+                        dest='no_cleanup',
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed at '
+                             'the end.')
 
     # parser.add_argument('--fr', '--force-reset', action='store_true',
     #                     required=False, dest='force_reset',
@@ -360,10 +371,6 @@ def allele_call():
     # parser.add_argument('--json', action='store_true',
     #                     required=False, dest='json_report',
     #                     help='Output report in JSON format.')
-
-    # parser.add_argument('--v', '--verbose', required=False, action='store_true',
-    #                     dest='verbose',
-    #                     help='Increased output verbosity during execution.')
 
     args = parser.parse_args()
 
@@ -410,15 +417,12 @@ def allele_call():
     args.word_size = ct.WORD_SIZE_DEFAULT
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
-    args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
-    args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
     AlleleCall.main(genomes_files, args.schema_directory, args.output_directory, args.ptf_path,
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
-                    args.size_threshold, args.word_size, args.window_size,
-                    args.clustering_sim, args.representative_filter, args.intra_filter,
-                    args.cpu_cores, args.blast_path, args.cds_input,
-                    args.prodigal_mode)#, args.ns, args.no_cleanup)
+                    args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
+                    args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
+                    args.only_exact, args.add_inferred, args.no_cleanup)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

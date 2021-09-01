@@ -98,7 +98,8 @@ from collections import Counter
 from Bio import SeqIO
 
 try:
-    from utils import (constants as ct,
+    from utils import (ParalogPrunning,
+                       constants as ct,
                        blast_wrapper as bw,
                        core_functions as cf,
                        file_operations as fo,
@@ -107,7 +108,8 @@ try:
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import (constants as ct,
+    from CHEWBBACA.utils import (ParalogPrunning,
+                                 constants as ct,
                                  blast_wrapper as bw,
                                  core_functions as cf,
                                  file_operations as fo,
@@ -204,19 +206,23 @@ def group_by_genome(file, sequences, cds_hashtable, prot_hashtable, cds_index):
 
 
 def update_classification(genome_id, locus_results, classification,
-                          representative_id, blast_score_ratio,
-                          multiple_classification='NIPH'):
+                          representative_id, match_id, match_hash,
+                          blast_score_ratio, multiple_classification='NIPH'):
     """
     """
 
     if genome_id in locus_results:
         locus_results[genome_id][0] = multiple_classification
         locus_results[genome_id].append((representative_id,
+                                         match_id,
+                                         match_hash,
                                          classification,
                                          blast_score_ratio))
     else:
         locus_results[genome_id] = [classification,
                                     (representative_id,
+                                     match_id,
+                                     match_hash,
                                      classification,
                                      blast_score_ratio)]
 
@@ -255,7 +261,7 @@ def locus_exact_matches(fasta_file, distinct_table):
     matches_ids = []
     total_matches = 0
     for rec in seq_generator:
-        seqid = (rec.id).split('_')[0]
+        seqid = (rec.id).split('_')[-1]
         sequence = str(rec.seq.upper())
         sequence_hash = im.hash_sequence(sequence)
         # file cannot have duplicated alleles or it will
@@ -266,23 +272,19 @@ def locus_exact_matches(fasta_file, distinct_table):
             current_matches = distinct_table[sequence_hash]
             total_matches += len(current_matches) - 1
             for m in current_matches[1:]:
+                # for DNA exact matches, the seqid of the schema allele,
+                # the seqid of the input representative and the hash
+                # of the schema allele are stored
                 exact_hits = update_classification(m, exact_hits, 'EXC',
-                                                   seqid, 1.0, 'NIPHEM')
+                                                   seqid, current_matches[0],
+                                                   sequence_hash, 1.0,
+                                                   'NIPHEM')
 
             matches_ids.append(current_matches[0])
 
     return [exact_hits, matches_ids, total_matches]
 
 
-
-# fasta_file = protein_files[0]
-# distinct_prot_table = distinct_pseqids
-# distinct_dna_table = dna_distinct_htable
-# locus = fo.get_locus_id(fasta_file)
-# pickle_out = fo.join_paths(preprocess_dir, [locus+'_results'])
-# output_file = pickle_out
-# protein_index = protein_index
-# dna_index = dna_index
 def protein_exact_matches(fasta_file, distinct_prot_table,
                           distinct_dna_table, output_file,
                           protein_index, dna_index):
@@ -316,21 +318,31 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
                 total_cds += len(seqids) - 1
                 for s in seqids[1:]:
                     if s not in exact_hits:
+                        # for protein matches, the seqid and hash from
+                        # the input are stored
                         if cds_hash not in seen_dna:
                             exact_hits = update_classification(s, exact_hits,
-                                                               'INF', p, 1.0)
+                                                               'INF', protid,
+                                                               p, cds_hash,
+                                                               1.0)
                             seen_dna.append(cds_hash)
                         else:
                             exact_hits = update_classification(s, exact_hits,
-                                                               'EXC', p, 1.0)
+                                                               'EXCP', protid,
+                                                               p, cds_hash,
+                                                               1.0)
                     else:
                         if cds_hash not in seen_dna:
                             exact_hits = update_classification(s, exact_hits,
-                                                               'INF', p, 1.0)
-                            exact_hits[s].append((seqids[0], 'INF'))
+                                                               'INF', protid,
+                                                               p, cds_hash,
+                                                               1.0)
+                            seen_dna.append(cds_hash)
                         else:
                             exact_hits = update_classification(s, exact_hits,
-                                                               'EXC', p, 1.0)
+                                                               'EXCP', protid,
+                                                               p, cds_hash,
+                                                               1.0)
 
             seen_prot.append(prot_hash)
 
@@ -405,7 +417,8 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
 
 def classify_alleles(locus, genomes_matches, representatives_info,
                      inv_map, contigs_lengths, locus_results_file,
-                     locus_mode, temp_directory, size_threshold):
+                     locus_mode, temp_directory, size_threshold,
+                     blast_score_ratio):
     """
     """
 
@@ -442,14 +455,16 @@ def classify_alleles(locus, genomes_matches, representatives_info,
 
             if target_dna_hash in seen_dna:
                 locus_results = update_classification(genome, locus_results, 'EXC',
-                                                      rep_alleleid, 1.0)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, 1.0)
                 inf_matches += 1
                 continue
 
             # check if CDS DNA sequence is not in schema but matches a translated allele
             if target_prot_hash in seen_prot:
                 locus_results = update_classification(genome, locus_results, 'INF',
-                                                      rep_alleleid, 1.0)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, 1.0)
                 inf_matches += 1
                 # add DNA hash to classify the next match as exact
                 seen_dna.append(target_dna_hash)
@@ -483,32 +498,38 @@ def classify_alleles(locus, genomes_matches, representatives_info,
             # check LOTSC
             if contig_left_rest < rep_left_rest and contig_right_rest < rep_right_rest:
                 locus_results = update_classification(genome, locus_results, 'LOTSC',
-                                                      rep_alleleid, bsr)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, bsr)
                 continue
             # check if PLOT
             elif contig_left_rest < rep_left_rest:
                 locus_results = update_classification(genome, locus_results, 'PLOT3',
-                                                      rep_alleleid, bsr)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, bsr)
                 continue
             elif contig_right_rest < rep_right_rest:
                 locus_results = update_classification(genome, locus_results, 'PLOT5',
-                                                      rep_alleleid, bsr)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, bsr)
                 continue
 
             # check if ASM or ALM
             # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
             if target_dna_len < (locus_mode[0]-(locus_mode[0])*size_threshold):
                 locus_results = update_classification(genome, locus_results, 'ASM',
-                                                      rep_alleleid, bsr)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, bsr)
                 continue
             elif target_dna_len > (locus_mode[0]+(locus_mode[0])*size_threshold):
                 locus_results = update_classification(genome, locus_results, 'ALM',
-                                                      rep_alleleid, bsr)
+                                                      rep_alleleid, target_seqid,
+                                                      target_dna_hash, bsr)
                 continue
 
             # add INF
             locus_results = update_classification(genome, locus_results, 'INF',
-                                                  rep_alleleid, bsr)
+                                                  rep_alleleid, target_seqid,
+                                                  target_dna_hash, bsr)
 
             # also add sequence as representative candidate
             if bsr >= blast_score_ratio and bsr < blast_score_ratio+0.1:
@@ -535,35 +556,86 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                     excluded, representative_candidates]}
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
+def assign_ids(classification_files, schema_directory):
+    """
+    """
+
+    # assign allele identifiers
+    new_alleles = {}
+    for file in classification_files:
+        locus = fo.get_locus_id(file)
+        locus_file = fo.join_paths(schema_directory, [locus+'.fasta'])
+        # get loci records
+        records = fao.import_sequences(locus_file)
+        # get id of max record
+        max_alleleid = max([int(rec.split('_')[-1]) for rec in records])
+        locus_results = fo.pickle_loader(file)
+        # iterate and assign allele identifiers
+        seen = {}
+        # sort to get INF classifications first
+        sorted_r = sorted(locus_results.items(),
+                          key=lambda x: x[1][0] == 'INF',
+                          reverse=True)
+        for k in sorted_r:
+            genome_id = k[0]
+            current_results = k[1]
+            cds_hash = current_results[1][2]
+            if current_results[0] == 'EXC':
+                locus_results[genome_id].append(current_results[1][0])
+            elif current_results[0] == 'EXCP':
+                if cds_hash in seen:
+                    locus_results[genome_id].append(seen[cds_hash])
+                # the exact match might not be found because the INF that
+                # added the match was converted to NIPH
+                else:
+                    max_alleleid += 1
+                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                    seen[cds_hash] = str(max_alleleid)
+                    new_alleles.setdefault(locus, []).append(current_results[1][1])
+            elif current_results[0] == 'INF':
+                if cds_hash not in seen:
+                    max_alleleid += 1
+                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                    seen[cds_hash] = str(max_alleleid)
+                    new_alleles.setdefault(locus, []).append(current_results[1][1])
+                else:
+                    locus_results[genome_id].append(seen[cds_hash])
+
+        # save updated info
+        fo.pickle_dumper(locus_results, file)  
+    
+    return new_alleles
+
+
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+# #ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
+# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
-                   representative_filter, intra_filter, cpu_cores, blast_path,
-                   prodigal_mode, cds_input, only_exact):
+                   cpu_cores, blast_path, prodigal_mode, cds_input,
+                   only_exact):
     """
     """
 
@@ -686,7 +758,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         end = time.time()
         delta = end - start
         print('\n', delta/60)
-        sys.exit('Finished allele calling.')
+        return [classification_files, inv_map, []]
 
     # create new Fasta file without the DNA sequences that were exact matches
     dna_index = SeqIO.index(distinct_file, 'fasta')
@@ -893,6 +965,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                       inv_map, contigs_lengths,
                                       locus_results_file, locus_mode,
                                       temp_directory, size_threshold,
+                                      blast_score_ratio,
                                       classify_alleles])
 
     class_results = mo.map_async_parallelizer(classification_inputs,
@@ -1024,6 +1097,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                           inv_map, contigs_lengths,
                                           locus_results_file, locus_mode,
                                           temp_directory, size_threshold,
+                                          blast_score_ratio,
                                           classify_alleles])
 
         class_results = mo.map_async_parallelizer(classification_inputs,
@@ -1189,19 +1263,21 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('Classified a total of {0} CDSs.'.format(total_cds))
     print(inf_matches)
 
-    return classification_files
+    return [classification_files, inv_map]
 
 
-def create_outputs(classification_files, inv_map, output_directory):
+def create_outputs(classification_files, inv_map, output_directory,
+                   started, finished, cpu_cores, blast_score_ratio):
     """
     """
 
     # create output folder
     results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(str(time.strftime("%Y%m%dT%H%M%S")))])
+                                ['results_{0}'.format(finished)])
     fo.create_directory(results_dir)
 
     # create results_alleles.tsv
+    print('Writing results_alleles.tsv...', end='')
     total_inputs = len(inv_map)
     file_cols = []
     inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
@@ -1210,8 +1286,15 @@ def create_outputs(classification_files, inv_map, output_directory):
         locus = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
         col = [locus]
-        col += [locus_results[i][0] if i in locus_results else 'LNF'
-                for i in range(1, total_inputs+1)]
+        for i in range(1, total_inputs+1):
+            if i in locus_results:
+                current_result = locus_results[i]
+                if current_result[0] in ['EXC', 'EXCP', 'INF']:
+                    col.append(current_result[-1])
+                else:
+                    col.append(current_result[0])
+            else:
+                col.append('LNF')
 
         file_cols.append(col)
 
@@ -1223,7 +1306,10 @@ def create_outputs(classification_files, inv_map, output_directory):
         for row in lines_generator:
             writer.writerow(row)
 
+    print('done.')
+
     # create results_statsitics.tsv
+    print('Writing results_statsitics.tsv...', end='')
     class_counts = {i: [] for i in range(1, total_inputs+1)}
     for file in classification_files:
         locus = fo.get_locus_id(file)
@@ -1257,6 +1343,82 @@ def create_outputs(classification_files, inv_map, output_directory):
     with open(results_statistics_outfile, 'w') as outfile:
         text = '\n'.join(outlines)
         outfile.write(text+'\n')
+    
+    print('done.')
+
+    # create log file
+    print('Writing logging_info.txt...', end='')
+    log_outfile = fo.join_paths(results_dir, ['logging_info.txt'])
+    with open(log_outfile, 'w') as outfile:
+        outfile.write('Started Script at: {0}'.format(started))
+        outfile.write('\nFinished Script at: {0}'.format(finished))
+        outfile.write('\nNumber of genomes: {0}'.format(len(inv_map)))
+        outfile.write('\nNumber of loci: {0}'.format(len(classification_files)))
+        outfile.write('\nUsed this number of CPU cores: {0}'.format(cpu_cores))
+        outfile.write('\nUsed a bsr of: {0}\n'.format(blast_score_ratio))
+
+    print('done.')
+
+    # create results_contigsInfo.tsv
+    # EXC and INF: contigID&start-stop&strand (AE009948.1&1044609-1044134&-)
+    # other classifications are written as LNF, ASM, PLOT3...
+    print('Writing results_contigsInfo.tsv...', end='')
+    invalid_classes = ['LNF', 'PLOT3', 'PLOT5',
+                       'LOTSC', 'NIPH', 'NIPHEM',
+                       'ALM', 'ASM']
+
+    file_cols = []
+    inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
+    file_cols.append(inputs_col)
+    for file in classification_files:
+        locus = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+        col = [locus]
+        col += [locus_results[i][1][2]
+                if i in locus_results and locus_results[i][0] not in invalid_classes
+                else locus_results.get(i, ['LNF'])[0]
+                for i in range(1, total_inputs+1)]
+
+        file_cols.append(col)
+
+    lines_generator = zip(*file_cols)
+
+    # fetch coordinates for each genome
+    coordinates_dir = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/2_cds_extraction'
+    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
+    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
+                         for f in coordinates_files}
+
+    final_lines = []
+    header = list(lines_generator.__next__())
+    final_lines.append(header)
+    for l in lines_generator:
+        genome_id = l[0]
+        # open file with coordinates
+        coordinates = fo.pickle_loader(coordinates_files[genome_id])
+        new_line = [coordinates[c][0] if c not in invalid_classes else c for c in l[1:]]
+        new_line = ['{0}&{1}-{2}&{3}'.format(c[0], c[1], c[2], c[4])
+                    if c not in invalid_classes else c
+                    for c in new_line]
+        final_lines.append([genome_id]+new_line)
+
+    #########################
+    # Start positions have offset of 1 and do not match start positions reported by previous implementation?
+    #########################
+
+    # write file
+    results_contigs_outfile = fo.join_paths(results_dir, ['results_contigsInfo.tsv'])
+    with open(results_contigs_outfile, 'w') as outfile:
+        outlines = ['\t'.join(l) for l in final_lines]
+        text = '\n'.join(outlines)
+        outfile.write(text+'\n')
+        
+    print('done.')
+
+    # determine paralogous loci and write RepeatedLoci.txt file
+    print('Writing RepeatedLoci.txt...', end='')
+    ParalogPrunning.main(results_contigs_outfile, results_dir)
+    print('\nResults available in {0}'.format(results_dir))
 
 # implement mode that only detects exact matches (ultrafast)
 # implement mode that infers new alleles and that only adds inferred alleles to schema if requested
@@ -1275,8 +1437,8 @@ def create_outputs(classification_files, inv_map, output_directory):
 def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
-         representative_filter, intra_filter, cpu_cores, blast_path,
-         cds_input, prodigal_mode, only_exact, no_cleanup):
+         cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
+         add_inferred, no_cleanup):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -1288,16 +1450,32 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
 
+    started = str(time.strftime("%Y%m%dT%H%M%S"))
+
     results = allele_calling(input_files, schema_directory, output_directory,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
-                             window_size, clustering_sim, representative_filter,
-                             intra_filter, cpu_cores, blast_path,
+                             window_size, clustering_sim, cpu_cores, blast_path,
                              prodigal_mode, cds_input, only_exact)
 
+    new_alleles = assign_ids(results[0], schema_directory)
+
+    if add_inferred is True:
+        if len(new_alleles) > 0:
+            # add inferred alleles to schema
+            pass
+        else:
+            print('No new alleles to add to schema.')
+
+    finished = str(time.strftime("%Y%m%dT%H%M%S"))
+
+    # create output files
+    create_outputs(results[0], results[1], output_directory,
+                   started, finished, cpu_cores, blast_score_ratio)
+
     # remove temporary files
-#    if no_cleanup is False:
-#        fo.delete_directory(results[1])
+    if no_cleanup is False:
+        fo.delete_directory(fo.join_paths(output_directory, ['temp']))
 
 
 def parse_arguments():
@@ -1324,6 +1502,12 @@ def parse_arguments():
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
+    
+    parser.add_argument('--gl', '--genes-list', type=str,
+                        required=False, default=False, dest='genes_list',
+                        help='Path to a file with the list of genes '
+                             'in the schema that the process should '
+                             'identify alleles for.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=float,
                         required=False, default=0.6, dest='blast_score_ratio',
@@ -1376,6 +1560,11 @@ def parse_arguments():
                         dest='only_exact',
                         help='If provided, the process will only determine '
                              'exact matches.')
+
+    parser.add_argument('--add-inferred', required=False, action='store_true',
+                        dest='add_inferred',
+                        help='If provided, the process will add the sequences '
+                             'of inferred alleles to the schema.')
 
     parser.add_argument('--no-cleanup', required=False, action='store_true',
                         dest='no_cleanup',

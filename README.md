@@ -27,6 +27,7 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 - [Important Notes](#important-notes).
 - [Useful links](#useful-links).
 - [Installation](#installation).
+- [Quick Start](#quick-start).
 - [Detailed Usage](#detailed-usage).
   1. [Whole Genome Multilocus Sequence Typing (wgMLST) schema creation](#i-whole-genome-multilocus-sequence-typing-wgmlst-schema-creation).
   2. [Allele call using a cg/wgMLST schema](#ii-allele-call-using-a-cgwgmlst-schema).

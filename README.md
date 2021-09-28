@@ -100,26 +100,26 @@ Option 1 - Genome assemblies
 
 Include all genome assemblies in a directory and adapt the following command:
 ```
-chewBBACA.py CreateSchema -i InputAssemblies -o OutputFolder --ptf ProdigalTrainingFile
+chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
 
 Option 2 - Adapt an external schema
 
 Include all loci files in a directory and adapt the following command:
 ```
-chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputFolder --ptf ProdigalTrainingFile
+chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
 
 ### Perform allele calling
 
 Determine the allelic profiles for genome assemblies:
 ```
-chewBBACA.py AlleleCall -i InputAssemblies -g SchemaFolder -o OutputFolderName
+chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName
 ```
 
 Use a subset of the loci in a schema:
 ```
-chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /path/to/OutputFolderName --gl LociList.txt
+chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName --gl LociList.txt
 ```
 
 **Important:**

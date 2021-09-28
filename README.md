@@ -91,6 +91,42 @@ Other dependencies (for schema evaluation only):
 
 Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST, Prodigal and MAFFT installed and added to the PATH.
 
+## Quick Start
+
+### Create a schema
+
+Option 1 - Genome assemblies
+
+Include all genome assemblies in a directory and adapt the following command:
+```
+chewBBACA.py CreateSchema -i InputAssemblies -o OutputFolder --ptf ProdigalTrainingFile
+```
+
+Option 2 - Adapt an external schema
+
+Include all loci files in a directory and adapt the following command:
+```
+chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputFolder --ptf ProdigalTrainingFile
+```
+
+### Perform allele calling
+
+Determine the allelic profiles for genome assemblies:
+```
+chewBBACA.py AlleleCall -i InputAssemblies -g SchemaFolder -o OutputFolderName
+```
+
+Use a subset of the loci in a schema:
+```
+chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /path/to/OutputFolderName --gl LociList.txt
+```
+
+**Important:**
+- Genome assemblies and loci files from external schemas must be in FASTA format.
+- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results.
+- Use the `--cpu` parameter to enable parallelization and considerably reduce execution time.
+- The file passed to the `--gl` parameter must have one locus identifier per line (a locus identifier is the name of the FASTA file that contains the locus alleles).
+
 ## Detailed Usage
 
 ### i. Whole Genome Multilocus Sequence Typing (wgMLST) schema creation

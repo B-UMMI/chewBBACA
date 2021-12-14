@@ -37,18 +37,18 @@ except:
 def file_basename(file_path, file_extension=True, delimiter='.'):
     """ Extract file basename from path.
 
-        Parameters
-        ----------
-        file_path : str
-            Path to the file.
-        suffix : bool
-            Specify if the basename should include the file
-            extension.
+    Parameters
+    ----------
+    file_path : str
+        Path to the file.
+    suffix : bool
+        Specify if the basename should include the file
+        extension.
 
-        Returns
-        -------
-        basename : str
-            File basename extracted from input path.
+    Returns
+    -------
+    basename : str
+        File basename extracted from input path.
     """
 
     basename = os.path.basename(file_path)
@@ -62,19 +62,19 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
 def get_locus_id(file_path):
     """ Extracts the locus identifier from a file path.
 
-        Parameters
-        ----------
-        file_path : str
-            Path to a locus Fasta file.
+    Parameters
+    ----------
+    file_path : str
+        Path to a locus Fasta file.
 
-        Returns
-        -------
-        locus_id : str
-            Locus identifier without the '.fasta' file
-            extension.
+    Returns
+    -------
+    locus_id : str
+        Locus identifier without the '.fasta' file
+        extension.
     """
 
-    basename = file_basename(file_path, True)
+    basename = file_basename(file_path)
     match = re.search(r'-protein[0-9]+', basename).span()
     locus_id = basename[0:match[1]]
 
@@ -177,15 +177,18 @@ def join_paths(parent_path, child_paths):
 def listdir_fullpath(directory_path, substring_filter=False):
     """ Gets the full path for all files in a directory.
 
-        Parameters
-        ----------
-        directory_path : str
-            Path to a directory.
+    Parameters
+    ----------
+    directory_path : str
+        Path to a directory.
+    substring_filter : str
+        Only list files that contain this substring.
 
-        Returns
-        -------
-        List containing the full path for every file
-        in the input directory.
+    Returns
+    -------
+    file_list : list
+        List containing the full path for every selected
+        file in the input directory.
     """
 
     if filter is False:
@@ -209,25 +212,24 @@ def read_lines(input_file, strip=True):
     """ Reads lines in an input file and stores those lines
         in a list.
 
-        Parameters
-        ----------
-        input_file : str
-            Path to the input file.
-        strip : bool
-            Specify if lines should be stripped of leading
-            and trailing white spaces and new line characters.
+    Parameters
+    ----------
+    input_file : str
+        Path to the input file.
+    strip : bool
+        Specify if lines should be stripped of leading
+        and trailing white spaces and new line characters.
 
-        Returns
-        -------
-        lines : list
-            List with the lines read from the input file.
+    Returns
+    -------
+    lines : list
+        List with the lines read from the input file.
     """
 
     with open(input_file, 'r') as infile:
+        lines = [file for file in infile.readlines()]
         if strip is True:
-            lines = [file.strip() for file in infile.readlines()]
-        else:
-            lines = [file for file in infile.readlines()]
+            lines = [l.strip() for l in lines]
 
     return lines
 

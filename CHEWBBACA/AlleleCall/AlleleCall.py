@@ -88,10 +88,8 @@ Code documentation
 
 
 import os
-import re
 import csv
 import sys
-import time
 import argparse
 from collections import Counter
 
@@ -104,6 +102,7 @@ try:
                        core_functions as cf,
                        file_operations as fo,
                        fasta_operations as fao,
+                       process_datetime as pdt,
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
@@ -114,6 +113,7 @@ except:
                                  core_functions as cf,
                                  file_operations as fo,
                                  fasta_operations as fao,
+                                 process_datetime as pdt,
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
@@ -121,16 +121,6 @@ except:
 
 # import module to determine variable size
 import get_varSize_deep as gs
-
-
-def match_regex(text, pattern):
-    """
-    """
-
-    match_span = re.search(pattern, text).span()
-    match_str = text[match_span[0]:match_span[1]]
-
-    return match_str
 
 
 ###############################
@@ -150,7 +140,6 @@ def translate_fastas(fasta_files, output_directory,
                                                    common_args,
                                                    fao.translate_fasta)
 
-    # run Prodigal to predict genes
     protein_files = mo.map_async_parallelizer(translation_inputs,
                                               mo.function_helper,
                                               cpu_cores,
@@ -268,7 +257,7 @@ def locus_exact_matches(fasta_file, distinct_table):
         # classify based on same DNA sequence twice
         if sequence_hash in distinct_table:
             # exclude element in index 0, it is the seqid chosen as
-            # representative and is repeated in index 1
+            # representative
             current_matches = distinct_table[sequence_hash]
             total_matches += len(current_matches) - 1
             for m in current_matches[1:]:
@@ -607,30 +596,55 @@ def assign_ids(classification_files, schema_directory):
     return new_alleles
 
 
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-# #ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# representative_filter = 0.9
-# intra_filter = 0.9
-# cpu_cores = 6
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-# prodigal_mode = 'single'
-# cds_input = False
-# only_exact = False
-# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
-# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
+def write_logfile(start_time, end_time, total_inputs,
+                  total_loci, cpu_cores, blast_score_ratio,
+                  output_directory):
+    """
+    """
+
+    start_time_str = pdt.datetime_str(start_time,
+                                      date_format='%Y-%m-%d - %H:%M:%S')
+    
+    end_time_str = pdt.datetime_str(end_time,
+                                    date_format='%Y-%m-%d - %H:%M:%S')
+
+
+    log_outfile = fo.join_paths(output_directory, ['logging_info.txt'])
+    with open(log_outfile, 'w') as outfile:
+        outfile.write('Started Script at: {0}'.format(start_time_str))
+        outfile.write('\nFinished Script at: {0}'.format(end_time_str))
+        outfile.write('\nNumber of genomes: {0}'.format(total_inputs))
+        outfile.write('\nNumber of loci: {0}'.format(total_loci))
+        outfile.write('\nUsed this number of CPU cores: {0}'.format(cpu_cores))
+        outfile.write('\nUsed a bsr of: {0}\n'.format(blast_score_ratio))
+
+    return log_outfile
+
+
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+representative_filter = 0.9
+intra_filter = 0.9
+cpu_cores = 6
+blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+prodigal_mode = 'single'
+cds_input = False
+only_exact = False
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -639,7 +653,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     """
     """
 
-    start = time.time()
     # define directory for temporary files
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
@@ -648,8 +661,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fasta_files = fo.read_lines(input_files, strip=True)
 
     # sort paths to FASTA files
-    fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
-    # map input basenames to
+    fasta_files = im.sort_data(fasta_files, sort_key=str.lower)
+
+    # map full paths to basename
     inputs_basenames = fo.mapping_function(fasta_files,
                                            fo.file_basename, [False])
 
@@ -731,6 +745,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print(size1.split('\n')[2])
 
     # remove small sequences!?
+    # add minimum sequence length parameter with default 0
+    # let users choose if they want to allow detection of alleles smaller than 201
 
     ## Check if reverse complement matches?
     # get list of loci files
@@ -738,6 +754,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     loci_files = fo.listdir_fullpath(schema_directory,
                                      substring_filter='.fasta')
 
+    # get mapping between locus file path and locus identifier
     loci_basenames = fo.mapping_function(loci_files, fo.get_locus_id, [])
     print('schema has {0} loci.'.format(len(loci_files)))
 
@@ -755,14 +772,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     if only_exact is True:
         # return classification files for creation of output files
-        end = time.time()
-        delta = end - start
-        print('\n', delta/60)
         return [classification_files, inv_map, []]
 
     # create new Fasta file without the DNA sequences that were exact matches
     dna_index = SeqIO.index(distinct_file, 'fasta')
     unique_fasta = fo.join_paths(preprocess_dir, ['dna_non_exact.fasta'])
+    # this step is taking too long? Is it also using too much memory?
+    # Optimize to run faster with a great number of input assemblies!
     total_selected, selected_ids = fao.exclude_sequences_by_id(distinct_file,
                                                                dna_matches_ids,
                                                                dna_index,
@@ -906,8 +922,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     loci_results = {}
     for f in blast_files:
         # create function to accept regex pattern and extract string?
-        locus_rep = ids_dict[match_regex(f, r'seq_[0-9]+')]
-        locus_id = match_regex(locus_rep, r'^.+-protein[0-9]+')
+        locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
+        locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
         loci_results.setdefault(locus_id, []).append(f)
 
     # concatenate results for representatives of the same locus
@@ -982,24 +998,27 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         excluded.extend(results[3])
         loci_modes[locus] = results[1]
 
-    #######################################
     # Determine representatives iteratively
-    # convert to set, some ids might be duplicated and operations are faster with set
+    # convert to set, some ids might be duplicated
     excluded = set(excluded)
     print('\nExcluded: {0}'.format(len(excluded)))
-    # BLASTp to align representatives against remaining sequences
-    # create file with remaining sequences
-    remaining_ids = [rec.id
-                     for rec in SeqIO.parse(unique_pfasta, 'fasta')
-                     if rec.id not in excluded]
-    reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
-    print('Remaining: {0}'.format(len(remaining_ids)))
 
-    # create directory to store temp results
+    # get seqids of remaining unclassified sequences
+    unclassified_ids = [rec.id
+                        for rec in SeqIO.parse(unique_pfasta, 'fasta')
+                        if rec.id not in excluded]
+    print('Remaining: {0}'.format(len(unclassified_ids)))
+
+    # get seqids of schema representatives
+    reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
+    print('Schema has a total of {0} representative alleles.'
+          ''.format(len(reps_ids)))
+
+    # create directory to store data for each iteration
     iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
     fo.create_directory(iterative_rep_dir)
 
-    # create Fasta file with protein sequences of reminaing alleles and
+    # create Fasta file with remaining unclassified sequences
     # loci representatives
     new_prot_file = fo.join_paths(iterative_rep_dir, ['iterative_proteins.fasta'])
     fo.concatenate_files([fo.join_paths(preprocess_dir, ['protein.fasta']), concat_reps],
@@ -1008,8 +1027,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     iteration = 1
     exausted = False
-    # add schema representatives to get self-score
-    #remaining_ids += reps_ids
     while exausted is False:
         ######################################################
         # Need to remove schema representatives from ids!!!! #
@@ -1017,7 +1034,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         remaining_seqs_file = fo.join_paths(iterative_rep_dir,
                                             ['remaining_prots_iter{0}.fasta'.format(iteration)])
         # create Fasta with sequences that were not classified
-        fao.get_sequences_by_id(prot_index, remaining_ids+reps_ids,
+        fao.get_sequences_by_id(prot_index, unclassified_ids+reps_ids,
                                 remaining_seqs_file, limit=20000)
 
         # change identifiers to shorten and avoid BLASTp error?
@@ -1044,7 +1061,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             current_repids = [rec.id
                               for rec in SeqIO.parse(file, 'fasta')]
             # add remaining ids
-            current_repids.extend(remaining_ids)
+            current_repids.extend(unclassified_ids)
             # save file with ids
             current_file = fo.join_paths(iterative_rep_dir,
                                          [locus_base+'_ids_iter{0}.txt'.format(iteration)])
@@ -1117,7 +1134,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
         print('Classified {0} alleles.'.format(len(excluded)))
         # exclude sequences that were classified
-        remaining_ids = list(set(remaining_ids) - set(excluded))
+        unclassified_ids = list(set(unclassified_ids) - set(excluded))
 
         print('Selecting representatives for next iteration.')
         # determine representatives and then BLAST new representatives
@@ -1173,9 +1190,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                     representatives.setdefault(k, []).extend(selected)
 
                 # remove candidates that were not selected
-                remaining_ids = list(set(remaining_ids) - set(to_remove))
+                unclassified_ids = list(set(unclassified_ids) - set(to_remove))
 
-        print('Remaining unclassified alleles: {0}'.format(len(remaining_ids)))
+        print('Remaining unclassified alleles: {0}'.format(len(unclassified_ids)))
 
         # stop iterating if it is not possible to identify representatives
         if len(representatives) == 0:
@@ -1192,24 +1209,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                 fao.get_sequences_by_id(prot_index, v, rep_file)
                 protein_repfiles.append(rep_file)
 
-    end = time.time()
-    delta = end - start
-    print('\n', delta/60)
-    # create inputs to feed into allele calling function!
-
-    # BLAST schema representatives against remaining sequences
-    # then select high-BSR results
-    # allele calling function will classify matches and return list of representative candidates
-    # Remove sequences excluded by allele calling function
-    # BLAST representative candidates and check if that allows to detect more alleles for some loci
-    # stop when it is not possible to detect more representative candidates
-    # in the end BLAST representative candidates for a locus and determine which should be added? (some representatives might have high BSR)
-    # or BLAST detected representatives before/after (better after...) allele calling just to determine if both should be used for BLAST?
-
-    # count number of cases or each locus
     exc = 0
-    # we will get more NIPH/EM classifications because the current implementation stops when it detects an exact match
-    # it does not perform BLASTp to detect high scoring hits that can change the classification to NIPH
+    # we will get more NIPH/EM classifications because the current
+    # implementation stops when it detects an exact match it does
+    # not perform BLASTp to detect high scoring hits that can change
+    # the classification to NIPH
     niphem = 0
     niph = 0
     asm = 0
@@ -1224,11 +1228,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     total_plot5 = 0
     total_asm = 0
     total_alm = 0
-    # get total number of classified CDSs! NIPHEM and NIPH encompass multiple CDSs
-    ################################################################
-    # there are a lot of CDSs that are not being classified!
-    # probably losing some sequences along the way, need to check for that
-    # the new algorithm classifies more or less CDSs per genome?
+    # get total number of classified CDSs
     total_cds = 0
     for file in classification_files:
         locus_results = fo.pickle_loader(file)
@@ -1267,14 +1267,20 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
 
 def create_outputs(classification_files, inv_map, output_directory,
-                   started, finished, cpu_cores, blast_score_ratio):
+                   start_time, end_time, cpu_cores, blast_score_ratio):
     """
     """
 
     # create output folder
     results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(finished)])
+                                ['results_{0}'.format(end_time)])
     fo.create_directory(results_dir)
+
+    print('Writing logging_info.txt...', end='')
+    write_logfile(start_time, end_time, len(inv_map),
+                  len(classification_files), cpu_cores,
+                  blast_score_ratio, output_directory)
+    print('done.')
 
     # create results_alleles.tsv
     print('Writing results_alleles.tsv...', end='')
@@ -1346,22 +1352,8 @@ def create_outputs(classification_files, inv_map, output_directory,
     
     print('done.')
 
-    # create log file
-    print('Writing logging_info.txt...', end='')
-    log_outfile = fo.join_paths(results_dir, ['logging_info.txt'])
-    with open(log_outfile, 'w') as outfile:
-        outfile.write('Started Script at: {0}'.format(started))
-        outfile.write('\nFinished Script at: {0}'.format(finished))
-        outfile.write('\nNumber of genomes: {0}'.format(len(inv_map)))
-        outfile.write('\nNumber of loci: {0}'.format(len(classification_files)))
-        outfile.write('\nUsed this number of CPU cores: {0}'.format(cpu_cores))
-        outfile.write('\nUsed a bsr of: {0}\n'.format(blast_score_ratio))
-
-    print('done.')
-
     # create results_contigsInfo.tsv
-    # EXC and INF: contigID&start-stop&strand (AE009948.1&1044609-1044134&-)
-    # other classifications are written as LNF, ASM, PLOT3...
+    # using too much memory???
     print('Writing results_contigsInfo.tsv...', end='')
     invalid_classes = ['LNF', 'PLOT3', 'PLOT5',
                        'LOTSC', 'NIPH', 'NIPHEM',
@@ -1420,15 +1412,7 @@ def create_outputs(classification_files, inv_map, output_directory,
     ParalogPrunning.main(results_contigs_outfile, results_dir)
     print('\nResults available in {0}'.format(results_dir))
 
-# implement mode that only detects exact matches (ultrafast)
-# implement mode that infers new alleles and that only adds inferred alleles to schema if requested
-#######################################################################################
-# The protein exact matches, that are not detected at DNA level, are inferred alleles!?
-# They have BSR=1, but the DNA sequences are different than the ones in the schema.
-# We can classify them as inferred, but we do not need to check if they are representatives
-# because the BSR=1. We can classify as INF and it might be altered later
-# The protein exact matches are not being properly counted? I think I am not addin/counting the
-# number of DNA alleles that match those protein exact matches
+
 # need to make sure that protein exact matches that are inferred do not count all as INF, only one can count as INF
 # other genomes with same protein/CDS need to have EXC
 ##########################
@@ -1450,7 +1434,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
 
-    started = str(time.strftime("%Y%m%dT%H%M%S"))
+    start_time = pdt.get_datetime()
 
     results = allele_calling(input_files, schema_directory, output_directory,
                              ptf_path, blast_score_ratio, minimum_length,
@@ -1467,11 +1451,11 @@ def main(input_files, schema_directory, output_directory, ptf_path,
         else:
             print('No new alleles to add to schema.')
 
-    finished = str(time.strftime("%Y%m%dT%H%M%S"))
+    end_time = pdt.get_datetime()
 
     # create output files
     create_outputs(results[0], results[1], output_directory,
-                   started, finished, cpu_cores, blast_score_ratio)
+                   start_time, end_time, cpu_cores, blast_score_ratio)
 
     # remove temporary files
     if no_cleanup is False:

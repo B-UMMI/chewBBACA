@@ -22,6 +22,31 @@ except:
     from CHEWBBACA.utils import file_operations as fo
 
 
+def match_regex(text, pattern):
+    """ Extracts substrings that match a regex pattern.
+    
+        Parameters
+        ----------
+        text : str
+            Input text to search the pattern in.
+        pattern : str
+            Regular expression pattern.
+
+        Returns
+        -------
+        match : str
+            Matched substring or NoneType if no matches
+            were found.
+    """
+
+    match = re.search(pattern, text)
+    if match is not None:
+        match_span = match.span()
+        match = text[match_span[0]:match_span[1]]
+
+    return match
+
+
 def join_list(lst, link):
     """ Joins all elements in a list into a single string.
 
@@ -662,29 +687,30 @@ def decode_str(str_list, encoding):
     return decoded
 
 
+# sorted key parameter is None by default
+# no need to avoid passing the sort_key value if it is None
 def sort_data(data, sort_key=None, reverse=False):
     """ Sorts an iterable.
 
-        Parameters
-        ----------
-        data : iter
-            Iterable to sort.
-        sort_key
-            If provided, data will be sorted based
-            on this function.
-        reverse : bool
-            If sorting order should be inverted.
+    Parameters
+    ----------
+    data : iter
+        Iterable to sort.
+    sort_key
+        If provided, data will be sorted based
+        on this function.
+    reverse : bool
+        If sorting order should be inverted.
 
-        Returns
-        -------
-        sorted_data
-            List with sorted elements.
+    Returns
+    -------
+    sorted_data
+        List with sorted elements.
     """
 
-    if sort_key is None:
-        sorted_data = sorted(data, reverse=reverse)
-    elif sort_key is not None:
-        sorted_data = sorted(data, key=sort_key, reverse=reverse)
+    # sorted key parameter is None by default
+    # no need to avoid passing the sort_key value if it is None
+    sorted_data = sorted(data, key=sort_key, reverse=reverse)
 
     return sorted_data
 
@@ -720,16 +746,16 @@ def add_prefix(ids, prefix):
 def filter_list(lst, remove):
     """ Removes elements from a list.
 
-        Parameters
-        ----------
-        lst : list
-            Input list.
-        remove : list
-            List of elements to remove from input list.
+    Parameters
+    ----------
+    lst : list
+        Input list.
+    remove : list
+        List of elements to remove from input list.
 
-        Returns
-        -------
-        filtered_list : list
+    Returns
+    -------
+    filtered_list : list
             List without the removed elements.
     """
 

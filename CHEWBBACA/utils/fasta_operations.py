@@ -301,59 +301,66 @@ def fasta_str_record(seqid, sequence):
 def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
     """ Retrieves sequences from an indexed FASTA file.
 
-        Parameters
-        ----------
-        sequences : dict or Bio.File._IndexedSeqFileDict
-            Dictionary with seqids as keys and sequences
-            as values or a Fasta file index created with
-            BioPython.
-        seqids : list
-            List with the identifiers of the sequences
-            that should be retrieved.
-        out_file : str
-            Path to the FASTA file to which selected
-            sequences will be saved.
-        limit : int
-            Maximum number of sequences that will be
-            kept in memory at a time (to avoid keeping
-            huge datasets in memory).
+    Parameters
+    ----------
+    sequences : dict or Bio.File._IndexedSeqFileDict
+        Dictionary with seqids as keys and sequences
+        as values or a Fasta file index created with
+        BioPython.
+    seqids : list
+        List with the identifiers of the sequences
+        that should be retrieved.
+    out_file : str
+        Path to the FASTA file to which selected
+        sequences will be saved.
+    limit : int
+        Maximum number of sequences that will be
+        kept in memory at a time (to avoid keeping
+        huge datasets in memory).
 
-        Returns
-        -------
-        Creates a file with the sequences that have the
-        identifiers in the input list.
+    Returns
+    -------
+    Creates a file with the sequences that have the
+    identifiers in the input list.
     """
 
+    # using a generator
+    # verify if using a lost is problematic for huge datasets (might keep many sequences in memory)
     if type(sequences) == dict:
-        seqs = [(seqid, sequences[seqid]) for seqid in seqids]
+        seqs = ((seqid, sequences[seqid]) for seqid in seqids)
     else:
+        #seqs = ((seqid, str(sequences[seqid].seq)) for seqid in seqids)
         seqs = [(seqid, str(sequences[seqid].seq)) for seqid in seqids]
 
     records = []
+    total_selected = 0
     for seq in seqs:
         record = fasta_str_record(seq[0], seq[1])
         records.append(record)
 
-        if len(records) == limit or seq[0] == seqids[-1]:
+        if len(records) == limit:
             lines = im.join_list(records, '\n')
             fo.write_to_file(lines, out_file, 'a', '\n')
+            total_selected += len(records)
             records = []
 
+    if len(records) > 0:
+        lines = im.join_list(records, '\n')
+        fo.write_to_file(lines, out_file, 'a', '\n')
+        total_selected += len(records)
 
-def exclude_sequences_by_id(fasta_file, exclude_ids, fasta_index, output_file):
+    return total_selected
+
+
+def exclude_sequences_by_id(sequences, exclude_ids, out_file):
     """
     """
 
-    seq_generator = SeqIO.parse(fasta_file, 'fasta')
-    selected_ids = [rec.id
-                    for rec in seq_generator
-                    if rec.id not in exclude_ids]
-    get_sequences_by_id(fasta_index, selected_ids,
-                        output_file, limit=20000)
+    selected_ids = (rec for rec in sequences if rec not in exclude_ids)
+    total_selected = get_sequences_by_id(sequences, selected_ids,
+                                         out_file, limit=20000)
 
-    total_selected = len(selected_ids)
-
-    return [total_selected, selected_ids]
+    return total_selected
 
 
 def split_fasta(fasta_path, output_path, num_seqs, filenames):
@@ -505,4 +512,4 @@ def translate_fasta(input_fasta, output_directory, translation_table):
 
     fo.write_lines(translated_lines, protein_file)
 
-    return protein_file
+    return [input_fasta, protein_file]

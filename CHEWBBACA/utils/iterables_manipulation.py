@@ -122,18 +122,18 @@ def isListEmpty(input_list):
 def divide_list_into_n_chunks(list_to_divide, n):
     """ Divides a list into a defined number of sublists.
 
-        Parameters
-        ----------
-        list_to_divide : list
-            List to divide into sublists.
-        n : int
-            Number of sublists to create.
+    Parameters
+    ----------
+    list_to_divide : list
+        List to divide into sublists.
+    n : int
+        Number of sublists to create.
 
-        Returns
-        -------
-        sublists : list
-            List with the sublists created by dividing
-            the input list.
+    Returns
+    -------
+    sublists : list
+        List with the sublists created by dividing
+        the input list.
     """
 
     sublists = []

@@ -90,6 +90,7 @@ Code documentation
 import os
 import csv
 import sys
+import shutil
 import argparse
 from collections import Counter
 
@@ -542,13 +543,13 @@ def assign_ids(classification_files, schema_directory):
                     max_alleleid += 1
                     locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
                     seen[cds_hash] = str(max_alleleid)
-                    new_alleles.setdefault(locus, []).append(current_results[1][1])
+                    new_alleles.setdefault(locus, []).append((current_results[1][1], str(max_alleleid)))
             elif current_results[0] == 'INF':
                 if cds_hash not in seen:
                     max_alleleid += 1
                     locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
                     seen[cds_hash] = str(max_alleleid)
-                    new_alleles.setdefault(locus, []).append(current_results[1][1])
+                    new_alleles.setdefault(locus, []).append((current_results[1][1], str(max_alleleid)))
                 else:
                     print('INF case was already seen!')
                     locus_results[genome_id].append(seen[cds_hash])
@@ -589,28 +590,28 @@ def write_logfile(start_time, end_time, total_inputs,
 #results_test = 'GCA-000007265-protein1_results'
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-#ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+# #ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
 #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
 #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
@@ -1208,26 +1209,18 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     lotsc = 0
     plot3 = 0
     plot5 = 0
-    total_niph = 0
-    total_niphem = 0
-    total_plot3 = 0
-    total_plot5 = 0
-    total_asm = 0
-    total_alm = 0
     # get total number of classified CDSs
     total_cds = 0
     for file in classification_files.values():
         locus_results = fo.pickle_loader(file)
         total_cds += sum([len(c)-1 for g, c in locus_results.items()])
         all_classifications = [c[0] for g, c in locus_results.items()]
-        exc += sum([1 for c in all_classifications if 'EXC' in c])
+        exc += all_classifications.count('EXC')
+        exc += all_classifications.count('EXCP')
         niphem += all_classifications.count('NIPHEM')
-        total_niphem += sum([len(c)-1 for g, c in locus_results.items() if c[0] == 'NIPHEM'])
         niph += all_classifications.count('NIPH')
-        total_niph += sum([len(c)-1 for g, c in locus_results.items() if c[0] == 'NIPH'])
         inf += all_classifications.count('INF')
         asm += all_classifications.count('ASM')
-        total_asm += sum([len([r for r in c[1:] if r[1] == 'ASM']) for g, c in locus_results.items()])
         alm += all_classifications.count('ALM')
         lotsc += all_classifications.count('LOTSC')
         plot3 += all_classifications.count('PLOT3')
@@ -1249,11 +1242,14 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('Classified a total of {0} CDSs.'.format(total_cds))
     print(inf_matches)
 
-    return [classification_files, inv_map]
+    # return paths to classification files
+    # mapping between genome identifiers and integer identifiers
+    # path to Fasta file with distinct DNA sequences to get inferred alleles
+    return [classification_files, inv_map, unique_fasta]
 
 
-start_time = pdt.get_datetime()
-end_time = pdt.get_datetime()
+# start_time = pdt.get_datetime()
+# end_time = pdt.get_datetime()
 def create_outputs(classification_files, inv_map, output_directory,
                    start_time, end_time, cpu_cores, blast_score_ratio):
     """
@@ -1321,7 +1317,11 @@ def create_outputs(classification_files, inv_map, output_directory,
 
     for k, v in total_counts.items():
         for r in v:
-            template_counts[k][r[0]] = r[1]
+            # add exact matches after new allele was inferred based on protein sequence
+            if r[0] == 'EXCP':
+                template_counts[k]['EXC'] += r[1]
+            else:
+                template_counts[k][r[0]] += r[1]
 
     final_counts = {inv_map[i]: v for i, v in template_counts.items()}
 
@@ -1350,10 +1350,10 @@ def create_outputs(classification_files, inv_map, output_directory,
     file_cols = []
     inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
     file_cols.append(inputs_col)
-    for file in classification_files:
-        locus = fo.get_locus_id(file)
-        locus_results = fo.pickle_loader(file)
-        col = [locus]
+    for locus, results in classification_files.items():
+        locus_id = fo.get_locus_id(locus)
+        locus_results = fo.pickle_loader(results)
+        col = [locus_id]
         col += [locus_results[i][1][2]
                 if i in locus_results and locus_results[i][0] not in invalid_classes
                 else locus_results.get(i, ['LNF'])[0]
@@ -1392,21 +1392,51 @@ def create_outputs(classification_files, inv_map, output_directory,
         outlines = ['\t'.join(l) for l in final_lines]
         text = '\n'.join(outlines)
         outfile.write(text+'\n')
-        
+
     print('done.')
 
     # determine paralogous loci and write RepeatedLoci.txt file
     print('Writing RepeatedLoci.txt...', end='')
     ParalogPrunning.main(results_contigs_outfile, results_dir)
+
     print('\nResults available in {0}'.format(results_dir))
 
+    return results_dir
 
-# need to make sure that protein exact matches that are inferred do not count all as INF, only one can count as INF
-# other genomes with same protein/CDS need to have EXC
-##########################
+
+#fasta_file = unique_fasta
+def add_novel(new_alleles, fasta_file):
+    """
+    """
+
+    # create index for Fasta file with distinct CDSs
+    sequence_index = SeqIO.index(fasta_file, 'fasta')
+
+    total_added = 0
+    for locus, results in new_alleles.items():
+        locus_id = fo.get_locus_id(locus)
+        # read locus Fasta
+        locus_alleles = [(rec.id, str(rec.seq))
+                         for rec in SeqIO.parse(locus, 'fasta')]
+        alleles_to_add = [('{0}_{1}'.format(locus_id, r[1]), str(sequence_index.get(r[0]).seq))
+                          for r in results]
+        locus_alleles.extend(alleles_to_add)
+        total_added += len(results)
+        # create file with new alleles
+        with open(locus, 'w') as outfile:
+            lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in locus_alleles]
+            text = '\n'.join(lines)
+            outfile.write(text+'\n')
+
+    return total_added
+
+
 # Check all steps that remove sequences/seqids to verify that we are not removing sequences that
 # should not be removed or keeping some that we should not!!!
-results = [classification_files, inv_map]
+#results = [classification_files, inv_map]
+#no_cleanup = False
+# add output with unclassified CDSs!
+# add output with sequences for missing data classes!
 def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
@@ -1436,15 +1466,25 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     if add_inferred is True:
         if len(new_alleles) > 0:
             # add inferred alleles to schema
-            pass
+            added = add_novel(new_alleles, results[2])
+            print('Added {0} novel alleles to schema.'.format(added))
         else:
             print('No new alleles to add to schema.')
 
     end_time = pdt.get_datetime()
 
     # create output files
-    create_outputs(results[0], results[1], output_directory,
-                   start_time, end_time, cpu_cores, blast_score_ratio)
+    results_dir = create_outputs(results[0], results[1], output_directory,
+                                 start_time, end_time, cpu_cores, blast_score_ratio)
+
+    # move file with CDSs coordinates and file with list of excluded CDSs
+    cds_coordinates = fo.join_paths(output_directory, ['cds_info.tsv'])
+    shutil.move(cds_coordinates,
+                fo.join_paths(results_dir, ['cds_info.tsv']))
+    invalid_cds_file = fo.join_paths(output_directory, ['invalid_cds.txt'])
+    if os.path.isfile(invalid_cds_file):
+        shutil.move(invalid_cds_file,
+                    fo.join_paths(results_dir, ['invalid_cds.txt']))
 
     # remove temporary files
     if no_cleanup is False:
@@ -1553,4 +1593,4 @@ def parse_arguments():
 if __name__ == "__main__":
 
     args = parse_arguments()
-    main()
+    main(**vars(args))

@@ -143,3 +143,16 @@ UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
 
 # list of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
+
+# AlleleCall logfile template
+LOGFILE_TEMPLATE = ('Started script at: {0}\n'
+                    'Finished script at: {1}\n'
+                    'Number of inputs: {2}\n'
+                    'Number of loci: {3}\n'
+                    'Used this number of CPU cores: {4}\n'
+                    'Used a BSR of: {5}\n')
+
+# allele calling classifications
+ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'LNF', 'PLOT3',
+                              'PLOT5', 'LOTSC', 'NIPH', 'NIPHEM',
+                              'ALM', 'ASM']

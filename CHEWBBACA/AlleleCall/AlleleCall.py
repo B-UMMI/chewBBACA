@@ -560,6 +560,35 @@ def assign_ids(classification_files, schema_directory):
     return new_alleles
 
 
+#fasta_file = unique_fasta
+def add_inferred_alleles(inferred_alleles_data, sequences_file):
+    """
+    """
+
+    # create index for Fasta file with distinct CDSs
+    sequence_index = SeqIO.index(sequences_file, 'fasta')
+
+    # count number of inferred alleles added to schema
+    total_added = 0
+    for locus_path, inferred_alleles in inferred_alleles_data.items():
+        locus_id = fo.get_locus_id(locus_path)
+        # import locus alleles
+        locus_sequences = fao.import_sequences(locus_path)
+
+        # get novel alleles through indexed Fasta file
+        inferred_sequences = [('{0}_{1}'.format(locus_id, r[1]),
+                               str(sequence_index.get(r[0]).seq))
+                              for a in inferred_alleles]
+
+        locus_sequences.extend(inferred_sequences)
+        total_added += len(results)
+
+        updated_lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in locus_sequences]
+        fo.write_list(updated_lines, locus)
+
+    return total_added
+
+
 def write_logfile(start_time, end_time, total_inputs,
                   total_loci, cpu_cores, blast_score_ratio,
                   output_directory):
@@ -568,26 +597,52 @@ def write_logfile(start_time, end_time, total_inputs,
 
     start_time_str = pdt.datetime_str(start_time,
                                       date_format='%Y-%m-%d - %H:%M:%S')
-    
+
     end_time_str = pdt.datetime_str(end_time,
                                     date_format='%Y-%m-%d - %H:%M:%S')
 
-
     log_outfile = fo.join_paths(output_directory, ['logging_info.txt'])
+    logfile_text = ct.LOGFILE_TEMPLATE.format(start_time_str, end_time_str,
+                                              total_inputs,total_loci,
+                                              cpu_cores, blast_score_ratio)
     with open(log_outfile, 'w') as outfile:
-        outfile.write('Started Script at: {0}'.format(start_time_str))
-        outfile.write('\nFinished Script at: {0}'.format(end_time_str))
-        outfile.write('\nNumber of genomes: {0}'.format(total_inputs))
-        outfile.write('\nNumber of loci: {0}'.format(total_loci))
-        outfile.write('\nUsed this number of CPU cores: {0}'.format(cpu_cores))
-        outfile.write('\nUsed a bsr of: {0}\n'.format(blast_score_ratio))
+        outfile.write(logfile_text)
 
     return log_outfile
 
 
-######
-# Locus file with results for testing
-#results_test = 'GCA-000007265-protein1_results'
+def write_results_alleles(classification_files, input_identifiers,
+                          output_directory):
+    """
+    """
+
+    # add first column with input identifiers
+    columns = [['FILE'] + input_identifiers]
+    for file in classification_files.values():
+        locus_id = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+        locus_column = [locus_id]
+        for i in range(1, len(input_identifiers)+1):
+            if i in locus_results:
+                current_result = locus_results[i]
+                # exact or inferred
+                if current_result[0] in ['EXC', 'EXCP', 'INF']:
+                    locus_column.append(current_result[-1])
+                # missing data (PLOT, ASM, ALM, ...)
+                else:
+                    locus_column.append(current_result[0])
+            # locus was not identified in the input
+            else:
+                locus_column.append('LNF')
+
+        columns.append(locus_column)
+
+    # group elements with same list index
+    lines = im.aggregate_iterables(file_cols)
+    lines = ['\t'.join(l) for l in lines]
+
+    output_file = fo.join_paths(output_directory, ['results_alleles.tsv'])
+    fo.write_list(lines, output_file)
 
 
 # #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
@@ -1248,138 +1303,79 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     return [classification_files, inv_map, unique_fasta]
 
 
-# start_time = pdt.get_datetime()
-# end_time = pdt.get_datetime()
-def create_outputs(classification_files, inv_map, output_directory,
-                   start_time, end_time, cpu_cores, blast_score_ratio):
+def write_results_statistics(classification_files, input_identifiers,
+                             output_directory):
     """
     """
 
-    # create output folder
-    results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(end_time)])
-    fo.create_directory(results_dir)
-
-    print('Writing logging_info.txt...', end='')
-    write_logfile(start_time, end_time, len(inv_map),
-                  len(classification_files), cpu_cores,
-                  blast_score_ratio, results_dir)
-    print('done.')
-
-    # create results_alleles.tsv
-    print('Writing results_alleles.tsv...', end='')
-    total_inputs = len(inv_map)
-    file_cols = []
-    inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
-    file_cols.append(inputs_col)
+    # initialize classification counts per input
+    input_classifications = {i: [] for i in range(1, len(input_identifiers)+1)}
     for file in classification_files.values():
-        locus = fo.get_locus_id(file)
+        locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
-        col = [locus]
-        for i in range(1, total_inputs+1):
-            if i in locus_results:
-                current_result = locus_results[i]
-                if current_result[0] in ['EXC', 'EXCP', 'INF']:
-                    col.append(current_result[-1])
-                else:
-                    col.append(current_result[0])
-            else:
-                col.append('LNF')
-
-        file_cols.append(col)
-
-    lines_generator = zip(*file_cols)
-
-    results_alleles_outfile = fo.join_paths(results_dir, ['results_alleles.tsv'])
-    with open(results_alleles_outfile, 'w') as outfile:
-        writer = csv.writer(outfile, delimiter='\t')
-        for row in lines_generator:
-            writer.writerow(row)
-
-    print('done.')
-
-    # create results_statsitics.tsv
-    print('Writing results_statsitics.tsv...', end='')
-    class_counts = {i: [] for i in range(1, total_inputs+1)}
-    for locus, results in classification_files.items():
-        locus_id = fo.get_locus_id(locus)
-        locus_results = fo.pickle_loader(results)
 
         for i in range(1, total_inputs+1):
-            if i in locus_results:
-                class_counts[i].append(locus_results[i][0])
-            else:
-                class_counts[i].append('LNF')
+            input_classifications[i].append(locus_results.get(i, ['LNF'])[0])
 
-    total_counts = {i: Counter(v).most_common() for i, v in class_counts.items()}
-    classes = ['EXC', 'INF', 'LNF', 'PLOT3', 'PLOT5', 'LOTSC', 'NIPH', 'NIPHEM', 'ALM', 'ASM']
-    template_counts = {i: {c: 0 for c in classes} for i in total_counts}
+    # determine class counts per input
+    class_counts = {i: Counter(v)) for i, v in input_classifications.items()}
+    # add exact matches after inferring new allele based on protein exact match
+    for k, v in class_counts.items():
+        class_counts[k]['EXC'] += class_counts[k]['EXCP']
+        # add zero for remaining classes
+        class_counts[k].update({c
+                                for c in ct.ALLELECALL_CLASSIFICATIONS
+                                if c not in v})
 
-    for k, v in total_counts.items():
-        for r in v:
-            # add exact matches after new allele was inferred based on protein sequence
-            if r[0] == 'EXCP':
-                template_counts[k]['EXC'] += r[1]
-            else:
-                template_counts[k][r[0]] += r[1]
+    # substitute integer identifiers by string identifiers
+    class_counts = {input_identifiers[i]: v for i, v in class_counts.items()}
 
-    final_counts = {inv_map[i]: v for i, v in template_counts.items()}
-
-    header = ['FILE'] + classes
-    lines = [header]
-    for k, v in final_counts.items():
-        new_line = [k] + [str(v[c]) for c in classes]
-        lines.append(new_line)
+    # initialize with header line
+    lines = [['FILE'] + ct.ALLELECALL_CLASSIFICATIONS]
+    for k, v in class_counts.items():
+        input_line = [k] + [str(v[c]) for c in ct.ALLELECALL_CLASSIFICATIONS]
+        lines.append(input_line)
 
     outlines = ['\t'.join(l) for l in lines]
 
-    results_statistics_outfile = fo.join_paths(results_dir, ['results_statistics.tsv'])
-    with open(results_statistics_outfile, 'w') as outfile:
-        text = '\n'.join(outlines)
-        outfile.write(text+'\n')
-    
-    print('done.')
+    output_file = fo.join_paths(output_directory, ['results_statistics.tsv'])
+    fo.write_list(outlines, output_file)
 
-    # create results_contigsInfo.tsv
-    # using too much memory???
-    print('Writing results_contigsInfo.tsv...', end='')
-    invalid_classes = ['LNF', 'PLOT3', 'PLOT5',
-                       'LOTSC', 'NIPH', 'NIPHEM',
-                       'ALM', 'ASM']
 
-    file_cols = []
-    inputs_col = ['FILE'] + [inv_map[i] for i in range(1, total_inputs+1)]
-    file_cols.append(inputs_col)
-    for locus, results in classification_files.items():
-        locus_id = fo.get_locus_id(locus)
-        locus_results = fo.pickle_loader(results)
-        col = [locus_id]
-        col += [locus_results[i][1][2]
-                if i in locus_results and locus_results[i][0] not in invalid_classes
-                else locus_results.get(i, ['LNF'])[0]
-                for i in range(1, total_inputs+1)]
+def write_results_contigs(classification_files, identifiers, output_directory,
+                          cds_coordinates_files):
+    """
+    """
 
-        file_cols.append(col)
+    invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
 
-    lines_generator = zip(*file_cols)
+    columns = [['FILE'] + identifiers]
+    for file in classification_files.values():
+        locus_id = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+        column = [locus_id]
+        # get sequence hash for exact and inferred
+        # get classification for other cases
+        column += [locus_results[i][1][2]
+                   if i in locus_results and locus_results[i][0] not in invalid_classes
+                   else locus_results.get(i, ['LNF'])[0]
+                   for i in range(1, len(identifiers+1)]
 
-    # fetch coordinates for each genome
-    coordinates_dir = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/2_cds_extraction'
-    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
-    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
-                         for f in coordinates_files}
+        columns.append(column)
 
-    final_lines = []
-    header = list(lines_generator.__next__())
+    lines = fo.aggregate_iterables(file_cols)
+
     final_lines.append(header)
-    for l in lines_generator:
+    for l in lines:
         genome_id = l[0]
         # open file with coordinates
         coordinates = fo.pickle_loader(coordinates_files[genome_id])
-        new_line = [coordinates[c][0] if c not in invalid_classes else c for c in l[1:]]
-        new_line = ['{0}&{1}-{2}&{3}'.format(c[0], c[1], c[2], c[4])
+        new_line = [coordinates.get(c, c)[0] for c in l[1:]]
+
+        new_line = ['{0}&{1}-{2}&{3}'.format(*c)
                     if c not in invalid_classes else c
                     for c in new_line]
+
         final_lines.append([genome_id]+new_line)
 
     #########################
@@ -1387,12 +1383,51 @@ def create_outputs(classification_files, inv_map, output_directory,
     #########################
 
     # write file
-    results_contigs_outfile = fo.join_paths(results_dir, ['results_contigsInfo.tsv'])
-    with open(results_contigs_outfile, 'w') as outfile:
-        outlines = ['\t'.join(l) for l in final_lines]
-        text = '\n'.join(outlines)
-        outfile.write(text+'\n')
+    output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
+    final_lines = ['\t'.join(l) for l in final_lines]
+    fo.write_list(final_lines, output_file)
 
+
+# start_time = pdt.get_datetime()
+# end_time = pdt.get_datetime()
+def write_outputs(classification_files, inv_map, output_directory,
+                   start_time, end_time, cpu_cores, blast_score_ratio):
+    """
+    """
+
+    input_identifiers = [inv_map[i] for i in range(1, len(inv_map)+1)]
+
+    # create output folder
+    results_dir = fo.join_paths(output_directory,
+                                ['results_{0}'.format(end_time)])
+    fo.create_directory(results_dir)
+
+    print('Writing logging_info.txt...', end='')
+    write_logfile(start_time, end_time, len(inv_map), len(classification_files),
+                  cpu_cores, blast_score_ratio, results_dir)
+    print('done.')
+
+    # create results_alleles.tsv
+    print('Writing results_alleles.tsv...', end='')
+    write_results_alleles(classification_files, input_identifiers, results_dir)
+    print('done.')
+
+    # create results_statsitics.tsv
+    print('Writing results_statsitics.tsv...', end='')
+    write_results_statistics(classification_files, inv_map, results_dir)
+    print('done.')
+
+    # create results_contigsInfo.tsv
+    # using too much memory???
+    # list files with CDSs coordinates
+    # move folder names to file with constants?
+    coordinates_dir = fo.join_paths(output_directory, ['temp', '2_cds_extraction'])
+    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
+    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
+                         for f in coordinates_files}
+    print('Writing results_contigsInfo.tsv...', end='')
+    write_results_contigs(classification_files, input_identifiers,
+                          results_dir, coordinates_files)
     print('done.')
 
     # determine paralogous loci and write RepeatedLoci.txt file
@@ -1402,33 +1437,6 @@ def create_outputs(classification_files, inv_map, output_directory,
     print('\nResults available in {0}'.format(results_dir))
 
     return results_dir
-
-
-#fasta_file = unique_fasta
-def add_novel(new_alleles, fasta_file):
-    """
-    """
-
-    # create index for Fasta file with distinct CDSs
-    sequence_index = SeqIO.index(fasta_file, 'fasta')
-
-    total_added = 0
-    for locus, results in new_alleles.items():
-        locus_id = fo.get_locus_id(locus)
-        # read locus Fasta
-        locus_alleles = [(rec.id, str(rec.seq))
-                         for rec in SeqIO.parse(locus, 'fasta')]
-        alleles_to_add = [('{0}_{1}'.format(locus_id, r[1]), str(sequence_index.get(r[0]).seq))
-                          for r in results]
-        locus_alleles.extend(alleles_to_add)
-        total_added += len(results)
-        # create file with new alleles
-        with open(locus, 'w') as outfile:
-            lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in locus_alleles]
-            text = '\n'.join(lines)
-            outfile.write(text+'\n')
-
-    return total_added
 
 
 # Check all steps that remove sequences/seqids to verify that we are not removing sequences that
@@ -1466,7 +1474,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     if add_inferred is True:
         if len(new_alleles) > 0:
             # add inferred alleles to schema
-            added = add_novel(new_alleles, results[2])
+            added = add_inferred_alleles(new_alleles, results[2])
             print('Added {0} novel alleles to schema.'.format(added))
         else:
             print('No new alleles to add to schema.')
@@ -1474,8 +1482,8 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     end_time = pdt.get_datetime()
 
     # create output files
-    results_dir = create_outputs(results[0], results[1], output_directory,
-                                 start_time, end_time, cpu_cores, blast_score_ratio)
+    results_dir = write_outputs(results[0], results[1], output_directory,
+                                start_time, end_time, cpu_cores, blast_score_ratio)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
     cds_coordinates = fo.join_paths(output_directory, ['cds_info.tsv'])

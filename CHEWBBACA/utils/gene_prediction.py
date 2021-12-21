@@ -196,7 +196,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     # save coding sequences to file
     # create records and write them to file
     cds_lines = fao.create_fasta_lines(genome_info[0], identifier)
-    fo.write_lines(cds_lines, cds_file)
+    fo.write_lines(cds_lines, cds_file, write_mode='a')
 
     write_protein_table(protein_table, identifier, genome_info[1])
 

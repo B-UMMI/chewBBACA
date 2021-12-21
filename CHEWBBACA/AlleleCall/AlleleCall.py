@@ -287,6 +287,7 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
                 for gid in genome_ids[1:]:
                     # first time seeing CDS
                     if cds_hash not in seen_dna:
+                        # need to add inferred to locus mode values???
                         current_class = 'INF'
                         seen_dna.append(cds_hash)
                     else:
@@ -305,54 +306,49 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
     return [locus_classifications, exact_prot_hashes, total_prots, total_cds]
 
 
-def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
+def compute_bsr(raw_score, query_raw_score):
+    """
+    """
+
+    bsr = raw_score / query_raw_score
+
+    return bsr
+
+
+def process_blast_results(blast_output, blast_score_ratio, ids_mapping):
     """
     """
 
     current_results = fo.read_tabular(blast_output)
 
     # get allele identifier for the representative
-    if ids_mapping is not None:
-        representatives_info = {ids_mapping[r[0]]: (((int(r[3])*3)+3), float(r[5]))
-                                for r in current_results
-                                if r[0] == r[4]}
-    else:
-        representatives_info = {r[0]: (((int(r[3])*3)+3), float(r[5]))
-                                for r in current_results
-                                if r[0] == r[4]}
+    representatives_info = {ids_mapping.get(r[0], r[0]): (((int(r[3])*3)+3), float(r[5]))
+                            for r in current_results
+                            if r[0] == r[4]}
 
     # exclude representative self-alignment
-    current_results = [r
-                       for r in current_results
-                       if r[0] != r[4]]
+    current_results = [r for r in current_results if r[0] != r[4]]
 
-    # only keep the match with the greatest score for each target
-    # several representatives from the same locus might match the target
-    highest_scores = {}
+    # get raw score for best matches
+    raw_scores = {}
     for r in current_results:
-        if r[4] not in highest_scores:
-            highest_scores[r[4]] = r
-        elif r[4] in highest_scores:
+        if r[4] not in raw_scores:
+            raw_scores[r[4]] = r
+        # only keep the match with the greatest score for each target
+        # several representatives from the same locus might match the target
+        elif r[4] in raw_scores:
             current_score = float(r[5])
-            previous_score = float(highest_scores[r[4]][5])
+            previous_score = float(raw_scores[r[4]][5])
             if current_score > previous_score:
-                highest_scores[r[4]] = r
+                raw_scores[r[4]] = r
 
     # determine BSR values
-    if ids_mapping is not None:
-        bsr_values = {ids_mapping[k]: (float(v[5])/representatives_info[ids_mapping[v[0]]][1],
-                                       (int(v[1])-1)*3,  # subtract 1 to exclude start position
-                                       (int(v[2])+1)*3,  # add 1 to include stop codon
-                                       ids_mapping[v[0]],
-                                       ids_mapping[v[0]].split('_')[-1])
-                      for k, v in highest_scores.items()}
-    else:
-        bsr_values = {k: (float(v[5])/representatives_info[v[0]][1],
-                          (int(v[1])-1)*3,  # subtract 1 to exclude start position
-                          (int(v[2])+1)*3,  # add 1 to include stop codon
-                          v[0],
-                          v[0].split('_')[-1])
-                      for k, v in highest_scores.items()}
+    bsr_values = {ids_mapping.get(k, k): (compute_bsr(float(v[5]), representatives_info[ids_mapping.get(v[0], v[0])][1]),
+                                   (int(v[1])-1)*3,  # subtract 1 to exclude start position
+                                   (int(v[2])+1)*3,  # add 1 to include stop codon
+                                   ids_mapping.get(v[0], v[0]),
+                                   ids_mapping.get(v[0], v[0]).split('_')[-1])
+                  for k, v in raw_scores.items()}
 
     # only keep matches above BSR threshold
     high_bsr = {k: v
@@ -362,6 +358,66 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping=None):
     return [high_bsr, representatives_info]
 
 
+def contig_position_classification(representative_length,
+                                    representative_leftmost_pos,
+                                    representative_rightmost_pos,
+                                    contig_length,
+                                    contig_leftmost_pos,
+                                    contig_rightmost_pos):
+    """
+    """
+
+    # careful about offset!!!
+    ###########################################################
+    # need to invert when necessary
+    # check if this is necessary
+    # match in sense strand
+    if contig_rightmost_pos > contig_leftmost_pos:
+        # determine rightmost aligned position in contig
+        contig_rightmost_rest = contig_length - contig_rightmost_pos
+        # determine leftmost aligned position in contig
+        contig_leftmost_rest = contig_rightmost_pos
+        # determine number of rightmost bases in the target that did not align
+        representative_rightmost_rest = representative_length - representative_rightmost_pos
+        # determine number of leftmost bases in the target that did not align 
+        representative_leftmost_rest = representative_leftmost_pos
+    # reverse values because CDS was identified in reverse strand
+    elif contig_rightmost_pos < contig_leftmost_pos:
+        print('PLOT!!!!!!!')
+        contig_leftmost_rest = contig_rightmost_pos
+        contig_rightmost_rest = contig_length - contig_leftmost_pos
+        # also need to reverse values for representative
+        representative_leftmost_rest = representative_rightmost_pos
+        representative_rightmost_rest = representative_length - representative_leftmost_pos
+
+    if contig_leftmost_rest < representative_leftmost_rest and contig_rightmost_rest < representative_rightmost_rest:
+        return 'LOTSC'
+    elif contig_leftmost_rest < representative_leftmost_rest:
+        return 'PLOT3'
+    elif contig_rightmost_rest < representative_rightmost_rest:
+        return 'PLOT5'
+
+
+def allele_size_classification(target_dna_len, locus_mode, size_threshold):
+    """
+    """
+
+    if target_dna_len < (locus_mode[0]-(locus_mode[0])*size_threshold):
+        return 'ASM'
+    elif target_dna_len > (locus_mode[0]+(locus_mode[0])*size_threshold):
+        return 'ALM'
+
+
+# locus = classification_inputs[999][0]
+# genomes_matches = classification_inputs[999][1]
+# representatives_info = classification_inputs[999][2]
+# inv_map = classification_inputs[999][3]
+# contigs_lengths = classification_inputs[999][4]
+# locus_results_file = classification_inputs[999][5]
+# locus_mode = classification_inputs[999][6]
+# temp_directory = classification_inputs[999][7]
+# size_threshold = classification_inputs[999][8]
+# blast_score_ratio = classification_inputs[999][9]
 def classify_alleles(locus, genomes_matches, representatives_info,
                      inv_map, contigs_lengths, locus_results_file,
                      locus_mode, temp_directory, size_threshold,
@@ -374,105 +430,82 @@ def classify_alleles(locus, genomes_matches, representatives_info,
     seen_dna = []
     seen_prot = []
     excluded = []
-    inf_matches = 0
-    genome_coordinates = {}
     representative_candidates = []
     for genome, matches in genomes_matches.items():
         current_g = inv_map[genome]
-        clen = contigs_lengths[current_g]
+        contig_lengths = contigs_lengths[current_g]
 
         # open pickle for genome and get coordinates
         genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
         genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
         for m in matches:
+            # get CDS and representative seqids
             target_seqid = m[0]
-            excluded.append(target_seqid)
-            target_dna_len = m[3]
-            bsr = m[4][0]
-            rep_length = representatives_info[m[4][3]][0]
             rep_alleleid = m[4][4]
-            target_prot_hash = m[1]
+            # get DNA and protein hash for CDS
             target_dna_hash = m[2]
+            target_prot_hash = m[1]
 
-            # careful about offset!!!
-            # determine right match position on representative allele
-            rep_right_pos = rep_length - m[4][2]
-            # determine left match position on representative allele
-            rep_left_pos = m[4][1]
+            bsr = m[4][0]
 
-            ##### This might lead to NIPH if a genome has several exact matches after the CDS
-            # is detected in a previous genome!!!
+            # store processed seqids
+            excluded.append(target_seqid)
+
+            # CDS was identified in one of the previous inputs
+            # This can change classification to NIPH if the input
+            # already had a classification for the current locus
             if target_dna_hash in seen_dna:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                       target_dna_hash, 'EXC', 1.0))
-                inf_matches += 1
                 continue
 
-            # check if CDS DNA sequence is not in schema but matches a translated allele
+            # translated CDS matches other translated CDS that were processed
             if target_prot_hash in seen_prot:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                       target_dna_hash, 'INF', 1.0))
-                inf_matches += 1
-                # add DNA hash to classify the next match as exact
+                # add DNA hash to classify the next match as EXC
                 seen_dna.append(target_dna_hash)
                 continue
 
-            # there is no exact match in the schema, perform full evaluation
-            # get contig lengths
-            genome_coordinates[target_seqid] = genome_cds_coordinates[target_dna_hash][0]
-            contig_left_pos = int(genome_coordinates[target_seqid][1])
-            contig_right_pos = int(genome_coordinates[target_seqid][2])
-            matched_contig_len = clen[genome_coordinates[target_seqid][0]]
-            ###########################################################
-            # need to invert when necessary
-            # check if this is necessary
-            # get total number of bases left outside match in contig
-            if contig_right_pos > contig_left_pos:
-                contig_right_rest = matched_contig_len - contig_right_pos
-                contig_left_rest = contig_left_pos
-                rep_right_rest = rep_right_pos
-                rep_left_rest = rep_left_pos
-            # reverse values because CDS was identified in reverse strand
-            elif contig_right_pos < contig_left_pos:
-                print('lol')
-                contig_left_rest = matched_contig_len - contig_right_pos
-                contig_right_rest = contig_left_pos
-                # also need to reverse values for representative
-                rep_right_rest = rep_left_pos
-                rep_left_rest = rep_right_pos
-                sys.exit()
+            # there is no DNA or Protein exact match, perform full evaluation
+            
+            # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
+            # get values to check classification
+            genome_coordinates = genome_cds_coordinates[target_dna_hash][0]
+            # get CDS start and stop position in contig
+            contig_leftmost_pos = int(genome_coordinates[1])
+            contig_rightmost_pos = int(genome_coordinates[2])
+            # get contig length
+            contig_length = contig_lengths[genome_coordinates[0]]
+            # get representative length
+            representative_length = representatives_info[m[4][3]][0]
+            # get target left and right positions that aligned
+            representative_leftmost_pos = m[4][1]
+            representative_rightmost_pos = m[4][2]
+            # determine if it is PLOT3, PLOT5 or LOTSC
+            relative_pos = contig_position_classification(representative_length,
+                                                          representative_leftmost_pos,
+                                                          representative_rightmost_pos,
+                                                          contig_length,
+                                                          contig_leftmost_pos,
+                                                          contig_rightmost_pos)
 
-            # check LOTSC
-            if contig_left_rest < rep_left_rest and contig_right_rest < rep_right_rest:
+            if relative_pos is not None:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
-                                                      target_dna_hash, 'LOTSC', bsr))
-                continue
-            # check if PLOT
-            elif contig_left_rest < rep_left_rest:
-                locus_results = update_classification(genome, locus_results,
-                                                      (rep_alleleid, target_seqid,
-                                                      target_dna_hash, 'PLOT3', bsr))
-                continue
-            elif contig_right_rest < rep_right_rest:
-                locus_results = update_classification(genome, locus_results,
-                                                      (rep_alleleid, target_seqid,
-                                                      target_dna_hash, 'PLOT5', bsr))
+                                                       target_dna_hash, relative_pos, bsr))
                 continue
 
+            target_dna_len = m[3]
             # check if ASM or ALM
+            relative_size = allele_size_classification(target_dna_len, locus_mode, size_threshold)
             # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
-            if target_dna_len < (locus_mode[0]-(locus_mode[0])*size_threshold):
+            if relative_size is not None:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
-                                                      target_dna_hash, 'ASM', bsr))
-                continue
-            elif target_dna_len > (locus_mode[0]+(locus_mode[0])*size_threshold):
-                locus_results = update_classification(genome, locus_results,
-                                                      (rep_alleleid, target_seqid,
-                                                      target_dna_hash, 'ALM', bsr))
+                                                      target_dna_hash, relative_size, bsr))
                 continue
 
             # add INF
@@ -493,15 +526,13 @@ def classify_alleles(locus, genomes_matches, representatives_info,
         if locus_results[genome][0] == 'INF':
             # append length of inferred allele to list with allele sizes
             locus_mode[1].append(target_dna_len)
-            #loci_modes[locus][1].append(target_dna_len)
             # compute mode
-            #loci_modes[locus][0] = sm.determine_mode(loci_modes[locus][1])[0]
             locus_mode[0] = sm.determine_mode(locus_mode[1])[0]
 
     # save updated results
     fo.pickle_dumper(locus_results, locus_results_file)
 
-    return {locus: [locus_results_file, locus_mode, inf_matches,
+    return {locus: [locus_results_file, locus_mode,
                     excluded, representative_candidates]}
 
 
@@ -560,7 +591,6 @@ def assign_ids(classification_files, schema_directory):
     return new_alleles
 
 
-#fasta_file = unique_fasta
 def add_inferred_alleles(inferred_alleles_data, sequences_file):
     """
     """
@@ -572,19 +602,16 @@ def add_inferred_alleles(inferred_alleles_data, sequences_file):
     total_added = 0
     for locus_path, inferred_alleles in inferred_alleles_data.items():
         locus_id = fo.get_locus_id(locus_path)
-        # import locus alleles
-        locus_sequences = fao.import_sequences(locus_path)
 
         # get novel alleles through indexed Fasta file
-        inferred_sequences = [('{0}_{1}'.format(locus_id, r[1]),
-                               str(sequence_index.get(r[0]).seq))
+        inferred_sequences = [('{0}_{1}'.format(locus_id, a[1]),
+                               str(sequence_index.get(a[0]).seq))
                               for a in inferred_alleles]
 
-        locus_sequences.extend(inferred_sequences)
-        total_added += len(results)
+        total_added += len(inferred_sequences)
 
-        updated_lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in locus_sequences]
-        fo.write_list(updated_lines, locus)
+        updated_lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in inferred_sequences]
+        fo.write_lines(updated_lines, locus_path, write_mode='a')
 
     return total_added
 
@@ -638,20 +665,203 @@ def write_results_alleles(classification_files, input_identifiers,
         columns.append(locus_column)
 
     # group elements with same list index
-    lines = im.aggregate_iterables(file_cols)
+    lines = im.aggregate_iterables(columns)
     lines = ['\t'.join(l) for l in lines]
 
     output_file = fo.join_paths(output_directory, ['results_alleles.tsv'])
-    fo.write_list(lines, output_file)
+    fo.write_lines(lines, output_file)
 
 
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+def write_results_statistics(classification_files, input_identifiers,
+                             output_directory):
+    """
+    """
+
+    # initialize classification counts per input
+    input_classifications = {i: [] for i in range(1, len(input_identifiers)+1)}
+    for file in classification_files.values():
+        locus_id = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+
+        for i in range(1, len(input_identifiers)+1):
+            input_classifications[i].append(locus_results.get(i, ['LNF'])[0])
+
+    # determine class counts per input
+    class_counts = {i: Counter(v) for i, v in input_classifications.items()}
+    # add exact matches after inferring new allele based on protein exact match
+    for k, v in class_counts.items():
+        class_counts[k]['EXC'] += class_counts[k]['EXCP']
+        # add zero for remaining classes
+        class_counts[k].update({c: 0
+                                for c in ct.ALLELECALL_CLASSIFICATIONS
+                                if c not in v})
+
+    # substitute integer identifiers by string identifiers
+    class_counts = {input_identifiers[i]: v for i, v in class_counts.items()}
+
+    # initialize with header line
+    lines = [['FILE'] + ct.ALLELECALL_CLASSIFICATIONS]
+    for k, v in class_counts.items():
+        input_line = [k] + [str(v[c]) for c in ct.ALLELECALL_CLASSIFICATIONS]
+        lines.append(input_line)
+
+    outlines = ['\t'.join(l) for l in lines]
+
+    output_file = fo.join_paths(output_directory, ['results_statistics.tsv'])
+    fo.write_lines(outlines, output_file)
+
+
+def write_results_contigs(classification_files, identifiers, output_directory,
+                          cds_coordinates_files):
+    """
+    """
+
+    invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
+
+    columns = [['FILE'] + identifiers]
+    for file in classification_files.values():
+        locus_id = fo.get_locus_id(file)
+        locus_results = fo.pickle_loader(file)
+        column = [locus_id]
+        # get sequence hash for exact and inferred
+        # get classification for other cases
+        column += [locus_results[i][1][2]
+                   if i in locus_results and locus_results[i][0] not in invalid_classes
+                   else locus_results.get(i, ['LNF'])[0]
+                   for i in range(1, len(identifiers)+1)]
+
+        columns.append(column)
+
+    # group elements with same list index
+    lines = im.aggregate_iterables(columns)
+
+    final_lines = [lines[0]]
+    for l in lines[1:]:
+        genome_id = l[0]
+        # open file with loci coordinates
+        coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])
+        new_line = [coordinates[c][0] if c in coordinates else c for c in l[1:]]
+
+        new_line = ['{0}&{1}-{2}&{3}'.format(*c)
+                    if c not in invalid_classes else c
+                    for c in new_line]
+
+        final_lines.append([genome_id]+new_line)
+
+    #########################
+    # Start positions have offset of 1 and do not match start positions reported by previous implementation?
+    #########################
+
+    # write file
+    output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
+    final_lines = ['\t'.join(l) for l in final_lines]
+    fo.write_lines(final_lines, output_file)
+    
+    return output_file
+
+
+def aggregate_blast_results(blast_files, output_directory, ids_dict):
+    """
+    """
+
+    # group files for representatives of the same locus
+    loci_results = {}
+    for f in blast_files:
+        locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
+        locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
+        loci_results.setdefault(locus_id, []).append(f)
+
+    # concatenate results for representatives of the same locus
+    concatenated_files = []
+    concatenate_file_template = '{0}_concatenated_blastout.tsv'
+    for locus, files in loci_results.items():
+        outfile = fo.join_paths(output_directory,
+                                [concatenate_file_template.format(locus)])
+        fo.concatenate_files(files, outfile)
+        concatenated_files.append(outfile)
+
+    return concatenated_files
+
+
+def count_classifications(classification_files):
+    """
+    """
+
+    global_counts = Counter()
+    # get total number of classified CDSs
+    total_cds = 0
+    for file in classification_files.values():
+        locus_results = fo.pickle_loader(file)
+        total_cds += sum([len(c)-1 for g, c in locus_results.items()])
+        all_classifications = [c[0] for g, c in locus_results.items()]
+        locus_counts = Counter(all_classifications)
+        global_counts += locus_counts
+
+    # add protein exact matches to exact matches count
+    global_counts['EXC'] += global_counts['EXCP']
+    del global_counts['EXCP']
+
+    # add classification that might be missing
+    global_counts.update(Counter({k: 0 for k in ct.ALLELECALL_CLASSIFICATIONS
+                         if k not in global_counts}))
+
+    return [global_counts, total_cds]
+
+
+# start_time = pdt.get_datetime()
+# end_time = pdt.get_datetime()
+def write_outputs(classification_files, inv_map, output_directory,
+                   start_time, end_time, cpu_cores, blast_score_ratio):
+    """
+    """
+
+    input_identifiers = [inv_map[i] for i in range(1, len(inv_map)+1)]
+
+    # create output folder
+    results_dir = fo.join_paths(output_directory,
+                                ['results_{0}'.format(end_time)])
+    fo.create_directory(results_dir)
+
+    print('Writing logging_info.txt...', end='')
+    write_logfile(start_time, end_time, len(inv_map), len(classification_files),
+                  cpu_cores, blast_score_ratio, results_dir)
+    print('done.')
+
+    # create results_alleles.tsv
+    print('Writing results_alleles.tsv...', end='')
+    write_results_alleles(classification_files, input_identifiers, results_dir)
+    print('done.')
+
+    # create results_statsitics.tsv
+    print('Writing results_statsitics.tsv...', end='')
+    write_results_statistics(classification_files, inv_map, results_dir)
+    print('done.')
+
+    # create results_contigsInfo.tsv
+    # using too much memory???
+    # list files with CDSs coordinates
+    # move folder names to file with constants?
+    coordinates_dir = fo.join_paths(output_directory, ['temp', '2_cds_extraction'])
+    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
+    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
+                         for f in coordinates_files}
+    print('Writing results_contigsInfo.tsv...', end='')
+    results_contigs_outfile = write_results_contigs(classification_files, input_identifiers,
+                                                    results_dir, coordinates_files)
+    print('done.')
+
+    # determine paralogous loci and write RepeatedLoci.txt file
+    print('Writing RepeatedLoci.txt...', end='')
+    ParalogPrunning.main(results_contigs_outfile, results_dir)
+
+    print('\nResults available in {0}'.format(results_dir))
+
+    return results_dir
+
+
 # input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-# #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_2058spyogenes.txt'
 # output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 # ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-# #ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed/Streptococcus_pyogenes.trn'
 # blast_score_ratio = 0.6
 # minimum_length = 201
 # translation_table = 11
@@ -667,8 +877,8 @@ def write_results_alleles(classification_files, input_identifiers,
 # cds_input = False
 # only_exact = False
 # schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_called_320/schema_seed'
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/spyogenes_schema_processed'
+# add_inferred = True
+# no_cleanup = True
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -862,7 +1072,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                      translation_table, cpu_cores)
 
     # identify exact matches at protein level
-    # exact matches are new alleles that can be added to the schema
+    # exact matches are novel alleles that can be added to the schema
     print('\nFinding protein exact matches...', end='')
     exc_cds = 0
     exc_prot = 0
@@ -905,30 +1115,29 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     clustering_dir = fo.join_paths(temp_directory, ['5_clustering'])
     fo.create_directory(clustering_dir)
 
-    # BLASTp clusters step
+    # define BLASTp and makeblastdb paths
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
 
-    # concatenate all representative
+    # concatenate all schema representative
     concat_reps = os.path.join(protein_dir, 'concat_reps.fasta')
     fo.concatenate_files(protein_repfiles.values(), concat_reps)
-
-    prot_index = SeqIO.index(fo.join_paths(preprocess_dir, ['protein.fasta']), 'fasta')
-    dna_cds_index = SeqIO.index(unique_fasta, 'fasta')
 
     # create index for representative sequences
     rep_proteins = fao.import_sequences(concat_reps)
 
+    # create Kmer index for representatives
     representatives = im.kmer_index(rep_proteins, 5)[0]
+    # cluster CDSs into representative clusters
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, representatives, False,
                                       1, 30, clustering_dir, cpu_cores,
                                       'clusters', True, False)
 
-    # remove singletons
+    # exclude singletons
     clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
 
-    # create file with all proteins, including loci representatives
+    # BLASTp is there are clusters with n>1
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
         fo.create_directory(blasting_dir)
@@ -939,6 +1148,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
         all_proteins = fao.import_sequences(all_prots)
 
+        # BLAST clustered sequences against cluster representatives
         blast_results, ids_dict = cf.blast_clusters(clusters, all_proteins,
                                                     blasting_dir, blastp_path,
                                                     makeblastdb_path, cpu_cores,
@@ -948,41 +1158,23 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # for ASM and ALM classifications we only need to determine it for the one of the ids associated to that protein
     # the other proteins have the same length and the classification will be the same
-    # for PLOT cases we need to check all cases
-
-    # add id of representative CDS, get hash for that sequence and then open file with genome CDS to get CDS coordinates
-    # hash file with DNA sequences to get DNA sequence to hash?
-
-    # add hash of inferred alleles to dict with results per locus
-    # we can check if hash is already in the dict to avoid calculating everyhting, effectivelly detecting new exact matches!
-    # we can store the DNA hash and the protein hash. DNA hash is an exact match and protein hash is a new allele.
-
-    # group files for representatives of the same locus
-    loci_results = {}
-    for f in blast_files:
-        # create function to accept regex pattern and extract string?
-        locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
-        locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
-        loci_results.setdefault(locus_id, []).append(f)
-
-    # concatenate results for representatives of the same locus
-    concatenated_files = []
-    concatenate_file_template = '{0}_concatenated_blastout.tsv'
-    for locus, files in loci_results.items():
-        outfile = fo.join_paths(clustering_dir,
-                                [concatenate_file_template.format(locus)])
-        fo.concatenate_files(files, outfile)
-        concatenated_files.append(outfile)
+    # some strategy to reduce complexity of PLOT cases?
+    concatenated_files = aggregate_blast_results(blast_files, clustering_dir, ids_dict)
 
     # import results and determine BSR
     high_scoring = []
     for f in concatenated_files:
         # exclude results in the BSR+0.1 threshold
-        # that might be representative candidates
+        # process representative candidates in later stage
         outfile = select_high_score(f, blast_score_ratio+0.1,
                                     ids_dict, clustering_dir)
         if outfile is not None:
             high_scoring.append(outfile)
+
+    # create index for distinct CDS DNA sequences
+    dna_cds_index = SeqIO.index(unique_fasta, 'fasta')
+    # create index for distinct protein sequences
+    prot_index = SeqIO.index(all_prots, 'fasta')
 
     # group results for each locus per genome
     loci_results = {}
@@ -1028,14 +1220,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                               cpu_cores,
                                               show_progress=True)
 
-    inf_matches = 0
     excluded = []
     for r in class_results:
         locus = list(r.keys())[0]
         results = r[locus]
-        inf_matches += results[2]
-        excluded.extend(results[3])
+        # this does not include the length of protein exact matches!!!
         loci_modes[locus] = results[1]
+        excluded.extend(results[2])
 
     # Determine representatives iteratively
     # convert to set, some ids might be duplicated
@@ -1058,26 +1249,22 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fo.create_directory(iterative_rep_dir)
 
     # create Fasta file with remaining unclassified sequences
-    # loci representatives
-    new_prot_file = fo.join_paths(iterative_rep_dir, ['iterative_proteins.fasta'])
-    ### Using a Fasta file with more than unclassified alleles!
-    fo.concatenate_files([fo.join_paths(preprocess_dir, ['protein.fasta']), concat_reps],
-                          new_prot_file)
-    prot_index = SeqIO.index(new_prot_file, 'fasta')
-
     protein_repfiles = list(protein_repfiles.values())
 
+    # BLAST schema representatives against remaining unclassified CDSs
+    # keep iterating while new representatives are discovered
     iteration = 1
     exausted = False
     while exausted is False:
         ######################################################
         # Need to remove schema representatives from ids!!!! #
         ######################################################
+        # store self-score for representative to avoid including them in Fasta file!
         remaining_seqs_file = fo.join_paths(iterative_rep_dir,
                                             ['remaining_prots_iter{0}.fasta'.format(iteration)])
         # create Fasta with sequences that were not classified
         fao.get_sequences_by_id(prot_index, unclassified_ids+reps_ids,
-                                remaining_seqs_file, limit=20000)
+                                remaining_seqs_file, limit=50000)
 
         # change identifiers to shorten and avoid BLASTp error?
         blast_db = fo.join_paths(iterative_rep_dir, ['blastdb_iter{0}'.format(iteration)])
@@ -1094,9 +1281,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         output_files = []
         blast_inputs = []
         for file in protein_repfiles:
-            locus_base = fo.file_basename(file, False)
+            locus_id = fo.get_locus_id(file)
             outfile = fo.join_paths(iterative_rep_dir,
-                                    [locus_base+'_blast_results_iter{0}.tsv'.format(iteration)])
+                                    [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
             # create file with ids to BLAST against
             # get rep ids
@@ -1106,14 +1293,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             current_repids.extend(unclassified_ids)
             # save file with ids
             current_file = fo.join_paths(iterative_rep_dir,
-                                         [locus_base+'_ids_iter{0}.txt'.format(iteration)])
-            with open(current_file, 'w') as outkadgk:
-                joined_ids = '\n'.join(current_repids)
-                outkadgk.write(joined_ids)
+                                         [locus_id+'_ids_iter{0}.txt'.format(iteration)])
+            fo.write_lines(current_repids, current_file)
 
             blast_inputs.append([blastp_path, blast_db, file, outfile,
                                  1, 1, current_file, bw.run_blast])
 
+        # BLAST representatives against unclassified sequences
         blastp_results = mo.map_async_parallelizer(blast_inputs,
                                                    mo.function_helper,
                                                    cpu_cores,
@@ -1123,7 +1309,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         high_scoring = []
         for f in output_files:
             outfile = select_high_score(f, blast_score_ratio,
-                                        None, iterative_rep_dir)
+                                        {}, iterative_rep_dir)
             if outfile is not None:
                 high_scoring.append(outfile)
 
@@ -1169,70 +1355,24 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         for r in class_results:
             locus = list(r.keys())[0]
             results = r[locus]
-            inf_matches += results[2]
-            excluded.extend(results[3])
             loci_modes[locus] = results[1]
-            representative_candidates[locus] = results[4]
+            excluded.extend(results[2])
+            if len(results[3]) > 0:
+                representative_candidates[locus] = results[3]
 
+        # keep repeated ids to match the true number of classified alleles
         print('Classified {0} alleles.'.format(len(excluded)))
         # exclude sequences that were classified
         unclassified_ids = list(set(unclassified_ids) - set(excluded))
 
         print('Selecting representatives for next iteration.')
-        # determine representatives and then BLAST new representatives
-        # against remaining again. If only one representative candidate
-        # there is no need to determine which are the best representatives!
-        total_selected = 0
-        representatives = {}
         # select representatives for loci that have representative candidates
-        for k, v in representative_candidates.items():
-            if len(v) == 1:
-                representatives.setdefault(k, []).append(v[0][1])
-            # select for loci that have multiple candidates
-            elif len(v) > 1:
-                # create Fasta file with all candidates
-                reps_candidates_ids = [s[1] for s in v]
-                tmp_file = fo.join_paths(iterative_rep_dir, ['{0}_reps_selection_iter{1}.fasta'.format(k, iteration)])
-                fao.get_sequences_by_id(prot_index, reps_candidates_ids, tmp_file)
-                # BLAST all against all
-                # change identifiers to shorten and avoid BLASTp error?
-                blast_db = fo.join_paths(iterative_rep_dir,
-                                         ['{0}_reps_iter{1}_blastdb'.format(k, iteration)])
-                db_stderr = bw.make_blast_db(makeblastdb_path, tmp_file,
-                                             blast_db, 'prot')
-
-                outfile = fo.join_paths(iterative_rep_dir,
-                                        ['{0}_reps_iter{1}_blast_results'.format(k, iteration)])
-                bw.run_blast(blastp_path, blast_db, tmp_file, outfile)
-
-                blast_results = fo.read_tabular(outfile)
-                self_scores = {r[0]: float(r[5]) for r in blast_results if r[0] == r[4]}
-
-                # filter self-alignment lines
-                filtered_results = [r for r in blast_results if r[0] != r[4]]
-
-                # sort based on input order
-                sorted_results = sorted(filtered_results,
-                                        key= lambda x: x[4].split('-protein')[0])
-
-                # compute BSR
-                for r in sorted_results:
-                    r.append(float(r[-1])/self_scores[r[0]])
-
-                to_remove = []
-                for r in sorted_results:
-                    if r[0] not in to_remove:
-                        if r[-1] >= blast_score_ratio+0.1:
-                            to_remove.append(r[4])
-
-                selected = [r[0] for r in sorted_results if r[0] not in to_remove]
-                selected = list(set(selected))
-                total_selected += len(selected)
-                if len(selected) > 0:
-                    representatives.setdefault(k, []).extend(selected)
-
-                # remove candidates that were not selected
-                unclassified_ids = list(set(unclassified_ids) - set(to_remove))
+        # select one representative based on input order
+        representative_candidates = {k: sorted(v, key= lambda x: x[0])
+                                     for k, v in representative_candidates.items()}
+        # need to select previous reps if there was more than one candidate!
+        representatives = {k: v[0][1]
+                           for k, v in representative_candidates.items()}
 
         print('Remaining unclassified alleles: {0}'.format(len(unclassified_ids)))
 
@@ -1242,201 +1382,20 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         else:
             iteration += 1
             # create files with representative sequences
+            # need to include previous reps!
             reps_ids = []
             protein_repfiles = []
             for k, v in representatives.items():
-                reps_ids += v
+                reps_ids.append(v)
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-                fao.get_sequences_by_id(prot_index, v, rep_file)
+                fao.get_sequences_by_id(prot_index, [v], rep_file)
                 protein_repfiles.append(rep_file)
-
-    exc = 0
-    # we will get more NIPH/EM classifications because the current
-    # implementation stops when it detects an exact match it does
-    # not perform BLASTp to detect high scoring hits that can change
-    # the classification to NIPH
-    niphem = 0
-    niph = 0
-    asm = 0
-    alm = 0
-    inf = 0
-    lotsc = 0
-    plot3 = 0
-    plot5 = 0
-    # get total number of classified CDSs
-    total_cds = 0
-    for file in classification_files.values():
-        locus_results = fo.pickle_loader(file)
-        total_cds += sum([len(c)-1 for g, c in locus_results.items()])
-        all_classifications = [c[0] for g, c in locus_results.items()]
-        exc += all_classifications.count('EXC')
-        exc += all_classifications.count('EXCP')
-        niphem += all_classifications.count('NIPHEM')
-        niph += all_classifications.count('NIPH')
-        inf += all_classifications.count('INF')
-        asm += all_classifications.count('ASM')
-        alm += all_classifications.count('ALM')
-        lotsc += all_classifications.count('LOTSC')
-        plot3 += all_classifications.count('PLOT3')
-        plot5 += all_classifications.count('PLOT5')
-
-    print('')
-    print('exc: {}\n'
-          'niphem: {}\n'
-          'niph: {}\n'
-          'inf: {}\n'
-          'asm: {}\n'
-          'alm: {}\n'
-          'lotsc: {}\n'
-          'plot3: {}\n'
-          'plot5: {}'.format(exc, niphem, niph,
-                             inf, asm, alm,
-                             lotsc, plot3, plot5))
-
-    print('Classified a total of {0} CDSs.'.format(total_cds))
-    print(inf_matches)
 
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
     # path to Fasta file with distinct DNA sequences to get inferred alleles
     return [classification_files, inv_map, unique_fasta]
-
-
-def write_results_statistics(classification_files, input_identifiers,
-                             output_directory):
-    """
-    """
-
-    # initialize classification counts per input
-    input_classifications = {i: [] for i in range(1, len(input_identifiers)+1)}
-    for file in classification_files.values():
-        locus_id = fo.get_locus_id(file)
-        locus_results = fo.pickle_loader(file)
-
-        for i in range(1, total_inputs+1):
-            input_classifications[i].append(locus_results.get(i, ['LNF'])[0])
-
-    # determine class counts per input
-    class_counts = {i: Counter(v)) for i, v in input_classifications.items()}
-    # add exact matches after inferring new allele based on protein exact match
-    for k, v in class_counts.items():
-        class_counts[k]['EXC'] += class_counts[k]['EXCP']
-        # add zero for remaining classes
-        class_counts[k].update({c
-                                for c in ct.ALLELECALL_CLASSIFICATIONS
-                                if c not in v})
-
-    # substitute integer identifiers by string identifiers
-    class_counts = {input_identifiers[i]: v for i, v in class_counts.items()}
-
-    # initialize with header line
-    lines = [['FILE'] + ct.ALLELECALL_CLASSIFICATIONS]
-    for k, v in class_counts.items():
-        input_line = [k] + [str(v[c]) for c in ct.ALLELECALL_CLASSIFICATIONS]
-        lines.append(input_line)
-
-    outlines = ['\t'.join(l) for l in lines]
-
-    output_file = fo.join_paths(output_directory, ['results_statistics.tsv'])
-    fo.write_list(outlines, output_file)
-
-
-def write_results_contigs(classification_files, identifiers, output_directory,
-                          cds_coordinates_files):
-    """
-    """
-
-    invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
-
-    columns = [['FILE'] + identifiers]
-    for file in classification_files.values():
-        locus_id = fo.get_locus_id(file)
-        locus_results = fo.pickle_loader(file)
-        column = [locus_id]
-        # get sequence hash for exact and inferred
-        # get classification for other cases
-        column += [locus_results[i][1][2]
-                   if i in locus_results and locus_results[i][0] not in invalid_classes
-                   else locus_results.get(i, ['LNF'])[0]
-                   for i in range(1, len(identifiers+1)]
-
-        columns.append(column)
-
-    lines = fo.aggregate_iterables(file_cols)
-
-    final_lines.append(header)
-    for l in lines:
-        genome_id = l[0]
-        # open file with coordinates
-        coordinates = fo.pickle_loader(coordinates_files[genome_id])
-        new_line = [coordinates.get(c, c)[0] for c in l[1:]]
-
-        new_line = ['{0}&{1}-{2}&{3}'.format(*c)
-                    if c not in invalid_classes else c
-                    for c in new_line]
-
-        final_lines.append([genome_id]+new_line)
-
-    #########################
-    # Start positions have offset of 1 and do not match start positions reported by previous implementation?
-    #########################
-
-    # write file
-    output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
-    final_lines = ['\t'.join(l) for l in final_lines]
-    fo.write_list(final_lines, output_file)
-
-
-# start_time = pdt.get_datetime()
-# end_time = pdt.get_datetime()
-def write_outputs(classification_files, inv_map, output_directory,
-                   start_time, end_time, cpu_cores, blast_score_ratio):
-    """
-    """
-
-    input_identifiers = [inv_map[i] for i in range(1, len(inv_map)+1)]
-
-    # create output folder
-    results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(end_time)])
-    fo.create_directory(results_dir)
-
-    print('Writing logging_info.txt...', end='')
-    write_logfile(start_time, end_time, len(inv_map), len(classification_files),
-                  cpu_cores, blast_score_ratio, results_dir)
-    print('done.')
-
-    # create results_alleles.tsv
-    print('Writing results_alleles.tsv...', end='')
-    write_results_alleles(classification_files, input_identifiers, results_dir)
-    print('done.')
-
-    # create results_statsitics.tsv
-    print('Writing results_statsitics.tsv...', end='')
-    write_results_statistics(classification_files, inv_map, results_dir)
-    print('done.')
-
-    # create results_contigsInfo.tsv
-    # using too much memory???
-    # list files with CDSs coordinates
-    # move folder names to file with constants?
-    coordinates_dir = fo.join_paths(output_directory, ['temp', '2_cds_extraction'])
-    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
-    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
-                         for f in coordinates_files}
-    print('Writing results_contigsInfo.tsv...', end='')
-    write_results_contigs(classification_files, input_identifiers,
-                          results_dir, coordinates_files)
-    print('done.')
-
-    # determine paralogous loci and write RepeatedLoci.txt file
-    print('Writing RepeatedLoci.txt...', end='')
-    ParalogPrunning.main(results_contigs_outfile, results_dir)
-
-    print('\nResults available in {0}'.format(results_dir))
-
-    return results_dir
 
 
 # Check all steps that remove sequences/seqids to verify that we are not removing sequences that
@@ -1469,6 +1428,20 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                              window_size, clustering_sim, cpu_cores, blast_path,
                              prodigal_mode, cds_input, only_exact)
 
+    # count total for each classification type
+    global_counts, total_cds = count_classifications(results[0])
+
+    print('Classified a total of {0} CDSs.'.format(total_cds))
+    print('EXC: {EXC}\n'
+          'INF: {INF}\n'
+          'NIPHEM: {NIPHEM}\n'
+          'NIPH: {NIPH}\n'
+          'ASM: {ASM}\n'
+          'ALM: {ALM}\n'
+          'PLOT3: {PLOT3}\n'
+          'PLOT5: {PLOT5}\n'
+          'LOTSC: {LOTSC}\n'.format(**global_counts))
+
     new_alleles = assign_ids(results[0], schema_directory)
 
     if add_inferred is True:
@@ -1486,13 +1459,15 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                                 start_time, end_time, cpu_cores, blast_score_ratio)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
-    cds_coordinates = fo.join_paths(output_directory, ['cds_info.tsv'])
-    shutil.move(cds_coordinates,
-                fo.join_paths(results_dir, ['cds_info.tsv']))
-    invalid_cds_file = fo.join_paths(output_directory, ['invalid_cds.txt'])
-    if os.path.isfile(invalid_cds_file):
-        shutil.move(invalid_cds_file,
-                    fo.join_paths(results_dir, ['invalid_cds.txt']))
+    cds_coordinates_source = fo.join_paths(output_directory, ['cds_info.tsv'])
+    cds_coordinates_destination = fo.join_paths(results_dir, ['cds_info.tsv'])
+    fo.move_file(cds_coordinates_source, cds_coordinates_destination)
+
+    invalid_cds_source = fo.join_paths(output_directory, ['invalid_cds.txt'])
+    invalid_cds_destination = fo.join_paths(results_dir, ['invalid_cds.txt'])
+    # file is not created if we only search for exact matches
+    if os.path.isfile(invalid_cds_source):
+        fo.move_file(invalid_cds_source, invalid_cds_destination)
 
     # remove temporary files
     if no_cleanup is False:

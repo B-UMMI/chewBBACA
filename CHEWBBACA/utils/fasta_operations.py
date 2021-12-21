@@ -131,7 +131,7 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
             exausted = True
 
         if len(seqs) == limit or exausted is True:
-            fo.write_lines(seqs, output_fasta)
+            fo.write_lines(seqs, output_fasta, write_mode='a')
             seqs = []
 
     return ids_map
@@ -298,7 +298,7 @@ def fasta_str_record(seqid, sequence):
     return record
 
 
-def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
+def get_sequences_by_id(sequences, seqids, out_file, limit=50000):
     """ Retrieves sequences from an indexed FASTA file.
 
     Parameters
@@ -329,25 +329,23 @@ def get_sequences_by_id(sequences, seqids, out_file, limit=5000):
     if type(sequences) == dict:
         seqs = ((seqid, sequences[seqid]) for seqid in seqids)
     else:
-        #seqs = ((seqid, str(sequences[seqid].seq)) for seqid in seqids)
-        seqs = [(seqid, str(sequences[seqid].seq)) for seqid in seqids]
+        seqs = ((seqid, str(sequences[seqid].seq)) for seqid in seqids)
 
     records = []
     total_selected = 0
-    for seq in seqs:
-        record = fasta_str_record(seq[0], seq[1])
-        records.append(record)
+    exhausted = False
+    while exhausted is False:
+        record = next(seqs, None)
+        if record is not None:
+            record = fasta_str_record(record[0], record[1])
+            records.append(record)
+        else:
+            exhausted = True
 
-        if len(records) == limit:
-            lines = im.join_list(records, '\n')
-            fo.write_to_file(lines, out_file, 'a', '\n')
+        if len(records) == limit or exhausted is True:
+            fo.write_lines(records, out_file, write_mode='a')
             total_selected += len(records)
             records = []
-
-    if len(records) > 0:
-        lines = im.join_list(records, '\n')
-        fo.write_to_file(lines, out_file, 'a', '\n')
-        total_selected += len(records)
 
     return total_selected
 
@@ -358,7 +356,7 @@ def exclude_sequences_by_id(sequences, exclude_ids, out_file):
 
     selected_ids = (rec for rec in sequences if rec not in exclude_ids)
     total_selected = get_sequences_by_id(sequences, selected_ids,
-                                         out_file, limit=20000)
+                                         out_file)
 
     return total_selected
 

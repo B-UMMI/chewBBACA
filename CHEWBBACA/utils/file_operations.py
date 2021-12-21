@@ -317,7 +317,7 @@ def unzip_file(compressed_file, archive_type='.gz'):
 
     # save uncompressed contents
     uncompressed_file = compressed_file.rstrip('.gz')
-    fo.write_lines(lines, uncompressed_file, joiner='')
+    write_lines(lines, uncompressed_file, joiner='')
 
     return uncompressed_file
 
@@ -403,23 +403,23 @@ def write_to_file(text, output_file, write_mode, end_char):
         out.write(text+end_char)
 
 
-def write_lines(lines, output_file, joiner='\n'):
+def write_lines(lines, output_file, joiner='\n', write_mode='w'):
     """ Writes a list of strings to a file. The strings
         are joined with newlines before being written to
         file.
 
-        Parameters
-        ----------
-        lines : list
-            List with the lines/strings to write to the
-            output file.
-        output_file : str
-            Path to the output file.
+    Parameters
+    ----------
+    lines : list
+        List with the lines/strings to write to the
+        output file.
+    output_file : str
+        Path to the output file.
     """
 
     joined_lines = im.join_list(lines, joiner)
 
-    write_to_file(joined_lines, output_file, 'a', '\n')
+    write_to_file(joined_lines, output_file, write_mode, '\n')
 
 
 def read_tabular(input_file, delimiter='\t'):
@@ -445,27 +445,6 @@ def read_tabular(input_file, delimiter='\t'):
         lines = [line for line in reader]
 
     return lines
-
-
-def write_list(lines, output_file):
-    """ Writes list elements to file.
-
-        Parameters
-        ----------
-        lines : list
-            List with the lines that will be written to
-            the output file.
-        output_file : str
-            Path to the output file.
-
-        Returns
-        -------
-        Writes contents of input list to the output file
-        (function does not add any character between lines).
-    """
-
-    with open(output_file, 'w') as file:
-        file.writelines(lines)
 
 
 def input_timeout(prompt, timeout=30):
@@ -555,3 +534,10 @@ def create_short(schema_files, schema_dir):
         shutil.copy(file, short_file)
 
     return True
+
+
+def move_file(source, destination):
+    """
+    """
+
+    shutil.move(source, destination)

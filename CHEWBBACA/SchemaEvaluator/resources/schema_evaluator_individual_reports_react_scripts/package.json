@@ -43,7 +43,7 @@
     "lodash.keys": "^4.2.0",
     "logojs-react": "^2.1.1",
     "mui-datatables": "^3.7.1",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "node-sass": "^5.0.0",
     "path": "^0.12.7",
     "phylocanvas": "^2.8.1",

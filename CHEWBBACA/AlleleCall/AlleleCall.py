@@ -173,6 +173,11 @@ def select_high_score(input_file, blast_score_ratio,
         return pickle_out
 
 
+# file = f
+# sequences = all_proteins
+# cds_hashtable = dna_distinct_htable
+# prot_hashtable = distinct_pseqids
+# cds_index = dna_cds_index
 def group_by_genome(file, sequences, cds_hashtable, prot_hashtable, cds_index):
     """
     """
@@ -513,7 +518,7 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                                                           (rep_alleleid, target_seqid,
                                                            target_dna_hash, relative_size, bsr))
                     continue
-    
+
                 # add INF
                 # this will turn into NIPH if there are multiple hits for the same input
                 locus_results = update_classification(genome, locus_results,
@@ -533,12 +538,9 @@ def classify_alleles(locus, genomes_matches, representatives_info,
             # only add as representative candidate if classification is not NIPH
             inf_bsr = locus_results[genome][1][4]
             if inf_bsr >= blast_score_ratio and inf_bsr < blast_score_ratio+0.1:
-                representative_candidates.append((genome, target_seqid, m[4][3]))
+                representative_candidates.append((genome, target_seqid,
+                                                  m[4][3], target_dna_hash))
                 excluded.remove(target_seqid)
-                # # stop execution to start next iteration with new representative
-                # fo.pickle_dumper(locus_results, locus_results_file)
-                # return {locus: [locus_results_file, locus_mode,
-                #                 excluded, representative_candidates]}
 
     # save updated results
     fo.pickle_dumper(locus_results, locus_results_file)
@@ -548,6 +550,7 @@ def classify_alleles(locus, genomes_matches, representatives_info,
 
 
 # classification_files = results[0]
+# repss = results[4]
 # locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein50.fasta'
 # results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein50_results'
 def assign_ids(classification_files, schema_directory):
@@ -556,6 +559,7 @@ def assign_ids(classification_files, schema_directory):
 
     # assign allele identifiers
     new_alleles = {}
+    reps_to_add = {}
     for locus, results in classification_files.items():
         locus_id = fo.get_locus_id(locus)
         # get loci records
@@ -569,6 +573,7 @@ def assign_ids(classification_files, schema_directory):
         sorted_r = sorted(locus_results.items(),
                           key=lambda x: x[1][0] == 'INF',
                           reverse=True)
+
         for k in sorted_r:
             genome_id = k[0]
             current_results = k[1]
@@ -608,7 +613,10 @@ def assign_ids(classification_files, schema_directory):
     return new_alleles
 
 
-def add_inferred_alleles(inferred_alleles_data, sequences_file):
+# inferred_alleles_data = new_alleles
+# new_reps = reps_info
+# sequences_file = results[2]
+def add_inferred_alleles(inferred_alleles_data, new_reps, sequences_file):
     """
     """
 
@@ -616,7 +624,8 @@ def add_inferred_alleles(inferred_alleles_data, sequences_file):
     sequence_index = SeqIO.index(sequences_file, 'fasta')
 
     # count number of inferred alleles added to schema
-    total_added = 0
+    total_inferred = 0
+    total_representative = 0
     for locus_path, inferred_alleles in inferred_alleles_data.items():
         locus_id = fo.get_locus_id(locus_path)
 
@@ -625,12 +634,25 @@ def add_inferred_alleles(inferred_alleles_data, sequences_file):
                                str(sequence_index.get(a[2]).seq))
                               for a in inferred_alleles]
 
-        total_added += len(inferred_sequences)
+        total_inferred += len(inferred_sequences)
 
         updated_lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in inferred_sequences]
         fo.write_lines(updated_lines, locus_path, write_mode='a')
 
-    return total_added
+        # add representatives
+        locus_new_reps = new_reps.get(locus_id, None)
+        if locus_new_reps is not None:
+            reps_sequences = [('{0}_{1}'.format(locus_id, a[2]),
+                               str(sequence_index.get(a[0]).seq))
+                              for a in locus_new_reps]
+
+            total_representative += len(reps_sequences)
+
+            updated_lines = ['>{0}\n{1}'.format(a[0], a[1]) for a in reps_sequences]
+            locus_short_path = os.path.join(os.path.dirname(locus_path), 'short', locus_id+'_short.fasta')
+            fo.write_lines(updated_lines, locus_short_path, write_mode='a')
+
+    return [total_inferred, total_representative]
 
 
 def write_logfile(start_time, end_time, total_inputs,
@@ -876,8 +898,8 @@ def write_outputs(classification_files, inv_map, output_directory,
     return results_dir
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall2'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
@@ -1144,6 +1166,24 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     concat_reps = os.path.join(protein_dir, 'concat_reps.fasta')
     fo.concatenate_files(protein_repfiles.values(), concat_reps)
 
+    # determine self-score for representatives if file is missing
+    if os.path.isfile(os.path.join(schema_directory, 'short', '.self_scores')) is False:
+        # change identifiers to shorten and avoid BLASTp error?
+        blast_db = fo.join_paths(temp_directory, ['representatives'])
+        # will not work if file contains duplicates
+        db_stderr = bw.make_blast_db(makeblastdb_path, concat_reps,
+                                     blast_db, 'prot')
+
+        output_blast = fo.join_paths(temp_directory, ['representatives_blastout.tsv'])
+        blastp_stderr = bw.run_blast(blastp_path, blast_db, concat_reps,
+                                    output_blast, threads=cpu_cores)
+
+        current_results = fo.read_tabular(output_blast)
+        self_scores = {l[0]: l[-1] for l in current_results if l[0] == l[4]}
+
+        self_score_file = fo.join_paths(schema_directory, ['short', 'self_score'])
+        fo.pickle_dumper(self_scores, self_score_file)
+
     # create index for representative sequences
     rep_proteins = fao.import_sequences(concat_reps)
 
@@ -1277,6 +1317,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # keep iterating while new representatives are discovered
     iteration = 1
     exausted = False
+    new_reps = {}
     while exausted is False:
         # store self-score for representative to avoid including them in Fasta file!
         remaining_seqs_file = fo.join_paths(iterative_rep_dir,
@@ -1397,19 +1438,24 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # should only have 1 representative candidate per locus because
         # classification stops when a new representative is found        
 
-        representatives = {k: v[0][1] for k, v in representative_candidates.items()}
+        representatives = {k: (v[0][1], v[0][3])
+                           for k, v in representative_candidates.items()}
+
+        for k, v in representatives.items():
+            new_reps.setdefault(k, []).append(v)
 
         # remove ids from excluded that are in representative_candidates
         # those cases are exact matches against the new representatives
-        excluded = [e for e in excluded if e not in representatives.values()]
+        representative_ids = [l[0] for l in list(representatives.values())]
+        excluded = [e for e in excluded if e not in representative_ids]
 
         # keep repeated ids to match the true number of classified alleles
         # include representative candidates
-        print('Classified {0} alleles.'.format(len(excluded)+len(representatives)))
+        print('Classified {0} alleles.'.format(len(excluded)+len(representative_ids)))
         # exclude sequences that were classified
         # exclude representatives too because all alleles that are equal should have been classified
         unclassified_ids = list(set(unclassified_ids) - set(excluded))
-        unclassified_ids = list(set(unclassified_ids) - set(list(representatives.values())))
+        unclassified_ids = list(set(unclassified_ids) - set(representative_ids))
         # new representatives and alleles that amtch in other genomes should have been all classified
         print('Remaining unclassified alleles: {0}'.format(len(unclassified_ids)))
 
@@ -1423,7 +1469,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             reps_ids = []
             protein_repfiles = []
             for k, v in representatives.items():
-                reps_ids.append(v)
+                # only getting one rep
+                reps_ids.append(v[0])
                 
                 # get representatives that still have unclassified matches
                 # if any([a for a in matched_alleles[k] if a in unclassified_ids]):
@@ -1432,7 +1479,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                 
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-                fao.get_sequences_by_id(prot_index, [v], rep_file)
+                fao.get_sequences_by_id(prot_index, [v[0]], rep_file)
                 protein_repfiles.append(rep_file)
 
             # some representatives might match against common unclassified sequences
@@ -1443,7 +1490,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
     # path to Fasta file with distinct DNA sequences to get inferred alleles
-    return [classification_files, inv_map, unique_fasta, dna_distinct_htable]
+    return [classification_files, inv_map, unique_fasta, dna_distinct_htable, new_reps]
 
 
 # add output with unclassified CDSs!
@@ -1494,11 +1541,21 @@ def main(input_files, schema_directory, output_directory, ptf_path,
         for r in v:
             r.append(results[3][r[0]][0])
 
+    # get info for new representative alleles that must be added to files in the short directory
+    reps_info = {}
+    for k, v in new_alleles.items():
+        locus_id = fo.get_locus_id(k)
+        current_results = results[4].get(locus_id, None)
+        if current_results is not None:
+            for e in current_results:
+                reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
+
     if add_inferred is True:
         if len(new_alleles) > 0:
             # add inferred alleles to schema
-            added = add_inferred_alleles(new_alleles, results[2])
-            print('Added {0} novel alleles to schema.'.format(added))
+            added = add_inferred_alleles(new_alleles, reps_info, results[2])
+            print('Added {0} novel alleles to schema.'.format(added[0]))
+            print('Added {0} representative alleles to schema.'.format(added[1]))
         else:
             print('No new alleles to add to schema.')
 

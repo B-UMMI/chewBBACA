@@ -42,7 +42,7 @@
     "json-loader": "^0.5.7",
     "lodash.keys": "^4.2.0",
     "mui-datatables": "^3.7.1",
-    "node-sass": "^5.0.0",
+    "node-sass": "^7.0.0",
     "path": "^0.12.7",
     "phylocanvas": "^2.8.1",
     "phylocanvas-plugin-context-menu": "^3.11.0",

@@ -151,15 +151,21 @@ def translate_fastas(fasta_files, output_directory,
     return protein_files
 
 
+# input_file = f
+# blast_score_ratio = 0.7
+# ids_map = ids_dict
+# output_directory = clustering_dir
 def select_high_score(input_file, blast_score_ratio,
-                      ids_map, output_directory):
+                      ids_map, output_directory,
+                      self_scores):
     """
     """
 
     # import BLASTp results
     current_results = process_blast_results(input_file,
                                             blast_score_ratio,
-                                            ids_map)
+                                            ids_map,
+                                            self_scores)
 
     # only save and evaluate results for loci that
     # had at least one high BSR match
@@ -320,45 +326,60 @@ def compute_bsr(raw_score, query_raw_score):
     return bsr
 
 
-def process_blast_results(blast_output, blast_score_ratio, ids_mapping):
+# blast_output = input_file
+# ids_mapping = ids_map
+def process_blast_results(blast_output, blast_score_ratio, ids_mapping,
+                          self_scores):
     """
     """
 
     current_results = fo.read_tabular(blast_output)
 
     # get allele identifier for the representative
-    representatives_info = {ids_mapping.get(r[0], r[0]): (((int(r[3])*3)+3), float(r[5]))
-                            for r in current_results
-                            if r[0] == r[4]}
+    representatives_info = {}
+    for r in current_results:
+        current_id = ids_mapping[r[0]]
+        rep_data = self_scores[current_id]
+        representatives_info[current_id] = rep_data
 
-    # exclude representative self-alignment
-    current_results = [r for r in current_results if r[0] != r[4]]
+    # exclude representative self-alignment and alignments between representatives
+    rep_oldies = list(set([r[0] for r in current_results]))
+    current_results = [r
+                       for r in current_results
+                       if r[0] != r[4]
+                       and r[4] not in rep_oldies]
 
-    # get raw score for best matches
+    # get best raw score for each target
     raw_scores = {}
     for r in current_results:
+        # add first ocurrence
         if r[4] not in raw_scores:
             raw_scores[r[4]] = r
-        # only keep the match with the greatest score for each target
-        # several representatives from the same locus might match the target
+        # target has >1 matches against representatives
         elif r[4] in raw_scores:
+            # compare previous and current raw scores
             current_score = float(r[5])
             previous_score = float(raw_scores[r[4]][5])
+            # switch match if current raw score is greater
             if current_score > previous_score:
                 raw_scores[r[4]] = r
 
     # determine BSR values
-    bsr_values = {ids_mapping.get(k, k): (compute_bsr(float(v[5]), representatives_info[ids_mapping.get(v[0], v[0])][1]),
-                                   (int(v[1])-1)*3,  # subtract 1 to exclude start position
-                                   (int(v[2])+1)*3,  # add 1 to include stop codon
-                                   ids_mapping.get(v[0], v[0]),
-                                   ids_mapping.get(v[0], v[0]).split('_')[-1])
-                  for k, v in raw_scores.items()}
+    bsr_values = {}
+    for k, v in raw_scores.items():
+        current_id = ids_mapping[k]
+        rep_id = ids_mapping[v[0]]
+        bsr = compute_bsr(float(v[5]), representatives_info[rep_id][1])
+        target_len = (int(v[1])-1)*3 # subtract 1 to exclude start position
+        rep_len = (int(v[2])+1)*3 # add 1 to include stop codon
+        bsr_values[current_id] = (bsr,
+                                  target_len,
+                                  rep_len,
+                                  rep_id,
+                                  rep_id.split('_')[-1])
 
     # only keep matches above BSR threshold
-    high_bsr = {k: v
-                for k, v in bsr_values.items()
-                if v[0] >= blast_score_ratio}
+    high_bsr = {k: v for k, v in bsr_values.items() if v[0] >= blast_score_ratio}
 
     return [high_bsr, representatives_info]
 
@@ -900,7 +921,7 @@ def write_outputs(classification_files, inv_map, output_directory,
 
 input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall2'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
 minimum_length = 201
@@ -1167,7 +1188,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     fo.concatenate_files(protein_repfiles.values(), concat_reps)
 
     # determine self-score for representatives if file is missing
-    if os.path.isfile(os.path.join(schema_directory, 'short', '.self_scores')) is False:
+    self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+    if os.path.isfile(self_score_file) is False:
         # change identifiers to shorten and avoid BLASTp error?
         blast_db = fo.join_paths(temp_directory, ['representatives'])
         # will not work if file contains duplicates
@@ -1179,10 +1201,15 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                     output_blast, threads=cpu_cores)
 
         current_results = fo.read_tabular(output_blast)
-        self_scores = {l[0]: l[-1] for l in current_results if l[0] == l[4]}
+        # get raw score and sequence length
+        self_scores = {l[0]: ((int(l[3])*3)+3, float(l[-1]))
+                       for l in current_results
+                       if l[0] == l[4]}
 
-        self_score_file = fo.join_paths(schema_directory, ['short', 'self_score'])
         fo.pickle_dumper(self_scores, self_score_file)
+    # import data for representatives
+    else:
+        self_scores = fo.pickle_loader(self_score_file)
 
     # create index for representative sequences
     rep_proteins = fao.import_sequences(concat_reps)
@@ -1198,12 +1225,12 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # exclude singletons
     clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
 
-    # BLASTp is there are clusters with n>1
+    # BLASTp if there are clusters with n>1
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
         fo.create_directory(blasting_dir)
         all_prots = os.path.join(blasting_dir, 'all_prots.fasta')
-        
+
         # create Fasta file with remaining proteins and representatives
         fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
 
@@ -1228,7 +1255,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # exclude results in the BSR+0.1 threshold
         # process representative candidates in later stage
         outfile = select_high_score(f, blast_score_ratio+0.1,
-                                    ids_dict, clustering_dir)
+                                    ids_dict, clustering_dir,
+                                    self_scores)
         if outfile is not None:
             high_scoring.append(outfile)
 
@@ -1371,7 +1399,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         high_scoring = []
         for f in output_files:
             outfile = select_high_score(f, blast_score_ratio,
-                                        {}, iterative_rep_dir)
+                                        {}, iterative_rep_dir,
+                                        self_scores)
             if outfile is not None:
                 high_scoring.append(outfile)
 

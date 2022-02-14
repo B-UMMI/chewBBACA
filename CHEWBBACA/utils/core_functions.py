@@ -665,6 +665,10 @@ def cluster_intra_filter(clusters, sequences, word_size,
     return [pruned_clusters, intra_excluded]
 
 
+# sequences = all_proteins
+# output_directory = blasting_dir
+# file_prefix = 'blast'
+# only_rep = True
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
                    file_prefix, only_rep=False):
@@ -739,7 +743,8 @@ def blast_clusters(clusters, sequences, output_directory,
     os.mkdir(blast_results_dir)
 
     # create files with replaced sequence identifiers per cluster
-    seqids_to_blast = sc.blast_inputs(clusters, blast_results_dir, ids_dict)
+    seqids_to_blast = sc.blast_inputs(clusters, blast_results_dir, ids_dict,
+                                      only_rep)
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
@@ -747,6 +752,12 @@ def blast_clusters(clusters, sequences, output_directory,
                                              process_num,
                                              'seqcount')
 
+    # indexing the file and providing the index as argument does not work, why?
+    # indexed_fasta = SeqIO.index(integer_clusters, 'fasta')
+
+    # common_args = [indexed_fasta, blast_results_dir, blastp_path,
+    #                blast_db, only_rep, sc.cluster_blaster]
+    
     common_args = [integer_clusters, blast_results_dir, blastp_path,
                    blast_db, only_rep, sc.cluster_blaster]
 

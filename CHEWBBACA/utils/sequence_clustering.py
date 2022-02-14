@@ -458,12 +458,12 @@ def representative_pruner(clusters, sim_cutoff):
     return [pruned_clusters, excluded]
 
 
-#seqids = splitted_seqids[0][0]
-#sequences = splitted_seqids[0][1]
-#output_directory = splitted_seqids[0][2]
-#blast_path = splitted_seqids[0][3]
-#blastdb_path = splitted_seqids[0][4]
-#only_rep = True
+# seqids = splitted_seqids[0][0]
+# sequences = splitted_seqids[0][1]
+# output_directory = splitted_seqids[0][2]
+# blast_path = splitted_seqids[0][3]
+# blastdb_path = splitted_seqids[0][4]
+# only_rep = True
 def cluster_blaster(seqids, sequences, output_directory,
                     blast_path, blastdb_path, only_rep=False):
     """ Aligns sequences in the same cluster with BLAST.
@@ -491,6 +491,7 @@ def cluster_blaster(seqids, sequences, output_directory,
             results for each cluster.
     """
 
+    # have to index file here, cannot provide index as argument while multiprocessing, why?
     indexed_fasta = SeqIO.index(sequences, 'fasta')
 
     out_files = []
@@ -500,17 +501,16 @@ def cluster_blaster(seqids, sequences, output_directory,
         ids_file = os.path.join(output_directory,
                                 '{0}_ids.txt'.format(cluster_id))
 
-        with open(ids_file, 'r') as clstr:
-            cluster_ids = [l.strip() for l in clstr.readlines()]
-
         fasta_file = os.path.join(output_directory,
                                   '{0}_protein.fasta'.format(cluster_id))
-        
+
         if only_rep is False:
+            with open(ids_file, 'r') as clstr:
+                cluster_ids = [l.strip() for l in clstr.readlines()]
             # create file with protein sequences
             fao.get_sequences_by_id(indexed_fasta, cluster_ids, fasta_file)
         else:
-            fao.get_sequences_by_id(indexed_fasta, [cluster_ids[0]], fasta_file)
+            fao.get_sequences_by_id(indexed_fasta, [cluster_id], fasta_file)
 
         blast_output = os.path.join(output_directory,
                                     '{0}_blast_out.tsv'.format(cluster_id))
@@ -528,7 +528,7 @@ def cluster_blaster(seqids, sequences, output_directory,
     return out_files
 
 
-def blast_inputs(clusters, output_directory, ids_dict):
+def blast_inputs(clusters, output_directory, ids_dict, only_rep):
     """ Creates files with the identifiers of the sequences
         in each cluster.
 
@@ -565,7 +565,12 @@ def blast_inputs(clusters, output_directory, ids_dict):
 
         cluster_file = os.path.join(output_directory,
                                     '{0}_ids.txt'.format(rev_ids[rep]))
-        cluster_ids = [rev_ids[rep]] + [rev_ids[seqid[0]] for seqid in clusters[rep]]
+        if only_rep is False:
+            cluster_ids = [rev_ids[rep]] + [rev_ids[seqid[0]]
+                                            for seqid in clusters[rep]]
+        else:
+            cluster_ids = [rev_ids[seqid[0]] for seqid in clusters[rep]]
+
         cluster_lines = im.join_list(cluster_ids, '\n')
         fo.write_to_file(cluster_lines, cluster_file, 'w', '')
         ids_to_blast.append((rev_ids[rep], len(cluster_ids)))

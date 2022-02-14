@@ -152,9 +152,8 @@ def translate_fastas(fasta_files, output_directory,
 
 
 # input_file = f
-# blast_score_ratio = 0.7
-# ids_map = ids_dict
-# output_directory = clustering_dir
+# ids_map = {}
+# output_directory = iterative_rep_dir
 def select_high_score(input_file, blast_score_ratio,
                       ids_map, output_directory,
                       self_scores):
@@ -338,9 +337,14 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping,
     # get allele identifier for the representative
     representatives_info = {}
     for r in current_results:
-        current_id = ids_mapping[r[0]]
+        if len(ids_mapping) > 0:
+            current_id = ids_mapping[r[0]]
+        else:
+            current_id = r[0]
         rep_data = self_scores[current_id]
         representatives_info[current_id] = rep_data
+
+# this might be removed later on if the alignments never include self-rep alignments
 
     # exclude representative self-alignment and alignments between representatives
     rep_oldies = list(set([r[0] for r in current_results]))
@@ -367,8 +371,13 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping,
     # determine BSR values
     bsr_values = {}
     for k, v in raw_scores.items():
-        current_id = ids_mapping[k]
-        rep_id = ids_mapping[v[0]]
+        if len(ids_mapping) > 0:
+            current_id = ids_mapping[k]
+            rep_id = ids_mapping[v[0]]
+        else:
+            current_id = k
+            rep_id = v[0]
+
         bsr = compute_bsr(float(v[5]), representatives_info[rep_id][1])
         target_len = (int(v[1])-1)*3 # subtract 1 to exclude start position
         rep_len = (int(v[2])+1)*3 # add 1 to include stop codon
@@ -1352,7 +1361,10 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                             ['remaining_prots_iter{0}.fasta'.format(iteration)])
         # create Fasta with sequences that were not classified
         # need to solve issue related with duplicated ids
-        fao.get_sequences_by_id(prot_index, unclassified_ids+reps_ids,
+        # fao.get_sequences_by_id(prot_index, unclassified_ids+reps_ids,
+        #                         remaining_seqs_file, limit=50000)
+        # create file only with unclassified sequences
+        fao.get_sequences_by_id(prot_index, unclassified_ids,
                                 remaining_seqs_file, limit=50000)
 
         # change identifiers to shorten and avoid BLASTp error?
@@ -1366,6 +1378,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         print('Representative sets to BLAST against remaining '
               'sequences: {0}\n'.format(len(protein_repfiles)))
 
+        # save files with unclassified ids
+        unclassified_file = fo.join_paths(iterative_rep_dir,
+                                          ['unclassified_ids_iter{0}.txt'.format(iteration)])
+        fo.write_lines(unclassified_ids, unclassified_file)
+
         # create BLASTp inputs
         output_files = []
         blast_inputs = []
@@ -1374,19 +1391,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             outfile = fo.join_paths(iterative_rep_dir,
                                     [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
-            # create file with ids to BLAST against
-            # get rep ids
-            current_repids = [rec.id
-                              for rec in SeqIO.parse(file, 'fasta')]
-            # add remaining ids
-            current_repids.extend(unclassified_ids)
-            # save file with ids
-            current_file = fo.join_paths(iterative_rep_dir,
-                                         [locus_id+'_ids_iter{0}.txt'.format(iteration)])
-            fo.write_lines(current_repids, current_file)
 
             blast_inputs.append([blastp_path, blast_db, file, outfile,
-                                 1, 1, current_file, bw.run_blast])
+                                 1, 1, unclassified_file, bw.run_blast])
 
         # BLAST representatives against unclassified sequences
         print('BLASTing...\n')
@@ -1411,11 +1418,37 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                       distinct_pseqids, dna_cds_index)
             loci_results[results[0]] = results[1]
 
-        # need to identify representatives that matched several alleles
-        matched_alleles = {}
+        # if we have more than one representative candidate per locus
+        # need to remove all except the first one so that the next iteration
+        # might select any of the removed candidates as a new representative
+
+        # maybe we can simply limit the number of BLAST hits to 1? That would simplify the processing steps...but would increase run time...
+        reps_to_repeat = []
         for k, v in loci_results.items():
+            matches = {}
+            genomes_matched = []
             for g, m in v[0].items():
-                matched_alleles.setdefault(k, []).append(m[0][0])
+                # new prot hash and BSR < 0.7
+                if m[0][1] not in matches and m[0][4][0] < 0.7:
+                    matches[m[0][1]] = m[0][4][0]
+                    genomes_matched.append(g)
+
+            if len(matches) > 1:
+                print(matches, genomes_matched)
+                reps_to_repeat.append(v[1])
+                
+                # remove entried from results
+                for i in genomes_matched[1:]:
+                    del(loci_results[k][0][i])
+
+        reps_repeating = []
+        for l in reps_to_repeat:
+            reps_repeating.extend([k for k in l])
+
+        reps_repeating_files = []
+        for f in reps_repeating:
+            locus_id = fo.get_locus_id(f)
+            reps_repeating_files.extend([i for i in protein_repfiles if locus_id+'_short_protein.fasta' in i])
 
         print('\nLoci with new hits: '
               '{0}'.format(len(loci_results)))
@@ -1511,15 +1544,45 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                 fao.get_sequences_by_id(prot_index, [v[0]], rep_file)
                 protein_repfiles.append(rep_file)
 
+            # determine self-score for new reps
+            # concatenate reps
+            concat_repy = fo.join_paths(iterative_rep_dir, ['{0}_concat_reps.fasta'.format(iteration)])
+            fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
+
+            blast_db = fo.join_paths(iterative_rep_dir, ['representatives_{0}'.format(iteration)])
+            # will not work if file contains duplicates
+            db_stderr = bw.make_blast_db(makeblastdb_path, concat_repy,
+                                         blast_db, 'prot')
+
+            output_blast = fo.join_paths(iterative_rep_dir, ['representatives_blastout_{0}.tsv'.format(iteration)])
+            blastp_stderr = bw.run_blast(blastp_path, blast_db, concat_repy,
+                                         output_blast, threads=cpu_cores)
+        
+            current_results = fo.read_tabular(output_blast)
+            # get raw score and sequence length
+            new_self_scores = {l[0]: ((int(l[3])*3)+3, float(l[-1]))
+                               for l in current_results
+                               if l[0] == l[4]}
+        
+            self_scores = {**self_scores, **new_self_scores}
+
             # some representatives might match against common unclassified sequences
             # those are paralogous
             # determine set to avoid BLASTdb error related with duplicated sequences
-            reps_ids = list(set(reps_ids))
+            # reps_repeating = []
+            # for l in reps_to_repeat:
+            #     reps_repeating.extend([k for k in l])
+
+            reps_ids = list(set(reps_ids+reps_repeating))
+            
+            protein_repfiles = list(set(protein_repfiles+reps_repeating_files))
+            
+            # append fasta files for reps that will be repeated
 
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
     # path to Fasta file with distinct DNA sequences to get inferred alleles
-    return [classification_files, inv_map, unique_fasta, dna_distinct_htable, new_reps]
+    return [classification_files, inv_map, unique_fasta, dna_distinct_htable, new_reps, self_scores]
 
 
 # add output with unclassified CDSs!
@@ -1578,6 +1641,24 @@ def main(input_files, schema_directory, output_directory, ptf_path,
         if current_results is not None:
             for e in current_results:
                 reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
+
+    # update self_scores
+    for k, v in reps_info.items():
+        for r in v:
+            new_id = k+'_'+r[-1]
+            results[-1][new_id] = results[-1][r[0]]
+        
+    # delete old entries
+    for k, v in reps_info.items():
+        for r in v:
+            try:
+                del(results[-1][r[0]])
+            except:
+                continue
+
+    # save updated self-scores
+    self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+    fo.pickle_dumper(results[-1], self_score_file)
 
     if add_inferred is True:
         if len(new_alleles) > 0:

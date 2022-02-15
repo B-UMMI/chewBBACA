@@ -928,27 +928,27 @@ def write_outputs(classification_files, inv_map, output_directory,
     return results_dir
 
 
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-add_inferred = True
-no_cleanup = True
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall5'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+# add_inferred = True
+# no_cleanup = True
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1361,8 +1361,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                             ['remaining_prots_iter{0}.fasta'.format(iteration)])
         # create Fasta with sequences that were not classified
         # need to solve issue related with duplicated ids
-        # fao.get_sequences_by_id(prot_index, unclassified_ids+reps_ids,
-        #                         remaining_seqs_file, limit=50000)
         # create file only with unclassified sequences
         fao.get_sequences_by_id(prot_index, unclassified_ids,
                                 remaining_seqs_file, limit=50000)
@@ -1422,8 +1420,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # need to remove all except the first one so that the next iteration
         # might select any of the removed candidates as a new representative
 
-        # maybe we can simply limit the number of BLAST hits to 1? That would simplify the processing steps...but would increase run time...
-        reps_to_repeat = []
+        reps_to_repeat = {}
         for k, v in loci_results.items():
             matches = {}
             genomes_matched = []
@@ -1434,21 +1431,11 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                     genomes_matched.append(g)
 
             if len(matches) > 1:
-                print(matches, genomes_matched)
-                reps_to_repeat.append(v[1])
+                reps_to_repeat.setdefault(k, []).append(v[1])
                 
-                # remove entried from results
+                # remove entries from results
                 for i in genomes_matched[1:]:
                     del(loci_results[k][0][i])
-
-        reps_repeating = []
-        for l in reps_to_repeat:
-            reps_repeating.extend([k for k in l])
-
-        reps_repeating_files = []
-        for f in reps_repeating:
-            locus_id = fo.get_locus_id(f)
-            reps_repeating_files.extend([i for i in protein_repfiles if locus_id+'_short_protein.fasta' in i])
 
         print('\nLoci with new hits: '
               '{0}'.format(len(loci_results)))
@@ -1477,6 +1464,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                           blast_score_ratio,
                                           classify_alleles])
 
+        # some data in results has truncated ids, why?
         class_results = mo.map_async_parallelizer(classification_inputs,
                                                   mo.function_helper,
                                                   cpu_cores,
@@ -1531,18 +1519,27 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             reps_ids = []
             protein_repfiles = []
             for k, v in representatives.items():
+                # get new representative for locus
                 # only getting one rep
-                reps_ids.append(v[0])
-                
-                # get representatives that still have unclassified matches
-                # if any([a for a in matched_alleles[k] if a in unclassified_ids]):
-                #     print(k)
-                #     reps_ids.extend()
-                
+                current_new_rep = v[0]
+                reps_ids.append(current_new_rep)
+
+                # add previous representatives that had multiple BSR < 0.7 matches
+                current_previous_reps = reps_to_repeat.get(k, None)
+                if current_previous_reps is not None:
+                    current_previous_reps = [list(r.keys()) for r in current_previous_reps]
+                    current_previous_reps = im.flatten_list(current_previous_reps)
+                else:
+                    current_previous_reps = []
+
+                current_rep_ids = [current_new_rep]+current_previous_reps
+
+                # this might create files for representatives that already have a file
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-                fao.get_sequences_by_id(prot_index, [v[0]], rep_file)
+                fao.get_sequences_by_id(prot_index, current_rep_ids, rep_file)
                 protein_repfiles.append(rep_file)
+                #print(rep_file, len(current_rep_ids))
 
             # determine self-score for new reps
             # concatenate reps
@@ -1557,27 +1554,19 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             output_blast = fo.join_paths(iterative_rep_dir, ['representatives_blastout_{0}.tsv'.format(iteration)])
             blastp_stderr = bw.run_blast(blastp_path, blast_db, concat_repy,
                                          output_blast, threads=cpu_cores)
-        
+
             current_results = fo.read_tabular(output_blast)
             # get raw score and sequence length
             new_self_scores = {l[0]: ((int(l[3])*3)+3, float(l[-1]))
                                for l in current_results
                                if l[0] == l[4]}
         
+            # need to be careful not to update this if user does not want to add inferred alleles...
             self_scores = {**self_scores, **new_self_scores}
 
             # some representatives might match against common unclassified sequences
             # those are paralogous
             # determine set to avoid BLASTdb error related with duplicated sequences
-            # reps_repeating = []
-            # for l in reps_to_repeat:
-            #     reps_repeating.extend([k for k in l])
-
-            reps_ids = list(set(reps_ids+reps_repeating))
-            
-            protein_repfiles = list(set(protein_repfiles+reps_repeating_files))
-            
-            # append fasta files for reps that will be repeated
 
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
@@ -1626,48 +1615,51 @@ def main(input_files, schema_directory, output_directory, ptf_path,
           'PLOT5: {PLOT5}\n'
           'LOTSC: {LOTSC}\n'.format(**global_counts))
 
-    new_alleles = assign_ids(results[0], schema_directory)
+    if only_exact is False:
 
-    # get seqids that match hashes
-    for k, v in new_alleles.items():
-        for r in v:
-            r.append(results[3][r[0]][0])
-
-    # get info for new representative alleles that must be added to files in the short directory
-    reps_info = {}
-    for k, v in new_alleles.items():
-        locus_id = fo.get_locus_id(k)
-        current_results = results[4].get(locus_id, None)
-        if current_results is not None:
-            for e in current_results:
-                reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
-
-    # update self_scores
-    for k, v in reps_info.items():
-        for r in v:
-            new_id = k+'_'+r[-1]
-            results[-1][new_id] = results[-1][r[0]]
-        
-    # delete old entries
-    for k, v in reps_info.items():
-        for r in v:
-            try:
-                del(results[-1][r[0]])
-            except:
-                continue
-
-    # save updated self-scores
-    self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
-    fo.pickle_dumper(results[-1], self_score_file)
-
-    if add_inferred is True:
-        if len(new_alleles) > 0:
-            # add inferred alleles to schema
-            added = add_inferred_alleles(new_alleles, reps_info, results[2])
-            print('Added {0} novel alleles to schema.'.format(added[0]))
-            print('Added {0} representative alleles to schema.'.format(added[1]))
-        else:
-            print('No new alleles to add to schema.')
+        new_alleles = assign_ids(results[0], schema_directory)
+    
+        # get seqids that match hashes
+        for k, v in new_alleles.items():
+            for r in v:
+                r.append(results[3][r[0]][0])
+    
+        # get info for new representative alleles that must be added to files in the short directory
+        reps_info = {}
+        for k, v in new_alleles.items():
+            locus_id = fo.get_locus_id(k)
+            current_results = results[4].get(locus_id, None)
+            if current_results is not None:
+                for e in current_results:
+                    reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
+    
+        # need to be careful not to update this if user does not want to add inferred alleles...
+        # update self_scores
+        for k, v in reps_info.items():
+            for r in v:
+                new_id = k+'_'+r[-1]
+                results[-1][new_id] = results[-1][r[0]]
+            
+        # delete old entries
+        for k, v in reps_info.items():
+            for r in v:
+                try:
+                    del(results[-1][r[0]])
+                except:
+                    continue
+        # need to be careful not to update this if user does not want to add inferred alleles...
+        # save updated self-scores
+        self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+        fo.pickle_dumper(results[-1], self_score_file)
+    
+        if add_inferred is True:
+            if len(new_alleles) > 0:
+                # add inferred alleles to schema
+                added = add_inferred_alleles(new_alleles, reps_info, results[2])
+                print('Added {0} novel alleles to schema.'.format(added[0]))
+                print('Added {0} representative alleles to schema.'.format(added[1]))
+            else:
+                print('No new alleles to add to schema.')
 
     end_time = pdt.get_datetime()
 

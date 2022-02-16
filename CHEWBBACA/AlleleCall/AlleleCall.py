@@ -256,8 +256,11 @@ def dna_exact_matches(fasta_file, distinct_table, locus_classifications):
                               sequence_hash, 'EXC', 1.0)
                 locus_classifications = update_classification(m, locus_classifications,
                                                               match_info, 'NIPHEM')
-
-            matches_ids.append(current_matches[0])
+            
+            # append representative id for the sequences
+            #matches_ids.append(current_matches[0])
+            # try to use the hash to then get the sequences that did not have exact matches
+            matches_ids.append(sequence_hash)
 
     return [locus_classifications, matches_ids, total_matches]
 
@@ -928,27 +931,41 @@ def write_outputs(classification_files, inv_map, output_directory,
     return results_dir
 
 
-# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
-# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall5'
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# representative_filter = 0.9
-# intra_filter = 0.9
-# cpu_cores = 6
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-# prodigal_mode = 'single'
-# cds_input = False
-# only_exact = False
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-# add_inferred = True
-# no_cleanup = True
+def create_classification_file(locus_id, output_directory, classifications):
+    """
+    """
+
+    empty_results = {}
+    pickle_out = fo.join_paths(output_directory,
+                               [locus_id+'_results'])
+
+    # create file with empty results structure
+    fo.pickle_dumper(empty_results, pickle_out)
+
+    return pickle_out
+
+
+#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+representative_filter = 0.9
+intra_filter = 0.9
+cpu_cores = 6
+blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+prodigal_mode = 'single'
+cds_input = False
+only_exact = False
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+add_inferred = True
+no_cleanup = True
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -964,21 +981,17 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # read file with paths to input files
     fasta_files = fo.read_lines(input_files, strip=True)
 
-################
-# Genomes are not being classified in the order they were sorted
-# leading to incorrect order of INF and EXC in the matrix!
-
     # sort paths to FASTA files
-    fasta_files = im.sort_data(fasta_files, sort_key=str.lower)
+    fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
 
     # map full paths to basename
-    inputs_basenames = fo.mapping_function(fasta_files,
+    inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
 
     # map input identifiers to integers
     # use the mapped integers to refer to each input
     # this reduces memory usage compared to using the string identifiers
-    map_ids = im.integer_mapping(list(inputs_basenames.values()))
+    map_ids = im.integer_mapping(inputs_basenames.values())
     inv_map = im.invert_dictionary(map_ids)
 
     # inputs are genome assemblies
@@ -998,17 +1011,17 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                       cpu_cores, prodigal_path,
                                       output_directory)
 
-        failed, failed_file = gp_results
+        if gp_results is not None:
+            failed, failed_file = gp_results
 
-        if len(failed) > 0:
             print('\nFailed to predict genes for {0} genomes'
                   '.'.format(len(failed)))
             print('Make sure that Prodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
             print('Info for failed cases stored in: {0}'.format(failed_file))
 
-        # remove failed genomes from paths
-        fasta_files = im.filter_list(fasta_files, failed)
+            # remove failed genomes from paths
+            fasta_files = im.filter_list(fasta_files, failed)
 
         if len(fasta_files) == 0:
             sys.exit('\nCould not predict gene sequences from any '
@@ -1055,22 +1068,17 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                      substring_filter='.fasta')
 
     # get mapping between locus file path and locus identifier
-    loci_basenames = fo.mapping_function(loci_files, fo.get_locus_id, [])
+    loci_basenames = im.mapping_function(loci_files, fo.get_locus_id, [])
     print('schema has {0} loci.'.format(len(loci_files)))
 
     # create files with empty results data structure
-    classification_files = {}
     empty_results = {}
-    for file in loci_files:
-        pickle_out = fo.join_paths(preprocess_dir,
-                                   [loci_basenames[file]+'_results'])
-
-        # create file with empty results structure
-        fo.pickle_dumper(empty_results, pickle_out)
-        classification_files[file] = pickle_out
+    inputs = [[loci_basenames[file], preprocess_dir, empty_results]
+              for file in loci_files]
+    classification_files = {file: create_classification_file(*inputs[i])
+                            for i, file in enumerate(loci_files)}
 
     print('Finding DNA exact matches...', end='')
-    # find exact DNA matches
     # Add multiprocessing?
     # use psutil library to get free memory and decide maximum number of processes to spawn?
     dna_exact_hits = 0
@@ -1087,6 +1095,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('found {0} exact matches (matching {1} alleles).'
           ''.format(dna_exact_hits, len(dna_matches_ids)))
 
+    # user only wants to determine exact matches
     if only_exact is True:
         # return classification files for creation of output files
         return [classification_files, inv_map, []]
@@ -1102,8 +1111,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                                  unique_fasta)
 
     # verify if having these identifiers in memory is problematic for huge datasets
-    selected_ids = (rec for rec in dna_index if rec not in dna_matches_ids)
-    selected_ids = list(selected_ids)
+    selected_ids = [rec for rec in dna_index if rec not in dna_matches_ids]
 
     # translate DNA sequences and identify duplicates
     print('\nTranslating {0} DNA sequences...'.format(total_selected))
@@ -1127,6 +1135,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
           'stored in {0}'.format(invalid_alleles_file))
 
     # protein sequences deduplication step
+    # we can add multiprocessing to this step if the function that translates does not concatenate the files with translated sequences
     print('\nRemoving duplicated protein sequences...', end='')
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
@@ -1138,11 +1147,13 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('Translating schema alleles...')
     protein_dir = os.path.join(temp_directory, '4_protein_dir')
     fo.create_directory(protein_dir)
+    # alleles that code for the same protein will be represented several times. Is it problematic?
     protein_files = translate_fastas(loci_files, protein_dir,
                                      translation_table, cpu_cores)
 
     # identify exact matches at protein level
     # exact matches are novel alleles that can be added to the schema
+    # this reports a huge number for the dataset with 320 genomes. Is it normal?
     print('\nFinding protein exact matches...', end='')
     exc_cds = 0
     exc_prot = 0
@@ -1157,12 +1168,14 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         fo.pickle_dumper(em_results[0], results_file)
         exact_phashes.extend(em_results[1])
         exc_prot += em_results[2]
+        # this reports a huge number for the dataset with 320 genomes. Is it normal?
         exc_cds += em_results[3]
 
     # need to determine number of distinct proteins to print correct info!!!
     print('found {0} protein exact matches (matching {1} distinct proteins).'
           ''.format(exc_prot, len(exact_phashes)))
 
+    # this reports a huge number for the dataset with 320 genomes. Is it normal?
     print('Protein matches correspond to {0} DNA matches.'.format(exc_cds))
 
     # create new Fasta file without the Protein sequences that were exact matches

@@ -53,33 +53,33 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
     """ Parallelizes function calls by creating several processes
         and distributing inputs.
 
-        Parameters
-        ----------
-        inputs : list
-            List with inputs to process.
-        function
-            Function to be parallelized.
-        cpu : int
-            Number of processes to create (based on the
-            number of cores).
-        callback : str
-            Results can be appended, 'append', to the
-            list that stores results or the list of results
-            can be extended, 'extend'.
-        chunksize : int
-            Size of input chunks that will be passed to
-            each process. The function will create groups
-            of inputs with this number of elements.
-        show_progress: bool
-            True to show a progress bar with the percentage
-            of inputs that have been processed, False
-            otherwise.
+    Parameters
+    ----------
+    inputs : list
+        List with inputs to process.
+    function
+        Function to be parallelized.
+    cpu : int
+        Number of processes to create (based on the
+        number of cores).
+    callback : str
+        Results can be appended, "append", to the
+        list that stores results or the list of results
+        can be extended, "extend".
+    chunksize : int
+        Size of input chunks that will be passed to
+        each process. The function will create groups
+        of inputs with this number of elements.
+    show_progress: bool
+        True to show a progress bar with the percentage
+        of inputs that have been processed, False
+        otherwise.
 
-        Returns
-        -------
-        results : list
-            List with the results returned for each function
-            call.
+    Returns
+    -------
+    results : list
+        List with the results returned for each function
+        call.
     """
 
     results = []
@@ -102,26 +102,26 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
 
 
 def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
-    """ Creates and prints progress bar to stdout.
+    """ Creates and prints a progress bar to the stdout.
 
-        Parameters
-        ----------
-        process : multiprocessing.pool.MapResult
-            Multiprocessing object.
-        total : int
-            Total number of inputs that have to be processed.
-        tickval : int
-            Progress completion percentage value for each
-            tick.
-        ticknum : int
-            Total number of ticks in progress bar.
-        completed : bool
-            Boolean indicating if process has completed.
+    Parameters
+    ----------
+    process : multiprocessing.pool.MapResult
+        Multiprocessing object.
+    total : int
+        Total number of inputs that have to be processed.
+    tickval : int
+        Progress completion percentage value for each
+        tick.
+    ticknum : int
+        Total number of ticks in progress bar.
+    completed : bool
+        Boolean indicating if process has completed.
 
-        Returns
-        -------
-        completed : bool
-            Boolean indicating if process has completed.
+    Returns
+    -------
+    completed : bool
+        Boolean indicating if all inputs have been processed.
     """
 
     # check if process has finished

@@ -17,7 +17,8 @@ import sys
 from Bio import SeqIO
 
 try:
-    from utils import (blast_wrapper as bw,
+    from utils import (constants as ct,
+                       blast_wrapper as bw,
                        gene_prediction as gp,
                        file_operations as fo,
                        fasta_operations as fao,
@@ -26,7 +27,8 @@ try:
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import (blast_wrapper as bw,
+    from CHEWBBACA.utils import (constants as ct,
+                                 blast_wrapper as bw,
                                  gene_prediction as gp,
                                  file_operations as fo,
                                  fasta_operations as fao,
@@ -42,43 +44,36 @@ def predict_genes(fasta_files, ptf_path, translation_table,
     """ Runs Prodigal to predict coding sequences from FASTA
         files with genomic sequences.
 
-        Parameters
-        ----------
-        fasta_files : list
-            List of paths to FASTA files with genomic
-            sequences.
-        ptf_path : str
-            Path to the Prodigal training file. Should
-            be a NoneType if a training file is not provided.
-        translation_table : int
-            Genetic code used to predict and translate
-            coding sequences.
-        prodigal_mode : str
-            Prodigal execution mode.
-        cpu_cores : int
-            Number of processes that will run Prodigal in
-            parallel.
-        temp_directory : str
-            Path to the directory where output files
-            with Prodigal's results will be stored in.
-        output_directory : str
-            Path to the main output directory of the process.
+    Parameters
+    ----------
+    fasta_files : list
+        List of paths to FASTA files with genomic
+        sequences.
+    ptf_path : str
+        Path to the Prodigal training file. Should
+        be NoneType if a training file is not provided.
+    translation_table : int
+        Genetic code used to predict and translate
+        coding sequences.
+    prodigal_mode : str
+        Prodigal execution mode.
+    cpu_cores : int
+        Number of processes that will run Prodigal in
+        parallel.
+    output_directory : str
+        Path to the directory where output files
+        with Prodigal's results will be stored in.
+    parent_directory : str
+        Path to the main output directory of the process.
 
-        Returns
-        -------
-        A list with the following elements:
-            fasta_files : list
-                Input list without the paths to the files
-                that Prodigal could not predict genes for.
-            prodigal_path : str
-                Path to the directory with the files with
-                Prodigal results.
-
-        Raises
-        ------
-        SystemExit
-            If Prodigal could not predict genes for any of
-            the input files.
+    Returns
+    -------
+    failed_info : list
+        List that contains a list with the stderr for the
+        cases that Prodigal failed to predict genes for
+        and the path to the file with information about
+        failed cases. Returns NoneType if gene prediction
+        succeeded for all inputs.
     """
 
     # divide input genomes into equal number of sublists for
@@ -101,10 +96,10 @@ def predict_genes(fasta_files, ptf_path, translation_table,
                                                  show_progress=True)
 
     # determine if Prodigal predicted genes for all genomes
-    failed, failed_file = gp.check_prodigal_results(prodigal_results,
-                                                    parent_directory)
+    failed_info = gp.check_prodigal_results(prodigal_results,
+                                              parent_directory)
 
-    return [failed, failed_file]
+    return failed_info
 
 
 def extract_genes(fasta_files, prodigal_path, cpu_cores,
@@ -113,27 +108,30 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
         sequences and saves coding sequences and info about coding
         sequences.
 
-        Parameters
-        ----------
-        fasta_files : list
-            List of paths to FASTA files with genomic sequences.
-        prodigal_path : str
-            Path to the directory with the files with Prodigal
-            results.
-        cpu_cores : int
-            Number of processes that will extract coding sequences
-            in parallel.
-        temp_directory : str
-            Path to the directory where FASTA files with extracted
-            coding sequences will be stored in.
-        output_directory : str
-            Path to the main output directory of the process.
+    Parameters
+    ----------
+    fasta_files : list
+        List of paths to FASTA files with genomic sequences.
+    prodigal_path : str
+        Path to the directory with the files with Prodigal
+        results.
+    cpu_cores : int
+        Number of processes that will extract coding sequences
+        in parallel.
+    temp_directory : str
+        Path to the directory where FASTA files with extracted
+        coding sequences will be stored in.
+    parent_directory : str
+        Path to the main output directory of the process.
 
-        Returns
-        -------
-        cds_files : list
-            List with paths to the FASTA files that contain
-            extracted coding sequences.
+    Returns
+    -------
+    cds_files : list
+        List with paths to the FASTA files that contain
+        extracted coding sequences.
+    total_extracted : int
+        Total number of coding sequences extracted from the
+        input fasta files.
     """
 
     # divide inputs into at least 20 sublists for 5% process
@@ -159,8 +157,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     # create full table file
     table_files = [f[0] for f in extracted_cdss]
     table_file = fo.join_paths(parent_directory, ['cds_info.tsv'])
-    table_header = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
-    fo.concatenate_files(table_files, table_file, table_header)
+    fo.concatenate_files(table_files, table_file, ct.CDS_TABLE_HEADER)
     fo.remove_files(table_files)
 
     cds_files = [f[1] for f in extracted_cdss]
@@ -173,27 +170,27 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
-        Parameters
-        ----------
-        fasta_files : list
-            List with paths to FASTA files.
-        temp_directory : str
-            Path to the directory where new files will be
-            created.
-        cpu_cores : int
-            Number of deduplication processes to run in
-            parallel.
-        outfile_template : str
-            Template for the name of output files.
+    Parameters
+    ----------
+    fasta_files : list
+        List with paths to FASTA files.
+    temp_directory : str
+        Path to the directory where new files will be
+        created.
+    cpu_cores : int
+        Number of deduplication processes to run in
+        parallel.
+    outfile_template : str
+        Template for the name of output files.
 
-        Returns
-        -------
-        A list with the following elements:
-            distinct_seqids : list
-                List with the sequence identifiers of distinct
-                sequences.
-            distinct_seqs : str
-                Path to the FASTA file with distinct sequences.
+    Returns
+    -------
+    A list with the following elements:
+        distinct_seqids : list
+            List with the sequence identifiers of distinct
+            sequences.
+        distinct_seqs : str
+            Path to the FASTA file with distinct sequences.
     """
 
     # create groups of inputs for multiprocessing
@@ -213,7 +210,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                               cpu_cores,
                                               show_progress=False)
 
-    # merge results from first round
+    # merge results
     merged_results = {}
     for p in dedup_results:
         r = fo.pickle_loader(p)
@@ -223,12 +220,10 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     # determine number of duplicated sequences
     # minus 2 so we do not count the seqid and genome integer
     # identifier for the representative record
-    repeated = sum([len(v)-2
-                    for k, v in merged_results.items()])
+    repeated = sum([len(v)-2 for k, v in merged_results.items()])
 
     # get representative identifiers for each distinct sequence
-    distinct_seqids = [v[0]
-                       for k, v in merged_results.items()]
+    distinct_seqids = [v[0] for k, v in merged_results.items()]
 
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]
@@ -291,43 +286,43 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
         translatable DNA sequences and proteins to FASTA
         files.
 
-        Parameters
-        ----------
-        sequence_ids : list
-            List with the identifiers of the sequences that
-            should be translated.
-        sequences_file : str
-            Path to the FASTA file with the DNA sequences.
-        temp_directory : str
-            Path to the directory where new files will be
-            created.
-        translation_table : int
-            Genetic code used to translate coding sequences.
-        minimum_length : int
-            Sequences with a length value below this value are
-            considered small and are excluded.
-        cpu_cores : int
-            Number of translation processes to run in
-            parallel.
+    Parameters
+    ----------
+    sequence_ids : list
+        List with the identifiers of the sequences that
+        should be translated.
+    sequences_file : str
+        Path to the FASTA file with the DNA sequences.
+    temp_directory : str
+        Path to the directory where new files will be
+        created.
+    translation_table : int
+        Genetic code used to translate coding sequences.
+    minimum_length : int
+        Sequences with a length value below this value are
+        considered small and are excluded.
+    cpu_cores : int
+        Number of translation processes to run in
+        parallel.
 
-        Returns
-        -------
-        A list with the following elements:
-            dna_file : str
-                Path to the FASTA with all DNA sequences
-                that could be translated.
-            protein_file : str
-                Path to the FASTA file with the translated
-                sequences.
-            untrans_seqids : list
-                List with the identifiers of the sequences
-                that could not be translated.
-            untrans_lines : list
-                List with one string per untranslatable
-                sequence. Each string has a sequence
-                identifier and a small description that
-                indicates why the sequence could not be
-                translated.
+    Returns
+    -------
+    A list with the following elements:
+        dna_file : str
+            Path to the FASTA with all DNA sequences
+            that could be translated.
+        protein_file : str
+            Path to the FASTA file with the translated
+            sequences.
+        untrans_seqids : list
+            List with the identifiers of the sequences
+            that could not be translated.
+        untrans_lines : list
+            List with one string per untranslatable
+            sequence. Each string has a sequence
+            identifier and a small description that
+            indicates why the sequence could not be
+            translated.
     """
 
     # divide inputs into sublists
@@ -376,14 +371,6 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
     return [dna_file, protein_file, untrans_seqids, untrans_lines]
 
 
-#sequences = proteins
-#grow_clusters = False
-#kmer_offset = 1
-#seq_num_cluster = 30
-#temp_directory = clustering_dir
-#file_prefix = 'clusters'
-#divide = True
-#position = False
 def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                       representatives, grow_clusters, kmer_offset,
                       seq_num_cluster, temp_directory, cpu_cores,

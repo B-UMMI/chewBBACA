@@ -81,15 +81,6 @@ def get_locus_id(file_path):
     return locus_id
 
 
-def mapping_function(inputs, function, args):
-    """
-    """
-
-    mapping = {i: function(i, *args) for i in inputs}
-
-    return mapping
-
-
 def remove_files(files):
     """ Deletes a list of files.
 
@@ -227,9 +218,9 @@ def read_lines(input_file, strip=True):
     """
 
     with open(input_file, 'r') as infile:
-        lines = [file for file in infile.readlines()]
+        lines = [line for line in infile.readlines()]
         if strip is True:
-            lines = [l.strip() for l in lines]
+            lines = [line.strip() for line in lines]
 
     return lines
 
@@ -237,36 +228,36 @@ def read_lines(input_file, strip=True):
 def pickle_dumper(content, output_file):
     """ Use the Pickle module to serialize an object.
 
-        Parameters
-        ----------
-        content : type
-            Variable that refers to the object that will
-            be serialized and written to the output file.
-        output_file : str
-            Path to the output file.
+    Parameters
+    ----------
+    content : type
+        Variable that refers to the object that will
+        be serialized and written to the output file.
+    output_file : str
+        Path to the output file.
     """
 
-    with open(output_file, 'wb') as po:
-        pickle.dump(content, po)
+    with open(output_file, 'wb') as poutfile:
+        pickle.dump(content, poutfile)
 
 
 def pickle_loader(input_file):
     """ Use the Pickle module to de-serialize an object.
 
-        Parameters
-        ----------
-        input_file : str
-            Path to file with byte stream to be de-serialized.
+    Parameters
+    ----------
+    input_file : str
+        Path to file with byte stream to be de-serialized.
 
-        Returns
-        -------
-        content : type
-            Variable that refers to the de-serialized
-            object.
+    Returns
+    -------
+    content : type
+        Variable that refers to the de-serialized
+        object.
     """
 
-    with open(input_file, 'rb') as pi:
-        content = pickle.load(pi)
+    with open(input_file, 'rb') as pinfile:
+        content = pickle.load(pinfile)
 
     return content
 
@@ -274,18 +265,18 @@ def pickle_loader(input_file):
 def file_zipper(input_file, zip_file):
     """ Zips (compresses) a file.
 
-        Parameters
-        ----------
-        input_file : str
-            Path to the file that will be compressed.
-        zip_file : str
-            Path to the ZIP file that will be created.
+    Parameters
+    ----------
+    input_file : str
+        Path to the file that will be compressed.
+    zip_file : str
+        Path to the ZIP file that will be created.
 
-        Returns
-        -------
-        zip_file : str
-            Path to the ZIP file that was created by
-            compressing the input file.
+    Returns
+    -------
+    zip_file : str
+        Path to the ZIP file that was created by
+        compressing the input file.
     """
 
     with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
@@ -297,17 +288,17 @@ def file_zipper(input_file, zip_file):
 def unzip_file(compressed_file, archive_type='.gz'):
     """ Uncompresses a file.
 
-        Parameters
-        ----------
-        compressed_file : str
-            Path to the compressed file.
-        archive_type : str
-            Archive format.
+    Parameters
+    ----------
+    compressed_file : str
+        Path to the compressed file.
+    archive_type : str
+        Archive format.
 
-        Returns
-        -------
-        uncompressed_file : str
-            Path to the uncompressed file.
+    Returns
+    -------
+    uncompressed_file : str
+        Path to the uncompressed file.
     """
 
     lines = []
@@ -325,15 +316,15 @@ def unzip_file(compressed_file, archive_type='.gz'):
 def download_file(file_url, outfile, max_tries=3):
     """ Downloads a file.
 
-        Parameters
-        ----------
-        file_url : str
-            URL to download file.
-        outfile : str
-            Path to the downloaded file.
-        max_tries : int
-            Maximum number of retries if the download
-            fails.
+    Parameters
+    ----------
+    file_url : str
+        URL to download file.
+    outfile : str
+        Path to the downloaded file.
+    max_tries : int
+        Maximum number of retries if the download
+        fails.
     """
 
     tries = 0
@@ -352,32 +343,32 @@ def download_file(file_url, outfile, max_tries=3):
 
 
 def concatenate_files(files, output_file, header=None):
-    """ Concatenates the contents of a set of files.
+    """ Concatenates files.
 
-        Parameters
-        ----------
-        files : list
-            List with the paths to the files to concatenate.
-        output_file : str
-            Path to the output file that will store the
-            concatenation of input files.
-        header : str or NoneType
-            Specify a header that should be written as the
-            first line in the output file.
+    Parameters
+    ----------
+    files : list
+        List with the paths to the files to concatenate.
+    output_file : str
+        Path to the output file that will store the
+        concatenation of input files.
+    header : str or NoneType
+        Specify a header that should be written as the
+        first line in the output file.
 
-        Returns
-        -------
-        output_file : str
-            Path to the output file that was created with
-            the concatenation of input files.
+    Returns
+    -------
+    output_file : str
+        Path to the output file that was created with
+        the concatenation of input files.
     """
 
-    with open(output_file, 'w') as of:
+    with open(output_file, 'w') as outfile:
         if header is not None:
-            of.write(header)
-        for f in files:
-            with open(f, 'r') as fd:
-                shutil.copyfileobj(fd, of)
+            outfile.write(header)
+        for file in files:
+            with open(file, 'r') as infile:
+                shutil.copyfileobj(infile, outfile)
 
     return output_file
 
@@ -385,18 +376,19 @@ def concatenate_files(files, output_file, header=None):
 def write_to_file(text, output_file, write_mode, end_char):
     """ Writes a single string to a file.
 
-        Parameters
-        ----------
-        text : str
-            A single string to write to the output file.
-        output_file : str
-            Path to the output file.
-        write_mode : str
-            Write mode can be 'w', writes text and overwrites
-            any text in file, or 'a', appends text to text
-            already in file.
-        end_char : str
-            Character added to the end of the file.
+    Parameters
+    ----------
+    text : str
+        A single string to write to the output file.
+    output_file : str
+        Path to the output file.
+    write_mode : str
+        Specify write mode ('w' creates file if it
+    	does not exist and truncates and over-writes
+    	existing file, 'a' creates file if it does not
+    	exist and appends to the end of file if it exists.).
+    end_char : str
+        Character added to the end of the file.
     """
 
     with open(output_file, write_mode) as out:
@@ -415,6 +407,13 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
         output file.
     output_file : str
         Path to the output file.
+    joiner : str
+    	Character used to join lines.
+    write_mode : str
+    	Specify write mode ('w' creates file if it
+    	does not exist and truncates and over-writes
+    	existing file, 'a' creates file if it does not
+    	exist and appends to the end of file if it exists.).
     """
 
     joined_lines = im.join_list(lines, joiner)

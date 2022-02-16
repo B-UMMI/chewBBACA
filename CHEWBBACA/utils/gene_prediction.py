@@ -31,35 +31,35 @@ def check_prodigal_results(prodigal_results, output_directory):
     """ Determines if Prodigal could not predict genes for any input
         assembly.
 
-        Parameters
-        ----------
-        prodigal_results : list
-            List with gene prediction results from Prodigal.
-        output_directory : str
-            Path to the output directory where the file with information
-            about failed cases will be written to.
+    Parameters
+    ----------
+    prodigal_results : list
+        List with gene prediction results from Prodigal.
+    output_directory : str
+        Path to the output directory where the file with information
+        about failed cases will be written to.
 
-        Returns
-        -------
-        A list with the following elements:
-            failed : list
-                List with the stderr for the cases that Prodigal
-                failed to predict genes for.
-            failed_file : str
-                Path to the file with information about the failed
-                cases.
+    Returns
+    -------
+    A list with the following elements:
+        failed : list
+            List with the stderr for the cases that Prodigal
+            failed to predict genes for.
+        failed_file : str
+            Path to the file with information about the failed
+            cases.
     """
 
-    no_cds = [l for l in prodigal_results if l[1] == 0]
-    errors = [l for l in prodigal_results if isinstance(l[1], str) is True]
+    no_cds = [r for r in prodigal_results if r[1] == 0]
+    errors = [r for r in prodigal_results if isinstance(r[1], str) is True]
     failed = no_cds + errors
 
-    failed_file = os.path.join(output_directory, 'prodigal_stderr.tsv')
     if len(failed) > 0:
+        failed_file = os.path.join(output_directory, 'prodigal_stderr.tsv')
         lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
         fo.write_lines(lines, failed_file)
 
-    return [failed, failed_file]
+        return [failed, failed_file]
 
 
 def extract_genome_cds(reading_frames, contigs, starting_id):
@@ -296,11 +296,6 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     return [stdout, stderr]
 
 
-#input_file = prodigal_inputs[0][0]
-#output_dir = prodigal_inputs[0][1]
-#ptf_path = prodigal_inputs[0][2]
-#translation_table = prodigal_inputs[0][3]
-#mode = prodigal_inputs[0][4]
 def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)

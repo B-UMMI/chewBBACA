@@ -120,30 +120,30 @@ def translate_dna(dna_sequence, table_id, min_len):
         exceptions so that it is possible to understand why the
         sequence could not be translated.
 
-        Parameters
-        ----------
-        dna_sequence : str
-            String representing a DNA sequence.
-        table_id : int
-            Translation table identifier.
-        min_len : int
-            Minimum sequence length. Sequences shorter
-            than this value are not translated.
+    Parameters
+    ----------
+    dna_sequence : str
+        String representing a DNA sequence.
+    table_id : int
+        Translation table identifier.
+    min_len : int
+        Minimum sequence length. Sequences shorter
+        than this value are not translated.
 
-        Returns
-        -------
-        If the sequence can be translated:
-            sequence : list
-                List with two elemets, the protein sequence
-                and the DNA sequence in the correct orientation.
-            coding_strand : str
-                The sequence orientation that codes for the
-                protein.
-        Otherwise:
-            exception_str : str
-                A string containing the exceptions that
-                explain why the the sequence could not be
-                translated.
+    Returns
+    -------
+    If the sequence can be translated:
+        sequence : list
+            List with two elemets, the protein sequence
+            and the DNA sequence in the correct orientation.
+        coding_strand : str
+            The sequence orientation that codes for the
+            protein.
+    Otherwise:
+        exception_str : str
+            A string containing the exceptions that
+            explain why the the sequence could not be
+            translated.
     """
 
     original_seq = dna_sequence.upper()

@@ -156,3 +156,6 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'LNF', 'PLOT3',
                               'PLOT5', 'LOTSC', 'NIPH', 'NIPHEM',
                               'ALM', 'ASM']
+
+# header for TSV file with information about extracted CDSs
+CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'

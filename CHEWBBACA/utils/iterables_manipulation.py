@@ -15,6 +15,7 @@ import re
 import shelve
 import hashlib
 import itertools
+from copy import deepcopy
 
 try:
     from utils import file_operations as fo
@@ -198,16 +199,16 @@ def seqid_shelve(shelve_file, indexed_fasta, outfile):
 def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):
     """ Merges several dictionaries into a single dictionary.
 
-        Parameters
-        ----------
-        dictionaries_list : list
-            A list with the dictionaries to merge.
+    Parameters
+    ----------
+    dictionaries_list : list
+        A list with the dictionaries to merge.
 
-        Returns
-        -------
-        merged_dicts : dict
-            A dictionary resulting from merging
-            all input dictionaries.
+    Returns
+    -------
+    merged_dicts : dict
+        A dictionary resulting from merging
+        all input dictionaries.
     """
 
     merged_dicts = starting_dictionary
@@ -226,17 +227,17 @@ def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):
 
 
 def invert_dictionary(dictionary):
-    """ Inverts a dictionary (Keys become values and vice-versa).
+    """ Inverts a dictionary (key:value to value:key).
 
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary to be inverted.
+    Parameters
+    ----------
+    dictionary : dict
+        Dictionary to be inverted.
 
-        Returns
-        -------
-        inverted_dict : dict
-            Inverted dictionary.
+    Returns
+    -------
+    inverted_dict : dict
+        Inverted dictionary.
     """
 
     inverted_dict = {value: key for key, value in dictionary.items()}
@@ -247,19 +248,19 @@ def invert_dictionary(dictionary):
 def split_iterable(iterable, size):
     """ Splits a dictionary.
 
-        Parameters
-        ----------
-        iterable : dict
-            Dictionary to split.
-        size : int
-            Size of dictionaries created from the input
-            dictionary.
+    Parameters
+    ----------
+    iterable : dict
+        Dictionary to split.
+    size : int
+        Size of dictionaries created from the input
+        dictionary.
 
-        Returns
-        -------
-        chunks : list
-            List with dictionaries of defined size
-            resulting from splitting the input dictionary.
+    Returns
+    -------
+    chunks : list
+        List with dictionaries of defined size
+        resulting from splitting the input dictionary.
     """
 
     chunks = []
@@ -688,8 +689,7 @@ def decode_str(str_list, encoding):
 
 
 # sorted key parameter is None by default
-# no need to avoid passing the sort_key value if it is None
-def sort_data(data, sort_key=None, reverse=False):
+def sort_iterable(data, sort_key=None, reverse=False):
     """ Sorts an iterable.
 
     Parameters
@@ -705,11 +705,10 @@ def sort_data(data, sort_key=None, reverse=False):
     Returns
     -------
     sorted_data
-        List with sorted elements.
+        Iterable with sorted elements.
     """
 
     # sorted key parameter is None by default
-    # no need to avoid passing the sort_key value if it is None
     sorted_data = sorted(data, key=sort_key, reverse=reverse)
 
     return sorted_data
@@ -756,7 +755,7 @@ def filter_list(lst, remove):
     Returns
     -------
     filtered_list : list
-            List without the removed elements.
+        List without the removed elements.
     """
 
     filtered_list = list(set(lst) - set(remove))
@@ -833,19 +832,19 @@ def contained_terms(iterable, terms):
     """ Finds elements in an iterable that contain
         any term from a set of terms.
 
-        Parameters
-        ----------
-        iterable
-            An iterable such as a list with strings
-            or a dictionary.
-        terms : list
-            Terms to search for.
+    Parameters
+    ----------
+    iterable
+        An iterable such as a list with strings
+        or a dictionary.
+    terms : list
+        Terms to search for.
 
-        Returns
-        -------
-        matches : list
-            List with the elements of the iterable
-            that contain any of the searched terms.
+    Returns
+    -------
+    matches : list
+        List with the elements of the iterable
+        that contain any of the searched terms.
     """
 
     matches = []
@@ -857,34 +856,114 @@ def contained_terms(iterable, terms):
 
 
 def integer_mapping(values, inverse=False):
-    """
+    """ Creates dictionary with the mapping between the
+        elements in the input iterable and integer values
+        assigned sequentially.
+
+    Parameters
+    ----------
+    values : iter
+        Input iterable.
+    inverse : bool
+        Invert mapping order, integers:values instead
+        of values:integers.
+
+    Returns
+    -------
+    mapping : dict
+        Dictionary with the mapping between the
+        elements in the input iterable and the
+        result of applying the function to each
+        value.
     """
 
     mapping = {}
     if inverse is False:
-        mapping = {values[i]: i+1 for i in range(len(values))}
+        mapping = {v: i+1 for i, v in enumerate(values)}
     elif inverse is True:
-        mapping = {i+1: values[i] for i in range(len(values))}
+        mapping = {i+1: v for i, v in enumerate(values)}
 
     return mapping
 
 
 def multiprocessing_inputs(inputs, common_args, function):
-    """
+    """ Creates lists of inputs for the `map_async_parallelizer`
+        function from the `multiprocessing_operations` module.
+
+    Parameters
+    ----------
+    inputs : list
+        List with the distinct inputs.
+    common_args : list
+        List with the common arguments/inputs.
+    function : func
+        Function that will be parallelized by the
+        `map_async_parallelizer` function.
+
+    Returns
+    -------
+    input_groups : list
+        List with one sublist per distinct input. Each
+        sublist also contains the common arguments and
+        the function that will receive the arguments.
     """
 
-    input_groups = inputs
+    input_groups = deepcopy(inputs)
+    # create a list for each distinct input
     for g in input_groups:
+        # add the common arguments that will be used in each function call
         g.extend(common_args)
+        # add the function that will be parallelized
         g.append(function)
 
     return input_groups
 
 
 def aggregate_iterables(iterables):
-    """
+    """ Aggregates elements with same index from
+        several iterables.
+
+    Parameters
+    ----------
+    iterables : list
+        List of iterables to aggreagate.
+
+    Returns
+    -------
+    aggregated_inputs : list
+        List with a sublist per group of elements
+        with same index that were aggregated.
     """
 
     aggregated_inputs = [list(i) for i in zip(*iterables)]
 
     return aggregated_inputs
+
+
+def mapping_function(values, function, args):
+    """ Creates a dictionary with the mapping between
+        the elements in the input iterable and the
+        result of applying a function to those values.
+
+    Parameters
+    ----------
+    values : iter
+        Input iterable.
+    function : func
+        Funtion to apply to the elements in the
+        input iterable.
+    args : list
+        List of arguments to pass to the function.
+
+    Returns
+    -------
+    mapping : dict
+        Dictionary with the mapping between the
+        elements in the input iterable and the
+        result of applying the function to each
+        value.
+    """
+
+    mapping = {v: function(v, *args) for v in values}
+
+    return mapping

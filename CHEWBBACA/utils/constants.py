@@ -159,3 +159,6 @@ ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'LNF', 'PLOT3',
 
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
+
+# regex pattern to match locus identifier
+LOCUS_ID_PATTERN = r'.*-protein[0-9]+'

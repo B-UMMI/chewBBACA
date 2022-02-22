@@ -427,9 +427,9 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     """
 
     # sort sequences by length
-    sorted_seqs = {k: v for k, v in im.sort_data(sequences.items(),
-                                                 sort_key=lambda x: len(x[1]),
-                                                 reverse=True)}
+    sorted_seqs = {k: v for k, v in im.sort_iterable(sequences.items(),
+                                                     sort_key=lambda x: len(x[1]),
+                                                     reverse=True)}
 
     if divide is True:
         # divide sequences into sublists
@@ -486,7 +486,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
           'clusters.'.format(len(sorted_seqs), len(clusters)))
 
     # sort clusters
-    clusters = {k: v for k, v in im.sort_data(clusters.items())}
+    clusters = {k: v for k, v in im.sort_iterable(clusters.items())}
 
     # write file with clustering results
     clusters_out = os.path.join(temp_directory,

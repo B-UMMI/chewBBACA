@@ -124,19 +124,19 @@ def write_protein_table(output_file, genome_id, cds_info):
     """ Writes information about coding sequences in a
         genome to a file.
 
-        Parameters
-        ----------
-        output_file : str
-            Path to the output file to which info will
-            be saved.
-        genome_id : str
-            Identifier of the genome to add to first field
-            of every new line.
-        cds_info : list
-            List with information about each coding sequence
-            identified in the genome (contig identifier,
-            CDS start position, CDS stop position, CDS
-            identifier and CDS coding strand).
+    Parameters
+    ----------
+    output_file : str
+        Path to the output file to which info will
+        be saved.
+    genome_id : str
+        Identifier of the genome to add to first field
+        of every new line.
+    cds_info : list
+        List with information about each coding sequence
+        identified in the genome (contig identifier,
+        CDS start position, CDS stop position, CDS
+        identifier and CDS coding strand).
     """
 
     # write TSV file
@@ -164,28 +164,28 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
         to a FASTA file and information about coding sequences to
         a TSV file.
 
-        Parameters
-        ----------
-        genome : str
-            Path to the FASTA file with the FASTA sequences for
-            a genome.
-        identifier : str
-            Genome identifier to add to FASTA records headers
-            and to the first field in the TSV file.
-        orf_file : str
-            Path to the file with Prodigal results.
-        protein_table : str
-            Path to the TSV file to which coding sequences
-            information will be written.
-        cds_file : str
-            Path to the FASTA file to which coding sequences
-            will be written.
+    Parameters
+    ----------
+    genome : str
+        Path to the FASTA file with the FASTA sequences for
+        a genome.
+    identifier : str
+        Genome identifier to add to FASTA records headers
+        and to the first field in the TSV file.
+    orf_file : str
+        Path to the file with Prodigal results.
+    protein_table : str
+        Path to the TSV file to which coding sequences
+        information will be written.
+    cds_file : str
+        Path to the FASTA file to which coding sequences
+        will be written.
 
-        Returns
-        -------
-        total_cds : int
-            Total number of coding sequences extracted from
-            the genome.
+    Returns
+    -------
+    total_cds : int
+        Total number of coding sequences extracted from
+        the genome.
     """
 
     # import contigs for current genome/assembly
@@ -208,29 +208,29 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
 def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
     """ Extracts coding sequences from a set of genomes.
 
-        Parameters
-        ----------
-        input_data : list
-            List with a set of paths for FASTA files with
-            genomic sequences, followed by the path to the
-            directory with files with Prodigal resutls, the
-            path to the temporary directory for all files and
-            directories that will be read and written and
-            an index/identifier to add to the output files
-            with coding sequences and coding sequences info.
+    Parameters
+    ----------
+    input_data : list
+        List with a set of paths for FASTA files with
+        genomic sequences, followed by the path to the
+        directory with files with Prodigal resutls, the
+        path to the temporary directory for all files and
+        directories that will be read and written and
+        an index/identifier to add to the output files
+        with coding sequences and coding sequences info.
 
-        Returns
-        -------
-        A list with the following elements:
-            protein_table : str
-                Path to the TSV file to which coding sequences
-                info was written.
-            cds_file : str
-                Path to the FASTA file to which coding sequences
-                were written.
-            batch_total : int
-                Total number of coding sequences extracted from
-                the set of input genomes.
+    Returns
+    -------
+    A list with the following elements:
+        protein_table : str
+            Path to the TSV file to which coding sequences
+            info was written.
+        cds_file : str
+            Path to the FASTA file to which coding sequences
+            were written.
+        batch_total : int
+            Total number of coding sequences extracted from
+            the set of input genomes.
     """
 
     protein_table = fo.join_paths(temp_directory,
@@ -255,25 +255,25 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
 def run_prodigal(input_file, translation_table, mode, ptf_path):
     """ Executes Prodigal.
 
-        Parameters
-        ----------
-        input_file : str
-            Path to input FASTA file.
-        translation_table : int
-            Genetic code.
-        mode : str
-            Prodigal execution mode ('single' is the default,
-            'meta' should be used to predict genes from smaller
-            contigs).
-        ptf_path : str or None
-            Path to the training file.
+    Parameters
+    ----------
+    input_file : str
+        Path to input FASTA file.
+    translation_table : int
+        Genetic code.
+    mode : str
+        Prodigal execution mode ('single' is the default,
+        'meta' should be used to predict genes from smaller
+        contigs).
+    ptf_path : str or None
+        Path to the training file.
 
-        Returns
-        -------
-        stdout : bytes
-            Prodigal's stdout.
-        stderr : bytes
-            Prodigal's stderr.
+    Returns
+    -------
+    stdout : bytes
+        Prodigal's stdout.
+    stderr : bytes
+        Prodigal's stderr.
     """
 
     if ptf_path is not None:

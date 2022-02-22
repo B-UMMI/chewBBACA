@@ -29,9 +29,11 @@ from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 
 try:
-    from utils import iterables_manipulation as im
+    from utils import (constants as ct,
+                       iterables_manipulation as im)
 except:
-    from CHEWBBACA.utils import iterables_manipulation as im
+    from CHEWBBACA.utils import (constants as ct,
+                                 iterables_manipulation as im)
 
 
 def file_basename(file_path, file_extension=True, delimiter='.'):
@@ -41,9 +43,12 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
     ----------
     file_path : str
         Path to the file.
-    suffix : bool
+    file_extension : bool
         Specify if the basename should include the file
         extension.
+    delimiter : str
+        Delimiter used to split the basename to exclude
+        the file extension.
 
     Returns
     -------
@@ -59,24 +64,12 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
     return basename
 
 
-def get_locus_id(file_path):
-    """ Extracts the locus identifier from a file path.
-
-    Parameters
-    ----------
-    file_path : str
-        Path to a locus Fasta file.
-
-    Returns
-    -------
-    locus_id : str
-        Locus identifier without the '.fasta' file
-        extension.
+def get_locus_id(locus_path):
+    """
     """
 
-    basename = file_basename(file_path)
-    match = re.search(r'-protein[0-9]+', basename).span()
-    locus_id = basename[0:match[1]]
+    locus_basename = file_basename(locus_path)
+    locus_id = im.match_regex(locus_basename, ct.LOCUS_ID_PATTERN)
 
     return locus_id
 
@@ -84,10 +77,10 @@ def get_locus_id(file_path):
 def remove_files(files):
     """ Deletes a list of files.
 
-        Parameters
-        ----------
-        files : list
-            List with paths to the files to be deleted.
+    Parameters
+    ----------
+    files : list
+        List with paths to the files to be deleted.
     """
 
     for f in files:
@@ -97,17 +90,17 @@ def remove_files(files):
 def hash_file(file, read_mode):
     """ Computes BLAKE2b hash based on the contents of a file.
 
-        Parameters
-        ----------
-        file : str
-            Path to a file.
-        read_mode : str
-            File read mode.
+    Parameters
+    ----------
+    file : str
+        Path to a file.
+    read_mode : str
+        File read mode.
 
-        Returns
-        -------
-        hash_str : str
-            Hash computed from file contents.
+    Returns
+    -------
+    hash_str : str
+        Hash computed from file contents.
     """
 
     with open(file, read_mode) as f:
@@ -122,21 +115,21 @@ def hash_file(file, read_mode):
 def filter_files(files, suffixes, reverse=False):
     """ Filters files names based on a list of suffixes.
 
-        Parameters
-        ----------
-        files : list
-            A list with filenames of file paths.
-        suffixes : list
-            List with suffixes.
-        reverse : bool
-            True if files should be filtered out from
-            input list. False to filter out files without
-            any of the suffixes.
+    Parameters
+    ----------
+    files : list
+        A list with filenames or file paths.
+    suffixes : list
+        List with suffixes.
+    reverse : bool
+        True if files should be filtered out from
+        input list. False to filter out files without
+        any of the suffixes.
 
-        Returns
-        -------
-        filtered : list
-            List with files that passed filtering.
+    Returns
+    -------
+    filtered : list
+        List with files that passed filtering.
     """
 
     if reverse is False:
@@ -182,21 +175,36 @@ def listdir_fullpath(directory_path, substring_filter=False):
         file in the input directory.
     """
 
-    if filter is False:
+    if substring_filter is False:
         file_list = [os.path.join(directory_path, f)
                      for f in os.listdir(directory_path)]
     else:
         file_list = [os.path.join(directory_path, f)
-                     for f in os.listdir(directory_path)
-                     if substring_filter in f]
+                     for f in os.listdir(directory_path)]
+        file_list = filter_files(file_list, [substring_filter])
 
     return file_list
+
+
+def handle_rmtree_error(func, path, exception_info):
+    """
+    """
+
+    # check writability of the path
+    #writable = os.access(path, os.W_OK)
+    #if writable is False:
+        # try to change permissions in the future
+
+    return os.path.isdir(path)
 
 
 def delete_directory(directory_path):
     """ Deletes a directory. """
 
-    shutil.rmtree(directory_path)
+    # might fail to delete files due to permission issues (e.g.: read-only)
+    shutil.rmtree(directory_path, onerror=handle_rmtree_error)
+
+    return os.path.isdir(directory_path)
 
 
 def read_lines(input_file, strip=True):
@@ -424,19 +432,19 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
 def read_tabular(input_file, delimiter='\t'):
     """ Read tabular file.
 
-        Parameters
-        ----------
-        input_file : str
-            Path to a tabular file.
-        delimiter : str
-            Delimiter used to separate file fields.
+    Parameters
+    ----------
+    input_file : str
+        Path to a tabular file.
+    delimiter : str
+        Delimiter used to separate file fields.
 
-        Returns
-        -------
-        lines : list
-            A list with a sublist per line in the input file.
-            Each sublist has the fields that were separated by
-            the defined delimiter.
+    Returns
+    -------
+    lines : list
+        A list with a sublist per line in the input file.
+        Each sublist has the fields that were separated by
+        the defined delimiter.
     """
 
     with open(input_file, 'r') as infile:
@@ -449,23 +457,23 @@ def read_tabular(input_file, delimiter='\t'):
 def input_timeout(prompt, timeout=30):
     """ Adds timeout feature when requesting user input.
 
-        Parameters
-        ----------
-        prompt : str
-            Message to print to stdout to request for user
-            input.
-        timeout : int
-            Maximum number of seconds that the process will
-            wait for input.
+    Parameters
+    ----------
+    prompt : str
+        Message to print to stdout to request for user
+        input.
+    timeout : int
+        Maximum number of seconds that the process will
+        wait for input.
 
-        Returns
-        -------
-        String with user input.
+    Returns
+    -------
+    String with user input.
 
-        Raises
-        ------
-        SystemExit
-            - If there is no user input before timeout.
+    Raises
+    ------
+    SystemExit
+        - If there is no user input before timeout.
     """
 
     pool = ThreadPool(processes=1)
@@ -512,16 +520,16 @@ def create_short(schema_files, schema_dir):
         to the directory (should be used when the schema
         only has 1 sequence per gene/locus).
 
-        Parameters
-        ----------
-        schema_files : list
-            List with paths to all FASTA files in the schema.
-        schema_dir : str
-            Path to the schema's directory.
+    Parameters
+    ----------
+    schema_files : list
+        List with paths to all FASTA files in the schema.
+    schema_dir : str
+        Path to the schema's directory.
 
-        Returns
-        -------
-        True on completion.
+    Returns
+    -------
+    True on completion.
     """
 
     short_path = join_paths(schema_dir, ['short'])
@@ -536,7 +544,6 @@ def create_short(schema_files, schema_dir):
 
 
 def move_file(source, destination):
-    """
-    """
+    """ Moves a file. """
 
     shutil.move(source, destination)

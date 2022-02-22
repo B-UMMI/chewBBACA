@@ -467,7 +467,9 @@ def main(input_files, output_directory, schema_name, ptf_path,
 
     # remove temporary files
     if no_cleanup is False:
-        fo.delete_directory(results[1])
+        exists = fo.delete_directory(results[1])
+        if exists is True:
+            print('Could not delete intermediate files located in {0}'.format(results[1]))
 
     # print message about schema that was created
     print('Created schema seed with {0} loci.'.format(len(results[0])))

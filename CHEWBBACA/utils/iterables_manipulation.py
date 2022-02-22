@@ -26,18 +26,18 @@ except:
 def match_regex(text, pattern):
     """ Extracts substrings that match a regex pattern.
     
-        Parameters
-        ----------
-        text : str
-            Input text to search the pattern in.
-        pattern : str
-            Regular expression pattern.
+    Parameters
+    ----------
+    text : str
+        Input text to search the pattern in.
+    pattern : str
+        Regular expression pattern.
 
-        Returns
-        -------
-        match : str
-            Matched substring or NoneType if no matches
-            were found.
+    Returns
+    -------
+    match : str
+        Matched substring or NoneType if no matches
+        were found.
     """
 
     match = re.search(pattern, text)
@@ -48,64 +48,40 @@ def match_regex(text, pattern):
     return match
 
 
-def join_list(lst, link):
+def join_list(lst, delimiter):
     """ Joins all elements in a list into a single string.
 
-        Parameters
-        ----------
-        lst : list
-            List with elements to be joined.
-        link : str
-            Character used to join list elements.
+    Parameters
+    ----------
+    lst : list
+        List with elements to be joined.
+    delimiter : str
+        Character used to join list elements.
 
-        Returns
-        -------
-        joined_list : str
-            A single string with all elements in the input
-            list joined by the character chosen as link.
+    Returns
+    -------
+    joined_list : str
+        A single string with all elements in the input
+        list joined by the character chosen as link.
     """
 
-    joined_list = link.join(lst)
+    joined_list = delimiter.join(lst)
 
     return joined_list
-
-
-def concatenate_list(str_list, join_char):
-    """ Concatenates list elements with specified
-        character between each original list element.
-
-        Parameters
-        ----------
-        str_list : list
-            List with strings that will be concatenated.
-        join_char : str
-            Character that will be used to join list
-            elements.
-
-        Returns
-        -------
-        ids_str : str
-            String resulting from the concatenation of
-            all strings in the input list.
-    """
-
-    concat = join_char.join(str_list)
-
-    return concat
 
 
 def flatten_list(list_to_flatten):
     """ Flattens one level of a nested list.
 
-        Parameters
-        ----------
-        list_to_flatten : list
-            List with nested lists.
+    Parameters
+    ----------
+    list_to_flatten : list
+        List with nested lists.
 
-        Returns
-        -------
-        flattened_list : str
-            Input list flattened by one level.
+    Returns
+    -------
+    flattened_list : str
+        Input list flattened by one level.
     """
 
     flattened_list = list(itertools.chain(*list_to_flatten))
@@ -149,55 +125,8 @@ def divide_list_into_n_chunks(list_to_divide, n):
     return sublists
 
 
-def merge_shelves(shelves, merged_shelve):
-    """
-    """
-
-    with shelve.open(merged_shelve) as db:
-        for s in shelves:
-            with shelve.open(s) as subdb:
-                shelve_keys = list(subdb.keys())
-                for k in shelve_keys:
-                    if k in db:
-                        subdb_current = subdb[k]
-                        db_current = db[k]
-                        db_current += subdb_current
-                        db[k] = db_current
-                    else:
-                        subdb_current = subdb[k]
-                        db[k] = subdb_current
-        shelve_size = len(db.keys())
-
-    return shelve_size
-
-
-def seqid_shelve(shelve_file, indexed_fasta, outfile):
-    """
-    """
-
-    records = []
-    limit = 10000
-    with shelve.open(shelve_file) as db:
-        dbkeys = list(db.keys())
-        for k in dbkeys:
-            try:
-                rep = db[k][0]
-                seq = str(indexed_fasta[rep].seq)
-            except Exception as e:
-                print(rep, db[k])
-            record = '>{0}\n{1}'.format(rep, seq)
-            records.append(record)
-
-        if len(records) == limit or k == dbkeys[-1]:
-            lines = join_list(records, '\n')
-            fo.write_to_file(lines, outfile, 'a', '\n')
-            records = []
-
-    return True
-
-
 def merge_dictionaries(starting_dictionary, dictionaries_list, overwrite=False):
-    """ Merges several dictionaries into a single dictionary.
+    """ Merges several dictionaries.
 
     Parameters
     ----------

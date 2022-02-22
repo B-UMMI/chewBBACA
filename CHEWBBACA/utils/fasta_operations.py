@@ -367,6 +367,9 @@ def exclude_sequences_by_id(sequences, identifiers, output_file):
     identifiers : list
         List with the sequence identifiers that should
         not be included in the output Fasta file.
+    output_file : str
+        Path to output file created to store selected
+        sequences.
 
     Returns
     -------

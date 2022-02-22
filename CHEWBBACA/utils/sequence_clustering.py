@@ -405,8 +405,8 @@ def write_clusters(clusters, outfile):
         cluster_lines.append(current_cluster)
 
     # sort by number of lines to get clusters with more sequences first
-    cluster_lines = im.sort_data(cluster_lines,
-                                 sort_key=lambda x: len(x), reverse=True)
+    cluster_lines = im.sort_iterable(cluster_lines,
+                                     sort_key=lambda x: len(x), reverse=True)
     cluster_lines = im.flatten_list(cluster_lines)
     cluster_text = im.join_list(cluster_lines, '\n')
 

@@ -323,8 +323,8 @@ def compute_bsr(raw_score, query_raw_score):
     return bsr
 
 
-# blast_output = input_file
-# ids_mapping = ids_map
+# blast_output = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/6_iterative_reps/GCA-000427075-protein1270_blast_results_iter2.tsv'
+# ids_mapping = {}
 def process_blast_results(blast_output, blast_score_ratio, ids_mapping,
                           self_scores):
     """
@@ -379,11 +379,20 @@ def process_blast_results(blast_output, blast_score_ratio, ids_mapping,
         bsr = compute_bsr(float(v[5]), representatives_info[rep_id][1])
         target_len = (int(v[1])-1)*3 # subtract 1 to exclude start position
         rep_len = (int(v[2])+1)*3 # add 1 to include stop codon
+
+        # determine if representative has allele id
+        try:
+            int(rep_id.split('_')[-1])
+            rep_id_split = rep_id.split('_')[-1]
+        except Exception as e:
+            # new rep that still has no allele id
+            rep_id_split = rep_id
+
         bsr_values[current_id] = (bsr,
                                   target_len,
                                   rep_len,
                                   rep_id,
-                                  rep_id.split('_')[-1])
+                                  rep_id_split)
 
     # only keep matches above BSR threshold
     high_bsr = {k: v for k, v in bsr_values.items() if v[0] >= blast_score_ratio}
@@ -585,7 +594,6 @@ def classify_alleles(locus, genomes_matches, representatives_info,
 
 
 # classification_files = results[0]
-# repss = results[4]
 # locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein50.fasta'
 # results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein50_results'
 def assign_ids(classification_files, schema_directory):
@@ -594,9 +602,9 @@ def assign_ids(classification_files, schema_directory):
 
     # assign allele identifiers
     new_alleles = {}
-    reps_to_add = {}
+    #novel_ids = {}
     for locus, results in classification_files.items():
-        locus_id = im.match_regex(locus, ct.LOCUS_ID_PATTERN)
+        locus_id = fo.get_locus_id(locus)
         # get loci records
         records = fao.import_sequences(locus)
         # get id of max record
@@ -613,8 +621,20 @@ def assign_ids(classification_files, schema_directory):
             genome_id = k[0]
             current_results = k[1]
             cds_hash = current_results[1][2]
+            
+            # try:
+            #     int(current_results[1][0])
+            #     allele_id = current_results[1][0]
+            # except Exception as e:
+            #     allele_id = novel_ids[current_results[1][0]]
+
             if current_results[0] == 'EXC':
-                locus_results[genome_id].append(current_results[1][0])
+                #locus_results[genome_id].append(current_results[1][0])
+                try:
+                    int(current_results[1][0])
+                    locus_results[genome_id].append(current_results[1][0])
+                except Exception as e:
+                    locus_results[genome_id].append(seen[cds_hash])
             elif current_results[0] == 'EXCP':
                 # this should be True every single case, but INF cases might be converted
                 # to NIPH due to a second match after being used to detect EXCP
@@ -630,6 +650,7 @@ def assign_ids(classification_files, schema_directory):
                     # add the unique SHA256 value (if we add the seqid we might get a seqid that does not match the hash
                     # during the iterative classification step with the representatives we can add the wrong seqid)
                     new_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
+                    #novel_ids[current_results[1][1]] = str(max_alleleid)
             elif current_results[0] == 'INF':
                 if cds_hash not in seen:
                     max_alleleid += 1
@@ -638,6 +659,7 @@ def assign_ids(classification_files, schema_directory):
                     # add the unique SHA256 value (if we add the seqid we might get a seqid that does not match the hash
                     # during the iterative classification step with the representatives we can add the wrong seqid)
                     new_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
+                    #novel_ids[current_results[1][1]] = str(max_alleleid)
                 else:
                     print('INF case was already seen!')
                     locus_results[genome_id].append(seen[cds_hash])
@@ -662,7 +684,7 @@ def add_inferred_alleles(inferred_alleles_data, new_reps, sequences_file):
     total_inferred = 0
     total_representative = 0
     for locus_path, inferred_alleles in inferred_alleles_data.items():
-        locus_id = im.match_regex(locus_path, ct.LOCUS_ID_PATTERN)
+        locus_id = fo.get_locus_id(locus_path)
 
         # get novel alleles through indexed Fasta file
         inferred_sequences = [('{0}_{1}'.format(locus_id, a[1]),
@@ -720,7 +742,7 @@ def write_results_alleles(classification_files, input_identifiers,
     # add first column with input identifiers
     columns = [['FILE'] + input_identifiers]
     for file in classification_files.values():
-        locus_id = im.match_regex(file, ct.LOCUS_ID_PATTERN)
+        locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
         locus_column = [locus_id]
         for i in range(1, len(input_identifiers)+1):
@@ -754,7 +776,7 @@ def write_results_statistics(classification_files, input_identifiers,
     # initialize classification counts per input
     input_classifications = {i: [] for i in range(1, len(input_identifiers)+1)}
     for file in classification_files.values():
-        locus_id = im.match_regex(file, ct.LOCUS_ID_PATTERN)
+        locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
 
         for i in range(1, len(input_identifiers)+1):
@@ -794,7 +816,7 @@ def write_results_contigs(classification_files, identifiers, output_directory,
 
     columns = [['FILE'] + identifiers]
     for file in classification_files.values():
-        locus_id = im.match_regex(file, ct.LOCUS_ID_PATTERN)
+        locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
         column = [locus_id]
         # get sequence hash for exact and inferred
@@ -1208,6 +1230,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     rep_list = fo.listdir_fullpath(rep_dir, '.fasta')
     protein_repfiles = translate_fastas(rep_list, protein_dir,
                                         translation_table, cpu_cores)
+    protein_repfiles = list(protein_repfiles.values())
 
     # cluster protein sequences
     proteins = fao.import_sequences(unique_pfasta)
@@ -1222,7 +1245,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # concatenate all schema representative
     concat_reps = os.path.join(protein_dir, 'concat_reps.fasta')
-    fo.concatenate_files(protein_repfiles.values(), concat_reps)
+    fo.concatenate_files(protein_repfiles, concat_reps)
 
     # determine self-score for representatives if file is missing
     self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
@@ -1400,7 +1423,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         # create BLASTp inputs
         output_files = []
         blast_inputs = []
-        for file in protein_repfiles.values():
+        for file in protein_repfiles:
             locus_id = fo.get_locus_id(file)
             outfile = fo.join_paths(iterative_rep_dir,
                                     [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
@@ -1497,6 +1520,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             if len(results[3]) > 0:
                 representative_candidates[locus] = results[3]
 
+        # excluded might have repeated ids
+        # those are exact matches to representatives
+
         print('\nSelecting representatives for next iteration.')
 
         # should only have 1 representative candidate per locus because
@@ -1544,7 +1570,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
                 current_rep_ids = [current_new_rep]+current_previous_reps
 
-                # this might create files for representatives that already have a file
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
                 fao.get_sequences_by_id(prot_index, current_rep_ids, rep_file)
@@ -1576,11 +1601,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
             # some representatives might match against common unclassified sequences
             # those are paralogous
-            # determine set to avoid BLASTdb error related with duplicated sequences
-
-    # Perform final clustering to infer novel alleles? Some alleles might be similar to new representatives based on clustering.
-    #
-
 
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
@@ -1614,6 +1634,9 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                              window_size, clustering_sim, cpu_cores, blast_path,
                              prodigal_mode, cds_input, only_exact)
 
+    # sort classification files to have allele call matrix format similar to v2.0
+    results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}
+
     # count total for each classification type
     global_counts, total_cds = count_classifications(results[0])
 
@@ -1641,7 +1664,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
         # get info for new representative alleles that must be added to files in the short directory
         reps_info = {}
         for k, v in new_alleles.items():
-            locus_id = im.match_regex(k, ct.LOCUS_ID_PATTERN)
+            locus_id = fo.get_locus_id(k)
             current_results = results[4].get(locus_id, None)
             if current_results is not None:
                 for e in current_results:

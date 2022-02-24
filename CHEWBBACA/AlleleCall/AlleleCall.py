@@ -225,37 +225,35 @@ def dna_exact_matches(fasta_file, distinct_table, locus_classifications):
     """
     """
 
-    # create generator to get Fasta sequences
-    seq_generator = SeqIO.parse(fasta_file, 'fasta')
+    # read Fasta records
+    sequences = fao.import_sequences(fasta_file)
+    # determine SHA-256 hash for locus sequences
+    sequence_hashes = {seqid: im.hash_sequence(seq)
+                       for seqid, seq in sequences.items()}
+
+    # determine locus alleles that are in inputs
+    matches = {seqid.split('_')[-1]: seq_hash
+               for seqid, seq_hash in sequence_hashes.items()
+               if seq_hash in distinct_table}
 
     matches_ids = []
     total_matches = 0
-    for rec in seq_generator:
-        seqid = (rec.id).split('_')[-1]
-        sequence = str(rec.seq.upper())
-        sequence_hash = im.hash_sequence(sequence)
-        # file cannot have duplicated alleles or it will
-        # classify based on same DNA sequence twice
-        if sequence_hash in distinct_table:
-            current_matches = distinct_table[sequence_hash]
-            # exclude element in index 0, it is the seqid chosen as
-            # representative
-            total_matches += len(current_matches) - 1
-            for m in current_matches[1:]:
-                # for DNA exact matches, the allele ID,
-                # the seqid chosen as repsentative during sequence deduplication,
-                # the hash of the schema allele,
-                # the classification (EXC) and
-                # the BSR value (1.0) are stored
-                match_info = (seqid, current_matches[0],
-                              sequence_hash, 'EXC', 1.0)
-                locus_classifications = update_classification(m, locus_classifications,
-                                                              match_info, 'NIPHEM')
-            
-            # append representative id for the sequences
-            matches_ids.append(current_matches[0])
-            # try to use the hash to then get the sequences that did not have exact matches
-            #matches_ids.append(sequence_hash)
+    for seqid, seq_hash in matches.items():
+        current_matches = distinct_table[seq_hash]
+        # seqid chosen as repsentative during sequence deduplication
+        distinct_seqid = current_matches[0]
+        match_info = (seqid, distinct_seqid, seq_hash, 'EXC', 1.0)
+
+        # classify as exact matches
+        for gid in current_matches[1:]:
+            locus_classifications = update_classification(gid, locus_classifications,
+                                                          match_info, 'NIPHEM')
+
+        # exclude element in index 0, it is the seqid chosen as
+        # representative
+        total_matches += len(current_matches) - 1
+        # store representative id for the sequences
+        matches_ids.append(current_matches[0])
 
     return [locus_classifications, matches_ids, total_matches]
 
@@ -266,24 +264,32 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
     """
     """
 
-    seq_generator = SeqIO.parse(fasta_file, 'fasta')
+    # read Fasta records
+    sequences = fao.import_sequences(fasta_file)
 
-    seen_dna = []
+    # determine SHA-256 hash for locus sequences
+    sequence_hashes = {seqid: im.hash_sequence(seq)
+                       for seqid, seq in sequences.items()}
+
+    # determine locus alleles that are in inputs
+    matches = {seqid.split('_')[-1]: seq_hash for seqid, seq_hash in sequence_hashes.items()
+               if seq_hash in distinct_prot_table}
+
+    seen_dna = {}
     seen_prot = []
     total_cds = 0
     total_prots = 0
+    total_distinct_prots = 0
     exact_prot_hashes = []
-    for rec in seq_generator:
-        protid = (rec.id).split('_')[-1]
-        protein = str(rec.seq.upper())
-        prot_hash = im.hash_sequence(protein)
-        # do not proceed if distinct protein sequence has already been seen
+    for seqid, seq_hash in matches.items():
         # different alleles might code for the same protein
-        if prot_hash in distinct_prot_table and prot_hash not in seen_prot:
+        # do not proceed if distinct protein sequence has already been seen
+        if seq_hash in distinct_prot_table and seq_hash not in seen_prot:
             # get protids for distinct DNA CDSs
-            protids = distinct_prot_table[prot_hash][1:]
+            protids = distinct_prot_table[seq_hash][1:]
             total_prots += len(protids)
             exact_prot_hashes.extend(protids)
+            total_distinct_prots += 1
             # for each distinct CDS that codes for the protein
             for p in protids:
                 cds = str(dna_index.get(p).seq)
@@ -297,21 +303,23 @@ def protein_exact_matches(fasta_file, distinct_prot_table,
                     if cds_hash not in seen_dna:
                         # need to add inferred to locus mode values???
                         current_class = 'INF'
-                        seen_dna.append(cds_hash)
+                        protid = seqid
+                        seen_dna[cds_hash] = p
                     else:
-                        current_class = 'EXCP'
+                        current_class = 'EXC'
+                        # if it matches a INF, change protid to seqid of INF
+                        # that will be assigned a new allele id later
+                        protid = seen_dna[cds_hash]
                     # for protein exact matches, the seqid of the translated allele,
                     # the seqid of the protein chosen as representative during sequence deduplication,
-                    # the hash of the schema allele,
-                    # the classification (INF or EXCP) and
-                    # the BSR value (1.0) are stored
                     match_info = (protid, p, cds_hash, current_class, 1.0)
                     locus_classifications = update_classification(gid, locus_classifications,
                                                                   match_info)
 
-            seen_prot.append(prot_hash)
+            seen_prot.append(seq_hash)
 
-    return [locus_classifications, exact_prot_hashes, total_prots, total_cds]
+    return [locus_classifications, exact_prot_hashes, total_prots,
+            total_cds, total_distinct_prots]
 
 
 def compute_bsr(raw_score, query_raw_score):
@@ -503,6 +511,7 @@ def classify_alleles(locus, genomes_matches, representatives_info,
             # already had a classification for the current locus
             if target_dna_hash in seen_dna:
                 locus_results = update_classification(genome, locus_results,
+                                                      ### rep_alleid should be the seqid of the CDS that was previously inferred and is now the target of the exact match!
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, 'EXC', 1.0))
                 continue
@@ -1131,6 +1140,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('found {0} exact matches (matching {1} alleles).'
           ''.format(dna_exact_hits, len(dna_matches_ids)))
 
+    current_counts, current_cds = count_classifications(classification_files)
+    print(current_counts, current_cds)
+
     # user only wants to determine exact matches
     if only_exact is True:
         # return classification files for creation of output files
@@ -1194,6 +1206,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     print('\nFinding protein exact matches...', end='')
     exc_cds = 0
     exc_prot = 0
+    exc_distinct_prot = 0
     exact_phashes = []
     for locus, pfile in protein_files.items():
         results_file = classification_files[locus]
@@ -1207,6 +1220,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         exc_prot += em_results[2]
         # this reports a huge number for the dataset with 320 genomes. Is it normal?
         exc_cds += em_results[3]
+        exc_distinct_prot += em_results[-1]
 
     # need to determine number of distinct proteins to print correct info!!!
     print('found {0} protein exact matches (matching {1} distinct proteins).'
@@ -1214,6 +1228,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # this reports a huge number for the dataset with 320 genomes. Is it normal?
     print('Protein matches correspond to {0} DNA matches.'.format(exc_cds))
+
+    current_counts, current_cds = count_classifications(classification_files)
+    print(current_counts, current_cds)
 
     # create new Fasta file without the Protein sequences that were exact matches
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])

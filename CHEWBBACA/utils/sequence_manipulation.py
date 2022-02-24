@@ -727,23 +727,23 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
         sequence and saves distinct sequences to a FASTA
         file.
 
-        Parameters
-        ----------
-        sequences_file : str
-            Path to a FASTA file.
-        unique_fasta : str
-            Path to a FASTA file that will be created to
-            store distinct sequences.
+    Parameters
+    ----------
+    sequences_file : str
+        Path to a FASTA file.
+    unique_fasta : str
+        Path to a FASTA file that will be created to
+        store distinct sequences.
 
-        Returns
-        -------
-        List with following elements:
-            total : int
-                Total number of times sequences were repeated.
-            unique_seqids : list
-                List with one sequence identifier per distinct
-                sequence. The first identifier observed for a
-                distinct sequence is the one stored in the list.
+    Returns
+    -------
+    List with following elements:
+        total : int
+            Total number of times sequences were repeated.
+        unique_seqids : list
+            List with one sequence identifier per distinct
+            sequence. The first identifier observed for a
+            distinct sequence is the one stored in the list.
     """
 
     out_seqs = []
@@ -758,6 +758,8 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
             # seq object has to be converted to string
             seqid = record.id
             sequence = str(record.seq.upper())
+
+            # use digest() instead of hexdigest() to reduce memory usage?
             seq_hash = im.hash_sequence(sequence)
 
             # add unseen sequence to Fasta file with distinct sequences

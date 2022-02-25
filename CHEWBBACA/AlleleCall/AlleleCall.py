@@ -458,27 +458,27 @@ def allele_size_classification(target_dna_len, locus_mode, size_threshold):
         return 'ALM'
 
 
-# locus = classification_inputs[3][0]
-# genomes_matches = classification_inputs[3][1]
-# representatives_info = classification_inputs[3][2]
-# inv_map = classification_inputs[3][3]
-# contigs_lengths = classification_inputs[3][4]
-# locus_results_file = classification_inputs[3][5]
-# locus_mode = classification_inputs[3][6]
-# temp_directory = classification_inputs[3][7]
-# size_threshold = classification_inputs[3][8]
-# blast_score_ratio = classification_inputs[3][9]
-def classify_alleles(locus, genomes_matches, representatives_info,
-                     inv_map, contigs_lengths, locus_results_file,
-                     locus_mode, temp_directory, size_threshold,
-                     blast_score_ratio):
+# locus = 'GCA-000007265-protein1068'
+# genomes_matches = [c[1] for c in classification_inputs if c[0] == locus][0]
+# representatives_info = [c[2] for c in classification_inputs if c[0] == locus][0]
+# inv_map = [c[3] for c in classification_inputs if c[0] == locus][0]
+# contigs_lengths = [c[4] for c in classification_inputs if c[0] == locus][0]
+# locus_results_file = [c[5] for c in classification_inputs if c[0] == locus][0]
+# locus_mode = [c[6] for c in classification_inputs if c[0] == locus][0]
+# temp_directory = [c[7] for c in classification_inputs if c[0] == locus][0]
+# size_threshold = [c[8] for c in classification_inputs if c[0] == locus][0]
+# blast_score_ratio = [c[9] for c in classification_inputs if c[0] == locus][0]
+def classify_inexact_matches(locus, genomes_matches, representatives_info,
+                             inv_map, contigs_lengths, locus_results_file,
+                             locus_mode, temp_directory, size_threshold,
+                             blast_score_ratio):
     """
     """
 
     locus_results = fo.pickle_loader(locus_results_file)
 
     # initialize lists to store hashes of CDSs that have been classified
-    seen_dna = []
+    seen_dna = {}
     seen_prot = []
     # initialize list to store sequence identifiers that have been classified
     excluded = []
@@ -503,16 +503,15 @@ def classify_alleles(locus, genomes_matches, representatives_info,
             # get the BSR value
             bsr = m[4][0]
 
-            # store sequence identifiers that have been classified
-            excluded.append(target_seqid)
+            # # store sequence identifiers that have been classified
+            # excluded.append(target_seqid)
 
             # CDS DNA sequence was identified in one of the previous inputs
             # This will change classification to NIPH if the input
             # already had a classification for the current locus
             if target_dna_hash in seen_dna:
                 locus_results = update_classification(genome, locus_results,
-                                                      ### rep_alleid should be the seqid of the CDS that was previously inferred and is now the target of the exact match!
-                                                      (rep_alleleid, target_seqid,
+                                                      (seen_dna[target_dna_hash], target_seqid,
                                                        target_dna_hash, 'EXC', 1.0))
                 continue
 
@@ -522,10 +521,10 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, 'INF', 1.0))
                 # add DNA hash to classify the next match as EXC
-                # store CDS hash if it was classified as INF and not as NIPH/EM
-                if locus_results[genome][0] not in ['NIPH', 'NIPHEM']:
-                    seen_dna.append(target_dna_hash)
+                seen_dna[target_dna_hash] = target_seqid
 
+                # excluded.append(target_seqid)
+                # print(genome, m, 'PROT')
                 continue
 
             # only proceed if there are no representative candidates
@@ -559,6 +558,8 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                     locus_results = update_classification(genome, locus_results,
                                                           (rep_alleleid, target_seqid,
                                                            target_dna_hash, relative_pos, bsr))
+                    # need to exclude so that it does not duplicate ASM/ALM classifications later
+                    excluded.append(target_seqid)
                     continue
     
                 target_dna_len = m[3]
@@ -569,6 +570,8 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                     locus_results = update_classification(genome, locus_results,
                                                           (rep_alleleid, target_seqid,
                                                            target_dna_hash, relative_size, bsr))
+                    # need to exclude so that it does not duplicate PLOT3/5 classifications later
+                    excluded.append(target_seqid)
                     continue
 
                 # add INF
@@ -576,13 +579,16 @@ def classify_alleles(locus, genomes_matches, representatives_info,
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, 'INF', bsr))
-    
-                # add hash of newly inferred allele if classification is INF
-                if locus_results[genome][0] not in ['NIPH', 'NIPHEM']:
-                    seen_dna.append(target_dna_hash)
-                    seen_prot.append(target_prot_hash)
-    
-        # update locus mode value if a new allele was inferred
+
+                seen_dna[target_dna_hash] = target_seqid
+                excluded.append(target_seqid)
+                #print(genome, m, 'INF')
+                seen_prot.append(target_prot_hash)
+
+        # update locus mode value if classification for genome is INF
+        ### this is not being updated properly if a INF case turns into NIPH
+        ### the NIPH class will not allow for the INF length to be added and
+        ### the next match to the INF will be stored as EXC
         if genome in locus_results and locus_results[genome][0] == 'INF':
             # append length of inferred allele to list with allele sizes
             locus_mode[1].append(target_dna_len)
@@ -593,7 +599,6 @@ def classify_alleles(locus, genomes_matches, representatives_info,
             if inf_bsr >= blast_score_ratio and inf_bsr < blast_score_ratio+0.1:
                 representative_candidates.append((genome, target_seqid,
                                                   m[4][3], target_dna_hash))
-                excluded.remove(target_seqid)
 
     # save updated results
     fo.pickle_dumper(locus_results, locus_results_file)
@@ -1143,6 +1148,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     current_counts, current_cds = count_classifications(classification_files)
     print(current_counts, current_cds)
 
+    after_dna_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
+
     # user only wants to determine exact matches
     if only_exact is True:
         # return classification files for creation of output files
@@ -1224,13 +1231,15 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
 
     # need to determine number of distinct proteins to print correct info!!!
     print('found {0} protein exact matches (matching {1} distinct proteins).'
-          ''.format(exc_prot, len(exact_phashes)))
+          ''.format(exc_prot, exc_distinct_prot))
 
     # this reports a huge number for the dataset with 320 genomes. Is it normal?
     print('Protein matches correspond to {0} DNA matches.'.format(exc_cds))
 
     current_counts, current_cds = count_classifications(classification_files)
     print(current_counts, current_cds)
+
+    after_prot_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
 
     # create new Fasta file without the Protein sequences that were exact matches
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
@@ -1377,24 +1386,28 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                       locus_results_file, locus_mode,
                                       temp_directory, size_threshold,
                                       blast_score_ratio,
-                                      classify_alleles])
+                                      classify_inexact_matches])
 
     class_results = mo.map_async_parallelizer(classification_inputs,
                                               mo.function_helper,
                                               cpu_cores,
                                               show_progress=True)
 
+    after_cluster = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
+    after_cluster2 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1068_results')
+    after_cluster3 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
+
     excluded = []
     for r in class_results:
         locus = list(r.keys())[0]
         results = r[locus]
-        # this does not include the length of protein exact matches!!!
+        # this does not include the length of alleles inferred through protein exact matches
         loci_modes[locus] = results[1]
         excluded.extend(results[2])
 
-    # convert to set, some ids might be duplicated
+    # may have repeated elements due to same CDS matching different loci
     excluded = set(excluded)
-    print('\nExcluded: {0}'.format(len(excluded)))
+    print('\nExcluded distinct proteins: {0}'.format(len(excluded)))
 
     # get seqids of remaining unclassified sequences
     unclassified_ids = [rec.id
@@ -1518,15 +1531,16 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                           locus_results_file, locus_mode,
                                           temp_directory, size_threshold,
                                           blast_score_ratio,
-                                          classify_alleles])
+                                          classify_inexact_matches])
 
-        # some data in results has truncated ids, why?
         class_results = mo.map_async_parallelizer(classification_inputs,
                                                   mo.function_helper,
                                                   cpu_cores,
                                                   show_progress=True)
 
-        # we are not excluding or classifying representative candidates???
+        after_iter = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
+
+        # may have repeated elements due to same CDS matching different loci
         excluded = []
         representative_candidates = {}
         for r in class_results:
@@ -1536,9 +1550,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             excluded.extend(results[2])
             if len(results[3]) > 0:
                 representative_candidates[locus] = results[3]
-
-        # excluded might have repeated ids
-        # those are exact matches to representatives
 
         print('\nSelecting representatives for next iteration.')
 
@@ -1550,17 +1561,21 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
         for k, v in representatives.items():
             new_reps.setdefault(k, []).append(v)
 
-        # keep repeated ids to match the true number of classified alleles
-        # include representative candidates
-        print('Classified {0} alleles.'.format(len(excluded)))
-        # exclude sequences that were classified
-        unclassified_ids = list(set(unclassified_ids) - set(excluded))
-        # exclude representatives too because all alleles that are equal should have been classified
-        # not all representatives have been added to the excluded list
+        # remove representative candidates ids from excluded
+        excluded = set(excluded) - set([v[0] for k, v in representatives.items()])
+
+        # include new representatives
+        print('Classified {0} proteins.'.format(len(excluded)+len(representatives)))
+
+        # exclude sequences that were excluded
+        unclassified_ids = set(unclassified_ids) - excluded
+
+        # exclude representatives too because all alleles that are equal were classified
+        # we may have repeated representatives because they matched several loci
         representative_ids = [l[0] for l in list(representatives.values())]
-        unclassified_ids = list(set(unclassified_ids) - set(representative_ids))
+        unclassified_ids = list(unclassified_ids - set(representative_ids))
         # new representatives and alleles that amtch in other genomes should have been all classified
-        print('Remaining unclassified alleles: {0}'.format(len(unclassified_ids)))
+        print('Remaining unclassified proteins: {0}'.format(len(unclassified_ids)))
 
         # stop iterating if it is not possible to identify representatives
         if len(representatives) == 0:
@@ -1668,6 +1683,8 @@ def main(input_files, schema_directory, output_directory, ptf_path,
           'PLOT3: {PLOT3}\n'
           'PLOT5: {PLOT5}\n'
           'LOTSC: {LOTSC}\n'.format(**global_counts))
+
+########## Test id assignment! Exact protein matches correctly added as INF?
 
     if only_exact is False:
 

@@ -488,8 +488,8 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
         contig_lengths = contigs_lengths[current_g]
 
         # open pickle for genome and get coordinates
-        genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
-        genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
+        # genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
+        # genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
         for m in matches:
             # get sequence identifier for the representative CDS
             target_seqid = m[0]
@@ -522,9 +522,6 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
                                                        target_dna_hash, 'INF', 1.0))
                 # add DNA hash to classify the next match as EXC
                 seen_dna[target_dna_hash] = target_seqid
-
-                # excluded.append(target_seqid)
-                # print(genome, m, 'PROT')
                 continue
 
             # only proceed if there are no representative candidates
@@ -533,7 +530,8 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
             # this might add wrong representative id to locus results if match is against new representative...
             if len(representative_candidates) == 0:
                 # there is no DNA or Protein exact match, perform full evaluation
-    
+                genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
+                genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
                 # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
                 # get CDS start and stop positions
                 genome_coordinates = genome_cds_coordinates[target_dna_hash][0]
@@ -900,8 +898,6 @@ def count_classifications(classification_files):
     return [global_counts, total_cds]
 
 
-# start_time = pdt.get_datetime()
-# end_time = pdt.get_datetime()
 def write_outputs(classification_files, inv_map, output_directory,
                    start_time, end_time, cpu_cores, blast_score_ratio):
     """
@@ -981,9 +977,9 @@ def create_classification_file(locus_id, output_directory):
     return pickle_out
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
 input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall3'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
 minimum_length = 201
@@ -1001,6 +997,8 @@ cds_input = False
 only_exact = False
 schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
 add_inferred = True
+output_unclassified = True
+output_missing = True
 no_cleanup = True
 def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
@@ -1130,7 +1128,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     current_counts, current_cds = count_classifications(classification_files)
     print(current_counts, current_cds)
 
-    after_dna_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
+    #after_dna_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
 
     # user only wants to determine exact matches
     if only_exact is True:
@@ -1221,7 +1219,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     current_counts, current_cds = count_classifications(classification_files)
     print(current_counts, current_cds)
 
-    after_prot_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
+    #after_prot_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
 
     # create new Fasta file without the Protein sequences that were exact matches
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
@@ -1375,9 +1373,9 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                               cpu_cores,
                                               show_progress=True)
 
-    after_cluster = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
-    after_cluster2 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1068_results')
-    after_cluster3 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
+    #after_cluster = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
+    #after_cluster2 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1068_results')
+    #after_cluster3 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
     current_counts, current_cds = count_classifications(classification_files)
     print(current_counts, current_cds)
 
@@ -1522,7 +1520,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
                                                   cpu_cores,
                                                   show_progress=True)
 
-        after_iter = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
+        #after_iter = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
 
         # may have repeated elements due to same CDS matching different loci
         excluded = []
@@ -1621,7 +1619,32 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # return paths to classification files
     # mapping between genome identifiers and integer identifiers
     # path to Fasta file with distinct DNA sequences to get inferred alleles
-    return [classification_files, inv_map, unique_fasta, dna_distinct_htable, new_reps, self_scores]
+    return [classification_files, inv_map, unique_fasta, dna_distinct_htable,
+            new_reps, self_scores, unclassified_ids]
+
+
+# It needs to fetch all distinct DNA sequences for each distinct prot!
+# fasta_file = results[2]
+# unclassified_ids = results[6]
+# output_directory = results_dir
+def create_unclassified_fasta(fasta_file, unclassified_ids, output_directory):
+    """
+    """
+
+    dna_cds_index = SeqIO.index(fasta_file, 'fasta')
+    unclassified_seqs = [fao.fasta_str_record(seqid, str(dna_cds_index[seqid].seq))
+                         for seqid in unclassified_ids]
+
+    output_file = fo.join_paths(output_directory, ['unclassified_sequences.fasta'])
+
+    fo.write_lines(unclassified_seqs, output_file)
+
+
+def create_missing_fasta():
+    """
+    """
+
+    pass
 
 
 # add output with unclassified CDSs!
@@ -1630,7 +1653,8 @@ def main(input_files, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
-         add_inferred, no_cleanup):
+         add_inferred, output_unclassified, output_missing,
+         no_cleanup):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -1669,17 +1693,15 @@ def main(input_files, schema_directory, output_directory, ptf_path,
           'PLOT5: {PLOT5}\n'
           'LOTSC: {LOTSC}\n'.format(**global_counts))
 
-########## Test id assignment! Exact protein matches correctly added as INF?
-
     if only_exact is False:
 
         new_alleles = assign_ids(results[0], schema_directory)
-    
+
         # get seqids that match hashes
         for k, v in new_alleles.items():
             for r in v:
                 r.append(results[3][r[0]][0])
-    
+
         # get info for new representative alleles that must be added to files in the short directory
         reps_info = {}
         for k, v in new_alleles.items():
@@ -1687,27 +1709,30 @@ def main(input_files, schema_directory, output_directory, ptf_path,
             current_results = results[4].get(locus_id, None)
             if current_results is not None:
                 for e in current_results:
-                    reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
-    
+                    allele_id = [l[1] for l in v if l[0] == e[1]]
+                    # we might have representatives that were converted to NIPH but still appear in the list
+                    if len(allele_id) > 0:
+                        reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
+
         # need to be careful not to update this if user does not want to add inferred alleles...
         if add_inferred is True:
             # update self_scores
             for k, v in reps_info.items():
                 for r in v:
                     new_id = k+'_'+r[-1]
-                    results[-1][new_id] = results[-1][r[0]]
-                
+                    results[5][new_id] = results[5][r[0]]
+
             # delete old entries
             for k, v in reps_info.items():
                 for r in v:
                     try:
-                        del(results[-1][r[0]])
+                        del(results[5][r[0]])
                     except:
                         continue
 
             # save updated self-scores
             self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
-            fo.pickle_dumper(results[-1], self_score_file)
+            fo.pickle_dumper(results[5], self_score_file)
 
             if len(new_alleles) > 0:
                 # add inferred alleles to schema
@@ -1720,8 +1745,15 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     end_time = pdt.get_datetime()
 
     # create output files
+    # CREATE output with classification info for all loci!
     results_dir = write_outputs(results[0], results[1], output_directory,
                                 start_time, end_time, cpu_cores, blast_score_ratio)
+
+    if output_unclassified is True:
+        create_unclassified_fasta(results[2], results[6], results_dir)
+
+    if output_missing is True:
+        create_missing_fasta()
 
     # move file with CDSs coordinates and file with list of excluded CDSs
     cds_coordinates_source = fo.join_paths(output_directory, ['cds_info.tsv'])

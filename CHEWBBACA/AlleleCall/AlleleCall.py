@@ -608,25 +608,28 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
 
 
 # classification_files = results[0]
-# locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein50.fasta'
-# results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein50_results'
+# locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein1.fasta'
+# results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein1_results'
+# locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein1068.fasta'
+# results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein1068_results'
+# locus = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/GCA-000007265-protein977.fasta'
+# results = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall/temp/3_cds_preprocess/GCA-000007265-protein977_results'
 def assign_ids(classification_files, schema_directory):
     """
     """
 
     # assign allele identifiers
     new_alleles = {}
-    #novel_ids = {}
     for locus, results in classification_files.items():
         locus_id = fo.get_locus_id(locus)
-        # get loci records
+        # import locus records
         records = fao.import_sequences(locus)
-        # get id of max record
+        # determine hash for all locus alleles
+        seen = {im.hash_sequence(v): k.split('_')[-1] for k, v in records.items()}
+        # get allele id of max record
         max_alleleid = max([int(rec.split('_')[-1]) for rec in records])
+        # import allele calling results and sort to get INF first
         locus_results = fo.pickle_loader(results)
-        # iterate and assign allele identifiers
-        seen = {}
-        # sort to get INF classifications first
         sorted_r = sorted(locus_results.items(),
                           key=lambda x: x[1][0] == 'INF',
                           reverse=True)
@@ -635,28 +638,13 @@ def assign_ids(classification_files, schema_directory):
             genome_id = k[0]
             current_results = k[1]
             cds_hash = current_results[1][2]
-            
-            # try:
-            #     int(current_results[1][0])
-            #     allele_id = current_results[1][0]
-            # except Exception as e:
-            #     allele_id = novel_ids[current_results[1][0]]
 
             if current_results[0] == 'EXC':
-                #locus_results[genome_id].append(current_results[1][0])
-                try:
-                    int(current_results[1][0])
-                    locus_results[genome_id].append(current_results[1][0])
-                except Exception as e:
-                    locus_results[genome_id].append(seen[cds_hash])
-            elif current_results[0] == 'EXCP':
-                # this should be True every single case, but INF cases might be converted
-                # to NIPH due to a second match after being used to detect EXCP
+                # match to allele in schema or inferred allele that
+                # has already been assigned an allele id
                 if cds_hash in seen:
                     locus_results[genome_id].append(seen[cds_hash])
-                # the exact match might not be found because the INF that
-                # added the match was converted to NIPH
-                # we need to add the new allele based on the EXCP case...
+                # EXC match to INF that was converted to NIPH
                 else:
                     max_alleleid += 1
                     locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
@@ -664,19 +652,13 @@ def assign_ids(classification_files, schema_directory):
                     # add the unique SHA256 value (if we add the seqid we might get a seqid that does not match the hash
                     # during the iterative classification step with the representatives we can add the wrong seqid)
                     new_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
-                    #novel_ids[current_results[1][1]] = str(max_alleleid)
             elif current_results[0] == 'INF':
-                if cds_hash not in seen:
-                    max_alleleid += 1
-                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
-                    seen[cds_hash] = str(max_alleleid)
-                    # add the unique SHA256 value (if we add the seqid we might get a seqid that does not match the hash
-                    # during the iterative classification step with the representatives we can add the wrong seqid)
-                    new_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
-                    #novel_ids[current_results[1][1]] = str(max_alleleid)
-                else:
-                    print('INF case was already seen!')
-                    locus_results[genome_id].append(seen[cds_hash])
+                max_alleleid += 1
+                locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                seen[cds_hash] = str(max_alleleid)
+                # add the unique SHA256 value (if we add the seqid we might get a seqid that does not match the hash
+                # during the iterative classification step with the representatives we can add the wrong seqid)
+                new_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
 
         # save updated info
         fo.pickle_dumper(locus_results, results)
@@ -1001,7 +983,7 @@ def create_classification_file(locus_id, output_directory):
 
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids.txt'
 input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall3'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
 minimum_length = 201
@@ -1396,6 +1378,8 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     after_cluster = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
     after_cluster2 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1068_results')
     after_cluster3 = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein977_results')
+    current_counts, current_cds = count_classifications(classification_files)
+    print(current_counts, current_cds)
 
     excluded = []
     for r in class_results:
@@ -1674,6 +1658,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
 
     # results in results_alleles.tsv and total CDSs that were classified do not match...
     print('Classified a total of {0} CDSs.'.format(total_cds))
+    # this does not include EXC matches to INF that were converted to NIPH
     print('EXC: {EXC}\n'
           'INF: {INF}\n'
           'NIPHEM: {NIPHEM}\n'
@@ -1705,25 +1690,25 @@ def main(input_files, schema_directory, output_directory, ptf_path,
                     reps_info.setdefault(locus_id, []).append(list(e)+[l[1] for l in v if l[0] == e[1]])
     
         # need to be careful not to update this if user does not want to add inferred alleles...
-        # update self_scores
-        for k, v in reps_info.items():
-            for r in v:
-                new_id = k+'_'+r[-1]
-                results[-1][new_id] = results[-1][r[0]]
-            
-        # delete old entries
-        for k, v in reps_info.items():
-            for r in v:
-                try:
-                    del(results[-1][r[0]])
-                except:
-                    continue
-        # need to be careful not to update this if user does not want to add inferred alleles...
-        # save updated self-scores
-        self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
-        fo.pickle_dumper(results[-1], self_score_file)
-    
         if add_inferred is True:
+            # update self_scores
+            for k, v in reps_info.items():
+                for r in v:
+                    new_id = k+'_'+r[-1]
+                    results[-1][new_id] = results[-1][r[0]]
+                
+            # delete old entries
+            for k, v in reps_info.items():
+                for r in v:
+                    try:
+                        del(results[-1][r[0]])
+                    except:
+                        continue
+
+            # save updated self-scores
+            self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+            fo.pickle_dumper(results[-1], self_score_file)
+
             if len(new_alleles) > 0:
                 # add inferred alleles to schema
                 added = add_inferred_alleles(new_alleles, reps_info, results[2])

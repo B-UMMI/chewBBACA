@@ -427,7 +427,8 @@ def allele_call():
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
-                    args.only_exact, args.add_inferred, args.output_unclassified, args.no_cleanup)
+                    args.only_exact, args.add_inferred, args.output_unclassified, args.output_missing,
+                    args.no_cleanup)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

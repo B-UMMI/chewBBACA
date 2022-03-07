@@ -134,9 +134,9 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
         input fasta files.
     """
 
-    # divide inputs into at least 20 sublists for 5% process
+    # divide inputs into at least 50 sublists for 2% process
     # progress resolution
-    num_chunks = 20 if cpu_cores < 20 else cpu_cores
+    num_chunks = 50 if cpu_cores < 50 else cpu_cores
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
 
     # add common arguments and unique index/identifier
@@ -166,7 +166,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, ids_map, ids=False):
+                       outfile_template, ids_map, ids=False, polyline=False):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -210,17 +210,35 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                               cpu_cores,
                                               show_progress=False)
 
-    # merge results
-    merged_results = {}
-    for p in dedup_results:
-        r = fo.pickle_loader(p)
-        for k, v in r.items():
-            merged_results.setdefault(k, [v[0]]).extend(v[1:])
+    if polyline is True:
+        # merge results
+        repeated = 0
+        merged_results = {}
+        for p in dedup_results:
+            r = fo.pickle_loader(p)
+            for k, v in r.items():
+                if k in merged_results:
+                    merged_results[k][1] = im.polyline_encoding(sorted(v[1:]+im.polyline_decoding(merged_results[k][1])))
+                else:
+                    merged_results[k] = [v[0], im.polyline_encoding(v[1:])]
+                repeated += len(v) -1
 
-    # determine number of duplicated sequences
-    # minus 2 so we do not count the seqid and genome integer
-    # identifier for the representative record
-    repeated = sum([len(v)-2 for k, v in merged_results.items()])
+        # determine number of duplicated sequences
+        # minus 2 so we do not count the seqid and genome integer
+        # identifier for the representative record
+        repeated = repeated - len(merged_results)
+    else:
+        # merge results
+        merged_results = {}
+        for p in dedup_results:
+            r = fo.pickle_loader(p)
+            for k, v in r.items():
+                merged_results.setdefault(k, [v[0]]).extend(v[1:])
+
+        # determine number of duplicated sequences
+        # minus 2 so we do not count the seqid and genome integer
+        # identifier for the representative record
+        repeated = sum([len(v)-2 for k, v in merged_results.items()])
 
     # get representative identifiers for each distinct sequence
     distinct_seqids = [v[0] for k, v in merged_results.items()]

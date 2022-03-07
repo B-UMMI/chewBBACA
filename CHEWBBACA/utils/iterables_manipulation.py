@@ -896,3 +896,92 @@ def mapping_function(values, function, args):
     mapping = {v: function(v, *args) for v in values}
 
     return mapping
+
+
+# number_list = [17998321]
+# precision = 0
+def polyline_encoding(number_list, precision=0):
+    """ Uses the polyline algorithm to encode/compress
+        a list of numbers.
+
+    Parameters
+    ----------
+    number_list : list
+        List with numbers to encode.
+    precision : int
+        Number of decimal places preserved by the encoding.
+
+    Returns
+    -------
+    compressed_values : str
+        A single string composed of ASCII characters
+        that represents the compressed list of numbers
+        to the desired level of precision.
+    """
+
+    compressed_values = ''
+    # store the precision value
+    # to ensure proper character display, encoded values are summed with 63 (the ASCII character '?')
+    compressed_values += chr(precision+63)
+    previous_num = 0
+    for number in number_list:
+        # encode the difference between numbers
+        difference = number - previous_num
+        # multiply and round to get integer that preserves decimal places
+        difference = int(round(difference*(10**precision)))
+        # left bitwise shift 1 position (0b11111 --> 0b111110)
+        # and invert the encoding if the original number was negative
+        # the bit added by the shift will be inverted and that allows
+        # to know that the number is negative
+        difference = ~(difference << 1) if difference < 0 else difference << 1
+
+        # process 5-bit chunks from right to left until we get a value that is smaller than 0b100000/0x20/32
+        while difference >= 0x20:
+            # use 0x1f (0b11111) as bitmask to get the smallest 5-bit chunk
+            # and 0x20 is used as continuation bit
+            compressed_values += (chr((0x20 | (difference & 0x1f)) + 63))
+            # right bitwise shift to exclude the 5-bit chunk that was encoded
+            difference >>= 5
+
+        # encode the last 5-bit chunk
+        compressed_values += (chr(difference + 63))
+        # store number to subtract from next
+        previous_num = number
+
+    return compressed_values
+
+
+def decompress_number(text, index):
+    result = 1
+    shift = 0
+
+    while True:
+        b = ord(text[index]) - 63 - 1
+        result += b << shift
+        shift += 5
+        index += 1
+
+        if b < 0x1f:
+            break
+
+    return index, (~result >> 1) if (result & 1) != 0 else (result >> 1)
+
+
+def polyline_decoding(text):
+    """
+    """
+
+    number_list = []
+    index = last_num = 0
+    # decode precision value
+    precision = ord(text[index]) - 63
+    index += 1
+
+    while index < len(text):
+        index, diff = decompress_number(text, index)
+        last_num += diff
+        number_list.append(last_num)
+
+    number_list = [round(item * (10 ** (-precision)), precision) for item in result]
+
+    return number_list

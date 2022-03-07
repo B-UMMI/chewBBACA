@@ -106,7 +106,7 @@ the same 'id' and working with their ids should be done with caution.
 >>> a is b
 True
 
-If the integer value is outside the range [-5,256], this doe snot happen:
+If the integer value is outside the range [-5,256], this does not happen:
 >>> a = 257
 >>> b = 257
 >>> a is b

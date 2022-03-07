@@ -749,8 +749,8 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
     out_seqs = []
     duplicates = {}
     exausted = False
-    # limit of 20000 Fasta records in memory
-    out_limit = 20000
+    # limit of 10000 Fasta records in memory
+    out_limit = 10000
     seq_generator = SeqIO.parse(sequences_file, 'fasta')
     while exausted is False:
         record = next(seq_generator, None)

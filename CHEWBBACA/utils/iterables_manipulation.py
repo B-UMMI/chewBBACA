@@ -898,8 +898,6 @@ def mapping_function(values, function, args):
     return mapping
 
 
-# number_list = [17998321]
-# precision = 0
 def polyline_encoding(number_list, precision=0):
     """ Uses the polyline algorithm to encode/compress
         a list of numbers.
@@ -917,6 +915,11 @@ def polyline_encoding(number_list, precision=0):
         A single string composed of ASCII characters
         that represents the compressed list of numbers
         to the desired level of precision.
+
+    Notes
+    -----
+    This implementation is based on the `numcompress` package
+    (https://github.com/amit1rrr/numcompress).
     """
 
     compressed_values = ''
@@ -938,7 +941,7 @@ def polyline_encoding(number_list, precision=0):
         # process 5-bit chunks from right to left until we get a value that is smaller than 0b100000/0x20/32
         while difference >= 0x20:
             # use 0x1f (0b11111) as bitmask to get the smallest 5-bit chunk
-            # and 0x20 is used as continuation bit
+            # and 0x20 is used as continuation bit to help decode
             compressed_values += (chr((0x20 | (difference & 0x1f)) + 63))
             # right bitwise shift to exclude the 5-bit chunk that was encoded
             difference >>= 5
@@ -952,23 +955,65 @@ def polyline_encoding(number_list, precision=0):
 
 
 def decompress_number(text, index):
-    result = 1
-    shift = 0
+    """ Decode a single number from a string created through
+        the compression of a list of numbers with polyline encoding.
+
+    Parameters
+    ----------
+    text : str
+        String representing a compressed list of numbers.
+    index : int
+        Index of the first character to start decoding a number.
+
+    Returns
+    -------
+    Index to start decoding the next number and the number decoded
+    in the current function call.
+    """
+
+    number = 0
+    bitwise_shift = 0
 
     while True:
-        b = ord(text[index]) - 63 - 1
-        result += b << shift
-        shift += 5
+        # subtract 63 and remove bit from OR with 0x20 if 5-bit chunk
+        # is not the last to decode a number that was in the original list
+        n = (ord(text[index]) - 63)
         index += 1
-
-        if b < 0x1f:
+        # only continue if there is a continuation bit (0b100000)
+        # e.g.: 0b11111 only has 5 bits, meaning it is the last chunk
+        # that is necessary to decode the number
+        if n >= 0x20:
+            # subtract 0x20 (0b100000) to get the 5-bit chunk
+            n -= 0x20
+            # contruct the binary number with biwise shift to add each
+            # 5-bit chunk to original position
+            number = number | (n << bitwise_shift)
+            # increment bitwise shift value for next 5-bit chunk
+            bitwise_shift += 5
+        else:
             break
 
-    return index, (~result >> 1) if (result & 1) != 0 else (result >> 1)
+    # add the last chunk, without continuation bit, to the leftmost position
+    number = number | (n << bitwise_shift)
+
+    # invert bits to get negative number if sign bit is 1
+    # remove sign bit and keep only bits for decoded value
+    return index, (~number >> 1) if (number & 1) != 0 else (number >> 1)
 
 
 def polyline_decoding(text):
-    """
+    """ Decode a list of integers compressed with polyline
+        encoding.
+
+    Parameters
+    ----------
+    text : str
+        String representing a compressed list of numbers.
+
+    Returns
+    -------
+    number_list : list
+        List with the decoded numbers.
     """
 
     number_list = []
@@ -976,12 +1021,13 @@ def polyline_decoding(text):
     # decode precision value
     precision = ord(text[index]) - 63
     index += 1
-
     while index < len(text):
-        index, diff = decompress_number(text, index)
-        last_num += diff
+        # decode a number and get index to start decoding next number
+        index, difference = decompress_number(text, index)
+        # add decoded difference to get next number in original list
+        last_num += difference
         number_list.append(last_num)
 
-    number_list = [round(item * (10 ** (-precision)), precision) for item in result]
+    number_list = [round(item * (10 ** (-precision)), precision) for item in number_list]
 
     return number_list

@@ -1826,7 +1826,6 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     end_time = pdt.get_datetime()
 
     # create output files
-    # CREATE output with classification info for all loci!
     results_dir = write_outputs(results[0], results[1], output_directory,
                                 start_time, end_time, cpu_cores, blast_score_ratio)
 

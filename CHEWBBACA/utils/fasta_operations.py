@@ -183,6 +183,15 @@ def import_sequences(input_file):
     return seqs_dict
 
 
+def sequence_generator(input_file):
+    """
+    """
+
+    records = SeqIO.parse(input_file, 'fasta')
+
+    return records
+
+
 def is_fasta(file_path):
     """ Checks if a file is a FASTA file.
 

@@ -18,9 +18,11 @@ import itertools
 from copy import deepcopy
 
 try:
-    from utils import file_operations as fo
+    from utils import (file_operations as fo,
+                       fasta_operations as fao)
 except:
-    from CHEWBBACA.utils import file_operations as fo
+    from CHEWBBACA.utils import (file_operations as fo,
+                                 fasta_operations as fao)
 
 
 def match_regex(text, pattern):
@@ -713,47 +715,46 @@ def find_missing(lst):
     return sorted(set(range(start, end + 1)).difference(lst))
 
 
-def kmer_index(sequences, word_size):
+def kmer_index(fasta_file, word_size):
     """ Creates a kmer index based on a set
-        of sequences.
+        of sequences in a Fasta file.
 
-        Parameters
-        ----------
-        sequences : dict
-            Dictionary with sequence identifiers
-            as keys and sequences as values.
-        word_size : int
-            Value k for the kmer size.
+    Parameters
+    ----------
+    fasta_file : str
+        Path to a Fasta file.
+    word_size : int
+        Value k for the kmer size.
 
-        Returns
-        -------
-        kmers_mapping : dict
-            Dictionary with kmers as keys and the
-            list of sequence identifiers of the
-            sequences that contain the kmers as
-            values.
-        seqs_kmers : dict
-            Dictionary with sequence identifiers
-            as keys and the set of distinct kmers
-            for each sequence as values.
+    Returns
+    -------
+    kmers_mapping : dict
+        Dictionary with kmers as keys and the
+        list of sequence identifiers of the
+        sequences that contain the kmers as
+        values.
+    seqs_kmers : dict
+        Dictionary with sequence identifiers
+        as keys and the set of distinct kmers
+        for each sequence as values.
     """
 
+    sequences = fao.sequence_generator(fasta_file)
+
     kmers_mapping = {}
-    seqs_kmers = {}
-    for seqid, seq in sequences.items():
-        minimizers = determine_minimizers(seq, word_size,
+    for record in sequences:
+        seqid = record.id
+        sequence = str(record.seq)
+        minimizers = determine_minimizers(sequence, word_size,
                                           word_size, position=False)
         kmers = set(minimizers)
-
-        # dict with sequence indentifiers and kmers
-        seqs_kmers[seqid] = kmers
 
         # create dict with kmers as keys and list
         # of sequences with given kmers as values
         for kmer in kmers:
             kmers_mapping.setdefault(kmer, []).append(seqid)
 
-    return [kmers_mapping, seqs_kmers]
+    return kmers_mapping
 
 
 

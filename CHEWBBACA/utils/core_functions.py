@@ -210,6 +210,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                               cpu_cores,
                                               show_progress=False)
 
+    distinct_seqids = []
     if polyline is True:
         # merge results
         repeated = 0
@@ -218,9 +219,11 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
             r = fo.pickle_loader(p)
             for k, v in r.items():
                 if k in merged_results:
-                    merged_results[k][1] = im.polyline_encoding(sorted(v[1:]+im.polyline_decoding(merged_results[k][1])))
+                    stored_ids = im.polyline_decoding(merged_results[k])
+                    merged_results[k] = im.polyline_encoding([stored_ids[0]]+sorted(stored_ids[1:]+v[1:]))
                 else:
-                    merged_results[k] = [v[0], im.polyline_encoding(v[1:])]
+                    distinct_seqids.append(v[0])
+                    merged_results[k] = im.polyline_encoding([int(v[0].split('protein')[-1])]+v[1:])
                 repeated += len(v) -1
 
         # determine number of duplicated sequences
@@ -229,19 +232,28 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
         repeated = repeated - len(merged_results)
     else:
         # merge results
+        # only using during the protein deduplication and first ID comes duplicated...
+        repeated = 0
         merged_results = {}
         for p in dedup_results:
             r = fo.pickle_loader(p)
             for k, v in r.items():
-                merged_results.setdefault(k, [v[0]]).extend(v[1:])
+                integer_list = []
+                # ignore first entry because it's equal to the second entry
+                for i in v[1:]:
+                    split = i.split('-protein')
+                    integer_list.extend([ids_map[split[0]], int(split[1])])
 
-        # determine number of duplicated sequences
-        # minus 2 so we do not count the seqid and genome integer
-        # identifier for the representative record
-        repeated = sum([len(v)-2 for k, v in merged_results.items()])
+                if k in merged_results:
+                    stored_ids = im.polyline_decoding(merged_results[k])
+                    merged_results[k] = im.polyline_encoding([stored_ids+integer_list])
+                else:
+                    merged_results[k] = im.polyline_encoding(integer_list)
+                    distinct_seqids.append(v[0])
 
-    # get representative identifiers for each distinct sequence
-    distinct_seqids = [v[0] for k, v in merged_results.items()]
+                # exclude first and second that match sequence that will represent
+                repeated += len(v) - 2
+
 
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]

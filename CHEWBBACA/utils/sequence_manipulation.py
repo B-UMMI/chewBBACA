@@ -523,7 +523,7 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
     dna_lines = []
     total_seqs = 0
     prot_lines = []
-    line_limit = 20000
+    line_limit = 10000
     invalid_alleles = []
     cds_index = SeqIO.index(sequences_file, 'fasta')
 
@@ -553,23 +553,6 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
             prot_lines = []
 
     return [invalid_alleles, total_seqs]
-
-
-def update_shelves(new_entries, shelve_file):
-    """
-    """
-
-    total = 0
-    with shelve.open(shelve_file) as db:
-        for k, v in new_entries.items():
-            try:
-                current = db[k] + v
-                db[k] = current
-            except:
-                db[k] = v
-            total += len(v)
-
-    return total
 
 
 def create_database_file(db_file):

@@ -789,3 +789,26 @@ def blast_clusters(clusters, sequences, output_directory,
                                               show_progress=True)
 
     return [blast_results, ids_dict]
+
+
+def compute_bsr(subject_score, query_score):
+    """ Computes the BLAST Score Ratio for an alignment
+        between two sequences.
+
+    Parameters
+    ----------
+    subject_score : float
+        Alignment raw score computed by BLAST.
+    query_score : float
+        Raw score computed by BLAST for the
+        self-alignment of the query sequence.
+
+    Returns
+    -------
+    bsr : float
+        BLAST Score Ratio for the alignment.
+    """
+
+    bsr = subject_score / query_score
+
+    return bsr

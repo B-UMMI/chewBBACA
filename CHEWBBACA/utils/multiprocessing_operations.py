@@ -21,18 +21,18 @@ def function_helper(input_args):
     """ Runs function by passing set of provided inputs and
         captures exceptions raised during function execution.
 
-        Parameters
-        ----------
-        input_args : list
-            List with function inputs and function object to call
-            in the last index.
+    Parameters
+    ----------
+    input_args : list
+        List with function inputs and function object to call
+        in the last index.
 
-        Returns
-        -------
-        results : list
-            List with the results returned by the function.
-            If an exception is raised it returns a list with
-            the name of the function and the exception traceback.
+    Returns
+    -------
+    results : list
+        List with the results returned by the function.
+        If an exception is raised it returns a list with
+        the name of the function and the exception traceback.
     """
 
     try:
@@ -156,27 +156,27 @@ def split_genes_by_core(inputs, cores, method):
         length of the sequences in each locus or the product of
         both values.
 
-        Parameters
-        ----------
-        inputs : list
-            List with one sublist per locus. Each sublist has
-            a locus identifier, the total number of sequences
-            and sequence mean legth for that locus.
-        cores : int
-            The number of loci groups that should be created.
-            Based on the number of CPU cores that will be
-            used to process the inputs.
-        method : str
-            "seqcount" to create loci lists based on the total
-            number of sequences, "length" to split based
-            on mean length of sequences and "seqcount+length" to
-            split based on both criteria.
+    Parameters
+    ----------
+    inputs : list
+        List with one sublist per locus. Each sublist has
+        a locus identifier, the total number of sequences
+        and sequence mean legth for that locus.
+    cores : int
+        The number of loci groups that should be created.
+        Based on the number of CPU cores that will be
+        used to process the inputs.
+    method : str
+        "seqcount" to create loci lists based on the total
+        number of sequences, "length" to split based
+        on mean length of sequences and "seqcount+length" to
+        split based on both criteria.
 
-        Returns
-        -------
-        splitted_ids : list
-            List with sublists that contain loci identifiers.
-            Sublists are balanced based on the chosen method.
+    Returns
+    -------
+    splitted_ids : list
+        List with sublists that contain loci identifiers.
+        Sublists are balanced based on the chosen method.
     """
 
     # initialize list with sublists to store inputs
@@ -198,3 +198,26 @@ def split_genes_by_core(inputs, cores, method):
         i = splitted_values.index(min(splitted_values))
 
     return splitted_ids
+
+
+def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_progress=False):
+    """
+    """
+
+    # create chunks to distribute per cores
+    input_lists = im.divide_list_into_n_chunks(inputs, len(inputs))
+
+    if common_args is None:
+        common_args = []
+
+    # add common arguments to all sublists
+    input_lists = im.multiprocessing_inputs(input_lists,
+                                            common_args,
+                                            function)
+
+    results = mo.map_async_parallelizer(input_lists,
+                                        function_helper,
+                                        cpu_cores,
+                                        show_progress=show_progress)
+
+    return results

@@ -568,7 +568,7 @@ def write_results_statistics(classification_files, input_identifiers,
     """
 
     # initialize classification counts per input
-    class_counts = {i: {c for c in ct.ALLELECALL_CLASSIFICATIONS}
+    class_counts = {i: {c: 0 for c in ct.ALLELECALL_CLASSIFICATIONS}
                     for i in input_identifiers}
     for file in classification_files.values():
         locus_id = fo.get_locus_id(file)
@@ -576,7 +576,7 @@ def write_results_statistics(classification_files, input_identifiers,
 
         for i in class_counts:
             if i in locus_results:
-                class_counts[i][locus_results[k][0]] += 1
+                class_counts[i][locus_results[i][0]] += 1
             else:
                 class_counts[i]['LNF'] += 1
 
@@ -643,9 +643,11 @@ def write_results_contigs(classification_files, input_identifiers,
         genome_id = l[0]
         # open file with loci coordinates
         coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])
+        # what if CDS is duplicated in the input?
         new_line = [coordinates[c][0] if c in coordinates else c for c in l[1:]]
 
-        new_line = ['{0}&{1}-{2}&{3}'.format(*c)
+        # contig identifier, start and stop positions and strand
+        new_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
                     if c not in invalid_classes else c
                     for c in new_line]
 
@@ -663,7 +665,7 @@ def write_results_contigs(classification_files, input_identifiers,
     return output_file
 
 
-def create_unclassified_fasta(fasta_file, prot_file, unclassified_seqids,
+def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
                               protein_hashtable, output_directory, inv_map):
     """ Creates FASTA file with the distinct coding sequences
         that were not classified.
@@ -676,7 +678,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_seqids,
     prot_file : str
         Path to FASTA file that contains the distinct translated
         coding sequences identified in the inputs.
-    unclassified_seqids : list
+    unclassified_protids : list
         List with the sequence identifiers of the representative
         sequences that were not classified.
     protein_hashtable : dict
@@ -694,8 +696,8 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_seqids,
 
     unclassified_seqids = []
     prot_distinct_index = SeqIO.index(prot_file, 'fasta')
-    for protid in unclassified_seqids:
-        prot_seq = str(prot_distinct_index[pid].seq)
+    for protid in unclassified_protids:
+        prot_seq = str(prot_distinct_index[protid].seq)
         # determine hash
         prot_hash = im.hash_sequence(prot_seq)
         # get all seqids for DNA sequences that code for protein
@@ -1129,7 +1131,8 @@ def aggregate_blast_results(blast_files, output_directory, ids_dict):
 # dna_hashtable = results[4]
 # output_directory = results_dir
 # coordinates_files = coordinates_files
-def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable, output_directory, coordinates_files):
+def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
+                         output_directory, coordinates_files):
     """
     """
 
@@ -1139,47 +1142,50 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable, outp
     for locus, file in class_files.items():
         locus_id = fo.get_locus_id(locus)
         locus_classifications = fo.pickle_loader(file)
-        genomes_missing = {k: v
-                           for k, v in locus_classifications.items()
-                           if v[0] in invalid_cases}
-        if len(genomes_missing) > 0:
-            for k, v in genomes_missing.items():
-                genome_id = input_map[k]
-                current = [[v[0], e[2], e[3], locus_id] for e in v[1:]]
-                missing_cases.setdefault(genome_id, []).extend(current)
+        # get data for genomes that do not have EXC or INF classifications
+        for gid, v in locus_classifications.items():
+            if v[0] in invalid_cases:
+                genome_info = [locus_id, v[0], [[e[2], e[3]] for e in v[1:]]]
+                missing_cases.setdefault(input_map[gid], []).append(genome_info)
 
     # get seqids that match hashes
     for k, v in missing_cases.items():
         genome_coordinates = fo.pickle_loader(coordinates_files[k])
         # genomes may have duplicated CDSs
-        # store hash and increment i to get each seqid
+        # store hash and increment i to get correct positions
         hashes = {}
         for c in v:
-            current_hash = c[1]
-            coordinates = genome_coordinates[current_hash]
+            locus_id = c[0]
+            classification = c[1]
+            for h in c[2]:
+                current_hash = h[0]
+                coordinates = genome_coordinates[current_hash]
 
-            if current_hash not in hashes:
-                hashes[current_hash] = {c[3]: 0}
-            else:
-                # multiple matches to the same locus
-                if c[3] in hashes[current_hash]:
-                    hashes[current_hash][c[3]] += 1
-                # multiple matches to multiple loci
+                if current_hash not in hashes:
+                    hashes[current_hash] = {locus_id: 0}
                 else:
-                    hashes[current_hash][c[3]] = 0
+                    # multiple matches to the same locus
+                    if locus_id in hashes[current_hash]:
+                        hashes[current_hash][locus_id] += 1
+                    # multiple matches to multiple loci
+                    else:
+                        hashes[current_hash][locus_id] = 0
 
-            c.append('{0}-protein{1}&{2}|{3}&{4}'.format(k, coordinates[hashes[current_hash][c[3]]][3], c[2], c[3], c[0]))
+                current_index = hashes[current_hash][locus_id]
+                protid = coordinates[current_index][3]
+                h.append('{0}-protein{1}&{2}|{3}&{4}'.format(k, protid, h[1], c[0], c[1]))
 
     missing_records = []
     dna_index = SeqIO.index(fasta_file, 'fasta')
     for genome, v in missing_cases.items():
         current_records = []
         for c in v:
-            hash_entry = im.polyline_decoding(dna_hashtable[c[1]])
-            seqid = '{0}-protein{1}'.format(input_map[hash_entry[1]], hash_entry[0])
-            new_rec = fao.fasta_str_record(c[-1], str(dna_index[seqid].seq))
-            current_records.append(new_rec)
-                                           
+            for h in c[2]:
+                hash_entry = im.polyline_decoding(dna_hashtable[h[0]])
+                seqid = '{0}-protein{1}'.format(input_map[hash_entry[1]], hash_entry[0])
+                new_rec = fao.fasta_str_record(h[2], str(dna_index[seqid].seq))
+                current_records.append(new_rec)
+
         missing_records.extend(current_records)
 
     output_file = fo.join_paths(output_directory, ['missing_classes.fasta'])
@@ -1887,7 +1893,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
 
     # create output folder
     results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(end_time)])
+                                ['results_{0}'.format(pdt.datetime_str(end_time, date_format='%Y%m%dT%H%M%S'))])
     fo.create_directory(results_dir)
 
     # create output files

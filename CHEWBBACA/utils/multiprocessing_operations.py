@@ -16,6 +16,7 @@ import time
 import traceback
 from multiprocessing import Pool
 
+from utils import iterables_manipulation as im
 
 def function_helper(input_args):
     """ Runs function by passing set of provided inputs and
@@ -215,9 +216,9 @@ def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_p
                                             common_args,
                                             function)
 
-    results = mo.map_async_parallelizer(input_lists,
-                                        function_helper,
-                                        cpu_cores,
-                                        show_progress=show_progress)
+    results = map_async_parallelizer(input_lists,
+                                     function_helper,
+                                     cpu_cores,
+                                     show_progress=show_progress)
 
     return results

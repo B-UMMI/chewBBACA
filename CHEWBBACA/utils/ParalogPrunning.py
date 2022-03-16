@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-
+# -*- coding: utf-8 -*-
+"""
+Purpose
+-------
+"""
 
 import os
 import csv
@@ -9,17 +13,14 @@ from collections import Counter
 
 import numpy as np
 
+from utils import file_operations as fo
 
-def main(contigsfile,out_folder):
 
-    if not os.path.exists(out_folder):
-        os.makedirs(out_folder)
+def main(results_contigs_file, output_directory):
 
-    with open(contigsfile) as f:
-        reader = csv.reader(f, delimiter="\t")
-        d = list(reader)
+    matches_positions = fo.read_tabular(results_contigs_file)
 
-    d2 = np.array(d)
+    d2 = np.array(matches_positions)
 
     genelist= d2[:1,:]
     genelist=genelist.tolist()[0]
@@ -91,7 +92,7 @@ def main(contigsfile,out_folder):
                     pontuationDict[genelist[index]]=1
         j=0
 
-        #give a +1(problem) point to a locus per each reapeated contig+position
+        #give a +1(problem) point to a locus per each repeated contig+position
         for elem in genomeSchema:
 
             if elem == "LNF" or "LOT" in elem or "PLOT" in elem or elem == "NIPH" or elem == "NIPHEM" or elem == "ALM" or elem == "ASM" or elem == "allele incomplete" or elem == "undefined" or elem == "small match":
@@ -108,7 +109,7 @@ def main(contigsfile,out_folder):
 
     #write file with a overrepresented locus per line, the number of times the locus is overrepresented, problems and total of overrepresentation+problems
 
-    with open(os.path.join(out_folder,"RepeatedLoci.txt"), "w") as f:
+    with open(os.path.join(output_directory,"RepeatedLoci.txt"), "w") as f:
         f.write("gene\tPC\tNDC\n")
         for k,v in ordered:
             try:

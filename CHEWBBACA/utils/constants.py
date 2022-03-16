@@ -145,6 +145,7 @@ UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
 
 # AlleleCall logfile template
+LOGFILE_BASENAME = 'logging_info.txt'
 LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Finished script at: {1}\n'
                     'Number of inputs: {2}\n'
@@ -152,10 +153,13 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Used this number of CPU cores: {4}\n'
                     'Used a BSR of: {5}\n')
 
+RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
+UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
+
 # allele calling classifications
-ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'LNF', 'PLOT3',
-                              'PLOT5', 'LOTSC', 'NIPH', 'NIPHEM',
-                              'ALM', 'ASM']
+ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
+                              'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
+                              'ASM', 'LNF']
 
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'

@@ -682,10 +682,6 @@ def cluster_intra_filter(clusters, sequences, word_size,
     return [pruned_clusters, intra_excluded]
 
 
-# sequences = all_proteins
-# output_directory = blasting_dir
-# file_prefix = 'blast'
-# only_rep = True
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
                    file_prefix, only_rep=False):

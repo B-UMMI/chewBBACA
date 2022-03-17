@@ -438,6 +438,8 @@ def write_loci_summary(classification_files, output_directory):
         be created.
     """
 
+    # add LNF total!
+
     loci_stats = [ct.LOCI_STATS_HEADER]
     for k, v in classification_files.items():
         locus_id = fo.get_locus_id(k)
@@ -1192,8 +1194,37 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(missing_records, output_file)
 
 
+def identify_paralogous(results_contigs_file, output_directory):
+
+    matches_positions = fo.read_tabular(results_contigs_file)
+
+    loci = matches_positions[0][1:]
+    inputs = [l[0] for l in matches_positions[1:]]
+
+    paralogous = {}
+    for l in matches_positions[1:]:
+        locus_results = l[1:]
+        counts = Counter(locus_results)
+        paralog_counts = {k: v for k, v in counts.items()
+                          if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
+        for p in paralog_counts:
+            duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
+            for locus in duplicate:
+                if locus not in paralogous:
+                    paralogous[locus] = 1
+                else:
+                    paralogous[locus] += 1
+
+    paralogous_lines = ['LOCUS\tPC']
+    paralogous_lines.extend(['{0}\t{1}'.format(k, v) for k, v in paralogous.items()])
+    paralogous_file = fo.join_paths(output_directory, [ct.PARALOGS_BASENAME])
+    fo.write_lines(paralogous_lines, paralogous_file)
+
+    return len(paralogous)
+
+
 #input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
@@ -1926,7 +1957,8 @@ def main(input_files, schema_directory, output_directory, ptf_path,
 
     # determine paralogous loci and write RepeatedLoci.txt file
     print('Writing RepeatedLoci.txt...', end='')
-    ParalogPrunning.main(results_contigs_outfile, results_dir)
+    total_paralogous = identify_paralogous(results_contigs_outfile, results_dir)
+    print('Detected number of paralog loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
         create_unclassified_fasta(results[2], results[3], results[8],

@@ -155,6 +155,7 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
 
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
+PARALOGS_BASENAME = 'RepeatedLoci.tsv'
 
 # allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',

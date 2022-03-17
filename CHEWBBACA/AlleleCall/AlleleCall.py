@@ -986,9 +986,6 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
         current_g = inv_map[genome]
         contig_lengths = contigs_lengths[current_g]
 
-        # open pickle for genome and get coordinates
-        # genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
-        # genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
         for m in matches:
             # get sequence identifier for the representative CDS
             target_seqid = m[0]
@@ -1029,6 +1026,7 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
             # this might add wrong representative id to locus results if match is against new representative...
             if len(representative_candidates) == 0:
                 # there is no DNA or Protein exact match, perform full evaluation
+                # open pickle for genome and get coordinates
                 genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
                 genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
                 # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
@@ -1079,7 +1077,6 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
 
                 seen_dna[target_dna_hash] = target_seqid
                 excluded.append(target_seqid)
-                #print(genome, m, 'INF')
                 seen_prot.append(target_prot_hash)
 
         # update locus mode value if classification for genome is INF
@@ -1372,11 +1369,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('found {0} exact matches (matching {1} alleles).'
           ''.format(dna_exact_hits, dna_matches_ids))
 
-    # current_counts, current_cds = count_classifications(classification_files.values())
-    # print(current_counts, current_cds)
-
-    # after_dna_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
-
     # user only wants to determine exact matches
     if only_exact is True:
         # return classification files for creation of output files
@@ -1422,7 +1414,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
           'stored in {0}'.format(invalid_alleles_file))
 
     # protein sequences deduplication step
-    # we can add multiprocessing to this step if the function that translates does not concatenate the files with translated sequences
     print('\nRemoving duplicated protein sequences...', end='')
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
@@ -1465,11 +1456,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     # need to determine number of distinct proteins to print correct info!!!
     print('found {0} protein exact matches ({1} distinct CDSs, {2} total CDSs).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
-
-    # current_counts, current_cds = count_classifications(classification_files.values())
-    # print(current_counts, current_cds)
-
-    # after_prot_exact = fo.pickle_loader(preprocess_dir+'/GCA-000007265-protein1_results')
 
     # create new Fasta file without the Protein sequences that were exact matches
     unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
@@ -1653,7 +1639,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
         # create BLASTp inputs
         output_files = []
-        ### save blast results to files and import when needed!
         blast_inputs = []
         for file in protein_repfiles:
             locus_id = fo.get_locus_id(file)
@@ -1672,7 +1657,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                                    show_progress=True)
 
         loci_results = {}
-        ### save loci results to files and import when needed!
         for f in output_files:
             locus_results = process_locus_blast_results(f, iterative_rep_dir,
                                                         blast_score_ratio, {},
@@ -1866,13 +1850,11 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}
 
     # assign allele identifiers to novel alleles
-    ### save novel alleles to files???
     novel_alleles = assign_allele_ids(results[0])
 
     # count total for each classification type
     global_counts, total_cds = count_classifications(results[0].values())
 
-    # results in results_alleles.tsv and total CDSs that were classified do not match...
     print('Classified a total of {0} CDSs.'.format(total_cds))
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))

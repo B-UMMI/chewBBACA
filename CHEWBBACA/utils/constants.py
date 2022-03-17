@@ -169,4 +169,4 @@ CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
 
 LOCI_STATS_FILENAME = 'loci_summary_stats.tsv'
-LOCI_STATS_HEADER = 'Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\tNIPHEM\tALM\tASM\tTotal_CDS'
+LOCI_STATS_HEADER = 'Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\tNIPHEM\tALM\tASM\tLNF\tTotal_CDS'

@@ -97,8 +97,7 @@ from collections import Counter
 from Bio import SeqIO
 
 try:
-    from utils import (ParalogPrunning,
-                       constants as ct,
+    from utils import (constants as ct,
                        blast_wrapper as bw,
                        core_functions as cf,
                        file_operations as fo,
@@ -108,8 +107,7 @@ try:
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except:
-    from CHEWBBACA.utils import (ParalogPrunning,
-                                 constants as ct,
+    from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  core_functions as cf,
                                  file_operations as fo,
@@ -424,7 +422,7 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
         return 'ALM'
 
 
-def write_loci_summary(classification_files, output_directory):
+def write_loci_summary(classification_files, output_directory, total_inputs):
     """ Writes a TSV file with classification counts and total
         number of classified coding sequences per locus.
 
@@ -436,9 +434,9 @@ def write_loci_summary(classification_files, output_directory):
     output_directory : str
         Path to the output directory where the TSV file will
         be created.
+    total_inputs : int
+        Total number of inputs.
     """
-
-    # add LNF total!
 
     loci_stats = [ct.LOCI_STATS_HEADER]
     for k, v in classification_files.items():
@@ -450,6 +448,8 @@ def write_loci_summary(classification_files, output_directory):
         counts_list = [locus_id]
         for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]:
             counts_list.append(str(current_counts[0][c]))
+        # add LNF count
+        counts_list.append(str(total_inputs-len(locus_results)))
         counts_list.append(str(current_counts[1]))
         locus_line = im.join_list(counts_list, '\t')
         loci_stats.append(locus_line)
@@ -1223,8 +1223,10 @@ def identify_paralogous(results_contigs_file, output_directory):
     return len(paralogous)
 
 
-#input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
+input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+fasta_files = fo.read_lines(input_file, strip=True)
+fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
 blast_score_ratio = 0.6
@@ -1246,7 +1248,7 @@ add_inferred = True
 output_unclassified = True
 output_missing = True
 no_cleanup = True
-def allele_calling(input_files, schema_directory, output_directory, ptf_path,
+def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    cpu_cores, blast_path, prodigal_mode, cds_input,
@@ -1257,12 +1259,6 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
     # define directory for temporary files
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
-
-    # read file with paths to input files
-    fasta_files = fo.read_lines(input_files, strip=True)
-
-    # sort paths to FASTA files
-    fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
 
     # map full paths to basename
     inputs_basenames = im.mapping_function(fasta_files,
@@ -1835,7 +1831,7 @@ def allele_calling(input_files, schema_directory, output_directory, ptf_path,
             unclassified_ids]
 
 
-def main(input_files, schema_directory, output_directory, ptf_path,
+def main(input_file, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
@@ -1853,6 +1849,12 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     print('Clustering similarity: {0}'.format(clustering_sim))
 
     start_time = pdt.get_datetime()
+
+    # read file with paths to input files
+    input_files = fo.read_lines(input_file, strip=True)
+
+    # sort paths to FASTA files
+    input_files = im.sort_iterable(input_files, sort_key=str.lower)
 
     results = allele_calling(input_files, schema_directory, output_directory,
                              ptf_path, blast_score_ratio, minimum_length,
@@ -1942,7 +1944,7 @@ def main(input_files, schema_directory, output_directory, ptf_path,
     print('done.')
 
     print('Writing loci_summary_stats.tsv...', end='')
-    write_loci_summary(results[0], results_dir)
+    write_loci_summary(results[0], results_dir, len(input_files))
     print('done.')
 
     # list files with CDSs coordinates

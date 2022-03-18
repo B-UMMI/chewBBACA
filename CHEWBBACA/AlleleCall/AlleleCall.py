@@ -1192,6 +1192,20 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
 
 def identify_paralogous(results_contigs_file, output_directory):
+    """ Identifies groups of paralogous loci in the schema.
+
+    Parameters
+    ----------
+    results_contigs_file : str
+        Path to the 'results_contigsInfo.tsv' file.
+    output_directory : str
+        Path to the output directory where the file with
+        the list of paralogus loci will be created.
+
+    Returns
+    -------
+    The total number of paralogous loci detected.
+    """
 
     matches_positions = fo.read_tabular(results_contigs_file)
 
@@ -1221,30 +1235,30 @@ def identify_paralogous(results_contigs_file, output_directory):
 
 
 #input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-fasta_files = fo.read_lines(input_file, strip=True)
-fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-add_inferred = True
-output_unclassified = True
-output_missing = True
-no_cleanup = True
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
+# fasta_files = fo.read_lines(input_file, strip=True)
+# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+# add_inferred = True
+# output_unclassified = True
+# output_missing = True
+# no_cleanup = True
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,

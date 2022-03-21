@@ -584,19 +584,25 @@ def determine_self_scores(work_directory, fasta_file, makeblastdb_path,
         as values.
     """
 
-    # change identifiers to shorten and avoid BLASTp error?
+    # change identifiers to shorten and avoid BLAST error related with sequence header length
+    output_fasta = fo.join_paths(work_directory, ['representatives_intids'])
+    ids_map = integer_headers(fasta_file, output_fasta, start=1, limit=5000)
+
     blast_db = fo.join_paths(work_directory, ['representatives'])
     # will not work if file contains duplicates
-    db_stderr = bw.make_blast_db(makeblastdb_path, fasta_file,
+    db_stderr = bw.make_blast_db(makeblastdb_path, output_fasta,
                                  blast_db, db_type)
 
+    if len(db_stderr) > 0:
+        print(db_stderr)
+
     output_blast = fo.join_paths(work_directory, ['representatives_blastout.tsv'])
-    blastp_stderr = bw.run_blast(blast_path, blast_db, fasta_file,
+    blastp_stderr = bw.run_blast(blast_path, blast_db, output_fasta,
                                  output_blast, threads=blast_threads)
 
     current_results = fo.read_tabular(output_blast)
     # get raw score and sequence length
-    self_scores = {l[0]: ((int(l[3])*3)+3, float(l[-1]))
+    self_scores = {ids_map[l[0]]: ((int(l[3])*3)+3, float(l[-1]))
                    for l in current_results
                    if l[0] == l[4]}
 

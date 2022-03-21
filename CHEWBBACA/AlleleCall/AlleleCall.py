@@ -152,8 +152,7 @@ def create_classification_file(locus_id, output_directory):
     return pickle_out
 
 
-def update_classification(genome_id, locus_results, match_info,
-                          multiple_classification='NIPH'):
+def update_classification(genome_id, locus_results, match_info):
     """ Update locus classification for an input.
 
     Parameters
@@ -166,9 +165,6 @@ def update_classification(genome_id, locus_results, match_info,
     match_info : list
         List with information about the match found for
         the locus.
-    multiple_classifications : str
-        Classification to attribute when the genome has
-        multiple classifications for the locus.
 
     Returns
     -------
@@ -178,9 +174,39 @@ def update_classification(genome_id, locus_results, match_info,
 
     # add data about match
     locus_results.setdefault(genome_id, [match_info[3]]).append(match_info)
-    # change classification if genome has multiple matches for same locus
-    if len(locus_results[genome_id]) > 2:
-        locus_results[genome_id][0] = multiple_classification
+
+    # get all classifications
+    classes_list = [c[3] for c in locus_results[genome_id][1:]]
+    # evaluate classification for genomes with multiple matches
+    if len(classes_list) > 1:
+        classes_counts = Counter(classes_list)
+        # multiple matches, single class
+        if len(classes_counts) == 1:
+            if 'EXC' in classes_counts:
+                locus_results[genome_id][0] = 'NIPHEM'
+            # multiple INF, ASM, ALM, etc classes are classified as NIPH
+            else:
+                locus_results[genome_id][0] = 'NIPH'
+        # multiple matches and classes
+        elif len(classes_counts) > 1:
+            # mix of classes that include both EXC and INF are classified as NIPH
+            if 'EXC' and 'INF' in classes_counts:
+                locus_results[genome_id][0] = 'NIPH'
+            # any class with PLOT3, PLOT5 or LOTSC are classified as NIPH
+            elif any([c in ['PLOT3', 'PLOT5', 'LOTSC'] for c in classes_counts]) is True:
+                locus_results[genome_id][0] = 'NIPH'
+            # EXC or INF with ASM/ALM
+            elif 'EXC' in classes_counts or 'INF' in classes_counts:
+                match_count = classes_counts.get('EXC', classes_counts['INF'])
+                # Single EXC or INF classified as EXC or INF even if there are ASM/ALM
+                if match_count == 1:
+                    locus_results[genome_id][0] = 'EXC' if 'EXC' in classes_counts else 'INF'
+                # multiple EXC or INF classified as NIPH
+                else:
+                    locus_results[genome_id][0] = 'NIPH'
+            # ASM and ALM are classified as NIPH
+            else:
+                locus_results[genome_id][0] = 'NIPH'
 
     return locus_results
 
@@ -280,7 +306,7 @@ def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications, 
         # skip first value, it is the protein id
         for gid in matched_inputs[1:]:
             locus_classifications = update_classification(gid, locus_classifications,
-                                                          match_data, 'NIPHEM')
+                                                          match_data)
 
         total_matches += len(matched_inputs[1:])
         # store representative id for the sequences
@@ -754,9 +780,11 @@ def assign_allele_ids(classification_files):
         for k in sorted_results:
             genome_id = k[0]
             current_results = k[1]
-            cds_hash = current_results[1][2]
-
             if current_results[0] in ['EXC', 'INF']:
+                # get match that was EXC or INF
+                current_match = [c for c in current_results[1:]
+                                 if c[3] in ['EXC', 'INF']][0]
+                cds_hash = current_match[2]
                 if cds_hash in matched_alleles:
                     locus_results[genome_id].append(matched_alleles[cds_hash])
                 else:
@@ -765,7 +793,7 @@ def assign_allele_ids(classification_files):
                     locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
                     matched_alleles[cds_hash] = str(max_alleleid)
                     # add the unique SHA256 value
-                    novel_alleles.setdefault(locus, []).append([current_results[1][2], str(max_alleleid)])
+                    novel_alleles.setdefault(locus, []).append([cds_hash, str(max_alleleid)])
                     # EXC to INF to enable accurate count of INF classifications
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
@@ -999,9 +1027,6 @@ def classify_inexact_matches(locus, genomes_matches, representatives_info,
             # get the BSR value
             bsr = m[4][0]
 
-            # # store sequence identifiers that have been classified
-            # excluded.append(target_seqid)
-
             # CDS DNA sequence was identified in one of the previous inputs
             # This will change classification to NIPH if the input
             # already had a classification for the current locus
@@ -1234,31 +1259,31 @@ def identify_paralogous(results_contigs_file, output_directory):
     return len(paralogous)
 
 
-#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids320.txt'
-# fasta_files = fo.read_lines(input_file, strip=True)
-# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# representative_filter = 0.9
-# intra_filter = 0.9
-# cpu_cores = 6
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-# prodigal_mode = 'single'
-# cds_input = False
-# only_exact = False
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-# add_inferred = True
-# output_unclassified = True
-# output_missing = True
-# no_cleanup = True
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
+input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+fasta_files = fo.read_lines(input_file, strip=True)
+fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+representative_filter = 0.9
+intra_filter = 0.9
+cpu_cores = 6
+blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+prodigal_mode = 'single'
+cds_input = False
+only_exact = False
+schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+add_inferred = True
+output_unclassified = True
+output_missing = True
+no_cleanup = True
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,

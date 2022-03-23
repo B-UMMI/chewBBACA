@@ -120,7 +120,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
     return [coding_sequences, coding_sequences_info]
 
 
-def write_protein_table(output_file, genome_id, cds_info):
+def write_protein_table(output_file, genome_id, cds_info, contigs_lengths):
     """ Writes information about coding sequences in a
         genome to a file.
 
@@ -148,11 +148,11 @@ def write_protein_table(output_file, genome_id, cds_info):
 
     # write pickle with CDS hash to CDS info dictionary
     pickle_out = os.path.join(os.path.dirname(output_file), genome_id+'_cds_hash')
-    pickle_data = {}
+    pickle_data = [{}, contigs_lengths]
     # create dictionary to map CDS hash to CDS location
     for p in cds_info:
         # make sure to store CDS duplicated in the genome
-        pickle_data.setdefault(p[-1], []).append(p[:-1])
+        pickle_data[0].setdefault(p[-1], []).append(p[:-1])
 
     with open(pickle_out, 'wb') as outfile:
         pickle.dump(pickle_data, outfile)
@@ -190,6 +190,8 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
 
     # import contigs for current genome/assembly
     contigs = fao.import_sequences(genome)
+    # determine contig lengths
+    contigs_lengths = {k: len(v) for k, v in contigs.items()}
     # extract coding sequences from contigs
     reading_frames = fo.pickle_loader(orf_file)
     genome_info = extract_genome_cds(reading_frames, contigs, 1)
@@ -198,7 +200,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     cds_lines = fao.create_fasta_lines(genome_info[0], identifier)
     fo.write_lines(cds_lines, cds_file, write_mode='a')
 
-    write_protein_table(protein_table, identifier, genome_info[1])
+    write_protein_table(protein_table, identifier, genome_info[1], contigs_lengths)
 
     total_cds = len(genome_info[0])
 

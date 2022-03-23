@@ -458,12 +458,6 @@ def representative_pruner(clusters, sim_cutoff):
     return [pruned_clusters, excluded]
 
 
-# seqids = splitted_seqids[0][0]
-# sequences = splitted_seqids[0][1]
-# output_directory = splitted_seqids[0][2]
-# blast_path = splitted_seqids[0][3]
-# blastdb_path = splitted_seqids[0][4]
-# only_rep = True
 def cluster_blaster(seqids, sequences, output_directory,
                     blast_path, blastdb_path, only_rep=False):
     """ Aligns sequences in the same cluster with BLAST.

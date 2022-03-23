@@ -1034,4 +1034,26 @@ def polyline_decoding(text):
     return number_list
 
 
+def replace_list_values(input_list, replace_dict):
+    """ Replaces values in list based on provided
+        substitutions.
 
+    Parameters
+    ----------
+    input_list : list
+        List with values to substitute.
+    replace_dict : dict
+        Mapping between the values to substitute
+        and the values to substitute by.
+
+    Returns
+    -------
+    replaced_list : list
+        List with substituted values (values
+        that are not in `replace_dict` are kept
+        unchanged).
+    """
+
+    replaced_list = [replace_dict.get(e, e) for e in input_list]
+
+    return replaced_list

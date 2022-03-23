@@ -764,12 +764,6 @@ def blast_clusters(clusters, sequences, output_directory,
     splitted_seqids = mo.split_genes_by_core(seqids_to_blast,
                                              process_num,
                                              'seqcount')
-
-    # indexing the file and providing the index as argument does not work, why?
-    # indexed_fasta = SeqIO.index(integer_clusters, 'fasta')
-
-    # common_args = [indexed_fasta, blast_results_dir, blastp_path,
-    #                blast_db, only_rep, sc.cluster_blaster]
     
     common_args = [integer_clusters, blast_results_dir, blastp_path,
                    blast_db, only_rep, sc.cluster_blaster]

@@ -132,7 +132,7 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     """
 
     blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
-                  '-out', blast_output, '-outfmt', '6 qseqid qstart qend qlen sseqid score',
+                  '-out', blast_output, '-outfmt', '6 qseqid qstart qend qlen sseqid slen score',
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
                   '-evalue', '0.001']
 

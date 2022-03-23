@@ -602,7 +602,8 @@ def determine_self_scores(work_directory, fasta_file, makeblastdb_path,
 
     current_results = fo.read_tabular(output_blast)
     # get raw score and sequence length
-    self_scores = {ids_map[l[0]]: ((int(l[3])*3)+3, float(l[-1]))
+    # multiply by 3 to get DNA sequence length and add 3 to count stop codon
+    self_scores = {ids_map[l[0]]: ((int(l[3])*3)+3, float(l[6]))
                    for l in current_results
                    if l[0] == l[4]}
 

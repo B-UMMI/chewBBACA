@@ -1308,10 +1308,11 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
 
 def select_representatives(matches, locus, iteration, output_directory,
-                           blastp_path, blast_db, blast_score_ratio, prot_index):
+                           blastp_path, blast_db, blast_score_ratio, prot_index,
+                           threads):
     """
     """
-    
+
     current_candidates = {e[1]: e[3] for e in matches}
     current_file = fo.join_paths(output_directory, ['{0}_candidates_{1}.fasta'.format(locus, iteration)])
     # create file with sequences
@@ -1322,8 +1323,10 @@ def select_representatives(matches, locus, iteration, output_directory,
 
     # BLAST
     output_reps = fo.join_paths(output_directory, ['{0}_candidates_{1}_blastout.tsv'.format(locus, iteration)])
+    ## change number of targets to avoid too many hits per query/target?
     blastp_stderr = bw.run_blast(blastp_path, blast_db, current_file,
-                                 output_reps, threads=1, ids_file=ids_file)
+                                 output_reps, threads=threads, ids_file=ids_file,
+                                 max_targets=20)
 
     current_results = fo.read_tabular(output_reps)
     
@@ -1833,7 +1836,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             if len(v) > 1:
                 locus_new_reps = select_representatives(v, k, iteration, iterative_rep_dir,
                                                         blastp_path, blast_db, blast_score_ratio,
-                                                        prot_index)
+                                                        prot_index, cpu_cores)
                 representatives[k] = locus_new_reps
             else:
                 representatives[k] = [(v[0][1], v[0][3])]

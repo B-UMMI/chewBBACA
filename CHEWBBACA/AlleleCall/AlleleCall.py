@@ -671,19 +671,16 @@ def write_results_contigs(classification_files, input_identifiers,
         genome_id = l[0]
         # open file with loci coordinates
         coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
-        # what if CDS is duplicated in the input?
+        # start position is 0-based, stop position is upper-bound exclusive
         new_line = [coordinates[c][0] if c in coordinates else c for c in l[1:]]
-
+        
         # contig identifier, start and stop positions and strand
+        # 1 for sense, 0 for antisense
         new_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
                     if c not in invalid_classes else c
                     for c in new_line]
 
         final_lines.append([genome_id]+new_line)
-
-    #########################
-    # Start positions have offset of 1 and do not match start positions reported by previous implementation?
-    #########################
 
     # write file
     output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
@@ -936,6 +933,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores, inputids_m
         bsr = cf.compute_bsr(raw_score, query_scores[query_id][1])
         # only keep matches above BSR threshold
         if bsr >= bsr_threshold:
+            # BLAST has 1-based positions
             qstart = (int(r[1])-1)*3 # subtract 1 to exclude start position
             qend = (int(r[2])*3)+3 # add 3 to count stop codon
             target_length = (int(r[5])*3)+3
@@ -1146,69 +1144,61 @@ def classify_inexact_matches(locus, genomes_matches,
                 seen_dna[target_dna_hash] = target_seqid
                 continue
 
-            # only proceed if there are no representative candidates
-            # this way we can classify exact matches after finding a representative
-            # but will not determine new reps without aligning against the one that was discovered
-            # this might add wrong representative id to locus results if match is against new representative...
-            if len(representative_candidates) == 0:
-                # there is no DNA or Protein exact match, perform full evaluation
-                # open pickle for genome and get coordinates
-                genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
-                genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
-                # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
-                # get CDS start and stop positions
-                genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
-                contig_leftmost_pos = int(genome_coordinates[1])
-                contig_rightmost_pos = int(genome_coordinates[2])
-                # get contig length
-                contig_length = genome_cds_coordinates[1][genome_coordinates[0]]
-                # get representative length
-                representative_length = m[7]
-                # get target left and right positions that aligned
-                representative_leftmost_pos = m[4]
-                representative_rightmost_pos = m[5]
-                # determine if it is PLOT3, PLOT5 or LOTSC
-                relative_pos = contig_position_classification(representative_length,
-                                                              representative_leftmost_pos,
-                                                              representative_rightmost_pos,
-                                                              contig_length,
-                                                              contig_leftmost_pos,
-                                                              contig_rightmost_pos)
-    
-                if relative_pos is not None:
-                    locus_results = update_classification(genome, locus_results,
-                                                          (rep_alleleid, target_seqid,
-                                                           target_dna_hash, relative_pos, bsr))
-                    # need to exclude so that it does not duplicate ASM/ALM classifications later
-                    excluded.append(target_seqid)
-                    continue
-    
-                target_dna_len = m[6]
-                # check if ASM or ALM
-                relative_size = allele_size_classification(target_dna_len, locus_mode, size_threshold)
-                # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
-                if relative_size is not None:
-                    locus_results = update_classification(genome, locus_results,
-                                                          (rep_alleleid, target_seqid,
-                                                           target_dna_hash, relative_size, bsr))
-                    # need to exclude so that it does not duplicate PLOT3/5 classifications later
-                    excluded.append(target_seqid)
-                    continue
+            # there is no DNA or Protein exact match, perform full evaluation
+            # open pickle for genome and get coordinates
+            genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
+            genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
+            # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
+            # get CDS start and stop positions
+            genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
+            contig_leftmost_pos = int(genome_coordinates[1])
+            contig_rightmost_pos = int(genome_coordinates[2])
+            # get contig length
+            contig_length = genome_cds_coordinates[1][genome_coordinates[0]]
+            # get representative length
+            representative_length = m[7]
+            # get target left and right positions that aligned
+            representative_leftmost_pos = m[4]
+            representative_rightmost_pos = m[5]
+            # determine if it is PLOT3, PLOT5 or LOTSC
+            relative_pos = contig_position_classification(representative_length,
+                                                          representative_leftmost_pos,
+                                                          representative_rightmost_pos,
+                                                          contig_length,
+                                                          contig_leftmost_pos,
+                                                          contig_rightmost_pos)
 
-                # add INF
-                # this will turn into NIPH if there are multiple hits for the same input
+            if relative_pos is not None:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
-                                                       target_dna_hash, 'INF', bsr))
-
-                seen_dna[target_dna_hash] = target_seqid
+                                                       target_dna_hash, relative_pos, bsr))
+                # need to exclude so that it does not duplicate ASM/ALM classifications later
                 excluded.append(target_seqid)
-                seen_prot.append(target_prot_hash)
+                continue
+
+            target_dna_len = m[6]
+            # check if ASM or ALM
+            relative_size = allele_size_classification(target_dna_len, locus_mode, size_threshold)
+            # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
+            if relative_size is not None:
+                locus_results = update_classification(genome, locus_results,
+                                                      (rep_alleleid, target_seqid,
+                                                       target_dna_hash, relative_size, bsr))
+                # need to exclude so that it does not duplicate PLOT3/5 classifications later
+                excluded.append(target_seqid)
+                continue
+
+            # add INF
+            # this will turn into NIPH if there are multiple hits for the same input
+            locus_results = update_classification(genome, locus_results,
+                                                  (rep_alleleid, target_seqid,
+                                                   target_dna_hash, 'INF', bsr))
+
+            seen_dna[target_dna_hash] = target_seqid
+            excluded.append(target_seqid)
+            seen_prot.append(target_prot_hash)
 
         # update locus mode value if classification for genome is INF
-        ### this is not being updated properly if a INF case turns into NIPH
-        ### the NIPH class will not allow for the INF length to be added and
-        ### the next match to the INF will be stored as EXC
         if genome in locus_results and locus_results[genome][0] == 'INF':
             # append length of inferred allele to list with allele sizes
             locus_mode[1].append(target_dna_len)
@@ -1317,31 +1307,76 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(missing_records, output_file)
 
 
+def select_representatives(matches, locus, iteration, output_directory,
+                           blastp_path, blast_db, blast_score_ratio, prot_index):
+    """
+    """
+    
+    current_candidates = {e[1]: e[3] for e in matches}
+    current_file = fo.join_paths(output_directory, ['{0}_candidates_{1}.fasta'.format(locus, iteration)])
+    # create file with sequences
+    fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), current_file)
+    # create file with candidates ids
+    ids_file = fo.join_paths(output_directory, ['{0}_candidates_ids_{1}.fasta'.format(locus, iteration)])
+    fo.write_lines(list(current_candidates.keys()), ids_file)
+
+    # BLAST
+    output_reps = fo.join_paths(output_directory, ['{0}_candidates_{1}_blastout.tsv'.format(locus, iteration)])
+    blastp_stderr = bw.run_blast(blastp_path, blast_db, current_file,
+                                 output_reps, threads=1, ids_file=ids_file)
+
+    current_results = fo.read_tabular(output_reps)
+    
+    # get self scores
+    candidates_self_scores = {l[0]: ((int(l[3])*3)+3, float(l[6])) for l in current_results
+                              if l[0] == l[4]}
+
+    # select results between different candidates
+    results_eval = [l for l in current_results if l[0] != l[4]]
+    # compute bsr
+    for l in results_eval:
+        l.append(cf.compute_bsr(candidates_self_scores[l[4]][1], candidates_self_scores[l[0]][1]))
+    # sort by sequence length to process longest candidates first
+    results_eval = sorted(results_eval, key= lambda x: int(x[3]))
+
+    excluded_reps = []
+    for r in results_eval:
+        if r[7] >= blast_score_ratio+0.1:
+            if r[4] not in excluded_reps:
+                excluded_reps.append(r[0])
+
+    selected_ids = list(set([l[0] for l in results_eval if l[0] not in excluded_reps]))
+
+    selected = [(l, current_candidates[l]) for l in selected_ids if l not in excluded_reps]
+
+    return selected
+
+
 # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-fasta_files = fo.read_lines(input_file, strip=True)
-fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed'
-add_inferred = True
-output_unclassified = True
-output_missing = True
-no_cleanup = True
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# fasta_files = fo.read_lines(input_file, strip=True)
+# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed/Streptococcus_agalactiae.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed'
+# add_inferred = True
+# output_unclassified = True
+# output_missing = True
+# no_cleanup = True
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1537,7 +1572,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         exc_cds += em_results[3]
         exc_distinct_prot += em_results[-1]
 
-    # need to determine number of distinct proteins to print correct info!!!
     print('found {0} protein exact matches ({1} distinct CDSs, {2} total CDSs).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
 
@@ -1621,8 +1655,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
     concatenated_files = aggregate_blast_results(blast_files, clustering_dir, ids_dict)
 
-    # create index for distinct CDS DNA sequences
-    # dna_cds_index = SeqIO.index(unique_fasta, 'fasta')
     # create index for distinct protein sequences
     prot_index = SeqIO.index(all_prots, 'fasta')
 
@@ -1754,29 +1786,6 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             if len(locus_results) > 0:
                 loci_results[locus_id] = locus_results
 
-        # possible to have several representative candidates per locus
-        # we must pick one to be a new representative and re-evaluate
-        # the remaining candidates because they might share a BSR > 0.7
-        # with the new representative
-        reps_to_repeat = {}
-        for k, v in loci_results.items():
-            matches = {}
-            genomes_matched = []
-            matched_reps = []
-            for g, m in v.items():
-                # new prot hash and BSR < 0.7
-                if m[0][1] not in matches and m[0][3] < 0.7:
-                    matches[m[0][1]] = m[0][3]
-                    genomes_matched.append(g)
-                    matched_reps.append(m[0][8])
-
-            if len(matches) > 1:
-                reps_to_repeat.setdefault(k, []).extend(list(set(matched_reps)))
-                # remove entries from other candidates so that
-                # they are not classified
-                for i in genomes_matched[1:]:
-                    del(loci_results[k][i])
-
         print('\nLoci with new hits: '
               '{0}'.format(len(loci_results)))
 
@@ -1818,28 +1827,29 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 representative_candidates[locus] = results[3]
 
         print('\nSelecting representatives for next iteration.')
-
-        # should only have 1 representative candidate per locus because
-        # classification stops when a new representative is found        
-        representatives = {k: (v[0][1], v[0][3])
-                           for k, v in representative_candidates.items()}
+        representatives = {}
+        for k, v in representative_candidates.items():
+            # BLAST representative candidates to select new representatives
+            if len(v) > 1:
+                locus_new_reps = select_representatives(v, k, iteration, iterative_rep_dir,
+                                                        blastp_path, blast_db, blast_score_ratio,
+                                                        prot_index)
+                representatives[k] = locus_new_reps
+            else:
+                representatives[k] = [(v[0][1], v[0][3])]
 
         for k, v in representatives.items():
-            new_reps.setdefault(k, []).append(v)
+            new_reps.setdefault(k, []).extend(v)
 
         # remove representative candidates ids from excluded
-        excluded = set(excluded) - set([v[0] for k, v in representatives.items()])
+        excluded = set(excluded)
 
         # include new representatives
-        print('Classified {0} proteins.'.format(len(excluded)+len(representatives)))
+        print('Classified {0} proteins.'.format(len(excluded)))
 
         # exclude sequences that were excluded
         unclassified_ids = set(unclassified_ids) - excluded
 
-        # exclude representatives too because all alleles that are equal were classified
-        # we may have repeated representatives because they matched several loci
-        representative_ids = [l[0] for l in list(representatives.values())]
-        unclassified_ids = list(unclassified_ids - set(representative_ids))
         # new representatives and alleles that amtch in other genomes should have been all classified
         print('Remaining unclassified proteins: {0}'.format(len(unclassified_ids)))
 
@@ -1849,45 +1859,26 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         else:
             iteration += 1
             # create files with representative sequences
-            # need to include previous reps if all matches were not >= 0.7
             reps_ids = []
             protein_repfiles = []
             for k, v in representatives.items():
                 # get new representative for locus
-                # only getting one rep
-                current_new_rep = v[0]
-                reps_ids.append(current_new_rep)
-
-                # add previous representatives that had multiple BSR < 0.7 matches
-                current_previous_reps = reps_to_repeat.get(k, [])
-
-                current_rep_ids = [current_new_rep]+current_previous_reps
+                current_new_reps = [e[0] for e in v]
+                reps_ids.extend(current_new_reps)
 
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
-                fao.get_sequences_by_id(prot_index, current_rep_ids, rep_file)
+                fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
                 protein_repfiles.append(rep_file)
 
             # determine self-score for new reps
             # concatenate reps
-            #### Adapt fao.determine_self_scores to use here!
             concat_repy = fo.join_paths(iterative_rep_dir, ['{0}_concat_reps.fasta'.format(iteration)])
             fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
 
-            blast_db = fo.join_paths(iterative_rep_dir, ['representatives_{0}'.format(iteration)])
-            # will not work if file contains duplicates
-            db_stderr = bw.make_blast_db(makeblastdb_path, concat_repy,
-                                         blast_db, 'prot')
-
-            output_blast = fo.join_paths(iterative_rep_dir, ['representatives_blastout_{0}.tsv'.format(iteration)])
-            blastp_stderr = bw.run_blast(blastp_path, blast_db, concat_repy,
-                                         output_blast, threads=cpu_cores)
-
-            current_results = fo.read_tabular(output_blast)
-            # get raw score and sequence length
-            new_self_scores = {l[0]: (int(l[5]), float(l[6]))
-                               for l in current_results
-                               if l[0] == l[4]}
+            new_self_scores = fao.determine_self_scores(iterative_rep_dir, concat_repy,
+                                                        makeblastdb_path, blastp_path,
+                                                        'prot', cpu_cores)
 
             # need to be careful not to update this if user does not want to add inferred alleles...
             self_scores = {**self_scores, **new_self_scores}

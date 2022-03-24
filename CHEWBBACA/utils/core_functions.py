@@ -134,9 +134,9 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
         input fasta files.
     """
 
-    # divide inputs into at least 50 sublists for 2% process
+    # divide inputs into 15 sublists for ~7% process
     # progress resolution
-    num_chunks = 50 if cpu_cores < 50 else cpu_cores
+    num_chunks = 15
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
 
     # add common arguments and unique index/identifier

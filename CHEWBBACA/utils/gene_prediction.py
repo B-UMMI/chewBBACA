@@ -99,6 +99,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
         sequence = contigs[contig_id]
         # for each start and stop codon in the contig
         for cds in frames:
+            # start position is 0-based, stop position is upper-bound exclusive
             start_pos = cds[0]
             stop_pos = cds[1]
             strand = cds[2]

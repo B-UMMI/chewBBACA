@@ -547,3 +547,13 @@ def move_file(source, destination):
     """ Moves a file. """
 
     shutil.move(source, destination)
+
+
+def matching_lines(input_file, pattern):
+    """
+    """
+
+    with open(input_file, 'r') as infile:
+        matched_lines = [l for l in infile if '>' in l]
+
+    return matched_lines

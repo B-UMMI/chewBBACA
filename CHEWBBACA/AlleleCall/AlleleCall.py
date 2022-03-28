@@ -538,9 +538,8 @@ def write_results_alleles(classification_files, input_identifiers,
 
     Parameters
     ----------
-    classification_files : dict
-        Dictionary with the paths to loci FASTA files as keys
-        and paths to loci classification files as values.
+    classification_files : list
+        List with the paths to loci classification files.
     input_identifiers : list
         Sorted list that contains input string identifiers.
     output_directory : str
@@ -549,7 +548,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
     # add first column with input identifiers
     columns = [['FILE'] + input_identifiers]
-    for file in classification_files.values():
+    for file in classification_files:
         # get locus identifier to add as column header
         locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
@@ -626,16 +625,15 @@ def write_results_statistics(classification_files, input_identifiers,
 def write_results_contigs(classification_files, input_identifiers,
                           output_directory, cds_coordinates_files):
     """ Writes a TSV file with coding sequence coordinates
-        (contig identifier, start and stop positions and protein
-        identifier) for EXC and INF classifications and with the
+        (contig identifier, start and stop positions and coding
+        strand) for EXC and INF classifications or with the
         classification type if it is not EXC or INF.
 
     Parameters
     ----------
-    classification_files : dict
-        Dictionary with the paths to loci FASTA files as keys
-        and paths to loci classification files as values.
-    input_identifiers : list
+    classification_files : list
+        List with the paths to loci classification files.
+    input_identifiers : dict
         Dictionary with input integer identifiers as keys
         and input string identifiers as values.
     output_directory : str
@@ -645,12 +643,20 @@ def write_results_contigs(classification_files, input_identifiers,
         Dictionary with input string identifiers as keys
         and paths to pickled files with coding sequence
         coordinates as values.
+
+    Returns
+    -------
+    output_file : str
+        Path to the output file that contains the sequence
+        coordinates.
     """
 
     invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
-
+    intermediate_file = fo.join_paths(output_directory, ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
-    for file in classification_files.values():
+    # limit the number of lines to store in memory
+    line_limit = 500
+    for i, file in enumerate(classification_files):
         locus_id = fo.get_locus_id(file)
         locus_results = fo.pickle_loader(file)
         column = [locus_id]
@@ -663,29 +669,44 @@ def write_results_contigs(classification_files, input_identifiers,
 
         columns.append(column)
 
-    # group elements with same list index
-    lines = im.aggregate_iterables(columns)
+        if len(columns) >= line_limit or (i+1) == len(classification_files):
+            inter_lines = [im.join_list(c, '\t') for c in columns]
+            fo.write_lines(inter_lines, intermediate_file, write_mode='a')
+            columns = []
 
-    final_lines = [lines[0]]
-    for l in lines[1:]:
-        genome_id = l[0]
-        # open file with loci coordinates
-        coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
-        # start position is 0-based, stop position is upper-bound exclusive
-        new_line = [coordinates[c][0] if c in coordinates else c for c in l[1:]]
-        
-        # contig identifier, start and stop positions and strand
-        # 1 for sense, 0 for antisense
-        new_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
-                    if c not in invalid_classes else c
-                    for c in new_line]
+    # transpose intermediate file
+    transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
 
-        final_lines.append([genome_id]+new_line)
-
-    # write file
+    # use CDS hash to get coordinates in origin input
     output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
-    final_lines = ['\t'.join(l) for l in final_lines]
-    fo.write_lines(final_lines, output_file)
+    with open(transposed_file, 'r') as infile:
+        csv_reader = csv.reader(infile, delimiter='\t')
+        header = csv_reader.__next__()
+        output_lines = [header]
+        for i, l in enumerate(csv_reader):
+            genome_id = l[0]
+            # open file with loci coordinates
+            coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
+            # start position is 0-based, stop position is upper-bound exclusive
+            cds_coordinates = [coordinates[c][0]
+                               if c in coordinates else c
+                               for c in l[1:]]
+
+            # contig identifier, start and stop positions and strand
+            # 1 for sense, 0 for antisense
+            cds_coordiantes_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
+                                    if c not in invalid_classes else c
+                                    for c in cds_coordinates]
+
+            output_lines.append([genome_id]+cds_coordiantes_line)
+
+            if len(output_lines) >= line_limit or (i+1) == len(input_identifiers):
+                output_lines = ['\t'.join(l) for l in output_lines]
+                fo.write_lines(output_lines, output_file, write_mode='a')
+                output_lines = []
+
+    # delete intermediate files
+    fo.remove_files([intermediate_file, transposed_file])
 
     return output_file
 
@@ -1021,24 +1042,23 @@ def identify_paralogous(results_contigs_file, output_directory):
     The total number of paralogous loci detected.
     """
 
-    matches_positions = fo.read_tabular(results_contigs_file)
+    with open(results_contigs_file, 'r') as infile:
+        reader = csv.reader(infile, delimiter='\t')
+        loci = (reader.__next__())[1:]
 
-    loci = matches_positions[0][1:]
-    inputs = [l[0] for l in matches_positions[1:]]
-
-    paralogous = {}
-    for l in matches_positions[1:]:
-        locus_results = l[1:]
-        counts = Counter(locus_results)
-        paralog_counts = {k: v for k, v in counts.items()
-                          if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
-        for p in paralog_counts:
-            duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
-            for locus in duplicate:
-                if locus not in paralogous:
-                    paralogous[locus] = 1
-                else:
-                    paralogous[locus] += 1
+        paralogous = {}
+        for l in reader:
+            locus_results = l[1:]
+            counts = Counter(locus_results)
+            paralog_counts = {k: v for k, v in counts.items()
+                              if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
+            for p in paralog_counts:
+                duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
+                for locus in duplicate:
+                    if locus not in paralogous:
+                        paralogous[locus] = 1
+                    else:
+                        paralogous[locus] += 1
 
     paralogous_lines = ['LOCUS\tPC']
     paralogous_lines.extend(['{0}\t{1}'.format(k, v) for k, v in paralogous.items()])
@@ -1371,30 +1391,30 @@ def select_representatives(matches, locus, iteration, output_directory,
 
 
 # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-fasta_files = fo.read_lines(input_file, strip=True)
-fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 0
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed'
-add_inferred = True
-output_unclassified = True
-output_missing = True
-no_cleanup = True
+#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# fasta_files = fo.read_lines(input_file, strip=True)
+# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed/Streptococcus_agalactiae.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 0
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed'
+# add_inferred = True
+# output_unclassified = True
+# output_missing = True
+# no_cleanup = True
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1853,12 +1873,12 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         excluded = []
         representative_candidates = {}
         for r in class_results:
-            locus = list(r.keys())[0]
-            results = r[locus]
-            loci_modes[locus] = results[1]
-            excluded.extend(results[2])
-            if len(results[3]) > 0:
-                representative_candidates[locus] = results[3]
+            current_results = fo.pickle_loader(r)
+            for locus, v in current_results.items():
+                loci_modes[locus] = v[1]
+                excluded.extend(v[2])
+                if len(v[3]) > 0:
+                    representative_candidates[locus] = v[3]
 
         # remove representative candidates ids from excluded
         excluded = set(excluded)
@@ -2031,7 +2051,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('done.')
 
     print('Writing results_alleles.tsv...', end='')
-    write_results_alleles(results[0], list(results[1].values()), results_dir)
+    write_results_alleles(list(results[0].values()),
+                          list(results[1].values()), results_dir)
     print('done.')
 
     print('Writing results_statsitics.tsv...', end='')
@@ -2048,7 +2069,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
                          for f in coordinates_files}
     print('Writing results_contigsInfo.tsv...', end='')
-    results_contigs_outfile = write_results_contigs(results[0], results[1],
+    results_contigs_outfile = write_results_contigs(list(results[0].values()), results[1],
                                                     results_dir, coordinates_files)
     print('done.')
 

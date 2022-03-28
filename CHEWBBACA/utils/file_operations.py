@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import csv
+import math
 import time
 import gzip
 import shutil
@@ -27,6 +28,8 @@ import zipfile
 import urllib.request
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
+
+import pandas as pd
 
 try:
     from utils import (constants as ct,
@@ -557,3 +560,50 @@ def matching_lines(input_file, pattern):
         matched_lines = [l for l in infile if '>' in l]
 
     return matched_lines
+
+
+def transpose_matrix(input_file, output_directory):
+    """ Transposes lines in a TSV file. 
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the input TSV file.
+    output_directory : str
+        Path to the directory to which intermediate files
+        and the complete transposed file will be written.
+
+    Returns
+    -------
+    transposed_file : str
+        Path to the file with the transposed matrix.
+        This file is created by concatenating all
+        files saved into the `output_directory`.
+    """
+
+    intermediate_files = []
+    with open(input_file, 'r') as infile:
+        # get column identifiers
+        columns = [c.strip() for c in (infile.__next__()).split('\t')]
+        # divide into smaller sets to avoid loading complete file
+        total_column_sets = math.ceil(len(columns)/500)
+        column_sets = im.divide_list_into_n_chunks(columns, total_column_sets)
+        # use Pandas to read columns sets and save transpose
+        for i, c in enumerate(column_sets):
+            # dtype=str or Pandas converts values into floats
+            df = pd.read_csv(input_file, usecols=c, delimiter='\t', dtype=str)
+            output_file = join_paths(output_directory, ['chunk{0}.tsv'.format(i)])
+            # transpose columns
+            df = df.T
+            # do not save header that contains row indexes
+            df.to_csv(output_file, sep='\t', header=False)
+            intermediate_files.append(output_file)
+
+    # concatenate all files with transposed lines
+    transposed_file = input_file.replace('.tsv', '_transpose.tsv')
+    concatenate_files(intermediate_files, transposed_file)
+
+    # delete intermediate files
+    remove_files(intermediate_files)
+
+    return transposed_file

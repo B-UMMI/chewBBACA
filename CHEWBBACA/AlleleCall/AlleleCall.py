@@ -1336,21 +1336,16 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(missing_records, output_file)
 
 
-def select_representatives(matches, locus, iteration, output_directory,
-                           blastp_path, blast_db, blast_score_ratio, prot_index,
+def select_representatives(matches, locus, fasta_file, iteration, output_directory,
+                           blastp_path, blast_db, blast_score_ratio,
                            threads):
     """
     """
 
-    representative_candidates = {e[1]: e[3] for e in matches}
-    fasta_file = fo.join_paths(output_directory,
-                               ['{0}_candidates_{1}.fasta'.format(locus, iteration)])
-    # create file with sequences
-    fao.get_sequences_by_id(prot_index, list(representative_candidates.keys()), fasta_file)
     # create file with candidate ids
     ids_file = fo.join_paths(output_directory,
                              ['{0}_candidates_ids_{1}.fasta'.format(locus, iteration)])
-    fo.write_lines(list(representative_candidates.keys()), ids_file)
+    fo.write_lines(list(matches.keys()), ids_file)
 
     # BLASTp to compare are candidates
     blast_output = fo.join_paths(output_directory,
@@ -1383,21 +1378,21 @@ def select_representatives(matches, locus, iteration, output_directory,
                                     for l in blast_results
                                     if l[0] not in excluded_candidates]))
 
-    selected = [(l, representative_candidates[l])
+    selected = [(l, matches[l])
                 for l in selected_candidates
                 if l not in excluded_candidates]
 
-    return selected
+    return [locus, selected]
 
 
 # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sra7676.txt'
-#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
 # fasta_files = fo.read_lines(input_file, strip=True)
 # fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
 # output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
 # ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema_v3/schema_seed/Streptococcus_agalactiae.trn'
 # blast_score_ratio = 0.6
-# minimum_length = 0
+# minimum_length = 201
 # translation_table = 11
 # size_threshold = 0.2
 # word_size = 5
@@ -1518,7 +1513,9 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('schema has {0} loci.'.format(len(loci_files)))
 
     # create files with empty results data structure
-    inputs = [[loci_basenames[file], preprocess_dir] for file in loci_files]
+    classification_dir = fo.join_paths(temp_directory, ['4_classification_files'])
+    fo.create_directory(classification_dir)
+    inputs = [[loci_basenames[file], classification_dir] for file in loci_files]
     classification_files = {file: create_classification_file(*inputs[i])
                             for i, file in enumerate(loci_files)}
 
@@ -1742,7 +1739,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         locus_mode = loci_modes[locus]
 
         # import file with locus classifications
-        locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
+        locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
 
         classification_inputs.append([locus, file,
                                       inv_map,
@@ -1774,14 +1771,25 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                         if rec.id not in excluded]
     print('Remaining: {0}'.format(len(unclassified_ids)))
 
+    # create directory to store data for each iteration
+    iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
+    fo.create_directory(iterative_rep_dir)
+
+    remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['remaining_prots.fasta'])
+    # create Fasta with unclassified sequences
+    fao.get_sequences_by_id(prot_index, unclassified_ids,
+                            remaining_seqs_file, limit=50000)
+
+    # shorten ids to avoid BLASTp error?
+    blast_db = fo.join_paths(iterative_rep_dir, ['blastdb'])
+    # will not work if file contains duplicated seqids
+    db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
+                                 blast_db, 'prot')
+
     # get seqids of schema representatives
     reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
     print('Schema has a total of {0} representative alleles.'
           ''.format(len(reps_ids)))
-
-    # create directory to store data for each iteration
-    iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
-    fo.create_directory(iterative_rep_dir)
 
     # BLAST schema representatives against remaining unclassified CDSs
     new_reps = {}
@@ -1789,18 +1797,9 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     exausted = False
     # keep iterating while new representatives are discovered
     while exausted is False:
-        remaining_seqs_file = fo.join_paths(iterative_rep_dir,
-                                            ['remaining_prots_iter{0}.fasta'.format(iteration)])
-        # create Fasta with unclassified sequences
-        fao.get_sequences_by_id(prot_index, unclassified_ids,
-                                remaining_seqs_file, limit=50000)
-
-        # shorten ids to avoid BLASTp error?
-        blast_db = fo.join_paths(iterative_rep_dir, ['blastdb_iter{0}'.format(iteration)])
-        # will not work if file contains duplicated seqids
-        db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
-                                     blast_db, 'prot')
-
+        # create text file with unclassified seqids
+        remaining_seqsids_file = fo.join_paths(iterative_rep_dir, ['remaining_seqids_{0}.txt'.format(iteration)])
+        fo.write_lines(unclassified_ids, remaining_seqsids_file)
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
         print('Representative sets to BLAST against remaining '
@@ -1817,7 +1816,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             output_files.append(outfile)
 
             blast_inputs.append([blastp_path, blast_db, file, outfile,
-                                 1, 1, bw.run_blast])
+                                 1, 1, remaining_seqsids_file, bw.run_blast])
 
         # BLAST representatives against unclassified sequences
         print('BLASTing...\n')
@@ -1855,7 +1854,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             locus_mode = loci_modes[locus]
 
             # import file with locus classifications
-            locus_results_file = fo.join_paths(preprocess_dir, [locus+'_results'])
+            locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
 
             classification_inputs.append([locus, file,
                                           inv_map,
@@ -1894,20 +1893,33 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
         print('\nSelecting representatives for next iteration.')
         representatives = {}
+        representative_inputs = []
         for k, v in representative_candidates.items():
-            # BLAST representative candidates to select new representatives
             if len(v) > 1:
-                locus_new_reps = select_representatives(v, k, iteration, iterative_rep_dir,
-                                                        blastp_path, blast_db, blast_score_ratio,
-                                                        prot_index, cpu_cores)
-                representatives[k] = locus_new_reps
+                current_candidates = {e[1]: e[3] for e in v}
+                fasta_file = fo.join_paths(iterative_rep_dir,
+                               ['{0}_candidates_{1}.fasta'.format(k, iteration)])
+                # create file with sequences
+                fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), fasta_file)
+                representative_inputs.append([current_candidates, k, fasta_file,
+                                              iteration, iterative_rep_dir, blastp_path,
+                                              blast_db, blast_score_ratio, 1,
+                                              select_representatives])
             else:
                 representatives[k] = [(v[0][1], v[0][3])]
+
+        selected_candidates = mo.map_async_parallelizer(representative_inputs,
+                                                        mo.function_helper,
+                                                        cpu_cores,
+                                                        show_progress=True)
+
+        for c in selected_candidates:
+            representatives[c[0]] = c[1]
 
         for k, v in representatives.items():
             new_reps.setdefault(k, []).extend(v)
 
-        # stop iterating if it is not possible to identify representatives
+        # stop iterating if there are no new representatives
         if len(representatives) == 0:
             exausted = True
         else:
@@ -1925,24 +1937,19 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
                 protein_repfiles.append(rep_file)
 
-            # determine self-score for new reps
             # concatenate reps
             concat_repy = fo.join_paths(iterative_rep_dir, ['{0}_concat_reps.fasta'.format(iteration)])
             fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
-
+            # determine self-score for new reps
             new_self_scores = fao.determine_self_scores(iterative_rep_dir, concat_repy,
                                                         makeblastdb_path, blastp_path,
                                                         'prot', cpu_cores)
 
-            # need to be careful not to update this if user does not want to add inferred alleles...
             self_scores = {**self_scores, **new_self_scores}
 
             # some representatives might match against common unclassified sequences
             # those are paralogous
 
-    # return paths to classification files
-    # mapping between genome identifiers and integer identifiers
-    # path to Fasta file with distinct DNA sequences to get inferred alleles
     return [classification_files, inv_map, distinct_file, all_prots,
             dna_distinct_htable, distinct_pseqids, new_reps, self_scores,
             unclassified_ids]

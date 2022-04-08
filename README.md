@@ -4,6 +4,8 @@
 [![chewBBACA](https://github.com/B-UMMI/chewBBACA/workflows/chewbbaca/badge.svg)](https://github.com/B-UMMI/chewBBACA/actions?query=workflow%3Achewbbaca)
 [![License: GPL v3](https://img.shields.io/github/license/B-UMMI/chewBBACA)](https://www.gnu.org/licenses/gpl-3.0)
 [![DOI:10.1099/mgen.0.000166](https://img.shields.io/badge/DOI-10.1099%2Fmgen.0.000166-blue)](http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/chewbbaca/badges/installer/conda.svg)](https://bioconda.github.io/recipes/chewbbaca/README.html) 
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/chewbbaca/badges/downloads.svg)](https://anaconda.org/bioconda/chewbbaca)
 
 # chewBBACA
 

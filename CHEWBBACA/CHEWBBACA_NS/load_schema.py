@@ -691,7 +691,7 @@ def create_loci_file(schema_files, annotations, schema_dir,
         if absent_loci is None or file in absent_loci:
 
             locus = os.path.basename(file).split('.fasta')[0]
-            locus_hash = fo.hash_file(file, 'rb')
+            locus_hash = fo.hash_file(file, hashlib.blake2b())
 
             locus_annotations = annotations[locus]
 
@@ -1159,7 +1159,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     if continue_up is False:
         if description_file is not None and os.path.isfile(description_file) is True:
             # determine file hash
-            description_hash = fo.hash_file(description_file, 'rb')
+            description_hash = fo.hash_file(description_file, hashlib.blake2b())
             print('Schema description: {0}'.format(description_file))
         else:
             print('Could not get a description from a file. '
@@ -1167,14 +1167,14 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
             description_file = 'schema_description.txt'
             with open(description_file, 'w') as sd:
                 sd.write(schema_name)
-            description_hash = fo.hash_file(description_file, 'rb')
+            description_hash = fo.hash_file(description_file, hashlib.blake2b())
 
         params['SchemaDescription'] = description_hash
 
     print('\n-- Schema Pre-processing --')
 
     # hash schema files to get unique identifiers based on content
-    hashed_files = {fo.hash_file(file, 'rb'): file for file in fasta_paths}
+    hashed_files = {fo.hash_file(file, hashlib.blake2b()): file for file in fasta_paths}
     print('Determining data to upload...')
     absent_loci = fasta_paths
     if upload_type[0] == 'incomplete':

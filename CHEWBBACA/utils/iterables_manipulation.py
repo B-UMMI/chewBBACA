@@ -807,11 +807,9 @@ def integer_mapping(values, inverse=False):
         value.
     """
 
-    mapping = {}
-    if inverse is False:
-        mapping = {v: i+1 for i, v in enumerate(values)}
-    elif inverse is True:
-        mapping = {i+1: v for i, v in enumerate(values)}
+    mapping = {v: i+1 for i, v in enumerate(values)}
+    if inverse is True:
+        mapping = invert_dictionary(mapping)
 
     return mapping
 

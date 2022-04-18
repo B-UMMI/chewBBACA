@@ -18,6 +18,7 @@ from multiprocessing import Pool
 
 from utils import iterables_manipulation as im
 
+
 def function_helper(input_args):
     """ Runs function by passing set of provided inputs and
         captures exceptions raised during function execution.

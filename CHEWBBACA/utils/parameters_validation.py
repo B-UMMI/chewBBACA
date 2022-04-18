@@ -688,7 +688,7 @@ def hash_ptf(ptf_path):
     """
 
     if ptf_path is not None:
-        ptf_hash = fo.hash_file(ptf_path, 'rb')
+        ptf_hash = fo.hash_file(ptf_path, hashlib.blake2b())
     else:
         ptf_hash = None
 

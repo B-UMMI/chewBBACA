@@ -68,7 +68,17 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
 
 
 def get_locus_id(locus_path):
-    """
+    """ Extracts locus identifier from path.
+
+    Parameters
+    ----------
+    locus_path : str
+        Path to the locus Fasta file.
+
+    Returns
+    -------
+    locus_id : str
+        Locus identifier without the .fasta extension.
     """
 
     locus_basename = file_basename(locus_path)
@@ -90,15 +100,19 @@ def remove_files(files):
         os.remove(f)
 
 
-def hash_file(file, read_mode):
-    """ Computes BLAKE2b hash based on the contents of a file.
+def hash_file(file, hash_object, buffer_size=65536):
+    """ Computes hash based on the contents of a file.
 
     Parameters
     ----------
     file : str
         Path to a file.
-    read_mode : str
-        File read mode.
+    hash_object : _hashlib.HASH
+        Hashlib object to update based on file
+        contents.
+    buffer_size : int
+        Buffer size (amount of data, in KB, to
+        read from file).
 
     Returns
     -------
@@ -106,11 +120,17 @@ def hash_file(file, read_mode):
         Hash computed from file contents.
     """
 
-    with open(file, read_mode) as f:
-        hash_obj = hashlib.blake2b()
-        file_content = f.read()
-        hash_obj.update(file_content)
-        hash_str = hash_obj.hexdigest()
+    updated_hash = hash_object
+
+    with open(file, 'rb') as f:
+        # read file in chunks
+        while True:
+            data = f.read(buffer_size)
+            if not data:
+                break
+            updated_hash.update(data)
+
+    hash_str = updated_hash.hexdigest()
 
     return hash_str
 
@@ -135,12 +155,11 @@ def filter_files(files, suffixes, reverse=False):
         List with files that passed filtering.
     """
 
-    if reverse is False:
-        filtered = [file for file in files
-                    if any([True for suffix in suffixes if suffix in file])]
-    elif reverse is True:
-        filtered = [file for file in files
-                    if not any([True for suffix in suffixes if suffix in file])]
+    filtered = [file for file in files
+                if any([True for suffix in suffixes if suffix in file])]
+
+    if reverse is True:
+        filtered = list(set(files)-set(filtered))
 
     return filtered
 
@@ -178,12 +197,10 @@ def listdir_fullpath(directory_path, substring_filter=False):
         file in the input directory.
     """
 
-    if substring_filter is False:
-        file_list = [os.path.join(directory_path, f)
-                     for f in os.listdir(directory_path)]
-    else:
-        file_list = [os.path.join(directory_path, f)
-                     for f in os.listdir(directory_path)]
+    file_list = [os.path.join(directory_path, f)
+                 for f in os.listdir(directory_path)]
+
+    if substring_filter is not False:
         file_list = filter_files(file_list, [substring_filter])
 
     return file_list
@@ -547,17 +564,29 @@ def create_short(schema_files, schema_dir):
 
 
 def move_file(source, destination):
-    """ Moves a file. """
+    """ Moves a file to a destination. """
 
     shutil.move(source, destination)
 
 
 def matching_lines(input_file, pattern):
-    """
+    """ Retrieves lines from a file that contain a string pattern.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to input file.
+    pattern : str
+        Pattern to match.
+
+    Returns
+    -------
+    matched_lines : list
+        List with lines that contain the pattern.
     """
 
     with open(input_file, 'r') as infile:
-        matched_lines = [l for l in infile if '>' in l]
+        matched_lines = [l for l in infile if pattern in l]
 
     return matched_lines
 

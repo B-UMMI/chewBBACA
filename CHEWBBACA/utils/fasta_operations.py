@@ -32,6 +32,25 @@ except:
                                  constants as ct)
 
 
+def index_fasta(fasta_file):
+    """ Creates index to retrieve data from FASTA file.
+
+    Parameters
+    ----------
+    fasta_file : str
+        Path to a FASTA file.
+
+    Returns
+    -------
+    fasta_index : Bio.File._IndexedSeqFileDict
+        FASTA file index.
+    """
+
+    fasta_index = SeqIO.index(fasta_file, 'fasta')
+
+    return fasta_index
+
+
 def count_sequences(fasta_file):
     """ Counts the number of sequences in a FASTA file.
 
@@ -346,7 +365,6 @@ def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
     """
 
     # using a generator
-    # verify if using a list is problematic for huge datasets (might keep many sequences in memory)
     if type(sequences) == dict:
         seqs = ((seqid, sequences[seqid]) for seqid in seqids)
     else:
@@ -593,7 +611,7 @@ def determine_self_scores(work_directory, fasta_file, makeblastdb_path,
     db_stderr = bw.make_blast_db(makeblastdb_path, output_fasta, blast_db, db_type)
 
     if len(db_stderr) > 0:
-        print(db_stderr)
+        return db_stderr
 
     output_blast = fo.join_paths(work_directory, [fo.file_basename(fasta_file, False)+'_blastout.tsv'])
     blastp_stderr = bw.run_blast(blast_path, blast_db, output_fasta,

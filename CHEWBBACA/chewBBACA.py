@@ -13,6 +13,7 @@ import os
 import sys
 import pickle
 import shutil
+import hashlib
 import argparse
 
 try:
@@ -197,7 +198,7 @@ def create_schema():
     if args.ptf_path is not None:
         shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
-        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
@@ -970,7 +971,7 @@ def prep_schema():
     if args.ptf_path is not None:
         shutil.copy(args.ptf_path, args.output_directory)
         # determine PTF checksum
-        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,

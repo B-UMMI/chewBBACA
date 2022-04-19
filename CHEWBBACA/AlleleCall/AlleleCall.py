@@ -90,7 +90,6 @@ Code documentation
 import os
 import csv
 import sys
-import shutil
 import argparse
 from collections import Counter
 
@@ -421,6 +420,67 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
 
     return [locus_classifications, exact_prot_hashes, total_prots,
             total_cds, total_distinct_prots]
+
+
+def contig_position_classification(representative_length, representative_leftmost_pos,
+                                   representative_rightmost_pos, contig_length,
+                                   contig_leftmost_pos, contig_rightmost_pos):
+    """ Determines classification based on the position of the
+        aligned representative allele in the input contig.
+
+    Parameters
+    ----------
+    representative_length : int
+        Length of the representative allele that matched a
+        coding sequence identified in the input contig.
+    representative_leftmost_pos : int
+        Representative sequence leftmost aligned position.
+    representative_rightmost_pos : int
+        Representative sequence rightmost aligned position.
+    contig_length : int
+        Length of the contig that contains the coding sequence
+        that matched with the representative allele.
+    contig_leftmost_pos : int
+        Contig leftmost aligned position.
+    contig_rightmost_pos : int
+        Contig rightmost aligned position.
+
+    Returns
+    -------
+    'LOTSC' if the contig is smaller than the matched representative
+    allele, 'PLOT5' or 'PLOT3' if the matched allele unaligned part
+    exceeds one of the contig ends, None otherwise.
+    """
+
+    # check if it is LOTSC because the contig is smaller than matched allele
+    if contig_length < representative_length:
+        return 'LOTSC'
+
+    # check if it is PLOT
+    # match in sense strand
+    if contig_rightmost_pos > contig_leftmost_pos:
+        # determine rightmost aligned position in contig
+        contig_rightmost_rest = contig_length - contig_rightmost_pos
+        # determine leftmost aligned position in contig
+        contig_leftmost_rest = contig_leftmost_pos
+        # determine number of rightmost bases in the target that did not align
+        representative_rightmost_rest = representative_length - representative_rightmost_pos
+        # determine number of leftmost bases in the target that did not align 
+        representative_leftmost_rest = representative_leftmost_pos
+    # reverse values because CDS was identified in reverse strand
+    elif contig_rightmost_pos < contig_leftmost_pos:
+        contig_leftmost_rest = contig_rightmost_pos
+        contig_rightmost_rest = contig_length - contig_leftmost_pos
+        # also need to reverse values for representative
+        representative_leftmost_rest = representative_rightmost_pos
+        representative_rightmost_rest = representative_length - representative_leftmost_pos
+
+    # check if the unaligned region of the matched allele exceeds
+    # one of the contig ends
+    if contig_leftmost_rest < representative_leftmost_rest:
+        return 'PLOT5'
+    elif contig_rightmost_rest < representative_rightmost_rest:
+        return 'PLOT3'
 
 
 def allele_size_classification(sequence_length, locus_mode, size_threshold):
@@ -1241,86 +1301,44 @@ def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file
     return locus_info_file
 
 
-def contig_position_classification(representative_length, representative_leftmost_pos,
-                                   representative_rightmost_pos, contig_length,
-                                   contig_leftmost_pos, contig_rightmost_pos):
-    """ Determines classification based on the position of the
-        matched representative allele in the input contig.
+def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
+                         output_directory, coordinates_files):
+    """ Creates Fasta file with sequences for missing data classes.
 
     Parameters
     ----------
-    representative_length : int
-        Length of the representative allele that matched a
-        coding sequence identified in the input contig.
-    representative_leftmost_pos : int
-        Representative sequence leftmost aligned position.
-    representative_rightmost_pos : int
-        Representative sequence rightmost aligned position.
-    contig_length : int
-        Length of the contig that contains the coding sequence
-        that matched with the representative allele.
-    contig_leftmost_pos : int
-        Contig leftmost aligned position.
-    contig_rightmost_pos : int
-        Contig rightmost aligned position.
-
-    Returns
-    -------
-    'LOTSC' if the contig is smaller than the matched representative
-    allele, 'PLOT5' or 'PLOT3' if the matched allele unaligned part
-    exceeds one of the contig ends, None otherwise.
-    """
-
-    # check if it is LOTSC because the contig is smaller than matched allele
-    if contig_length < representative_length:
-        return 'LOTSC'
-
-    # careful about offset!!!
-    # check if it is PLOT
-    # match in sense strand
-    if contig_rightmost_pos > contig_leftmost_pos:
-        # determine rightmost aligned position in contig
-        contig_rightmost_rest = contig_length - contig_rightmost_pos
-        # determine leftmost aligned position in contig
-        contig_leftmost_rest = contig_leftmost_pos
-        # determine number of rightmost bases in the target that did not align
-        representative_rightmost_rest = representative_length - representative_rightmost_pos
-        # determine number of leftmost bases in the target that did not align 
-        representative_leftmost_rest = representative_leftmost_pos
-    # reverse values because CDS was identified in reverse strand
-    elif contig_rightmost_pos < contig_leftmost_pos:
-        contig_leftmost_rest = contig_rightmost_pos
-        contig_rightmost_rest = contig_length - contig_leftmost_pos
-        # also need to reverse values for representative
-        representative_leftmost_rest = representative_rightmost_pos
-        representative_rightmost_rest = representative_length - representative_leftmost_pos
-
-    # check if the unaligned region of the matched allele exceeds
-    # one of the contig ends
-    if contig_leftmost_rest < representative_leftmost_rest:
-        return 'PLOT5'
-    elif contig_rightmost_rest < representative_rightmost_rest:
-        return 'PLOT3'
-
-
-# class_files = results[0]
-# fasta_file = results[2]
-# input_map = results[1]
-# dna_hashtable = results[4]
-# output_directory = results_dir
-# coordinates_files = coordinates_files
-def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
-                         output_directory, coordinates_files):
-    """
+    class_files : dict
+        Dictionary with paths to loci files as keys and paths to
+        pickled files with classification results as values.
+    fasta_file : str
+        Path to Fasta file with the distinct CDS extracted from
+        the input genomes.
+    input_map : dict
+        Dictionary with the mapping between the input integer
+        identifiers and input string identifiers.
+    dna_hashtable : dict
+        Dictionary with hashes of the distinct CDS extracted from
+        input genomes as keys and lists containing the integer
+        identifiers for te inputs that contained the CDS encoded
+        with the polyline algorithm.
+    output_directory : str
+        Path to the output directory where the Fasta file will
+        be saved to.
+    coordinates_files : dict
+        Dictionary with the mapping between input string identifiers
+        and paths to pickled files that contain a dictionary with the
+        coordinates of the CDS identified in each input.
     """
 
     invalid_cases = ct.ALLELECALL_CLASSIFICATIONS[2:-1]
 
+    # get information about missing cases for each input genome
     missing_cases = {}
     for locus, file in class_files.items():
         locus_id = fo.get_locus_id(locus)
         locus_classifications = fo.pickle_loader(file)
         # get data for genomes that do not have EXC or INF classifications
+        # it will not get invalid classes if a genome is classified as EXC or INF
         for gid, v in locus_classifications.items():
             if v[0] in invalid_cases:
                 genome_info = [locus_id, v[0], [[e[2], e[3]] for e in v[1:]]]
@@ -1370,18 +1388,51 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(missing_records, output_file)
 
 
-def select_representatives(matches, locus, fasta_file, iteration, output_directory,
+def select_representatives(representative_candidates, locus, fasta_file, iteration, output_directory,
                            blastp_path, blast_db, blast_score_ratio,
                            threads):
-    """
+    """ Selects new representative alleles for a locus from a set of
+        candidate alleles.
+
+    Parameters
+    ----------
+    representative_candidates : dict
+        Dictionary with sequence identifiers as keys and sequence
+        hashes as values.
+    locus : str
+        Locus identifier.
+    fasta_file : path
+        Path to Fasta file that contains the translated sequences
+        of the representative candidates.
+    iteration : int
+        Iteration number to add to generated files.
+    output_directory : str
+        Path to the output directory.
+    blastp_path : str
+        Path to the BLASTp executable.
+    blast_db : str
+        Path to the BLAST database.
+    blast_score_ratio : float
+        BLAST Score Ratio value.
+    threads : int
+        Number of threads passed to BLAST.
+
+    Returns
+    -------
+    locus : str
+        Locus identifier.
+    selected : list
+        List that contains one tuple per selected candidate (tuples
+        contain the sequence identifier and the sequence hash for
+        each new representative).
     """
 
     # create file with candidate ids
     ids_file = fo.join_paths(output_directory,
                              ['{0}_candidates_ids_{1}.fasta'.format(locus, iteration)])
-    fo.write_lines(list(matches.keys()), ids_file)
+    fo.write_lines(list(representative_candidates.keys()), ids_file)
 
-    # BLASTp to compare are candidates
+    # BLASTp to compare all candidates
     blast_output = fo.join_paths(output_directory,
                                  ['{0}_candidates_{1}_blastout.tsv'.format(locus, iteration)])
     # pass number of max targets per query to reduce execution time
@@ -1412,7 +1463,7 @@ def select_representatives(matches, locus, fasta_file, iteration, output_directo
                                     for l in blast_results
                                     if l[0] not in excluded_candidates]))
 
-    selected = [(l, matches[l])
+    selected = [(l, representative_candidates[l])
                 for l in selected_candidates
                 if l not in excluded_candidates]
 
@@ -1420,6 +1471,7 @@ def select_representatives(matches, locus, fasta_file, iteration, output_directo
 
 
 input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
 fasta_files = fo.read_lines(input_file, strip=True)
 fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
 output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
@@ -1439,6 +1491,7 @@ prodigal_mode = 'single'
 cds_input = False
 only_exact = False
 schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
+#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
 add_inferred = True
 output_unclassified = True
 output_missing = True
@@ -1719,6 +1772,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     representatives = im.kmer_index(concat_reps, 5)
 
     # cluster CDSs into representative clusters
+    # this is not reporting the correct number of sequences added to clusters!
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, representatives, False,
                                       1, 30, clustering_dir, cpu_cores,

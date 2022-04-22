@@ -25,11 +25,9 @@ import pandas as pd
 from Bio import SeqIO
 
 try:
-    from utils import (file_operations as fo,
-                       multiprocessing_operations as mo)
+    from utils import (file_operations as fo)
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 multiprocessing_operations as mo)
+    from CHEWBBACA.utils import (file_operations as fo)
 
 
 def hash_column(column, locus_file, hashing_function):
@@ -83,8 +81,6 @@ def main(profiles_table, schema_directory, output_directory, hash_type):
         loci_files[locus] = locus_file
 
     sample_ids = pd.read_csv(profiles_table, delimiter='\t', dtype=str, usecols=['FILE'])
-
-    # create multiprocessing inputs
 
     # read row chunks instead so that it is not needed to have the full hashed matrix in memory?
     include_header = True

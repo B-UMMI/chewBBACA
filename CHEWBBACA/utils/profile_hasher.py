@@ -56,11 +56,37 @@ def hash_column(column, locus_file, hashing_function):
     return hashed_column
 
 
+def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
+                  nrows, skiprows, include_header, output_directory):
+    """
+    """
+
+    current_rows = pd.read_csv(profiles_table, delimiter='\t', dtype=str,
+                               skiprows=skiprows, nrows=nrows)
+
+    current_samples = current_rows['FILE']
+    hashed_profiles = [current_samples]
+    for locus in loci_ids:
+        locus_column = current_rows[locus]
+        hashed_column = hash_column(locus_column, loci_files[locus], hashing_function)
+        hashed_profiles.append(hashed_column)
+
+    hashed_df = pd.concat(hashed_profiles, axis=1)
+    start = skiprows.stop
+    stop = skiprows.stop+nrows
+    output_file = fo.join_paths(output_directory, ['df_{0}-{1}.tsv'.format(start, stop)])
+    hashed_df.to_csv(output_file, sep='\t', index=False, header=include_header)
+
+    return output_file
+    
+
 # profiles_table = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/small_dataset.tsv'
 # schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_pyogenes_wgMLST_schema/'
 # output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/'
 # hash_type = 'crc32'
-def main(profiles_table, schema_directory, output_directory, hash_type):
+# threads = 2
+# nrows = 1000
+def main(profiles_table, schema_directory, output_directory, hash_type, threads, nrows):
 
     # get hash function
     try:
@@ -85,27 +111,16 @@ def main(profiles_table, schema_directory, output_directory, hash_type):
     sample_ids = pd.read_csv(profiles_table, delimiter='\t', dtype=str, usecols=['FILE'])
 
     # create multiprocessing inputs
-
-    # read row chunks instead so that it is not needed to have the full hashed matrix in memory?
+    multi_inputs = []
     include_header = True
-    output_files = []
-    df_num = 1
-    for i in range(0, len(sample_ids), 2000):
-        current_rows = pd.read_csv(profiles_table, delimiter='\t', dtype=str,
-                                   skiprows=range(1, i+1), nrows=2000)
-        current_samples = current_rows['FILE']
-        hashed_profiles = [current_samples]
-        for locus in loci_ids:
-            locus_column = current_rows[locus]
-            hashed_column = hash_column(locus_column, loci_files[locus], hashing_function)
-            hashed_profiles.append(hashed_column)
-
-        hashed_df = pd.concat(hashed_profiles, axis=1)
-        output_file = fo.join_paths(output_directory, ['df{0}.tsv'.format(df_num)])
-        hashed_df.to_csv(output_file, sep='\t', index=False, header=include_header)
-        output_files.append(output_file)
+    # divide and process by row chunks
+    for i in range(0, len(sample_ids), nrows):
+        multi_inputs.append([profiles_table, loci_ids, loci_files,
+                             hashing_function, nrows, range(1, i+1),
+                             include_header, output_directory, hash_profiles])
         include_header = False
-        df_num += 1
+
+    output_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, threads)
 
     # concatenate all files
     output_file = fo.join_paths(output_directory, ['final_df.tsv'])
@@ -134,6 +149,14 @@ def parse_arguments():
 
     parser.add_argument('-hf', '--hash-type', type=str, required=False,
                         dest='hash_type',
+                        help='')
+
+    parser.add_argument('-t', '--threads', type=int, required=False,
+                        default=1, dest='threads',
+                        help='')
+
+    parser.add_argument('-n', '--nrows', type=int, required=False,
+                        default=1000, dest='nrows',
                         help='')
 
     args = parser.parse_args()

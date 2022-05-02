@@ -17,6 +17,7 @@ import re
 import sys
 import csv
 import shutil
+import hashlib
 import argparse
 import platform
 import subprocess
@@ -541,22 +542,22 @@ def verify_cpu_usage(cpu_to_use):
     cpu_to_use = int(cpu_to_use)
 
     # do not allow a value greater than the number of cores
-    if cpu_to_use >= total_cpu:
-        print('Warning! You have provided a CPU core count value '
-              'that is equal to or exceeds the number of CPU '
-              'cores in your system!')
-        # define a value that is safe according to the number of
-        # available cores/threads
-        if total_cpu > 2:
-            cpu_to_use = total_cpu - 2
-        elif total_cpu == 2:
-            cpu_to_use = 1
-        print('Resetting to: {0}'.format(cpu_to_use))
-    elif cpu_to_use == (total_cpu - 1):
-        print('Warning! You have provided a CPU core count value '
-              'that is close to the maximum core count of your '
-              'machine ({0}/{1}). This may affect your system '
-              'responsiveness.'.format(cpu_to_use, total_cpu))
+    # if cpu_to_use >= total_cpu:
+    #     print('Warning! You have provided a CPU core count value '
+    #           'that is equal to or exceeds the number of CPU '
+    #           'cores in your system!')
+    #     # define a value that is safe according to the number of
+    #     # available cores/threads
+    #     if total_cpu > 2:
+    #         cpu_to_use = total_cpu - 2
+    #     elif total_cpu == 2:
+    #         cpu_to_use = 1
+    #     print('Resetting to: {0}'.format(cpu_to_use))
+    # elif cpu_to_use == (total_cpu - 1):
+    #     print('Warning! You have provided a CPU core count value '
+    #           'that is close to the maximum core count of your '
+    #           'machine ({0}/{1}). This may affect your system '
+    #           'responsiveness.'.format(cpu_to_use, total_cpu))
 
     return cpu_to_use
 

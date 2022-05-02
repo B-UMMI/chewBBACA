@@ -528,6 +528,8 @@ def write_loci_summary(classification_files, output_directory, total_inputs):
     loci_stats = [ct.LOCI_STATS_HEADER]
     for k, v in classification_files.items():
         locus_id = fo.get_locus_id(k)
+        if locus_id is None:
+            locus_id = fo.file_basename(v).split('_results')[0]
         locus_results = fo.pickle_loader(v)
 
         # count locus classifications
@@ -612,6 +614,8 @@ def write_results_alleles(classification_files, input_identifiers,
     for file in classification_files:
         # get locus identifier to add as column header
         locus_id = fo.get_locus_id(file)
+        if locus_id is None:
+            locus_id = fo.file_basename(file).split('_results')[0]
         locus_results = fo.pickle_loader(file)
         locus_column = [locus_id]
         for i in range(1, len(input_identifiers)+1):
@@ -660,6 +664,8 @@ def write_results_statistics(classification_files, input_identifiers,
                     for i in input_identifiers}
     for file in classification_files.values():
         locus_id = fo.get_locus_id(file)
+        if locus_id is None:
+            locus_id = fo.file_basename(file).split('_results')[0]
         locus_results = fo.pickle_loader(file)
 
         for i in class_counts:
@@ -719,6 +725,8 @@ def write_results_contigs(classification_files, input_identifiers,
     line_limit = 500
     for i, file in enumerate(classification_files):
         locus_id = fo.get_locus_id(file)
+        if locus_id is None:
+            locus_id = fo.file_basename(file).split('_results')[0]
         locus_results = fo.pickle_loader(file)
         column = [locus_id]
         # get sequence hash for exact and inferred
@@ -841,7 +849,6 @@ def assign_allele_ids(classification_files):
     # assign allele identifiers
     novel_alleles = {}
     for locus, results in classification_files.items():
-        locus_id = fo.get_locus_id(locus)
         # import locus records
         records = fao.import_sequences(locus)
         # determine hash for all locus alleles
@@ -917,6 +924,8 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives, sequences_f
     total_representative = 0
     for locus, alleles in inferred_alleles.items():
         locus_id = fo.get_locus_id(locus)
+        if locus_id is None:
+            locus_id = fo.file_basename(locus, False)
 
         # get novel alleles through indexed Fasta file
         novel_alleles = ['>{0}_{1}\n{2}'.format(locus_id, a[1], str(sequence_index.get(a[2]).seq))
@@ -1247,7 +1256,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file
                                                           contig_rightmost_pos)
 
             if relative_pos is not None:
-                print(genome, m, genome_coordinates, contig_leftmost_pos, contig_rightmost_pos, contig_length)
+                #print(genome, m, genome_coordinates, contig_leftmost_pos, contig_rightmost_pos, contig_length)
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, relative_pos, bsr))
@@ -1470,32 +1479,33 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
     return [locus, selected]
 
 
-input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-#input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
-fasta_files = fo.read_lines(input_file, strip=True)
-fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 6
-blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-prodigal_mode = 'single'
-cds_input = False
-only_exact = False
-schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae32_schema/schema_seed'
-#schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
-add_inferred = True
-output_unclassified = True
-output_missing = True
-no_cleanup = True
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
+# fasta_files = fo.read_lines(input_file, strip=True)
+# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/test_allelecall'
+# ptf_path = '/home/rfm/Lab_Software/AlleleCall_tests/test_chewie3/senterica_schema/Salmonella_enterica.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
+# only_exact = False
+# schema_directory = '/home/rfm/Lab_Software/AlleleCall_tests/test_chewie3/senterica_schema'
+# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
+# add_inferred = True
+# output_unclassified = False
+# output_missing = False
+# no_cleanup = True
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1805,6 +1815,10 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     for f in blast_files:
         locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
         locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
+        # for schemas that do not have 'protein' in the identifier
+        # would fail for schemas from Chewie-NS
+        if locus_id is None:
+            locus_id = '_'.join(locus_rep.split('_')[0:-1])
         loci_results.setdefault(locus_id, []).append(f)
 
     concatenated_files = []
@@ -1821,6 +1835,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     loci_results = {}
     for f in concatenated_files:
         locus_id = fo.get_locus_id(f)
+        if locus_id is None:
+            locus_id = fo.file_basename(f).split('.concatenated')[0]
         # exclude results in the BSR+0.1 threshold
         # process representative candidates in later stage
         best_matches = select_highest_scores(f)
@@ -1915,6 +1931,9 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         blast_inputs = []
         for file in protein_repfiles:
             locus_id = fo.get_locus_id(file)
+            if locus_id is None:
+                # need to add 'short' or locus id will not be split
+                locus_id = fo.file_basename(file).split('_short')[0]
             outfile = fo.join_paths(iterative_rep_dir,
                                     [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
@@ -1932,6 +1951,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         loci_results = {}
         for f in output_files:
             locus_id = fo.get_locus_id(f)
+            if locus_id is None:
+                locus_id = fo.file_basename(f).split('_blast')[0]
             best_matches = select_highest_scores(f)
             match_info = process_blast_results(best_matches, blast_score_ratio,
                                                self_scores, None)
@@ -2036,9 +2057,10 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 # get new representative for locus
                 current_new_reps = [e[0] for e in v]
                 reps_ids.extend(current_new_reps)
-
+                
+                # need to add 'short' or locus id will not be split
                 rep_file = fo.join_paths(iterative_rep_dir,
-                                         ['{0}_reps_iter{1}.fasta'.format(k, iteration)])
+                                         ['{0}_short_reps_iter{1}.fasta'.format(k, iteration)])
                 fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
                 protein_repfiles.append(rep_file)
 
@@ -2113,6 +2135,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         reps_info = {}
         for k, v in novel_alleles.items():
             locus_id = fo.get_locus_id(k)
+            if locus_id is None:
+                locus_id = fo.file_basename(k, False)
             current_results = results[6].get(locus_id, None)
             if current_results is not None:
                 for e in current_results:

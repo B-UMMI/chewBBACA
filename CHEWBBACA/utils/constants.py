@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This modules contains constants used to define default parameters
-or variables values.
+This module contains default values for chewBBACA's
+parameters.
 
 Code documentation
 ------------------
@@ -15,7 +15,8 @@ Code documentation
 import platform
 
 
-# BLAST Score Ratio defaults
+# BLAST Score Ratio default values
+# value must be contained in the [0.0,1.0] interval
 BSR_MIN = 0.0
 BSR_MAX = 1.0
 DEFAULT_BSR = 0.6
@@ -24,7 +25,7 @@ DEFAULT_BSR = 0.6
 MSL_MIN = 0
 # large value to ensure that all sequences above minimum value are accepted
 MSL_MAX = 99999
-# 201 nucleotides (67 aminoacids)
+# default value of 201 nucleotides (67 aminoacids)
 MINIMUM_LENGTH_DEFAULT = 201
 
 # size variation threshold defaults
@@ -33,14 +34,17 @@ ST_MAX = 1.0
 # new alleles are inferred if their length value does
 # not deviate more than this value from the locus sequence
 # length mode
+# ASM if below threshold and ALM if above
 SIZE_THRESHOLD_DEFAULT = 0.2
 
-# word size used in clustering
+# word size/k size used for minimizer clustering
+# this value should not be modified
 WORD_SIZE_MIN = 5
 WORD_SIZE_MAX = 5
 WORD_SIZE_DEFAULT = 5
 
-# number of kmers in a window
+# number of adjacent kmers to consider when selecting minimizers
+# this value should not be modified
 WINDOW_SIZE_MIN = 5
 WINDOW_SIZE_MAX = 5
 WINDOW_SIZE_DEFAULT = 5
@@ -55,17 +59,18 @@ CLUSTERING_SIMILARITY_DEFAULT = 0.20
 # representative
 REPRESENTATIVE_FILTER_MIN = 0.9
 REPRESENTATIVE_FILTER_MAX = 0.9
-# clustered sequences are excluded if they share this proportion
-# of distinct minimizers with the cluster representative
+# in the CreateSchema process, clustered sequences are excluded
+# if they share this proportion of distinct minimizers with the
+# cluster representative
 REPRESENTATIVE_FILTER_DEFAULT = 0.9
 
 # decimal proportion of shared distinct minimizers with other
 # clustered sequences
 INTRA_CLUSTER_MIN = 0.9
 INTRA_CLUSTER_MAX = 0.9
-# clustered sequences are excluded if they share this proportion
-# of distinct minimizers with another clustered sequence of equal
-# or greater length
+# in the CreateSchema process, clustered sequences are excluded
+# if they share this proportion of distinct minimizers with another
+# clustered sequence of equal or greater length
 INTRA_CLUSTER_DEFAULT = 0.9
 
 # genetic codes/translation tables
@@ -94,7 +99,7 @@ HEADERS_POST_JSON = {'Authorization': None,
                      'accept': 'application/json',
                      'user_id': None}
 
-# list with chewie-NS instances identifiers and URLs
+# list of Chewie-NS instance identifiers and URLs
 HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
            'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
            'local': 'http://127.0.0.1:5000/NS/api/'}
@@ -103,7 +108,7 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
 UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 MAX_QUERIES = 10
 
-# authors names, GitHub repository, documentation,
+# authors, GitHub repository, documentation,
 # tutorial repository and contacts
 authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
 repository = 'https://github.com/B-UMMI/chewBBACA'
@@ -135,7 +140,7 @@ CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
                      (")", ""), ("'", ""), ("\"", ""), (":", "")]
 
 # minimum Python version
-MIN_PYTHON = [(3, 4, 0), '3.4.0']
+MIN_PYTHON = [(3, 6, 0), '3.6.0']
 
 # FTP to get UniProt's reference proteomes
 UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
@@ -144,7 +149,7 @@ UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
 # list of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
 
-# AlleleCall logfile template
+# AlleleCall logfile basename and content template
 LOGFILE_BASENAME = 'logging_info.txt'
 LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Finished script at: {1}\n'
@@ -153,20 +158,24 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Used this number of CPU cores: {4}\n'
                     'Used a BSR of: {5}\n')
 
+# basename for files created by AlleleCall
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
+LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
+# header for TSV file with loci stats
+LOCI_STATS_HEADER = 'Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\tNIPHEM\tALM\tASM\tLNF\tTotal_CDS'
+# header for TSV file with information about extracted CDSs
+CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 
 # allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
                               'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
                               'ASM', 'LNF']
 
-# header for TSV file with information about extracted CDSs
-CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
-
 # regex pattern to match locus identifier
 LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
 
-LOCI_STATS_FILENAME = 'loci_summary_stats.tsv'
-LOCI_STATS_HEADER = 'Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\tNIPHEM\tALM\tASM\tLNF\tTotal_CDS'
+# string template for a standard single line FASTA record
+FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
+FASTA_CDS_TEMPLATE = '>{0}-protein{1}\n{2}'

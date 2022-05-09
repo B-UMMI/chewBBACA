@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module contains functions to work with FASTA files and
-FASTA records.
+This module contains functions to work with FASTA files.
 
 Code documentation
 ------------------
@@ -32,8 +31,27 @@ except:
                                  constants as ct)
 
 
+def sequence_generator(input_file):
+    """ Creates a SeqRecord iterator.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to a Fasta file.
+
+    Returns
+    -------
+    records : Bio.SeqIO.FastaIO.FastaIterator
+        SeqRecord iterator.
+    """
+
+    records = SeqIO.parse(input_file, 'fasta')
+
+    return records
+
+
 def index_fasta(fasta_file):
-    """ Creates index to retrieve data from FASTA file.
+    """ Creates index to retrieve data from a FASTA file.
 
     Parameters
     ----------
@@ -51,6 +69,27 @@ def index_fasta(fasta_file):
     return fasta_index
 
 
+def import_sequences(input_file):
+    """ Imports sequences from a FASTA file.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to a FASTA file.
+
+    Returns
+    -------
+    seqs_dict : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
+    """
+
+    records = sequence_generator(input_file)
+    seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
+
+    return seqs_dict
+
+
 def count_sequences(fasta_file):
     """ Counts the number of sequences in a FASTA file.
 
@@ -62,24 +101,24 @@ def count_sequences(fasta_file):
     Returns
     -------
     total_seqs : int
-        Number of sequences in the input FASTA file.
+        Number of sequences in the FASTA file.
     """
 
-    records = SeqIO.parse(fasta_file, 'fasta')
-    total_seqs = len(list(records))
+    with open(fasta_file, 'r') as infile:
+        total_seqs = len([l for l in infile if l.startswith('>')])
 
     return total_seqs
 
 
-def sequences_lengths(fasta_file):
+def sequence_lengths(fasta_file):
     """ Read Fasta file and create dictionary
-        with mapping between sequence identifier
-        and sequence length.
+        with mapping between sequence identifiers
+        and sequence lengths.
 
     Parameters
     ----------
     fasta_file : str
-        Path to Fasta file.
+        Path to a Fasta file.
 
     Returns
     -------
@@ -88,7 +127,7 @@ def sequences_lengths(fasta_file):
         as keys and sequence lengths as values.
     """
 
-    sequences = SeqIO.parse(fasta_file, 'fasta')
+    sequences = sequence_generator(fasta_file)
     lengths = {rec.id: len(rec.seq) for rec in sequences}
 
     return lengths
@@ -117,11 +156,11 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
     Parameters
     ----------
     input_fasta : str
-        Path to the a FASTA file.
+        Path to a FASTA file.
     output_fasta : str
         Path to the output file with modified headers.
     start : int
-        Integer value of first identifier.
+        Integer value for the first identifier.
     limit : int
         Maximum number of FASTA records to keep in
         memory.
@@ -136,7 +175,7 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
     seqs = []
     ids_map = {}
     exausted = False
-    seq_generator = SeqIO.parse(input_fasta, 'fasta')
+    seq_generator = sequence_generator(input_fasta)
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -156,72 +195,51 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
     return ids_map
 
 
-def create_fasta_lines(sequences, prefix):
-    """ Creates FASTA records in string format.
+def fasta_str_record(record_template, record_data):
+    """ Creates the string representation of a FASTA record.
 
     Parameters
     ----------
-    sequences : dict
-        Dictionary with sequence identifiers as keys
-        and sequences as values.
-    prefix : str
-        Prefix to include in sequences headers.
+    record_template : str
+        String template to construct the FASTA record.
+    record_data : list
+        List with the elements to add to the string.
 
     Returns
     -------
-    lines : list
-        List with Fasta records in string format.
+    record : str
+        String representation of the FASTA record.
     """
 
-    template = '>{0}-protein{1}\n{2}'
+    record = record_template.format(*record_data)
 
-    lines = [template.format(prefix, seqid, sequence)
-             for seqid, sequence in sequences.items()]
-
-    return lines
+    return record
 
 
-def import_sequences(input_file):
-    """ Imports sequences from a FASTA file.
+def fasta_lines(template, records_data):
+    """ Creates a list with FASTA records.
 
     Parameters
     ----------
-    input_file : str
-        Path to a FASTA file.
+    template : str
+        String template to construct the FASTA record.
+    records_data : list
+        A list with one sublist per FASTA record.
+        Each sublist contains the elements to insert
+        inside the template placeholders.
 
     Returns
     -------
-    seqs_dict : dict
-        Dictionary that has sequences ids as keys and
-        sequences as values.
+    seqs_lines : list
+        A list with strings representing FASTA records.
     """
 
-    records = SeqIO.parse(input_file, 'fasta')
-    seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
+    seqs_lines = [fasta_str_record(template, *arg) for arg in records_data]
 
-    return seqs_dict
-
-
-def sequence_generator(input_file):
-    """ Creates a SeqRecord iterator.
-
-    Parameters
-    ----------
-    input_file : str
-        Path to a Fasta file.
-
-    Returns
-    -------
-    records : Bio.SeqIO.FastaIO.FastaIterator
-        SeqRecord iterator.
-    """
-
-    records = SeqIO.parse(input_file, 'fasta')
-
-    return records
+    return seqs_lines
 
 
-def is_fasta(file_path):
+def validate_fasta(file_path):
     """ Checks if a file is a FASTA file.
 
     Parameters
@@ -235,13 +253,10 @@ def is_fasta(file_path):
     False otherwise.
     """
 
-    with open(file_path, 'r') as handle:
-        try:
-            fasta = SeqIO.parse(handle, 'fasta')
-        except:
-            fasta = [False]
+    records = SeqIO.parse(file_path, 'fasta')
 
-        return any(fasta)
+    # returns False is it was not a FASTA file
+    return any(records)
 
 
 def filter_non_fasta(files):
@@ -265,33 +280,6 @@ def filter_non_fasta(files):
     return fasta_files
 
 
-def fasta_lines(identifiers, sequences_dictionary):
-    """ Creates list with line elements for a FASTA file based
-        on the sequence identifiers passed.
-
-    Parameters
-    ----------
-    identifiers : list
-        A list with the identifiers of sequences that will be
-        included in the list.
-    sequences_dictionary : dict
-        A dictionary with sequence identifiers as keys and
-        sequences as values.
-
-    Returns
-    -------
-    seqs_lines : list
-        A list with strings representing the header of
-        the sequence and the sequence for each of the specified
-        sequence identifiers.
-    """
-
-    seqs_lines = ['>{0}\n{1}'.format(seqid, sequences_dictionary[seqid])
-                  for seqid in identifiers]
-
-    return seqs_lines
-
-
 def sequences_lengths_hash(fasta_file):
     """ Determines the length of all sequences in a FASTA file.
 
@@ -313,27 +301,6 @@ def sequences_lengths_hash(fasta_file):
                           for rec in SeqIO.parse(fasta_file, 'fasta')}}
 
     return lengths
-
-
-def fasta_str_record(seqid, sequence):
-    """ Creates the string representation of a FASTA record.
-
-    Parameters
-    ----------
-    seqid : str
-        Sequence identifier to include in the header.
-    sequence : str
-        String representing a DNA or Protein sequence.
-
-    Returns
-    -------
-    record : str
-        String representation of the FASTA record.
-    """
-
-    record = '>{0}\n{1}'.format(seqid, sequence)
-
-    return record
 
 
 def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
@@ -560,10 +527,9 @@ def translate_fasta(input_fasta, output_directory, translation_table):
     """
 
     records = import_sequences(input_fasta)
-    translated_records = {seqid: str(sm.translate_dna(seq, translation_table, 0)[0][0])
-                          for seqid, seq in records.items()}
-    translated_lines = fasta_lines(list(translated_records.keys()),
-                                   translated_records)
+    translated_records = [[seqid, str(sm.translate_dna(seq, translation_table, 0)[0][0])]
+                          for seqid, seq in records.items()]
+    translated_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE, translated_records)
 
     basename = fo.file_basename(input_fasta, True).replace('.fasta', '_protein.fasta')
     protein_file = fo.join_paths(output_directory, [basename])

@@ -323,7 +323,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
             # create FASTA file with distinct protein sequences
             protein_file = fo.join_paths(gene_temp_dir,
                                          ['{0}_protein.fasta'.format(gene_id)])
-            protein_lines = fao.fasta_lines(ids_to_blast, prot_seqs)
+            protein_data = [[i, prot_seqs[i]] for i in ids_to_blast]
+            protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, protein_data)
             fo.write_list(protein_lines, protein_file)
 
             # create blastdb with all distinct proteins
@@ -340,7 +341,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                 # create FASTA file with representative sequences
                 rep_file = fo.join_paths(gene_temp_dir,
                                          ['{0}_rep_protein.fasta'.format(gene_id)])
-                rep_protein_lines = fao.fasta_lines(representatives, prot_seqs)
+                rep_protein_data = [[r, prot_seqs[r]] for r in representatives]
+                rep_protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, rep_protein_data)
                 fo.write_list(rep_protein_lines, rep_file)
 
                 # create file with seqids to BLAST against
@@ -422,7 +424,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
             final_representatives = list(prot_seqs.keys())
 
         # write schema file with all alleles
-        gene_lines = fao.fasta_lines(list(gene_seqs.keys()), gene_seqs)
+        gene_data = [[k, v] for k, v in gene_seqs.items()]
+        gene_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_data)
         fo.write_list(gene_lines, gene_file)
 
         # get total number of valid sequences
@@ -430,7 +433,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
         # write schema file with representatives
         final_representatives = [seqids_map[rep] for rep in final_representatives]
-        gene_rep_lines = fao.fasta_lines(final_representatives, gene_seqs)
+        gene_rep_data = [[r, gene_seqs[r]] for r in final_representatives]
+        gene_rep_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_rep_data)
         fo.write_list(gene_rep_lines, gene_short_file)
 
         # get number of representatives

@@ -198,7 +198,8 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     genome_info = extract_genome_cds(reading_frames, contigs, 1)
     # save coding sequences to file
     # create records and write them to file
-    cds_lines = fao.create_fasta_lines(genome_info[0], identifier)
+    cds_data = [[identifier, k, v] for k, v in genome_info[0].items()]
+    cds_lines = fao.fasta_lines(ct.FASTA_CDS_TEMPLATE, cds_data)
     fo.write_lines(cds_lines, cds_file, write_mode='a')
 
     write_protein_table(protein_table, identifier, genome_info[1], contigs_lengths)

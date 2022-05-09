@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions to perform requests to
-chewie-NS.
+Chewie-NS.
 
 Code documentation
 ------------------
@@ -29,30 +29,31 @@ def simple_get_request(url, headers, endpoint_list=None,
     """ Constructs an URI for an endpoint and requests
         data through a GET method sent to that endpoint.
 
-        Parameters
-        ----------
-        url : str
-            The base URL for a Chewie-NS instance.
-        headers : dict
-            HTTP headers for GET requests.
-        endpoint_list : list
-            List with elements that will be concatenated
-            to the base URI to create the URI for the API endpoint.
-        parameters : dict or list or bytes
-            Dictionary, list of tuples or bytes to send in the
-            query string for the Request.
-        verify : bool
-            If the SSL certificates should be verified in
-            HTTPS requests (False for no verification, True
-            otherwise).
-        timeout : int
-            Maximum time in seconds to wait for response.
+    Parameters
+    ----------
+    url : str
+        The base URL for a Chewie-NS instance.
+    headers : dict
+        HTTP headers for GET requests.
+    endpoint_list : list
+        List with elements that will be concatenated
+        to the base URI to create the URI for the API endpoint.
+    parameters : dict or list or bytes
+        Dictionary, list of tuples or bytes to send in the
+        query string for the Request.
+    verify : bool
+        If the SSL certificates should be verified in
+        HTTPS requests (False for no verification, True
+        otherwise).
+    timeout : int
+        Maximum time in seconds to wait for response.
 
-        Returns
-        -------
-        List that contains the complete URI for the API endpoint
-        and a requests.models.Response object that contains
-        the response from the GET method.
+    Returns
+    -------
+    url : str
+        Complete URI for the API endpoint.
+    res : requests.models.Response
+        The response returned through the GET method.
     """
 
     # unpack list of sequential endpoints and pass to create URI
@@ -70,32 +71,33 @@ def simple_post_request(url, headers, endpoint_list=None,
     """ Constructs an URI for an endpoint and sends
         data through a POST method.
 
-        Parameters
-        ----------
-        url : str
-            The base URL for a Chewie-NS instance.
-        headers : dict
-            HTTP headers for POST requests.
-        endpoint_list : list
-            List with elements that will be concatenated
-            to the base URI to create the URI for the API endpoint.
-        data
-            Data to send. Must be an object that can be JSON
-            serialized.
-        files : dict
-            Dictionary with file data to send
-            (see: https://requests.readthedocs.io/en/master/user
-            /quickstart/#post-a-multipart-encoded-file).
-        verify : bool
-            If the SSL certificates should be verified in
-            HTTPS requests (False for no verification, True
-            otherwise).
+    Parameters
+    ----------
+    url : str
+        The base URL for a Chewie-NS instance.
+    headers : dict
+        HTTP headers for POST requests.
+    endpoint_list : list
+        List with elements that will be concatenated
+        to the base URI to create the URI for the API endpoint.
+    data
+        Data to send. Must be an object that can be JSON
+        serialized.
+    files : dict
+        Dictionary with file data to send
+        (see: https://requests.readthedocs.io/en/master/user
+        /quickstart/#post-a-multipart-encoded-file).
+    verify : bool
+        If the SSL certificates should be verified in
+        HTTPS requests (False for no verification, True
+        otherwise).
 
-        Returns
-        -------
-        List that contains the complete URI for the API endpoint
-        and a requests.models.Response object that contains
-        the response from the POST method.
+    Returns
+    -------
+    url : str
+        Complete URI for the API endpoint.
+    res : requests.models.Response
+        The response returned through the POST method.
     """
 
     # unpack list of sequential endpoints and pass to create URI
@@ -112,20 +114,23 @@ def simple_post_request(url, headers, endpoint_list=None,
 
 
 def check_connection(url, headers=ct.HEADERS_GET_JSON):
-    """ Verifies connection to a chewie-NS instance.
+    """ Verifies if it is possible to establish a
+        connection to a Chewie-NS instance (performs
+        GET request to the stats/summary endpoint).
 
-        Parameters
-        ----------
-        url : str
-           The base URL for a Chewie-NS instance.
-        headers : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    url : str
+       The base URL for a Chewie-NS instance.
+    headers : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        conn : bool
-            True if it was possible to return data from the
-            server, False otherwise.
+    Returns
+    -------
+    conn : bool
+        True if it the GET request to the stats/summary
+        endpoint was successful (HTTP response status
+        code 200 or 201), False otherwise.
     """
 
     try:
@@ -143,26 +148,25 @@ def check_connection(url, headers=ct.HEADERS_GET_JSON):
 
 def user_info(base_url, headers_get):
     """ Get the identifier and role for a user registered
-        in a Chewie-NS instance and determine if user has
-        permissions based on role.
+        in a Chewie-NS instance and determine if the user
+        has permissions to upload data based on role.
 
-        Parameters
-        ----------
-        base_url : str
-            The base URL for a Chewie-NS instance.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    base_url : str
+        The base URL for a Chewie-NS instance.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        A list with the following elements:
-            user_id : str
-                User identifier in Chewie-NS.
-            user_role : str
-                User role in Chewie-NS.
-            permission : bool
-                True if the user is the Admin or a
-                Contributor, False otherwise.
+    Returns
+    -------
+    user_id : str
+        User identifier in Chewie-NS.
+    user_role : str
+        User role in Chewie-NS.
+    permission : bool
+        True if the user has Admin or Contributor
+        privileges, False otherwise.
     """
 
     # verify user role to check permission
@@ -181,24 +185,25 @@ def species_ids(species_id, base_url, headers_get):
     """ Gets species identifier or name in a Chewie-NS
         instance.
 
-        Parameters
-        ----------
-        species_id : str
-            The identifier of the species in Chewie-NS or
-            the name of the species.
-        base_url : str
-            The base URL for a Chewie-NS instance.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    species_id : str
+        The identifier of the species in Chewie-NS or
+        the name of the species.
+    base_url : str
+        The base URL for a Chewie-NS instance.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        A list with the species identifier and name if the
-        species exists in Chewie-NS or a 404 HTTP code if
-        the species was not found.
+    Returns
+    -------
+    A list with the species identifier and name if the
+    species exists in Chewie-NS or a 404 HTTP status code
+    if the species was not found.
     """
 
     try:
+        # check if species unique identifier was provided
         int(species_id)
         species_url, species_info = simple_get_request(base_url, headers_get,
                                                        ['species', species_id])
@@ -220,22 +225,22 @@ def species_ids(species_id, base_url, headers_get):
 def species_list(base_url, headers_get, endpoint_list):
     """ Gets the list of species in a Chewie-NS instance.
 
-        Parameters
-        ----------
-        base_url : str
-            The base URL for a Chewie Nomenclature Server
-            instance.
-        headers_get : dict
-            HTTP headers for GET requests.
-        endpoint_list : list
-            List with strings to add to the base_url to
-            create the URI for the endpoint.
+    Parameters
+    ----------
+    base_url : str
+        The base URL for a Chewie Nomenclature Server
+        instance.
+    headers_get : dict
+        HTTP headers for GET requests.
+    endpoint_list : list
+        List with elements that will be concatenated
+        to the base URI to create the URI for the API endpoint.
 
-        Returns
-        -------
-        species_lst : dict
-            Dictionary with species names as keys and
-            species identifiers as values.
+    Returns
+    -------
+    species_lst : dict
+        Dictionary with species names as keys and
+        species identifiers as values.
     """
 
     species_url, res = simple_get_request(base_url, headers_get, endpoint_list)
@@ -254,14 +259,14 @@ def species_list(base_url, headers_get, endpoint_list):
 def is_url(url):
     """ Checks if a URL is valid.
 
-        Parameters
-        ----------
-        url : str
-            The url to be checked.
+    Parameters
+    ----------
+    url : str
+        The URL to be validated.
 
-        Returns
-        -------
-        True if url is valid, False otherwise.
+    Returns
+    -------
+    True if the URL is valid, False otherwise.
     """
 
     try:
@@ -274,22 +279,23 @@ def is_url(url):
 def make_url(base_url, *res, **params):
     """ Creates a URL.
 
-        Parameters
-        ----------
-        base_url : str
-            The base URL.
-        res : str
-            Endpoint(s) to add to the base URL.
-        params : str
-            Addtional parameters (WIP).
+    Parameters
+    ----------
+    base_url : str
+        The base URL.
+    res : list
+        List with elements that will be concatenated
+        to the base URI to create the URI for the API endpoint.
+    params : str
+        Addtional parameters (WIP).
 
-        Returns
-        -------
-        url : str
-            URL constructed by adding endpoints and
-            additional parameters. If the provided
-            base URL is invalid returns 'An invalid
-            URL was provided.'
+    Returns
+    -------
+    url : str
+        URL constructed by adding endpoints and
+        additional parameters. If the provided
+        base URL is invalid returns 'An invalid
+        URL was provided.'
     """
 
     url = base_url
@@ -315,15 +321,15 @@ def make_url(base_url, *res, **params):
 def get_sequence_from_url(url):
     """ Extracts sequence from URL query component.
 
-        Parameters
-        ----------
-        url : str
-            URL that contains the sequence.
+    Parameters
+    ----------
+    url : str
+        URL that contains the sequence.
 
-        Returns
-        -------
-        seq : str
-            Sequence extracted from the URL.
+    Returns
+    -------
+    seq : str
+        Sequence extracted from the URL.
     """
 
     seq = parse_qs(urlsplit(url).query)['sequence'][0]
@@ -334,21 +340,21 @@ def get_sequence_from_url(url):
 def login_user_to_NS(server_url, email, password):
     """ Login user to a Chewie-NS instance.
 
-        Parameters
-        ----------
-        server_url : str
-            Base URL of a Chewie-NS instance.
-        email : str
-            Email linked to user's account in Chewie-NS.
-        password : str
-            Password for the user's account in Chewie-NS.
+    Parameters
+    ----------
+    server_url : str
+        The base URL for a Chewie-NS instance.
+    email : str
+        Email linked to user's account in Chewie-NS.
+    password : str
+        Password for the user's account in Chewie-NS.
 
-        Returns
-        -------
-        token : str
-            Authorization token to perform requests to
-            Chewie-NS instance if login is successful.
-            Otherwise, returns False.
+    Returns
+    -------
+    token : str
+        Authorization token to perform requests to
+        Chewie-NS instance if login is successful.
+        Otherwise, returns False.
     """
 
     auth_params = {}
@@ -373,16 +379,16 @@ def capture_login_credentials(base_url):
     """ Captures login credentials and logs user into
         Chewie-NS to get authorization token.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Chewie-NS instance.
+    Parameters
+    ----------
+    base_url : str
+        The base URL for a Chewie-NS instance.
 
-        Returns
-        -------
-        token : str
-            Authorization token to perform requests to
-            Chewie-NS.
+    Returns
+    -------
+    token : str
+        Authorization token to perform requests to
+        Chewie-NS.
     """
 
     print('\nPlease provide login credentials:')
@@ -400,33 +406,33 @@ def capture_login_credentials(base_url):
 
 def get_species_schemas(schema_id, species_id, base_url, headers_get):
     """ Determines if a species in Chewie-NS has a schema
-        with specified identifier.
+        with the specified identifier.
 
-        Parameters
-        ----------
-        schema_id : str
-            The identifier of the schema in Chewie-NS.
-        species_id : str
-            The identifier of the schema's species in
-            Chewie-NS.
-        base_url : str
-            Base URL of the Chewie-NS instance.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    schema_id : str
+        The identifier of the schema in Chewie-NS.
+    species_id : str
+        The identifier of the schema's species in
+        Chewie-NS.
+    base_url : str
+        The base URL for the Chewie-NS instance.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        A list with the schema identifier, the schema URI,
-        the schema name and a dictionary with all properties
-        for the schema in Chewie-NS.
+    Returns
+    -------
+    A list with the schema identifier, the schema URI,
+    the schema name and a dictionary with all properties
+    for the schema in Chewie-NS.
 
-        Raises
-        ------
-        SystemExit
-            - If the schema with the specified identifier does
-              not exist.
-            - If the process cannot retrieve the list of schemas
-              for the species.
+    Raises
+    ------
+    SystemExit
+        - If the schema with the specified identifier does
+          not exist.
+        - If the process cannot retrieve the list of schemas
+          for the species.
     """
 
     # get the list of schemas for the species
@@ -460,27 +466,27 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
 
 
 def upload_file(file, filename, url, headers, verify_ssl):
-    """ Uploads a file to chewie-NS.
+    """ Uploads a file to a Chewie-NS instance.
 
-        Parameters
-        ----------
-        file : str
-            Path to the file to upload.
-        filename : str
-            Name used to save the file in the NS.
-        url : str
-            Endpoint URL that receives the POST request.
-        headers : dict
-            HTTP POST request headers.
-        verify_sll : bool
-            If the SSL certificates should be verified in
-            HTTPS requests (False for no verification, True
-            otherwise).
+    Parameters
+    ----------
+    file : str
+        Path to the file to upload.
+    filename : str
+        Name used to save the file in Chewie-NS.
+    url : str
+        Endpoint URL that receives the POST request.
+    headers : dict
+        HTTP POST request headers.
+    verify_sll : bool
+        If the SSL certificates should be verified in
+        HTTPS requests (False for no verification, True
+        otherwise).
 
-        Returns
-        -------
-        response : requests.models.Response
-            Response object from the 'requests' module.
+    Returns
+    -------
+    response : requests.models.Response
+        Response object from the 'requests' module.
     """
 
     file_handle = open(file, 'rb')

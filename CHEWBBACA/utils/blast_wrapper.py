@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This module contains functions related to BLAST process
-execution.
+This module contains functions related with the execution
+of the BLAST software.
 
 Code documentation
 ------------------
@@ -24,30 +24,32 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
                   ignore=None):
     """ Creates a BLAST database.
 
-        Parameters
-        ----------
-        makeblastdb_path : str
-            Path to the 'maskeblastdb' executable.
-        input_fasta : str
-            Path to the FASTA file that contains the sequences
-            that should be added to the BLAST database.
-        output_path : str
-            Path to the directory where the database files
-            will be created. Database files will have names
-            with the path's basemane.
-        db_type : str
-            Type of the database, nucleotide (nuc) or
-            protein (prot).
-        ignore : list of None
-            List with BLAST warnings that should be ignored.
+    Parameters
+    ----------
+    makeblastdb_path : str
+        Path to the 'maskeblastdb' executable.
+    input_fasta : str
+        Path to the FASTA file that contains the sequences
+        that should be added to the BLAST database.
+    output_path : str
+        Path to the directory where the database files
+        will be created. Database files will have the same
+        basename as the `makeblastdb_path`.
+    db_type : str
+        Type of the database, nucleotide (nuc) or
+        protein (prot).
+    ignore : list or NoneType
+        List with BLAST warnings that should be ignored.
 
-        Returns
-        -------
-        Creates a BLAST database with the input sequences.
+    Returns
+    -------
+    stderr : list
+        A list with the warnings and errors raised by BLAST.
     """
 
-    blastdb_cmd = [makeblastdb_path, '-in', input_fasta, '-out', output_path,
-                   '-parse_seqids', '-dbtype', db_type]
+    blastdb_cmd = [makeblastdb_path, '-in', input_fasta,
+                   '-out', output_path, '-parse_seqids',
+                   '-dbtype', db_type]
 
     makedb_cmd = subprocess.Popen(blastdb_cmd,
                                   stdout=subprocess.PIPE,
@@ -65,24 +67,26 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
 
 def determine_blast_task(sequences):
     """ Determine the type of task that should be used to
-        run BLAST (alignments with short sequences require
+        run BLASTp (alignments with short sequences require
         definition of different task).
 
-        Parameters
-        ----------
-        sequences : str
-            Path to a file with sequences.
+    Parameters
+    ----------
+    sequences : list
+        List with protein sequences.
 
-        Returns
-        -------
-        blast_task : str
-            A string that indicates the type of BLAST
-            task to run.
+    Returns
+    -------
+    blast_task : str
+        A string that indicates the type of BLASTp
+        task to run ('blastp' if all sequences are
+        bigger than 30 amino acids, 'blastp-short'
+        otherwise).
     """
 
     blast_task = 'blastp'
-    sequences_lengths = [len(p) for p in sequences]
-    minimum_length = min(sequences_lengths)
+    sequence_lengths = [len(p) for p in sequences]
+    minimum_length = min(sequence_lengths)
     if minimum_length < 30:
         blast_task = 'blastp-short'
 
@@ -95,40 +99,40 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     """ Execute BLAST to align sequences in a FASTA file
         against a BLAST database.
 
-        Parameters
-        ----------
-        blast_path : str
-            Path to BLAST executables.
-        blast_db : str
-            Path to the BLAST database.
-        fasta_file : str
-            Path to the FASTA file with sequences to
-            align against the BLAST database.
-        blast_output : str
-            Path to the file that will be created to
-            store BLAST results.
-        max_hsps : int
-            Maximum number of High Scoring Pairs per
-            pair of aligned sequences.
-        threads : int
-            Number of threads/cores used to run BLAST.
-        ids_file : str
-            Path to a file with sequence identifiers,
-            one per line. Sequences will only be aligned
-            to the sequences in the BLAST database that
-            have any of the identifiers in this file.
-        blast_task : str
-            Type of BLAST task.
-        max_targets : int
-            Maximum number of target/subject sequences
-            to align against.
-        ignore : list or None
-            List with BLAST warnings that should be ignored.
+    Parameters
+    ----------
+    blast_path : str
+        Path to BLAST executables.
+    blast_db : str
+        Path to the BLAST database.
+    fasta_file : str
+        Path to the FASTA file with sequences to
+        align against the BLAST database.
+    blast_output : str
+        Path to the file that will be created to
+        store BLAST results.
+    max_hsps : int
+        Maximum number of High Scoring Pairs per
+        pair of aligned sequences.
+    threads : int
+        Number of threads/cores used to run BLAST.
+    ids_file : str
+        Path to a file with sequence identifiers,
+        one per line. Sequences will only be aligned
+        to the sequences in the BLAST database that
+        have any of the identifiers in this file.
+    blast_task : str
+        Type of BLAST task.
+    max_targets : int
+        Maximum number of target/subject sequences
+        to align against.
+    ignore : list or None
+        List with BLAST warnings that should be ignored.
 
-        Returns
-        -------
-        stderr : str
-            String with errors raised during BLAST execution.
+    Returns
+    -------
+    stderr : list
+        A list with the warnings and errors raised by BLAST.
     """
 
     blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,

@@ -190,8 +190,10 @@ def create_schema_structure(schema_seed_fasta, output_directory,
     fo.create_directory(schema_dir)
 
     # create directory and schema files
-    filenames = (record.id[:-2] for record in SeqIO.parse(final_records, 'fasta'))
-    schema_files = fao.split_fasta(final_records, schema_dir, 1, filenames)
+    filenames = [record.id[:-2] for record in SeqIO.parse(final_records, 'fasta')]
+    filenames = [im.replace_multiple_characters(f, ct.CHAR_REPLACEMENTS) for f in filenames]
+    file_paths = (fo.join_paths(schema_dir, ['{0}.fasta'.format(f)]) for f in filenames)
+    schema_files = fao.split_fasta(final_records, file_paths, 1)
     fo.create_short(schema_files, schema_dir)
 
     return schema_files
@@ -391,9 +393,9 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     # divide FASTA file into groups of 100 sequences to reduce
     # execution time for large sequence sets
     file_num = math.ceil(len(schema_seqids)/100)
-    filenames = ('split{0}'.format(i+1) for i in range(0, file_num))
-    splitted_fastas = fao.split_fasta(integer_seqids, final_blast_dir,
-                                      100, filenames)
+    filenames = ['split{0}'.format(i+1) for i in range(0, file_num)]
+    file_paths = (fo.join_paths(final_blast_dir, [f]) for f in filenames)
+    splitted_fastas = fao.split_fasta(integer_seqids, filenames, 100)
 
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blast_dir,
                                                     fo.file_basename(file, suffix=False))

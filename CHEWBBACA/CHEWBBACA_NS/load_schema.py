@@ -506,7 +506,7 @@ def create_lengths_files(loci_files, out_dir):
     length_files = []
     for file in loci_files:
         locus = os.path.basename(file).split('.fasta')[0]
-        locus_lengths = fao.sequences_lengths(file)
+        locus_lengths = fao.sequence_lengths(file)
         lengths_file = os.path.join(out_dir,
                                     '{0}_lengths'.format(locus))
 

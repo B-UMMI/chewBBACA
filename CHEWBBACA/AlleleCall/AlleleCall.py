@@ -1624,7 +1624,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         print('\nDetermining sequence length mode for all loci...', end='')
         loci_modes = {}
         for file in loci_files:
-            alleles_sizes = list(fao.sequences_lengths(file).values())
+            alleles_sizes = list(fao.sequence_lengths(file).values())
             # select first value in list if there are several values with same frequency
             loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
         fo.pickle_dumper(loci_modes, loci_modes_file)

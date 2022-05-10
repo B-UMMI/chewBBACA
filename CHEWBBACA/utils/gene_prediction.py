@@ -4,9 +4,9 @@
 Purpose
 -------
 
-This module contains functions related to gene prediction
-with Prodigal and extraction of coding sequences from
-FASTA records.
+This module contains functions related with gene prediction
+with Prodigal and extraction of predicted coding sequences
+from FASTA files.
 
 Code documentation
 ------------------
@@ -14,7 +14,6 @@ Code documentation
 
 
 import os
-import pickle
 import subprocess
 
 try:
@@ -43,7 +42,7 @@ def check_prodigal_results(prodigal_results, output_directory):
     -------
     A list with the following elements:
         failed : list
-            List with the stderr for the cases that Prodigal
+            List with the stderr for the inputs that Prodigal
             failed to predict genes for.
         failed_file : str
             Path to the file with information about the failed
@@ -66,30 +65,31 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
     """ Extracts CDSs from contigs based on the start
         and stop codon positions determined by Prodigal.
 
-        Parameters
-        ----------
-        reading_frames : str
-            Path to the ORF file created by Prodigal.
-        contigs : dict
-            Dictionary with contig ids as keys and contig
-            sequences as values.
-        starting_id : int
-            Integer identifier attributed to the first CDS
-            and that will be incremented to serve as identifier
-            for subsequent CDSs.
+    Parameters
+    ----------
+    reading_frames : str
+        Path to the pickled file with the coordinates to
+        extract the CDSs predicted by Prodigal.
+    contigs : dict
+        Dictionary with contig ids as keys and contig
+        sequences as values.
+    starting_id : int
+        Integer identifier attributed to the first CDS
+        and that will be incremented to serve as identifier
+        for subsequent CDSs.
 
-        Returns
-        -------
-        coding_sequences : dict
-            Dictionary with coding sequences ids as keys and
-            coding sequences as values.
-        coding_sequences_info : list
-            List with a sublist for each extracted CDS. Sublists
-            have information about the extracted CDS (identifier
-            of the contig the CDS was identified in, start position
-            in the contig, stop position in the contig, sequence
-            identifier attributed to that CDS and the strand that
-            coded for that CDS).
+    Returns
+    -------
+    coding_sequences : dict
+        Dictionary with coding sequences ids as keys and
+        coding sequences as values.
+    coding_sequences_info : list
+        List with a sublist for each extracted CDS. Sublists
+        have information about the extracted CDS (identifier
+        of the contig the CDS was identified in, start position
+        in the contig, stop position in the contig, sequence
+        identifier attributed to that CDS and the strand that
+        coded for that CDS).
     """
 
     seqid = starting_id
@@ -155,8 +155,7 @@ def write_protein_table(output_file, genome_id, cds_info, contigs_lengths):
         # make sure to store CDS duplicated in the genome
         pickle_data[0].setdefault(p[-1], []).append(p[:-1])
 
-    with open(pickle_out, 'wb') as outfile:
-        pickle.dump(pickle_data, outfile)
+    fo.pickle_dumper(pickle_data, pickle_out)
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
@@ -262,7 +261,7 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     Parameters
     ----------
     input_file : str
-        Path to input FASTA file.
+        Path to a FASTA file.
     translation_table : int
         Genetic code.
     mode : str
@@ -342,8 +341,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     if total_genome > 0:
         # save positions in file
         filepath = os.path.join(output_dir, genome_basename + '_ORF')
-        with open(filepath, 'wb') as f:
-            pickle.dump(contigs_pos, f)
+        fo.pickle_dumper(contigs_pos, filepath)
 
     status = [input_file, total_genome]
 

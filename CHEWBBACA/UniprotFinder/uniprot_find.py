@@ -136,7 +136,7 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
         if len(results) > 0:
             # compute BSR values
             for r in results:
-                r.append(float(r[2])/float(self_scores[r[0]]))
+                r.append(float(r[2])/float(self_scores[r[0]][1]))
             # sort based on BSR
             sorted_results = sorted(results, key=lambda x: x[-1])
             # get results equal or above BSR
@@ -253,8 +253,8 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         print('\nDetermining self-score of representatives...', end='')
         blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
         makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-        self_scores = fao.get_self_scores(reps_concat, temp_directory, cpu_cores,
-                                          blastp_path, makeblastdb_path)
+        self_scores = fao.determine_self_scores(temp_directory, reps_concat,
+            makeblastdb_path, blastp_path, 'prot', cpu_cores)
         print('done.')
 
         # create BLASTdb with proteome sequences

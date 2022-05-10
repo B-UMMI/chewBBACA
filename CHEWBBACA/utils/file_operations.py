@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions related to file operations,
+This module contains functions related with file operations,
 such as read and write files, create and delete files,
 manipulate file paths, compress files, verify file contents,
 etc.
@@ -15,7 +15,6 @@ Code documentation
 
 
 import os
-import re
 import sys
 import csv
 import math
@@ -23,7 +22,6 @@ import time
 import gzip
 import shutil
 import pickle
-import hashlib
 import zipfile
 import urllib.request
 from multiprocessing import TimeoutError
@@ -145,9 +143,9 @@ def filter_files(files, suffixes, reverse=False):
     suffixes : list
         List with suffixes.
     reverse : bool
-        True if files should be filtered out from
-        input list. False to filter out files without
-        any of the suffixes.
+        False to select files that contain any of the suffixes.
+        True to select files that do not contain any of the
+        suffixes.
 
     Returns
     -------
@@ -360,12 +358,12 @@ def download_file(file_url, outfile, max_tries=3):
     while downloaded is False and tries <= max_tries:
         try:
             res = urllib.request.urlretrieve(file_url, outfile)
+            if os.path.isfile(outfile) is True:
+                downloaded = True
         except Exception as e:
             print(e)
             time.sleep(1)
         tries += 1
-        if os.path.isfile(outfile) is True:
-            downloaded = True
 
     return downloaded
 
@@ -425,8 +423,8 @@ def write_to_file(text, output_file, write_mode, end_char):
 
 def write_lines(lines, output_file, joiner='\n', write_mode='w'):
     """ Writes a list of strings to a file. The strings
-        are joined with newlines before being written to
-        file.
+        are joined with specified character before being
+        written to file.
 
     Parameters
     ----------
@@ -441,7 +439,7 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
     	Specify write mode ('w' creates file if it
     	does not exist and truncates and over-writes
     	existing file, 'a' creates file if it does not
-    	exist and appends to the end of file if it exists.).
+    	exist and appends to the end of file if it exists).
     """
 
     joined_lines = im.join_list(lines, joiner)
@@ -450,7 +448,7 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
 
 
 def read_tabular(input_file, delimiter='\t'):
-    """ Read tabular file.
+    """ Read tabular (TSV) file.
 
     Parameters
     ----------
@@ -535,15 +533,15 @@ def is_file_empty_3(file_name):
 
 
 def create_short(schema_files, schema_dir):
-    """ Creates the 'short' directory for a schema.
-        Creates the directory and copies schema files
-        to the directory (should be used when the schema
-        only has 1 sequence per gene/locus).
+    """ Creates the 'short' directory and copies the FASTA
+        files that contain loci representative alleles into the
+        directory.
 
     Parameters
     ----------
     schema_files : list
-        List with paths to all FASTA files in the schema.
+        List with paths to FASTA files that contain the loci
+        representative alleles.
     schema_dir : str
         Path to the schema's directory.
 
@@ -564,7 +562,7 @@ def create_short(schema_files, schema_dir):
 
 
 def move_file(source, destination):
-    """ Moves a file to a destination. """
+    """ Moves a file to specified destination. """
 
     shutil.move(source, destination)
 
@@ -607,7 +605,7 @@ def transpose_matrix(input_file, output_directory):
     transposed_file : str
         Path to the file with the transposed matrix.
         This file is created by concatenating all
-        files saved into the `output_directory`.
+        intermediate files.
     """
 
     intermediate_files = []

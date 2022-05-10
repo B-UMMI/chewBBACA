@@ -489,7 +489,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     # count number of sequences and mean length per gene
     genes_info = []
     genes_pools = multiprocessing.Pool(processes=cpu_cores)
-    gp = genes_pools.map_async(fao.gene_seqs_info, genes_list,
+    gp = genes_pools.map_async(fao.fasta_stats, genes_list,
                                callback=genes_info.extend)
     gp.wait()
 

@@ -179,3 +179,5 @@ LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
 # string template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
 FASTA_CDS_TEMPLATE = '>{0}-protein{1}\n{2}'
+
+DNA_BASES = 'AGCT'

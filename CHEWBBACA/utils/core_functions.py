@@ -485,9 +485,9 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
     # merge clusters
     clusters = [d[0] for d in clustering_results]
-    clusters = im.merge_dictionaries(clusters[0], clusters[1:])
+    clusters = im.merge_dictionaries(clusters)
     rep_sequences = [d[1] for d in clustering_results]
-    rep_sequences = im.merge_dictionaries(rep_sequences[0], rep_sequences[1:])
+    rep_sequences = im.merge_dictionaries(rep_sequences)
 
     # perform clustering with representatives
     # this step does not run for AlleleCall!
@@ -589,7 +589,7 @@ def cluster_representative_filter(clusters, representative_filter,
     sc.write_clusters(pruned_clusters, pruned_out)
 
     # identify singletons and exclude those clusters
-    singletons = im.select_clusters(pruned_clusters, 0)
+    singletons = im.select_keys(pruned_clusters, 0)
     print('Identified and removed {0} singletons.'.format(len(singletons)))
 
     pruned_clusters = im.remove_entries(pruned_clusters, singletons)

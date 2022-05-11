@@ -63,7 +63,7 @@ def check_prodigal_results(prodigal_results, output_directory):
 
 def extract_genome_cds(reading_frames, contigs, starting_id):
     """ Extracts CDSs from contigs based on the start
-        and stop codon positions determined by Prodigal.
+        and stop coordinates determined by Prodigal.
 
     Parameters
     ----------
@@ -71,8 +71,8 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
         Path to the pickled file with the coordinates to
         extract the CDSs predicted by Prodigal.
     contigs : dict
-        Dictionary with contig ids as keys and contig
-        sequences as values.
+        Dictionary with contig identifiers as keys and
+        contig sequences as values.
     starting_id : int
         Integer identifier attributed to the first CDS
         and that will be incremented to serve as identifier
@@ -121,23 +121,23 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
     return [coding_sequences, coding_sequences_info]
 
 
-def write_protein_table(output_file, genome_id, cds_info, contigs_lengths):
-    """ Writes information about coding sequences in a
-        genome to a file.
+def write_coordinates_tsv(cds_info, genome_id, output_file):
+    """ Writes a TSV file with the coordiantes for
+        the coding sequences predicted by Prodigal.
 
     Parameters
     ----------
-    output_file : str
-        Path to the output file to which info will
-        be saved.
-    genome_id : str
-        Identifier of the genome to add to first field
-        of every new line.
     cds_info : list
         List with information about each coding sequence
         identified in the genome (contig identifier,
         CDS start position, CDS stop position, CDS
         identifier and CDS coding strand).
+    genome_id : str
+        Identifier of the genome to add to first field
+        of every new line.
+    output_file : str
+        Path to the output file to which info will
+        be saved.
     """
 
     # write TSV file
@@ -147,15 +147,34 @@ def write_protein_table(output_file, genome_id, cds_info, contigs_lengths):
     table_text = im.join_list(table_lines, '\n')
     fo.write_to_file(table_text, output_file, 'a', '\n')
 
+
+def write_coordinates_pickle(cds_info, contig_lengths, output_file):
+    """ Saves coordiantes for the coding sequences
+        predicted by Prodigal to a pickled file.
+
+    Parameters
+    ----------
+    cds_info : list
+        List with information about each coding sequence
+        identified in the genome (contig identifier,
+        CDS start position, CDS stop position, CDS
+        identifier and CDS coding strand).
+    contig_lengths : dict
+        Dictionary with contig identifiers as keys and
+        contig lengths as values.
+    output_file : str
+        Path to the output file to which info will
+        be saved.
+    """
+    
     # write pickle with CDS hash to CDS info dictionary
-    pickle_out = os.path.join(os.path.dirname(output_file), genome_id+'_cds_hash')
-    pickle_data = [{}, contigs_lengths]
+    pickle_data = [{}, contig_lengths]
     # create dictionary to map CDS hash to CDS location
     for p in cds_info:
         # make sure to store CDS duplicated in the genome
         pickle_data[0].setdefault(p[-1], []).append(p[:-1])
 
-    fo.pickle_dumper(pickle_data, pickle_out)
+    fo.pickle_dumper(pickle_data, output_file)
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
@@ -191,7 +210,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     # import contigs for current genome/assembly
     contigs = fao.import_sequences(genome)
     # determine contig lengths
-    contigs_lengths = {k: len(v) for k, v in contigs.items()}
+    contig_lengths = {k: len(v) for k, v in contigs.items()}
     # extract coding sequences from contigs
     reading_frames = fo.pickle_loader(orf_file)
     genome_info = extract_genome_cds(reading_frames, contigs, 1)
@@ -201,7 +220,9 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     cds_lines = fao.fasta_lines(ct.FASTA_CDS_TEMPLATE, cds_data)
     fo.write_lines(cds_lines, cds_file, write_mode='a')
 
-    write_protein_table(protein_table, identifier, genome_info[1], contigs_lengths)
+    write_coordinates_tsv(genome_info[1], identifier, protein_table)
+    pickle_out = os.path.join(os.path.dirname(protein_table), identifier+'_cds_hash')
+    write_coordinates_pickle(genome_info[1], contig_lengths, pickle_out)
 
     total_cds = len(genome_info[0])
 
@@ -226,8 +247,8 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
     -------
     A list with the following elements:
         protein_table : str
-            Path to the TSV file to which coding sequences
-            info was written.
+            Path to the TSV file to which coding sequence
+            coordinates was written.
         cds_file : str
             Path to the FASTA file to which coding sequences
             were written.
@@ -327,6 +348,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     # exclude contigs without coding sequences
     contigs_pos = {k: v[1:] for k, v in contigs_pos.items() if len(v) > 1}
 
+    # +/1 for sense, -/0 for antisense
     strand_trans = {'+': 1, '-': 0}
 
     # split and convert list elements

@@ -21,11 +21,13 @@ from Bio.Seq import Seq
 from collections import Counter
 
 try:
-    from utils import (file_operations as fo,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        iterables_manipulation as im,
                        fasta_operations as fao)
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  iterables_manipulation as im,
                                  fasta_operations as fao)
 
@@ -89,7 +91,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
     # try to translate the reverse complement
     elif method == 'revcomp':
         try:
-            myseq = im.reverse_complement(myseq)
+            myseq = im.reverse_complement(myseq, ct.DNA_BASES)
             protseq = translate_sequence(myseq, table_id)
         except Exception as argh:
             return argh
@@ -104,7 +106,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
     elif method == 'revrevcomp':
         try:
             myseq = im.reverse_str(myseq)
-            myseq = im.reverse_complement(myseq)
+            myseq = im.reverse_complement(myseq, ct.DNA_BASES)
             protseq = translate_sequence(myseq, table_id)
         except Exception as argh:
             return argh
@@ -151,12 +153,12 @@ def translate_dna(dna_sequence, table_id, min_len):
     strands = ['sense', 'antisense', 'revsense', 'revantisense']
     translating_methods = ['original', 'revcomp', 'rev', 'revrevcomp']
 
-    # check if the string is DNA, without ambiguous bases
-    valid_dna = im.check_str_alphabet(original_seq, 'ACTG')
+    # check if the sequence has ambiguous bases
+    valid_dna = im.check_str_alphabet(original_seq, ct.DNA_BASES)
     if valid_dna is not True:
         return valid_dna
 
-    # check if sequence is multiple of three
+    # check if sequence size is multiple of three
     valid_length = im.check_str_multiple(original_seq, 3)
     if valid_length is not True:
         return valid_length

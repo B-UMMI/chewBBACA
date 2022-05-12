@@ -17,11 +17,13 @@ import os
 import subprocess
 
 try:
-    from utils import (file_operations as fo,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        fasta_operations as fao,
                        iterables_manipulation as im)
 except:
-    from CHEWBBACA.utils import (file_operations as fo,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  fasta_operations as fao,
                                  iterables_manipulation as im)
 

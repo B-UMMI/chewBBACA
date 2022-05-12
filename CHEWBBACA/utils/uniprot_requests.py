@@ -34,21 +34,21 @@ def select_name(result):
     """ Extracts the annotation description from the result
         of a query to UniProt's SPARQL endpoint.
 
-        Parameters
-        ----------
-        result : dict
-            A dictionary with the results from querying
-            the UniProt SPARQL endpoint.
+    Parameters
+    ----------
+    result : dict
+        A dictionary with the results from querying
+        the UniProt SPARQL endpoint.
 
-        Returns
-        -------
-        A list with the following elements:
-            name : str
-                The annotation descrition.
-            url : str
-                The URL to the UniProt page about the protein record.
-            label : str
-                A label that has descriptive value.
+    Returns
+    -------
+    A list with the following elements:
+        selected_name : str
+            The annotation description.
+        selected_url : str
+            The URL to the UniProt page about the protein record.
+        selected_label : str
+            A label that has descriptive value.
     """
 
     url = ''
@@ -112,17 +112,17 @@ def uniprot_query(sequence):
     """ Constructs a SPARQL query to search for exact matches in
         UniProt's SPARQL endpoint.
 
-        Parameters
-        ----------
-        sequence : str
-            The Protein sequence that will be added to
-            the query/searched for.
+    Parameters
+    ----------
+    sequence : str
+        The Protein sequence that will be added to
+        the query/searched for.
 
-        Returns
-        -------
-        query : str
-            The SPARQL query that will allow to search for
-            exact matches in the UniProt database.
+    Returns
+    -------
+    query : str
+        The SPARQL query that will allow to search for
+        exact matches in the UniProt database.
     """
 
     query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
@@ -141,15 +141,15 @@ def uniprot_query(sequence):
 def get_data(sparql_query):
     """ Sends requests to query UniProts's SPARQL endpoint.
 
-        Parameters
-        ----------
-        sparql_query : str
-            SPARQL query.
+    Parameters
+    ----------
+    sparql_query : str
+        SPARQL query.
 
-        Returns
-        -------
-        result : dict
-            Dictionary with data retrieved from UniProt.
+    Returns
+    -------
+    result : dict
+        Dictionary with data retrieved from UniProt.
     """
 
     tries = 0
@@ -173,19 +173,20 @@ def get_data(sparql_query):
 def get_proteomes(proteome_ids, output_dir):
     """ Downloads reference proteomes from UniProt's FTP.
     
-        Parameters
-        ----------
-        proteomes : list
-            List with a sublist per proteome to download.
-            Each sublist has the information about a proteome
-            that was contained in the README file with the list
-            of UniProt's reference proteomes.
-        output_dir : str
-            Path to the output directory where downloaded
-            proteomes will be saved to.
+    Parameters
+    ----------
+    proteomes : list
+        List with a sublist per proteome to download.
+        Each sublist has the information about a proteome
+        that was contained in the README file with the list
+        of UniProt's reference proteomes.
+    output_dir : str
+        Path to the output directory where downloaded
+        proteomes will be saved to.
 
-        Returns
-        -------
+    Returns
+    -------
+    proteomes_files : list
         Local paths to the downloaded proteomes.
     """
 
@@ -212,23 +213,23 @@ def get_annotation(gene, translation_table):
     """ Retrieves and selects annotation terms for a set of
         alleles from the same locus.
 
-        Parameters
-        ----------
-        gene : str
-            Path to a FASTA file with the DNA sequences for
-            the alleles of the locus.
-        translation_table : int
-            Translation table used to translate DNA sequences.
+    Parameters
+    ----------
+    gene : str
+        Path to a FASTA file with the DNA sequences for
+        the alleles of the locus.
+    translation_table : int
+        Translation table used to translate DNA sequences.
 
-        Returns
-        -------
-        gene : str
-            Path to a FASTA file with the DNA sequences for
-            the alleles of the locus.
-        selected_name : str
-            Product name selected from the terms retrieved from UniProt.
-        selected_url : str
-            URL for the page with information about the selected terms.
+    Returns
+    -------
+    gene : str
+        Path to a FASTA file with the DNA sequences for
+        the alleles of the locus.
+    selected_name : str
+        Product name selected from the terms retrieved from UniProt.
+    selected_url : str
+        URL for the page with information about the selected terms.
     """
 
     selected_name = ''
@@ -266,25 +267,25 @@ def extract_proteome_terms(header_items):
         gene name and species name fields from the sequence
         header of a reference proteome from Uniprot.
 
-        Parameters
-        ----------
-        header_items : dict
-            Dictionary with the keys and values from a Biopython
-            Bio.SeqRecord.SeqRecord object. Created by passing the
-            Biopython Bio.SeqRecord.SeqRecord object to the vars
-            function.
+    Parameters
+    ----------
+    header_items : dict
+        Dictionary with the keys and values from a Biopython
+        Bio.SeqRecord.SeqRecord object. Created by passing the
+        Biopython Bio.SeqRecord.SeqRecord object to the vars
+        function.
 
-        Returns
-        -------
-        seqid : str
-            Sequence identifier of the record. Composed
-            of the db, UniqueIdentifier and EntryName fields.
-        record_product : str
-            ProteinName field value in the sequence header.
-        record_gene_name : str
-            GeneName field (GN) in the sequence header.
-        record_species : str
-            OrganismName field (OS) in the sequence header.
+    Returns
+    -------
+    seqid : str
+        Sequence identifier of the record. Composed
+        of the db, UniqueIdentifier and EntryName fields.
+    record_product : str
+        ProteinName field value in the sequence header.
+    record_gene_name : str
+        GeneName field (GN) in the sequence header.
+    record_species : str
+        OrganismName field (OS) in the sequence header.
     """
 
     # some tags might be missing

@@ -761,7 +761,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
-    splitted_seqids = mo.split_genes_by_core(seqids_to_blast,
+    splitted_seqids = mo.distribute_loci(seqids_to_blast,
                                              process_num,
                                              'seqcount')
     

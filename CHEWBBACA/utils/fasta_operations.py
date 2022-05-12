@@ -208,7 +208,7 @@ def fasta_lines(template, records_data):
         A list with strings representing FASTA records.
     """
 
-    seqs_lines = [fasta_str_record(template, *arg) for arg in records_data]
+    seqs_lines = [fasta_str_record(template, arg) for arg in records_data]
 
     return seqs_lines
 

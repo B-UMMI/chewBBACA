@@ -64,6 +64,9 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     current_rows = pd.read_csv(profiles_table, delimiter='\t', dtype=str,
                                skiprows=skiprows, nrows=nrows)
 
+    # remove all 'INF-' prefixes
+    current_rows = current_rows.apply(lambda s: s.str.replace('INF-', ''))
+
     current_samples = current_rows['FILE']
     hashed_profiles = [current_samples]
     for locus in loci_ids:
@@ -123,7 +126,8 @@ def main(profiles_table, schema_directory, output_directory, hash_type, threads,
     output_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, threads)
 
     # concatenate all files
-    output_file = fo.join_paths(output_directory, ['final_df.tsv'])
+    output_basename = fo.file_basename(profiles_table).replace('.tsv', '_hashed.tsv')
+    output_file = fo.join_paths(output_directory, [output_basename])
     fo.concatenate_files(output_files, output_file)
 
     # delete intermediate dataframes

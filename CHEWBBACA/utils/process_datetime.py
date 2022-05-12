@@ -16,11 +16,6 @@ import sys
 import functools
 import datetime as dt
 
-try:
-    from utils import parameters_validation as pv
-except:
-    from CHEWBBACA.utils import parameters_validation as pv
-
 
 def get_datetime():
     """ Returns datetime module object with
@@ -134,13 +129,22 @@ def validate_date(date, date_format='%Y-%m-%dT%H:%M:%S.%f'):
     return valid
 
 
+def process_header(process):
+    """ Print a header with the name of the process.
+    """
+
+    header = 'chewBBACA - {0}'.format(process)
+    hf = '='*(len(header)+4)
+    print('{0}\n  {1}\n{0}'.format(hf, header, hf))
+
+
 # decorator to time main processes
 def process_timer(func):
     # use functools to preserve info about wrapped function
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # get process name and print header
-        pv.process_header(sys.argv[1])
+        process_header(sys.argv[1])
 
         start = get_datetime()
         start_str = datetime_str(start)

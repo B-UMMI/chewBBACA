@@ -495,7 +495,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
-    even_genes_groups = mo.split_genes_by_core(genes_info, cpu_cores*4,
+    even_genes_groups = mo.distribute_loci(genes_info, cpu_cores*4,
                                                'seqcount')
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]

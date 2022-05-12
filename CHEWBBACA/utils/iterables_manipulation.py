@@ -14,7 +14,6 @@ Code documentation
 import re
 import hashlib
 import itertools
-from copy import deepcopy
 
 try:
     from utils import (constants as ct,
@@ -376,12 +375,12 @@ def reverse_complement(input_string, alphabet):
     return reverse_complement_string
 
 
-def reverse_str(string):
+def reverse_str(input_string):
     """ Reverse character order in input string.
 
     Parameters
     ----------
-    string : str
+    input_string : str
      String to be reversed.
 
     Returns
@@ -390,21 +389,21 @@ def reverse_str(string):
         Reverse of input string.
     """
 
-    revstr = string[::-1]
+    revstr = input_string[::-1]
 
     return revstr
 
 
-def check_str_alphabet(string, alphabet):
+def check_str_alphabet(input_string, alphabet):
     """ Determine if a string only contains characters from
         specified alphabet.
 
     Parameters
     ----------
-    string : str
+    input_string : str
         Input string.
     alphabet : str
-        String that has all characters in the
+        String that includes all characters in the
         alphabet.
 
     Returns
@@ -413,127 +412,127 @@ def check_str_alphabet(string, alphabet):
     alphabet, False otherwise.
     """
 
-    return all(n in alphabet for n in string)
+    alphabet_chars = set(alphabet)
+    string_chars = set(input_string)
 
-#### test this and change functions that use check_str_alphabet!
-def check2(string, alphabet):
-
-    a = set(alphabet)
-    b = set(string)
+    diff = string_chars - alphabet_chars
     
-    
+    return len(diff) == 0
 
 
-def check_str_multiple(string, number):
-    """ Determine if length of input string is multiple of
+def check_str_multiple(input_string, number):
+    """ Determine if length of input string is a multiple of
         a specified number.
 
-        Parameters
-        ----------
-        string : str
-            Input string.
-        number : int
-            Length value should be a multiple of this number.
+    Parameters
+    ----------
+    input_string : str
+        Input string.
+    number : int
+        Length value should be a multiple of this number.
 
-        Returns
-        -------
-        "True" if the length of the sequence is a multiple of the
-        specified number and "sequence length is not a multiple of number"
-        if condition is not satisfied.
+    Returns
+    -------
+    True if the length of the sequence is a multiple of the
+    specified number, False otherwise.
     """
 
-    if len(string) % number == 0:
-        return True
-    else:
-        return 'sequence length is not a multiple of {0}'.format(number)
+    return (len(input_string) % number) == 0
 
 
-def hash_sequence(string):
-    """ Compute SHA256 for an input string.
+def hash_sequence(input_string, hash_type='sha256'):
+    """ Compute hash for an input string.
 
-        Parameters
-        ----------
-        string : str
-            Input string to hash.
+    Parameters
+    ----------
+    input_string : str
+        Input string to hash.
+    hash_type : str
+        Hash type/function that will be used to compute the
+        hash (any of the hash functions available in the
+        hashlib module).
 
-        Returns
-        -------
-        sha256 : str
-            String representation of the SHA256 HASH object
-            in hexadecimal digits.
+    Returns
+    -------
+    hashed_string : str
+        String representation of the HASH object
+        in hexadecimal digits.
     """
 
-    sha256 = hashlib.sha256(string.encode('utf-8')).hexdigest()
+    # get hash function object from hashlib
+    hashing_function = getattr(hashlib, hash_type)
 
-    return sha256
+    # default encoding is UTF-8
+    hashed_string = hashing_function(input_string.encode()).hexdigest()
+
+    return hashed_string
 
 
-def sequence_kmerizer(sequence, k_value, offset=1, position=False):
-    """ Decomposes a sequence into kmers.
+def string_kmerizer(input_string, k_value, offset=1, position=False):
+    """ Decomposes a string into k-mers.
 
-        Parameters
-        ----------
-        sequence : str
-            Sequence to divide into kmers.
-        k_value : int
-            Value for the size of kmers.
-        offset : int
-            Value to indicate offset of consecutive kmers.
-        position : bool
-            If the start position of the kmers in the sequence
-            should be stored.
+    Parameters
+    ----------
+    input_string : str
+        String to divide into k-mers.
+    k_value : int
+        Value for the size of k-mers.
+    offset : int
+        Value to indicate offset of consecutive k-mers.
+    position : bool
+        If the start position of the k-mers in the string
+        should be stored.
 
-        Returns
-        -------
-        kmers : list
-            List with the kmers determined for the input
-            sequence. The list will contain strings if
-            it is not specified that positions should be
-            stored and tuples of kmer and start position
-            if the position is stored.
+    Returns
+    -------
+    kmers : list
+        List that contains the k-mers determined for the
+        input string. The list will contain strings if
+        it is not specified that positions should be
+        stored and tuples of k-mer and start position
+        if the position is stored.
     """
 
     if position is False:
-        kmers = [sequence[i:i+k_value]
-                 for i in range(0, len(sequence)-k_value+1, offset)]
+        kmers = [input_string[i:i+k_value]
+                 for i in range(0, len(input_string)-k_value+1, offset)]
     elif position is True:
-        kmers = [(sequence[i:i+k_value], i)
-                 for i in range(0, len(sequence)-k_value+1, offset)]
+        kmers = [(input_string[i:i+k_value], i)
+                 for i in range(0, len(input_string)-k_value+1, offset)]
 
     return kmers
 
 
-def determine_minimizers(sequence, adjacent_kmers, k_value, offset=1,
+def determine_minimizers(input_string, adjacent_kmers, k_value, offset=1,
                          position=False):
     """ Determines minimizers for a sequence based on
         lexicographical order. Skips windows that
         cannot have a minimizer based on the minimizer
         computed in the previous iteration.
 
-        Parameters
-        ----------
-        sequence : str
-            String representing the sequence.
-        adjacent_kmers : int
-            Window size value. Number of adjacent kmers per group.
-        k_value : int
-            Value of k for the kmer size.
-        offset : int
-            Value to indicate offset of consecutive kmers.
-        position : bool
-            If the start position of the kmers in the sequence
-            should be stored.
+    Parameters
+    ----------
+    input_string : str
+        String representing the sequence.
+    adjacent_kmers : int
+        Window size value. Number of adjacent k-mers per group.
+    k_value : int
+        Value of k for the k-mer size.
+    offset : int
+        Value to indicate offset of consecutive k-mers.
+    position : bool
+        If the start position of the k-mers in the sequence
+        should be stored.
 
-        Returns
-        -------
-        minimizers : list
-            A list with the set of minimizers determined
-            for the input sequence.
+    Returns
+    -------
+    minimizers : list
+        A list with the set of minimizers determined
+        for the input string.
     """
 
-    # break sequence into kmers
-    kmers = sequence_kmerizer(sequence, k_value,
-                              offset=offset, position=position)
+    # break string into k-mers
+    kmers = string_kmerizer(input_string, k_value, offset, position)
 
     i = 0
     previous = None
@@ -593,19 +592,19 @@ def decode_str(str_list, encoding):
         strips decoded strings from whitespaces and
         newlines.
 
-        Parameters
-        ----------
-        str_list
-            List with string or bytes objects to decode
-            and strip of whitespaces and newlines.
-        encoding : str
-            Encoding codec to use.
+    Parameters
+    ----------
+    str_list
+        List with string or bytes objects to decode
+        and strip of whitespaces and newlines.
+    encoding : str
+        Encoding codec to use.
 
-        Returns
-        -------
-        decoded : list
-            List with strings without whitespaces or
-            newlines.
+    Returns
+    -------
+    decoded : list
+        List with strings without whitespaces or
+        newlines.
     """
 
     decoded = [m.decode(encoding).strip()
@@ -642,34 +641,6 @@ def sort_iterable(data, sort_key=None, reverse=False):
     return sorted_data
 
 
-def add_prefix(ids, prefix):
-    """ Adds a prefix to a set of identifiers.
-        Identifiers are split by underscore and
-        prefix is added to last element.
-
-        Parameters
-        ----------
-        ids : iter
-            Iterable with identifiers
-            (e.g.: list, set, dictionary keys).
-        prefix : str
-            Prefix to add to all identifiers.
-
-        Returns
-        -------
-        ids_map : dict
-            Dictionary with input identifiers as
-            keys and prefixed identifiers as values.
-    """
-
-    ids_map = {}
-    for i in ids:
-        new_id = '{0}_{1}'.format(prefix, i.split('_')[-1])
-        ids_map[i] = new_id
-
-    return ids_map
-
-
 def filter_list(lst, remove):
     """ Removes elements from a list.
 
@@ -691,29 +662,30 @@ def filter_list(lst, remove):
     return filtered_list
 
 
-def find_missing(lst):
+def find_missing(integer_list):
     """ Finds missing integers in list
         of consecutive integers.
 
-        Parameters
-        ----------
-        lst : list
-            List containing consecutive integers.
+    Parameters
+    ----------
+    integer_list : list
+        List containing consecutive integers.
 
-        Returns
-        -------
-        list
-            Sorted list of missing integers.
+    Returns
+    -------
+    missing_integers : list
+        Sorted list of missing integers.
     """
 
-    start = lst[0]
-    end = lst[-1]
+    first = integer_list[0]
+    last = integer_list[-1]
+    missing_integers = sorted(set(range(first, last + 1)).difference(integer_list))
 
-    return sorted(set(range(start, end + 1)).difference(lst))
+    return missing_integers
 
 
 def kmer_index(fasta_file, word_size):
-    """ Creates a kmer index based on a set
+    """ Creates a k-mer index based on a set
         of sequences in a Fasta file.
 
     Parameters
@@ -721,7 +693,7 @@ def kmer_index(fasta_file, word_size):
     fasta_file : str
         Path to a Fasta file.
     word_size : int
-        Value k for the kmer size.
+        Value k for the k-mer size.
 
     Returns
     -------
@@ -800,8 +772,7 @@ def integer_mapping(values, inverse=False):
     mapping : dict
         Dictionary with the mapping between the
         elements in the input iterable and the
-        result of applying the function to each
-        value.
+        sequential integers.
     """
 
     mapping = {v: i+1 for i, v in enumerate(values)}
@@ -833,13 +804,11 @@ def multiprocessing_inputs(inputs, common_args, function):
         the function that will receive the arguments.
     """
 
-    input_groups = deepcopy(inputs)
+    input_groups = []
     # create a list for each distinct input
-    for g in input_groups:
-        # add the common arguments that will be used in each function call
-        g.extend(common_args)
-        # add the function that will be parallelized
-        g.append(function)
+    for g in inputs:
+        new_input = g + common_args + [function]
+        input_groups.append(new_input)
 
     return input_groups
 

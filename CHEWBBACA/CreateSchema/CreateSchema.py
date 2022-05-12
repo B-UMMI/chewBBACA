@@ -216,7 +216,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     fasta_files = fo.read_lines(input_files, strip=True)
 
     # sort paths to FASTA files
-    fasta_files = im.sort_data(fasta_files, sort_key=lambda x: x.lower())
+    fasta_files = im.sort_iterable(fasta_files, sort_key=lambda x: x.lower())
 
     if cds_input is False:
 
@@ -256,7 +256,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
 
     # exclude seqids of small sequences
     schema_seqids = list(set(schema_seqids) - set(small_seqids))
-    schema_seqids = im.sort_data(schema_seqids, sort_key=lambda x: x.lower())
+    schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
     # sequence translation step
     ts_results = cf.translate_sequences(schema_seqids, distinct_seqs_file,
@@ -368,7 +368,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
 
     # sort seqids before final BLASTp to ensure consistent results
-    schema_seqids = im.sort_data(schema_seqids, sort_key=lambda x: x.lower())
+    schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
     # create directory for final BLASTp
     final_blast_dir = fo.join_paths(temp_directory, ['5_final_blast'])

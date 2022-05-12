@@ -12,7 +12,7 @@ Code documentation
 """
 
 
-import time
+#import time
 import traceback
 from multiprocessing import Pool
 
@@ -147,12 +147,12 @@ def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
                                               progress)
 
     print('\r', progress_bar, end='')
-    time.sleep(0.5)
+    #time.sleep(0.5)
 
     return completed
 
 
-def split_genes_by_core(inputs, cores, method):
+def distribute_loci(inputs, cores, method):
     """ Creates balanced lists of loci to distribute per number
         of available cores. Loci lists can be created based
         on the number of sequence per locus (seqcount), the mean

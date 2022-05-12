@@ -66,10 +66,7 @@ Code documentation
 
 
 import os
-import shutil
 import argparse
-
-from Bio import SeqIO
 
 try:
     from utils import (
@@ -101,31 +98,31 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
         from the results of aligning schema representatives against
         UniProt's reference proteomes.
 
-        Parameters
-        ----------
-        blastout_files : list
-            List with the paths to the TSV files withBLASTp results
-            in tabular format. One per locus.
-        indexed_proteome : Bio.File._IndexedSeqFileDict
-            Fasta file index created with BioPython.
-        self_scores : dict
-            Dictionary with the identifiers of schema representatives
-            as keys and the self-alignment raw socre as value.
-        blast_score_ratio : float
-            BLAST Score Ratio value. Hits with a BSR value
-            >= than this value will be considered as high
-            scoring hits that can be included in the final
-            table according to the maximum number of matches
-            to report.
-        proteome_matches : int
-            Maximum number of proteome matches to report.
+    Parameters
+    ----------
+    blastout_files : list
+        List with the paths to the TSV files withBLASTp results
+        in tabular format. One per locus.
+    indexed_proteome : Bio.File._IndexedSeqFileDict
+        Fasta file index created with BioPython.
+    self_scores : dict
+        Dictionary with the identifiers of schema representatives
+        as keys and the self-alignment raw socre as value.
+    blast_score_ratio : float
+        BLAST Score Ratio value. Hits with a BSR value
+        >= than this value will be considered as high
+        scoring hits that can be included in the final
+        table according to the maximum number of matches
+        to report.
+    proteome_matches : int
+        Maximum number of proteome matches to report.
 
-        Returns
-        -------
-        proteome_results : dict
-            Dictionary with loci identifiers as keys and a list
-            with information about loci retrieved from the most
-            similar records in UniProt's reference proteomes.
+    Returns
+    -------
+    proteome_results : dict
+        Dictionary with loci identifiers as keys and a list
+        with information about loci retrieved from the most
+        similar records in UniProt's reference proteomes.
     """
 
     proteome_results = {}
@@ -165,36 +162,36 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     """ Determines loci annotations based on alignment against
         UniProt's reference proteomes.
 
-        Parameters
-        ----------
-        schema_directory : str
-            Path to the schema's directory.
-        temp_directory : str
-            Path to the temporary directory where intermediate
-            files will be written to.
-        taxa : list
-            List of taxa scientific names. The process will
-            search for reference proteomes whose "Species Name"
-            field contain any of the provided taxa names.
-        blast_score_ratio : float
-            BLAST Score Ratio value. Hits with a BSR value
-            >= than this value will be considered as high
-            scoring hits that can be included in the final
-            table according to the maximum number of matches
-            to report.
-        cpu_cores : int
-            Number of threads used to run BLASTp.
-        proteome_matches : int
-            Maximum number of proteome matches to report.
-        blast_path : str
-            Path to BLAST executables.
+    Parameters
+    ----------
+    schema_directory : str
+        Path to the schema's directory.
+    temp_directory : str
+        Path to the temporary directory where intermediate
+        files will be written to.
+    taxa : list
+        List of taxa scientific names. The process will
+        search for reference proteomes whose "Species Name"
+        field contain any of the provided taxa names.
+    blast_score_ratio : float
+        BLAST Score Ratio value. Hits with a BSR value
+        >= than this value will be considered as high
+        scoring hits that can be included in the final
+        table according to the maximum number of matches
+        to report.
+    cpu_cores : int
+        Number of threads used to run BLASTp.
+    proteome_matches : int
+        Maximum number of proteome matches to report.
+    blast_path : str
+        Path to BLAST executables.
 
-        Returns
-        -------
-        proteome_results : dict
-            Dictionary with loci identifiers as keys and a list
-            with information about loci retrieved from the most
-            similar records in UniProt's reference proteomes.
+    Returns
+    -------
+    proteome_results : dict
+        Dictionary with loci identifiers as keys and a list
+        with information about loci retrieved from the most
+        similar records in UniProt's reference proteomes.
     """
 
     # get paths to files with representative sequences
@@ -279,7 +276,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
                           if 'blastout' in file]
 
         # index proteome file
-        indexed_proteome = SeqIO.index(proteomes_concat, 'fasta')
+        indexed_proteome = fao.index_fasta(proteomes_concat)
 
         # process results for each BLASTp
         proteome_results = extract_annotations(blastout_files,
@@ -294,21 +291,21 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 def sparql_annotations(loci_files, translation_table, cpu_cores):
     """ Retrieves annotations from UniProt's SPARQL endpoint.
 
-        Parameters
-        ----------
-        loci_files : list
-            List with the paths to the loci FASTA files.
-        cpu_cores : int
-            Number of files to process in parallel.
+    Parameters
+    ----------
+    loci_files : list
+        List with the paths to the loci FASTA files.
+    cpu_cores : int
+        Number of files to process in parallel.
 
-        Returns
-        -------
-        annotations : list
-            List with sublists. Each sublist contains
-            the path to the FASTA file of a locus, the
-            product name found for that locus and the
-            URL to the page of the record that matched the
-            locus.
+    Returns
+    -------
+    annotations : list
+        List with sublists. Each sublist contains
+        the path to the FASTA file of a locus, the
+        product name found for that locus and the
+        URL to the page of the record that matched the
+        locus.
     """
 
     # create inputs to multiprocessing
@@ -330,31 +327,31 @@ def join_annotations(sparql_results, proteome_results, loci_info):
     """ Merges loci info retrieved from the "cds_info" table,
         UniProt's SPARQL endpoint and UniProt's reference proteomes.
 
-        Parameters
-        ----------
-        sparql_results : list
-            List with sublists. Each sublist contains
-            the path to the FASTA file of a locus, the
-            product name found for that locus thorugh UniProt's
-            SPARQL endpoint and the URL to the page of the record
-            that matched the locus.
-        proteome_results : dict
-            Dictionary with loci identifiers as keys and a list
-            with information about loci retrieved from the most
-            similar records in UniProt's reference proteomes.
-        loci_info : dict
-            Dictionary with loci identifiers as keys and a list
-            with the information in the "cds_info.tsv" table as
-            values.
+    Parameters
+    ----------
+    sparql_results : list
+        List with sublists. Each sublist contains
+        the path to the FASTA file of a locus, the
+        product name found for that locus thorugh UniProt's
+        SPARQL endpoint and the URL to the page of the record
+        that matched the locus.
+    proteome_results : dict
+        Dictionary with loci identifiers as keys and a list
+        with information about loci retrieved from the most
+        similar records in UniProt's reference proteomes.
+    loci_info : dict
+        Dictionary with loci identifiers as keys and a list
+        with the information in the "cds_info.tsv" table as
+        values.
 
-        Returns
-        -------
-        selected : dict
-            Dictionary with loci identifiers as keys and the
-            combined information retrieved from the "cds_info.tsv"
-            table, by querying UniProt's SPARQL endpoint and
-            aligning schema representatives against UniProt's
-            reference proteomes.
+    Returns
+    -------
+    selected : dict
+        Dictionary with loci identifiers as keys and the
+        combined information retrieved from the "cds_info.tsv"
+        table, by querying UniProt's SPARQL endpoint and
+        aligning schema representatives against UniProt's
+        reference proteomes.
     """
 
     selected = {}
@@ -373,30 +370,30 @@ def create_annotations_table(annotations, output_directory, header,
                              schema_name, loci_info):
     """ Creates output table with loci information.
 
-        Parameters
-        ----------
-        annotations : dcit
-            Dictionary with loci identifiers as keys and
-            lists with information about loci as values (each
-            list contains the information extracted from the
-            "cds_info.tsv" table, if it was passed to the process,
-            and the product and URL link for the match found
-            through UniProt's SPARQL endpoint).
-        output_directory : str
-            Path to the output directory where the table
-            will be written to.
-        header : list
-            File header (first line with column names).
-        schema_name : str
-            Name of the schema.
-        loci_info : bool
-            True if the user passed the "cds_info.tsv" table
-            to the process, false otherwise.
+    Parameters
+    ----------
+    annotations : dcit
+        Dictionary with loci identifiers as keys and
+        lists with information about loci as values (each
+        list contains the information extracted from the
+        "cds_info.tsv" table, if it was passed to the process,
+        and the product and URL link for the match found
+        through UniProt's SPARQL endpoint).
+    output_directory : str
+        Path to the output directory where the table
+        will be written to.
+    header : list
+        File header (first line with column names).
+    schema_name : str
+        Name of the schema.
+    loci_info : bool
+        True if the user passed the "cds_info.tsv" table
+        to the process, false otherwise.
 
-        Returns
-        -------
-        output_table : str
-            Path to the table with loci information.
+    Returns
+    -------
+    output_table : str
+        Path to the table with loci information.
     """
 
     new_lines = [header]
@@ -501,7 +498,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                                             loci_info_bool)
 
     if no_cleanup is False:
-        shutil.rmtree(temp_directory)
+        fo.delete_directory(temp_directory)
 
     print('\n\nThe table with new information can be found at:'
           '\n{0}'.format(output_table))

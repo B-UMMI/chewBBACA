@@ -113,7 +113,7 @@ def create_schema():
                         help='Path to the Prodigal training file.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-                        required=False, default=0.6, dest='blast_score_ratio',
+                        required=False, default=ct.DEFAULT_BSR, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
@@ -323,8 +323,8 @@ def allele_call():
                         required=False, default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
-    parser.add_argument('--pm', '--prodigal-mode', required=False,
-                        choices=['single', 'meta'],
+    parser.add_argument('--pm', '--prodigal-mode', type=str,
+                        required=False, choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
@@ -365,6 +365,10 @@ def allele_call():
                         help='If provided, intermediate files generated '
                              'during process execution are not removed at '
                              'the end.')
+
+    parser.add_argument('--hash-profiles', type=str, required=False,
+                        dest='hash_profiles',
+                        help='')
 
     # parser.add_argument('--fr', '--force-reset', action='store_true',
     #                     required=False, dest='force_reset',
@@ -429,7 +433,7 @@ def allele_call():
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
                     args.only_exact, args.add_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup)
+                    args.no_cleanup, args.hash_profiles)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

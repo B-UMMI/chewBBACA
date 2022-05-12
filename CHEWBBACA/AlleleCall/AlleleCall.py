@@ -98,6 +98,7 @@ from Bio import SeqIO
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
+                       profile_hasher as ph,
                        core_functions as cf,
                        file_operations as fo,
                        fasta_operations as fao,
@@ -108,6 +109,7 @@ try:
 except:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
+                                 profile_hasher as ph,
                                  core_functions as cf,
                                  file_operations as fo,
                                  fasta_operations as fao,
@@ -543,7 +545,7 @@ def write_loci_summary(classification_files, output_directory, total_inputs):
         locus_line = im.join_list(counts_list, '\t')
         loci_stats.append(locus_line)
 
-    output_file = fo.join_paths(output_directory, [ct.LOCI_STATS_FILENAME])
+    output_file = fo.join_paths(output_directory, [ct.LOCI_STATS_BASENAME])
     fo.write_lines(loci_stats, output_file)
 
 
@@ -640,6 +642,8 @@ def write_results_alleles(classification_files, input_identifiers,
 
     output_file = fo.join_paths(output_directory, [ct.RESULTS_ALLELES_BASENAME])
     fo.write_lines(lines, output_file)
+
+    return output_file
 
 
 def write_results_statistics(classification_files, input_identifiers,
@@ -1388,7 +1392,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
             for h in c[2]:
                 hash_entry = im.polyline_decoding(dna_hashtable[h[0]])
                 seqid = '{0}-protein{1}'.format(input_map[hash_entry[1]], hash_entry[0])
-                new_rec = fao.fasta_str_record(h[2], str(dna_index[seqid].seq))
+                new_rec = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [h[2], str(dna_index[seqid].seq)])
                 current_records.append(new_rec)
 
         missing_records.extend(current_records)
@@ -2084,7 +2088,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
          add_inferred, output_unclassified, output_missing,
-         no_cleanup):
+         no_cleanup, hash_profiles):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2184,8 +2188,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('done.')
 
     print('Writing results_alleles.tsv...', end='')
-    write_results_alleles(list(results[0].values()),
-                          list(results[1].values()), results_dir)
+    profiles_table = write_results_alleles(list(results[0].values()),
+                                           list(results[1].values()), results_dir)
     print('done.')
 
     print('Writing results_statsitics.tsv...', end='')
@@ -2218,6 +2222,11 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     if output_missing is True:
         create_missing_fasta(results[0], results[2], results[1], results[4],
                              results_dir, coordinates_files)
+
+    # this must run after the step that adds the novel alleles to the schema
+    # it cannot determine the hashes of inferred alleles that are not added to the schema
+    if hash_profiles is not None:
+        ph.main(profiles_table, schema_directory, results_dir, hash_profiles, cpu_cores, 1000)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
     cds_coordinates_source = fo.join_paths(output_directory, ['cds_info.tsv'])

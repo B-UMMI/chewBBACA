@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions related to biological sequence
+This module contains functions related with biological sequence
 manipulation.
 
 Code documentation
@@ -12,11 +12,6 @@ Code documentation
 """
 
 
-import json
-import shelve
-import sqlite3
-
-from Bio import SeqIO
 from Bio.Seq import Seq
 from collections import Counter
 
@@ -35,18 +30,18 @@ except:
 def translate_sequence(dna_str, table_id):
     """ Translates a DNA sequence using the BioPython package.
 
-        Parameters
-        ----------
-        dna_str : str
-            String representing a DNA sequence.
-        table_id : int
-            Translation table identifier.
+    Parameters
+    ----------
+    dna_str : str
+        String representing a DNA sequence.
+    table_id : int
+        Translation table identifier.
 
-        Returns
-        -------
-        protseq : Bio.Seq.Seq
-            Protein sequence created by translating the
-            input DNA sequence.
+    Returns
+    -------
+    protseq : Bio.Seq.Seq
+        Protein sequence created by translating the
+        input DNA sequence.
     """
 
     myseq_obj = Seq(dna_str)
@@ -60,25 +55,25 @@ def translate_dna_aux(dna_sequence, method, table_id):
         orientation and stores exceptions when the input sequence
         cannot be translated.
 
-        Parameters
-        ----------
-        dna_sequence : str
-            String representing a DNA sequence.
-        method : str
-            Sequence orientation to attempt translation.
-        table_id : int
-            Translation table identifier.
+    Parameters
+    ----------
+    dna_sequence : str
+        String representing a DNA sequence.
+    method : str
+        Sequence orientation to attempt translation.
+    table_id : int
+        Translation table identifier.
 
-        Returns
-        -------
-        If the sequence can be translated:
-            protseq : Bio.Seq.Seq
-                Translated DNA sequence.
-            myseq : str
-                String representing the DNA sequence in the
-                orientation used to translate it.
-        Otherwise, returns string with the description of the
-        exception that was raised.
+    Returns
+    -------
+    If the sequence can be translated:
+        protseq : Bio.Seq.Seq
+            Translated DNA sequence.
+        myseq : str
+            String representing the DNA sequence in the
+            orientation used to translate it.
+    Otherwise, returns string with the description of the
+    exception that was raised.
     """
 
     myseq = dna_sequence
@@ -156,12 +151,12 @@ def translate_dna(dna_sequence, table_id, min_len):
     # check if the sequence has ambiguous bases
     valid_dna = im.check_str_alphabet(original_seq, ct.DNA_BASES)
     if valid_dna is not True:
-        return valid_dna
+        return 'ambiguous or invalid characters'
 
     # check if sequence size is multiple of three
     valid_length = im.check_str_multiple(original_seq, 3)
     if valid_length is not True:
-        return valid_length
+        return 'sequence length is not a multiple of 3'
 
     # check if sequence is not shorter than the accepted minimum length
     if len(original_seq) < min_len:
@@ -198,38 +193,38 @@ def retranslate(sequence, method, table_id, strands, exception_collector):
     """ Sends sequence for translation and collects exceptions when
         the sequence cannot be translated.
 
-        Parameters
-        ----------
-        sequence : str
-            String representing a DNA sequence.
-        method : str
-            Sequence orientation to attempt translation.
-        table_id : int
-            Translation table identifier.
-        strands : list
-            List with maximum of 4 different orientations
-            to attempt translation, 'original', 'revcomp',
-            'rev' and 'revrevcomp'.
-        exception_collector : list
-            List used to store all exceptions arising from
-            translation attempts.
+    Parameters
+    ----------
+    sequence : str
+        String representing a DNA sequence.
+    method : str
+        Sequence orientation to attempt translation.
+    table_id : int
+        Translation table identifier.
+    strands : list
+        List with maximum of 4 different orientations
+        to attempt translation, 'original', 'revcomp',
+        'rev' and 'revrevcomp'.
+    exception_collector : list
+        List used to store all exceptions arising from
+        translation attempts.
 
-        Returns
-        -------
-        If the sequence can be translated:
-            translated_seq : list
-                List with the protein sequence and with the
-                DNA sequence in the orientation used for translation.
-            exception_collector : list
-                List with the exceptions that were captured when the
-                sequence could not be translated.
-        Otherwise:
-            translated_seq : str
-                String with the description of the last exception
-                captured because sequence could not be translated.
-            exception_collector : list
-                List with all exception that have been captured
-                for translation attempts.
+    Returns
+    -------
+    If the sequence can be translated:
+        translated_seq : list
+            List with the protein sequence and with the
+            DNA sequence in the orientation used for translation.
+        exception_collector : list
+            List with the exceptions that were captured when the
+            sequence could not be translated.
+    Otherwise:
+        translated_seq : str
+            String with the description of the last exception
+            captured because sequence could not be translated.
+        exception_collector : list
+            List with all exception that have been captured
+            for translation attempts.
     """
 
     translated_seq = translate_dna_aux(sequence, method, table_id)
@@ -244,18 +239,18 @@ def determine_duplicated_seqs(sequences):
     """ Creates a dictionary with sequences as keys and all sequence
         identifiers associated with a sequence as values.
 
-        Parameters
-        ----------
-        sequences : dict
-            Dictionary with sequence identifiers as keys and
-            sequences as values.
+    Parameters
+    ----------
+    sequences : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
 
-        Returns
-        -------
-        equal_seqs : dict
-            Dictionary with sequences as keys and sequence
-            identifiers that are associated with each
-            sequence as values.
+    Returns
+    -------
+    equal_seqs : dict
+        Dictionary with sequences as keys and sequence
+        identifiers that are associated with each
+        sequence as values.
     """
 
     equal_seqs = {}
@@ -276,18 +271,18 @@ def determine_longest(seqids, sequences):
     """ Determines which sequence is the longest among
         sequences with the specified identifiers.
 
-        Parameters
-        ----------
-        seqids : list
-            List with sequence identifiers.
-        sequences : dict
-            Dictionary with sequence identifiers as keys
-            and sequences as values.
+    Parameters
+    ----------
+    seqids : list
+        List with sequence identifiers.
+    sequences : dict
+        Dictionary with sequence identifiers as keys
+        and sequences as values.
 
-        Returns
-        -------
-        chosen : str
-            Sequence identifier of the longest sequence.
+    Returns
+    -------
+    chosen : str
+        Sequence identifier of the longest sequence.
     """
 
     seqids_tups = [(seqid, sequences[seqid]) for seqid in seqids]
@@ -297,24 +292,24 @@ def determine_longest(seqids, sequences):
     return chosen
 
 
-def determine_mode(int_values):
+def determine_mode(values):
     """ Determines the mode value from a list of integer values.
         Returns list with multiple values if distribution is
         multimodal.
 
-        Parameters
-        ----------
-        int_values : list
-            List with integer values.
+    Parameters
+    ----------
+    values : list
+        List with integer values.
 
-        Returns
-        -------
-        modes : list
-            The most frequent integer values.
+    Returns
+    -------
+    modes : list
+        The most frequent integer values.
     """
 
     # determine frequency of each length value
-    counts = Counter(int_values)
+    counts = Counter(values)
 
     # order by most common first
     most_common = counts.most_common()
@@ -333,32 +328,32 @@ def mode_filter(sequences, size_threshold):
         and identifies sequences that have a length value
         smaller or greater than the mode based on a threshold.
 
-        Parameters
-        ----------
-        sequences : dict
-            Dictionary with sequence identifiers as keys and
-            sequences as values.
-        size_threshold : float
-            Sequences with +/- this value * mode will be
-            reported as above or below the mode.
+    Parameters
+    ----------
+    sequences : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
+    size_threshold : float
+        Sequences with +/- this value * mode will be
+        reported as above or below the mode.
 
-        Returns
-        -------
-        A list with the following variables:
-            modes : list
-                List with mode values determined based on the
-                length of input sequences.
-            alm : list
-                List with the sequence identifiers of the
-                sequences that are above the mode value by
-                mode*size_threshold.
-            asm : list
-                List with the sequence identifiers of the
-                sequences that are below the mode value by
-                mode*size_threshold.
-            seqs_lengths : dict
-                Dictionary with sequence identifiers as keys
-                and sequence lengths as values.
+    Returns
+    -------
+    A list with the following variables:
+        modes : list
+            List with mode values determined based on the
+            length of input sequences.
+        alm : list
+            List with the sequence identifiers of the
+            sequences that are above the mode value by
+            mode*size_threshold.
+        asm : list
+            List with the sequence identifiers of the
+            sequences that are below the mode value by
+            mode*size_threshold.
+        seqs_lengths : dict
+            Dictionary with sequence identifiers as keys
+            and sequence lengths as values.
     """
 
     # determine length value of all sequences
@@ -387,43 +382,43 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
         sequences that cannot be translated according to the
         criteria enforced by chewBBACA.
 
-        Parameters
-        ----------
-        fasta_path : str
-            Path to the FASTA file with DNA sequences.
-        gene_id : str
-            Gene identifier.
-        table_id : int
-            Translation table identifier.
-        min_len : int
-            Minimum sequence length. Sequences shorter
-            than this value are not translated.
-        size_threshold : float
-            Sequences with +/- this value * mode will be
-            reported as above or below the mode.
+    Parameters
+    ----------
+    fasta_path : str
+        Path to the FASTA file with DNA sequences.
+    gene_id : str
+        Gene identifier.
+    table_id : int
+        Translation table identifier.
+    min_len : int
+        Minimum sequence length. Sequences shorter
+        than this value are not translated.
+    size_threshold : float
+        Sequences with +/- this value * mode will be
+        reported as above or below the mode.
 
-        Returns
-        -------
-        List with following elements:
-            dna_seqs : dict
-                Dictionary with sequence identifiers as keys
-                and DNA sequences as values.
-            prot_seqs : dict
-                Dictionary with protein identifiers as keys
-                and Protein sequences as values. Keys are
-                consecutive integers to enable alignment
-                with BLASTp without getting exceptions due
-                to long sequence identifiers.
-            invalid : list
-                List with sequence identifiers of alleles
-                that are not valid because they could not be
-                translated.
-            seqids_map : dict
-                Dictionary with consecutive integers as keys
-                and original allele identifiers as values.
-            total_seqs : int
-                Total number of sequences that was processed
-                (including invalid alleles).
+    Returns
+    -------
+    List with following elements:
+        dna_seqs : dict
+            Dictionary with sequence identifiers as keys
+            and DNA sequences as values.
+        prot_seqs : dict
+            Dictionary with protein identifiers as keys
+            and Protein sequences as values. Keys are
+            consecutive integers to enable alignment
+            with BLASTp without getting exceptions due
+            to long sequence identifiers.
+        invalid : list
+            List with sequence identifiers of alleles
+            that are not valid because they could not be
+            translated.
+        seqids_map : dict
+            Dictionary with consecutive integers as keys
+            and original allele identifiers as values.
+        total_seqs : int
+            Total number of sequences that was processed
+            (including invalid alleles).
     """
 
     sequences = fao.import_sequences(fasta_path)
@@ -435,7 +430,10 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     # add locus identifier to headers
     # some headers might only have the allele identifier
     seqids = list(translated_seqs.keys())
-    new_seqids = im.add_prefix(seqids, gene_id)
+    new_seqids = {}
+    for i in seqids:
+        new_id = '{0}_{1}'.format(gene_id, i.split('_')[-1])
+        new_seqids[i] = new_id
 
     # switch ids
     sequences = {new_seqids[k]: v
@@ -492,33 +490,33 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
                                translation_table, minimum_length):
     """ Translates CDSs into protein sequences.
 
-        Parameters
-        ----------
-        seqids : list
-            List with the sequence identifiers of the sequences
-            to be translated.
-        sequences_file : str
-            Path to the FASTA file that contains the DNA sequences.
-        translation_table : int
-            Translation table identifier.
-        minimum_length : int
-            The minimum sequence length value.
-        dna_file : str
-            Path to a file to save DNA sequences.
-        protein_file : str
-            Path to a file to save protein sequences.
+    Parameters
+    ----------
+    seqids : list
+        List with the sequence identifiers of the sequences
+        to be translated.
+    sequences_file : str
+        Path to the FASTA file that contains the DNA sequences.
+    translation_table : int
+        Translation table identifier.
+    minimum_length : int
+        The minimum sequence length value.
+    dna_file : str
+        Path to a file to save DNA sequences.
+    protein_file : str
+        Path to a file to save protein sequences.
 
-        Returns
-        -------
-        A list with following elements:
-            invalid_alleles : list
-                List with one sublist per invalid allele.
-                Each sublist contains a sequence identifer
-                and the exception message returned after
-                attempting translation.
-            total_seqs : int
-                Total number of DNA sequences that were
-                translated.
+    Returns
+    -------
+    A list with following elements:
+        invalid_alleles : list
+            List with one sublist per invalid allele.
+            Each sublist contains a sequence identifer
+            and the exception message returned after
+            attempting translation.
+        total_seqs : int
+            Total number of DNA sequences that were
+            translated.
     """
 
     # define limit of records to keep in memory
@@ -527,7 +525,7 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
     prot_lines = []
     line_limit = 10000
     invalid_alleles = []
-    cds_index = SeqIO.index(sequences_file, 'fasta')
+    cds_index = fao.index_fasta(sequences_file)
 
     for i, seqid in enumerate(seqids):
         sequence = str(cds_index.get(seqid).seq)
@@ -555,155 +553,6 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
             prot_lines = []
 
     return [invalid_alleles, total_seqs]
-
-
-def create_database_file(db_file):
-    """ Creates a SQLite database file.
-        If the database file already exists,
-        it will establish and close connection.
-
-        Parameters
-        ----------
-        df_file : str
-            Path to the SQLite database file.
-
-        Returns
-        -------
-        error : None or sqlite3.OperationalError
-            None if the SQLite database file was
-            successfully created, OperationalError
-            if it could not create/establish connection
-    """
-
-    conn = None
-    error = None
-    try:
-        # creates db file if it does not exist
-        conn = sqlite3.connect(db_file)
-    except Exception as e:
-        error = e
-    finally:
-        if conn:
-            conn.close()
-
-    return error
-
-
-def create_connection(db_file):
-    """ Creates a database connection to a SQLite
-        database.
-
-        Parameters
-        ----------
-        db_file: str
-            Path to the SQLite database file.
-
-        Returns
-        -------
-        conn : sqlite3.Connection or sqlite3.OperationalError
-            SQLite Connection object if connection was
-            successfull or error if it was not possible
-            to connect to the database.
-    """
-
-    try:
-        conn = sqlite3.connect(db_file)
-    except Exception as e:
-        conn = e
-
-    return conn
-
-
-def update_sqlitedb(db_file, new_entries):
-    """
-    """
-
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-    except Error as e:
-        print(e)
-
-    # create select statements
-    select_sql = []
-    for k in new_entries:
-        query = ("SELECT hash, values FROM mydict WHERE hash = '{0}';".format(k))
-        select_sql.append(query)
-
-    # execute selects
-    responses = []
-    for query in select_sql:
-        print(query)
-        c = execute_statement(conn, query)
-        res = c.fetchall()
-        responses.append(res)
-
-    print(responses)
-
-
-def create_database(db_file):
-    """ Creates the database file and tables of a SQLite database
-        that will store the allelic profiles determined with
-        a schema.
-
-        Parameters
-        ----------
-        db_file : str
-            Path to the SQLite database file.
-
-        Returns
-        -------
-        True if the SQLite database file and tables were
-        successfully created, SQLite OperationalError otherwise.
-    """
-
-    message = create_database_file(db_file)
-
-    # samples table
-    sql_samples_table = ('CREATE TABLE IF NOT EXISTS mydict ('
-                             'id TEXT PRIMARY KEY,'
-                             'kkkj TEXT'
-                             ');')
-
-    # create tables
-    conn = create_connection(db_file)
-
-    if isinstance(conn, str) is True:
-        return conn
-    else:
-        row = execute_statement(conn, sql_samples_table)
-        conn.commit()
-        conn.close()
-
-        return True
-
-
-def execute_statement(conn, statement):
-    """ Executes a SQL statement.
-
-        Parameters
-        ----------
-        conn : sqlite3.Connection
-            SQLite Connection object.
-        statement : str
-            SQL statement to execute.
-
-        Returns
-        -------
-        error : None or sqlite3.OperationalError
-            None if the SQLite database file was
-            successfully created, OperationalError
-            if it could not create/establish connection
-    """
-
-    error = None
-    try:
-        c = conn.cursor()
-        c.execute(statement)
-        return c
-    except Exception as e:
-        error = e
-        return error
 
 
 def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
@@ -736,7 +585,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
     exausted = False
     # limit of 10000 Fasta records in memory
     out_limit = 10000
-    seq_generator = SeqIO.parse(sequences_file, 'fasta')
+    seq_generator = fao.sequence_generator(sequences_file)
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
@@ -749,7 +598,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
 
             # add unseen sequence to Fasta file with distinct sequences
             if seq_hash not in duplicates:
-                recout = fao.fasta_str_record(seqid, sequence)
+                recout = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
                 out_seqs.append(recout)
                 # add sequence hash as key to dict with list of genomes with sequence
                 # start by creating entry and adding a string representative identifier
@@ -788,23 +637,24 @@ def determine_small(sequences_file, minimum_length, variation=0):
     """ Find protein sequences that are shorter than
         desired length.
 
-        Parameters
-        ----------
-        sequences_file : str
-            Path to a FASTA file.
-        minimum_length : int
-            Sequences with a length value below this value
-            are considered small.
+    Parameters
+    ----------
+    sequences_file : str
+        Path to a FASTA file.
+    minimum_length : int
+        Sequences with a length value below this value
+        are considered small.
 
-        Returns
-        -------
-        small_seqids : list
-            List with the identifiers of small sequences.
+    Returns
+    -------
+    small_seqids : list
+        List with the identifiers of small sequences.
     """
 
     variation = minimum_length - (minimum_length*variation)
     small_seqids = []
-    for record in SeqIO.parse(sequences_file, 'fasta'):
+    seq_generator = fao.sequence_generator(sequences_file)
+    for record in seq_generator:
         # seq object has to be converted to string
         sequence = str(record.seq)
         seqid = record.id
@@ -821,26 +671,26 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         sequences that are similar to sequences of
         equal or greater size.
 
-        Parameters
-        ----------
-        blast_results : list
-            List with the path to a file with BLAST
-            results in tabular format.
-        fasta_file : str
-            Path to a FASTA file that contains the
-            sequences that were aligned.
-        bsr : float
-            The BSR value to use as threshold
-        ids_dict : dict
-            Dictionary with the mapping between
-            sequence identifiers used for BLAST and
-            the original sequence identifiers.
+    Parameters
+    ----------
+    blast_results : list
+        List with the path to a file with BLAST
+        results in tabular format.
+    fasta_file : str
+        Path to a FASTA file that contains the
+        sequences that were aligned.
+    bsr : float
+        The BSR value to use as threshold
+    ids_dict : dict
+        Dictionary with the mapping between
+        sequence identifiers used for BLAST and
+        the original sequence identifiers.
 
-        Returns
-        -------
-        excluded_alleles : list
-            List with the identifiers of the sequences
-            that were highly similar to other sequences.
+    Returns
+    -------
+    excluded_alleles : list
+        List with the identifiers of the sequences
+        that were highly similar to other sequences.
     """
 
     self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}

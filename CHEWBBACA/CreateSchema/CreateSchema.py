@@ -199,7 +199,26 @@ def create_schema_structure(schema_seed_fasta, output_directory,
     return schema_files
 
 
-def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
+
+input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+fasta_files = input_files
+output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema_creation'
+schema_name = 'schema_seed'
+ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+representative_filter = 0.9
+intra_filter = 0.9
+cpu_cores = 4
+blast_path = 'blastp'
+prodigal_mode = 'single'
+cds_input = False
+def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,
                        representative_filter, intra_filter, cpu_cores, blast_path,
@@ -212,28 +231,62 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
-    # read file with paths to input files
-    fasta_files = fo.read_lines(input_files, strip=True)
+    # map full paths to basename
+    inputs_basenames = im.mapping_function(fasta_files,
+                                           fo.file_basename, [False])
 
-    # sort paths to FASTA files
-    fasta_files = im.sort_iterable(fasta_files, sort_key=lambda x: x.lower())
+    # map input identifiers to integers
+    # use the mapped integers to refer to each input
+    # this reduces memory usage compared to using string identifiers
+    basename_map = im.integer_mapping(inputs_basenames.values())
+    basename_inverse_map = im.invert_dictionary(basename_map)
 
     if cds_input is False:
 
         print('Number of inputs: {0}'.format(len(fasta_files)))
 
+        # create directory to store files with Prodigal results
+        prodigal_path = fo.join_paths(temp_directory, ['1_gene_prediction'])
+        fo.create_directory(prodigal_path)
+
+        # run Prodigal to determine CDSs for all input genomes
+        print('\nPredicting gene sequences...\n')
+
         # gene prediction step
         gp_results = cf.predict_genes(fasta_files, ptf_path,
                                       translation_table, prodigal_mode,
-                                      cpu_cores, temp_directory,
+                                      cpu_cores, prodigal_path,
                                       output_directory)
 
-        fasta_files, prodigal_path = gp_results
+        if gp_results is not None:
+            failed, failed_file = gp_results
+
+            print('\nFailed to predict genes for {0} genomes'
+                  '.'.format(len(failed)))
+            print('Make sure that Prodigal runs in meta mode (--pm meta) '
+                  'if any input file has less than 100kbp.')
+            print('Info for failed cases stored in: {0}'.format(failed_file))
+
+            # remove failed genomes from paths
+            fasta_files = im.filter_list(fasta_files, failed)
+
+        if len(fasta_files) == 0:
+            sys.exit('\nCould not predict gene sequences from any '
+                     'of the input files.\nPlease provide input files '
+                     'in the accepted FASTA format.')
 
         # CDS extraction step
-        cds_files = cf.extract_genes(fasta_files, prodigal_path,
-                                     cpu_cores, temp_directory,
-                                     output_directory)
+        print('\n\nExtracting coding sequences...\n')
+        # create output directory
+        cds_extraction_path = fo.join_paths(temp_directory,
+                                            ['2_cds_extraction'])
+        fo.create_directory(cds_extraction_path)
+        eg_results = cf.extract_genes(fasta_files, prodigal_path,
+                                      cpu_cores, cds_extraction_path,
+                                      output_directory)
+        cds_files, total_extracted = eg_results
+        print('\n\nExtracted a total of {0} coding sequences from {1} '
+              'genomes.'.format(total_extracted, len(fasta_files)))
     else:
         cds_files = fasta_files
         print('Number of inputs: {0}'.format(len(cds_files)))
@@ -243,14 +296,22 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     fo.create_directory(preprocess_dir)
 
     # DNA sequences deduplication step
+    # keep hash of unique sequences and a list with the integer
+    # identifiers of genomes that have those sequences
+    # lists of integers are encoded with polyline algorithm
+    print('\nRemoving duplicated DNA sequences...', end='')
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     ds_results = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
-                                       distinct_dna_template, False)
+                                       distinct_dna_template, basename_map, False,
+                                       True)
 
-    schema_seqids, distinct_seqs_file = ds_results
+    dna_distinct_htable, distinct_file, repeated = ds_results[1:]
+    print('removed {0} sequences.'.format(repeated))
+
+    print('Kept {0} distinct sequences.'.format(len(dna_distinct_htable)))
 
     # determine small sequences step
-    ss_results = cf.exclude_small(distinct_seqs_file, minimum_length)
+    ss_results = cf.exclude_small(distinct_file, minimum_length)
 
     small_seqids, ss_lines = ss_results
 
@@ -442,7 +503,7 @@ def create_schema_seed(input_files, output_directory, schema_name, ptf_path,
     return [schema_files, temp_directory]
 
 
-def main(input_files, output_directory, schema_name, ptf_path,
+def main(input_file, output_directory, schema_name, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
@@ -459,6 +520,12 @@ def main(input_files, output_directory, schema_name, ptf_path,
     print('Clustering similarity: {0}'.format(clustering_sim))
     print('Representative filter: {0}'.format(representative_filter))
     print('Intra-cluster filter: {0}'.format(intra_filter))
+
+    # read file with paths to input files
+    input_files = fo.read_lines(input_file, strip=True)
+
+    # sort paths to FASTA files
+    input_files = im.sort_iterable(input_files, sort_key=lambda x: x.lower())
 
     results = create_schema_seed(input_files, output_directory, schema_name,
                                  ptf_path, blast_score_ratio, minimum_length,
@@ -565,5 +632,4 @@ def parse_arguments():
 if __name__ == '__main__':
 
     args = parse_arguments()
-
     main(**vars(args))

@@ -1596,7 +1596,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     dna_dedup_results = cf.exclude_duplicates(cds_files, preprocess_dir,
                                               cpu_cores, distinct_dna_template,
-                                              basename_map, False, True)
+                                              basename_map, False)
 
     dna_distinct_htable, distinct_file, repeated = dna_dedup_results
     print('removed {0} sequences.'.format(repeated))

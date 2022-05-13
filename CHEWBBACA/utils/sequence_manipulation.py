@@ -555,7 +555,7 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
     return [invalid_alleles, total_seqs]
 
 
-def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
+def determine_distinct(sequences_file, unique_fasta, map_ids):
     """ Identifies duplicated sequences in a FASTA file.
         Returns a single sequence identifier per distinct
         sequence and saves distinct sequences to a FASTA
@@ -600,19 +600,13 @@ def determine_distinct(sequences_file, unique_fasta, map_ids, ids):
             if seq_hash not in duplicates:
                 recout = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
                 out_seqs.append(recout)
-                # add sequence hash as key to dict with list of genomes with sequence
-                # start by creating entry and adding a string representative identifier
-                # that can be used to fetch Fasta records later
-                duplicates[seq_hash] = [seqid]
 
-            if ids is False:
-                # switch from string identifier to integer identifier
-                genome_id = seqid.split('-protein')[0]
-                genome_id = map_ids[genome_id]
-                # add genome integer for all inputs that have that sequence
-                duplicates[seq_hash].append(genome_id)
-            else:
-                duplicates[seq_hash].append(seqid)
+            # add CDS hash as key
+            # add genome integer identifier and protein identifier to values list
+            # genome identifier and protein identifier can be used to fetch sequences
+            genome_id, protid = seqid.split('-protein')
+            genome_id = map_ids[genome_id]
+            duplicates.setdefault(seq_hash, []).extend([genome_id, protid])
         else:
             exausted = True
 

@@ -166,7 +166,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, ids_map, ids=False, polyline=False):
+                       outfile_template, ids_map, protein=False):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -201,59 +201,41 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     inputs = im.aggregate_iterables([fasta_files, output_files])
 
     dedup_inputs = im.multiprocessing_inputs(inputs,
-                                             [ids_map, ids],
+                                             [ids_map],
                                              sm.determine_distinct)
 
-    # determine distinct sequences (keeps 1 seqid per sequence)
+    # determine distinct sequences
     dedup_results = mo.map_async_parallelizer(dedup_inputs,
                                               mo.function_helper,
                                               cpu_cores,
                                               show_progress=False)
 
+    repeated = 0
+    merged_results = {}
     distinct_seqids = []
-    if polyline is True:
-        # merge results
-        repeated = 0
-        merged_results = {}
-        for p in dedup_results:
-            r = fo.pickle_loader(p)
-            for k, v in r.items():
-                if k in merged_results:
-                    stored_ids = im.polyline_decoding(merged_results[k])
-                    merged_results[k] = im.polyline_encoding([stored_ids[0]]+sorted(stored_ids[1:]+v[1:]))
+    # merge results
+    for p in dedup_results:
+        r = fo.pickle_loader(p)
+        for k, v in r.items():
+            if k in merged_results:
+                stored_ids = im.polyline_decoding(merged_results[k])
+                if protein is False:
+                    rest = [v[i] for i in range(0, len(v), 2)]
+                    merged_results[k] = im.polyline_encoding(stored_ids+rest)
                 else:
-                    distinct_seqids.append(v[0])
-                    merged_results[k] = im.polyline_encoding([int(v[0].split('protein')[-1])]+v[1:])
-                repeated += len(v) -1
-
-        # determine number of duplicated sequences
-        # minus 2 so we do not count the seqid and genome integer
-        # identifier for the representative record
-        repeated = repeated - len(merged_results)
-    else:
-        # merge results
-        # only using during the protein deduplication and first ID comes duplicated...
-        repeated = 0
-        merged_results = {}
-        for p in dedup_results:
-            r = fo.pickle_loader(p)
-            for k, v in r.items():
-                integer_list = []
-                # ignore first entry because it's equal to the second entry
-                for i in v[1:]:
-                    split = i.split('-protein')
-                    integer_list.extend([ids_map[split[0]], int(split[1])])
-
-                if k in merged_results:
-                    stored_ids = im.polyline_decoding(merged_results[k])
-                    merged_results[k] = im.polyline_encoding([stored_ids+integer_list])
+                    merged_results[k] = im.polyline_encoding(stored_ids+v)
+                repeated += (len(v)/2)
+            else:
+                seqid = '{0}-protein{1}'.format(v[0], v[1])
+                distinct_seqids.append(seqid)
+                if protein is False:
+                    rep = v[0:2]
+                    rest = [v[i] for i in range(2, len(v), 2)]
+                    merged_results[k] = im.polyline_encoding(rep+rest)
                 else:
-                    merged_results[k] = im.polyline_encoding(integer_list)
-                    distinct_seqids.append(v[0])
+                    merged_results[k] = im.polyline_encoding(v)
 
-                # exclude first and second that match sequence that will represent
-                repeated += len(v) - 2
-
+                repeated += (len(v)/2) - 2
 
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]

@@ -200,24 +200,24 @@ def create_schema_structure(schema_seed_fasta, output_directory,
 
 
 
-input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-fasta_files = input_files
-output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema_creation'
-schema_name = 'schema_seed'
-ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-representative_filter = 0.9
-intra_filter = 0.9
-cpu_cores = 4
-blast_path = 'blastp'
-prodigal_mode = 'single'
-cds_input = False
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# fasta_files = input_files
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema_creation'
+# schema_name = 'schema_seed'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# representative_filter = 0.9
+# intra_filter = 0.9
+# cpu_cores = 6
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# prodigal_mode = 'single'
+# cds_input = False
 def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,
@@ -302,13 +302,13 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nRemoving duplicated DNA sequences...', end='')
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     ds_results = cf.exclude_duplicates(cds_files, preprocess_dir, cpu_cores,
-                                       distinct_dna_template, basename_map, False,
-                                       True)
+                                       distinct_dna_template, [basename_map, basename_inverse_map],
+                                       False, True)
 
-    dna_distinct_htable, distinct_file, repeated = ds_results[1:]
+    distinct_seqids, distinct_file, repeated = ds_results
     print('removed {0} sequences.'.format(repeated))
 
-    print('Kept {0} distinct sequences.'.format(len(dna_distinct_htable)))
+    print('Kept {0} distinct sequences.'.format(len(distinct_seqids)))
 
     # determine small sequences step
     ss_results = cf.exclude_small(distinct_file, minimum_length)
@@ -316,11 +316,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     small_seqids, ss_lines = ss_results
 
     # exclude seqids of small sequences
-    schema_seqids = list(set(schema_seqids) - set(small_seqids))
+    schema_seqids = list(set(distinct_seqids) - set(small_seqids))
     schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
     # sequence translation step
-    ts_results = cf.translate_sequences(schema_seqids, distinct_seqs_file,
+    ts_results = cf.translate_sequences(schema_seqids, distinct_file,
                                         preprocess_dir, translation_table,
                                         minimum_length, cpu_cores)
 
@@ -337,11 +337,12 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # protein sequences deduplication step
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
-                                       distinct_prot_template)
+                                       distinct_prot_template, [basename_map, basename_inverse_map],
+                                       True, True)
 
-    distinct_protein_seqs, distinct_prots_file = ds_results
+    distinct_protein_seqs, distinct_prots_file, repeated = ds_results
 
-    distinct_protein_seqs.sort(key=lambda y: y.lower())
+    schema_seqids = im.sort_iterable(distinct_protein_seqs, sort_key=lambda x: x.lower())
 
     # write protein FASTA file
     qc_protein_file = os.path.join(preprocess_dir, 'filtered_proteins.fasta')
@@ -380,7 +381,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     clusters, excluded_seqids = cp_results
 
     # remove excluded seqids
-    schema_seqids = list(set(distinct_protein_seqs) - excluded_seqids)
+    schema_seqids = list(set(schema_seqids) - excluded_seqids)
 
     # intra cluster pruner step
     cip_results = cf.cluster_intra_filter(clusters, proteins,
@@ -388,15 +389,16 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                           clustering_dir,
                                           'intrafilter')
 
+    ### what if all clusters are singletons? Will it continue to cluster blaster?
     clusters, intra_excluded = cip_results
 
     # remove excluded seqids - we get set of sequences from clusters
     # plus singletons
     schema_seqids = list(set(schema_seqids) - set(intra_excluded))
 
-    # BLASTp clusters step
-    blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-    makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+    # define BLASTp and makeblastdb paths
+    blastp_path = fo.join_paths(blast_path, [ct.BLASTP_ALIAS])
+    makeblastdb_path = fo.join_paths(blast_path, [ct.MAKEBLASTDB_ALIAS])
 
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
@@ -456,10 +458,10 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     file_num = math.ceil(len(schema_seqids)/100)
     filenames = ['split{0}'.format(i+1) for i in range(0, file_num)]
     file_paths = (fo.join_paths(final_blast_dir, [f]) for f in filenames)
-    splitted_fastas = fao.split_fasta(integer_seqids, filenames, 100)
+    splitted_fastas = fao.split_fasta(integer_seqids, file_paths, 100)
 
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blast_dir,
-                                                    fo.file_basename(file, suffix=False))
+                                                    fo.file_basename(file, False))
                      for file in splitted_fastas]
 
     # add common arguments to all sublists
@@ -503,7 +505,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     return [schema_files, temp_directory]
 
 
-def main(input_file, output_directory, schema_name, ptf_path,
+def main(input_files, output_directory, schema_name, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          representative_filter, intra_filter, cpu_cores, blast_path,
@@ -522,7 +524,7 @@ def main(input_file, output_directory, schema_name, ptf_path,
     print('Intra-cluster filter: {0}'.format(intra_filter))
 
     # read file with paths to input files
-    input_files = fo.read_lines(input_file, strip=True)
+    input_files = fo.read_lines(input_files, strip=True)
 
     # sort paths to FASTA files
     input_files = im.sort_iterable(input_files, sort_key=lambda x: x.lower())

@@ -606,7 +606,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
             # genome identifier and protein identifier can be used to fetch sequences
             genome_id, protid = seqid.split('-protein')
             genome_id = map_ids[genome_id]
-            duplicates.setdefault(seq_hash, []).extend([genome_id, protid])
+            duplicates.setdefault(seq_hash, []).extend([int(genome_id), int(protid)])
         else:
             exausted = True
 
@@ -638,6 +638,9 @@ def determine_small(sequences_file, minimum_length, variation=0):
     minimum_length : int
         Sequences with a length value below this value
         are considered small.
+    variation : float
+        Accept sequences with length variation of up to
+        minus (`minimum_length`*`variation`).
 
     Returns
     -------
@@ -687,9 +690,9 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         that were highly similar to other sequences.
     """
 
-    self_scores = {r[0]: r[2] for r in blast_results if r[0] == r[1]}
+    self_scores = {r[0]: r[-1] for r in blast_results if r[0] == r[4]}
     # do not include self-scores lines, no need to evaluate those hits
-    blast_results = [r for r in blast_results if r[0] != r[1]]
+    blast_results = [r for r in blast_results if r[0] != r[4]]
 
     lengths = {}
     for k in self_scores:
@@ -701,8 +704,8 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
     for res in blast_results:
 
         query = res[0]
-        hit = res[1]
-        score = res[2]
+        hit = res[4]
+        score = res[-1]
 
         if query not in excluded_alleles:
             # try to apply BSR strategy

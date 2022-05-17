@@ -125,14 +125,15 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         clustered_seqs = {seqid: sequences[seqid] for seqid in clustered_ids}
 
         # create kmer index
-        kmers_mapping, cluster_kmers = im.kmer_index(clustered_seqs, word_size)
+        kmers_mapping = im.kmer_index(clustered_seqs, word_size, fasta=False)
 
         excluded = []
         similarities = []
         # for each sequence in the cluster
-        for seqid, kmers in cluster_kmers.items():
+        for seqid, sequence in clustered_seqs.items():
             if seqid not in excluded:
-                query_kmers = kmers
+                query_kmers = im.determine_minimizers(sequence, word_size,
+                                                      word_size, position=False)
 
                 # select sequences with same kmers
                 sims = select_representatives(query_kmers,
@@ -415,6 +416,7 @@ def representative_pruner(clusters, sim_cutoff):
         pruned_clusters[rep] = [seqid
                                 for seqid in seqids
                                 if seqid[1] < sim_cutoff]
+        # do not exclude cluster representatives
         excluded.extend([seqid
                          for seqid in seqids
                          if seqid[1] >= sim_cutoff and seqid[0] != rep])

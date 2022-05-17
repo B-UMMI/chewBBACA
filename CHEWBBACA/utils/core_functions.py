@@ -166,7 +166,8 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, ids_map, protein=False):
+                       outfile_template, ids_map, protein=False,
+                       only_seqids=False):
     """ Identifies duplicated sequences in FASTA files and
         selects a distinct set of sequences.
 
@@ -201,7 +202,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     inputs = im.aggregate_iterables([fasta_files, output_files])
 
     dedup_inputs = im.multiprocessing_inputs(inputs,
-                                             [ids_map],
+                                             [ids_map[0]],
                                              sm.determine_distinct)
 
     # determine distinct sequences
@@ -226,7 +227,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                     merged_results[k] = im.polyline_encoding(stored_ids+v)
                 repeated += (len(v)/2)
             else:
-                seqid = '{0}-protein{1}'.format(v[0], v[1])
+                seqid = '{0}-protein{1}'.format(ids_map[1][v[0]], v[1])
                 distinct_seqids.append(seqid)
                 if protein is False:
                     rep = v[0:2]
@@ -235,7 +236,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                 else:
                     merged_results[k] = im.polyline_encoding(v)
 
-                repeated += (len(v)/2) - 2
+                repeated += (len(v)/2) - 1
 
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]
@@ -243,7 +244,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     cds_file = fo.concatenate_files(dedup_files, cds_file)
 
     # create index for concatenated Fasta
-    cds_index = SeqIO.index(cds_file, 'fasta')
+    cds_index = fao.index_fasta(cds_file)
 
     # define filename for file with distinct sequences
     distinct_seqs = fo.join_paths(temp_directory,
@@ -252,30 +253,36 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     fao.get_sequences_by_id(cds_index, distinct_seqids,
                             distinct_seqs, 20000)
 
-    return [merged_results, distinct_seqs, repeated]
+    if only_seqids is False:
+        return [merged_results, distinct_seqs, repeated]
+    else:
+        return [distinct_seqids, distinct_seqs, repeated]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
     """ Identifies sequences smaller that a specified length
         value.
 
-        Parameters
-        ----------
-        fasta_file : str
-            Path to a FASTA file.
-        minimum_length : int
-            Sequences with a length value below this value are
-            considered small.
+    Parameters
+    ----------
+    fasta_file : str
+        Path to a FASTA file.
+    minimum_length : int
+        Sequences with a length value below this value are
+        considered small.
+    variation : float
+        Accept sequences with length variation of up to
+        minus (`minimum_length`*`variation`).
 
-        Returns
-        -------
-        small_seqids : list
-            List with the sequence identifiers of small
-            sequences.
-        ss_lines : list
-            List with one string per small sequence. Each string
-            represents an exception message for a sequence that
-            is small.
+    Returns
+    -------
+    small_seqids : list
+        List with the sequence identifiers of small
+        sequences.
+    ss_lines : list
+        List with one string per small sequence. Each string
+        represents an exception message for a sequence that
+        is small.
     """
 
     # determine small sequences and keep their seqids
@@ -572,13 +579,13 @@ def cluster_representative_filter(clusters, representative_filter,
 
     # identify singletons and exclude those clusters
     singletons = im.select_keys(pruned_clusters, 0)
-    print('Identified and removed {0} singletons.'.format(len(singletons)))
+    print('Identified {0} singletons.'.format(len(singletons)))
 
-    pruned_clusters = im.remove_entries(pruned_clusters, singletons)
+    pruned_clusters = im.prune_dictionary(pruned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
-    clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
+    clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()]) + len(singletons)
     print('Remaining sequences after representative and singleton '
           'pruning: {0}'.format(clustered_sequences))
 
@@ -656,10 +663,10 @@ def cluster_intra_filter(clusters, sequences, word_size,
                                 '{0}_clusters.txt'.format(file_prefix))
     sc.write_clusters(pruned_clusters, intrasim_out)
 
-    # add key because it is representative identifier
-    clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
-    print('Remaining sequences after intra-cluster pruning: '
-          '{0}'.format(clustered_sequences))
+    # # add key because it is representative identifier
+    # clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
+    # print('Remaining sequences after intra-cluster pruning: '
+    #       '{0}'.format(clustered_sequences))
 
     return [pruned_clusters, intra_excluded]
 

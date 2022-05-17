@@ -684,7 +684,7 @@ def find_missing(integer_list):
     return missing_integers
 
 
-def kmer_index(fasta_file, word_size):
+def kmer_index(fasta_file, word_size, fasta=True):
     """ Creates a k-mer index based on a set
         of sequences in a Fasta file.
 
@@ -708,12 +708,20 @@ def kmer_index(fasta_file, word_size):
         for each sequence as values.
     """
 
-    sequences = fao.sequence_generator(fasta_file)
+    if fasta is True:
+        sequences = fao.sequence_generator(fasta_file)
+    else:
+        sequences = fasta_file
 
     kmers_mapping = {}
     for record in sequences:
-        seqid = record.id
-        sequence = str(record.seq)
+        try:
+            seqid = record
+            sequence = sequences[record]
+        except Exception as e:
+            seqid = record.id
+            sequence = str(record.seq)
+
         minimizers = determine_minimizers(sequence, word_size,
                                           word_size, position=False)
         kmers = set(minimizers)

@@ -221,17 +221,17 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
             if k in merged_results:
                 stored_ids = im.polyline_decoding(merged_results[k])
                 if protein is False:
-                    rest = [v[i] for i in range(0, len(v), 2)]
+                    rest = [v[i] for i in range(1, len(v), 2)]
                     merged_results[k] = im.polyline_encoding(stored_ids+rest)
                 else:
                     merged_results[k] = im.polyline_encoding(stored_ids+v)
                 repeated += (len(v)/2)
             else:
-                seqid = '{0}-protein{1}'.format(ids_map[1][v[0]], v[1])
+                seqid = '{0}-protein{1}'.format(ids_map[1][v[1]], v[0])
                 distinct_seqids.append(seqid)
                 if protein is False:
                     rep = v[0:2]
-                    rest = [v[i] for i in range(2, len(v), 2)]
+                    rest = [v[i] for i in range(3, len(v), 2)]
                     merged_results[k] = im.polyline_encoding(rep+rest)
                 else:
                     merged_results[k] = im.polyline_encoding(v)

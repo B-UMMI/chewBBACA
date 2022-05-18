@@ -133,24 +133,24 @@ def bsr_categorizer(blast_results, representatives,
     low_reps = {}
 
     filtered_results = [res for res in blast_results
-                        if res[0] != res[1] and res[1] not in representatives]
-    bsr_values = [float(res[2])/float(representatives_scores[res[0]])
+                        if res[0] != res[4] and res[4] not in representatives]
+    bsr_values = [float(res[-1])/float(representatives_scores[res[0]])
                   for res in filtered_results]
 
-    high_bsr = [res[1] for ind, res in enumerate(filtered_results)
+    high_bsr = [res[4] for ind, res in enumerate(filtered_results)
                 if bsr_values[ind] >= max_bsr]
-    low_bsr = [res[1] for ind, res in enumerate(filtered_results)
+    low_bsr = [res[4] for ind, res in enumerate(filtered_results)
                if bsr_values[ind] < min_bsr]
-    hotspot_bsr = [res[1] for ind, res in enumerate(filtered_results)
+    hotspot_bsr = [res[4] for ind, res in enumerate(filtered_results)
                    if bsr_values[ind] >= min_bsr and bsr_values[ind] < max_bsr]
 
     for ind, res in enumerate(filtered_results):
         if bsr_values[ind] >= min_bsr:
-            high_reps.setdefault(res[0], []).append(res[1])
+            high_reps.setdefault(res[0], []).append(res[4])
         if bsr_values[ind] < min_bsr:
-            low_reps.setdefault(res[0], []).append(res[1])
+            low_reps.setdefault(res[0], []).append(res[4])
         if bsr_values[ind] >= min_bsr and bsr_values[ind] < max_bsr:
-            hot_reps.setdefault(res[0], []).append(res[1])
+            hot_reps.setdefault(res[0], []).append(res[4])
 
     # determine representatives that only led to low BSR
     low_reps = list(set(low_reps) - set(high_reps))
@@ -227,44 +227,53 @@ def select_candidate(candidates, proteins, seqids,
     return [representatives, final_representatives]
 
 
+# genes = even_genes_groups[0][0]
+# schema_path = even_genes_groups[0][1]
+# schema_short_path = even_genes_groups[0][2]
+# bsr = even_genes_groups[0][3]
+# min_len = even_genes_groups[0][4]
+# table_id = even_genes_groups[0][5]
+# size_threshold = even_genes_groups[0][6]
+# blastp_path = even_genes_groups[0][7]
+# makeblastdb_path = even_genes_groups[0][8]
 def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                table_id, size_threshold, blastp_path, makeblastdb_path):
     """ Adapts a set of genes/loci from an external schema so that
         that schema  can be used with chewBBACA. Removes invalid alleles
         and selects representative alleles to include in the "short" directory.
 
-        Parameters
-        ----------
-        genes_list : list
-            A list with the following elements:
+    Parameters
+    ----------
+    genes_list : list
+        A list with the following elements:
 
-            - List with paths to the files to be processed.
-            - Path to the schema directory.
-            - Path to the "short" directory.
-            - BLAST Score Ratio value.
-            - Minimum sequence length value.
-            - Genetic code.
-            - Sequence size variation threshold.
+        - List with paths to the files to be processed.
+        - Path to the schema directory.
+        - Path to the "short" directory.
+        - BLAST Score Ratio value.
+        - Minimum sequence length value.
+        - Genetic code.
+        - Sequence size variation threshold.
 
-        Returns
-        -------
-        invalid_alleles : list
-            List with the identifiers of the alleles that were
-            determined to be invalid.
-        invalid_genes : list
-            List with the identifiers of the genes that had no
-            valid alleles.
-        summary_stats : list of list
-            List with one sublist per processed locus. Each
-            sublist has four elements:
+    Returns
+    -------
+    invalid_alleles : list
+        List with the identifiers of the alleles that were
+        determined to be invalid.
+    invalid_genes : list
+        List with the identifiers of the genes that had no
+        valid alleles.
+    summary_stats : list of list
+        List with one sublist per processed locus. Each
+        sublist has four elements:
 
-            - The identifier of the locus.
-            - The number of alleles in the external file.
-            - The number of alleles that were a valid CDS.
-            - The number of representatives determined determined
-              by the process.
+        - The identifier of the locus.
+        - The number of alleles in the external file.
+        - The number of alleles that were a valid CDS.
+        - The number of representatives determined determined
+          by the process.
 
-        The function writes the schema files .
+    The function writes the schema files .
     """
 
     # divide input list into variables
@@ -278,14 +287,13 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
         # get gene basename and identifier
         gene_basename = os.path.basename(gene)
-        gene_id = gene_basename.split('.f')[0]
+        gene_id = gene_basename.split('.fasta')[0]
 
         # create paths to gene files in new schema
-        gene_file = fo.join_paths(schema_path,
-                                  ['{0}{1}'.format(gene_id, '.fasta')])
+        gene_file = fo.join_paths(schema_path, [gene_basename])
 
         gene_short_file = fo.join_paths(schema_short_path,
-                                        ['{0}{1}'.format(gene_id, '_short.fasta')])
+                                        [gene_basename.replace('.fasta', '_short.fasta')])
 
         # create path to temp working directory for current gene
         gene_temp_dir = fo.join_paths(schema_path,
@@ -325,7 +333,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                                          ['{0}_protein.fasta'.format(gene_id)])
             protein_data = [[i, prot_seqs[i]] for i in ids_to_blast]
             protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, protein_data)
-            fo.write_list(protein_lines, protein_file)
+            fo.write_lines(protein_lines, protein_file)
 
             # create blastdb with all distinct proteins
             blastp_db = os.path.join(gene_temp_dir, gene_id)
@@ -343,10 +351,10 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                                          ['{0}_rep_protein.fasta'.format(gene_id)])
                 rep_protein_data = [[r, prot_seqs[r]] for r in representatives]
                 rep_protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, rep_protein_data)
-                fo.write_list(rep_protein_lines, rep_file)
+                fo.write_lines(rep_protein_lines, rep_file)
 
                 # create file with seqids to BLAST against
-                ids_str = im.concatenate_list([str(i) for i in ids_to_blast], '\n')
+                ids_str = im.join_list([str(i) for i in ids_to_blast], '\n')
                 ids_file = fo.join_paths(gene_temp_dir,
                                          ['{0}_ids.txt'.format(gene_id)])
                 fo.write_to_file(ids_str, ids_file, 'w', '')
@@ -367,8 +375,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                 blast_results = fo.read_tabular(blast_output)
 
                 # get self-score for representatives
-                rep_self_scores = {res[1]: res[2] for res in blast_results
-                                   if res[0] == res[1]}
+                rep_self_scores = {res[0]: res[-1] for res in blast_results
+                                   if res[0] == res[4]}
 
                 # divide results into high, low and hot BSR values
                 hitting_high, hitting_low, hotspots, high_reps, low_reps, hot_reps = \
@@ -426,7 +434,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
         # write schema file with all alleles
         gene_data = [[k, v] for k, v in gene_seqs.items()]
         gene_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_data)
-        fo.write_list(gene_lines, gene_file)
+        fo.write_lines(gene_lines, gene_file)
 
         # get total number of valid sequences
         valid_sequences = len(gene_lines)
@@ -435,7 +443,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
         final_representatives = [seqids_map[rep] for rep in final_representatives]
         gene_rep_data = [[r, gene_seqs[r]] for r in final_representatives]
         gene_rep_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_rep_data)
-        fo.write_list(gene_rep_lines, gene_short_file)
+        fo.write_lines(gene_rep_lines, gene_short_file)
 
         # get number of representatives
         representatives_number = len(gene_rep_lines)
@@ -450,6 +458,15 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
     return [invalid_alleles, invalid_genes, summary_stats]
 
 
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/acinetobacter_schema'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/acinetobacter_adapted'
+# cpu_cores = 6
+# blast_score_ratio = 0.6
+# minimum_length = 0
+# translation_table = 11
+# ptf_path = '/home/rfm/Desktop/rfm/Cloned_repos/chewBBACA/CHEWBBACA/prodigal_training_files/Acinetobacter_baumannii.trn'
+# size_threshold = 0.2
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
          minimum_length, translation_table, ptf_path, size_threshold,
          blast_path):
@@ -546,7 +563,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     stats_lines = ['\t'.join(line) for line in stats_lines]
     stats_genes_file = '{0}/{1}_{2}'.format(schema_parent_directory,
                                             output_schema_basename,
-                                            'summary_stats.txt')
+                                            'summary_stats.tsv')
 
     with open(stats_genes_file, 'w') as stats:
         summary_stats_text = '\n'.join(stats_lines)

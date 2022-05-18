@@ -252,6 +252,10 @@ def count_classifications(classification_files):
     return [classification_counts, total_cds]
 
 
+# locus_file = locus
+# presence_DNAhashtable = dna_distinct_htable
+# locus_classifications = locus_classifications
+# input_ids = basename_inverse_map
 def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications, input_ids):
     """ Finds exact matches between DNA sequences extracted from inputs
         and the alleles for a locus in the schema.
@@ -387,7 +391,7 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
         if prot_hash in presence_PROThashtable and prot_hash not in matched_proteins:
             # get protids for distinct DNA CDSs
             matched_protids = im.polyline_decoding(presence_PROThashtable[prot_hash])
-            matched_protids = ['{0}-protein{1}'.format(input_ids[matched_protids[i]], matched_protids[i+1])
+            matched_protids = ['{0}-protein{1}'.format(input_ids[matched_protids[i+1]], matched_protids[i])
                                for i in range(0, len(matched_protids), 2)]
             total_prots += len(matched_protids)
             exact_prot_hashes.extend(matched_protids)
@@ -1087,7 +1091,7 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
         target_protein = str(pfasta_index.get(target_id).seq)
         target_phash = im.hash_sequence(target_protein)
         target_integers = im.polyline_decoding(phashtable[target_phash])
-        target_seqids = ['{0}-protein{1}'.format(inv_map[target_integers[i]], target_integers[i+1])
+        target_seqids = ['{0}-protein{1}'.format(inv_map[target_integers[i+1]], target_integers[i])
                          for i in range(0, len(target_integers), 2)]
         for seqid in target_seqids:
             target_cds = str(dfasta_index.get(seqid).seq)
@@ -1484,12 +1488,12 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
 
 
 # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
+# # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
+# # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
 # fasta_files = fo.read_lines(input_file, strip=True)
 # fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/test_allelecall'
-# ptf_path = '/home/rfm/Lab_Software/AlleleCall_tests/test_chewie3/senterica_schema/Salmonella_enterica.trn'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
 # blast_score_ratio = 0.6
 # minimum_length = 201
 # translation_table = 11
@@ -1504,12 +1508,13 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
 # prodigal_mode = 'single'
 # cds_input = False
 # only_exact = False
-# schema_directory = '/home/rfm/Lab_Software/AlleleCall_tests/test_chewie3/senterica_schema'
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed'
 # #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
 # add_inferred = True
 # output_unclassified = False
 # output_missing = False
 # no_cleanup = True
+# hash_profiles = 'crc32'
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1596,7 +1601,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     distinct_dna_template = 'distinct_cds_{0}.fasta'
     dna_dedup_results = cf.exclude_duplicates(cds_files, preprocess_dir,
                                               cpu_cores, distinct_dna_template,
-                                              basename_map, False)
+                                              [basename_map, basename_inverse_map], False, False)
 
     dna_distinct_htable, distinct_file, repeated = dna_dedup_results
     print('removed {0} sequences.'.format(repeated))
@@ -1695,7 +1700,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('\nRemoving duplicated protein sequences...', end='')
     distinct_prot_template = 'distinct_prots_{0}.fasta'
     ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
-                                       distinct_prot_template, basename_map, True)
+                                       distinct_prot_template, [basename_map, basename_inverse_map], True, False)
     print('removed {0} sequences.'.format(ds_results[2]))
     distinct_pseqids = ds_results[0]
 

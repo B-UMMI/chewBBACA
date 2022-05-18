@@ -606,7 +606,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
             # genome identifier and protein identifier can be used to fetch sequences
             genome_id, protid = seqid.split('-protein')
             genome_id = map_ids[genome_id]
-            duplicates.setdefault(seq_hash, []).extend([int(genome_id), int(protid)])
+            duplicates.setdefault(seq_hash, []).extend([int(protid), int(genome_id)])
         else:
             exausted = True
 

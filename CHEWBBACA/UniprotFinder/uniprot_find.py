@@ -205,7 +205,10 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     translated_reps = fo.join_paths(temp_directory, ['translated_reps'])
     fo.create_directory(translated_reps)
 
-    reps_protein_files = fao.translate_fastas(reps_paths, translated_reps, 11)
+    reps_protein_files = mo.parallelize_function(fao.translate_fasta, reps_paths,
+                                                 [translated_reps, 11],
+                                                 cpu_cores, True)
+    reps_protein_files = im.flatten_list(reps_protein_files)
     print('done.')
 
     print('Downloading list of reference proteomes...', end='')
@@ -356,7 +359,7 @@ def join_annotations(sparql_results, proteome_results, loci_info):
 
     selected = {}
     for result in sparql_results:
-        gene_basename = fo.file_basename(result[0], suffix=False)
+        gene_basename = fo.file_basename(result[0], False)
         locus_info = [gene_basename]
         locus_info += loci_info.get(gene_basename, ['']*6)
         locus_info += result[1:3]
@@ -423,6 +426,15 @@ def create_annotations_table(annotations, output_directory, header,
     return output_table
 
 
+# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/schema_seed'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/annotations'
+# protein_table = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/cds_info.tsv'
+# blast_score_ratio = 0.6
+# cpu_cores = 6
+# taxa = None
+# proteome_matches = 1
+# no_cleanup = True
+# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 def main(input_files, output_directory, protein_table, blast_score_ratio,
          cpu_cores, taxa, proteome_matches, no_cleanup, blast_path):
 
@@ -456,12 +468,14 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
 
     # find annotations in SPARQL endpoint
     print('\nQuerying UniProt\'s SPARQL endpoint...')
-    config_file = fo.join_paths(input_files, '.schema_config')
+    config_file = fo.join_paths(input_files, ['.schema_config'])
     if os.path.isfile(config_file) is True:
         config = fo.pickle_loader(config_file)
         translation_table = config.get('translation_table', [11])[0]
     else:
         translation_table = 11
+
+    # get annotations through UniProt SPARQL endpoint
     sparql_results = sparql_annotations(loci_paths,
                                         translation_table,
                                         cpu_cores)

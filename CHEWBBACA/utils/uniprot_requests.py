@@ -58,7 +58,7 @@ def select_name(result):
     selected_url = ''
     selected_label = ''
 
-    i = 1
+    i = 0
     found = False
     # get the entries with results
     aux = result['results']['bindings']
@@ -209,6 +209,8 @@ def get_proteomes(proteome_ids, output_dir):
     return proteomes_files
 
 
+# gene = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/schema_seed/GCA-000007265-protein1400.fasta'
+# translation_table = 11
 def get_annotation(gene, translation_table):
     """ Retrieves and selects annotation terms for a set of
         alleles from the same locus.
@@ -232,14 +234,14 @@ def get_annotation(gene, translation_table):
         URL for the page with information about the selected terms.
     """
 
-    selected_name = ''
     selected_url = ''
+    selected_name = ''
+    # import locus alleles
     sequences = fao.import_sequences(gene)
     for seqid, sequence in sequences.items():
+        # translate allele
         protein_sequence = str(sm.translate_sequence(sequence,
                                                      table_id=translation_table))
-
-        protein_sequence = protein_sequence.replace("*", "")
 
         query = uniprot_query(protein_sequence)
         result = get_data(query)

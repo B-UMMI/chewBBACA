@@ -1487,13 +1487,13 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
     return [locus, selected]
 
 
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
+# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Datasets/id.txt'
 # # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
 # # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
 # fasta_files = fo.read_lines(input_file, strip=True)
 # fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_allelecall'
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
+# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Datasets/test_senterica'
+# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Schemas/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
 # blast_score_ratio = 0.6
 # minimum_length = 201
 # translation_table = 11
@@ -1508,13 +1508,13 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
 # prodigal_mode = 'single'
 # cds_input = False
 # only_exact = False
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed'
+# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Schemas/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919'
 # #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
-# add_inferred = True
+# add_inferred = False
 # output_unclassified = False
 # output_missing = False
-# no_cleanup = True
-# hash_profiles = 'crc32'
+# no_cleanup = False
+# hash_profiles = None
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,

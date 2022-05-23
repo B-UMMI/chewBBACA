@@ -75,7 +75,8 @@ INTRA_CLUSTER_DEFAULT = 0.9
 
 # genetic codes/translation tables
 GENETIC_CODES = {1: 'Standard',
-                 4: 'The mold, protozoan, and coelenterate mitochondrial code and the mycoplasma/spiroplasma code',
+                 4: 'The mold, protozoan, and coelenterate mitochondrial '
+                    'code and the mycoplasma/spiroplasma code',
                  11: 'The Bacterial, Archaeal and Plant Plastid code',
                  25: 'Candidate division SR1 and gracilibacteria code'}
 
@@ -131,20 +132,24 @@ MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else 'ma
 PRODIGAL_PATH = 'prodigal'
 
 # BLAST warnings to be ignored
-IGNORE_RAISED = ['Warning: [blastp] To obtain better run time performance, please run '
-                 'blastdb_aliastool -seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
-                 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the argument to -seqidlist']
+IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
+                 'performance, please run blastdb_aliastool '
+                 '-seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
+                 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the '
+                 'argument to -seqidlist']
 
 # replacements for genome and loci identifiers
 CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
-                     (")", ""), ("'", ""), ("\"", ""), (":", "")]
+                     (")", ""), ("'", ""), ("\"", ""),
+                     (":", "")]
 
 # minimum Python version
 MIN_PYTHON = [(3, 6, 0), '3.6.0']
 
 # FTP to get UniProt's reference proteomes
-UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/uniprot'
-                         '/current_release/knowledgebase/reference_proteomes/')
+UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/'
+                         'uniprot/current_release/knowledgebase/'
+                         'reference_proteomes/')
 
 # list of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
@@ -164,7 +169,8 @@ UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
 LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
 # header for TSV file with loci stats
-LOCI_STATS_HEADER = 'Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\tNIPHEM\tALM\tASM\tLNF\tTotal_CDS'
+LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
+                     'NIPHEM\tALM\tASM\tLNF\tTotal_CDS')
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 
@@ -181,3 +187,9 @@ FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
 FASTA_CDS_TEMPLATE = '>{0}-protein{1}\n{2}'
 
 DNA_BASES = 'AGCT'
+
+# define default BLASTp task
+BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
+
+# BLAST outfmt
+BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'

@@ -21,7 +21,7 @@ try:
                        file_operations as fo,
                        fasta_operations as fao,
                        iterables_manipulation as im)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  fasta_operations as fao,
@@ -29,8 +29,7 @@ except:
 
 
 def check_prodigal_results(prodigal_results, output_directory):
-    """ Determines if Prodigal could not predict genes for any input
-        assembly.
+    """Determine set of inputs for which Prodigal failed.
 
     Parameters
     ----------
@@ -50,22 +49,24 @@ def check_prodigal_results(prodigal_results, output_directory):
             Path to the file with information about the failed
             cases.
     """
-
-    no_cds = [r for r in prodigal_results if r[1] == 0]
-    errors = [r for r in prodigal_results if isinstance(r[1], str) is True]
+    no_cds = [line for line in prodigal_results if line[1] == 0]
+    errors = [line for line in prodigal_results
+              if isinstance(line[1], str) is True]
     failed = no_cds + errors
 
     if len(failed) > 0:
-        failed_file = os.path.join(output_directory, 'prodigal_stderr.tsv')
-        lines = ['{0}\t{1}'.format(l[0], l[1]) for l in failed]
+        failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
+        lines = ['{0}\t{1}'.format(line[0], line[1]) for line in failed]
         fo.write_lines(lines, failed_file)
 
         return [failed, failed_file]
 
 
 def extract_genome_cds(reading_frames, contigs, starting_id):
-    """ Extracts CDSs from contigs based on the start
-        and stop coordinates determined by Prodigal.
+    """Extract coding sequence from contigs.
+
+    Extracts coding sequences from FASTA files based on the
+    start and stop coordinates predicted by Prodigal.
 
     Parameters
     ----------
@@ -93,7 +94,6 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
         identifier attributed to that CDS and the strand that
         coded for that CDS).
     """
-
     seqid = starting_id
     coding_sequences = {}
     coding_sequences_info = []
@@ -124,8 +124,7 @@ def extract_genome_cds(reading_frames, contigs, starting_id):
 
 
 def write_coordinates_tsv(cds_info, genome_id, output_file):
-    """ Writes a TSV file with the coordiantes for
-        the coding sequences predicted by Prodigal.
+    """Write a TSV file with coding sequence coordinates.
 
     Parameters
     ----------
@@ -141,7 +140,6 @@ def write_coordinates_tsv(cds_info, genome_id, output_file):
         Path to the output file to which info will
         be saved.
     """
-
     # write TSV file
     table_lines = [[genome_id] + protein_info[:-1]
                    for protein_info in cds_info]
@@ -151,8 +149,7 @@ def write_coordinates_tsv(cds_info, genome_id, output_file):
 
 
 def write_coordinates_pickle(cds_info, contig_lengths, output_file):
-    """ Saves coordiantes for the coding sequences
-        predicted by Prodigal to a pickled file.
+    """Save coordinates for coding sequences predicted by Prodigal.
 
     Parameters
     ----------
@@ -168,7 +165,6 @@ def write_coordinates_pickle(cds_info, contig_lengths, output_file):
         Path to the output file to which info will
         be saved.
     """
-    
     # write pickle with CDS hash to CDS info dictionary
     pickle_data = [{}, contig_lengths]
     # create dictionary to map CDS hash to CDS location
@@ -180,7 +176,7 @@ def write_coordinates_pickle(cds_info, contig_lengths, output_file):
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
-    """ Extracts coding sequences from a genome assembly based
+    """Extract coding sequences from a FASTA file.genome assembly based
         on Prodigal's gene predictions. Writes coding sequences
         to a FASTA file and information about coding sequences to
         a TSV file.
@@ -208,7 +204,6 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
         Total number of coding sequences extracted from
         the genome.
     """
-
     # import contigs for current genome/assembly
     contigs = fao.import_sequences(genome)
     # determine contig lengths

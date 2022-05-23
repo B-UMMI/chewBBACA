@@ -32,13 +32,13 @@ import pandas as pd
 try:
     from utils import (constants as ct,
                        iterables_manipulation as im)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  iterables_manipulation as im)
 
 
 def file_basename(file_path, file_extension=True, delimiter='.'):
-    """ Extract file basename from path.
+    """Extract file basename from a path.
 
     Parameters
     ----------
@@ -56,7 +56,6 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
     basename : str
         File basename extracted from input path.
     """
-
     basename = os.path.basename(file_path)
 
     if file_extension is False:
@@ -66,7 +65,7 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
 
 
 def get_locus_id(locus_path):
-    """ Extracts locus identifier from path.
+    """Extract the locus identifier from a path.
 
     Parameters
     ----------
@@ -78,7 +77,6 @@ def get_locus_id(locus_path):
     locus_id : str
         Locus identifier without the .fasta extension.
     """
-
     locus_basename = file_basename(locus_path)
     locus_id = im.match_regex(locus_basename, ct.LOCUS_ID_PATTERN)
 
@@ -86,20 +84,19 @@ def get_locus_id(locus_path):
 
 
 def remove_files(files):
-    """ Deletes a list of files.
+    """Delete a list of files.
 
     Parameters
     ----------
     files : list
         List with paths to the files to be deleted.
     """
-
     for f in files:
         os.remove(f)
 
 
 def hash_file(file, hash_object, buffer_size=65536):
-    """ Computes hash based on the contents of a file.
+    """Compute hash based on the contents of a file.
 
     Parameters
     ----------
@@ -117,7 +114,6 @@ def hash_file(file, hash_object, buffer_size=65536):
     hash_str : str
         Hash computed from file contents.
     """
-
     updated_hash = hash_object
 
     with open(file, 'rb') as f:
@@ -134,7 +130,7 @@ def hash_file(file, hash_object, buffer_size=65536):
 
 
 def filter_files(files, suffixes, reverse=False):
-    """ Filters files names based on a list of suffixes.
+    """Filter files names based on a list of suffixes.
 
     Parameters
     ----------
@@ -152,7 +148,6 @@ def filter_files(files, suffixes, reverse=False):
     filtered : list
         List with files that passed filtering.
     """
-
     filtered = [file for file in files
                 if any([True for suffix in suffixes if suffix in file])]
 
@@ -163,23 +158,20 @@ def filter_files(files, suffixes, reverse=False):
 
 
 def create_directory(directory_path):
-    """ Creates a diretory if it does not exist."""
-
+    """Create a diretory if it does not exist."""
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
 
 def join_paths(parent_path, child_paths):
-    """ Creates a new path by joining a parent directory
-        and a list with child paths."""
-
+    """Create path by joining a parent directory and a list of child paths."""
     joined_paths = os.path.join(parent_path, *child_paths)
 
     return joined_paths
 
 
 def listdir_fullpath(directory_path, substring_filter=False):
-    """ Gets the full path for all files in a directory.
+    """Get the full path for all files in a directory.
 
     Parameters
     ----------
@@ -194,7 +186,6 @@ def listdir_fullpath(directory_path, substring_filter=False):
         List containing the full path for every selected
         file in the input directory.
     """
-
     file_list = [os.path.join(directory_path, f)
                  for f in os.listdir(directory_path)]
 
@@ -217,8 +208,7 @@ def handle_rmtree_error(func, path, exception_info):
 
 
 def delete_directory(directory_path):
-    """ Deletes a directory. """
-
+    """Delete a directory."""
     # might fail to delete files due to permission issues (e.g.: read-only)
     shutil.rmtree(directory_path, onerror=handle_rmtree_error)
 
@@ -226,8 +216,7 @@ def delete_directory(directory_path):
 
 
 def read_lines(input_file, strip=True):
-    """ Reads lines in an input file and stores those lines
-        in a list.
+    """Read lines in a file.
 
     Parameters
     ----------
@@ -242,7 +231,6 @@ def read_lines(input_file, strip=True):
     lines : list
         List with the lines read from the input file.
     """
-
     with open(input_file, 'r') as infile:
         lines = [line for line in infile.readlines()]
         if strip is True:
@@ -252,7 +240,7 @@ def read_lines(input_file, strip=True):
 
 
 def pickle_dumper(content, output_file):
-    """ Use the Pickle module to serialize an object.
+    """Use the Pickle module to serialize an object.
 
     Parameters
     ----------
@@ -262,13 +250,12 @@ def pickle_dumper(content, output_file):
     output_file : str
         Path to the output file.
     """
-
     with open(output_file, 'wb') as poutfile:
         pickle.dump(content, poutfile)
 
 
 def pickle_loader(input_file):
-    """ Use the Pickle module to de-serialize an object.
+    """Use the Pickle module to de-serialize an object.
 
     Parameters
     ----------
@@ -281,7 +268,6 @@ def pickle_loader(input_file):
         Variable that refers to the de-serialized
         object.
     """
-
     with open(input_file, 'rb') as pinfile:
         content = pickle.load(pinfile)
 
@@ -289,7 +275,7 @@ def pickle_loader(input_file):
 
 
 def file_zipper(input_file, zip_file):
-    """ Zips (compresses) a file.
+    """Zip (compresses) a file.
 
     Parameters
     ----------
@@ -304,7 +290,6 @@ def file_zipper(input_file, zip_file):
         Path to the ZIP file that was created by
         compressing the input file.
     """
-
     with zipfile.ZipFile(zip_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
         zf.write(input_file, os.path.basename(input_file))
 
@@ -312,7 +297,7 @@ def file_zipper(input_file, zip_file):
 
 
 def unzip_file(compressed_file, archive_type='.gz'):
-    """ Uncompresses a file.
+    """Uncompresse a file.
 
     Parameters
     ----------
@@ -326,7 +311,6 @@ def unzip_file(compressed_file, archive_type='.gz'):
     uncompressed_file : str
         Path to the uncompressed file.
     """
-
     lines = []
     with gzip.open(compressed_file, 'rb') as f:
         for line in f:
@@ -340,7 +324,7 @@ def unzip_file(compressed_file, archive_type='.gz'):
 
 
 def download_file(file_url, outfile, max_tries=3):
-    """ Downloads a file.
+    """Download a file.
 
     Parameters
     ----------
@@ -352,7 +336,6 @@ def download_file(file_url, outfile, max_tries=3):
         Maximum number of retries if the download
         fails.
     """
-
     tries = 0
     downloaded = False
     while downloaded is False and tries <= max_tries:
@@ -369,18 +352,18 @@ def download_file(file_url, outfile, max_tries=3):
 
 
 def concatenate_files(files, output_file, header=None):
-    """ Concatenates files.
+    """Concatenate files.
 
     Parameters
     ----------
     files : list
         List with the paths to the files to concatenate.
     output_file : str
-        Path to the output file that will store the
-        concatenation of input files.
+        Path to the output file that will store the concatenation
+        of input files.
     header : str or NoneType
-        Specify a header that should be written as the
-        first line in the output file.
+        Specify a header that should be written as the first line
+        in the output file.
 
     Returns
     -------
@@ -388,7 +371,6 @@ def concatenate_files(files, output_file, header=None):
         Path to the output file that was created with
         the concatenation of input files.
     """
-
     with open(output_file, 'w') as outfile:
         if header is not None:
             outfile.write(header)
@@ -400,7 +382,7 @@ def concatenate_files(files, output_file, header=None):
 
 
 def write_to_file(text, output_file, write_mode, end_char):
-    """ Writes a single string to a file.
+    """Write a single string to a file.
 
     Parameters
     ----------
@@ -409,46 +391,42 @@ def write_to_file(text, output_file, write_mode, end_char):
     output_file : str
         Path to the output file.
     write_mode : str
-        Specify write mode ('w' creates file if it
-    	does not exist and truncates and over-writes
-    	existing file, 'a' creates file if it does not
-    	exist and appends to the end of file if it exists.).
+        Specify write mode ('w' creates file if it does not
+        exist and truncates and over-writes existing file,
+        'a' creates file if it does not exist and appends to
+        the end of file if it exists.).
     end_char : str
         Character added to the end of the file.
     """
-
     with open(output_file, write_mode) as out:
         out.write(text+end_char)
 
 
 def write_lines(lines, output_file, joiner='\n', write_mode='w'):
-    """ Writes a list of strings to a file. The strings
-        are joined with specified character before being
-        written to file.
+    """Write a list of strings to a file.
 
     Parameters
     ----------
     lines : list
-        List with the lines/strings to write to the
-        output file.
+        List with the lines/strings to write to the output
+        file.
     output_file : str
         Path to the output file.
     joiner : str
-    	Character used to join lines.
+        Character used to join lines.
     write_mode : str
-    	Specify write mode ('w' creates file if it
-    	does not exist and truncates and over-writes
-    	existing file, 'a' creates file if it does not
-    	exist and appends to the end of file if it exists).
+        Specify write mode ('w' creates file if it does not
+        exist and truncates and over-writes existing file,
+        'a' creates file if it does not exist and appends to
+        the end of file if it exists).
     """
-
     joined_lines = im.join_list(lines, joiner)
 
     write_to_file(joined_lines, output_file, write_mode, '\n')
 
 
 def read_tabular(input_file, delimiter='\t'):
-    """ Read tabular (TSV) file.
+    """Read a tabular (TSV) file.
 
     Parameters
     ----------
@@ -464,7 +442,6 @@ def read_tabular(input_file, delimiter='\t'):
         Each sublist has the fields that were separated by
         the defined delimiter.
     """
-
     with open(input_file, 'r') as infile:
         reader = csv.reader(infile, delimiter=delimiter)
         lines = [line for line in reader]
@@ -473,7 +450,7 @@ def read_tabular(input_file, delimiter='\t'):
 
 
 def input_timeout(prompt, timeout=30):
-    """ Adds timeout feature when requesting user input.
+    """Add timeout feature when requesting user input.
 
     Parameters
     ----------
@@ -493,33 +470,29 @@ def input_timeout(prompt, timeout=30):
     SystemExit
         - If there is no user input before timeout.
     """
-
     pool = ThreadPool(processes=1)
     answer = pool.apply_async(input, args=[prompt])
 
     try:
         return answer.get(timeout=timeout)
-    except TimeoutError as e:
+    except TimeoutError:
         sys.exit('Timed out.')
 
 
 def is_file_empty(file_path):
-    """ Check if file is empty by confirming if its size is 0 bytes. """
-
+    """Check if file is empty by confirming if its size is 0 bytes."""
     # Check if file exist and it is empty
     return os.path.exists(file_path) and os.stat(file_path).st_size == 0
 
 
 def is_file_empty_2(file_name):
-    """ Check if file is empty by confirming if its size is 0 bytes. """
-
+    """Check if file is empty by confirming if its size is 0 bytes."""
     # Check if file exist and it is empty
     return os.path.isfile(file_name) and os.path.getsize(file_name) == 0
 
 
 def is_file_empty_3(file_name):
-    """ Check if file is empty by reading first character in it. """
-
+    """Check if file is empty by reading first character in it."""
     # open ile in read mode
     with open(file_name, 'r') as read_obj:
         # read first character
@@ -533,9 +506,11 @@ def is_file_empty_3(file_name):
 
 
 def create_short(schema_files, schema_dir):
-    """ Creates the 'short' directory and copies the FASTA
-        files that contain loci representative alleles into the
-        directory.
+    """Create the 'short' directory for a chewBBACA schema.
+
+    Creates the 'short' directory inside a schema's main
+    directory and copies the FASTA files with the representative
+    alleles into the 'short' folder.
 
     Parameters
     ----------
@@ -549,7 +524,6 @@ def create_short(schema_files, schema_dir):
     -------
     True on completion.
     """
-
     short_path = join_paths(schema_dir, ['short'])
     create_directory(short_path)
 
@@ -562,13 +536,12 @@ def create_short(schema_files, schema_dir):
 
 
 def move_file(source, destination):
-    """ Moves a file to specified destination. """
-
+    """Move a file to specified destination."""
     shutil.move(source, destination)
 
 
 def matching_lines(input_file, pattern):
-    """ Retrieves lines from a file that contain a string pattern.
+    """Retrieve lines from a file that contain a pattern.
 
     Parameters
     ----------
@@ -582,15 +555,14 @@ def matching_lines(input_file, pattern):
     matched_lines : list
         List with lines that contain the pattern.
     """
-
     with open(input_file, 'r') as infile:
-        matched_lines = [l for l in infile if pattern in l]
+        matched_lines = [line for line in infile if pattern in line]
 
     return matched_lines
 
 
 def transpose_matrix(input_file, output_directory):
-    """ Transposes lines in a TSV file. 
+    """Transpose a TSV file.
 
     Parameters
     ----------
@@ -607,7 +579,6 @@ def transpose_matrix(input_file, output_directory):
         This file is created by concatenating all
         intermediate files.
     """
-
     intermediate_files = []
     with open(input_file, 'r') as infile:
         # get column identifiers

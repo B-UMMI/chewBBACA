@@ -106,7 +106,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  profile_hasher as ph,

@@ -12,16 +12,18 @@ Code documentation
 """
 
 
-#import time
+import time
 import traceback
 from multiprocessing import Pool
 
-from utils import iterables_manipulation as im
+try:
+    from utils import iterables_manipulation as im
+except ModuleNotFoundError:
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def function_helper(input_args):
-    """ Runs function by passing set of provided inputs and
-        captures exceptions raised during function execution.
+    """Run function with provided inputs and capture exceptions.
 
     Parameters
     ----------
@@ -36,7 +38,6 @@ def function_helper(input_args):
         If an exception is raised it returns a list with
         the name of the function and the exception traceback.
     """
-
     try:
         results = input_args[-1](*input_args[0:-1])
     except Exception as e:
@@ -52,8 +53,7 @@ def function_helper(input_args):
 
 def map_async_parallelizer(inputs, function, cpu, callback='extend',
                            chunksize=1, show_progress=False):
-    """ Parallelizes function calls by creating several processes
-        and distributing inputs.
+    """Run function in parallel.
 
     Parameters
     ----------
@@ -83,7 +83,6 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
         List with the results returned for each function
         call.
     """
-
     results = []
     # use context manager to join and close pool automatically
     with Pool(cpu) as pool:
@@ -105,7 +104,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
 
 
 def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
-    """ Creates and prints a progress bar to the stdout.
+    """Create and print a progress bar to the stdout.
 
     Parameters
     ----------
@@ -126,7 +125,6 @@ def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
     completed : bool
         Boolean indicating if all inputs have been processed.
     """
-
     # check if process has finished
     if (process.ready()):
         # print full progress bar and satisfy stopping condition
@@ -147,17 +145,18 @@ def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
                                               progress)
 
     print('\r', progress_bar, end='')
-    #time.sleep(0.5)
+    time.sleep(0.5)
 
     return completed
 
 
 def distribute_loci(inputs, cores, method):
-    """ Creates balanced lists of loci to distribute per number
-        of available cores. Loci lists can be created based
-        on the number of sequence per locus (seqcount), the mean
-        length of the sequences in each locus or the product of
-        both values.
+    """Create balanced lists of loci to efficiently parallelize function calls.
+
+    Creates balanced lists of loci to distribute per number of
+    available cores. Loci lists can be created based on the number
+    of sequences per locus (seqcount), the mean length of the
+    sequences in each locus or the product of both values.
 
     Parameters
     ----------
@@ -181,7 +180,6 @@ def distribute_loci(inputs, cores, method):
         List with sublists that contain loci identifiers.
         Sublists are balanced based on the chosen method.
     """
-
     # initialize list with sublists to store inputs
     splitted_ids = [[] for cpu in range(cores)]
     # initialize list with chosen criterion values

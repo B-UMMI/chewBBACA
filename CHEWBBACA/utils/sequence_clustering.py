@@ -21,7 +21,7 @@ try:
                        blast_wrapper as bw,
                        fasta_operations as fao,
                        constants as ct)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
                                  blast_wrapper as bw,
@@ -30,9 +30,11 @@ except:
 
 
 def select_representatives(kmers, reps_groups, clustering_sim):
-    """ Determines the set of clusters that a sequence
-        can be added to based on the decimal proportion
-        of shared distinct k-mers.
+    """Determine the clusters a sequence can be added to.
+
+    Determines the set of clusters that a sequence can be
+    added to based on the decimal proportion of shared
+    distinct k-mers.
 
     Parameters
     ----------
@@ -57,7 +59,6 @@ def select_representatives(kmers, reps_groups, clustering_sim):
         and the decimal proportion of shared distinct
         kmers.
     """
-
     current_reps = [reps_groups[k] for k in kmers if k in reps_groups]
     current_reps = im.flatten_list(current_reps)
 
@@ -75,10 +76,12 @@ def select_representatives(kmers, reps_groups, clustering_sim):
 
 
 def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
-    """ Determines the percentage of shared kmers/minimizers
-        between sequences in the same cluster and excludes
-        sequences that are similar to other sequences in the
-        cluster.
+    """Identify clustered sequences that are similar.
+
+    Determines the percentage of shared k-mers/minimizers
+    between sequences in the same cluster and excludes
+    sequences that are similar to other sequences in the
+    cluster.
 
     Parameters
     ----------
@@ -116,7 +119,6 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
         similarity value for a match that led to
         an exclusion.
     """
-
     excluded_seqids = {}
     excluded_sims = {}
     for representative, clustered in clusters.items():
@@ -163,8 +165,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
                          seq_num_cluster, clustering_sim, grow):
-    """ Cluster sequences based on the decimal proportion of
-        shared distinct minimizers.
+    """Cluster sequences based on shared distinct minimizers.
 
     Parameters
     ----------
@@ -236,7 +237,6 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
             identifiers of sequences that contain that kmer
             as values.
     """
-
     for protid, protein in sorted_sequences.items():
 
         minimizers = im.determine_minimizers(protein, window_size,
@@ -276,8 +276,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 def clusterer(sorted_sequences, word_size, window_size,
               clustering_sim, representatives, grow,
               offset, position, seq_num_cluster):
-    """ Cluster sequences based on the decimal proportion of
-        shared distinct minimizers.
+    """Cluster sequences based on shared distinct minimizers.
 
     Parameters
     ----------
@@ -322,7 +321,6 @@ def clusterer(sorted_sequences, word_size, window_size,
             that are cluster representatives as keys and
             their sequences as values.
     """
-
     clusters = {}
     reps_sequences = {}
     if representatives is None:
@@ -343,7 +341,7 @@ def clusterer(sorted_sequences, word_size, window_size,
 
 
 def write_clusters(clusters, outfile):
-    """ Writes information about clusters to file.
+    """Write information about clusters to file.
 
     Parameters
     ----------
@@ -359,7 +357,6 @@ def write_clusters(clusters, outfile):
         Path to the file that will be created to save
         information about clusters.
     """
-
     cluster_lines = []
     for rep, seqids in clusters.items():
         current_cluster = []
@@ -379,8 +376,7 @@ def write_clusters(clusters, outfile):
 
 
 def representative_pruner(clusters, sim_cutoff):
-    """ Removes sequences from clusters based on a similarity
-        threshold.
+    """Remove sequences from clusters based on a similarity threshold.
 
     Parameters
     ----------
@@ -409,7 +405,6 @@ def representative_pruner(clusters, sim_cutoff):
             has the sequences that were excluded from
             a cluster.
     """
-
     excluded = []
     pruned_clusters = {}
     for rep, seqids in clusters.items():
@@ -426,7 +421,7 @@ def representative_pruner(clusters, sim_cutoff):
 
 def cluster_blaster(seqids, sequences, output_directory,
                     blast_path, blastdb_path, only_rep=False):
-    """ Aligns sequences in the same cluster with BLAST.
+    """Align sequences in the same cluster with BLAST.
 
     Parameters
     ----------
@@ -450,7 +445,6 @@ def cluster_blaster(seqids, sequences, output_directory,
         List with the paths to the files with the BLAST
         results for each cluster.
     """
-
     # have to index file here, cannot provide index as argument while multiprocessing, why?
     indexed_fasta = fao.index_fasta(sequences)
 
@@ -489,8 +483,7 @@ def cluster_blaster(seqids, sequences, output_directory,
 
 
 def blast_inputs(clusters, output_directory, ids_dict, only_rep):
-    """ Creates files with the identifiers of the sequences
-        in each cluster.
+    """Create files with the identifiers of the sequences in each cluster.
 
     Parameters
     ----------
@@ -517,7 +510,6 @@ def blast_inputs(clusters, output_directory, ids_dict, only_rep):
     ids_to_blast : list
         List with the identifiers of all clusters.
     """
-
     rev_ids = {v: k for k, v in ids_dict.items()}
 
     ids_to_blast = []

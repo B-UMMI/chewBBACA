@@ -176,10 +176,12 @@ def write_coordinates_pickle(cds_info, contig_lengths, output_file):
 
 
 def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
-    """Extract coding sequences from a FASTA file.genome assembly based
-        on Prodigal's gene predictions. Writes coding sequences
-        to a FASTA file and information about coding sequences to
-        a TSV file.
+    """Extract coding sequences from a FASTA file.
+
+    Extracts coding sequences from a FASTA file based on
+    Prodigal's predictions. Writes coding sequences to a
+    FASTA file and information about coding sequences to
+    a TSV file.
 
     Parameters
     ----------
@@ -227,7 +229,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
 
 
 def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
-    """ Extracts coding sequences from a set of genomes.
+    """Extract coding sequences from a set of genomes.
 
     Parameters
     ----------
@@ -253,7 +255,6 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
             Total number of coding sequences extracted from
             the set of input genomes.
     """
-
     protein_table = fo.join_paths(temp_directory,
                                   ['protein_info_{0}.tsv'.format(index)])
 
@@ -274,7 +275,7 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
 
 
 def run_prodigal(input_file, translation_table, mode, ptf_path):
-    """ Executes Prodigal.
+    """Execute Prodigal.
 
     Parameters
     ----------
@@ -296,7 +297,6 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
     stderr : bytes
         Prodigal's stderr.
     """
-
     if ptf_path is not None:
         proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
                                  '-m', '-g', str(translation_table), '-p',
@@ -334,9 +334,9 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     lines = [line.decode('utf-8').strip() for line in stdout]
 
     # determine contigs headers indexes
-    contigs_headers = [l for l in lines if 'seqhdr' in l]
-    contigs_ids = [l.split('"')[1].split()[0] for l in contigs_headers]
-    contigs_idx = [lines.index(l) for l in contigs_headers] + [len(lines)]
+    contigs_headers = [line for line in lines if 'seqhdr' in line]
+    contigs_ids = [line.split('"')[1].split()[0] for line in contigs_headers]
+    contigs_idx = [lines.index(line) for line in contigs_headers] + [len(lines)]
 
     # get CDSs' positions for each contig
     contigs_pos = {contigs_ids[i]: lines[contigs_idx[i]+1:contigs_idx[i+1]]

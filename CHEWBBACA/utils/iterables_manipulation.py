@@ -19,14 +19,14 @@ try:
     from utils import (constants as ct,
                        file_operations as fo,
                        fasta_operations as fao)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  fasta_operations as fao)
 
 
 def match_regex(text, pattern):
-    """ Extracts substrings that match a regex pattern.
+    """Extract substrings that match a regex pattern.
 
     Parameters
     ----------
@@ -41,7 +41,6 @@ def match_regex(text, pattern):
         Matched substring or NoneType if no matches
         were found.
     """
-
     match = re.search(pattern, text)
     if match is not None:
         match_span = match.span()
@@ -51,7 +50,7 @@ def match_regex(text, pattern):
 
 
 def join_list(lst, delimiter):
-    """ Joins all elements in a list into a single string.
+    """Join all elements in a list into a single string.
 
     Parameters
     ----------
@@ -66,14 +65,13 @@ def join_list(lst, delimiter):
         A single string with all elements in the input
         list joined by the character chosen as link.
     """
-
     joined_list = delimiter.join(lst)
 
     return joined_list
 
 
 def flatten_list(list_to_flatten):
-    """ Flattens one level of a nested list.
+    """Flatten one level of a nested list.
 
     Parameters
     ----------
@@ -85,21 +83,19 @@ def flatten_list(list_to_flatten):
     flattened_list : str
         Input list flattened by one level.
     """
-
     flattened_list = list(itertools.chain(*list_to_flatten))
 
     return flattened_list
 
 
 def isListEmpty(input_list):
-    """ Checks if a nested list is empty. """
-
+    """Check if a nested list is empty."""
     if isinstance(input_list, list):
         return all(map(isListEmpty, input_list)) if isinstance(input_list, list) else False
 
 
 def divide_list_into_n_chunks(list_to_divide, n):
-    """ Divides a list into a defined number of sublists.
+    """Divides a list into a defined number of sublists.
 
     Parameters
     ----------
@@ -114,7 +110,6 @@ def divide_list_into_n_chunks(list_to_divide, n):
         List with the sublists created by dividing
         the input list.
     """
-
     sublists = []
     d, r = divmod(len(list_to_divide), n)
     for i in range(n):
@@ -122,13 +117,13 @@ def divide_list_into_n_chunks(list_to_divide, n):
         sublists.append(list_to_divide[si:si+(d+1 if i < r else d)])
 
     # exclude lists that are empty due to small number of elements
-    sublists = [l for l in sublists if len(l) > 0]
+    sublists = [line for line in sublists if len(line) > 0]
 
     return sublists
 
 
 def merge_dictionaries(dictionaries_list, overwrite=False):
-    """ Merges several dictionaries.
+    """Merge several dictionaries.
 
     Parameters
     ----------
@@ -144,7 +139,6 @@ def merge_dictionaries(dictionaries_list, overwrite=False):
         A dictionary resulting from merging
         all input dictionaries.
     """
-
     merged_dicts = dictionaries_list[0]
     if overwrite is True:
         for d in dictionaries_list[1:]:
@@ -161,7 +155,7 @@ def merge_dictionaries(dictionaries_list, overwrite=False):
 
 
 def invert_dictionary(dictionary):
-    """ Inverts a dictionary (key:value to value:key).
+    """Invert a dictionary (key:value to value:key).
 
     Parameters
     ----------
@@ -173,14 +167,13 @@ def invert_dictionary(dictionary):
     inverted_dict : dict
         Inverted dictionary.
     """
-
     inverted_dict = {value: key for key, value in dictionary.items()}
 
     return inverted_dict
 
 
 def split_iterable(iterable, size):
-    """ Splits a dictionary.
+    """Split a dictionary.
 
     Parameters
     ----------
@@ -196,7 +189,6 @@ def split_iterable(iterable, size):
         List with dictionaries of defined size
         resulting from splitting the input dictionary.
     """
-
     chunks = []
     # create iterable from input object
     # need to convert or slicing will always return the first elements
@@ -208,8 +200,7 @@ def split_iterable(iterable, size):
 
 
 def select_keys(dictionary, size):
-    """ Selects dictionary keys with a number of values
-        equal or greater/lesser than a specified value.
+    """Select dictionary keys based on the number of values.
 
     Parameters
     ----------
@@ -225,14 +216,13 @@ def select_keys(dictionary, size):
         of matching values equal or greater/lesser than
         `size`.
     """
-
     selected = [k for k, v in dictionary.items() if len(v) == size]
 
     return selected
 
 
 def prune_dictionary(dictionary, keys):
-    """ Removes a set of keys from a dictionary.
+    """Remove a set of keys from a dictionary.
 
     Parameters
     ----------
@@ -247,14 +237,13 @@ def prune_dictionary(dictionary, keys):
         Dictionary without the keys in the list
         of keys to remove.
     """
-
     pruned_dict = {k: v for k, v in dictionary.items() if k not in keys}
 
     return pruned_dict
 
 
 def extract_subsequence(sequence, start, stop):
-    """ Extract substring from string.
+    """Extract a substring from a string.
 
     Parameters
     ----------
@@ -270,14 +259,13 @@ def extract_subsequence(sequence, start, stop):
     subsequence : str
         Substring extracted from input string.
     """
-
     subsequence = sequence[start:stop]
 
     return subsequence
 
 
 def extract_single_cds(sequence, start, stop, strand):
-    """ Extracts a coding sequence from a larger sequence.
+    """Extract a coding sequence from a larger sequence.
 
     Parameters
     ----------
@@ -295,7 +283,6 @@ def extract_single_cds(sequence, start, stop, strand):
     coding_sequence : str
         Coding sequence extracted from input contig.
     """
-
     coding_sequence = extract_subsequence(sequence, start, stop)
 
     if strand == 0:
@@ -305,7 +292,7 @@ def extract_single_cds(sequence, start, stop, strand):
 
 
 def escape_special_characters(input_string):
-    """ Escapes strings to use in regex.
+    """Escape strings to use in regex.
 
     Parameters
     ----------
@@ -317,14 +304,13 @@ def escape_special_characters(input_string):
     escaped_string : str
         Escaped string.
     """
-
     escaped_string = re.escape(input_string)
 
     return escaped_string
 
 
 def replace_multiple_characters(input_string, replacements):
-    """ Replaces multiple characters in a string.
+    """Replace multiple characters in a string.
 
     Parameters
     ----------
@@ -340,7 +326,6 @@ def replace_multiple_characters(input_string, replacements):
     replaced : str
         Input string with replaced characters.
     """
-
     for r in replacements:
         if r[0] in input_string:
             input_string = input_string.replace(*r)
@@ -349,7 +334,7 @@ def replace_multiple_characters(input_string, replacements):
 
 
 def reverse_complement(input_string, alphabet):
-    """ Determines the reverse complement of a string.
+    """Determine the reverse complement of a string.
 
     Parameters
     ----------
@@ -365,7 +350,6 @@ def reverse_complement(input_string, alphabet):
     reverse_complement_string : str
         The reverse complement of the input string.
     """
-
     translation_table = str.maketrans(alphabet, alphabet[::-1])
 
     upper_string = input_string.upper()
@@ -376,7 +360,7 @@ def reverse_complement(input_string, alphabet):
 
 
 def reverse_str(input_string):
-    """ Reverse character order in input string.
+    """Reverse character order in a string.
 
     Parameters
     ----------
@@ -388,15 +372,13 @@ def reverse_str(input_string):
     revstr : str
         Reverse of input string.
     """
-
     revstr = input_string[::-1]
 
     return revstr
 
 
 def check_str_alphabet(input_string, alphabet):
-    """ Determine if a string only contains characters from
-        specified alphabet.
+    """Determine if a string only contains characters from specified alphabet.
 
     Parameters
     ----------
@@ -411,18 +393,16 @@ def check_str_alphabet(input_string, alphabet):
     True if sequence only has characters from specified
     alphabet, False otherwise.
     """
-
     alphabet_chars = set(alphabet)
     string_chars = set(input_string)
 
     diff = string_chars - alphabet_chars
-    
+
     return len(diff) == 0
 
 
 def check_str_multiple(input_string, number):
-    """ Determine if length of input string is a multiple of
-        a specified number.
+    """Determine if length of input string is a multiple of a specified number.
 
     Parameters
     ----------
@@ -436,12 +416,11 @@ def check_str_multiple(input_string, number):
     True if the length of the sequence is a multiple of the
     specified number, False otherwise.
     """
-
     return (len(input_string) % number) == 0
 
 
 def hash_sequence(input_string, hash_type='sha256'):
-    """ Compute hash for an input string.
+    """Compute hash of an input string.
 
     Parameters
     ----------
@@ -458,7 +437,6 @@ def hash_sequence(input_string, hash_type='sha256'):
         String representation of the HASH object
         in hexadecimal digits.
     """
-
     # get hash function object from hashlib
     hashing_function = getattr(hashlib, hash_type)
 
@@ -469,7 +447,7 @@ def hash_sequence(input_string, hash_type='sha256'):
 
 
 def string_kmerizer(input_string, k_value, offset=1, position=False):
-    """ Decomposes a string into k-mers.
+    """Decompose a string into k-mers.
 
     Parameters
     ----------
@@ -492,7 +470,6 @@ def string_kmerizer(input_string, k_value, offset=1, position=False):
         stored and tuples of k-mer and start position
         if the position is stored.
     """
-
     if position is False:
         kmers = [input_string[i:i+k_value]
                  for i in range(0, len(input_string)-k_value+1, offset)]
@@ -505,10 +482,11 @@ def string_kmerizer(input_string, k_value, offset=1, position=False):
 
 def determine_minimizers(input_string, adjacent_kmers, k_value, offset=1,
                          position=False):
-    """ Determines minimizers for a sequence based on
-        lexicographical order. Skips windows that
-        cannot have a minimizer based on the minimizer
-        computed in the previous iteration.
+    """Determine minimizers for a input string.
+
+    Determines minimizers for a string based on lexicographical
+    order. Skips windows that cannot have a minimizer based on
+    the minimizer computed in the previous iteration.
 
     Parameters
     ----------
@@ -530,7 +508,6 @@ def determine_minimizers(input_string, adjacent_kmers, k_value, offset=1,
         A list with the set of minimizers determined
         for the input string.
     """
-
     # break string into k-mers
     kmers = string_kmerizer(input_string, k_value, offset, position)
 
@@ -588,9 +565,10 @@ def determine_minimizers(input_string, adjacent_kmers, k_value, offset=1,
 
 
 def decode_str(str_list, encoding):
-    """ Decodes bytes objects in the input list and
-        strips decoded strings from whitespaces and
-        newlines.
+    """Decode bytes objects.
+
+    Decodes bytes objects in the input list and strips decoded
+    strings from whitespaces and newlines.
 
     Parameters
     ----------
@@ -606,7 +584,6 @@ def decode_str(str_list, encoding):
         List with strings without whitespaces or
         newlines.
     """
-
     decoded = [m.decode(encoding).strip()
                if type(m) == bytes
                else m.strip()
@@ -617,7 +594,7 @@ def decode_str(str_list, encoding):
 
 # sorted key parameter is None by default
 def sort_iterable(data, sort_key=None, reverse=False):
-    """ Sorts an iterable.
+    """Sort an iterable.
 
     Parameters
     ----------
@@ -634,7 +611,6 @@ def sort_iterable(data, sort_key=None, reverse=False):
     sorted_data
         Iterable with sorted elements.
     """
-
     # sorted key parameter is None by default
     sorted_data = sorted(data, key=sort_key, reverse=reverse)
 
@@ -642,7 +618,7 @@ def sort_iterable(data, sort_key=None, reverse=False):
 
 
 def filter_list(lst, remove):
-    """ Removes elements from a list.
+    """Remove elements from a list.
 
     Parameters
     ----------
@@ -656,27 +632,24 @@ def filter_list(lst, remove):
     filtered_list : list
         List without the removed elements.
     """
-
     filtered_list = list(set(lst) - set(remove))
 
     return filtered_list
 
 
 def find_missing(integer_list):
-    """ Finds missing integers in list
-        of consecutive integers.
+    """Find the set of integers missing from a list to make it consecutive.
 
     Parameters
     ----------
     integer_list : list
-        List containing consecutive integers.
+        List containing integers.
 
     Returns
     -------
     missing_integers : list
         Sorted list of missing integers.
     """
-
     first = integer_list[0]
     last = integer_list[-1]
     missing_integers = sorted(set(range(first, last + 1)).difference(integer_list))
@@ -685,8 +658,7 @@ def find_missing(integer_list):
 
 
 def kmer_index(fasta_file, word_size, fasta=True):
-    """ Creates a k-mer index based on a set
-        of sequences in a Fasta file.
+    """Create a k-mer index from a set of sequences in a FASTA file.
 
     Parameters
     ----------
@@ -698,16 +670,15 @@ def kmer_index(fasta_file, word_size, fasta=True):
     Returns
     -------
     kmers_mapping : dict
-        Dictionary with kmers as keys and the
+        Dictionary with k-mers as keys and the
         list of sequence identifiers of the
         sequences that contain the kmers as
         values.
     seqs_kmers : dict
         Dictionary with sequence identifiers
-        as keys and the set of distinct kmers
+        as keys and the set of distinct k-mers
         for each sequence as values.
     """
-
     if fasta is True:
         sequences = fao.sequence_generator(fasta_file)
     else:
@@ -734,10 +705,8 @@ def kmer_index(fasta_file, word_size, fasta=True):
     return kmers_mapping
 
 
-
 def contained_terms(iterable, terms):
-    """ Finds elements in an iterable that contain
-        any term from a set of terms.
+    """Find elements in an iterable that contain any term from a set of terms.
 
     Parameters
     ----------
@@ -753,7 +722,6 @@ def contained_terms(iterable, terms):
         List with the elements of the iterable
         that contain any of the searched terms.
     """
-
     matches = []
     for e in iterable:
         if any([term in e for term in terms]) is True:
@@ -763,9 +731,7 @@ def contained_terms(iterable, terms):
 
 
 def integer_mapping(values, inverse=False):
-    """ Creates dictionary with the mapping between the
-        elements in the input iterable and integer values
-        assigned sequentially.
+    """Create mapping between list elements and consecutive integers.
 
     Parameters
     ----------
@@ -782,7 +748,6 @@ def integer_mapping(values, inverse=False):
         elements in the input iterable and the
         sequential integers.
     """
-
     mapping = {v: i+1 for i, v in enumerate(values)}
     if inverse is True:
         mapping = invert_dictionary(mapping)
@@ -791,8 +756,10 @@ def integer_mapping(values, inverse=False):
 
 
 def multiprocessing_inputs(inputs, common_args, function):
-    """ Creates lists of inputs for the `map_async_parallelizer`
-        function from the `multiprocessing_operations` module.
+    """Create lists of inputs to process in parallel.
+
+    Creates lists of inputs for the `map_async_parallelizer`
+    function from the `multiprocessing_operations` module.
 
     Parameters
     ----------
@@ -811,7 +778,6 @@ def multiprocessing_inputs(inputs, common_args, function):
         sublist also contains the common arguments and
         the function that will receive the arguments.
     """
-
     input_groups = []
     # create a list for each distinct input
     for g in inputs:
@@ -822,8 +788,7 @@ def multiprocessing_inputs(inputs, common_args, function):
 
 
 def aggregate_iterables(iterables):
-    """ Aggregates elements with same index from
-        several iterables.
+    """Aggregate elements with same index from several iterables.
 
     Parameters
     ----------
@@ -836,16 +801,13 @@ def aggregate_iterables(iterables):
         List with a sublist per group of elements
         with same index that were aggregated.
     """
-
     aggregated_inputs = [list(i) for i in zip(*iterables)]
 
     return aggregated_inputs
 
 
 def mapping_function(values, function, args):
-    """ Creates a dictionary with the mapping between
-        the elements in the input iterable and the
-        result of applying a function to those values.
+    """Create mapping between input elements and function result.
 
     Parameters
     ----------
@@ -865,15 +827,13 @@ def mapping_function(values, function, args):
         result of applying the function to each
         value.
     """
-
     mapping = {v: function(v, *args) for v in values}
 
     return mapping
 
 
 def polyline_encoding(number_list, precision=0):
-    """ Uses the polyline algorithm to encode/compress
-        a list of numbers.
+    """Use the polyline algorithm to encode/compress a list of numbers.
 
     Parameters
     ----------
@@ -894,7 +854,6 @@ def polyline_encoding(number_list, precision=0):
     This implementation is based on the `numcompress` package
     (https://github.com/amit1rrr/numcompress).
     """
-
     compressed_values = ''
     # store the precision value
     # to ensure proper character display, encoded values are summed with 63 (the ASCII character '?')
@@ -928,8 +887,7 @@ def polyline_encoding(number_list, precision=0):
 
 
 def decompress_number(text, index):
-    """ Decode a single number from a string created through
-        the compression of a list of numbers with polyline encoding.
+    """Decode a single number from a string created with polyline encoding.
 
     Parameters
     ----------
@@ -943,7 +901,6 @@ def decompress_number(text, index):
     Index to start decoding the next number and the number decoded
     in the current function call.
     """
-
     number = 0
     bitwise_shift = 0
 
@@ -975,8 +932,7 @@ def decompress_number(text, index):
 
 
 def polyline_decoding(text):
-    """ Decode a list of integers compressed with polyline
-        encoding.
+    """Decode a list of integers compressed with polyline encoding.
 
     Parameters
     ----------
@@ -988,7 +944,6 @@ def polyline_decoding(text):
     number_list : list
         List with the decoded numbers.
     """
-
     number_list = []
     index = last_num = 0
     # decode precision value
@@ -1007,8 +962,7 @@ def polyline_decoding(text):
 
 
 def replace_list_values(input_list, replace_dict):
-    """ Replaces values in list based on provided
-        substitutions.
+    """Replace values in list based on provided substitutions.
 
     Parameters
     ----------
@@ -1025,7 +979,6 @@ def replace_list_values(input_list, replace_dict):
         that are not in `replace_dict` are kept
         unchanged).
     """
-
     replaced_list = [replace_dict.get(e, e) for e in input_list]
 
     return replaced_list

@@ -20,7 +20,7 @@ try:
                        file_operations as fo,
                        iterables_manipulation as im,
                        fasta_operations as fao)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  iterables_manipulation as im,
@@ -28,7 +28,7 @@ except:
 
 
 def translate_sequence(dna_str, table_id):
-    """ Translates a DNA sequence using the BioPython package.
+    """Translate a DNA sequence using the BioPython package.
 
     Parameters
     ----------
@@ -43,7 +43,6 @@ def translate_sequence(dna_str, table_id):
         Protein sequence created by translating the
         input DNA sequence.
     """
-
     myseq_obj = Seq(dna_str)
     protseq = Seq.translate(myseq_obj, table=table_id, cds=True)
 
@@ -51,9 +50,11 @@ def translate_sequence(dna_str, table_id):
 
 
 def translate_dna_aux(dna_sequence, method, table_id):
-    """ Attempts to translate an input DNA sequence in specified
-        orientation and stores exceptions when the input sequence
-        cannot be translated.
+    """Attempt to translate a DNA sequence in specified orientation.
+
+    Attempts to translate an input DNA sequence in specified
+    orientation and stores exceptions when the input sequence
+    cannot be translated.
 
     Parameters
     ----------
@@ -75,7 +76,6 @@ def translate_dna_aux(dna_sequence, method, table_id):
     Otherwise, returns string with the description of the
     exception that was raised.
     """
-
     myseq = dna_sequence
     # try to translate original sequence
     if method == 'original':
@@ -110,12 +110,14 @@ def translate_dna_aux(dna_sequence, method, table_id):
 
 
 def translate_dna(dna_sequence, table_id, min_len):
-    """ Checks if sequence is valid and attempts to translate
-        it, calling several functions to ensure that the sequence
-        only has 'ACTG', is multiple of 3 and that it can be
-        translated in any of 4 different orientations. Stores
-        exceptions so that it is possible to understand why the
-        sequence could not be translated.
+    """Determine if a DNA sequence is valid and translate it.
+
+    Checks if sequence is valid and attempts to translate
+    it, calling several functions to ensure that the sequence
+    only has 'ACTG', is multiple of 3 and that it can be
+    translated in any of 4 different orientations. Stores
+    exceptions so that it is possible to understand why the
+    sequence could not be translated.
 
     Parameters
     ----------
@@ -142,7 +144,6 @@ def translate_dna(dna_sequence, table_id, min_len):
             explain why the the sequence could not be
             translated.
     """
-
     original_seq = dna_sequence.upper()
     exception_collector = []
     strands = ['sense', 'antisense', 'revsense', 'revantisense']
@@ -167,21 +168,21 @@ def translate_dna(dna_sequence, table_id, min_len):
     i = 0
     translated = False
     while translated is False:
-        sequence, exception_collector = retranslate(original_seq,
-                                                    translating_methods[i],
-                                                    table_id, strands[i],
-                                                    exception_collector)
+        translated_seq = translate_dna_aux(original_seq, translating_methods[i], table_id)
+        if not isinstance(translated_seq, list):
+            exception_collector.append('{0}({1})'.format(strands[i],
+                                                         translated_seq.args[0]))
 
         i += 1
-        if i == len(strands) or isinstance(sequence, list) is True:
+        if i == len(strands) or isinstance(translated_seq, list) is True:
             translated = True
 
     coding_strand = strands[i-1]
 
     # if the sequence could be translated, return list with protein and DNA
     # sequence in correct orientation
-    if isinstance(sequence, list):
-        return [sequence, coding_strand]
+    if isinstance(translated_seq, list):
+        return [translated_seq, coding_strand]
     # if it could not be translated, return the string with all exception
     # that were collected
     else:
@@ -189,55 +190,8 @@ def translate_dna(dna_sequence, table_id, min_len):
         return exception_str
 
 
-def retranslate(sequence, method, table_id, strands, exception_collector):
-    """ Sends sequence for translation and collects exceptions when
-        the sequence cannot be translated.
-
-    Parameters
-    ----------
-    sequence : str
-        String representing a DNA sequence.
-    method : str
-        Sequence orientation to attempt translation.
-    table_id : int
-        Translation table identifier.
-    strands : list
-        List with maximum of 4 different orientations
-        to attempt translation, 'original', 'revcomp',
-        'rev' and 'revrevcomp'.
-    exception_collector : list
-        List used to store all exceptions arising from
-        translation attempts.
-
-    Returns
-    -------
-    If the sequence can be translated:
-        translated_seq : list
-            List with the protein sequence and with the
-            DNA sequence in the orientation used for translation.
-        exception_collector : list
-            List with the exceptions that were captured when the
-            sequence could not be translated.
-    Otherwise:
-        translated_seq : str
-            String with the description of the last exception
-            captured because sequence could not be translated.
-        exception_collector : list
-            List with all exception that have been captured
-            for translation attempts.
-    """
-
-    translated_seq = translate_dna_aux(sequence, method, table_id)
-    if not isinstance(translated_seq, list):
-        exception_collector.append('{0}({1})'.format(strands,
-                                                     translated_seq.args[0]))
-
-    return [translated_seq, exception_collector]
-
-
 def determine_duplicated_seqs(sequences):
-    """ Creates a dictionary with sequences as keys and all sequence
-        identifiers associated with a sequence as values.
+    """Create mapping between sequences and sequence identifiers.
 
     Parameters
     ----------
@@ -252,7 +206,6 @@ def determine_duplicated_seqs(sequences):
         identifiers that are associated with each
         sequence as values.
     """
-
     equal_seqs = {}
     for seqid, seq in sequences.items():
         # if protein sequence was already added as key
@@ -268,8 +221,7 @@ def determine_duplicated_seqs(sequences):
 
 
 def determine_longest(seqids, sequences):
-    """ Determines which sequence is the longest among
-        sequences with the specified identifiers.
+    """Find the longest sequence in a set of sequences.
 
     Parameters
     ----------
@@ -284,7 +236,6 @@ def determine_longest(seqids, sequences):
     chosen : str
         Sequence identifier of the longest sequence.
     """
-
     seqids_tups = [(seqid, sequences[seqid]) for seqid in seqids]
     sorted_tups = sorted(seqids_tups, key=lambda x: len(x[1]), reverse=True)
     chosen = sorted_tups[0][0]
@@ -293,9 +244,7 @@ def determine_longest(seqids, sequences):
 
 
 def determine_mode(values):
-    """ Determines the mode value from a list of integer values.
-        Returns list with multiple values if distribution is
-        multimodal.
+    """Compute the mode based on a list of integers.
 
     Parameters
     ----------
@@ -307,7 +256,6 @@ def determine_mode(values):
     modes : list
         The most frequent integer values.
     """
-
     # determine frequency of each length value
     counts = Counter(values)
 
@@ -324,9 +272,11 @@ def determine_mode(values):
 
 
 def mode_filter(sequences, size_threshold):
-    """ Determines the mode from a set of input sequences
-        and identifies sequences that have a length value
-        smaller or greater than the mode based on a threshold.
+    """Find sequences with length that deviates from the mode value.
+
+    Determines the mode from a set of input sequences and
+    identifies sequences that have a length value smaller
+    or greater than the mode based on a threshold.
 
     Parameters
     ----------
@@ -355,7 +305,6 @@ def mode_filter(sequences, size_threshold):
             Dictionary with sequence identifiers as keys
             and sequence lengths as values.
     """
-
     # determine length value of all sequences
     seqs_lengths = {seqid: len(seq) for seqid, seq in sequences.items()}
 
@@ -378,9 +327,11 @@ def mode_filter(sequences, size_threshold):
 
 
 def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
-    """ Translates the set of alleles from a gene. Identifies
-        sequences that cannot be translated according to the
-        criteria enforced by chewBBACA.
+    """Translate DNA sequences in a FASTA file.
+
+    Translates the set of alleles from a gene. Identifies
+    sequences that cannot be translated according to the
+    criteria enforced by chewBBACA.
 
     Parameters
     ----------
@@ -420,7 +371,6 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
             Total number of sequences that was processed
             (including invalid alleles).
     """
-
     sequences = fao.import_sequences(fasta_path)
 
     # translate sequences
@@ -488,7 +438,7 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
 
 def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
                                translation_table, minimum_length):
-    """ Translates CDSs into protein sequences.
+    """Translate coding sequences.
 
     Parameters
     ----------
@@ -518,7 +468,6 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
             Total number of DNA sequences that were
             translated.
     """
-
     # define limit of records to keep in memory
     dna_lines = []
     total_seqs = 0
@@ -556,10 +505,7 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
 
 
 def determine_distinct(sequences_file, unique_fasta, map_ids):
-    """ Identifies duplicated sequences in a FASTA file.
-        Returns a single sequence identifier per distinct
-        sequence and saves distinct sequences to a FASTA
-        file.
+    """Identify duplicated sequences in a FASTA file.
 
     Parameters
     ----------
@@ -571,15 +517,11 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
 
     Returns
     -------
-    List with following elements:
-        total : int
-            Total number of times sequences were repeated.
-        unique_seqids : list
-            List with one sequence identifier per distinct
-            sequence. The first identifier observed for a
-            distinct sequence is the one stored in the list.
+    pickle_out : str
+        Pickled file that contains a dictionary with sequence
+        hashes as keys and a list with pairs of protein
+        identifiers and genome identifiers as values
     """
-
     out_seqs = []
     duplicates = {}
     exausted = False
@@ -628,8 +570,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
 
 
 def determine_small(sequences_file, minimum_length, variation=0):
-    """ Find protein sequences that are shorter than
-        desired length.
+    """Find protein sequences that are shorter a specified length.
 
     Parameters
     ----------
@@ -647,7 +588,6 @@ def determine_small(sequences_file, minimum_length, variation=0):
     small_seqids : list
         List with the identifiers of small sequences.
     """
-
     variation = minimum_length - (minimum_length*variation)
     small_seqids = []
     seq_generator = fao.sequence_generator(sequences_file)
@@ -663,10 +603,7 @@ def determine_small(sequences_file, minimum_length, variation=0):
 
 
 def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
-    """ Computes the BLAST Score Ratio value for BLAST
-        alignments and returns the identifiers of the
-        sequences that are similar to sequences of
-        equal or greater size.
+    """Find similar sequences based on the BLAST Score Ratio.
 
     Parameters
     ----------
@@ -689,7 +626,6 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         List with the identifiers of the sequences
         that were highly similar to other sequences.
     """
-
     self_scores = {r[0]: r[-1] for r in blast_results if r[0] == r[4]}
     # do not include self-scores lines, no need to evaluate those hits
     blast_results = [r for r in blast_results if r[0] != r[4]]

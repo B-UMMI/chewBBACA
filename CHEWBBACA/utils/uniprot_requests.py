@@ -20,7 +20,7 @@ try:
                        file_operations as fo,
                        fasta_operations as fao,
                        sequence_manipulation as sm)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  fasta_operations as fao,
@@ -31,8 +31,7 @@ UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def select_name(result):
-    """ Extracts the annotation description from the result
-        of a query to UniProt's SPARQL endpoint.
+    """Extract an annotation from the result of a query to UniProt.
 
     Parameters
     ----------
@@ -50,7 +49,6 @@ def select_name(result):
         selected_label : str
             A label that has descriptive value.
     """
-
     url = ''
     name = ''
     label = ''
@@ -94,7 +92,7 @@ def select_name(result):
                 selected_name = name
                 selected_url = url
                 selected_label = label
-                found=True
+                found = True
             else:
                 if selected_name == '':
                     selected_name = name
@@ -109,8 +107,7 @@ def select_name(result):
 
 
 def uniprot_query(sequence):
-    """ Constructs a SPARQL query to search for exact matches in
-        UniProt's SPARQL endpoint.
+    """Construct a SPARQL query to search for exact matches in UniProt.
 
     Parameters
     ----------
@@ -124,7 +121,6 @@ def uniprot_query(sequence):
         The SPARQL query that will allow to search for
         exact matches in the UniProt database.
     """
-
     query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
              'PREFIX up: <http://purl.uniprot.org/core/> '
              'select ?seq ?fname ?sname2 ?label  where {'
@@ -139,7 +135,7 @@ def uniprot_query(sequence):
 
 
 def get_data(sparql_query):
-    """ Sends requests to query UniProts's SPARQL endpoint.
+    """Send requests to query UniProts's SPARQL endpoint.
 
     Parameters
     ----------
@@ -151,7 +147,6 @@ def get_data(sparql_query):
     result : dict
         Dictionary with data retrieved from UniProt.
     """
-
     tries = 0
     max_tries = 5
     success = False
@@ -171,8 +166,8 @@ def get_data(sparql_query):
 
 
 def get_proteomes(proteome_ids, output_dir):
-    """ Downloads reference proteomes from UniProt's FTP.
-    
+    """Download reference proteomes from UniProt's FTP.
+
     Parameters
     ----------
     proteomes : list
@@ -189,7 +184,6 @@ def get_proteomes(proteome_ids, output_dir):
     proteomes_files : list
         Local paths to the downloaded proteomes.
     """
-
     print('Downloading reference proteomes...')
     # construct FTP URLs for each proteome
     downloaded = 0
@@ -209,11 +203,8 @@ def get_proteomes(proteome_ids, output_dir):
     return proteomes_files
 
 
-# gene = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/schema_seed/GCA-000007265-protein1400.fasta'
-# translation_table = 11
 def get_annotation(gene, translation_table):
-    """ Retrieves and selects annotation terms for a set of
-        alleles from the same locus.
+    """Retrieve and select best annotation for a locus.
 
     Parameters
     ----------
@@ -233,7 +224,6 @@ def get_annotation(gene, translation_table):
     selected_url : str
         URL for the page with information about the selected terms.
     """
-
     selected_url = ''
     selected_name = ''
     # import locus alleles
@@ -265,9 +255,11 @@ def get_annotation(gene, translation_table):
 
 
 def extract_proteome_terms(header_items):
-    """ Extracts the sequence identifier, product name,
-        gene name and species name fields from the sequence
-        header of a reference proteome from Uniprot.
+    """Extract information from the header of a proteome record.
+
+    Extracts the sequence identifier, product name, gene name
+    and species name fields from the sequence header of a
+    reference proteome from Uniprot.
 
     Parameters
     ----------
@@ -289,7 +281,6 @@ def extract_proteome_terms(header_items):
     record_species : str
         OrganismName field (OS) in the sequence header.
     """
-
     # some tags might be missing
     seqid = header_items.get('id', 'not_found')
     record_description = header_items.get('description', 'not_found')
@@ -306,5 +297,5 @@ def extract_proteome_terms(header_items):
             record_gene_name = (record_description.split('GN=')[1]).split(' PE=')[0]
         else:
             record_gene_name = 'not_found'
-    
+
     return [seqid, record_product, record_gene_name, record_species]

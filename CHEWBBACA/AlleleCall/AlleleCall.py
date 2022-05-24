@@ -1478,7 +1478,6 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # output_unclassified = False
 # output_missing = False
 # no_cleanup = False
-# hash_profiles = None
 def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,

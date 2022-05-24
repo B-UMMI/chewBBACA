@@ -124,9 +124,7 @@ import get_varSize_deep as gs
 
 
 def create_classification_file(locus_id, output_directory, locus_results):
-    """ Uses the Pickle module to create a file with an empty
-        directory that can be later modified to store
-        classification results.
+    """Create file to store classifications for a locus.
 
     Parameters
     ----------
@@ -144,7 +142,6 @@ def create_classification_file(locus_id, output_directory, locus_results):
         Path to the file created to store classification
         results.
     """
-
     pickle_out = fo.join_paths(output_directory,
                                [locus_id+'_results'])
 
@@ -155,7 +152,7 @@ def create_classification_file(locus_id, output_directory, locus_results):
 
 
 def update_classification(genome_id, locus_results, match_info):
-    """ Update locus classification for an input.
+    """Update locus classification for an input.
 
     Parameters
     ----------
@@ -173,7 +170,6 @@ def update_classification(genome_id, locus_results, match_info):
     locus_results : dict
         Updated results.
     """
-
     # add data about match
     locus_results.setdefault(genome_id, [match_info[3]]).append(match_info)
 
@@ -214,8 +210,7 @@ def update_classification(genome_id, locus_results, match_info):
 
 
 def count_classifications(classification_files):
-    """ Determines the global counts for each classification
-        type except LNF for a set of loci.
+    """Determine counts for each classification type except LNF.
 
     Parameters
     ----------
@@ -233,7 +228,6 @@ def count_classifications(classification_files):
         The total number of coding sequences that
         have been classified.
     """
-
     classification_counts = Counter()
     # get total number of classified CDSs
     total_cds = 0
@@ -252,13 +246,9 @@ def count_classifications(classification_files):
     return [classification_counts, total_cds]
 
 
-# locus_file = locus
-# presence_DNAhashtable = dna_distinct_htable
-# locus_classifications = locus_classifications
-# input_ids = basename_inverse_map
-def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications, input_ids):
-    """ Finds exact matches between DNA sequences extracted from inputs
-        and the alleles for a locus in the schema.
+def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications,
+                      input_ids):
+    """Find exact matches between input CDSs and alleles from a locus.
 
     Parameters
     ----------
@@ -288,7 +278,6 @@ def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications, 
     total_matches : int
         Number of exact matches.
     """
-
     # read Fasta records
     locus_alleles = fao.import_sequences(locus_file)
     # determine SHA-256 hash for locus sequences
@@ -324,8 +313,7 @@ def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications, 
 def protein_exact_matches(locus_file, presence_PROThashtable,
                           presence_DNAhashtable, locus_classifications,
                           dna_index, input_ids):
-    """ Finds exact matches between translated CDSs extracted from inputs
-        and the translated alleles for a locus in the schema.
+    """Find exact matches at protein level.
 
     Parameters
     ----------
@@ -366,13 +354,12 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
     total_distinct_prots : int
         Number of matched distinct prots.
     """
-
     # read Fasta records
     locus_proteins = fao.import_sequences(locus_file)
 
     # determine SHA-256 hash for locus sequences
     protein_hashes = {seqid: im.hash_sequence(seq)
-                       for seqid, seq in locus_proteins.items()}
+                      for seqid, seq in locus_proteins.items()}
 
     # determine locus alleles that are in inputs
     exact_matches = {seqid.split('_')[-1]: prot_hash
@@ -431,8 +418,7 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
 def contig_position_classification(representative_length, representative_leftmost_pos,
                                    representative_rightmost_pos, contig_length,
                                    contig_leftmost_pos, contig_rightmost_pos):
-    """ Determines classification based on the position of the
-        aligned representative allele in the input contig.
+    """Determine classification based on the alignment position on the contig.
 
     Parameters
     ----------
@@ -490,8 +476,7 @@ def contig_position_classification(representative_length, representative_leftmos
 
 
 def allele_size_classification(sequence_length, locus_mode, size_threshold):
-    """ Determines if the size of a sequence deviates from the locus
-        mode based on a sequence size variation threshold.
+    """Determine classification based on sequence size.
 
     Parameters
     ----------
@@ -508,7 +493,6 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
     size interval, 'ALM' if it is above and None if it is
     contained in the interval.
     """
-
     if sequence_length < (locus_mode[0]-(locus_mode[0])*size_threshold):
         return 'ASM'
     elif sequence_length > (locus_mode[0]+(locus_mode[0])*size_threshold):
@@ -516,8 +500,7 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
 
 
 def write_loci_summary(classification_files, output_directory, total_inputs):
-    """ Writes a TSV file with classification counts and total
-        number of classified coding sequences per locus.
+    """Write a TSV file with classification counts per locus.
 
     Parameters
     ----------
@@ -530,7 +513,6 @@ def write_loci_summary(classification_files, output_directory, total_inputs):
     total_inputs : int
         Total number of inputs.
     """
-
     loci_stats = [ct.LOCI_STATS_HEADER]
     for k, v in classification_files.items():
         locus_id = fo.get_locus_id(k)
@@ -556,7 +538,7 @@ def write_loci_summary(classification_files, output_directory, total_inputs):
 def write_logfile(start_time, end_time, total_inputs,
                   total_loci, cpu_cores, blast_score_ratio,
                   output_directory):
-    """ Writes the log file.
+    """Write the log file.
 
     Parameters
     ----------
@@ -583,7 +565,6 @@ def write_logfile(start_time, end_time, total_inputs,
     log_outfile : str
         Path to the log file.
     """
-
     start_time_str = pdt.datetime_str(start_time,
                                       date_format='%H:%M:%S-%d/%m/%Y')
 
@@ -592,7 +573,7 @@ def write_logfile(start_time, end_time, total_inputs,
 
     log_outfile = fo.join_paths(output_directory, [ct.LOGFILE_BASENAME])
     logfile_text = ct.LOGFILE_TEMPLATE.format(start_time_str, end_time_str,
-                                              total_inputs,total_loci,
+                                              total_inputs, total_loci,
                                               cpu_cores, blast_score_ratio)
 
     fo.write_to_file(logfile_text, log_outfile, 'w', '')
@@ -602,8 +583,7 @@ def write_logfile(start_time, end_time, total_inputs,
 
 def write_results_alleles(classification_files, input_identifiers,
                           output_directory):
-    """ Writes a TSV file with the allelic profiles for the
-        input samples.
+    """Write a TSV file with the allelic profiles for the input samples.
 
     Parameters
     ----------
@@ -614,7 +594,6 @@ def write_results_alleles(classification_files, input_identifiers,
     output_directory : str
         Path to the output directory.
     """
-
     # add first column with input identifiers
     columns = [['FILE'] + input_identifiers]
     for file in classification_files:
@@ -642,7 +621,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
     # group elements with same list index
     lines = im.aggregate_iterables(columns)
-    lines = ['\t'.join(l) for l in lines]
+    lines = ['\t'.join(line) for line in lines]
 
     output_file = fo.join_paths(output_directory, [ct.RESULTS_ALLELES_BASENAME])
     fo.write_lines(lines, output_file)
@@ -652,7 +631,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 def write_results_statistics(classification_files, input_identifiers,
                              output_directory):
-    """ Writes a TSV file with classification counts per input.
+    """Write a TSV file with classification counts per input.
 
     Parameters
     ----------
@@ -666,7 +645,6 @@ def write_results_statistics(classification_files, input_identifiers,
         Path to the output directory where the TSV file will
         be created.
     """
-
     # initialize classification counts per input
     class_counts = {i: {c: 0 for c in ct.ALLELECALL_CLASSIFICATIONS}
                     for i in input_identifiers}
@@ -691,7 +669,7 @@ def write_results_statistics(classification_files, input_identifiers,
         input_line = [k] + [str(v[c]) for c in ct.ALLELECALL_CLASSIFICATIONS]
         lines.append(input_line)
 
-    outlines = ['\t'.join(l) for l in lines]
+    outlines = ['\t'.join(line) for line in lines]
 
     output_file = fo.join_paths(output_directory, ['results_statistics.tsv'])
     fo.write_lines(outlines, output_file)
@@ -699,10 +677,12 @@ def write_results_statistics(classification_files, input_identifiers,
 
 def write_results_contigs(classification_files, input_identifiers,
                           output_directory, cds_coordinates_files):
-    """ Writes a TSV file with coding sequence coordinates
-        (contig identifier, start and stop positions and coding
-        strand) for EXC and INF classifications or with the
-        classification type if it is not EXC or INF.
+    """Write a TSV file with the CDS coordinates for each input.
+
+    Writes a TSV file with coding sequence coordinates (contig
+    identifier, start and stop positions and coding strand) for
+    EXC and INF classifications or with the classification type
+    if it is not EXC or INF.
 
     Parameters
     ----------
@@ -725,9 +705,9 @@ def write_results_contigs(classification_files, input_identifiers,
         Path to the output file that contains the sequence
         coordinates.
     """
-
     invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
-    intermediate_file = fo.join_paths(output_directory, ['inter_results_contigsInfo.tsv'])
+    intermediate_file = fo.join_paths(output_directory,
+                                      ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
     # limit the number of lines to store in memory
     line_limit = 500
@@ -790,8 +770,7 @@ def write_results_contigs(classification_files, input_identifiers,
 
 def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
                               protein_hashtable, output_directory, inv_map):
-    """ Creates FASTA file with the distinct coding sequences
-        that were not classified.
+    """Write the coding sequences that were not classified to a FASTA file.
 
     Parameters
     ----------
@@ -816,7 +795,6 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
         Dictionary with input integer identifiers as keys
         and input string identifiers as values.
     """
-
     unclassified_seqids = []
     prot_distinct_index = fao.index_fasta(prot_file)
     for protid in unclassified_protids:
@@ -837,8 +815,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
 
 
 def assign_allele_ids(classification_files):
-    """ Assigns allele identifiers to coding sequences
-        classified as EXC or INF.
+    """Assign allele identifiers to coding sequences classified as EXC or INF.
 
     Parameters
     ----------
@@ -853,7 +830,6 @@ def assign_allele_ids(classification_files):
         lists with SHA-256 hashes and allele integer identifiers
         for each novel allele.
     """
-
     # assign allele identifiers
     novel_alleles = {}
     for locus, results in classification_files.items():
@@ -898,8 +874,9 @@ def assign_allele_ids(classification_files):
     return novel_alleles
 
 
-def add_inferred_alleles(inferred_alleles, inferred_representatives, sequences_file):
-    """ Adds inferred alleles to a schema.
+def add_inferred_alleles(inferred_alleles, inferred_representatives,
+                         sequences_file):
+    """Add inferred alleles to a schema.
 
     Parameters
     ----------
@@ -923,7 +900,6 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives, sequences_f
         Total number of representative alleles added to the
         schema.
     """
-
     # create index for Fasta file with distinct CDSs
     sequence_index = fao.index_fasta(sequences_file)
 
@@ -936,7 +912,8 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives, sequences_f
             locus_id = fo.file_basename(locus, False)
 
         # get novel alleles through indexed Fasta file
-        novel_alleles = ['>{0}_{1}\n{2}'.format(locus_id, a[1], str(sequence_index.get(a[2]).seq))
+        novel_alleles = ['>{0}_{1}\n{2}'.format(locus_id, a[1],
+                                                str(sequence_index.get(a[2]).seq))
                          for a in alleles]
         # append novel alleles to locus FASTA file
         fo.write_lines(novel_alleles, locus, write_mode='a')
@@ -959,8 +936,7 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives, sequences_f
 
 
 def select_highest_scores(blast_outfile):
-    """ Selects highest-scoring matches for each distinct target
-        in a TSV file with BLAST results.
+    """Select the highest-scoring match for each BLAST target.
 
     Parameters
     ----------
@@ -973,7 +949,6 @@ def select_highest_scores(blast_outfile):
         List with the highest-scoring match/line for each
         distinct target.
     """
-
     blast_results = fo.read_tabular(blast_outfile)
     # sort results based on decreasing raw score
     blast_results = im.sort_iterable(blast_results,
@@ -989,9 +964,9 @@ def select_highest_scores(blast_outfile):
     return best_matches
 
 
-def process_blast_results(blast_results, bsr_threshold, query_scores, inputids_mapping):
-    """ Processes BLAST results to determine relevant data
-        for classification.
+def process_blast_results(blast_results, bsr_threshold, query_scores,
+                          inputids_mapping):
+    """Process BLAST results to get data relevant for classification.
 
     Parameters
     ----------
@@ -1018,7 +993,6 @@ def process_blast_results(blast_results, bsr_threshold, query_scores, inputids_m
         length, query sequence length and query sequence identifier
         for the highest-scoring match for each target as values.
     """
-
     # replace query and target identifiers if they were simplified to avoid BLAST warnings/errors
     # substituting more than it should?
     if inputids_mapping is not None:
@@ -1047,9 +1021,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores, inputids_m
 
 def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
                    phashtable, inv_map):
-    """ Expands matches against representative sequences to create
-        matches for all inputs that contain the representative
-        sequence.
+    """Expand distinct matches to create matches to all matched inputs.
 
     Parameters
     ----------
@@ -1085,7 +1057,6 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
         and tuples with information about matches identified
         in the inputs as values.
     """
-
     input_matches = {}
     for target_id in match_info:
         target_protein = str(pfasta_index.get(target_id).seq)
@@ -1106,7 +1077,7 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
 
 
 def identify_paralogous(results_contigs_file, output_directory):
-    """ Identifies groups of paralogous loci in the schema.
+    """Identifiy groups of paralogous loci in the schema.
 
     Parameters
     ----------
@@ -1120,14 +1091,13 @@ def identify_paralogous(results_contigs_file, output_directory):
     -------
     The total number of paralogous loci detected.
     """
-
     with open(results_contigs_file, 'r') as infile:
         reader = csv.reader(infile, delimiter='\t')
         loci = (reader.__next__())[1:]
 
         paralogous = {}
-        for l in reader:
-            locus_results = l[1:]
+        for line in reader:
+            locus_results = line[1:]
             counts = Counter(locus_results)
             paralog_counts = {k: v for k, v in counts.items()
                               if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
@@ -1147,11 +1117,10 @@ def identify_paralogous(results_contigs_file, output_directory):
     return len(paralogous)
 
 
-def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file,
-                             locus_mode, temp_directory, size_threshold, blast_score_ratio):
-    """ Classifies inexact matches found for a locus. Data about
-        matches to new alleles is stored to classify inputs with
-        the same sequences as exact matches.
+def classify_inexact_matches(locus, genomes_matches, inv_map,
+                             locus_results_file, locus_mode, temp_directory,
+                             size_threshold, blast_score_ratio):
+    """Classify inexact matches found for a locus.
 
     Parameters
     ----------
@@ -1185,7 +1154,6 @@ def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file
         identifiers of the distinct sequences that were classified
         and a list with data about representative candidates as value).
     """
-
     # import classifications
     locus_results = fo.pickle_loader(locus_results_file)
 
@@ -1264,7 +1232,6 @@ def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file
                                                           contig_rightmost_pos)
 
             if relative_pos is not None:
-                #print(genome, m, genome_coordinates, contig_leftmost_pos, contig_rightmost_pos, contig_length)
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, relative_pos, bsr))
@@ -1320,7 +1287,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map, locus_results_file
 
 def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                          output_directory, coordinates_files):
-    """ Creates Fasta file with sequences for missing data classes.
+    """Create Fasta file with sequences for missing data classes.
 
     Parameters
     ----------
@@ -1346,7 +1313,6 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
         and paths to pickled files that contain a dictionary with the
         coordinates of the CDS identified in each input.
     """
-
     invalid_cases = ct.ALLELECALL_CLASSIFICATIONS[2:-1]
 
     # get information about missing cases for each input genome
@@ -1405,11 +1371,10 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(missing_records, output_file)
 
 
-def select_representatives(representative_candidates, locus, fasta_file, iteration, output_directory,
-                           blastp_path, blast_db, blast_score_ratio,
-                           threads):
-    """ Selects new representative alleles for a locus from a set of
-        candidate alleles.
+def select_representatives(representative_candidates, locus, fasta_file,
+                           iteration, output_directory, blastp_path,
+                           blast_db, blast_score_ratio, threads):
+    """Select new representative alleles for a locus.
 
     Parameters
     ----------
@@ -1443,7 +1408,6 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
         contain the sequence identifier and the sequence hash for
         each new representative).
     """
-
     # create file with candidate ids
     ids_file = fo.join_paths(output_directory,
                              ['{0}_candidates_ids_{1}.fasta'.format(locus, iteration)])
@@ -1459,16 +1423,16 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
 
     blast_results = fo.read_tabular(blast_output)
     # get self scores
-    candidates_self_scores = {l[0]: ((int(l[3])*3)+3, float(l[6]))
-                              for l in blast_results if l[0] == l[4]}
+    candidates_self_scores = {line[0]: ((int(line[3])*3)+3, float(line[6]))
+                              for line in blast_results if line[0] == line[4]}
     # select results between different candidates
-    blast_results = [l for l in blast_results if l[0] != l[4]]
+    blast_results = [line for line in blast_results if line[0] != line[4]]
 
     # compute bsr
-    for l in blast_results:
-        l.append(cf.compute_bsr(candidates_self_scores[l[4]][1], candidates_self_scores[l[0]][1]))
+    for line in blast_results:
+        line.append(cf.compute_bsr(candidates_self_scores[line[4]][1], candidates_self_scores[line[0]][1]))
     # sort by sequence length to process longest candidates first
-    blast_results = sorted(blast_results, key= lambda x: int(x[3]))
+    blast_results = sorted(blast_results, key=lambda x: int(x[3]))
 
     excluded_candidates = []
     for r in blast_results:
@@ -1476,13 +1440,13 @@ def select_representatives(representative_candidates, locus, fasta_file, iterati
             if r[4] not in excluded_candidates:
                 excluded_candidates.append(r[0])
 
-    selected_candidates = list(set([l[0]
-                                    for l in blast_results
-                                    if l[0] not in excluded_candidates]))
+    selected_candidates = list(set([line[0]
+                                    for line in blast_results
+                                    if line[0] not in excluded_candidates]))
 
-    selected = [(l, representative_candidates[l])
-                for l in selected_candidates
-                if l not in excluded_candidates]
+    selected = [(line, representative_candidates[line])
+                for line in selected_candidates
+                if line not in excluded_candidates]
 
     return [locus, selected]
 
@@ -1611,7 +1575,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     # get list of loci files
     print('Getting list of loci...', end='')
     loci_files = fo.listdir_fullpath(schema_directory, '.fasta')
-    
+
     # get mapping between locus file path and locus identifier
     loci_basenames = im.mapping_function(loci_files, fo.file_basename, [False])
     print('schema has {0} loci.'.format(len(loci_files)))
@@ -1668,7 +1632,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     # reading to get lines with '>' is faster that reading with BioPython
     # and filtering based on sequence identifiers
     matched_lines = fo.matching_lines(distinct_file, '>')
-    matched_lines = [l.strip()[1:] for l in matched_lines]
+    matched_lines = [line.strip()[1:] for line in matched_lines]
     selected_ids = im.filter_list(matched_lines, matched_seqids)
 
     print('Remaining: {0}'.format(len(selected_ids)))
@@ -1746,7 +1710,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     # this means that it can have more elements that the number of protein exact matches
     # because different alleles might code for same protein
     matched_lines = fo.matching_lines(ds_results[1], '>')
-    matched_lines = [l.strip()[1:] for l in matched_lines]
+    matched_lines = [line.strip()[1:] for line in matched_lines]
     selected_ids = im.filter_list(matched_lines, exact_phashes)
     total_selected = fao.get_sequences_by_id(protein_index, selected_ids, unique_pfasta)
 
@@ -2033,7 +1997,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 if len(v) > 1:
                     current_candidates = {e[1]: e[3] for e in v}
                     fasta_file = fo.join_paths(iterative_rep_dir,
-                                   ['{0}_candidates_{1}.fasta'.format(k, iteration)])
+                                               ['{0}_candidates_{1}.fasta'.format(k, iteration)])
                     # create file with sequences
                     fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), fasta_file)
                     representative_inputs.append([current_candidates, k, fasta_file,
@@ -2042,15 +2006,15 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                                   select_representatives])
                 else:
                     representatives[k] = [(v[0][1], v[0][3])]
-    
+
             selected_candidates = mo.map_async_parallelizer(representative_inputs,
                                                             mo.function_helper,
                                                             cpu_cores,
                                                             show_progress=True)
-    
+
             for c in selected_candidates:
                 representatives[c[0]] = c[1]
-    
+
             for k, v in representatives.items():
                 new_reps.setdefault(k, []).extend(v)
 
@@ -2066,7 +2030,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 # get new representative for locus
                 current_new_reps = [e[0] for e in v]
                 reps_ids.extend(current_new_reps)
-                
+
                 # need to add 'short' or locus id will not be split
                 rep_file = fo.join_paths(iterative_rep_dir,
                                          ['{0}_short_reps_iter{1}.fasta'.format(k, iteration)])
@@ -2093,7 +2057,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
          add_inferred, output_unclassified, output_missing,
-         no_cleanup, hash_profiles):
+         no_cleanup, hash_profiles): # add force-reset parameter and check if output folder exists to delete
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2149,7 +2113,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
             current_results = results[6].get(locus_id, None)
             if current_results is not None:
                 for e in current_results:
-                    allele_id = [l[1] for l in v if l[0] == e[1]]
+                    allele_id = [line[1] for line in v if line[0] == e[1]]
                     # we might have representatives that were converted to NIPH but still appear in the list
                     if len(allele_id) > 0:
                         reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
@@ -2249,108 +2213,3 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         fo.delete_directory(fo.join_paths(output_directory, ['temp']))
 
     print('\nResults available in {0}'.format(results_dir))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', '--input-files', nargs='?', type=str,
-                        required=True, dest='input_files',
-                        help='Path to the directory that contains the input '
-                             'FASTA files. Alternatively, a single file with '
-                             'a list of paths to FASTA files, one per line.')
-
-    parser.add_argument('-g', '--schema-directory', type=str,
-                        required=True, dest='schema_directory',
-                        help='')
-
-    parser.add_argument('-o', '--output-directory', type=str,
-                        required=True, dest='output_directory',
-                        help='Output directory where the process will store '
-                             'intermediate files and create the schema\'s '
-                             'directory.')
-
-    parser.add_argument('--ptf', '--training-file', type=str,
-                        required=False, dest='ptf_path',
-                        help='Path to the Prodigal training file.')
-    
-    parser.add_argument('--gl', '--genes-list', type=str,
-                        required=False, default=False, dest='genes_list',
-                        help='Path to a file with the list of genes '
-                             'in the schema that the process should '
-                             'identify alleles for.')
-
-    parser.add_argument('--bsr', '--blast-score-ratio', type=float,
-                        required=False, default=0.6, dest='blast_score_ratio',
-                        help='BLAST Score Ratio value. Sequences with '
-                             'alignments with a BSR value equal to or '
-                             'greater than this value will be considered '
-                             'as sequences from the same gene.')
-
-    parser.add_argument('--l', '--minimum-length', type=int,
-                        required=False, default=201, dest='minimum_length',
-                        help='Minimum sequence length value. Coding sequences '
-                             'shorter than this value are excluded.')
-
-    parser.add_argument('--t', '--translation-table', type=int,
-                        required=False, default=11, dest='translation_table',
-                        help='Genetic code used to predict genes and'
-                             ' to translate coding sequences.')
-
-    parser.add_argument('--st', '--size-threshold', type=float,
-                        required=False, default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. Added to the '
-                             'schema\'s config file and used to identify '
-                             'alleles with a length value that deviates from '
-                             'the locus length mode during the allele calling '
-                             'process.')
-
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
-                        required=False, default=1, dest='cpu_cores',
-                        help='Number of CPU cores that will be '
-                             'used to run the CreateSchema process '
-                             '(will be redefined to a lower value '
-                             'if it is equal to or exceeds the total'
-                             'number of available CPU cores).')
-
-    parser.add_argument('--b', '--blast-path', type=str,
-                        required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    parser.add_argument('--pm', '--prodigal-mode', required=False,
-                        choices=['single', 'meta'],
-                        default='single', dest='prodigal_mode',
-                        help='Prodigal running mode.')
-
-    parser.add_argument('--CDS', required=False, action='store_true',
-                        dest='cds_input',
-                        help='If provided, input is a single or several FASTA '
-                             'files with coding sequences.')
-
-    parser.add_argument('--only-exact', required=False, action='store_true',
-                        dest='only_exact',
-                        help='If provided, the process will only determine '
-                             'exact matches.')
-
-    parser.add_argument('--add-inferred', required=False, action='store_true',
-                        dest='add_inferred',
-                        help='If provided, the process will add the sequences '
-                             'of inferred alleles to the schema.')
-
-    parser.add_argument('--no-cleanup', required=False, action='store_true',
-                        dest='no_cleanup',
-                        help='If provided, intermediate files generated '
-                             'during process execution are not removed at '
-                             'the end.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

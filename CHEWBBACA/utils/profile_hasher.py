@@ -3,43 +3,53 @@
 """
 Purpose
 -------
-This module enables
-
-Expected input
---------------
-
+This module contains functions used to hash allelic profiles.
 
 Code documentation
 ------------------
 """
 
 
-import os
 import sys
 import zlib
-import shutil
 import hashlib
-import argparse
 
 import pandas as pd
 from Bio import SeqIO
 
 try:
     from utils import (file_operations as fo,
+                       iterables_manipulation as im,
                        multiprocessing_operations as mo)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
+                                 iterables_manipulation as im,
                                  multiprocessing_operations as mo)
 
 
 def hash_column(column, locus_file, hashing_function):
-    """
-    """
+    """Substitute allele identifiers by allele sequence hashes.
 
+    Parameters
+    ----------
+    column : pandas.core.series.Series
+        Column with allele identifiers to substitute by the
+        hash values computed from each allele sequence.
+    locus_file : str
+        Path to the FASTA file that contains the locus alleles.
+    hashing_function : func
+        Hashing function used to hash each allele.
+
+    Returns
+    -------
+    hashed_column : pandas.core.series.Series
+        Column where each allele identifier was substituted by
+        the hash computed from the allele sequence.
+    """
     # read Fasta file with locus alleles
     locus_alleles = {(rec.id).split('_')[-1]: str(rec.seq)
                      for rec in SeqIO.parse(locus_file, 'fasta')}
-    
+
     hashed_alleles = {}
     for seqid, seq in locus_alleles.items():
         # hash function does not accept string object, encode to get bytes object
@@ -48,6 +58,8 @@ def hash_column(column, locus_file, hashing_function):
         # integer and ensure the computed value is the same for Python 2 & 3
         if isinstance(hashed_seq, int):
             hashed_seq &= 0xffffffff
+        else:
+            hashed_seq = hashed_seq.hexdigest()
         hashed_alleles[seqid] = hashed_seq
 
     # faster than replace or map with update to avoid adding NaN
@@ -57,39 +69,59 @@ def hash_column(column, locus_file, hashing_function):
 
 
 def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
-                  nrows, skiprows, include_header, output_directory):
-    """
-    """
+                  nrows, skiprows, output_directory):
+    """Hash a set of allelic profiles read from a TSV file.
 
+    Parameters
+    ----------
+    profiles_table : str
+        Path to the TSV file that contains the allelic profiles.
+    loci_ids : list
+        List with the loci identifiers.
+    loci_files : list
+        List with the paths to the FASTA files that contain the
+        loci alleles.
+    hashing_function : func
+        Hashing function used to hash each allele.
+    nrows : int
+        Number of rows/allelic profiles to read from the input
+        file.
+    skiprows : range
+        Range of rows to skip.
+    output_directory : str
+        Path to the output directory.
+
+    Returns
+    -------
+    output_file : str
+        Path to the output file with the hashed profiles.
+    """
     current_rows = pd.read_csv(profiles_table, delimiter='\t', dtype=str,
-                               skiprows=skiprows, nrows=nrows)
+                               skiprows=skiprows, nrows=nrows, index_col=0)
 
-    # remove all 'INF-' prefixes
-    current_rows = current_rows.apply(lambda s: s.str.replace('INF-', ''))
+    # remove all 'INF-' prefixes, missing data and '*' from identifiers
+    current_rows = current_rows.apply(im.replace_chars, args=('-'))
 
-    current_samples = current_rows['FILE']
-    hashed_profiles = [current_samples]
+    hashed_profiles = []
     for locus in loci_ids:
         locus_column = current_rows[locus]
-        hashed_column = hash_column(locus_column, loci_files[locus], hashing_function)
+        hashed_column = hash_column(locus_column, loci_files[locus],
+                                    hashing_function)
         hashed_profiles.append(hashed_column)
 
     hashed_df = pd.concat(hashed_profiles, axis=1)
     start = skiprows.stop
-    stop = skiprows.stop+nrows
-    output_file = fo.join_paths(output_directory, ['df_{0}-{1}.tsv'.format(start, stop)])
-    hashed_df.to_csv(output_file, sep='\t', index=False, header=include_header)
+    stop = skiprows.stop+len(hashed_df)-1
+    input_basename = fo.file_basename(profiles_table, False)
+    output_file = fo.join_paths(output_directory,
+                                ['{0}_{1}-{2}_hashed.tsv'.format(input_basename, start, stop)])
+    hashed_df.to_csv(output_file, sep='\t', index=True, header=False)
 
     return output_file
-    
 
-# profiles_table = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/small_dataset.tsv'
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Streptococcus_pyogenes_wgMLST_schema/'
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/'
-# hash_type = 'crc32'
-# threads = 2
-# nrows = 1000
-def main(profiles_table, schema_directory, output_directory, hash_type, threads, nrows):
+
+def main(profiles_table, schema_directory, output_directory, hash_type,
+         cpu_cores, nrows):
 
     # get hash function
     try:
@@ -97,78 +129,49 @@ def main(profiles_table, schema_directory, output_directory, hash_type, threads,
     except Exception:
         hashing_function = getattr(zlib, hash_type)
     except Exception:
-        sys.exit('{0} hash function is not available in hashlib or zlib.'.format(hash_function))
+        print('{0} hash function is not available in '
+              'hashlib or zlib modules.'.format(hashing_function))
+        return False
 
     # get loci identifiers
     with open(profiles_table, 'r') as infile:
-        header = infile.readlines(1)[0].split()
-        loci_ids = header[1:]
+        header = infile.readline()
+        loci_ids = header.split()[1:]
 
     loci_files = {}
     for locus in loci_ids:
         locus_file = fo.join_paths(schema_directory, [locus])
+        # add .fasta extension if file headers did not include it
         if locus_file.endswith('.fasta') is False:
             locus_file += '.fasta'
         loci_files[locus] = locus_file
 
-    sample_ids = pd.read_csv(profiles_table, delimiter='\t', dtype=str, usecols=['FILE'])
+    # get input/sample identifiers
+    sample_ids = pd.read_csv(profiles_table, delimiter='\t',
+                             dtype=str, usecols=['FILE'])
+
+    # write file with header
+    header_basename = fo.file_basename(profiles_table).replace('.tsv', '_header.tsv')
+    header_file = fo.join_paths(output_directory, [header_basename])
+    fo.write_to_file(header, header_file, 'w', '')
 
     # create multiprocessing inputs
     multi_inputs = []
-    include_header = True
     # divide and process by row chunks
     for i in range(0, len(sample_ids), nrows):
         multi_inputs.append([profiles_table, loci_ids, loci_files,
                              hashing_function, nrows, range(1, i+1),
-                             include_header, output_directory, hash_profiles])
-        include_header = False
+                             output_directory, hash_profiles])
 
-    output_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, threads)
+    hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper,
+                                             cpu_cores)
 
     # concatenate all files
     output_basename = fo.file_basename(profiles_table).replace('.tsv', '_hashed.tsv')
     output_file = fo.join_paths(output_directory, [output_basename])
-    fo.concatenate_files(output_files, output_file)
+    fo.concatenate_files([header_file]+hashed_files, output_file)
 
     # delete intermediate dataframes
-    fo.remove_files(output_files)
+    fo.remove_files([header_file]+hashed_files)
 
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-p', '--profiles', type=str, required=True,
-                        dest='profiles_table',
-                        help='')
-
-    parser.add_argument('-s', '--schema-directory', type=str, required=True,
-                        dest='schema_directory',
-                        help='')
-
-    parser.add_argument('-o', '--output-directory', type=str, required=True,
-                        dest='output_directory',
-                        help='')
-
-    parser.add_argument('-hf', '--hash-type', type=str, required=False,
-                        dest='hash_type',
-                        help='')
-
-    parser.add_argument('-t', '--threads', type=int, required=False,
-                        default=1, dest='threads',
-                        help='')
-
-    parser.add_argument('-n', '--nrows', type=int, required=False,
-                        default=1000, dest='nrows',
-                        help='')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == '__main__':
-
-    args = parse_arguments()
-    main(**vars(args))
+    return True

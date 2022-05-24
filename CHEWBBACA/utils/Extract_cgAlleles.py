@@ -47,35 +47,10 @@ import os
 import numpy as np
 import pandas as pd
 
-
-def replace_chars(column):
-    """ Replaces all non-numeric characters
-        in a column with allele identifiers.
-
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
-
-        Returns
-        -------
-        replace_missing : pandas.core.series.Series
-            Input column with cells that only contain
-            numeric characters.
-    """
-
-    # remove 'INF-' from inferred alleles
-    replace_inf = column.replace(to_replace='INF-',
-                                 value='', regex=True)
-    # replace '*' in novel alleles from schemas in Chewie-NS
-    # before replacing missing data cases to avoid replacing '*' with '0'
-    replace_inf = replace_inf.replace(to_replace='\*',
-                                      value='', regex=True)
-    # replace missing data with '0'
-    replace_missing = replace_inf.replace(to_replace='\D+.*',
-                                          value='0', regex=True)
-
-    return replace_missing
+try:
+    from utils import iterables_manipulation as im
+except ModuleNotFoundError:
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def binarize_matrix(column):
@@ -308,7 +283,7 @@ def determine_cgMLST(input_file, output_directory, genesToRemove,
 
     # mask missing data
     print('\nMasking missing data...', end='')
-    masked_matrix = genome_pruned.apply(replace_chars)
+    masked_matrix = genome_pruned.apply(im.replace_chars)
     print('done.')
 
     # build presence/absence matrix

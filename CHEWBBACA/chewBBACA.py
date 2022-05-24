@@ -35,7 +35,7 @@ try:
 
     from CHEWBBACA_NS import (down_schema, load_schema,
                               sync_schema, stats_requests)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA import __version__
     from CHEWBBACA.AlleleCall import AlleleCall
     from CHEWBBACA.CreateSchema import CreateSchema
@@ -328,10 +328,6 @@ def allele_call():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    # parser.add_argument('--contained', action='store_true',
-    #                     required=False, default=False, dest='contained',
-    #                     help=argparse.SUPPRESS)
-
     parser.add_argument('--CDS', action='store_true',
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
@@ -341,10 +337,11 @@ def allele_call():
                         help='If provided, the process will only determine '
                              'exact matches.')
 
-    parser.add_argument('--fc', '--force-continue', action='store_true',
-                        required=False, dest='force_continue',
-                        help='Continue allele call process that '
-                             'was interrupted.')
+    parser.add_argument('--fr', '--force-reset', action='store_true',
+                        required=False, dest='force_reset',
+                        help='Force process reset even if there '
+                             'are temporary files from a previous '
+                             'process that was interrupted.')
 
     parser.add_argument('--add-inferred', required=False, action='store_true',
                         dest='add_inferred',
@@ -368,19 +365,20 @@ def allele_call():
 
     parser.add_argument('--hash-profiles', type=str, required=False,
                         dest='hash_profiles',
-                        help='')
-
-    # parser.add_argument('--fr', '--force-reset', action='store_true',
-    #                     required=False, dest='force_reset',
-    #                     help='Force process reset even if there '
-    #                          'are temporary files from a previous '
-    #                          'process that was interrupted.')
+                        help='Create TSV file with hashed allelic profiles. '
+                             'Profiles can be hashed with any of the hash '
+                             'algorithms implemented in the hashlib and zlib '
+                             'libraries.')
 
     parser.add_argument('--db', '--store-profiles', required=False, action='store_true',
                         dest='store_profiles',
                         help='If the profiles in the output matrix '
                              'should be stored in the local SQLite '
                              'database.')
+
+    parser.add_argument('--convert-legacy', required=False, action='store_true',
+                        dest='convert_legacy',
+                        help='Convert legacy schemas to latest version.')
 
     args = parser.parse_args()
 
@@ -393,7 +391,7 @@ def allele_call():
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
-                                            args.size_threshold, args.force_continue)
+                                            args.size_threshold, args.convert_legacy)
         args.ptf_path, args.blast_score_ratio, \
             args.translation_table, args.minimum_length, \
             args.size_threshold = upgraded
@@ -403,7 +401,7 @@ def allele_call():
         run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                     args.blast_score_ratio, args.translation_table,
                                                     args.minimum_length, args.size_threshold,
-                                                    args.force_continue, config_file, args.schema_directory)
+                                                    args.convert_legacy, config_file, args.schema_directory)
         args.ptf_path = run_params['ptf_path']
         args.blast_score_ratio = run_params['bsr']
         args.translation_table = run_params['translation_table']

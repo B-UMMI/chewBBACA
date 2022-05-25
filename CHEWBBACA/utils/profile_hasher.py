@@ -10,7 +10,6 @@ Code documentation
 """
 
 
-import sys
 import zlib
 import hashlib
 

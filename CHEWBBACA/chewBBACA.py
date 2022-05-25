@@ -332,33 +332,29 @@ def allele_call():
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
 
-    parser.add_argument('--only-exact', required=False, action='store_true',
-                        dest='only_exact',
+    parser.add_argument('--only-exact', required=False,
+                        action='store_true', dest='only_exact',
                         help='If provided, the process will only determine '
                              'exact matches.')
 
-    parser.add_argument('--fr', '--force-reset', action='store_true',
-                        required=False, dest='force_reset',
-                        help='Force process reset even if there '
-                             'are temporary files from a previous '
-                             'process that was interrupted.')
-
-    parser.add_argument('--add-inferred', required=False, action='store_true',
-                        dest='add_inferred',
+    parser.add_argument('--add-inferred', required=False,
+                        action='store_true', dest='add_inferred',
                         help='If provided, the process will add the sequences '
                              'of inferred alleles to the schema.')
 
-    parser.add_argument('--output-unclassified', required=False, action='store_true',
-                        dest='output_unclassified',
-                        help='Create Fasta file with unclassified coding sequences.')
+    parser.add_argument('--output-unclassified', required=False,
+                        action='store_true', dest='output_unclassified',
+                        help='Create Fasta file with unclassified '
+                             'coding sequences.')
 
-    parser.add_argument('--output-missing', required=False, action='store_true',
-                        dest='output_missing',
-                        help='Create Fasta file with coding sequences for NIPH, NIPHEM, '
-                             'ASM, ALM, PLOT3, PLOT5 and LOTSC classifications.')
+    parser.add_argument('--output-missing', required=False,
+                        action='store_true', dest='output_missing',
+                        help='Create Fasta file with coding sequences '
+                             'for NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5 '
+                             'and LOTSC classifications.')
 
-    parser.add_argument('--no-cleanup', required=False, action='store_true',
-                        dest='no_cleanup',
+    parser.add_argument('--no-cleanup', required=False,
+                        action='store_true', dest='no_cleanup',
                         help='If provided, intermediate files generated '
                              'during process execution are not removed at '
                              'the end.')
@@ -370,14 +366,20 @@ def allele_call():
                              'algorithms implemented in the hashlib and zlib '
                              'libraries.')
 
-    parser.add_argument('--db', '--store-profiles', required=False, action='store_true',
-                        dest='store_profiles',
+    parser.add_argument('--db', '--store-profiles', required=False,
+                        action='store_true', dest='store_profiles',
                         help='If the profiles in the output matrix '
                              'should be stored in the local SQLite '
                              'database.')
 
-    parser.add_argument('--convert-legacy', required=False, action='store_true',
-                        dest='convert_legacy',
+    parser.add_argument('--fr', '--force-reset', required=False,
+                        action='store_true', dest='force_reset',
+                        help='Force process reset even if there '
+                             'are temporary files from a previous '
+                             'process that was interrupted.')
+
+    parser.add_argument('--convert-legacy', required=False,
+                        action='store_true', dest='convert_legacy',
                         help='Convert legacy schemas to latest version.')
 
     args = parser.parse_args()
@@ -426,12 +428,13 @@ def allele_call():
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
+    ### convert this into AlleleCall.main(**vars(args))
     AlleleCall.main(genomes_files, args.schema_directory, args.output_directory, args.ptf_path,
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
                     args.only_exact, args.add_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles)
+                    args.no_cleanup, args.hash_profiles, args.force_reset)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

@@ -195,24 +195,22 @@ def listdir_fullpath(directory_path, substring_filter=False):
     return file_list
 
 
-def handle_rmtree_error(func, path, exception_info):
-    """
-    """
-
-    # check writability of the path
-    #writable = os.access(path, os.W_OK)
-    #if writable is False:
-        # try to change permissions in the future
-
-    return os.path.isdir(path)
-
-
-def delete_directory(directory_path):
+def delete_directory(directory_path, max_retries=5):
     """Delete a directory."""
-    # might fail to delete files due to permission issues (e.g.: read-only)
-    shutil.rmtree(directory_path, onerror=handle_rmtree_error)
+    for i in range(max_retries):
+        try:
+            # might fail to delete files due to permission issues
+            shutil.rmtree(directory_path)
+        # sleep and retry
+        except OSError:
+            time.sleep(i)
 
-    return os.path.isdir(directory_path)
+    # check if directory still exists
+    exists = os.path.isdir(directory_path)
+    if exists is True:
+        print('Could not remove {0}'.format(directory_path))
+
+    return exists
 
 
 def read_lines(input_file, strip=True):

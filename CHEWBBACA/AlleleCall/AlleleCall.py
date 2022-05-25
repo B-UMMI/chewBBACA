@@ -90,7 +90,6 @@ Code documentation
 import os
 import csv
 import sys
-import argparse
 from collections import Counter
 
 from Bio import SeqIO
@@ -117,10 +116,6 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
-
-
-# import module to determine variable size
-import get_varSize_deep as gs
 
 
 def create_classification_file(locus_id, output_directory, locus_results):
@@ -843,6 +838,7 @@ def assign_allele_ids(classification_files):
                             for rec in records])
         # import allele calling results and sort to get INF first
         locus_results = fo.pickle_loader(results)
+        ### also need to sort by input order!!!
         sorted_results = sorted(locus_results.items(),
                                 key=lambda x: x[1][0] == 'INF',
                                 reverse=True)
@@ -2056,7 +2052,22 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
          add_inferred, output_unclassified, output_missing,
-         no_cleanup, hash_profiles): # add force-reset parameter and check if output folder exists to delete
+         no_cleanup, hash_profiles, force_reset):
+
+    # define directory for temporary files
+    temp_directory = fo.join_paths(output_directory, ['temp'])
+    if os.path.isdir(temp_directory) is True:
+        if force_reset is True:
+            print('Found files from an interrupted run.')
+            fo.delete_directory(temp_directory)
+            if os.path.isdir(temp_directory) is False:
+                print('Deleted {0}\n'.format(temp_directory))
+            else:
+                sys.exit('Please delete {0} and retry.'.format(temp_directory))
+        else:
+            sys.exit('Found files from an interrupted run. Please '
+                     'delete the {0} directory or provide the '
+                     '--force-reset parameter.'.format(temp_directory))
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2194,7 +2205,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     # this must run after the step that adds the novel alleles to the schema
     # it cannot determine the hashes of inferred alleles that are not added to the schema
     if hash_profiles is not None:
-        ph.main(profiles_table, schema_directory, results_dir, hash_profiles, cpu_cores, 1000)
+        ph.main(profiles_table, schema_directory, results_dir,
+                hash_profiles, cpu_cores, 1000)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
     cds_coordinates_source = fo.join_paths(output_directory, ['cds_info.tsv'])

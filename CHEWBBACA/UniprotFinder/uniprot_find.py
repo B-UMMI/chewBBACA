@@ -512,7 +512,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                                             loci_info_bool)
 
     if no_cleanup is False:
-        fo.delete_directory(temp_directory)
+        exists = fo.delete_directory(temp_directory)
 
     print('\n\nThe table with new information can be found at:'
           '\n{0}'.format(output_table))

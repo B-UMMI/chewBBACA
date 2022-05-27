@@ -1115,7 +1115,7 @@ def identify_paralogous(results_contigs_file, output_directory):
 
 def classify_inexact_matches(locus, genomes_matches, inv_map,
                              locus_results_file, locus_mode, temp_directory,
-                             size_threshold, blast_score_ratio):
+                             size_threshold, blast_score_ratio, output_directory):
     """Classify inexact matches found for a locus.
 
     Parameters
@@ -1275,7 +1275,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
     # save info about updated mode, excluded ids and representative candidates
     locus_info = {locus: [locus_results_file, locus_mode,
                           excluded, representative_candidates]}
-    locus_info_file = fo.join_paths(temp_directory, ['{0}_classification_info'.format(locus)])
+    locus_info_file = fo.join_paths(output_directory, ['{0}_classification_info'.format(locus)])
     fo.pickle_dumper(locus_info, locus_info_file)
 
     return locus_info_file
@@ -1452,7 +1452,6 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
 # fasta_files = fo.read_lines(input_file, strip=True)
 # fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Datasets/test_senterica'
 # ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Schemas/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
 # blast_score_ratio = 0.6
 # minimum_length = 201
@@ -1474,17 +1473,13 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # output_unclassified = False
 # output_missing = False
 # no_cleanup = False
-def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
+def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    cpu_cores, blast_path, prodigal_mode, cds_input,
                    only_exact):
     """
     """
-
-    # define directory for temporary files
-    temp_directory = fo.join_paths(output_directory, ['temp'])
-    fo.create_directory(temp_directory)
 
     # map full paths to basename
     inputs_basenames = im.mapping_function(fasta_files,
@@ -1508,25 +1503,21 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         print('\nPredicting gene sequences...\n')
 
         # gene prediction step
-        gp_results = cf.predict_genes(fasta_files, ptf_path,
-                                      translation_table, prodigal_mode,
-                                      cpu_cores, prodigal_path,
-                                      output_directory)
-
-        if gp_results is not None:
-            failed, failed_file = gp_results
-
-            print('\nFailed to predict genes for {0} genomes'
+        failed = cf.predict_genes(fasta_files, ptf_path,
+                                  translation_table, prodigal_mode,
+                                  cpu_cores, prodigal_path)
+        print(failed, fasta_files)
+        if len(failed) > 0:
+            print('\nFailed to predict genes for {0} inputs'
                   '.'.format(len(failed)))
             print('Make sure that Prodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
-            print('Info for failed cases stored in: {0}'.format(failed_file))
 
             # remove failed genomes from paths
             fasta_files = im.filter_list(fasta_files, failed)
 
         if len(fasta_files) == 0:
-            sys.exit('\nCould not predict gene sequences from any '
+            sys.exit('\nCould not predict gene sequences for any '
                      'of the input files.\nPlease provide input files '
                      'in the accepted FASTA format.')
 
@@ -1537,9 +1528,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                             ['2_cds_extraction'])
         fo.create_directory(cds_extraction_path)
         eg_results = cf.extract_genes(fasta_files, prodigal_path,
-                                      cpu_cores, cds_extraction_path,
-                                      output_directory)
-        cds_files, total_extracted = eg_results
+                                      cpu_cores, cds_extraction_path)
+        cds_files, total_extracted, cds_info = eg_results
 
         print('\n\nExtracted a total of {0} coding sequences from {1} '
               'genomes.'.format(total_extracted, len(fasta_files)))
@@ -1576,7 +1566,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('schema has {0} loci.'.format(len(loci_files)))
 
     # create files with empty results data structure
-    classification_dir = fo.join_paths(temp_directory, ['4_classification_files'])
+    classification_dir = fo.join_paths(temp_directory, ['classification_files'])
     fo.create_directory(classification_dir)
     empty_results = {}
     inputs = [[loci_basenames[file], classification_dir, empty_results]
@@ -1648,7 +1638,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('Remaining: {0}'.format(len(selected_ids)-len(ut_seqids)))
 
     # write info about invalid alleles to file
-    invalid_alleles_file = fo.join_paths(output_directory,
+    invalid_alleles_file = fo.join_paths(temp_directory,
                                          ['invalid_cds.txt'])
     invalid_alleles = im.join_list(ut_lines, '\n')
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
@@ -1667,7 +1657,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
     # translate loci files
     print('Translating schema alleles...')
-    protein_dir = fo.join_paths(temp_directory, ['4_protein_dir'])
+    protein_dir = fo.join_paths(temp_directory, ['4_translated_schema'])
     fo.create_directory(protein_dir)
     protein_files = mo.parallelize_function(fao.translate_fasta, loci_files,
                                             [protein_dir, translation_table],
@@ -1716,8 +1706,10 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     rep_dir = fo.join_paths(schema_directory, ['short'])
     rep_list = fo.listdir_fullpath(rep_dir, '.fasta')
 
+    reps_protein_dir = fo.join_paths(protein_dir, ['short'])
+    fo.create_directory(reps_protein_dir)
     protein_files = mo.parallelize_function(fao.translate_fasta, rep_list,
-                                            [protein_dir, translation_table],
+                                            [reps_protein_dir, translation_table],
                                             cpu_cores, True)
     protein_repfiles = [r[1] for r in protein_files]
 
@@ -1733,7 +1725,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     makeblastdb_path = fo.join_paths(blast_path, [ct.MAKEBLASTDB_ALIAS])
 
     # concatenate all schema representative
-    concat_reps = fo.join_paths(protein_dir, ['concat_reps.fasta'])
+    concat_reps = fo.join_paths(reps_protein_dir, ['concat_reps.fasta'])
     fo.concatenate_files(protein_repfiles, concat_reps)
 
     # determine self-score for representatives if file is missing
@@ -1761,7 +1753,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
     # BLASTp if there are clusters with n>1
     if len(clusters) > 0:
-        blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
+        blasting_dir = fo.join_paths(clustering_dir, ['clusters_BLASTp'])
         fo.create_directory(blasting_dir)
         all_prots = fo.join_paths(blasting_dir, ['all_prots.fasta'])
 
@@ -1792,8 +1784,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     concatenated_files = []
     concatenate_file_template = '{0}.concatenated_blastout.tsv'
     for locus, files in loci_results.items():
-        outfile = fo.join_paths(clustering_dir,
-                                [concatenate_file_template.format(locus)])
+        outfile = fo.join_paths(blasting_dir,
+                                ['blast_results', concatenate_file_template.format(locus)])
         fo.concatenate_files(files, outfile)
         concatenated_files.append(outfile)
 
@@ -1801,6 +1793,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     prot_index = fao.index_fasta(all_prots)
 
     loci_results = {}
+    blast_matches_dir = fo.join_paths(clustering_dir, ['matches'])
+    fo.create_directory(blast_matches_dir)
     for f in concatenated_files:
         locus_id = fo.get_locus_id(f)
         if locus_id is None:
@@ -1815,13 +1809,15 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
         if len(locus_results) > 0:
             # save results to file
-            locus_file = fo.join_paths(blasting_dir, ['{0}_locus_matches'.format(locus_id)])
+            locus_file = fo.join_paths(blast_matches_dir, ['{0}_locus_matches'.format(locus_id)])
             fo.pickle_dumper(locus_results, locus_file)
             loci_results[locus_id] = locus_file
 
     # process results per genome and per locus
     print('Classification...')
     classification_inputs = []
+    blast_clusters_results_dir = fo.join_paths(clustering_dir, ['results'])
+    fo.create_directory(blast_clusters_results_dir)
     for locus, file in loci_results.items():
         # get locus length mode
         locus_mode = loci_modes[locus]
@@ -1833,7 +1829,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                       basename_inverse_map,
                                       locus_results_file, locus_mode,
                                       temp_directory, size_threshold,
-                                      blast_score_ratio,
+                                      blast_score_ratio, blast_clusters_results_dir,
                                       classify_inexact_matches])
 
     class_results = mo.map_async_parallelizer(classification_inputs,
@@ -1860,10 +1856,10 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     print('Remaining: {0}'.format(len(unclassified_ids)))
 
     # create directory to store data for each iteration
-    iterative_rep_dir = fo.join_paths(temp_directory, ['6_iterative_reps'])
+    iterative_rep_dir = fo.join_paths(temp_directory, ['6_representative_determination'])
     fo.create_directory(iterative_rep_dir)
 
-    remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['remaining_prots.fasta'])
+    remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['unclassified_proteins.fasta'])
     # create Fasta with unclassified sequences
     fao.get_sequences_by_id(prot_index, unclassified_ids,
                             remaining_seqs_file, limit=50000)
@@ -1885,9 +1881,12 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
     exausted = False
     # keep iterating while new representatives are discovered
     while exausted is False:
+        # create directory for current iteration
+        iteration_directory = fo.join_paths(iterative_rep_dir, ['iteration_{0}'.format(iteration)])
+        fo.create_directory(iteration_directory)
         # create text file with unclassified seqids
-        remaining_seqsids_file = fo.join_paths(iterative_rep_dir, ['remaining_seqids_{0}.txt'.format(iteration)])
-        fo.write_lines(unclassified_ids, remaining_seqsids_file)
+        remaining_seqids_file = fo.join_paths(iteration_directory, ['remaining_seqids_{0}.txt'.format(iteration)])
+        fo.write_lines(unclassified_ids, remaining_seqids_file)
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
         print('Representative sets to BLAST against remaining '
@@ -1902,12 +1901,12 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             if locus_id is None:
                 # need to add 'short' or locus id will not be split
                 locus_id = fo.file_basename(file).split('_short')[0]
-            outfile = fo.join_paths(iterative_rep_dir,
+            outfile = fo.join_paths(iteration_directory,
                                     [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
             blast_inputs.append([blastp_path, blast_db, file, outfile,
-                                 1, 1, remaining_seqsids_file, bw.run_blast])
+                                 1, 1, remaining_seqids_file, bw.run_blast])
 
         # BLAST representatives against unclassified sequences
         print('BLASTing...\n')
@@ -1928,7 +1927,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                            dna_distinct_htable, distinct_pseqids, basename_inverse_map)
 
             if len(locus_results) > 0:
-                locus_file = fo.join_paths(iterative_rep_dir, ['{0}_locus_matches'.format(locus_id)])
+                locus_file = fo.join_paths(iteration_directory, ['{0}_locus_matches'.format(locus_id)])
                 fo.pickle_dumper(locus_results, locus_file)
                 loci_results[locus_id] = locus_file
 
@@ -1942,6 +1941,8 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         # process results per genome and per locus
         print('Classification...')
         classification_inputs = []
+        blast_iteration_results_dir = fo.join_paths(iteration_directory, ['results'])
+        fo.create_directory(blast_iteration_results_dir)
         for locus, file in loci_results.items():
             # get locus length mode
             locus_mode = loci_modes[locus]
@@ -1953,7 +1954,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                                           basename_inverse_map,
                                           locus_results_file, locus_mode,
                                           temp_directory, size_threshold,
-                                          blast_score_ratio,
+                                          blast_score_ratio, blast_iteration_results_dir,
                                           classify_inexact_matches])
 
         class_results = mo.map_async_parallelizer(classification_inputs,
@@ -1991,12 +1992,12 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
             for k, v in representative_candidates.items():
                 if len(v) > 1:
                     current_candidates = {e[1]: e[3] for e in v}
-                    fasta_file = fo.join_paths(iterative_rep_dir,
+                    fasta_file = fo.join_paths(iteration_directory,
                                                ['{0}_candidates_{1}.fasta'.format(k, iteration)])
                     # create file with sequences
                     fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), fasta_file)
                     representative_inputs.append([current_candidates, k, fasta_file,
-                                                  iteration, iterative_rep_dir, blastp_path,
+                                                  iteration, iteration_directory, blastp_path,
                                                   blast_db, blast_score_ratio, 1,
                                                   select_representatives])
                 else:
@@ -2017,6 +2018,9 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
         if len(representatives) == 0:
             exausted = True
         else:
+            # create directory to store new representatives
+            new_reps_directory = fo.join_paths(iteration_directory, ['new_representatives'])
+            fo.create_directory(new_reps_directory)
             iteration += 1
             # create files with representative sequences
             reps_ids = []
@@ -2027,16 +2031,16 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
                 reps_ids.extend(current_new_reps)
 
                 # need to add 'short' or locus id will not be split
-                rep_file = fo.join_paths(iterative_rep_dir,
-                                         ['{0}_short_reps_iter{1}.fasta'.format(k, iteration)])
+                rep_file = fo.join_paths(new_reps_directory,
+                                         ['{0}_short_reps_iter.fasta'.format(k)])
                 fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
                 protein_repfiles.append(rep_file)
 
             # concatenate reps
-            concat_repy = fo.join_paths(iterative_rep_dir, ['{0}_concat_reps.fasta'.format(iteration)])
+            concat_repy = fo.join_paths(new_reps_directory, ['concat_reps.fasta'])
             fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
             # determine self-score for new reps
-            new_self_scores = fao.determine_self_scores(iterative_rep_dir, concat_repy,
+            new_self_scores = fao.determine_self_scores(new_reps_directory, concat_repy,
                                                         makeblastdb_path, blastp_path,
                                                         'prot', cpu_cores)
 
@@ -2044,7 +2048,7 @@ def allele_calling(fasta_files, schema_directory, output_directory, ptf_path,
 
     return [classification_files, basename_inverse_map, distinct_file, all_prots,
             dna_distinct_htable, distinct_pseqids, new_reps, self_scores,
-            unclassified_ids]
+            unclassified_ids, failed, invalid_alleles_file, cds_info]
 
 
 def main(input_file, schema_directory, output_directory, ptf_path,
@@ -2053,21 +2057,6 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
          add_inferred, output_unclassified, output_missing,
          no_cleanup, hash_profiles, force_reset):
-
-    # define directory for temporary files
-    temp_directory = fo.join_paths(output_directory, ['temp'])
-    if os.path.isdir(temp_directory) is True:
-        if force_reset is True:
-            print('Found files from an interrupted run.')
-            fo.delete_directory(temp_directory)
-            if os.path.isdir(temp_directory) is False:
-                print('Deleted {0}\n'.format(temp_directory))
-            else:
-                sys.exit('Please delete {0} and retry.'.format(temp_directory))
-        else:
-            sys.exit('Found files from an interrupted run. Please '
-                     'delete the {0} directory or provide the '
-                     '--force-reset parameter.'.format(temp_directory))
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2079,6 +2068,20 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('Window size: {0}'.format(window_size))
     print('Clustering similarity: {0}'.format(clustering_sim))
 
+    # define directory for temporary files
+    temp_directory = fo.join_paths(output_directory, ['temp'])
+    if force_reset is True:
+        exists = fo.delete_directory(temp_directory)
+        if exists:
+            sys.exit('Please delete {0} and retry.'.format(temp_directory))
+    elif os.path.isdir(temp_directory):
+        sys.exit('Found intermediate files from another run. Please '
+                 'delete the {0} directory or provide the '
+                 '--force-reset parameter.'.format(temp_directory))
+
+    # create directory to store intermediate files
+    fo.create_directory(temp_directory)
+
     start_time = pdt.get_datetime()
 
     # read file with paths to input files
@@ -2087,7 +2090,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     # sort paths to FASTA files
     input_files = im.sort_iterable(input_files, sort_key=str.lower)
 
-    results = allele_calling(input_files, schema_directory, output_directory,
+    results = allele_calling(input_files, schema_directory, temp_directory,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, cpu_cores, blast_path,
@@ -2180,7 +2183,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('done.')
 
     # list files with CDSs coordinates
-    coordinates_dir = fo.join_paths(output_directory, ['temp', '2_cds_extraction'])
+    coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
     coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
     coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
                          for f in coordinates_files}
@@ -2209,18 +2212,19 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                 hash_profiles, cpu_cores, 1000)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
-    cds_coordinates_source = fo.join_paths(output_directory, ['cds_info.tsv'])
-    cds_coordinates_destination = fo.join_paths(results_dir, ['cds_info.tsv'])
-    fo.move_file(cds_coordinates_source, cds_coordinates_destination)
+    fo.move_file(results[-1], results_dir)
 
-    invalid_cds_source = fo.join_paths(output_directory, ['invalid_cds.txt'])
-    invalid_cds_destination = fo.join_paths(results_dir, ['invalid_cds.txt'])
     # file is not created if we only search for exact matches
-    if os.path.isfile(invalid_cds_source):
-        fo.move_file(invalid_cds_source, invalid_cds_destination)
+    if only_exact is False:
+        fo.move_file(results[-2], results_dir)
+
+    # if len(failed) > 0:
+    #     failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
+    #     lines = ['{0}\t{1}'.format(line[0], line[1]) for line in failed]
+    #     fo.write_lines(lines, failed_file)
 
     # remove temporary files
     if no_cleanup is False:
-        fo.delete_directory(fo.join_paths(output_directory, ['temp']))
+        fo.delete_directory(temp_directory)
 
     print('\nResults available in {0}'.format(results_dir))

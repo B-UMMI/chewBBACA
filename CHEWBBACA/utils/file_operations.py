@@ -198,10 +198,15 @@ def listdir_fullpath(directory_path, substring_filter=False):
 def delete_directory(directory_path, max_retries=5):
     """Delete a directory."""
     for i in range(max_retries):
+        # might fail to delete files due to permission issues
         try:
-            # might fail to delete files due to permission issues
             shutil.rmtree(directory_path)
-        # sleep and retry
+        # path does not exist
+        # FileNotFoundError is a subclass of OSError
+        # the latter will catch the former if checked first
+        except FileNotFoundError:
+            break
+        # sleep before retry
         except OSError:
             time.sleep(i)
 

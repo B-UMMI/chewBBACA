@@ -39,8 +39,7 @@ except:
 
 
 def predict_genes(fasta_files, ptf_path, translation_table,
-                  prodigal_mode, cpu_cores, output_directory,
-                  parent_directory):
+                  prodigal_mode, cpu_cores, output_directory):
     """ Runs Prodigal to predict coding sequences from FASTA
         files with genomic sequences.
 
@@ -63,8 +62,6 @@ def predict_genes(fasta_files, ptf_path, translation_table,
     output_directory : str
         Path to the directory where output files
         with Prodigal's results will be stored in.
-    parent_directory : str
-        Path to the main output directory of the process.
 
     Returns
     -------
@@ -96,14 +93,16 @@ def predict_genes(fasta_files, ptf_path, translation_table,
                                                  show_progress=True)
 
     # determine if Prodigal predicted genes for all genomes
-    failed_info = gp.check_prodigal_results(prodigal_results,
-                                              parent_directory)
+    failed = {line[0]: line[1]
+              for line in prodigal_results
+              if line[1] == 0
+              or isinstance(line[1], str) is True}
 
-    return failed_info
+    return failed
 
 
 def extract_genes(fasta_files, prodigal_path, cpu_cores,
-                  temp_directory, parent_directory):
+                  temp_directory):
     """ Extracts coding sequences from FASTA files with genomic
         sequences and saves coding sequences and info about coding
         sequences.
@@ -121,8 +120,6 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
     temp_directory : str
         Path to the directory where FASTA files with extracted
         coding sequences will be stored in.
-    parent_directory : str
-        Path to the main output directory of the process.
 
     Returns
     -------
@@ -156,13 +153,13 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
     # create full table file
     table_files = [f[0] for f in extracted_cdss]
-    table_file = fo.join_paths(parent_directory, ['cds_info.tsv'])
+    table_file = fo.join_paths(temp_directory, ['cds_info.tsv'])
     fo.concatenate_files(table_files, table_file, ct.CDS_TABLE_HEADER)
     fo.remove_files(table_files)
 
     cds_files = [f[1] for f in extracted_cdss]
 
-    return [cds_files, total_extracted]
+    return [cds_files, total_extracted, table_file]
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
@@ -742,7 +739,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     blast_results_dir = os.path.join(output_directory,
                                      '{0}_results'.format(file_prefix))
-    os.mkdir(blast_results_dir)
+    fo.create_directory(blast_results_dir)
 
     # create files with replaced sequence identifiers per cluster
     seqids_to_blast = sc.blast_inputs(clusters, blast_results_dir, ids_dict,

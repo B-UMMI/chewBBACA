@@ -28,40 +28,6 @@ except ModuleNotFoundError:
                                  iterables_manipulation as im)
 
 
-def check_prodigal_results(prodigal_results, output_directory):
-    """Determine set of inputs for which Prodigal failed.
-
-    Parameters
-    ----------
-    prodigal_results : list
-        List with gene prediction results from Prodigal.
-    output_directory : str
-        Path to the output directory where the file with information
-        about failed cases will be written to.
-
-    Returns
-    -------
-    A list with the following elements:
-        failed : list
-            List with the stderr for the inputs that Prodigal
-            failed to predict genes for.
-        failed_file : str
-            Path to the file with information about the failed
-            cases.
-    """
-    no_cds = [line for line in prodigal_results if line[1] == 0]
-    errors = [line for line in prodigal_results
-              if isinstance(line[1], str) is True]
-    failed = no_cds + errors
-
-    if len(failed) > 0:
-        failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
-        lines = ['{0}\t{1}'.format(line[0], line[1]) for line in failed]
-        fo.write_lines(lines, failed_file)
-
-        return [failed, failed_file]
-
-
 def extract_genome_cds(reading_frames, contigs, starting_id):
     """Extract coding sequence from contigs.
 

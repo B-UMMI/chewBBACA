@@ -222,7 +222,7 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
             the set of input genomes.
     """
     protein_table = fo.join_paths(temp_directory,
-                                  ['protein_info_{0}.tsv'.format(index)])
+                                  ['cds_coordinates_{0}.tsv'.format(index)])
 
     cds_file = fo.join_paths(temp_directory,
                              ['coding_sequences_{0}.fasta'.format(index)])

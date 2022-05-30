@@ -1506,7 +1506,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         failed = cf.predict_genes(fasta_files, ptf_path,
                                   translation_table, prodigal_mode,
                                   cpu_cores, prodigal_path)
-        print(failed, fasta_files)
+
         if len(failed) > 0:
             print('\nFailed to predict genes for {0} inputs'
                   '.'.format(len(failed)))
@@ -1529,7 +1529,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         fo.create_directory(cds_extraction_path)
         eg_results = cf.extract_genes(fasta_files, prodigal_path,
                                       cpu_cores, cds_extraction_path)
-        cds_files, total_extracted, cds_info = eg_results
+        cds_files, total_extracted, cds_coordinates = eg_results
 
         print('\n\nExtracted a total of {0} coding sequences from {1} '
               'genomes.'.format(total_extracted, len(fasta_files)))
@@ -1547,8 +1547,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # identifiers of genomes that have those sequences
     # lists of integers are encoded with polyline algorithm
     print('\nRemoving duplicated DNA sequences...', end='')
+    # create directory to store files from DNA deduplication
+    dna_dedup_dir = fo.join_paths(preprocess_dir, ['cds_deduplication'])
+    fo.create_directory(dna_dedup_dir)
     distinct_dna_template = 'distinct_cds_{0}.fasta'
-    dna_dedup_results = cf.exclude_duplicates(cds_files, preprocess_dir,
+    dna_dedup_results = cf.exclude_duplicates(cds_files, dna_dedup_dir,
                                               cpu_cores, distinct_dna_template,
                                               [basename_map, basename_inverse_map], False, False)
 
@@ -1626,11 +1629,14 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('\nTranslating {0} DNA sequences...'.format(len(selected_ids)))
 
     # this step excludes small sequences
+    # create directory to store translation results
+    cds_translation_dir = fo.join_paths(preprocess_dir, ['cds_translation'])
+    fo.create_directory(cds_translation_dir)
     ts_results = cf.translate_sequences(selected_ids, distinct_file,
-                                        preprocess_dir, translation_table,
+                                        cds_translation_dir, translation_table,
                                         minimum_length, cpu_cores)
 
-    dna_file, protein_file, ut_seqids, ut_lines = ts_results
+    protein_file, ut_seqids, ut_lines = ts_results
 
     print('Removed {0} DNA sequences that could not be '
           'translated.'.format(len(ut_seqids)))
@@ -1647,8 +1653,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     # protein sequences deduplication step
     print('\nRemoving duplicated protein sequences...', end='')
+    # create directory to store files from protein deduplication
+    protein_dedup_dir = fo.join_paths(preprocess_dir, ['translated_cds_deduplication'])
+    fo.create_directory(protein_dedup_dir)
     distinct_prot_template = 'distinct_prots_{0}.fasta'
-    ds_results = cf.exclude_duplicates([protein_file], preprocess_dir, 1,
+    ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
                                        distinct_prot_template, [basename_map, basename_inverse_map], True, False)
     print('removed {0} sequences.'.format(ds_results[2]))
     distinct_pseqids = ds_results[0]
@@ -1688,7 +1697,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
 
     # create new Fasta file without the Protein sequences that were exact matches
-    unique_pfasta = fo.join_paths(preprocess_dir, ['protein_non_exact.fasta'])
+    unique_pfasta = fo.join_paths(preprocess_dir, ['protein_distinct.fasta'])
     # create protein file index
     protein_index = fao.index_fasta(ds_results[1])
     # the list of "exact_phases" corresponds to the seqids for the DNA sequences
@@ -1746,7 +1755,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, representatives, False,
                                       1, 30, clustering_dir, cpu_cores,
-                                      'clusters', True, False)
+                                      True, False)
 
     # exclude singletons
     clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
@@ -1755,7 +1764,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['clusters_BLASTp'])
         fo.create_directory(blasting_dir)
-        all_prots = fo.join_paths(blasting_dir, ['all_prots.fasta'])
+        all_prots = fo.join_paths(blasting_dir, ['distinct_proteins.fasta'])
 
         # create Fasta file with remaining proteins and representatives
         fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
@@ -1766,7 +1775,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         blast_results, ids_dict = cf.blast_clusters(clusters, all_proteins,
                                                     blasting_dir, blastp_path,
                                                     makeblastdb_path, cpu_cores,
-                                                    'blast', True)
+                                                    True)
 
         blast_files = im.flatten_list(blast_results)
 
@@ -1785,7 +1794,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     concatenate_file_template = '{0}.concatenated_blastout.tsv'
     for locus, files in loci_results.items():
         outfile = fo.join_paths(blasting_dir,
-                                ['blast_results', concatenate_file_template.format(locus)])
+                                ['BLAST_results', concatenate_file_template.format(locus)])
         fo.concatenate_files(files, outfile)
         concatenated_files.append(outfile)
 
@@ -1885,7 +1894,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         iteration_directory = fo.join_paths(iterative_rep_dir, ['iteration_{0}'.format(iteration)])
         fo.create_directory(iteration_directory)
         # create text file with unclassified seqids
-        remaining_seqids_file = fo.join_paths(iteration_directory, ['remaining_seqids_{0}.txt'.format(iteration)])
+        remaining_seqids_file = fo.join_paths(iteration_directory, ['unclassified_seqids_{0}.txt'.format(iteration)])
         fo.write_lines(unclassified_ids, remaining_seqids_file)
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
@@ -1896,12 +1905,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         # create BLASTp inputs
         output_files = []
         blast_inputs = []
+        # create directory to store BLASTp results
+        iteration_blast_dir = fo.join_paths(iteration_directory, ['blast_results'])
+        fo.create_directory(iteration_blast_dir)
         for file in protein_repfiles:
             locus_id = fo.get_locus_id(file)
             if locus_id is None:
                 # need to add 'short' or locus id will not be split
                 locus_id = fo.file_basename(file).split('_short')[0]
-            outfile = fo.join_paths(iteration_directory,
+            outfile = fo.join_paths(iteration_blast_dir,
                                     [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
@@ -1916,6 +1928,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                                    show_progress=True)
 
         loci_results = {}
+        # create directory to store files with matches
+        iteration_matches_dir = fo.join_paths(iteration_directory, ['matches'])
+        fo.create_directory(iteration_matches_dir)
         for f in output_files:
             locus_id = fo.get_locus_id(f)
             if locus_id is None:
@@ -1927,7 +1942,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                            dna_distinct_htable, distinct_pseqids, basename_inverse_map)
 
             if len(locus_results) > 0:
-                locus_file = fo.join_paths(iteration_directory, ['{0}_locus_matches'.format(locus_id)])
+                locus_file = fo.join_paths(iteration_matches_dir, ['{0}_locus_matches'.format(locus_id)])
                 fo.pickle_dumper(locus_results, locus_file)
                 loci_results[locus_id] = locus_file
 
@@ -2048,7 +2063,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     return [classification_files, basename_inverse_map, distinct_file, all_prots,
             dna_distinct_htable, distinct_pseqids, new_reps, self_scores,
-            unclassified_ids, failed, invalid_alleles_file, cds_info]
+            unclassified_ids, failed, invalid_alleles_file, cds_coordinates]
 
 
 def main(input_file, schema_directory, output_directory, ptf_path,
@@ -2075,7 +2090,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         if exists:
             sys.exit('Please delete {0} and retry.'.format(temp_directory))
     elif os.path.isdir(temp_directory):
-        sys.exit('Found intermediate files from another run. Please '
+        sys.exit('\nFound intermediate files from another run. Please '
                  'delete the {0} directory or provide the '
                  '--force-reset parameter.'.format(temp_directory))
 

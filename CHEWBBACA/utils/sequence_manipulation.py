@@ -436,7 +436,7 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     return [dna_seqs, prot_seqs, invalid, seqids_map, total_seqs]
 
 
-def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
+def translate_coding_sequences(seqids, protein_file, sequences_file,
                                translation_table, minimum_length):
     """Translate coding sequences.
 
@@ -445,16 +445,14 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
     seqids : list
         List with the sequence identifiers of the sequences
         to be translated.
+    protein_file : str
+        Path to a file to save protein sequences.
     sequences_file : str
         Path to the FASTA file that contains the DNA sequences.
     translation_table : int
         Translation table identifier.
     minimum_length : int
         The minimum sequence length value.
-    dna_file : str
-        Path to a file to save DNA sequences.
-    protein_file : str
-        Path to a file to save protein sequences.
 
     Returns
     -------
@@ -469,20 +467,16 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
             translated.
     """
     # define limit of records to keep in memory
-    dna_lines = []
     total_seqs = 0
     prot_lines = []
     line_limit = 10000
     invalid_alleles = []
     cds_index = fao.index_fasta(sequences_file)
-
     for i, seqid in enumerate(seqids):
         sequence = str(cds_index.get(seqid).seq)
 
         translation = translate_dna(sequence, translation_table, minimum_length)
         if isinstance(translation, list):
-            dna_lines.append('>{0}'.format(seqid))
-            dna_lines.append(translation[0][1])
             prot_lines.append('>{0}'.format(seqid))
             prot_lines.append(str(translation[0][0]))
             total_seqs += 1
@@ -491,12 +485,7 @@ def translate_coding_sequences(seqids, dna_file, protein_file, sequences_file,
         elif isinstance(translation, str):
             invalid_alleles.append([seqid, translation])
 
-        if len(dna_lines)//2 == line_limit or i+1 == len(seqids):
-
-            dna_lines = im.join_list(dna_lines, '\n')
-            fo.write_to_file(dna_lines, dna_file, 'a', '\n')
-            dna_lines = []
-
+        if len(prot_lines)//2 == line_limit or i+1 == len(seqids):
             prot_lines = im.join_list(prot_lines, '\n')
             fo.write_to_file(prot_lines, protein_file, 'a', '\n')
             prot_lines = []
@@ -563,7 +552,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
     # save dictionary with genome integer identifiers per distinct sequence
     # to pickle and only return file path to avoid keeping all dicts from
     # parallel processes in memory
-    pickle_out = unique_fasta + '_duplicates'
+    pickle_out = unique_fasta.replace('.fasta', '.duplicates')
     fo.pickle_dumper(duplicates, pickle_out)
 
     return pickle_out

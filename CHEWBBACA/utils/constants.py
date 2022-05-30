@@ -168,6 +168,7 @@ RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
 LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
+CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
 # header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
                      'NIPHEM\tALM\tASM\tLNF\tTotal_CDS')

@@ -153,7 +153,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 
     # create full table file
     table_files = [f[0] for f in extracted_cdss]
-    table_file = fo.join_paths(temp_directory, ['cds_info.tsv'])
+    table_file = fo.join_paths(temp_directory, [ct.CDS_COORDINATES_BASENAME])
     fo.concatenate_files(table_files, table_file, ct.CDS_TABLE_HEADER)
     fo.remove_files(table_files)
 
@@ -235,9 +235,16 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
                 repeated += (len(v)/2) - 1
 
+    # save table with deduplicated records
+    hash_table_file = fo.join_paths(temp_directory, ['distinct_cds.duplicates'])
+    fo.pickle_dumper(merged_results, hash_table_file)
+
+    # remove intermediate deduplication tables
+    fo.remove_files(dedup_results)
+
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]
-    cds_file = fo.join_paths(temp_directory, ['distinct_seqs_concat.fasta'])
+    cds_file = fo.join_paths(temp_directory, ['distinct_cds_concat.fasta'])
     cds_file = fo.concatenate_files(dedup_files, cds_file)
 
     # create index for concatenated Fasta
@@ -245,10 +252,12 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # define filename for file with distinct sequences
     distinct_seqs = fo.join_paths(temp_directory,
-                                  [outfile_template.format('d')])
+                                  [outfile_template.format('merged')])
     # get the representative record for each distinct sequence
     fao.get_sequences_by_id(cds_index, distinct_seqids,
                             distinct_seqs, 20000)
+
+    fo.remove_files(dedup_files+[cds_file])
 
     if only_seqids is False:
         return [merged_results, distinct_seqs, repeated]
@@ -344,20 +353,14 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
     # divide inputs into sublists
     translation_inputs = im.divide_list_into_n_chunks(sequence_ids, cpu_cores)
 
-    # create paths to files with DNA sequences of translatable sequences
-    dna_template = fo.join_paths(temp_directory, ['dna_{0}.fasta'])
-    dna_files = [dna_template.format(i+1)
-                 for i in range(len(translation_inputs))]
-
     # create paths to files with protein sequences
-    protein_template = fo.join_paths(temp_directory, ['protein_{0}.fasta'])
+    protein_template = fo.join_paths(temp_directory, ['translated_cds_{0}.fasta'])
     protein_files = [protein_template.format(i+1)
                      for i in range(len(translation_inputs))]
 
     # add common args to sublists
     common_args = [sequences_file, translation_table, minimum_length]
     translation_inputs = im.aggregate_iterables([translation_inputs,
-                                                 dna_files,
                                                  protein_files])
     translation_inputs = im.multiprocessing_inputs(translation_inputs,
                                                    common_args,
@@ -370,10 +373,9 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
                                                     show_progress=False)
 
     # concatenate files
-    dna_file = fo.join_paths(temp_directory, ['dna.fasta'])
-    dna_file = fo.concatenate_files(dna_files, dna_file)
-    protein_file = fo.join_paths(temp_directory, ['protein.fasta'])
+    protein_file = fo.join_paths(temp_directory, ['translated_cds_concat.fasta'])
     protein_file = fo.concatenate_files(protein_files, protein_file)
+    fo.remove_files(protein_files)
 
     # determine sequences that could not be translated
     untrans_lines = []
@@ -384,13 +386,13 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
                                   for r in res[0]])
             untrans_seqids.extend([r[0] for r in res[0]])
 
-    return [dna_file, protein_file, untrans_seqids, untrans_lines]
+    return [protein_file, untrans_seqids, untrans_lines]
 
 
 def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                       representatives, grow_clusters, kmer_offset,
                       seq_num_cluster, temp_directory, cpu_cores,
-                      file_prefix, divide, position):
+                      divide, position):
     """ Clusters sequences based on the proportion of shared minimizers.
 
         Parameters
@@ -422,8 +424,6 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
             will be saved to.
         cpu_cores : int
             Number of clustering processes to run in parallel.
-        file_prefix : str
-            A prefix to include in the names of created files.
         divide : bool
             If input sequences should be divided into smaller
             groups that can be processed in parallel.
@@ -505,8 +505,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     clusters = {k: v for k, v in im.sort_iterable(clusters.items())}
 
     # write file with clustering results
-    clusters_out = os.path.join(temp_directory,
-                                '{0}.txt'.format(file_prefix))
+    clusters_out = os.path.join(temp_directory, 'clusters.txt')
     sc.write_clusters(clusters, clusters_out)
 
     return clusters
@@ -670,7 +669,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
 
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
-                   file_prefix, only_rep=False):
+                   only_rep=False):
     """ Uses BLAST to align sequences in the same clusters.
 
         Parameters
@@ -694,8 +693,6 @@ def blast_clusters(clusters, sequences, output_directory,
             Path to the `makeblastdb` executable.
         cpu_cores : int
             Number of BLASTp processes to run in parallel.
-        file_prefix : str
-            A prefix to include in the names of created files.
 
         Returns
         -------
@@ -715,7 +712,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # create FASTA file with sequences in clusters
     clustered_seqs_file = fo.join_paths(output_directory,
-                                        ['{0}_clustered_proteins.fasta'.format(file_prefix)])
+                                        ['clustered_proteins.fasta'])
     clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
     clustered_sequences = im.flatten_list(clustered_sequences)
     # do not include duplicate identifiers
@@ -726,19 +723,19 @@ def blast_clusters(clusters, sequences, output_directory,
     # create FASTA file with replaced headers to avoid header
     # length limitation in BLAST
     integer_clusters = fo.join_paths(output_directory,
-                                     ['{0}_clustered_proteins_int.fasta'.format(file_prefix)])
+                                     ['clustered_proteins_integer_header.fasta'])
     ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters)
 
     # create BLAST DB
     blast_db = fo.join_paths(output_directory,
-                             ['{0}_clustered_proteins_int'.format(file_prefix)])
+                             ['clustered_proteins'])
     db_stderr = bw.make_blast_db(makeblastdb_path, integer_clusters,
                                  blast_db, 'prot')
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
     blast_results_dir = os.path.join(output_directory,
-                                     '{0}_results'.format(file_prefix))
+                                     'BLAST_results')
     fo.create_directory(blast_results_dir)
 
     # create files with replaced sequence identifiers per cluster

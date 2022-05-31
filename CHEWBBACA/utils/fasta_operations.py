@@ -452,8 +452,7 @@ def determine_self_scores(work_directory, fasta_file, makeblastdb_path,
     """
     # change identifiers to shorten and avoid BLAST error
     # related with sequence header length
-    output_basename = fo.file_basename(fasta_file, False)+'_intids.fasta'
-    output_fasta = fo.join_paths(work_directory, [output_basename])
+    output_fasta = fasta_file.replace('.fasta', '_integer_headers.fasta')
     ids_map = integer_headers(fasta_file, output_fasta, start=1, limit=5000)
 
     blast_db = fo.join_paths(work_directory,

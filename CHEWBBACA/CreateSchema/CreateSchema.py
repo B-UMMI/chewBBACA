@@ -153,8 +153,7 @@ except:
                                  multiprocessing_operations as mo)
 
 
-def create_schema_structure(schema_seed_fasta, output_directory,
-                            temp_directory, schema_name):
+def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
     """ Creates the schema seed directory with one FASTA file per
         distinct locus and the `short` directory with the FASTA files
         used to save the representative sequences.
@@ -167,9 +166,6 @@ def create_schema_structure(schema_seed_fasta, output_directory,
             is a representative sequence chosen for a locus.
         output_directory : str
             Path to the main output directory of the process.
-        temp_directory : str
-            Path to the directory where the FASTA file with the
-            records for the schema seed will be saved to.
         schema_name : str
             Name for the schema's directory.
 
@@ -179,45 +175,26 @@ def create_schema_structure(schema_seed_fasta, output_directory,
             List with the paths to the FASTA files in the schema seed.
     """
 
-    # add allele identifier to all sequences
-    schema_records = ['>{0}\n{1}'.format(im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS) + '_1', str(rec.seq))
-                      for rec in SeqIO.parse(schema_seed_fasta, 'fasta')]
-
-    final_records = os.path.join(temp_directory, 'schema_seed_final.fasta')
-    fo.write_lines(schema_records, final_records)
-
     schema_dir = fo.join_paths(output_directory, [schema_name])
     fo.create_directory(schema_dir)
 
-    # create directory and schema files
-    filenames = [record.id[:-2] for record in SeqIO.parse(final_records, 'fasta')]
-    filenames = [im.replace_multiple_characters(f, ct.CHAR_REPLACEMENTS) for f in filenames]
-    file_paths = (fo.join_paths(schema_dir, ['{0}.fasta'.format(f)]) for f in filenames)
-    schema_files = fao.split_fasta(final_records, file_paths, 1)
-    fo.create_short(schema_files, schema_dir)
+    # add allele identifier to all sequences
+    schema_records = {im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS): str(rec.seq)
+                      for rec in SeqIO.parse(schema_seed_fasta, 'fasta')}
 
-    return schema_files
+    loci_basenames = {k: k+'.fasta' for k in schema_records}
+    loci_paths = {k: fo.join_paths(schema_dir, [v]) for k, v in loci_basenames.items()}
+
+    for k, v in schema_records.items():
+        current_representative = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [k+'_1', v])
+        fo.write_to_file(current_representative, loci_paths[k], 'w', '\n')
+
+    # create 'short' directory
+    fo.create_short(loci_paths.values(), schema_dir)
+
+    return loci_paths
 
 
-
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids32.txt'
-# fasta_files = input_files
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema_creation'
-# schema_name = 'schema_seed'
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/sagalactiae_schema_seed/schema_seed/Streptococcus_agalactiae.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# representative_filter = 0.9
-# intra_filter = 0.9
-# cpu_cores = 6
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
-# prodigal_mode = 'single'
-# cds_input = False
 def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,
@@ -282,6 +259,8 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         cds_files, total_extracted, cds_coordinates = eg_results
         print('\n\nExtracted a total of {0} coding sequences from {1} '
               'genomes.'.format(total_extracted, len(fasta_files)))
+        # move TSV file with CDS coordinates to output directory
+        fo.move_file(cds_coordinates, output_directory)
     else:
         cds_files = fasta_files
         print('Number of inputs: {0}'.format(len(cds_files)))
@@ -298,7 +277,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # create directory to store files from DNA deduplication
     dna_dedup_dir = fo.join_paths(preprocess_dir, ['cds_deduplication'])
     fo.create_directory(dna_dedup_dir)
-    distinct_dna_template = 'distinct_cds_{0}.fasta'
+    distinct_dna_template = 'distinct_cds_{0}'
     ds_results = cf.exclude_duplicates(cds_files, dna_dedup_dir, cpu_cores,
                                        distinct_dna_template, [basename_map, basename_inverse_map],
                                        False, True)
@@ -341,7 +320,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     protein_dedup_dir = fo.join_paths(preprocess_dir,
                                       ['translated_cds_deduplication'])
     fo.create_directory(protein_dedup_dir)
-    distinct_prot_template = 'distinct_prots_{0}.fasta'
+    distinct_prot_template = 'distinct_prots_{0}'
     ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
                                        distinct_prot_template,
                                        [basename_map, basename_inverse_map],
@@ -368,28 +347,25 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                       1, 1, clustering_dir, cpu_cores,
                                       True, False)
 
-    # clustering pruning step
+    # exclude based on high similarity to cluster representatives
     rep_filter_dir = fo.join_paths(clustering_dir, ['representative_filter'])
     fo.create_directory(rep_filter_dir)
     cp_results = cf.cluster_representative_filter(cs_results,
                                                   representative_filter,
-                                                  rep_filter_dir,
-                                                  'repfilter')
+                                                  rep_filter_dir)
 
     clusters, excluded_seqids = cp_results
 
     # remove excluded seqids
     schema_seqids = list(set(schema_seqids) - excluded_seqids)
 
-    # intra cluster pruner step
-    intra_filter_dir = fo.join_paths(clustering_dir, ['intra_filter'])
+    # exclude based on high similarity to other clustered sequences
+    intra_filter_dir = fo.join_paths(clustering_dir, ['intracluster_filter'])
     fo.create_directory(intra_filter_dir)
     cip_results = cf.cluster_intra_filter(clusters, proteins,
                                           word_size, intra_filter,
-                                          intra_filter_dir,
-                                          'intrafilter')
+                                          intra_filter_dir)
 
-    ### what if all clusters are singletons? Will it continue to cluster blaster?
     clusters, intra_excluded = cip_results
 
     # remove excluded seqids - we get set of sequences from clusters
@@ -420,10 +396,14 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         # merge bsr results
         blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
 
-        blast_excluded_alleles = [ids_dict[seqid] for seqid in blast_excluded_alleles]
-        schema_seqids = list(set(schema_seqids) - set(blast_excluded_alleles))
+        blast_excluded_alleles = set([ids_dict[seqid] for seqid in blast_excluded_alleles])
+        schema_seqids = list(set(schema_seqids) - blast_excluded_alleles)
         print('\n\nRemoved {0} sequences based on high BSR value with '
-              'other sequences.'.format(len(set(blast_excluded_alleles))))
+              'other sequences.'.format(len(blast_excluded_alleles)))
+
+        # write list of excluded to file
+        blast_excluded_outfile = fo.join_paths(blasting_dir, ['excluded.txt'])
+        fo.write_lines(blast_excluded_alleles, blast_excluded_outfile)
 
     # perform final BLAST to identify similar sequences that do not
     # share many/any kmers
@@ -454,10 +434,10 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     # divide FASTA file into groups of 100 sequences to reduce
     # execution time for large sequence sets
-    split_dir = fo.join_paths(final_blast_dir, ['split_fastas'])
+    split_dir = fo.join_paths(final_blast_dir, ['cds_subsets'])
     fo.create_directory(split_dir)
     file_num = math.ceil(len(schema_seqids)/100)
-    filenames = ['split{0}.fasta'.format(i+1) for i in range(0, file_num)]
+    filenames = ['cds_subset{0}.fasta'.format(i+1) for i in range(0, file_num)]
     file_paths = (fo.join_paths(split_dir, [f]) for f in filenames)
     splitted_fastas = fao.split_fasta(integer_seqids, file_paths, 100)
 
@@ -498,15 +478,12 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nRemoved {0} sequences that were highly similar '
           'to other sequences.'.format(len(final_excluded)))
 
-    schema_seed_dir = fo.join_paths(temp_directory, ['schema_seed'])
-    fo.create_directory(schema_seed_dir)
-    output_schema = os.path.join(schema_seed_dir, 'schema_seed.fasta')
-
     # create file with the schema representative sequences
-    fao.get_sequences_by_id(indexed_dna_file, schema_seqids, output_schema)
+    loci_representatives = os.path.join(final_blast_dir, 'loci_representatives.fasta')
+    fao.get_sequences_by_id(indexed_dna_file, schema_seqids, loci_representatives)
 
-    schema_files = create_schema_structure(output_schema, output_directory,
-                                           final_blast_dir, schema_name)
+    schema_files = create_schema_structure(loci_representatives, output_directory,
+                                           schema_name)
 
     return [schema_files, temp_directory, failed]
 

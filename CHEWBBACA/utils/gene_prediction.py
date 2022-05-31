@@ -186,7 +186,7 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     fo.write_lines(cds_lines, cds_file, write_mode='a')
 
     write_coordinates_tsv(genome_info[1], identifier, protein_table)
-    pickle_out = os.path.join(os.path.dirname(protein_table), identifier+'_cds_hash')
+    pickle_out = os.path.join(os.path.dirname(protein_table), identifier+'.cds_hash')
     write_coordinates_pickle(genome_info[1], contig_lengths, pickle_out)
 
     total_cds = len(genome_info[0])
@@ -232,7 +232,7 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
         # determine Prodigal ORF file path for current genome
         identifier = fo.file_basename(g, False)
         orf_file_path = fo.join_paths(prodigal_path,
-                                      ['{0}_ORF'.format(identifier)])
+                                      ['{0}.cds_coordinates'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
                                    protein_table, cds_file)
         batch_total += total
@@ -325,7 +325,7 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     if total_genome > 0:
         # save positions in file
-        filepath = os.path.join(output_dir, genome_basename + '_ORF')
+        filepath = os.path.join(output_dir, genome_basename + '.cds_coordinates')
         fo.pickle_dumper(contigs_pos, filepath)
 
     status = [input_file, total_genome]

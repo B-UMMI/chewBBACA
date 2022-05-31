@@ -1205,7 +1205,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
 
             # there is no DNA or Protein exact match, perform full evaluation
             # open pickle for genome and get coordinates
-            genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'_cds_hash'])
+            genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'.cds_hash'])
             genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
             # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
             # get CDS start and stop positions
@@ -1550,7 +1550,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # create directory to store files from DNA deduplication
     dna_dedup_dir = fo.join_paths(preprocess_dir, ['cds_deduplication'])
     fo.create_directory(dna_dedup_dir)
-    distinct_dna_template = 'distinct_cds_{0}.fasta'
+    distinct_dna_template = 'distinct_cds_{0}'
     dna_dedup_results = cf.exclude_duplicates(cds_files, dna_dedup_dir,
                                               cpu_cores, distinct_dna_template,
                                               [basename_map, basename_inverse_map], False, False)
@@ -1608,6 +1608,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('found {0} exact matches (matching {1} distinct alleles).'
           ''.format(dna_exact_hits, dna_matches_ids))
 
+    # save seqids that matched
+    dna_exact_outfile = fo.join_paths(preprocess_dir, ['cds_exact_matches.txt'])
+    fo.write_lines(matched_seqids, dna_exact_outfile)
+
     # user only wants to determine exact matches
     if only_exact is True:
         # return classification files to create output files
@@ -1656,7 +1660,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # create directory to store files from protein deduplication
     protein_dedup_dir = fo.join_paths(preprocess_dir, ['translated_cds_deduplication'])
     fo.create_directory(protein_dedup_dir)
-    distinct_prot_template = 'distinct_prots_{0}.fasta'
+    distinct_prot_template = 'distinct_prots_{0}'
     ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
                                        distinct_prot_template, [basename_map, basename_inverse_map], True, False)
     print('removed {0} sequences.'.format(ds_results[2]))
@@ -1696,8 +1700,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('found {0} protein exact matches ({1} distinct CDSs, {2} total CDSs).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
 
+    # save seqids that matched
+    protein_exact_outfile = fo.join_paths(preprocess_dir, ['translated_cds_exact_matches.txt'])
+    fo.write_lines(exact_phashes, protein_exact_outfile)
+
     # create new Fasta file without the Protein sequences that were exact matches
-    unique_pfasta = fo.join_paths(preprocess_dir, ['protein_distinct.fasta'])
+    unique_pfasta = fo.join_paths(preprocess_dir, ['translated_cds_distinct.fasta'])
     # create protein file index
     protein_index = fao.index_fasta(ds_results[1])
     # the list of "exact_phases" corresponds to the seqids for the DNA sequences
@@ -1906,7 +1914,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         output_files = []
         blast_inputs = []
         # create directory to store BLASTp results
-        iteration_blast_dir = fo.join_paths(iteration_directory, ['blast_results'])
+        iteration_blast_dir = fo.join_paths(iteration_directory, ['BLAST_results'])
         fo.create_directory(iteration_blast_dir)
         for file in protein_repfiles:
             locus_id = fo.get_locus_id(file)
@@ -2000,19 +2008,29 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         # new representatives and alleles that amtch in other genomes should have been all classified
         print('Remaining unclassified proteins: {0}'.format(len(unclassified_ids)))
 
+        # create directory to store new representatives
+        new_reps_directory = fo.join_paths(iteration_directory, ['representative_candidates'])
+        fo.create_directory(new_reps_directory)
+
         representatives = {}
         representative_inputs = []
         if len(representative_candidates) > 0:
+            candidates_dir = fo.join_paths(new_reps_directory, ['candidates'])
+            fo.create_directory(candidates_dir)
+            selection_dir = fo.join_paths(new_reps_directory, ['selection'])
+            fo.create_directory(selection_dir)
+            blast_selection_dir = fo.join_paths(selection_dir, ['BLAST_results'])
+            fo.create_directory(blast_selection_dir)
             print('\nSelecting representatives for next iteration.')
             for k, v in representative_candidates.items():
                 if len(v) > 1:
                     current_candidates = {e[1]: e[3] for e in v}
-                    fasta_file = fo.join_paths(iteration_directory,
-                                               ['{0}_candidates_{1}.fasta'.format(k, iteration)])
+                    fasta_file = fo.join_paths(candidates_dir,
+                                               ['{0}_candidates.fasta'.format(k)])
                     # create file with sequences
                     fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), fasta_file)
                     representative_inputs.append([current_candidates, k, fasta_file,
-                                                  iteration, iteration_directory, blastp_path,
+                                                  iteration, blast_selection_dir, blastp_path,
                                                   blast_db, blast_score_ratio, 1,
                                                   select_representatives])
                 else:
@@ -2033,10 +2051,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         if len(representatives) == 0:
             exausted = True
         else:
-            # create directory to store new representatives
-            new_reps_directory = fo.join_paths(iteration_directory, ['new_representatives'])
-            fo.create_directory(new_reps_directory)
-            iteration += 1
+            selected_dir = fo.join_paths(new_reps_directory, ['selected'])
+            fo.create_directory(selected_dir)
             # create files with representative sequences
             reps_ids = []
             protein_repfiles = []
@@ -2046,7 +2062,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                 reps_ids.extend(current_new_reps)
 
                 # need to add 'short' or locus id will not be split
-                rep_file = fo.join_paths(new_reps_directory,
+                rep_file = fo.join_paths(selected_dir,
                                          ['{0}_short_reps_iter.fasta'.format(k)])
                 fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
                 protein_repfiles.append(rep_file)
@@ -2055,11 +2071,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
             concat_repy = fo.join_paths(new_reps_directory, ['concat_reps.fasta'])
             fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
             # determine self-score for new reps
-            new_self_scores = fao.determine_self_scores(new_reps_directory, concat_repy,
+            candidates_blast_dir = fo.join_paths(new_reps_directory, ['representatives_self_score'])
+            fo.create_directory(candidates_blast_dir)
+            new_self_scores = fao.determine_self_scores(candidates_blast_dir, concat_repy,
                                                         makeblastdb_path, blastp_path,
                                                         'prot', cpu_cores)
 
             self_scores = {**self_scores, **new_self_scores}
+
+        iteration += 1
 
     return [classification_files, basename_inverse_map, distinct_file, all_prots,
             dna_distinct_htable, distinct_pseqids, new_reps, self_scores,
@@ -2199,8 +2219,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
 
     # list files with CDSs coordinates
     coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
-    coordinates_files = fo.listdir_fullpath(coordinates_dir, 'cds_hash')
-    coordinates_files = {fo.file_basename(f, True).split('_cds_hash')[0]: f
+    coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
+    coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
                          for f in coordinates_files}
     print('Writing results_contigsInfo.tsv...', end='')
     results_contigs_outfile = write_results_contigs(list(results[0].values()), results[1],

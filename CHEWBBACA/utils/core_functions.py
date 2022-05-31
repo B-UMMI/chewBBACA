@@ -193,7 +193,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # create groups of inputs for multiprocessing
     output_files = [fo.join_paths(temp_directory,
-                                  [outfile_template.format(i+1)])
+                                  [outfile_template.format(str(i+1)+'.fasta')])
                     for i, file in enumerate(fasta_files)]
 
     inputs = im.aggregate_iterables([fasta_files, output_files])
@@ -236,7 +236,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                 repeated += (len(v)/2) - 1
 
     # save table with deduplicated records
-    hash_table_file = fo.join_paths(temp_directory, ['distinct_cds.duplicates'])
+    hash_table_file = fo.join_paths(temp_directory, [outfile_template.format('merged.hashtable')])
     fo.pickle_dumper(merged_results, hash_table_file)
 
     # remove intermediate deduplication tables
@@ -244,7 +244,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # concatenate Fasta files from parallel processes
     dedup_files = [f[1] for f in dedup_inputs]
-    cds_file = fo.join_paths(temp_directory, ['distinct_cds_concat.fasta'])
+    cds_file = fo.join_paths(temp_directory, [outfile_template.format('concat.fasta')])
     cds_file = fo.concatenate_files(dedup_files, cds_file)
 
     # create index for concatenated Fasta
@@ -252,7 +252,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
     # define filename for file with distinct sequences
     distinct_seqs = fo.join_paths(temp_directory,
-                                  [outfile_template.format('merged')])
+                                  [outfile_template.format('merged.fasta')])
     # get the representative record for each distinct sequence
     fao.get_sequences_by_id(cds_index, distinct_seqids,
                             distinct_seqs, 20000)
@@ -512,7 +512,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
 
 def cluster_representative_filter(clusters, representative_filter,
-                                  output_directory, file_prefix):
+                                  output_directory):
     """ Excludes sequences from clusters based on the proportion
         of shared kmers with the representative. After removing
         highly similar sequences, excludes clusters that are
@@ -534,8 +534,6 @@ def cluster_representative_filter(clusters, representative_filter,
         output_directory : str
             Path to the directory where the clustering results
             will be saved to.
-        file_prefix : str
-            A prefix to include in the names of created files.
 
         Returns
         -------
@@ -569,8 +567,7 @@ def cluster_representative_filter(clusters, representative_filter,
                        for k, v in pruned_clusters.items()}
 
     # write file with pruning results
-    pruned_out = os.path.join(output_directory,
-                              '{0}_clusters.txt'.format(file_prefix))
+    pruned_out = os.path.join(output_directory, 'clusters.txt')
     sc.write_clusters(pruned_clusters, pruned_out)
 
     # identify singletons and exclude those clusters
@@ -585,12 +582,15 @@ def cluster_representative_filter(clusters, representative_filter,
     print('Remaining sequences after representative and singleton '
           'pruning: {0}'.format(clustered_sequences))
 
+    # write list of excluded seqids to file
+    excluded_outfile = os.path.join(output_directory, 'excluded.txt')
+    fo.write_lines(excluded_seqids, excluded_outfile)
+
     return [pruned_clusters, excluded_seqids]
 
 
 def cluster_intra_filter(clusters, sequences, word_size,
-                         intra_filter, output_directory,
-                         file_prefix):
+                         intra_filter, output_directory):
     """ Determines similarity between clustered sequences and
         excludes sequences that are highly similar to other clustered
         sequences.
@@ -616,8 +616,6 @@ def cluster_intra_filter(clusters, sequences, word_size,
         output_directory : str
             Path to the directory where the clustering results
             will be saved to.
-        file_prefix : str
-            A prefix to include in the names of created files.
 
         Returns
         -------
@@ -651,12 +649,10 @@ def cluster_intra_filter(clusters, sequences, word_size,
                        for k, v in clusters.items()}
 
     # write excluded to file
-    intrasim_out = os.path.join(output_directory,
-                                '{0}_excluded.txt'.format(file_prefix))
+    intrasim_out = os.path.join(output_directory, 'excluded.txt')
     sc.write_clusters(excluded_sims, intrasim_out)
     # write clusters to file
-    intrasim_out = os.path.join(output_directory,
-                                '{0}_clusters.txt'.format(file_prefix))
+    intrasim_out = os.path.join(output_directory, 'clusters.txt')
     sc.write_clusters(pruned_clusters, intrasim_out)
 
     # # add key because it is representative identifier
@@ -744,10 +740,8 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
-    splitted_seqids = mo.distribute_loci(seqids_to_blast,
-                                             process_num,
-                                             'seqcount')
-    
+    splitted_seqids = mo.distribute_loci(seqids_to_blast, process_num, 'seqcount')
+
     common_args = [integer_clusters, blast_results_dir, blastp_path,
                    blast_db, only_rep, sc.cluster_blaster]
 

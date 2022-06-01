@@ -13,6 +13,7 @@ Code documentation
 
 
 import time
+from urllib.request import Request, urlopen
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
@@ -28,6 +29,27 @@ except ModuleNotFoundError:
 
 
 UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
+
+
+def website_availability(url):
+    """
+
+    Parameters
+    ----------
+    url : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    try:
+        response = urlopen(url)
+    except Exception as e:
+        response = e
+
+    return response
 
 
 def select_name(result):
@@ -59,7 +81,10 @@ def select_name(result):
     i = 0
     found = False
     # get the entries with results
-    aux = result['results']['bindings']
+    try:
+        aux = result['results']['bindings']
+    except Exception as e:
+        print(e, result)
     total_res = len(aux)
     # only check results that are not empty
     if total_res > 0:

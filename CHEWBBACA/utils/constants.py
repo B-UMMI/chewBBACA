@@ -169,11 +169,15 @@ UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
 LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
 CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
+PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
+PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
 # header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
                      'NIPHEM\tALM\tASM\tLNF\tTotal_CDS')
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
+# header for TSV file with paralogous counts
+PARALOGOUS_COUNTS_HEADER = 'LOCUS\tPC'
 
 # allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',

@@ -320,7 +320,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     protein_dedup_dir = fo.join_paths(preprocess_dir,
                                       ['translated_cds_deduplication'])
     fo.create_directory(protein_dedup_dir)
-    distinct_prot_template = 'distinct_prots_{0}'
+    distinct_prot_template = 'distinct_translated_cds_{0}'
     ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
                                        distinct_prot_template,
                                        [basename_map, basename_inverse_map],
@@ -377,7 +377,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     makeblastdb_path = fo.join_paths(blast_path, [ct.MAKEBLASTDB_ALIAS])
 
     if len(clusters) > 0:
-        blasting_dir = fo.join_paths(clustering_dir, ['cluster_blaster'])
+        blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
         fo.create_directory(blasting_dir)
 
         blast_results, ids_dict = cf.blast_clusters(clusters, proteins,

@@ -66,6 +66,7 @@ Code documentation
 
 
 import os
+import sys
 import argparse
 
 try:
@@ -436,7 +437,7 @@ def create_annotations_table(annotations, output_directory, header,
 # no_cleanup = True
 # blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 def main(input_files, output_directory, protein_table, blast_score_ratio,
-         cpu_cores, taxa, proteome_matches, no_cleanup, blast_path):
+         cpu_cores, taxa, proteome_matches, no_sparql, no_cleanup, blast_path):
 
     # create output directory
     fo.create_directory(output_directory)
@@ -466,120 +467,66 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                                                 proteome_matches,
                                                 blast_path)
 
-    # find annotations in SPARQL endpoint
-    print('\nQuerying UniProt\'s SPARQL endpoint...')
-    config_file = fo.join_paths(input_files, ['.schema_config'])
-    if os.path.isfile(config_file) is True:
-        config = fo.pickle_loader(config_file)
-        translation_table = config.get('translation_table', [11])[0]
-    else:
-        translation_table = 11
+    sparql_results = {}
+    if no_sparql is True:
+        # check if SPARQL endpoint is up
+        available = ur.website_availability(ct.UNIPROT_SPARQL)
+        if available.code != 200:
+            print('Cannot retrieve annotations from UniProt\'s SPARQL endpoint.')
+            print(str(available))
+        else:
+            # search for annotations through the SPARQL endpoint
+            print('\nQuerying UniProt\'s SPARQL endpoint...')
+            config_file = fo.join_paths(input_files, ['.schema_config'])
+            if os.path.isfile(config_file) is True:
+                config = fo.pickle_loader(config_file)
+                translation_table = config.get('translation_table', [11])[0]
+            else:
+                translation_table = 11
 
-    # get annotations through UniProt SPARQL endpoint
-    sparql_results = sparql_annotations(loci_paths,
-                                        translation_table,
-                                        cpu_cores)
+            # get annotations through UniProt SPARQL endpoint
+            sparql_results = sparql_annotations(loci_paths,
+                                                translation_table,
+                                                cpu_cores)
 
-    loci_info = {}
-    if protein_table is not None:
-        # read cds_info table
-        # read "cds_info.tsv" file created by CreateSchema
-        table_lines = fo.read_tabular(protein_table)
-        for l in table_lines[1:]:
-            # create locus identifier based on genome identifier and
-            # cds identifier in file
-            locus_id = l[0].replace('_', '-')
-            locus_id = locus_id + '-protein{0}'.format(l[-2])
-            loci_info[locus_id] = l
-
-    annotations = join_annotations(sparql_results, proteome_results, loci_info)
-
-    # table header
-    header = ['Locus_ID']
-    if len(loci_info) > 0:
-        header += table_lines[0]
-
-    header += ['Uniprot_Name', 'UniProt_URL']
-
-    if len(proteome_results) > 0:
-        header.extend(['Proteome_ID', 'Proteome_Product',
-                       'Proteome_Gene_Name', 'Proteome_Species',
-                       'Proteome_BSR'])
-
-    loci_info_bool = True if len(loci_info) > 0 else False
-    output_table = create_annotations_table(annotations, output_directory,
-                                            header, schema_basename,
-                                            loci_info_bool)
-
-    if no_cleanup is False:
+    if len(proteome_results) == 0 and len(sparql_results) == 0:
         exists = fo.delete_directory(temp_directory)
+        sys.exit('Did not retrieve annotations. Exited.')
+    else:
+        loci_info = {}
+        if protein_table is not None:
+            # read cds_info table
+            # read "cds_info.tsv" file created by CreateSchema
+            table_lines = fo.read_tabular(protein_table)
+            for l in table_lines[1:]:
+                # create locus identifier based on genome identifier and
+                # cds identifier in file
+                locus_id = l[0].replace('_', '-')
+                locus_id = locus_id + '-protein{0}'.format(l[-2])
+                loci_info[locus_id] = l
 
-    print('\n\nThe table with new information can be found at:'
-          '\n{0}'.format(output_table))
+        annotations = join_annotations(sparql_results, proteome_results, loci_info)
 
+        # table header
+        header = ['Locus_ID']
+        if len(loci_info) > 0:
+            header += table_lines[0]
 
-def parse_arguments():
+        if len(sparql_results) > 0:
+            header += ['Uniprot_Name', 'UniProt_URL']
 
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+        if len(proteome_results) > 0:
+            header.extend(['Proteome_ID', 'Proteome_Product',
+                           'Proteome_Gene_Name', 'Proteome_Species',
+                           'Proteome_BSR'])
 
-    parser.add_argument('-i', '--input-files', type=str,
-                        required=True, dest='input_files',
-                        help='Path to the schema\'s directory or to a file '
-                             'with a list of paths to loci FASTA files, one '
-                             'per line.')
+        loci_info_bool = True if len(loci_info) > 0 else False
+        output_table = create_annotations_table(annotations, output_directory,
+                                                header, schema_basename,
+                                                loci_info_bool)
 
-    parser.add_argument('-o', '--output-directory', type=str,
-                        required=True, dest='output_directory',
-                        help='Output directory where the process will '
-                             'store intermediate files and save the final '
-                             'TSV file with the annotations.')
+        print('\n\nThe table with new information can be found at:'
+              '\n{0}'.format(output_table))
 
-    parser.add_argument('-t', '--protein-table', type=str,
-                        required=False, dest='protein_table',
-                        help='Path to the "cds_info.tsv" file created by '
-                             'the CreateSchema process.')
-
-    parser.add_argument('--bsr', type=float, required=False,
-                        dest='blast_score_ratio',
-                        default=0.6,
-                        help='BLAST Score Ratio value. This value is only '
-                             'used when a taxon/taxa is provided and local '
-                             'sequences are aligned against reference '
-                             'proteomes.')
-
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
-                        required=False, dest='cpu_cores',
-                        default=1,
-                        help='Number of CPU cores used to run the process.')
-
-    parser.add_argument('--taxa', nargs='+', type=str,
-                        required=False, dest='taxa',
-                        help='List of scientific names for a set of taxa. The '
-                             'process will search for and download reference '
-                             'proteomes with terms that match any of the '
-                             'provided taxa.')
-
-    parser.add_argument('--pm', type=int, required=False,
-                        default=1, dest='proteome_matches',
-                        help='Maximum number of proteome matches to report.')
-
-    parser.add_argument('--no-cleanup', action='store_true',
-                        required=False, dest='no_cleanup',
-                        help='If provided, intermediate files generated '
-                             'during process execution are not removed '
-                             'at the end.')
-
-    parser.add_argument('--b', '--blast-path', type=pv.check_blast,
-                        required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == '__main__':
-
-    args = parse_arguments()
-    main(**vars(args))
+        if no_cleanup is False:
+            exists = fo.delete_directory(temp_directory)

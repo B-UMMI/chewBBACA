@@ -1088,29 +1088,44 @@ def identify_paralogous(results_contigs_file, output_directory):
     The total number of paralogous loci detected.
     """
     with open(results_contigs_file, 'r') as infile:
+        # read as iterator to keep memory usage low
         reader = csv.reader(infile, delimiter='\t')
+        # get list of loci
         loci = (reader.__next__())[1:]
 
-        paralogous = {}
+        paralogous_loci = []
+        paralogous_counts = {}
         for line in reader:
+            current_input = line[0]
             locus_results = line[1:]
-            counts = Counter(locus_results)
-            paralog_counts = {k: v for k, v in counts.items()
-                              if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
-            for p in paralog_counts:
+            counts = {k: v for k, v in Counter(locus_results).items()
+                      if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
+
+            for p in counts:
                 duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
+                duplicate_str = '&'.join(duplicate)
+                paralogous_loci.append([current_input, duplicate_str, p])
                 for locus in duplicate:
-                    if locus not in paralogous:
-                        paralogous[locus] = 1
+                    if locus not in paralogous_counts:
+                        paralogous_counts[locus] = 1
                     else:
-                        paralogous[locus] += 1
+                        paralogous_counts[locus] += 1
 
-    paralogous_lines = ['LOCUS\tPC']
-    paralogous_lines.extend(['{0}\t{1}'.format(k, v) for k, v in paralogous.items()])
-    paralogous_file = fo.join_paths(output_directory, [ct.PARALOGS_BASENAME])
-    fo.write_lines(paralogous_lines, paralogous_file)
+    # write file with paralogous counts per locus
+    paralogous_counts_lines = [ct.PARALOGOUS_COUNTS_HEADER]
+    paralogous_counts_lines.extend(['{0}\t{1}'.format(*i) for i in paralogous_counts.items()])
+    paralogous_counts_file = fo.join_paths(output_directory, [ct.PARALOGOUS_COUNTS_BASENAME])
+    fo.write_lines(paralogous_counts_lines, paralogous_counts_file)
 
-    return len(paralogous)
+    # write groups of paralogous loci per input
+    paralogous_loci_lines = []
+    for p in paralogous_loci:
+        paralogous_loci_lines.append('{0}\t{1}\t{2}'.format(*p))
+
+    paralogous_loci_outfile = fo.join_paths(output_directory, [ct.PARALOGOUS_LOCI_BASENAME])
+    fo.write_lines(paralogous_loci_lines, paralogous_loci_outfile)
+
+    return len(paralogous_counts)
 
 
 def classify_inexact_matches(locus, genomes_matches, inv_map,
@@ -1447,12 +1462,10 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
-# input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Datasets/id.txt'
-# # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/ids_plot.txt'
-# # input_file = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_chewie3/ids.txt'
+# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
 # fasta_files = fo.read_lines(input_file, strip=True)
 # fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# ptf_path = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Schemas/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
+# ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed/Streptococcus_agalactiae.trn'
 # blast_score_ratio = 0.6
 # minimum_length = 201
 # translation_table = 11
@@ -1463,16 +1476,18 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # representative_filter = 0.9
 # intra_filter = 0.9
 # cpu_cores = 6
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
+# blast_path = '/home/rmamede/.conda/envs/spyder/bin'
 # prodigal_mode = 'single'
 # cds_input = False
 # only_exact = False
-# schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/Schemas/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919'
-# #schema_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_schema'
+# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed'
 # add_inferred = False
 # output_unclassified = False
 # output_missing = False
 # no_cleanup = False
+# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_allelecall'
+# force_reset = True
+# hash_profiles = None
 def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1660,7 +1675,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # create directory to store files from protein deduplication
     protein_dedup_dir = fo.join_paths(preprocess_dir, ['translated_cds_deduplication'])
     fo.create_directory(protein_dedup_dir)
-    distinct_prot_template = 'distinct_prots_{0}'
+    distinct_prot_template = 'distinct_translated_cds_{0}'
     ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
                                        distinct_prot_template, [basename_map, basename_inverse_map], True, False)
     print('removed {0} sequences.'.format(ds_results[2]))
@@ -1770,7 +1785,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     # BLASTp if there are clusters with n>1
     if len(clusters) > 0:
-        blasting_dir = fo.join_paths(clustering_dir, ['clusters_BLASTp'])
+        blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
         fo.create_directory(blasting_dir)
         all_prots = fo.join_paths(blasting_dir, ['distinct_proteins.fasta'])
 

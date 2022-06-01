@@ -708,7 +708,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     # create FASTA file with sequences in clusters
     clustered_seqs_file = fo.join_paths(output_directory,
-                                        ['clustered_proteins.fasta'])
+                                        ['clustered_sequences.fasta'])
     clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
     clustered_sequences = im.flatten_list(clustered_sequences)
     # do not include duplicate identifiers
@@ -719,12 +719,12 @@ def blast_clusters(clusters, sequences, output_directory,
     # create FASTA file with replaced headers to avoid header
     # length limitation in BLAST
     integer_clusters = fo.join_paths(output_directory,
-                                     ['clustered_proteins_integer_header.fasta'])
+                                     ['clustered_sequences_integer_headers.fasta'])
     ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters)
 
     # create BLAST DB
     blast_db = fo.join_paths(output_directory,
-                             ['clustered_proteins'])
+                             ['clustered_sequences'])
     db_stderr = bw.make_blast_db(makeblastdb_path, integer_clusters,
                                  blast_db, 'prot')
     if len(db_stderr) > 0:

@@ -1073,6 +1073,10 @@ def find_uniprot():
                         default=1, dest='proteome_matches',
                         help='Maximum number of proteome matches to report.')
 
+    parser.add_argument('--no-sparql', action='store_true',
+                        required=False, dest='no_sparql',
+                        help='')
+
     parser.add_argument('--no-cleanup', action='store_true',
                         required=False, dest='no_cleanup',
                         help='If provided, intermediate files generated '

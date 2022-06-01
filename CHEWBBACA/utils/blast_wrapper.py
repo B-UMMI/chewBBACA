@@ -89,11 +89,13 @@ def determine_blast_task(sequences, blast_type='blastp'):
     More information about the task option at:
         https://www.ncbi.nlm.nih.gov/books/NBK569839/
     """
-    length_threshold = ct.DEFAULT_BLAST_TASK_LENGTH[blast_type]
+    length_threshold = ct.BLAST_TASK_THRESHOLD[blast_type]
     sequence_lengths = [len(p) for p in sequences]
     minimum_length = min(sequence_lengths)
     if minimum_length < length_threshold:
-        blast_task = '{0}_short'.format(blast_type)
+        blast_task = '{0}-short'.format(blast_type)
+    else:
+        blast_task = blast_type
 
     return blast_task
 

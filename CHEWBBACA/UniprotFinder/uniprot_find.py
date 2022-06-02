@@ -13,52 +13,7 @@ matches. If users provide a taxon/taxa name/s, the process
 will also search for reference proteomes for the specified
 taxon/taxa and use BLASTp to align local sequences against
 reference sequences to assign annotation terms based on the
-BSR value.
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_files`` : Path to the schema's directory or to a file
-  with a list of paths to loci FASTA files, one per line.
-
-    - e.g.: ``/home/user/schemas/my_schema``
-
-- ``-t``, ``protein_table`` : Path to the "cds_info.tsv" file created by
-  the CreateSchema process.
-
-    - e.g.: ``/home/user/schemas/my_schema/cds_info.tsv``
-
-- ``-o``, ``output_directory`` : Output directory where the process will
-  store intermediate files and save the final TSV file with the annotations.
-
-    - e.g.: ``/home/user/schemas/my_schema/annotations``
-
-- ``--bsr``, ``blast_score_ratio`` : BLAST Score Ratio value. This
-  value is only used when a taxon/taxa is provided and local sequences
-  are aligned against reference proteomes.
-
-    - e.g.: ``0.6``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores used to run the process.
-
-    - e.g.: ``4``
-
-- ``--taxa``, ``taxa`` : List of scientific names for a set of taxa. The
-  process will search for and download reference proteomes with terms that
-  match any of the provided taxa.
-
-    - e.g.: ``"Streptococcus pyogenes"``
-
-- ``--pm``, ``proteome_matches`` : Maximum number of proteome matches to
-  report.
-
-    - e.g.: ``2``
-
-- ``--no-cleanup``, ``no_cleanup`` : If provided, intermediate files
-  generated during process execution are not removed at the end.
+BSR value computed for each alignment.
 
 Code documentation
 ------------------
@@ -67,7 +22,6 @@ Code documentation
 
 import os
 import sys
-import argparse
 
 try:
     from utils import (
@@ -78,9 +32,8 @@ try:
         fasta_operations as fao,
         parameters_validation as pv,
         iterables_manipulation as im,
-        multiprocessing_operations as mo
-    )
-except:
+        multiprocessing_operations as mo)
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         constants as ct,
         blast_wrapper as bw,
@@ -89,15 +42,12 @@ except:
         fasta_operations as fao,
         parameters_validation as pv,
         iterables_manipulation as im,
-        multiprocessing_operations as mo
-    )
+        multiprocessing_operations as mo)
 
 
 def extract_annotations(blastout_files, indexed_proteome, self_scores,
                         blast_score_ratio, proteome_matches):
-    """ Selects high scoring matches based on the BSR value computed
-        from the results of aligning schema representatives against
-        UniProt's reference proteomes.
+    """Extract the annotation terms from high-scoring proteome matches.
 
     Parameters
     ----------
@@ -125,34 +75,26 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
         with information about loci retrieved from the most
         similar records in UniProt's reference proteomes.
     """
-
     proteome_results = {}
     for file in blastout_files:
         locus_id = fo.file_basename(file).split('_short')[0]
         results = fo.read_tabular(file)
-        proteome_results[locus_id] = []
         if len(results) > 0:
             # compute BSR values
             for r in results:
-                r.append(float(r[2])/float(self_scores[r[0]][1]))
-            # sort based on BSR
-            sorted_results = sorted(results, key=lambda x: x[-1])
+                r.append(round(float(r[6])/float(self_scores[r[0]][1]), 2))
+            # sort based on decreasing BSR
+            sorted_results = sorted(results, key=lambda x: x[-1], reverse=True)
             # get results equal or above BSR
             high_bsr_results = [r for r in sorted_results
                                 if r[-1] >= blast_score_ratio]
+
             for res in high_bsr_results[0:proteome_matches]:
-                proteome_results[locus_id].append(res)
                 # get record and extract relevant info
-                hit = indexed_proteome[res[1]]
+                hit = indexed_proteome[res[4]]
                 hit_dict = vars(hit)
-
                 hit_terms = ur.extract_proteome_terms(hit_dict)
-
-                proteome_results[locus_id][-1].extend(hit_terms)
-        # sort from highest to lowest BSR
-        proteome_results[locus_id] = sorted(proteome_results[locus_id],
-                                            key=lambda x: x[3],
-                                            reverse=True)
+                proteome_results.setdefault(locus_id, []).append(hit_terms+[res[-1]])
 
     return proteome_results
 
@@ -160,8 +102,10 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
 def proteome_annotations(schema_directory, temp_directory, taxa,
                          blast_score_ratio, cpu_cores, proteome_matches,
                          blast_path):
-    """ Determines loci annotations based on alignment against
-        UniProt's reference proteomes.
+    """Get annotations based on matches against UniProt's reference proteomes.
+
+    Determine loci annotations based on alignment against UniProt's
+    reference proteomes.
 
     Parameters
     ----------
@@ -194,7 +138,6 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         with information about loci retrieved from the most
         similar records in UniProt's reference proteomes.
     """
-
     # get paths to files with representative sequences
     short_directory = fo.join_paths(schema_directory, ['short'])
     reps_paths = [fo.join_paths(short_directory, [file])
@@ -206,10 +149,11 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     translated_reps = fo.join_paths(temp_directory, ['translated_reps'])
     fo.create_directory(translated_reps)
 
-    reps_protein_files = mo.parallelize_function(fao.translate_fasta, reps_paths,
+    reps_protein_files = mo.parallelize_function(fao.translate_fasta,
+                                                 reps_paths,
                                                  [translated_reps, 11],
                                                  cpu_cores, True)
-    reps_protein_files = im.flatten_list(reps_protein_files)
+    reps_protein_files = [r[1] for r in reps_protein_files]
     print('done.')
 
     print('Downloading list of reference proteomes...', end='')
@@ -293,7 +237,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 
 
 def sparql_annotations(loci_files, translation_table, cpu_cores):
-    """ Retrieves annotations from UniProt's SPARQL endpoint.
+    """Retrieve annotations from UniProt's SPARQL endpoint.
 
     Parameters
     ----------
@@ -311,7 +255,6 @@ def sparql_annotations(loci_files, translation_table, cpu_cores):
         URL to the page of the record that matched the
         locus.
     """
-
     # create inputs to multiprocessing
     uniprot_args = [[gene, translation_table, ur.get_annotation]
                     for gene in loci_files]
@@ -327,52 +270,9 @@ def sparql_annotations(loci_files, translation_table, cpu_cores):
     return annotations
 
 
-def join_annotations(sparql_results, proteome_results, loci_info):
-    """ Merges loci info retrieved from the "cds_info" table,
-        UniProt's SPARQL endpoint and UniProt's reference proteomes.
-
-    Parameters
-    ----------
-    sparql_results : list
-        List with sublists. Each sublist contains
-        the path to the FASTA file of a locus, the
-        product name found for that locus thorugh UniProt's
-        SPARQL endpoint and the URL to the page of the record
-        that matched the locus.
-    proteome_results : dict
-        Dictionary with loci identifiers as keys and a list
-        with information about loci retrieved from the most
-        similar records in UniProt's reference proteomes.
-    loci_info : dict
-        Dictionary with loci identifiers as keys and a list
-        with the information in the "cds_info.tsv" table as
-        values.
-
-    Returns
-    -------
-    selected : dict
-        Dictionary with loci identifiers as keys and the
-        combined information retrieved from the "cds_info.tsv"
-        table, by querying UniProt's SPARQL endpoint and
-        aligning schema representatives against UniProt's
-        reference proteomes.
-    """
-
-    selected = {}
-    for result in sparql_results:
-        gene_basename = fo.file_basename(result[0], False)
-        locus_info = [gene_basename]
-        locus_info += loci_info.get(gene_basename, ['']*6)
-        locus_info += result[1:3]
-        locus_info += [proteome_results.get(gene_basename, [])]
-        selected[gene_basename] = locus_info
-
-    return selected
-
-
 def create_annotations_table(annotations, output_directory, header,
-                             schema_name, loci_info):
-    """ Creates output table with loci information.
+                             schema_name):
+    """Create output table with loci information.
 
     Parameters
     ----------
@@ -399,43 +299,28 @@ def create_annotations_table(annotations, output_directory, header,
     output_table : str
         Path to the table with loci information.
     """
-
-    new_lines = [header]
+    annotation_lines = [header]
     for locus, data in annotations.items():
-        new_line = [locus]
-        if loci_info is True:
-            new_line += data[1:9]
+        locus_annotations = [locus]
+        if isinstance(data[-1], list) is False:
+            locus_annotations.extend(data)
         else:
-            new_line += data[7:9]
-
-        if len(data[-1]) > 0:
-            relevant_data = [d[4:]+[str(round(d[3], 2))] for d in data[-1]]
-            proteome_data = list(zip(*relevant_data))
+            locus_annotations.extend(data[:-1])
+            proteome_data = list(zip(*data[-1]))
             proteome_data = [';'.join(list(map(str, d))) for d in proteome_data]
             proteome_data = ['' if set(d) == {';'} else d for d in proteome_data]
-            new_line.extend(proteome_data)
-        new_lines.append(new_line)
+            locus_annotations.extend(proteome_data)
 
-    new_lines = ['\t'.join(l) for l in new_lines]
-    table_text = '\n'.join(new_lines)
+        annotation_lines.append(locus_annotations)
 
-    table_basename = '{0}_annotations.tsv'.format(schema_name)
-    output_table = fo.join_paths(output_directory, [table_basename])
-    with open(output_table, 'w') as outfile:
-        outfile.write(table_text+'\n')
+    annotation_lines = ['\t'.join(line) for line in annotation_lines]
+    output_basename = '{0}_annotations.tsv'.format(schema_name)
+    output_file = fo.join_paths(output_directory, [output_basename])
+    fo.write_lines(annotation_lines, output_file)
 
-    return output_table
+    return output_file
 
 
-# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/schema_seed'
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/annotations'
-# protein_table = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/test_CreateSchema/cds_info.tsv'
-# blast_score_ratio = 0.6
-# cpu_cores = 6
-# taxa = None
-# proteome_matches = 1
-# no_cleanup = True
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 def main(input_files, output_directory, protein_table, blast_score_ratio,
          cpu_cores, taxa, proteome_matches, no_sparql, no_cleanup, blast_path):
 
@@ -450,6 +335,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
     genes_list = fo.join_paths(temp_directory, ['listGenes.txt'])
     genes_list = pv.check_input_type(input_files, genes_list)
     loci_paths = fo.read_lines(genes_list)
+    loci_basenames = [fo.file_basename(locus, False) for locus in loci_paths]
 
     schema_directory = os.path.dirname(loci_paths[0])
     schema_basename = fo.file_basename(schema_directory)
@@ -466,9 +352,12 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                                                 cpu_cores,
                                                 proteome_matches,
                                                 blast_path)
+    else:
+        print('No taxa names provided. Will not annotate based on '
+              'UniProt\'s reference proteomes.')
 
     sparql_results = {}
-    if no_sparql is True:
+    if no_sparql is False:
         # check if SPARQL endpoint is up
         available = ur.website_availability(ct.UNIPROT_SPARQL)
         if available.code != 200:
@@ -488,16 +377,23 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
             sparql_results = sparql_annotations(loci_paths,
                                                 translation_table,
                                                 cpu_cores)
+            sparql_results = {fo.file_basename(r[0], False): r[1:]
+                              for r in sparql_results}
+    else:
+        print('Provided "--no-sparql" argument. Skipped step to '
+              'search for annotations through UniProt\'s SPARQL '
+              'endpoint.')
 
     if len(proteome_results) == 0 and len(sparql_results) == 0:
-        exists = fo.delete_directory(temp_directory)
-        sys.exit('Did not retrieve annotations. Exited.')
+        exists = fo.delete_directory(output_directory)
+        sys.exit('Could not retrieve annotations for any loci.')
     else:
+        header = ['Locus']
         loci_info = {}
         if protein_table is not None:
-            # read cds_info table
-            # read "cds_info.tsv" file created by CreateSchema
+            # read "cds_coordinates.tsv" file created by CreateSchema
             table_lines = fo.read_tabular(protein_table)
+            header += table_lines[0]
             for l in table_lines[1:]:
                 # create locus identifier based on genome identifier and
                 # cds identifier in file
@@ -505,28 +401,31 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                 locus_id = locus_id + '-protein{0}'.format(l[-2])
                 loci_info[locus_id] = l
 
-        annotations = join_annotations(sparql_results, proteome_results, loci_info)
-
-        # table header
-        header = ['Locus_ID']
-        if len(loci_info) > 0:
-            header += table_lines[0]
-
-        if len(sparql_results) > 0:
+        if no_sparql is False:
             header += ['Uniprot_Name', 'UniProt_URL']
 
-        if len(proteome_results) > 0:
+        if taxa is not None:
             header.extend(['Proteome_ID', 'Proteome_Product',
                            'Proteome_Gene_Name', 'Proteome_Species',
                            'Proteome_BSR'])
 
-        loci_info_bool = True if len(loci_info) > 0 else False
-        output_table = create_annotations_table(annotations, output_directory,
-                                                header, schema_basename,
-                                                loci_info_bool)
+        annotations = {}
+        for locus in loci_basenames:
+            annotations[locus] = []
+            if protein_table is not None:
+                annotations[locus] += loci_info.get(locus, ['']*6)
+
+            if no_sparql is False:
+                annotations[locus] += sparql_results[locus]
+
+            if taxa is not None:
+                annotations[locus].append(proteome_results.get(locus, [['']*5]))
+
+        output_file = create_annotations_table(annotations, output_directory,
+                                               header, schema_basename)
 
         print('\n\nThe table with new information can be found at:'
-              '\n{0}'.format(output_table))
+              '\n{0}'.format(output_file))
 
         if no_cleanup is False:
             exists = fo.delete_directory(temp_directory)

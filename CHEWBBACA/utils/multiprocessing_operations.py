@@ -94,60 +94,50 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
                                   callback=results.append, chunksize=chunksize)
 
         if show_progress is True:
-            completed = False
-            while completed is False:
-                completed = progress_bar(rawr, len(inputs))
+            progress = 0
+            while progress < 100:
+                progress = progress_bar(rawr._number_left, len(inputs), progress)
 
         rawr.wait()
 
     return results
 
 
-def progress_bar(process, total, tickval=5, ticknum=20, completed=False):
+def progress_bar(remaining, total, previous, tickval=5, ticknum=20):
     """Create and print a progress bar to the stdout.
 
     Parameters
     ----------
-    process : multiprocessing.pool.MapResult
-        Multiprocessing object.
+    remaining : int
+        Number of remaining tasks to complete.
     total : int
         Total number of inputs that have to be processed.
+    previous : int
+        Percentage of tasks that had been completed in the
+        previous function call.
     tickval : int
         Progress completion percentage value for each
         tick.
     ticknum : int
         Total number of ticks in progress bar.
-    completed : bool
-        Boolean indicating if process has completed.
 
     Returns
     -------
     completed : bool
         Boolean indicating if all inputs have been processed.
     """
-    # check if process has finished
-    if (process.ready()):
-        # print full progress bar and satisfy stopping condition
-        progress_bar = '[{0}] 100%'.format('='*ticknum)
-        completed = True
 
-    # check how many inputs have been processed
-    remaining = process._number_left
-    if remaining == total:
-        # print empty progress bar
-        progress_bar = '[{0}] 0%'.format(' '*ticknum)
-    else:
-        # print progress bar, incremented by 5%
-        progress = int(100-(remaining/total)*100)
+    progress = int(100-(remaining/total)*100)
+    if progress != previous:
         progress_tick = progress//tickval
         progress_bar = '[{0}{1}] {2}%'.format('='*progress_tick,
                                               ' '*(ticknum-progress_tick),
                                               progress)
+        print('\r', progress_bar, end='')
+    # is this slowing down the process?
+    #time.sleep(10)
 
-    print('\r', progress_bar, end='')
-    time.sleep(0.5)
-
-    return completed
+    return progress
 
 
 def distribute_loci(inputs, cores, method):

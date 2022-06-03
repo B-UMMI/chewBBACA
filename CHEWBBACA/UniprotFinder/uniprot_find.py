@@ -83,6 +83,7 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
             # compute BSR values
             for r in results:
                 r.append(round(float(r[6])/float(self_scores[r[0]][1]), 2))
+
             # sort based on decreasing BSR
             sorted_results = sorted(results, key=lambda x: x[-1], reverse=True)
             # get results equal or above BSR
@@ -356,6 +357,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
         print('No taxa names provided. Will not annotate based on '
               'UniProt\'s reference proteomes.')
 
+    failed = {}
     sparql_results = {}
     if no_sparql is False:
         # check if SPARQL endpoint is up
@@ -374,11 +376,15 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                 translation_table = 11
 
             # get annotations through UniProt SPARQL endpoint
-            sparql_results = sparql_annotations(loci_paths,
-                                                translation_table,
-                                                cpu_cores)
-            sparql_results = {fo.file_basename(r[0], False): r[1:]
-                              for r in sparql_results}
+            results = sparql_annotations(loci_paths, translation_table, cpu_cores)
+
+            sparql_results = {fo.file_basename(r[0], False): r[1:-1]
+                              for r in results}
+            found = sum([1 for k, v in sparql_results.items() if set(v) != {''}])
+            print('Found annotations for {0}/{1} loci.'.format(found, len(loci_paths)))
+
+            failed = {fo.file_basename(r[0], False): r[-1]
+                      for r in results if len(r[-1]) > 0}
     else:
         print('Provided "--no-sparql" argument. Skipped step to '
               'search for annotations through UniProt\'s SPARQL '
@@ -426,6 +432,17 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
 
         print('\n\nThe table with new information can be found at:'
               '\n{0}'.format(output_file))
+
+        # write file with information about cases that failed
+        if len(failed) > 0:
+            failed_lines = []
+            for locus, messages in failed.items():
+                distinct_messages = list(set([m.msg for m in messages]))
+                locus_message = '{0}:\n{1}'.format(locus, '\n'.join(distinct_messages))
+                failed_lines.append(locus_message)
+            failed_outfile = fo.join_paths(output_directory, ['failed.txt'])
+            failed_text = '\n'.join(failed_lines)
+            fo.write_to_file(failed_text, failed_outfile, 'w', '\n')
 
         if no_cleanup is False:
             exists = fo.delete_directory(temp_directory)

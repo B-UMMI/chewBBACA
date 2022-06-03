@@ -13,7 +13,7 @@ Code documentation
 
 
 import time
-from urllib.request import Request, urlopen
+from urllib.request import urlopen
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
@@ -83,11 +83,12 @@ def select_name(result):
     # get the entries with results
     try:
         aux = result['results']['bindings']
+    # response does not contain annotation data
     except Exception as e:
-        print(e, result)
-    total_res = len(aux)
+        aux = {}
+
     # only check results that are not empty
-    if total_res > 0:
+    if len(aux) > 0:
         # iterate over all results to find suitable
         while found is False:
             current_res = aux[i]
@@ -125,7 +126,7 @@ def select_name(result):
                     selected_label = label
 
             i += 1
-            if i == total_res:
+            if i == len(aux):
                 found = True
 
     return [selected_name, selected_url, selected_label]
@@ -173,6 +174,7 @@ def get_data(sparql_query):
         Dictionary with data retrieved from UniProt.
     """
     tries = 0
+    failed = []
     max_tries = 5
     success = False
     while success is False and tries < max_tries:
@@ -183,11 +185,15 @@ def get_data(sparql_query):
             result = UNIPROT_SERVER.query().convert()
             success = True
         except Exception as e:
+            # might fail if sequence is too long for GET method(URITooLong)
+            failed.append(e)
             tries += 1
-            result = e
             time.sleep(1)
 
-    return result
+    if success is False:
+        result = {}
+
+    return [result, failed]
 
 
 def get_proteomes(proteome_ids, output_dir):
@@ -259,24 +265,25 @@ def get_annotation(gene, translation_table):
                                                      table_id=translation_table))
 
         query = uniprot_query(protein_sequence)
-        result = get_data(query)
+        result, failed = get_data(query)
 
-        name, url, label = select_name(result)
+        if len(result) > 0:
+            name, url, label = select_name(result)
 
-        lowercase_name = name.lower()
-        if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
-            if selected_name == '':
+            lowercase_name = name.lower()
+            if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
+                if selected_name == '':
+                    selected_name = name
+                    selected_url = url
+                continue
+            elif name == '':
+                continue
+            else:
                 selected_name = name
                 selected_url = url
-            continue
-        elif name == '':
-            continue
-        else:
-            selected_name = name
-            selected_url = url
-            break
+                break
 
-    return [gene, selected_name, selected_url]
+    return [gene, selected_name, selected_url, failed]
 
 
 def extract_proteome_terms(header_items):

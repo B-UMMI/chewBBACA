@@ -1479,7 +1479,7 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # blast_path = '/home/rmamede/.conda/envs/spyder/bin'
 # prodigal_mode = 'single'
 # cds_input = False
-# only_exact = False
+# mode = False
 # schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed'
 # no_inferred = False
 # output_unclassified = False
@@ -1492,7 +1492,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    cpu_cores, blast_path, prodigal_mode, cds_input,
-                   only_exact):
+                   mode):
     """
     """
 
@@ -1628,9 +1628,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     fo.write_lines(matched_seqids, dna_exact_outfile)
 
     # user only wants to determine exact matches
-    if only_exact is True:
+    if mode == 1:
         # return classification files to create output files
-        return [classification_files, basename_inverse_map, []]
+        return [classification_files, basename_inverse_map, cds_coordinates, []]
 
     # create Fasta file without distinct sequences that were exact matches
     dna_index = fao.index_fasta(distinct_file)
@@ -1732,6 +1732,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     total_selected = fao.get_sequences_by_id(protein_index, selected_ids, unique_pfasta)
 
     print('Remaining: {0}'.format(total_selected))
+
+    if mode == 2:
+        return [classification_files, basename_inverse_map, cds_coordinates,
+                distinct_file, unique_pfasta, dna_distinct_htable,
+                distinct_pseqids, failed, invalid_alleles_file]
 
     # translate schema representatives
     print('Translating schema representatives...')
@@ -1886,6 +1891,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                         for rec in SeqIO.parse(unique_pfasta, 'fasta')
                         if rec.id not in excluded]
     print('Remaining: {0}'.format(len(unclassified_ids)))
+
+    if mode == 3:
+        return [classification_files, basename_inverse_map, cds_coordinates,
+                distinct_file, all_prots, dna_distinct_htable, distinct_pseqids,
+                failed, invalid_alleles_file, unclassified_ids]
 
     # create directory to store data for each iteration
     iterative_rep_dir = fo.join_paths(temp_directory, ['6_representative_determination'])
@@ -2096,17 +2106,17 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
         iteration += 1
 
-    return [classification_files, basename_inverse_map, distinct_file, all_prots,
-            dna_distinct_htable, distinct_pseqids, new_reps, self_scores,
-            unclassified_ids, failed, invalid_alleles_file, cds_coordinates]
+    return [classification_files, basename_inverse_map, cds_coordinates,
+            distinct_file, all_prots, dna_distinct_htable, distinct_pseqids,
+            failed, invalid_alleles_file, unclassified_ids, self_scores, new_reps]
 
 
 def main(input_file, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
-         cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
+         cpu_cores, blast_path, cds_input, prodigal_mode,
          no_inferred, output_unclassified, output_missing,
-         no_cleanup, hash_profiles, force_reset):
+         no_cleanup, hash_profiles, force_reset, mode):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2144,7 +2154,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, cpu_cores, blast_path,
-                             prodigal_mode, cds_input, only_exact)
+                             prodigal_mode, cds_input, mode)
 
     # sort classification files to have allele call matrix format similar to v2.0
     results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}
@@ -2159,48 +2169,49 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))
 
-    if only_exact is False and no_inferred is False:
+    if mode != 1 and no_inferred is False:
         # get seqids that match hashes
         for k, v in novel_alleles.items():
             for r in v:
-                rep_seqid = im.polyline_decoding(results[4][r[0]])[0:2]
+                rep_seqid = im.polyline_decoding(results[5][r[0]])[0:2]
                 rep_seqid = '{0}-protein{1}'.format(results[1][rep_seqid[1]], rep_seqid[0])
                 r.append(rep_seqid)
 
-        # get info for new representative alleles that must be added to files in the short directory
         reps_info = {}
-        for k, v in novel_alleles.items():
-            locus_id = fo.get_locus_id(k)
-            if locus_id is None:
-                locus_id = fo.file_basename(k, False)
-            current_results = results[6].get(locus_id, None)
-            if current_results is not None:
-                for e in current_results:
-                    allele_id = [line[1] for line in v if line[0] == e[1]]
-                    # we might have representatives that were converted to NIPH but still appear in the list
-                    if len(allele_id) > 0:
-                        reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
+        if mode == 4:
+            # get info for new representative alleles that must be added to files in the short directory
+            for k, v in novel_alleles.items():
+                locus_id = fo.get_locus_id(k)
+                if locus_id is None:
+                    locus_id = fo.file_basename(k, False)
+                current_results = results[11].get(locus_id, None)
+                if current_results is not None:
+                    for e in current_results:
+                        allele_id = [line[1] for line in v if line[0] == e[1]]
+                        # we might have representatives that were converted to NIPH but still appear in the list
+                        if len(allele_id) > 0:
+                            reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
 
-        # update self_scores
-        reps_to_del = set()
-        for k, v in reps_info.items():
-            for r in v:
-                new_id = k+'_'+r[-1]
-                results[7][new_id] = results[7][r[0]]
-                # delete old entries
-                if r[0] not in reps_to_del:
-                    reps_to_del.add(r[0])
+            # update self_scores
+            reps_to_del = set()
+            for k, v in reps_info.items():
+                for r in v:
+                    new_id = k+'_'+r[-1]
+                    results[10][new_id] = results[10][r[0]]
+                    # delete old entries
+                    if r[0] not in reps_to_del:
+                        reps_to_del.add(r[0])
+    
+            for r in reps_to_del:
+                del(results[10][r])
 
-        for r in reps_to_del:
-            del(results[7][r])
-
-        # save updated self-scores
-        self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
-        fo.pickle_dumper(results[7], self_score_file)
+            # save updated self-scores
+            self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+            fo.pickle_dumper(results[10], self_score_file)
 
         if len(novel_alleles) > 0:
             # add inferred alleles to schema
-            added = add_inferred_alleles(novel_alleles, reps_info, results[2])
+            added = add_inferred_alleles(novel_alleles, reps_info, results[3])
             print('Added {0} novel alleles to schema.'.format(added[0]))
             print('Added {0} representative alleles to schema.'.format(added[1]))
         else:
@@ -2248,11 +2259,11 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('Detected number of paralog loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
-        create_unclassified_fasta(results[2], results[3], results[8],
-                                  results[5], results_dir, results[1])
+        create_unclassified_fasta(results[3], results[4], results[9],
+                                  results[6], results_dir, results[1])
 
     if output_missing is True:
-        create_missing_fasta(results[0], results[2], results[1], results[4],
+        create_missing_fasta(results[0], results[3], results[1], results[5],
                              results_dir, coordinates_files)
 
     # this must run after the step that adds the novel alleles to the schema
@@ -2262,11 +2273,11 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                 hash_profiles, cpu_cores, 1000)
 
     # move file with CDSs coordinates and file with list of excluded CDSs
-    fo.move_file(results[-1], results_dir)
+    fo.move_file(results[2], results_dir)
 
     # file is not created if we only search for exact matches
-    if only_exact is False:
-        fo.move_file(results[-2], results_dir)
+    if mode != 1:
+        fo.move_file(results[8], results_dir)
 
     # if len(failed) > 0:
     #     failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])

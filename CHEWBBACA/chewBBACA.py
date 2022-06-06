@@ -332,11 +332,6 @@ def allele_call():
                         required=False, default=False, dest='cds_input',
                         help=argparse.SUPPRESS)
 
-    parser.add_argument('--only-exact', required=False,
-                        action='store_true', dest='only_exact',
-                        help='If provided, the process will only determine '
-                             'exact matches.')
-
     parser.add_argument('--no-inferred', required=False,
                         action='store_true', dest='no_inferred',
                         help='If provided, the process will not add '
@@ -382,6 +377,10 @@ def allele_call():
     parser.add_argument('--convert-legacy', required=False,
                         action='store_true', dest='convert_legacy',
                         help='Convert legacy schemas to latest version.')
+
+    parser.add_argument('--mode', type=int, required=False,
+                        choices=[1,2,3,4], default=4,
+                        help='')
 
     args = parser.parse_args()
 
@@ -434,8 +433,8 @@ def allele_call():
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
-                    args.only_exact, args.no_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles, args.force_reset)
+                    args.no_inferred, args.output_unclassified, args.output_missing,
+                    args.no_cleanup, args.hash_profiles, args.force_reset, args.mode)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

@@ -1481,7 +1481,7 @@ def select_representatives(representative_candidates, locus, fasta_file,
 # cds_input = False
 # only_exact = False
 # schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed'
-# add_inferred = False
+# no_inferred = False
 # output_unclassified = False
 # output_missing = False
 # no_cleanup = False
@@ -2105,7 +2105,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode, only_exact,
-         add_inferred, output_unclassified, output_missing,
+         no_inferred, output_unclassified, output_missing,
          no_cleanup, hash_profiles, force_reset):
 
     print('Prodigal training file: {0}'.format(ptf_path))
@@ -2159,7 +2159,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))
 
-    if only_exact is False and add_inferred is True:
+    if only_exact is False and no_inferred is False:
         # get seqids that match hashes
         for k, v in novel_alleles.items():
             for r in v:

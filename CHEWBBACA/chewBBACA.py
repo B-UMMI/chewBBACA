@@ -337,10 +337,11 @@ def allele_call():
                         help='If provided, the process will only determine '
                              'exact matches.')
 
-    parser.add_argument('--add-inferred', required=False,
-                        action='store_true', dest='add_inferred',
-                        help='If provided, the process will add the sequences '
-                             'of inferred alleles to the schema.')
+    parser.add_argument('--no-inferred', required=False,
+                        action='store_true', dest='no_inferred',
+                        help='If provided, the process will not add '
+                             'the sequences of inferred alleles to the '
+                             'schema.')
 
     parser.add_argument('--output-unclassified', required=False,
                         action='store_true', dest='output_unclassified',
@@ -433,7 +434,7 @@ def allele_call():
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
-                    args.only_exact, args.add_inferred, args.output_unclassified, args.output_missing,
+                    args.only_exact, args.no_inferred, args.output_unclassified, args.output_missing,
                     args.no_cleanup, args.hash_profiles, args.force_reset)
 
     if args.store_profiles is True:

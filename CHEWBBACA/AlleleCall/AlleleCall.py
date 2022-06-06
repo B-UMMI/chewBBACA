@@ -289,7 +289,7 @@ def dna_exact_matches(locus_file, presence_DNAhashtable, locus_classifications,
     for seqid, seq_hash in exact_matches.items():
         # decode list of inputs that contain allele
         matched_inputs = im.polyline_decoding(presence_DNAhashtable[seq_hash])
-        # seqid chosen as repsentative during sequence deduplication
+        # seqid chosen as representative during sequence deduplication
         representative_seqid = '{0}-protein{1}'.format(input_ids[matched_inputs[1]], matched_inputs[0])
         match_data = (seqid, representative_seqid, seq_hash, 'EXC', 1.0)
         # classify as exact matches
@@ -2116,7 +2116,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode,
          no_inferred, output_unclassified, output_missing,
-         no_cleanup, hash_profiles, force_reset, mode):
+         no_cleanup, hash_profiles, force_reset, mode, ns):
 
     print('Prodigal training file: {0}'.format(ptf_path))
     print('CPU cores: {0}'.format(cpu_cores))
@@ -2154,7 +2154,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, cpu_cores, blast_path,
-                             prodigal_mode, cds_input, mode)
+                             prodigal_mode, cds_input, mode, ns)
 
     # sort classification files to have allele call matrix format similar to v2.0
     results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}

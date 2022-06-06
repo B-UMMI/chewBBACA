@@ -428,13 +428,18 @@ def allele_call():
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
+    # determine if schema was downloaded from Chewie-NS
+    ns_config = os.path.join(args.schema_directory, '.ns_config')
+    args.ns = os.path.isfile(ns_config)
+
     ### convert this into AlleleCall.main(**vars(args))
     AlleleCall.main(genomes_files, args.schema_directory, args.output_directory, args.ptf_path,
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
                     args.no_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles, args.force_reset, args.mode)
+                    args.no_cleanup, args.hash_profiles, args.force_reset, args.mode,
+                    args.ns)
 
     if args.store_profiles is True:
         updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

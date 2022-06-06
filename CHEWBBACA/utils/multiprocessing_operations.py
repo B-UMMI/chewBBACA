@@ -95,7 +95,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
 
         if show_progress is True:
             progress = 0
-            while progress < 100:
+            while progress != 100:
                 progress = progress_bar(rawr._number_left, len(inputs), progress)
 
         rawr.wait()
@@ -127,15 +127,17 @@ def progress_bar(remaining, total, previous, tickval=5, ticknum=20):
         Boolean indicating if all inputs have been processed.
     """
 
+    # determine percentage of processed inputs
     progress = int(100-(remaining/total)*100)
+    # only print if percentage has changed
     if progress != previous:
         progress_tick = progress//tickval
         progress_bar = '[{0}{1}] {2}%'.format('='*progress_tick,
                                               ' '*(ticknum-progress_tick),
                                               progress)
         print('\r', progress_bar, end='')
-    # is this slowing down the process?
-    #time.sleep(10)
+
+    time.sleep(0.1)
 
     return progress
 

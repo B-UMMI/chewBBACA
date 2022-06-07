@@ -809,7 +809,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     fao.get_sequences_by_id(dna_index, unclassified_seqids, output_file)
 
 
-def assign_allele_ids(classification_files):
+def assign_allele_ids(classification_files, ns):
     """Assign allele identifiers to coding sequences classified as EXC or INF.
 
     Parameters
@@ -834,7 +834,7 @@ def assign_allele_ids(classification_files):
         matched_alleles = {im.hash_sequence(v): k.split('_')[-1]
                            for k, v in records.items()}
         # get greatest allele integer identifier
-        max_alleleid = max([int(rec.split('_')[-1])
+        max_alleleid = max([int(rec.replace('*', '').split('_')[-1])
                             for rec in records])
         # import allele calling results and sort to get INF first
         locus_results = fo.pickle_loader(results)
@@ -856,10 +856,17 @@ def assign_allele_ids(classification_files):
                 else:
                     # possible to have EXC match to INF that was converted to NIPH
                     max_alleleid += 1
-                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
-                    matched_alleles[cds_hash] = str(max_alleleid)
-                    # add the unique SHA256 value
-                    novel_alleles.setdefault(locus, []).append([cds_hash, str(max_alleleid)])
+                    if ns is True:
+                        locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
+                        matched_alleles[cds_hash] = '*' + str(max_alleleid)
+                        # add the unique SHA256 value
+                        novel_alleles.setdefault(locus, []).append([cds_hash, '*' + str(max_alleleid)])
+                    else:
+                        locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                        matched_alleles[cds_hash] = str(max_alleleid)
+                        # add the unique SHA256 value
+                        novel_alleles.setdefault(locus, []).append([cds_hash, str(max_alleleid)])
+
                     # EXC to INF to enable accurate count of INF classifications
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
@@ -1185,9 +1192,11 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
             target_seqid = m[0]
             # get allele identifier for the schema representative
             rep_alleleid = m[8]
-            # determine if representative has allele id
+            # determine if schema representative has allele id
             try:
-                int(rep_alleleid.split('_')[-1])
+                # split to get allele identifier
+                # need to replace '*' for novel alleles added to schemas from Chewie-NS
+                int(rep_alleleid.replace('*', '').split('_')[-1])
                 rep_alleleid = rep_alleleid.split('_')[-1]
             except Exception as e:
                 pass
@@ -1788,17 +1797,20 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # exclude singletons
     clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
 
+    # create Fasta file with remaining proteins and representatives
+    all_prots = fo.join_paths(clustering_dir, ['distinct_proteins.fasta'])
+    fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
+
+    # create index for distinct protein sequences
+    prot_index = fao.index_fasta(all_prots)
+
     # BLASTp if there are clusters with n>1
+    excluded = []
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
         fo.create_directory(blasting_dir)
-        all_prots = fo.join_paths(blasting_dir, ['distinct_proteins.fasta'])
-
-        # create Fasta file with remaining proteins and representatives
-        fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
 
         all_proteins = fao.import_sequences(all_prots)
-
         # BLAST clustered sequences against cluster representatives
         blast_results, ids_dict = cf.blast_clusters(clusters, all_proteins,
                                                     blasting_dir, blastp_path,
@@ -1807,84 +1819,80 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
         blast_files = im.flatten_list(blast_results)
 
-    # concatenate results for representatives of the same locus
-    loci_results = {}
-    for f in blast_files:
-        locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
-        locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
-        # for schemas that do not have 'protein' in the identifier
-        # would fail for schemas from Chewie-NS
-        if locus_id is None:
-            locus_id = '_'.join(locus_rep.split('_')[0:-1])
-        loci_results.setdefault(locus_id, []).append(f)
+        # concatenate results for representatives of the same locus
+        loci_results = {}
+        for f in blast_files:
+            locus_rep = ids_dict[im.match_regex(f, r'seq_[0-9]+')]
+            locus_id = im.match_regex(locus_rep, r'^.+-protein[0-9]+')
+            # for schemas that do not have 'protein' in the identifier
+            # would fail for schemas from Chewie-NS
+            if locus_id is None:
+                locus_id = '_'.join(locus_rep.split('_')[0:-1])
+            loci_results.setdefault(locus_id, []).append(f)
 
-    concatenated_files = []
-    concatenate_file_template = '{0}.concatenated_blastout.tsv'
-    for locus, files in loci_results.items():
-        outfile = fo.join_paths(blasting_dir,
-                                ['BLAST_results', concatenate_file_template.format(locus)])
-        fo.concatenate_files(files, outfile)
-        concatenated_files.append(outfile)
+        concatenated_files = []
+        concatenate_file_template = '{0}.concatenated_blastout.tsv'
+        for locus, files in loci_results.items():
+            outfile = fo.join_paths(blasting_dir,
+                                    ['BLAST_results', concatenate_file_template.format(locus)])
+            fo.concatenate_files(files, outfile)
+            concatenated_files.append(outfile)
 
-    # create index for distinct protein sequences
-    prot_index = fao.index_fasta(all_prots)
+        loci_results = {}
+        blast_matches_dir = fo.join_paths(clustering_dir, ['matches'])
+        fo.create_directory(blast_matches_dir)
+        for f in concatenated_files:
+            locus_id = fo.get_locus_id(f)
+            if locus_id is None:
+                locus_id = fo.file_basename(f).split('.concatenated')[0]
+            # exclude results in the BSR+0.1 threshold
+            # process representative candidates in later stage
+            best_matches = select_highest_scores(f)
+            match_info = process_blast_results(best_matches, blast_score_ratio+0.1,
+                                               self_scores, ids_dict)
+            locus_results = expand_matches(match_info, prot_index, dna_index,
+                                           dna_distinct_htable, distinct_pseqids, basename_inverse_map)
+    
+            if len(locus_results) > 0:
+                # save results to file
+                locus_file = fo.join_paths(blast_matches_dir, ['{0}_locus_matches'.format(locus_id)])
+                fo.pickle_dumper(locus_results, locus_file)
+                loci_results[locus_id] = locus_file
 
-    loci_results = {}
-    blast_matches_dir = fo.join_paths(clustering_dir, ['matches'])
-    fo.create_directory(blast_matches_dir)
-    for f in concatenated_files:
-        locus_id = fo.get_locus_id(f)
-        if locus_id is None:
-            locus_id = fo.file_basename(f).split('.concatenated')[0]
-        # exclude results in the BSR+0.1 threshold
-        # process representative candidates in later stage
-        best_matches = select_highest_scores(f)
-        match_info = process_blast_results(best_matches, blast_score_ratio+0.1,
-                                           self_scores, ids_dict)
-        locus_results = expand_matches(match_info, prot_index, dna_index,
-                                       dna_distinct_htable, distinct_pseqids, basename_inverse_map)
+        # process results per genome and per locus
+        print('Classification...')
+        classification_inputs = []
+        blast_clusters_results_dir = fo.join_paths(clustering_dir, ['results'])
+        fo.create_directory(blast_clusters_results_dir)
+        for locus, file in loci_results.items():
+            # get locus length mode
+            locus_mode = loci_modes[locus]
+    
+            # import file with locus classifications
+            locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
+    
+            classification_inputs.append([locus, file,
+                                          basename_inverse_map,
+                                          locus_results_file, locus_mode,
+                                          temp_directory, size_threshold,
+                                          blast_score_ratio, blast_clusters_results_dir,
+                                          classify_inexact_matches])
+    
+        class_results = mo.map_async_parallelizer(classification_inputs,
+                                                  mo.function_helper,
+                                                  cpu_cores,
+                                                  show_progress=True)
 
-        if len(locus_results) > 0:
-            # save results to file
-            locus_file = fo.join_paths(blast_matches_dir, ['{0}_locus_matches'.format(locus_id)])
-            fo.pickle_dumper(locus_results, locus_file)
-            loci_results[locus_id] = locus_file
-
-    # process results per genome and per locus
-    print('Classification...')
-    classification_inputs = []
-    blast_clusters_results_dir = fo.join_paths(clustering_dir, ['results'])
-    fo.create_directory(blast_clusters_results_dir)
-    for locus, file in loci_results.items():
-        # get locus length mode
-        locus_mode = loci_modes[locus]
-
-        # import file with locus classifications
-        locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
-
-        classification_inputs.append([locus, file,
-                                      basename_inverse_map,
-                                      locus_results_file, locus_mode,
-                                      temp_directory, size_threshold,
-                                      blast_score_ratio, blast_clusters_results_dir,
-                                      classify_inexact_matches])
-
-    class_results = mo.map_async_parallelizer(classification_inputs,
-                                              mo.function_helper,
-                                              cpu_cores,
-                                              show_progress=True)
-
-    excluded = []
-    for r in class_results:
-        current_results = fo.pickle_loader(r)
-        for locus, v in current_results.items():
-            # this does not include the length of alleles inferred through protein exact matches
-            loci_modes[locus] = v[1]
-            excluded.extend(v[2])
-
-    # may have repeated elements due to same CDS matching different loci
-    excluded = set(excluded)
-    print('\nExcluded distinct proteins: {0}'.format(len(excluded)))
+        for r in class_results:
+            current_results = fo.pickle_loader(r)
+            for locus, v in current_results.items():
+                # this does not include the length of alleles inferred through protein exact matches
+                loci_modes[locus] = v[1]
+                excluded.extend(v[2])
+    
+        # may have repeated elements due to same CDS matching different loci
+        excluded = set(excluded)
+        print('\nExcluded distinct proteins: {0}'.format(len(excluded)))
 
     # get seqids of remaining unclassified sequences
     unclassified_ids = [rec.id
@@ -2154,13 +2162,13 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, cpu_cores, blast_path,
-                             prodigal_mode, cds_input, mode, ns)
+                             prodigal_mode, cds_input, mode)
 
     # sort classification files to have allele call matrix format similar to v2.0
     results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}
 
     # assign allele identifiers to novel alleles
-    novel_alleles = assign_allele_ids(results[0])
+    novel_alleles = assign_allele_ids(results[0], ns)
 
     # count total for each classification type
     global_counts, total_cds = count_classifications(results[0].values())

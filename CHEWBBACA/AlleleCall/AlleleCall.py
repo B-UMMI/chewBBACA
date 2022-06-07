@@ -489,10 +489,11 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
     size interval, 'ALM' if it is above and None if it is
     contained in the interval.
     """
-    if sequence_length < (locus_mode[0]-(locus_mode[0])*size_threshold):
-        return 'ASM'
-    elif sequence_length > (locus_mode[0]+(locus_mode[0])*size_threshold):
-        return 'ALM'
+    if size_threshold is not None:
+        if sequence_length < (locus_mode[0]-(locus_mode[0])*size_threshold):
+            return 'ASM'
+        elif sequence_length > (locus_mode[0]+(locus_mode[0])*size_threshold):
+            return 'ALM'
 
 
 def write_loci_summary(classification_files, output_directory, total_inputs):
@@ -1158,7 +1159,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
         all alleles.
     temp_directory : str
         Path to the directory where temporary files will be stored.
-    size_threshold : float
+    size_threshold : float or None
         Sequence size variation threshold.
     blast_score_ratio : float
         BLAST Score Ratio value.
@@ -1263,7 +1264,6 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
             target_dna_len = m[6]
             # check if ASM or ALM
             relative_size = allele_size_classification(target_dna_len, locus_mode, size_threshold)
-            # we only need to evaluate one of the genomes, if they are ASM/ALM we can classify all of them as the same!
             if relative_size is not None:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
@@ -1587,7 +1587,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     # get mapping between locus file path and locus identifier
     loci_basenames = im.mapping_function(loci_files, fo.file_basename, [False])
-    print('schema has {0} loci.'.format(len(loci_files)))
+    print('Schema has {0} loci.'.format(len(loci_files)))
 
     # create files with empty results data structure
     classification_dir = fo.join_paths(temp_directory, ['classification_files'])

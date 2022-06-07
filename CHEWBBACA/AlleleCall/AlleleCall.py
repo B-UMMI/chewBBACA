@@ -367,6 +367,7 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
     matched_dna = {}
     matched_proteins = set()
     exact_prot_hashes = []
+    lengths = []
     for protid, prot_hash in exact_matches.items():
         # different alleles might code for the same protein
         # do not proceed if distinct protein sequence has already been seen
@@ -389,10 +390,10 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
                 for gid in matched_inputs[1:]:
                     # first time seeing CDS
                     if cds_hash not in matched_dna:
-                        # need to add inferred to locus mode values???
                         current_class = 'INF'
                         representative_seqid = protid
                         matched_dna[cds_hash] = m
+                        lengths.append(len(cds))
                     else:
                         current_class = 'EXC'
                         # if it matches a INF, change protid to seqid of INF
@@ -407,7 +408,7 @@ def protein_exact_matches(locus_file, presence_PROThashtable,
             matched_proteins.add(prot_hash)
 
     return [locus_classifications, exact_prot_hashes, total_prots,
-            total_cds, total_distinct_prots]
+            total_cds, total_distinct_prots, lengths]
 
 
 def contig_position_classification(representative_length, representative_leftmost_pos,
@@ -1501,7 +1502,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
                    cpu_cores, blast_path, prodigal_mode, cds_input,
-                   mode):
+                   mode, loci_modes, loci_files):
     """
     """
 
@@ -1584,10 +1585,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     print('Kept {0} distinct sequences.'.format(len(dna_distinct_htable)))
 
-    # get list of loci files
-    print('Getting list of loci...', end='')
-    loci_files = fo.listdir_fullpath(schema_directory, '.fasta')
-
     # get mapping between locus file path and locus identifier
     loci_basenames = im.mapping_function(loci_files, fo.file_basename, [False])
     print('schema has {0} loci.'.format(len(loci_files)))
@@ -1600,19 +1597,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
               for file in loci_files]
     classification_files = {file: create_classification_file(*inputs[i])
                             for i, file in enumerate(loci_files)}
-
-    # get size mode for all loci
-    loci_modes_file = fo.join_paths(schema_directory, ['loci_modes'])
-    if os.path.isfile(loci_modes_file) is True:
-        loci_modes = fo.pickle_loader(loci_modes_file)
-    else:
-        print('\nDetermining sequence length mode for all loci...', end='')
-        loci_modes = {}
-        for file in loci_files:
-            alleles_sizes = list(fao.sequence_lengths(file).values())
-            # select first value in list if there are several values with same frequency
-            loci_modes[loci_basenames[file]] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
-        fo.pickle_dumper(loci_modes, loci_modes_file)
 
     print('Finding DNA exact matches...', end='')
     matched_seqids = []
@@ -1719,7 +1703,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         exact_phashes.extend(em_results[1])
         exc_prot += em_results[2]
         exc_cds += em_results[3]
-        exc_distinct_prot += em_results[-1]
+        exc_distinct_prot += em_results[4]
+        # update locus mode
+        if len(em_results[5]) > 0:
+            locus_id = fo.file_basename(locus, False)
+            loci_modes[locus_id][1].extend(em_results[5])
+            loci_modes[locus_id][0] = sm.determine_mode(loci_modes[locus_id][1])[0]
 
     print('found {0} protein exact matches ({1} distinct CDSs, {2} total CDSs).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
@@ -1886,7 +1875,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         for r in class_results:
             current_results = fo.pickle_loader(r)
             for locus, v in current_results.items():
-                # this does not include the length of alleles inferred through protein exact matches
                 loci_modes[locus] = v[1]
                 excluded.extend(v[2])
     
@@ -2158,11 +2146,28 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     # sort paths to FASTA files
     input_files = im.sort_iterable(input_files, sort_key=str.lower)
 
+    # get list of loci files
+    print('Getting list of loci...', end='')
+    loci_files = fo.listdir_fullpath(schema_directory, '.fasta')
+
+    # get size mode for all loci
+    loci_modes_file = fo.join_paths(schema_directory, ['loci_modes'])
+    if os.path.isfile(loci_modes_file) is True:
+        loci_modes = fo.pickle_loader(loci_modes_file)
+    else:
+        print('\nDetermining sequence length mode for all loci...', end='')
+        loci_modes = {}
+        for file in loci_files:
+            alleles_sizes = list(fao.sequence_lengths(file).values())
+            # select first value in list if there are several values with same frequency
+            loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
+        fo.pickle_dumper(loci_modes, loci_modes_file)
+
     results = allele_calling(input_files, schema_directory, temp_directory,
                              ptf_path, blast_score_ratio, minimum_length,
                              translation_table, size_threshold, word_size,
                              window_size, clustering_sim, cpu_cores, blast_path,
-                             prodigal_mode, cds_input, mode)
+                             prodigal_mode, cds_input, mode, loci_modes.copy(), loci_files)
 
     # sort classification files to have allele call matrix format similar to v2.0
     results[0] = {k: results[0][k] for k in sorted(list(results[0].keys()))}
@@ -2222,6 +2227,14 @@ def main(input_file, schema_directory, output_directory, ptf_path,
             added = add_inferred_alleles(novel_alleles, reps_info, results[3])
             print('Added {0} novel alleles to schema.'.format(added[0]))
             print('Added {0} representative alleles to schema.'.format(added[1]))
+            # recompute mode for loci with novel alleles
+            print('\nDetermining sequence length mode for all loci...', end='')
+            print(len(novel_alleles))
+            for file in novel_alleles:
+                alleles_sizes = list(fao.sequence_lengths(file).values())
+                # select first value in list if there are several values with same frequency
+                loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
+            fo.pickle_dumper(loci_modes, loci_modes_file)
         else:
             print('No new alleles to add to schema.')
 
@@ -2243,7 +2256,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                                            list(results[1].values()), results_dir)
     print('done.')
 
-    print('Writing results_statsitics.tsv...', end='')
+    print('Writing results_statistics.tsv...', end='')
     write_results_statistics(results[0], results[1], results_dir)
     print('done.')
 

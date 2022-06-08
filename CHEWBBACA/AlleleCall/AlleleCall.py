@@ -840,9 +840,10 @@ def assign_allele_ids(classification_files, ns):
                             for rec in records])
         # import allele calling results and sort to get INF first
         locus_results = fo.pickle_loader(results)
-        ### also need to sort by input order!!!
-        sorted_results = sorted(locus_results.items(),
-                                key=lambda x: x[1][0] == 'INF',
+        # sort by input order
+        sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
+        # sort to get INF classifications first
+        sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
                                 reverse=True)
 
         for k in sorted_results:

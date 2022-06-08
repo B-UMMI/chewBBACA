@@ -420,7 +420,7 @@ def translate_fasta(input_fasta, output_directory, translation_table):
 
     fo.write_lines(translated_lines, protein_file)
 
-    return [input_fasta, protein_file]
+    return [input_fasta, protein_file, len(translated_records)]
 
 
 def determine_self_scores(work_directory, fasta_file, makeblastdb_path,

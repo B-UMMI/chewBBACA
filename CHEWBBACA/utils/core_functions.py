@@ -370,7 +370,7 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
     translation_results = mo.map_async_parallelizer(translation_inputs,
                                                     mo.function_helper,
                                                     cpu_cores,
-                                                    show_progress=False)
+                                                    show_progress=True)
 
     # concatenate files
     protein_file = fo.join_paths(temp_directory, ['translated_cds_concat.fasta'])
@@ -463,11 +463,10 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
     # cluster proteins in parallel
-    print('\nClustering sequences based on the proportion '
-          'of shared distinct minimizers...')
     clustering_results = mo.map_async_parallelizer(cluster_inputs,
                                                    mo.function_helper,
-                                                   cpu_cores)
+                                                   cpu_cores,
+                                                   show_progress=True)
 
     # merge clusters
     clusters = [d[0] for d in clustering_results]
@@ -476,7 +475,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     rep_sequences = im.merge_dictionaries(rep_sequences)
 
     # perform clustering with representatives
-    # this step does not run for AlleleCall!
+    # this step does not run for AlleleCall
     if len(cluster_inputs) > 1 and any(len(r) > 0 for r in rep_sequences) is True:
         # cluster representatives
         rep_clusters = sc.clusterer(rep_sequences, word_size,
@@ -497,9 +496,6 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                 merged_clusters.setdefault(k, []).extend(add_seqids)
 
         clusters = merged_clusters
-
-    print('Clustered {0} sequences into {1} '
-          'clusters.'.format(len(sorted_seqs), len(clusters)))
 
     # sort clusters
     clusters = {k: v for k, v in im.sort_iterable(clusters.items())}
@@ -704,8 +700,6 @@ def blast_clusters(clusters, sequences, output_directory,
                 length limit allowed by BLAST.
     """
 
-    print('Clusters to BLAST: {0}'.format(len(clusters)))
-
     # create FASTA file with sequences in clusters
     clustered_seqs_file = fo.join_paths(output_directory,
                                         ['clustered_sequences.fasta'])
@@ -746,8 +740,6 @@ def blast_clusters(clusters, sequences, output_directory,
                    blast_db, only_rep, sc.cluster_blaster]
 
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
-
-    print('BLASTing protein sequences in each cluster...\n')
 
     # BLAST each sequences in a cluster against every sequence in that cluster
     blast_results = mo.map_async_parallelizer(splitted_seqids,

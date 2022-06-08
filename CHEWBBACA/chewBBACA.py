@@ -220,7 +220,7 @@ def create_schema():
 def allele_call():
 
     def msg(name=None):
-        # simple command to perform AlleleCall with schema deafult parameters
+        # simple command to perform AlleleCall with schema default parameters
         simple_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
                       '-g <schema_directory> '
                       '-o <output_directory> ')
@@ -228,21 +228,20 @@ def allele_call():
         params_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
                       '-g <schema_directory> '
                       '-o <output_directory> '
-                      '--ptf <ptf_path>\n'
-                      '\t\t\t  --cpu <cpu_cores> '
-                      '--bsr <blast_score_ratio> '
+                      '--cpu <cpu_cores> '
+                      '\n\t\t\t  --bsr <blast_score_ratio> '
                       '--l <minimum_length>\n'
                       '\t\t\t  --t <translation_table> '
                       '--st <size_threshold>')
-        # command to perform AlleleCall with single Fasta file
-        # cds_cmd = ('chewBBACA.py AlleleCall -i <input_file> '
-        #                                    '-o <output_directory> '
-        #                                    '--ptf <ptf_path> '
-        #                                    '--CDS')
+        # command to perform AlleleCall with Fasta files that contain CDS
+        cds_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
+                                            '-g <schema_directory>'
+                                            '-o <output_directory> '
+                                            '--cds')
 
         usage_msg = ('\nPerform AlleleCall with schema default parameters:\n  {0}\n'
-                     '\nPerform AlleleCall with non-default parameters:\n  {1}\n'.format(simple_cmd, params_cmd))
-        # '\nPerform AlleleCall with single FASTA file that contains coding sequences:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+                     '\nPerform AlleleCall with non-default parameters:\n  {1}\n'
+                     '\nPerform AlleleCall with FASTA files that contain CDS:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -328,9 +327,11 @@ def allele_call():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--CDS', action='store_true',
-                        required=False, default=False, dest='cds_input',
-                        help=argparse.SUPPRESS)
+    parser.add_argument('--cds', '--cds-input', action='store_true',
+                        required=False, dest='cds_input',
+                        help='Input files contain coding sequences (one '
+                             'Fasta file per strain). Skips gene '
+                             'prediction with Prodigal.')
 
     parser.add_argument('--no-inferred', required=False,
                         action='store_true', dest='no_inferred',

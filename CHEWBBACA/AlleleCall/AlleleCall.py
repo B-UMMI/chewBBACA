@@ -5,82 +5,6 @@ Purpose
 -------
 This module enables
 
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_files`` : Path to the directory that contains the input
-  FASTA files. Alternatively, a single file with a list of paths to FASTA
-  files, one per line.
-
-    - e.g.: ``/home/user/genomes``
-
-- ``-o``, ``output_directory`` : Output directory where the process will
-  store intermediate files and create the schema's directory.
-
-    - e.g.: ``/home/user/schemas/new_schema``
-
-- ``--ptf``, ``ptf_path`` : Path to the Prodigal training file.
-
-    - e.g.: ``/home/user/training_files/species.trn``
-
-- ``--bsr``, ``blast_score_ratio`` : BLAST Score Ratio value.
-
-    - e.g.: ``0.6``
-
-- ``--l``, ``minimum_length`` : Minimum sequence length. Coding sequences
-  shorter than this value are excluded.
-
-    - e.g.: ``201``
-
-- ``--t``, ``translation_table`` : Genetic code used to predict genes and
-  to translate coding sequences.
-
-    - e.g.: ``11``
-
-- ``--st``, ``size_threshold`` : CDS size variation threshold. Added to the
-  schema's config file and used to identify alleles with a length value that
-  deviates from the locus length mode during the allele calling process.
-
-    - e.g.: ``0.2``
-
-- ``--w``, ``word_size`` : word size used to generate k-mers during the
-  clustering step.
-
-    - e.g.: ``5``
-
-- ``--ws``, ``window_size`` : window size value. Number of consecutive
-  k-mers included in each window to determine a minimizer.
-
-    - e.g.: ``5``
-
-- ``--cs``, ``clustering_sim`` : clustering similarity threshold. Minimum
-  decimal proportion of shared distinct minimizers for a sequence to be
-  added to a cluster.
-
-    - e.g.: ``0.2``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores used to run the process.
-
-    - e.g.: ``4``
-
-- ``--b``, ``blast_path`` : Path to the BLAST executables.
-
-    - e.g.: ``/home/software/blast``
-
-- ``--pm``, ``prodigal_mode`` : Prodigal running mode.
-
-    - e.g.: ``single``
-
-- ``--CDS``, ``cds_input`` : If provided, input is a single or several FASTA
-  files with coding sequences (skips gene prediction and CDS extraction).
-
-    - e.g.: ``/home/user/coding_sequences_files``
-
-- ``--no-cleanup``, ``no_cleanup`` : If provided, intermediate files
-  generated during process execution are not removed at the end.
 
 Code documentation
 ------------------
@@ -748,11 +672,11 @@ def write_results_contigs(classification_files, input_identifiers,
 
             # contig identifier, start and stop positions and strand
             # 1 for sense, 0 for antisense
-            cds_coordiantes_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
+            cds_coordinates_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
                                     if c not in invalid_classes else c
                                     for c in cds_coordinates]
 
-            output_lines.append([genome_id]+cds_coordiantes_line)
+            output_lines.append([genome_id]+cds_coordinates_line)
 
             if len(output_lines) >= line_limit or (i+1) == len(input_identifiers):
                 output_lines = ['\t'.join(l) for l in output_lines]
@@ -1140,7 +1064,8 @@ def identify_paralogous(results_contigs_file, output_directory):
 
 def classify_inexact_matches(locus, genomes_matches, inv_map,
                              locus_results_file, locus_mode, temp_directory,
-                             size_threshold, blast_score_ratio, output_directory):
+                             size_threshold, blast_score_ratio, output_directory,
+                             cds_input):
     """Classify inexact matches found for a locus.
 
     Parameters
@@ -1230,37 +1155,38 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                 seen_dna[target_dna_hash] = target_seqid
                 continue
 
-            # there is no DNA or Protein exact match, perform full evaluation
-            # open pickle for genome and get coordinates
-            genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'.cds_hash'])
-            genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
-            # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
-            # get CDS start and stop positions
-            genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
-            contig_leftmost_pos = int(genome_coordinates[1])
-            contig_rightmost_pos = int(genome_coordinates[2])
-            # get contig length
-            contig_length = genome_cds_coordinates[1][genome_coordinates[0]]
-            # get representative length
-            representative_length = m[7]
-            # get target left and right positions that aligned
-            representative_leftmost_pos = m[4]
-            representative_rightmost_pos = m[5]
-            # determine if it is PLOT3, PLOT5 or LOTSC
-            relative_pos = contig_position_classification(representative_length,
-                                                          representative_leftmost_pos,
-                                                          representative_rightmost_pos,
-                                                          contig_length,
-                                                          contig_leftmost_pos,
-                                                          contig_rightmost_pos)
+            if cds_input is False:
+                # there is no DNA or Protein exact match, perform full evaluation
+                # open pickle for genome and get coordinates
+                genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'.cds_hash'])
+                genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
+                # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
+                # get CDS start and stop positions
+                genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
+                contig_leftmost_pos = int(genome_coordinates[1])
+                contig_rightmost_pos = int(genome_coordinates[2])
+                # get contig length
+                contig_length = genome_cds_coordinates[1][genome_coordinates[0]]
+                # get representative length
+                representative_length = m[7]
+                # get target left and right positions that aligned
+                representative_leftmost_pos = m[4]
+                representative_rightmost_pos = m[5]
+                # determine if it is PLOT3, PLOT5 or LOTSC
+                relative_pos = contig_position_classification(representative_length,
+                                                              representative_leftmost_pos,
+                                                              representative_rightmost_pos,
+                                                              contig_length,
+                                                              contig_leftmost_pos,
+                                                              contig_rightmost_pos)
 
-            if relative_pos is not None:
-                locus_results = update_classification(genome, locus_results,
-                                                      (rep_alleleid, target_seqid,
-                                                       target_dna_hash, relative_pos, bsr))
-                # need to exclude so that it does not duplicate ASM/ALM classifications later
-                excluded.append(target_seqid)
-                continue
+                if relative_pos is not None:
+                    locus_results = update_classification(genome, locus_results,
+                                                          (rep_alleleid, target_seqid,
+                                                           target_dna_hash, relative_pos, bsr))
+                    # need to exclude so that it does not duplicate ASM/ALM classifications later
+                    excluded.append(target_seqid)
+                    continue
 
             target_dna_len = m[6]
             # check if ASM or ALM
@@ -1561,7 +1487,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
               'genomes.'.format(total_extracted, len(fasta_files)))
     # inputs are Fasta files with the predicted CDSs
     else:
+        failed = []
         cds_files = fasta_files
+        cds_coordinates = {}
         print('Number of inputs: {0}'.format(len(cds_files)))
 
     # create directory to store files from pre-process steps
@@ -1866,6 +1794,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                           locus_results_file, locus_mode,
                                           temp_directory, size_threshold,
                                           blast_score_ratio, blast_clusters_results_dir,
+                                          cds_input,
                                           classify_inexact_matches])
     
         class_results = mo.map_async_parallelizer(classification_inputs,
@@ -2000,6 +1929,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                           locus_results_file, locus_mode,
                                           temp_directory, size_threshold,
                                           blast_score_ratio, blast_iteration_results_dir,
+                                          cds_input,
                                           classify_inexact_matches])
 
         class_results = mo.map_async_parallelizer(classification_inputs,
@@ -2266,25 +2196,26 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('done.')
 
     # list files with CDSs coordinates
-    coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
-    coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
-    coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
-                         for f in coordinates_files}
-    print('Writing results_contigsInfo.tsv...', end='')
-    results_contigs_outfile = write_results_contigs(list(results[0].values()), results[1],
-                                                    results_dir, coordinates_files)
-    print('done.')
+    if cds_input is False:
+        coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
+        coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
+        coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
+                             for f in coordinates_files}
+        print('Writing results_contigsInfo.tsv...', end='')
+        results_contigs_outfile = write_results_contigs(list(results[0].values()), results[1],
+                                                        results_dir, coordinates_files)
+        print('done.')
 
-    # determine paralogous loci and write RepeatedLoci.txt file
-    print('Writing RepeatedLoci.txt...', end='')
-    total_paralogous = identify_paralogous(results_contigs_outfile, results_dir)
-    print('Detected number of paralog loci: {0}'.format(total_paralogous))
+        # determine paralogous loci and write RepeatedLoci.txt file
+        print('Writing RepeatedLoci.txt...', end='')
+        total_paralogous = identify_paralogous(results_contigs_outfile, results_dir)
+        print('Detected number of paralog loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
         create_unclassified_fasta(results[3], results[4], results[9],
                                   results[6], results_dir, results[1])
 
-    if output_missing is True:
+    if output_missing is True and cds_input is False:
         create_missing_fasta(results[0], results[3], results[1], results[5],
                              results_dir, coordinates_files)
 
@@ -2294,9 +2225,12 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         ph.main(profiles_table, schema_directory, results_dir,
                 hash_profiles, cpu_cores, 1000)
 
-    # move file with CDSs coordinates and file with list of excluded CDSs
-    fo.move_file(results[2], results_dir)
+    # move file with CDSs coordinates
+    # will not be created if input files contain predicted CDS
+    if cds_input is False:
+        fo.move_file(results[2], results_dir)
 
+    # move file with list of excluded CDS
     # file is not created if we only search for exact matches
     if mode != 1:
         fo.move_file(results[8], results_dir)

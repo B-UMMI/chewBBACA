@@ -100,6 +100,7 @@ import os
 import sys
 import json
 import time
+import hashlib
 import argparse
 import requests
 import itertools
@@ -505,10 +506,10 @@ def create_lengths_files(loci_files, out_dir):
 
     length_files = []
     for file in loci_files:
-        locus = os.path.basename(file).split('.fasta')[0]
-        locus_lengths = fao.sequence_lengths(file)
+        locus_basename = fo.file_basename(file)
+        locus_lengths = {locus_basename: fao.sequence_lengths(file, True)}
         lengths_file = os.path.join(out_dir,
-                                    '{0}_lengths'.format(locus))
+                                    '{0}_lengths'.format(locus_basename.split('.fasta')[0]))
 
         fo.pickle_dumper(locus_lengths, lengths_file)
         length_files.append(lengths_file)
@@ -1388,5 +1389,4 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 if __name__ == "__main__":
 
     args = parse_arguments()
-
     main(**vars(args))

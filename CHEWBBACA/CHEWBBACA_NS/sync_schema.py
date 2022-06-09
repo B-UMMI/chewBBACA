@@ -870,7 +870,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
             if k != 'chewBBACA_version']) is not True:
         sys.exit('Cannot sync schema with multiple values per parameter.')
 
-    # check if schema exists in the NS
+    # check if schema exists in Chewie-NS
     schema_name, ns_params = cr.get_species_schemas(schema_id,
                                                     species_id,
                                                     nomenclature_server,
@@ -1110,15 +1110,11 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     # delete pre-computed BSR values from 'short' directory
     # representatives might have changed and BSR values are outdated
-    short_dir = os.path.join(schema_directory, 'short')
-    bsr_files = [os.path.join(short_dir, f)
-                 for f in os.listdir(short_dir)
-                 if f.endswith('_bsr.txt')]
-    fo.remove_files(bsr_files)
+    bsr_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+    fo.remove_files([bsr_file])
 
 
 if __name__ == "__main__":
 
     args = parse_arguments()
-
     main(**vars(args))

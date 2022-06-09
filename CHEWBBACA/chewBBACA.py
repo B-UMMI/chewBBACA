@@ -363,11 +363,11 @@ def allele_call():
                              'algorithms implemented in the hashlib and zlib '
                              'libraries.')
 
-    parser.add_argument('--db', '--store-profiles', required=False,
-                        action='store_true', dest='store_profiles',
-                        help='If the profiles in the output matrix '
-                             'should be stored in the local SQLite '
-                             'database.')
+    # parser.add_argument('--db', '--store-profiles', required=False,
+    #                     action='store_true', dest='store_profiles',
+    #                     help='If the profiles in the output matrix '
+    #                          'should be stored in the local SQLite '
+    #                          'database.')
 
     parser.add_argument('--fr', '--force-reset', required=False,
                         action='store_true', dest='force_reset',
@@ -438,8 +438,8 @@ def allele_call():
                     args.no_cleanup, args.hash_profiles, args.force_reset, args.mode,
                     args.ns)
 
-    if args.store_profiles is True:
-        updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
+    # if args.store_profiles is True:
+    #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
     fo.remove_files([schema_genes, genomes_files])

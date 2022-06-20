@@ -292,14 +292,10 @@ def exclude_small(fasta_file, minimum_length, variation=0):
     """
 
     # determine small sequences and keep their seqids
-    print('\nRemoving sequences smaller than {0} '
-          'nucleotides...'.format(minimum_length), end='')
     small_seqids = sm.determine_small(fasta_file, minimum_length, variation)
 
     ss_lines = ['{0}: smaller than {1} chars'.format(seqid, minimum_length)
                 for seqid in small_seqids]
-
-    print('removed {0} sequences.'.format(len(small_seqids)))
 
     return [small_seqids, ss_lines]
 
@@ -554,9 +550,6 @@ def cluster_representative_filter(clusters, representative_filter,
     # determine set because same seqids could be in several clusters
     excluded_seqids = set([e[0] for e in excluded_seqids])
 
-    print('Removed {0} sequences based on high similarity with '
-          'the cluster representative.'.format(len(excluded_seqids)))
-
     # remove excluded seqids from clusters without high representative
     # similarity
     pruned_clusters = {k: [e for e in v if e[0] not in excluded_seqids]
@@ -568,21 +561,18 @@ def cluster_representative_filter(clusters, representative_filter,
 
     # identify singletons and exclude those clusters
     singletons = im.select_keys(pruned_clusters, 0)
-    print('Identified {0} singletons.'.format(len(singletons)))
 
     pruned_clusters = im.prune_dictionary(pruned_clusters, singletons)
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
     clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()]) + len(singletons)
-    print('Remaining sequences after representative and singleton '
-          'pruning: {0}'.format(clustered_sequences))
 
     # write list of excluded seqids to file
     excluded_outfile = os.path.join(output_directory, 'excluded.txt')
     fo.write_lines(excluded_seqids, excluded_outfile)
 
-    return [pruned_clusters, excluded_seqids]
+    return [pruned_clusters, excluded_seqids, singletons, clustered_sequences]
 
 
 def cluster_intra_filter(clusters, sequences, word_size,
@@ -637,8 +627,6 @@ def cluster_intra_filter(clusters, sequences, word_size,
     # get identifiers of excluded sequences
     # determine set because same seqids could be in several clusters
     intra_excluded = set(intra_excluded)
-    print('Removed {0} sequences based on high similarity with '
-          'other clustered sequences.'.format(len(intra_excluded)))
 
     # remove excluded seqids from clusters without high intra-similarity
     pruned_clusters = {k: [e for e in v if e[0] not in intra_excluded]

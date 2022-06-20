@@ -219,7 +219,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     basename_inverse_map = im.invert_dictionary(basename_map)
 
     if cds_input is False:
-
         print('Number of inputs: {0}'.format(len(fasta_files)))
 
         # create directory to store files with Prodigal results
@@ -290,9 +289,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     indexed_dna_file = SeqIO.index(distinct_file, 'fasta')
 
     # determine small sequences step
+    print('\nRemoving sequences smaller than {0} '
+          'nucleotides...'.format(minimum_length), end='')
     ss_results = cf.exclude_small(distinct_file, minimum_length)
-
     small_seqids, ss_lines = ss_results
+    print('removed {0} sequences.'.format(len(small_seqids)))
 
     # exclude seqids of small sequences
     schema_seqids = list(set(distinct_seqids) - set(small_seqids))
@@ -301,18 +302,19 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # sequence translation step
     cds_translation_dir = fo.join_paths(preprocess_dir, ['cds_translation'])
     fo.create_directory(cds_translation_dir)
+    print('Translating {0} CDS...'.format(len(schema_seqids)))
     ts_results = cf.translate_sequences(schema_seqids, distinct_file,
                                         cds_translation_dir, translation_table,
                                         minimum_length, cpu_cores)
-
     protein_file, ut_seqids, ut_lines = ts_results
+    print('\nIdentified {0} CDS that could not be translated.'.format(len(ut_seqids)))
 
     # write info about invalid alleles to file
     invalid_alleles_file = fo.join_paths(output_directory,
                                          ['invalid_cds.txt'])
     invalid_alleles = im.join_list(ut_lines+ss_lines, '\n')
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
-    print('Info about untranslatable and small sequences '
+    print('\nInfo about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
 
     # protein sequences deduplication step
@@ -342,19 +344,27 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     clustering_dir = fo.join_paths(temp_directory, ['4_clustering'])
     fo.create_directory(clustering_dir)
 
+    print('Clustering proteins...')
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, None, True,
                                       1, 1, clustering_dir, cpu_cores,
                                       True, False)
+    print('\nClustered {0} proteins into {1} clusters.'
+          ''.format(len(proteins), len(cs_results)))
 
     # exclude based on high similarity to cluster representatives
     rep_filter_dir = fo.join_paths(clustering_dir, ['representative_filter'])
     fo.create_directory(rep_filter_dir)
+    print('Removing sequences based on high similarity with the '
+          'cluster representative...', end='')
     cp_results = cf.cluster_representative_filter(cs_results,
                                                   representative_filter,
                                                   rep_filter_dir)
-
-    clusters, excluded_seqids = cp_results
+    clusters, excluded_seqids, singletons, clustered_sequences = cp_results
+    print('removed {0} sequences.'.format(len(excluded_seqids)))
+    print('Identified {0} singletons.'.format(len(singletons)))
+    print('Remaining sequences after representative and singleton '
+          'pruning: {0}'.format(clustered_sequences))
 
     # remove excluded seqids
     schema_seqids = list(set(schema_seqids) - excluded_seqids)
@@ -362,11 +372,13 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # exclude based on high similarity to other clustered sequences
     intra_filter_dir = fo.join_paths(clustering_dir, ['intracluster_filter'])
     fo.create_directory(intra_filter_dir)
+    print('Removing sequences based on high similarity with '
+          'other clustered sequences...', end='')
     cip_results = cf.cluster_intra_filter(clusters, proteins,
                                           word_size, intra_filter,
                                           intra_filter_dir)
-
     clusters, intra_excluded = cip_results
+    print('removed {0} sequences.'.format(len(intra_excluded)))
 
     # remove excluded seqids - we get set of sequences from clusters
     # plus singletons
@@ -380,6 +392,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
         fo.create_directory(blasting_dir)
 
+        print('Clusters to BLAST: {0}'.format(len(clusters)))
         blast_results, ids_dict = cf.blast_clusters(clusters, proteins,
                                                     blasting_dir, blastp_path,
                                                     makeblastdb_path, cpu_cores)
@@ -525,94 +538,3 @@ def main(input_files, output_directory, schema_name, ptf_path,
 
     # print message about schema that was created
     print('Created schema seed with {0} loci.'.format(len(results[0])))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', '--input-files', nargs='?', type=str,
-                        required=True, dest='input_files',
-                        help='Path to the directory that contains the input '
-                             'FASTA files. Alternatively, a single file with '
-                             'a list of paths to FASTA files, one per line.')
-
-    parser.add_argument('-o', '--output-directory', type=str,
-                        required=True, dest='output_directory',
-                        help='Output directory where the process will store '
-                             'intermediate files and create the schema\'s '
-                             'directory.')
-
-    parser.add_argument('--n', '--schema-name', type=str,
-                        required=False, default='schema_seed',
-                        dest='schema_name',
-                        help='Name given to the folder that will store '
-                             'the schema files.')
-
-    parser.add_argument('--ptf', '--training-file', type=str,
-                        required=False, dest='ptf_path',
-                        help='Path to the Prodigal training file.')
-
-    parser.add_argument('--bsr', '--blast-score-ratio', type=float,
-                        required=False, default=0.6, dest='blast_score_ratio',
-                        help='BLAST Score Ratio value. Sequences with '
-                             'alignments with a BSR value equal to or '
-                             'greater than this value will be considered '
-                             'as sequences from the same gene.')
-
-    parser.add_argument('--l', '--minimum-length', type=int,
-                        required=False, default=201, dest='minimum_length',
-                        help='Minimum sequence length value. Coding sequences '
-                             'shorter than this value are excluded.')
-
-    parser.add_argument('--t', '--translation-table', type=int,
-                        required=False, default=11, dest='translation_table',
-                        help='Genetic code used to predict genes and'
-                             ' to translate coding sequences.')
-
-    parser.add_argument('--st', '--size-threshold', type=float,
-                        required=False, default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. Added to the '
-                             'schema\'s config file and used to identify '
-                             'alleles with a length value that deviates from '
-                             'the locus length mode during the allele calling '
-                             'process.')
-
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
-                        required=False, default=1, dest='cpu_cores',
-                        help='Number of CPU cores that will be '
-                             'used to run the CreateSchema process '
-                             '(will be redefined to a lower value '
-                             'if it is equal to or exceeds the total'
-                             'number of available CPU cores).')
-
-    parser.add_argument('--b', '--blast-path', type=str,
-                        required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    parser.add_argument('--pm', '--prodigal-mode', required=False,
-                        choices=['single', 'meta'],
-                        default='single', dest='prodigal_mode',
-                        help='Prodigal running mode.')
-
-    parser.add_argument('--CDS', required=False, action='store_true',
-                        dest='cds_input',
-                        help='If provided, input is a single or several FASTA '
-                             'files with coding sequences.')
-
-    parser.add_argument('--no-cleanup', required=False, action='store_true',
-                        dest='no_cleanup',
-                        help='If provided, intermediate files generated '
-                             'during process execution are not removed at '
-                             'the end.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == '__main__':
-
-    args = parse_arguments()
-    main(**vars(args))

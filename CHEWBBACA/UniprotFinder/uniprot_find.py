@@ -145,7 +145,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
                   for file in os.listdir(short_directory)
                   if file.endswith('.fasta') is True]
 
-    print('Translating representative sequences...', end='')
+    print('Translating representative sequences...')
     # translate representatives for all loci
     translated_reps = fo.join_paths(temp_directory, ['translated_reps'])
     fo.create_directory(translated_reps)
@@ -155,9 +155,8 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
                                                  [translated_reps, 11],
                                                  cpu_cores, True)
     reps_protein_files = [r[1] for r in reps_protein_files]
-    print('done.')
 
-    print('Downloading list of reference proteomes...', end='')
+    print('\nDownloading list of reference proteomes...', end='')
     remote_readme = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, ['README'])
     local_readme = fo.join_paths(temp_directory,
                                  ['reference_proteomes_readme.txt'])
@@ -381,12 +380,12 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
             sparql_results = {fo.file_basename(r[0], False): r[1:-1]
                               for r in results}
             found = sum([1 for k, v in sparql_results.items() if set(v) != {''}])
-            print('Found annotations for {0}/{1} loci.'.format(found, len(loci_paths)))
+            print('\nFound annotations for {0}/{1} loci.'.format(found, len(loci_paths)))
 
             failed = {fo.file_basename(r[0], False): r[-1]
                       for r in results if len(r[-1]) > 0}
     else:
-        print('Provided "--no-sparql" argument. Skipped step to '
+        print('\nProvided "--no-sparql" argument. Skipped step to '
               'search for annotations through UniProt\'s SPARQL '
               'endpoint.')
 
@@ -422,7 +421,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                 annotations[locus] += loci_info.get(locus, ['']*6)
 
             if no_sparql is False:
-                annotations[locus] += sparql_results[locus]
+                annotations[locus] += sparql_results.get(locus, ['']*2)
 
             if taxa is not None:
                 annotations[locus].append(proteome_results.get(locus, [['']*5]))
@@ -430,7 +429,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
         output_file = create_annotations_table(annotations, output_directory,
                                                header, schema_basename)
 
-        print('\n\nThe table with new information can be found at:'
+        print('\nThe table with new information can be found at:'
               '\n{0}'.format(output_file))
 
         # write file with information about cases that failed

@@ -13,38 +13,6 @@ ensuring that local and remote alleles have the same integer identifiers.
 The process also allows users to submit novel alleles and update the remote
 schema. Novel alleles that are not submitted keep a '*' in the identifier.
 
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-sc``, ``schema_directory`` : Path to the directory with the schema to be
-  synced.
-
-    - e.g.: ``/home/user/chewie_schemas/ecoli_schema``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores that will be used to
-  determine new representatives if the process downloads new alleles from
-  the Chewie-NS.
-
-    - e.g.: ``4``
-
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
-  Nomenclature Server. The default option will get the base URL from
-  the schema's URI. It is also possible to specify other options that
-  are available in chewBBACA's configs, such as: "main" will establish
-  a connection to "https://chewbbaca.online/", "tutorial" to
-  "https://tutorial.chewbbaca.online/" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
-  the IP address to other Chewie-NS instances.
-
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
-
-- ``--submit`` : If the process should identify new alleles in the local
-  schema and send them to the Chewie-NS (only registered users can submit
-  new alleles).
-
 Code documentation
 ------------------
 """
@@ -245,9 +213,7 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
     uploaded = 0
     failed = []
     for i, a in enumerate(alleles_data):
-
         locus_id = a[1]
-
         # get length of alleles from current locus
         current_len = length_files[i]
         data = fo.pickle_loader(current_len)
@@ -504,71 +470,59 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
     """
 
     for locus, alleles in loci.items():
-
         locus_id = locus.rstrip('.fasta')
-
-        # get latest alleles retrieved from the Chewie-NS
-        ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
-
         # paths for current and temp locus file
         locus_file = os.path.join(schema_dir, locus)
 
-        # get local locus sequences
-        records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
-                   for rec in SeqIO.parse(locus_file, 'fasta')}
+        # get the latest alleles retrieved from Chewie-NS
+        ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
 
-        # check if the NS and local schema have the same set of
-        # sequence identifiers
-        ns_ids = set(list(ns_seqs.values()))
-        local_ids = set([rec[0] for seqid, rec in records.items()])
+        local_seqs = {str(rec.seq): [rec.id, (rec.id).split('_')[-1]]
+                      for rec in SeqIO.parse(locus_file, 'fasta')}
 
-        # proceed to next locus if set of identifiers is equa
-        if ns_ids == local_ids:
-            continue
+        # create dictionary with updated records
+        # add local records without '*'
+        updated_records = {v[0]: [v[1], k] for k, v in local_seqs.items() if '*' not in v[1]}
 
-        # invert local dict
-        inv_local = {v[1]: [k, v[0]] for k, v in records.items()}
-
-        # alter identifiers of local alleles that were added to the NS
+        # add records that were added to the remote schema since last sync
         switched = {}
         for seq, seqid in ns_seqs.items():
-            records[seqid] = [seqid.split('_')[-1], seq]
-            if seq in inv_local:
-                switched[inv_local[seq][1]] = seqid
-                del records[inv_local[seq][0]]
+            updated_records[seqid] = [seqid.split('_')[-1], seq]
+            if seq in local_seqs:
+                switched[local_seqs[seq][1]] = seqid
+                # remove sequence from local sequences to avoid sending
+                # duplicated sequences to Chewie-NS
+                del local_seqs[seq]
 
-        # identify alleles with '*' and move them to top
-        max_id = max([int(v[0]) for k, v in records.items() if '*' not in k])
+        # identify largest allele identifier in Chewie-NS
+        max_id = max([int(v[0]) for k, v in updated_records.items()])
 
-        novel_ids = [k for k in records if '*' in k]
-        sorted_novel = sorted(novel_ids, key=lambda x: int(x.split('*')[-1]))
+        local_ids = [(v[1], k) for k, v in local_seqs.items() if '*' in v[0]]
+        sorted_novel = sorted(local_ids, key=lambda x: int(x[0][1:]))
 
         for si in sorted_novel:
             max_id += 1
             new_id = '*{0}'.format(max_id)
             new_seqid = '{0}_{1}'.format(locus_id, new_id)
-            records[new_seqid] = [new_id, records[si][1]]
-            if si != new_seqid:
-                del records[si]
-                switched[si.split('_')[-1]] = new_id
+            updated_records[new_seqid] = [new_id, si[1]]
+            switched[si[0]] = new_id
 
-        # determine records that are not in the NS
-        novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
-                         [v[0], v[1], len(v[1])]
-                         for k, v in records.items() if '*' in v[0]}
-        if len(novel_alleles) > 0:
+        if len(updated_records) > 0:
+            novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+                             [v[0], v[1], len(v[1])]
+                             for k, v in updated_records.items() if '*' in v[0]}
             not_in_ns[locus] = [novel_alleles]
 
         if len(switched) > 0:
             rearranged[locus] = switched
 
-        updated_records = {}
-        for seqid, seq in records.items():
-            int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
-            updated_records[int_seqid] = (seq[0], seq[1])
+        updated_records2 = {}
+        for seqid, v in updated_records.items():
+            int_seqid = int(v[0]) if '*' not in v[0] else int(v[0][1:])
+            updated_records2[int_seqid] = (seqid, v[1])
 
         temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-        fo.pickle_dumper(updated_records, temp_file)
+        fo.pickle_dumper(updated_records2, temp_file)
 
         pickled_loci[locus] = temp_file
 
@@ -712,7 +666,7 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
                                              pickled_loci, not_in_ns,
                                              temp_dir)
 
-    return [not_in_ns, pickled_loci, updated, not_updated, rearranged]
+    return [not_in_ns, pickled_loci, rearranged]
 
 
 def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
@@ -765,55 +719,8 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
     return [new_alleles, server_time, count]
 
 
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-sc', type=str, dest='schema_directory',
-                        required=True,
-                        help='Path to the directory with the schema to be'
-                             'synced.')
-
-    parser.add_argument('--cpu', type=int, required=False,
-                        dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used to determine new representatives '
-                             'if the process downloads new alleles from '
-                             'the Chewie-NS.')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        dest='nomenclature_server',
-                        default=None,
-                        help='The base URL for the Nomenclature Server. '
-                             'The default option will get the base URL from the '
-                             'schema\'s URI. It is also possible to specify other '
-                             'options that are available in chewBBACA\'s configs, '
-                             'such as: "main" will establish a connection to '
-                             '"https://chewbbaca.online/", "tutorial" to '
-                             '"https://tutorial.chewbbaca.online/" and "local" '
-                             'to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--submit', required=False,
-                        action='store_true', dest='submit',
-                        help='If the process should identify new alleles '
-                             'in the local schema and send them to the '
-                             'NS. (only users with permissions level of '
-                             'Contributor can submit new alleles).')
-
-    parser.add_argument('--b', type=pv.check_blast, required=False,
-                        default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    args = parser.parse_args()
-
-    return args
-
-
 def main(schema_directory, cpu_cores, nomenclature_server,
-         submit, blast_path, update_profiles):
+         submit, blast_path):#, update_profiles):
 
     # get ns configs
     local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
@@ -877,7 +784,6 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                                                     headers_get)[2:]
 
     # verify that local configs match NS configs
-    # add window size
     if all([str(schema_params[k][0]) == ns_params[k]['value']
             for k in schema_params
             if k not in ['chewBBACA_version', 'window_size']]) is not True:
@@ -925,10 +831,8 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure
-    not_in_ns, pickled_loci, \
-        updated, not_update, \
-        rearranged = update_loci_files(loci_alleles, genes,
-                                       schema_directory, temp_dir)
+    not_in_ns, pickled_loci, rearranged = update_loci_files(loci_alleles, genes,
+                                                            schema_directory, temp_dir)
 
     total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
     print('Local schema has {0} novel alleles for {1} '
@@ -1066,13 +970,13 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                                      rearranged)
 
     # change identifiers in SQLite DB
-    if len(rearranged) > 0 and update_profiles is True:
-        print('\nUpdating local allele identifiers...')
-        altered = ps.update_profiles(schema_directory, rearranged)
-        if altered is not None:
-            print('Updated {0} profiles.\n'.format(altered))
-        else:
-            print('Could not find local SQLite database to upload profiles.\n')
+    # if len(rearranged) > 0 and update_profiles is True:
+    #     print('\nUpdating local allele identifiers...')
+    #     altered = ps.update_profiles(schema_directory, rearranged)
+    #     if altered is not None:
+    #         print('Updated {0} profiles.\n'.format(altered))
+    #     else:
+    #         print('Could not find local SQLite database to upload profiles.\n')
 
     # Re-determine the representative sequences
     if attributed > 0 or count > 0:
@@ -1112,9 +1016,3 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     # representatives might have changed and BSR values are outdated
     bsr_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
     fo.remove_files([bsr_file])
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

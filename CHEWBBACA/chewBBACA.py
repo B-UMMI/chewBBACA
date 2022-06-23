@@ -1354,10 +1354,10 @@ def synchronize_schema():
                              'NS. (only authorized users can submit '
                              'new alleles).')
 
-    parser.add_argument('--update-profiles', required=False,
-                        action='store_true', dest='update_profiles',
-                        help='If the process should update local profiles '
-                             'stored in the SQLite database.')
+    # parser.add_argument('--update-profiles', required=False,
+    #                     action='store_true', dest='update_profiles',
+    #                     help='If the process should update local profiles '
+    #                          'stored in the SQLite database.')
 
     args = parser.parse_args()
     del args.SyncSchema

@@ -725,7 +725,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
         # get all seqids for DNA sequences that code for protein
         seqids = im.polyline_decoding(protein_hashtable[prot_hash])
         # pairs of protein_id, input_id
-        seqids = ['{0}-protein{1}'.format(inv_map[seqids[i]], seqids[i+1])
+        seqids = ['{0}-protein{1}'.format(inv_map[seqids[i+1]], seqids[i])
                   for i in range(0, len(seqids), 2)]
         unclassified_seqids.extend(seqids)
 

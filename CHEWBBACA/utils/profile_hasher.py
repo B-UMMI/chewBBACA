@@ -45,10 +45,14 @@ def hash_column(column, locus_file, hashing_function):
         Column where each allele identifier was substituted by
         the hash computed from the allele sequence.
     """
-    # read Fasta file with locus alleles
+    # read Fasta files with locus alleles
     locus_alleles = {(rec.id).split('_')[-1]: str(rec.seq)
-                     for rec in SeqIO.parse(locus_file, 'fasta')}
-
+                     for rec in SeqIO.parse(locus_file[0], 'fasta')}
+    if len(locus_file) > 1:
+        novel_records = {(rec.id).split('_')[-1]: str(rec.seq)
+                         for rec in SeqIO.parse(locus_file[1], 'fasta')}
+        im.merge_dictionaries([locus_alleles, novel_records], True)
+        
     hashed_alleles = {}
     for seqid, seq in locus_alleles.items():
         # hash function does not accept string object, encode to get bytes object
@@ -119,17 +123,24 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     return output_file
 
 
+# profiles_table = profiles_table
+# schema_directory = schema_directory
+# output_directory = results_dir
+# hash_type = 'crc32'
+# cpu_cores = 6
+# nrows = 1000
+# updated_files = updated_files
 def main(profiles_table, schema_directory, output_directory, hash_type,
-         cpu_cores, nrows):
+         cpu_cores, nrows, updated_files):
 
     # get hash function
-    try:
-        hashing_function = getattr(hashlib, hash_type)
-    except Exception:
-        hashing_function = getattr(zlib, hash_type)
-    except Exception:
+    hashing_function = getattr(hashlib, hash_type, None)
+    if hashing_function is None:
+        hashing_function = getattr(zlib, hash_type, None)
+
+    if hashing_function is None:
         print('{0} hash function is not available in '
-              'hashlib or zlib modules.'.format(hashing_function))
+              'hashlib or zlib modules.'.format(hash_type))
         return False
 
     # get loci identifiers
@@ -143,7 +154,9 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
         # add .fasta extension if file headers did not include it
         if locus_file.endswith('.fasta') is False:
             locus_file += '.fasta'
-        loci_files[locus] = locus_file
+        loci_files[locus] = [locus_file]
+        if locus_file in updated_files:
+            loci_files[locus].append(updated_files[locus_file][0])
 
     # get input/sample identifiers
     sample_ids = pd.read_csv(profiles_table, delimiter='\t',

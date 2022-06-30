@@ -804,9 +804,9 @@ def assign_allele_ids(classification_files, ns):
     return novel_alleles
 
 
-def add_inferred_alleles(inferred_alleles, inferred_representatives,
-                         sequences_file):
-    """Add inferred alleles to a schema.
+def create_novel_fastas(inferred_alleles, inferred_representatives,
+                        sequences_file, output_directory):
+    """
 
     Parameters
     ----------
@@ -821,6 +821,8 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives,
     sequences_file : str
         Path to FASTA file that contains the distinct coding
         sequences identified in the inputs.
+    output_directory : str
+        
 
     Returns
     -------
@@ -829,25 +831,31 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives,
     total_representatives : int
         Total number of representative alleles added to the
         schema.
+    updated_novel : dict
+        
     """
+
     # create index for Fasta file with distinct CDSs
     sequence_index = fao.index_fasta(sequences_file)
 
     # count number of novel and representative alleles added to schema
     total_inferred = 0
     total_representative = 0
+    updated_novel = {}
     for locus, alleles in inferred_alleles.items():
         locus_id = fo.get_locus_id(locus)
         if locus_id is None:
             locus_id = fo.file_basename(locus, False)
 
+        updated_novel[locus] = []
         # get novel alleles through indexed Fasta file
         novel_alleles = ['>{0}_{1}\n{2}'.format(locus_id, a[1],
                                                 str(sequence_index.get(a[2]).seq))
                          for a in alleles]
-        # append novel alleles to locus FASTA file
-        fo.write_lines(novel_alleles, locus, write_mode='a')
-
+        # create Fasta file with novel alleles
+        novel_file = fo.join_paths(output_directory, ['{0}.fasta'.format(locus_id)])
+        fo.write_lines(novel_alleles, novel_file)
+        updated_novel[locus].append(novel_file)
         total_inferred += len(novel_alleles)
 
         # add representatives
@@ -855,14 +863,40 @@ def add_inferred_alleles(inferred_alleles, inferred_representatives,
         if novel_representatives is not None:
             reps_sequences = ['>{0}_{1}\n{2}'.format(locus_id, a[2], str(sequence_index.get(a[0]).seq))
                               for a in novel_representatives]
+            # create Fasta file with novel representative alleles
+            novel_rep_file = fo.join_paths(output_directory, ['short', '{0}_short.fasta'.format(locus_id)])
+            fo.write_lines(reps_sequences, novel_rep_file)
+            updated_novel[locus].append(novel_rep_file)
+            total_representative += len(reps_sequences)
+
+    return [total_inferred, total_representative, updated_novel]
+
+
+def add_inferred_alleles(inferred_alleles):
+    """Add inferred alleles to a schema.
+
+    
+    """
+
+    for locus, files in inferred_alleles.items():
+        locus_id = fo.get_locus_id(locus)
+        if locus_id is None:
+            locus_id = fo.file_basename(locus, False)
+
+        # get novel alleles
+        novel_alleles = fo.read_lines(files[0])
+        # append novel alleles to locus FASTA file
+        fo.write_lines(novel_alleles, locus, write_mode='a')
+
+        if len(files) > 1:
+            # add representatives
+            novel_representatives = fo.read_lines(files[1])
             # append novel alleles to file in 'short' directory
             locus_short_path = fo.join_paths(os.path.dirname(locus),
                                              ['short', locus_id+'_short.fasta'])
-            fo.write_lines(reps_sequences, locus_short_path, write_mode='a')
+            fo.write_lines(novel_representatives, locus_short_path, write_mode='a')
 
-            total_representative += len(reps_sequences)
-
-    return [total_inferred, total_representative]
+    return True
 
 
 def select_highest_scores(blast_outfile):
@@ -1399,32 +1433,6 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
-# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
-# fasta_files = fo.read_lines(input_file, strip=True)
-# fasta_files = im.sort_iterable(fasta_files, sort_key=str.lower)
-# ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed/Streptococcus_agalactiae.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# representative_filter = 0.9
-# intra_filter = 0.9
-# cpu_cores = 6
-# blast_path = '/home/rmamede/.conda/envs/spyder/bin'
-# prodigal_mode = 'single'
-# cds_input = False
-# mode = False
-# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema/schema_seed'
-# no_inferred = False
-# output_unclassified = False
-# output_missing = False
-# no_cleanup = False
-# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_allelecall'
-# force_reset = True
-# hash_profiles = None
 def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -2052,6 +2060,29 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
             failed, invalid_alleles_file, unclassified_ids, self_scores, new_reps]
 
 
+input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
+schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema_copy/schema_seed'
+output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_allelecall'
+ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema_copy/schema_seed/Streptococcus_agalactiae.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+cpu_cores = 6
+blast_path = '/home/rmamede/.conda/envs/spyder/bin'
+cds_input = False
+prodigal_mode = 'single'
+no_inferred = False
+output_unclassified = False
+output_missing = False
+no_cleanup = True
+hash_profiles = 'crc32'
+force_reset = True
+mode = 4
+ns = False
 def main(input_file, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
@@ -2130,7 +2161,8 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))
 
-    if mode != 1 and no_inferred is False:
+    updated_files = {}
+    if mode != 1:
         # get seqids that match hashes
         for k, v in novel_alleles.items():
             for r in v:
@@ -2153,36 +2185,44 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                         if len(allele_id) > 0:
                             reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
 
-            # update self_scores
-            reps_to_del = set()
-            for k, v in reps_info.items():
-                for r in v:
-                    new_id = k+'_'+r[-1]
-                    results[10][new_id] = results[10][r[0]]
-                    # delete old entries
-                    if r[0] not in reps_to_del:
-                        reps_to_del.add(r[0])
+            if no_inferred is False:
+                # update self_scores
+                reps_to_del = set()
+                for k, v in reps_info.items():
+                    for r in v:
+                        new_id = k+'_'+r[-1]
+                        results[10][new_id] = results[10][r[0]]
+                        # delete old entries
+                        if r[0] not in reps_to_del:
+                            reps_to_del.add(r[0])
+        
+                for r in reps_to_del:
+                    del(results[10][r])
     
-            for r in reps_to_del:
-                del(results[10][r])
-
-            # save updated self-scores
-            self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
-            fo.pickle_dumper(results[10], self_score_file)
+                # save updated self-scores
+                self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+                fo.pickle_dumper(results[10], self_score_file)
 
         if len(novel_alleles) > 0:
-            # add inferred alleles to schema
-            added = add_inferred_alleles(novel_alleles, reps_info, results[3])
-            print('Added {0} novel alleles to schema.'.format(added[0]))
-            print('Added {0} representative alleles to schema.'.format(added[1]))
-            # recompute mode for loci with novel alleles
-            print('\nDetermining sequence length mode for all loci...', end='')
-            print(len(novel_alleles))
-            for file in novel_alleles:
-                alleles_sizes = list(fao.sequence_lengths(file).values())
-                # select first value in list if there are several values with same frequency
-                loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
-            fo.pickle_dumper(loci_modes, loci_modes_file)
+            # create Fasta files with novel alleles
+            novel_directory = fo.join_paths(temp_directory, ['novel_alleles'])
+            novel_rep_directory = fo.join_paths(novel_directory, ['short'])
+            fo.create_directory(novel_rep_directory)
+            added = create_novel_fastas(novel_alleles, reps_info, results[3], novel_directory)
+            updated_files = added[2]
+            if no_inferred is False:
+                # add inferred alleles to schema
+                added2 = add_inferred_alleles(added[2])
+                print('Added {0} novel alleles to schema.'.format(added[0]))
+                print('Added {0} representative alleles to schema.'.format(added[1]))
+                # recompute mode for loci with novel alleles
+                print('\nDetermining sequence length mode for updated loci...', end='')
+                for file in novel_alleles:
+                    alleles_sizes = list(fao.sequence_lengths(file).values())
+                    # select first value in list if there are several values with same frequency
+                    loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
+                fo.pickle_dumper(loci_modes, loci_modes_file)
+                print('done.')
         else:
             print('No new alleles to add to schema.')
 
@@ -2240,8 +2280,9 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     # this must run after the step that adds the novel alleles to the schema
     # it cannot determine the hashes of inferred alleles that are not added to the schema
     if hash_profiles is not None:
+        ### substitute 'schema_directory'
         ph.main(profiles_table, schema_directory, results_dir,
-                hash_profiles, cpu_cores, 1000)
+                hash_profiles, cpu_cores, 1000, updated_files)
 
     # move file with CDSs coordinates
     # will not be created if input files contain predicted CDS

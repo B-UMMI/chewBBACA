@@ -46,13 +46,13 @@ def hash_column(column, locus_file, hashing_function):
         the hash computed from the allele sequence.
     """
     # read Fasta files with locus alleles
-    locus_alleles = {(rec.id).split('_')[-1]: str(rec.seq)
+    locus_alleles = {(rec.id).split('_')[-1].replace('*', ''): str(rec.seq)
                      for rec in SeqIO.parse(locus_file[0], 'fasta')}
     if len(locus_file) > 1:
-        novel_records = {(rec.id).split('_')[-1]: str(rec.seq)
+        novel_records = {(rec.id).split('_')[-1].replace('*', ''): str(rec.seq)
                          for rec in SeqIO.parse(locus_file[1], 'fasta')}
-        im.merge_dictionaries([locus_alleles, novel_records], True)
-        
+        locus_alleles = im.merge_dictionaries([locus_alleles, novel_records], True)
+
     hashed_alleles = {}
     for seqid, seq in locus_alleles.items():
         # hash function does not accept string object, encode to get bytes object
@@ -123,15 +123,8 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     return output_file
 
 
-# profiles_table = profiles_table
-# schema_directory = schema_directory
-# output_directory = results_dir
-# hash_type = 'crc32'
-# cpu_cores = 6
-# nrows = 1000
-# updated_files = updated_files
 def main(profiles_table, schema_directory, output_directory, hash_type,
-         cpu_cores, nrows, updated_files):
+         cpu_cores, nrows, updated_files, no_inferred):
 
     # get hash function
     hashing_function = getattr(hashlib, hash_type, None)
@@ -155,7 +148,7 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
         if locus_file.endswith('.fasta') is False:
             locus_file += '.fasta'
         loci_files[locus] = [locus_file]
-        if locus_file in updated_files:
+        if locus_file in updated_files and no_inferred is True:
             loci_files[locus].append(updated_files[locus_file][0])
 
     # get input/sample identifiers

@@ -1007,7 +1007,7 @@ def replace_chars(column, missing_replace='0'):
     # before replacing missing data cases to avoid replacing '*' with '0'
     replace_inf = replace_inf.replace(to_replace='\*',
                                       value='', regex=True)
-    # replace missing data with '-'
+    # replace missing data with
     replace_missing = replace_inf.replace(to_replace='\D+.*',
                                           value=missing_replace, regex=True)
 

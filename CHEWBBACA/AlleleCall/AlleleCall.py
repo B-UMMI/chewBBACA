@@ -2060,29 +2060,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
             failed, invalid_alleles_file, unclassified_ids, self_scores, new_reps]
 
 
-input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
-schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema_copy/schema_seed'
-output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_allelecall'
-ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/sagalactiae_schema_copy/schema_seed/Streptococcus_agalactiae.trn'
-blast_score_ratio = 0.6
-minimum_length = 201
-translation_table = 11
-size_threshold = 0.2
-word_size = 5
-window_size = 5
-clustering_sim = 0.2
-cpu_cores = 6
-blast_path = '/home/rmamede/.conda/envs/spyder/bin'
-cds_input = False
-prodigal_mode = 'single'
-no_inferred = False
-output_unclassified = False
-output_missing = False
-no_cleanup = True
-hash_profiles = 'crc32'
-force_reset = True
-mode = 4
-ns = False
 def main(input_file, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
@@ -2270,19 +2247,20 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         print('Detected number of paralogous loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
+        # create Fasta file with the distinct CDS that were not classified
         create_unclassified_fasta(results[3], results[4], results[9],
                                   results[6], results_dir, results[1])
 
     if output_missing is True and cds_input is False:
+        # Create Fasta file with CDS that were classified as ASM, ALM, NIPH, ...
         create_missing_fasta(results[0], results[3], results[1], results[5],
                              results_dir, coordinates_files)
 
-    # this must run after the step that adds the novel alleles to the schema
-    # it cannot determine the hashes of inferred alleles that are not added to the schema
     if hash_profiles is not None:
-        ### substitute 'schema_directory'
+        # create TSV file with hashed profiles
         ph.main(profiles_table, schema_directory, results_dir,
-                hash_profiles, cpu_cores, 1000, updated_files)
+                hash_profiles, cpu_cores, 1000, updated_files,
+                no_inferred)
 
     # move file with CDSs coordinates
     # will not be created if input files contain predicted CDS

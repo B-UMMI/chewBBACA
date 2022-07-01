@@ -727,6 +727,7 @@ def create_pre_computed_data(
         hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in hist_data_sort]
 
         # check if the user provided annotations
+        annotations_data = {}
         if annotations is None:
             uniprot_finder_missing_keys = [
                 "genome",
@@ -736,166 +737,90 @@ def create_pre_computed_data(
                 "coding_strand",
                 "name",
                 "url",
+                "proteome_id",
+                "proteome_product",
+                "proteome_gene_name",
+                "proteome_species",
+                "proteome_bsr",
             ]
             for d in data_ind:
                 d.update(dict.fromkeys(uniprot_finder_missing_keys, "Not provided"))
 
         else:
-            annotations_data = {}
-            row_len = 0
             with open(annotations, "r") as a:
-                # annotations_reader = csv.reader(a, delimiter="\t")
                 annotations_reader = csv.DictReader(a, delimiter="\t", restval="-")
-                # skip header
-                # next(annotations_reader, None)
-                for r in annotations_reader:
-                    r_list = list(r.values())
-                    if len(r_list) == 3:
-                        annotations_data["{0}.fasta".format(r_list[0])] = [
-                            r_list[1],
-                            r_list[2],
-                        ]
-                        row_len = len(r_list)
-                    elif len(r) == 9:
-                        annotations_data["{0}.fasta".format(r_list[0])] = [
-                            r_list[1],
-                            r_list[2],
-                            r_list[3],
-                            r_list[4],
-                            r_list[5],
-                            r_list[6],
-                            r_list[7],
-                            r_list[8],
-                        ]
-                        row_len = len(r_list)
-                    elif len(r) == 14:
-                        annotations_data["{0}.fasta".format(r_list[0])] = [
-                            r_list[1],
-                            r_list[2],
-                            r_list[3],
-                            r_list[4],
-                            r_list[5],
-                            r_list[6],
-                            r_list[7],
-                            r_list[8],
-                            r_list[9],
-                            r_list[10],
-                            r_list[11],
-                            r_list[12],
-                            r_list[13],
-                        ]
-                        row_len = len(r_list)
+                for row in annotations_reader:
+                    if len(row.keys()) == 14:
+                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                                row["Genome"],
+                                row["Contig"],
+                                row["Start"],
+                                row["Stop"],
+                                row["Protein_ID"],
+                                row["Coding_Strand"],
+                                row["Uniprot_Name"],
+                                row["UniProt_URL"],
+                                row["Proteome_ID"],
+                                row["Proteome_Product"],
+                                row["Proteome_Gene_Name"],
+                                row["Proteome_Species"],
+                                row["Proteome_BSR"]
+                            ]
+                        
+                    else:
+                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                                row["Genome"],
+                                row["Contig"],
+                                row["Start"],
+                                row["Stop"],
+                                row["Protein_ID"],
+                                row["Coding_Strand"],
+                                row["Uniprot_Name"],
+                                row["UniProt_URL"],
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided",
+                                "Not Provided"
+                            ]
 
             for d in data_ind:
-                if row_len == 3:
-                    try:
-                        d["Gene"] in annotations_data
-                        d.update(
-                            {
-                                "genome": "-",
-                                "contig": "-",
-                                "start": "-",
-                                "stop": "-",
-                                "coding_strand": "-",
-                                "name": annotations_data[d["Gene"]][0],
-                                "url": annotations_data[d["Gene"]][1],
-                                "proteome_id": "-",
-                                "proteome_product": "-",
-                                "proteome_gene_name": "-",
-                                "proteome_species": "-",
-                                "proteome_bsr": "-",
-                            }
-                        )
-                    except KeyError:
-                        uniprot_finder_missing_keys = [
-                            "genome",
-                            "contig",
-                            "start",
-                            "stop",
-                            "coding_strand",
-                            "name",
-                            "url",
-                            "proteome_id",
-                            "proteome_product",
-                            "proteome_gene_name",
-                            "proteome_species",
-                            "proteome_bsr",
-                        ]
-                        d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
-                elif row_len == 9:
-                    try:
-                        d["Gene"] in annotations_data
-                        d.update(
-                            {
-                                "genome": annotations_data[d["Gene"]][0],
-                                "contig": annotations_data[d["Gene"]][1],
-                                "start": annotations_data[d["Gene"]][2],
-                                "stop": annotations_data[d["Gene"]][3],
-                                "coding_strand": "sense"
-                                if annotations_data[d["Gene"]][5] == "1"
-                                else "antisense",
-                                "name": annotations_data[d["Gene"]][6],
-                                "url": annotations_data[d["Gene"]][7],
-                                "proteome_id": "-",
-                                "proteome_product": "-",
-                                "proteome_gene_name": "-",
-                                "proteome_species": "-",
-                                "proteome_bsr": "-",
-                            }
-                        )
-                    except KeyError:
-                        uniprot_finder_missing_keys = [
-                            "genome",
-                            "contig",
-                            "start",
-                            "stop",
-                            "coding_strand",
-                            "name",
-                            "url",
-                            "proteome_id",
-                            "proteome_product",
-                            "proteome_gene_name",
-                            "proteome_species",
-                            "proteome_bsr",
-                        ]
-                        d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
-                elif row_len == 14:
-                    try:
-                        d["Gene"] in annotations_data
-                        d.update(
-                            {
-                                "genome": annotations_data[d["Gene"]][0],
-                                "contig": annotations_data[d["Gene"]][1],
-                                "start": annotations_data[d["Gene"]][2],
-                                "stop": annotations_data[d["Gene"]][3],
-                                "coding_strand": "sense"
-                                if annotations_data[d["Gene"]][5] == "1"
-                                else "antisense",
-                                "name": annotations_data[d["Gene"]][6],
-                                "url": annotations_data[d["Gene"]][7],
-                                "proteome_id": annotations_data[d["Gene"]][8],
-                                "proteome_product": annotations_data[d["Gene"]][9],
-                                "proteome_gene_name": annotations_data[d["Gene"]][10],
-                                "proteome_species": annotations_data[d["Gene"]][11],
-                                "proteome_bsr": annotations_data[d["Gene"]][12],
-                            }
-                        )
-                    except KeyError:
-                        uniprot_finder_missing_keys = [
-                            "genome",
-                            "contig",
-                            "start",
-                            "stop",
-                            "coding_strand",
-                            "name",
-                            "url",
-                            "proteome_id",
-                            "proteome_product",
-                            "proteome_gene_name",
-                            "proteome_species",
-                            "proteome_bsr",
-                        ]
-                        d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
+                try:
+                    d["Gene"] in annotations_data
+                    d.update(
+                        {
+                            "genome": annotations_data[d["Gene"]][0],
+                            "contig": annotations_data[d["Gene"]][1],
+                            "start": annotations_data[d["Gene"]][2],
+                            "stop": annotations_data[d["Gene"]][3],
+                            "coding_strand": "sense"
+                            if annotations_data[d["Gene"]][5] == "1"
+                            else "antisense",
+                            "name": annotations_data[d["Gene"]][6],
+                            "url": annotations_data[d["Gene"]][7],
+                            "proteome_id": annotations_data[d["Gene"]][8],
+                            "proteome_product": annotations_data[d["Gene"]][9],
+                            "proteome_gene_name": annotations_data[d["Gene"]][10],
+                            "proteome_species": annotations_data[d["Gene"]][11],
+                            "proteome_bsr": annotations_data[d["Gene"]][12],
+                        }
+                    )
+                except KeyError:
+                    uniprot_finder_missing_keys = [
+                        "genome",
+                        "contig",
+                        "start",
+                        "stop",
+                        "coding_strand",
+                        "name",
+                        "url",
+                        "proteome_id",
+                        "proteome_product",
+                        "proteome_gene_name",
+                        "proteome_species",
+                        "proteome_bsr",
+                    ]
+                    d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
 
         # check if it is a chewBBACA schema
         if chewie_schema:
@@ -1368,22 +1293,30 @@ def write_individual_html(
         with open(exceptions_filename_path, "r") as ef:
             exc_data = json.load(ef)
 
-        # get the msa data
-        msa_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
+        # path to the protein files
+        prot_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
 
+        # get the msa data
         msa_data = {"sequences": []}
 
-        msa_seq_gen = SeqIO.parse(msa_file_path, "fasta")
+        msa_seq_gen = SeqIO.parse(prot_file_path, "fasta")
 
         allele_ids = [allele.id for allele in msa_seq_gen]
 
         if len(allele_ids) > 1:
-            for allele in SeqIO.parse(msa_file_path, "fasta"):
+            for allele in SeqIO.parse(prot_file_path, "fasta"):
                 msa_data["sequences"].append(
                     {"name": allele.id, "sequence": str(allele.seq)}
                 )
         else:
             msa_data = "undefined"
+
+        # get the fasta for the sequence logo
+        if os.path.exists(prot_file_path):
+            with open(prot_file_path, "r") as fas:
+                fasta_file_content = fas.read()
+        else:
+            fasta_file_content = "undefined"
 
         # get the phylocanvas data
         phylo_file_path = os.path.join(
@@ -1425,6 +1358,7 @@ def write_individual_html(
                     <script> const _msaData = {3} </script>
                     <script> const _phyloData = {4} </script>
                     <script> const _minLen = {5} </script>
+                    <script> const _fasta = `{6}` </script>
                     <script src="./main_ind.js"></script>
                 </body>
             </html>
@@ -1435,91 +1369,10 @@ def write_individual_html(
             json.dumps(msa_data, sort_keys=True),
             json.dumps(phylo_data_json, sort_keys=True),
             json.dumps(int(minimum_length), sort_keys=True),
+            fasta_file_content,
         )
 
         html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))
 
         with open(html_file_path, "w") as html_fh:
             html_fh.write(html_template_individual)
-
-        # if chewie_schema:
-        #     # read config file to get chewBBACA parameters
-        #     config_file = os.path.join(input_files, ".schema_config")
-        #     with open(config_file, "rb") as cf:
-        #         chewie_schema_configs = pickle.load(cf)
-
-        #     minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
-
-        #     html_template_individual = """
-        #     <!DOCTYPE html>
-        #     <html lang="en">
-        #         <head>
-        #             <meta charset="UTF-8" />
-        #             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        #             <title>Schema Evaluator - Individual Analysis</title>
-        #         </head>
-        #         <body style="background-color: #f6f6f6">
-        #             <noscript> You need to enable JavaScript to run this app. </noscript>
-        #             <div id="root"></div>
-        #             <script> const _preComputedDataInd = {0} </script>
-        #             <script> const _exceptions = {1} </script>
-        #             <script> const _cdsDf = {2} </script>
-        #             <script> const _msaData = {3} </script>
-        #             <script> const _phyloData = {4} </script>
-        #             <script> const _minLen = {5} </script>
-        #             <script src="./main_ind.js"></script>
-        #         </body>
-        #     </html>
-        #     """.format(
-        #         json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-        #         json.dumps(exc_data, sort_keys=True),
-        #         json.dumps(cds_ind_data, sort_keys=True),
-        #         json.dumps(msa_data, sort_keys=True),
-        #         json.dumps(phylo_data_json, sort_keys=True),
-        #         json.dumps(int(minimum_length_config), sort_keys=True),
-        #     )
-
-        #     html_file_path = os.path.join(
-        #         out_path, "{0}_individual_report.html".format(sf)
-        #     )
-
-        #     with open(html_file_path, "w") as html_fh:
-        #         html_fh.write(html_template_individual)
-
-        # else:
-
-        # html_template_individual = """
-        # <!DOCTYPE html>
-        # <html lang="en">
-        #     <head>
-        #         <meta charset="UTF-8" />
-        #         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        #         <title>Schema Evaluator - Individual Analysis</title>
-        #     </head>
-        #     <body style="background-color: #f6f6f6">
-        #         <noscript> You need to enable JavaScript to run this app. </noscript>
-        #         <div id="root"></div>
-        #         <script> const _preComputedDataInd = {0} </script>
-        #         <script> const _exceptions = {1} </script>
-        #         <script> const _cdsDf = {2} </script>
-        #         <script> const _msaData = {3} </script>
-        #         <script> const _phyloData = {4} </script>
-        #         <script> const _minLen = {5} </script>
-        #         <script src="./main_ind.js"></script>
-        #     </body>
-        # </html>
-        # """.format(
-        #     json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-        #     json.dumps(exc_data, sort_keys=True),
-        #     json.dumps(cds_ind_data, sort_keys=True),
-        #     json.dumps(msa_data, sort_keys=True),
-        #     json.dumps(phylo_data_json, sort_keys=True),
-        #     json.dumps(int(minimum_length), sort_keys=True),
-        # )
-
-        # html_file_path = os.path.join(
-        #     out_path, "{0}_individual_report.html".format(sf)
-        # )
-
-        # with open(html_file_path, "w") as html_fh:
-        #     html_fh.write(html_template_individual)

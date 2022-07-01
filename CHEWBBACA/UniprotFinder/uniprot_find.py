@@ -321,6 +321,34 @@ def create_annotations_table(annotations, output_directory, header,
     return output_file
 
 
+def import_cds_info(protein_table, loci_identifiers, loci_info):
+    """
+    """
+
+    with open(protein_table, 'r') as infile:
+        table_header = infile.readline()
+        table_header = table_header.strip().split('\t')
+        processed = 0
+        some_left = True
+        while some_left:
+            lines = infile.readlines(1000000)
+            if len(lines) > 0:
+                for l in lines:
+                    fields = l.strip().split('\t')
+                    locus_id = fields[0].replace('_', '-')
+                    locus_id = locus_id + '-protein{0}'.format(fields[-2])
+                    if locus_id in loci_identifiers:
+                        loci_info[locus_id] = fields
+                        processed += 1
+                        print('\r', 'Extracted info for {0}/{1} '
+                              'loci'.format(processed, len(loci_identifiers)),
+                              end='')
+            else:
+                some_left = False
+
+    return [loci_info, table_header]
+
+
 def main(input_files, output_directory, protein_table, blast_score_ratio,
          cpu_cores, taxa, proteome_matches, no_sparql, no_cleanup, blast_path):
 

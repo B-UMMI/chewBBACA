@@ -367,7 +367,7 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
                 blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
                                             blast_output, 1, 1, ids_file,
-                                            blastp_task, 100000)
+                                            blastp_task, 100000, ignore=ct.IGNORE_RAISED)
                 if len(blast_stderr) > 0:
                     raise ValueError(blast_stderr)
 

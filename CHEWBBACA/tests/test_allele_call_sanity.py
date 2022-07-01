@@ -8,6 +8,7 @@
 import py
 import os
 import sys
+import shutil
 import pytest
 import filecmp
 from unittest.mock import patch
@@ -25,8 +26,12 @@ args_template = ['chewBBACA.py', 'AlleleCall',
 @pytest.mark.parametrize(
         'test_args, expected',
         [(args_template,
+         'data/allelecall_data/test_results'),
+        (args_template+['--gl', 'data/allelecall_data/test_genes_list/test_genes.txt'],
+         'data/allelecall_data/test_genes_list/test_genes_results'),
+        (args_template[0:3]+['data/allelecall_data/test_genomes_list/test_genomes.txt']+args_template[4:],
          'data/allelecall_data/test_results')
-         ])
+        ])
 def test_allelecall_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
         capture = py.io.StdCapture()
@@ -58,6 +63,12 @@ def test_allelecall_valid(test_args, expected):
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
+
+    # delete results
+    try:
+        shutil.rmtree(test_args[7])
+    except Exception as e2:
+        pass
 
 
 @pytest.mark.parametrize(

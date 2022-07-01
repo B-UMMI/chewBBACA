@@ -7,6 +7,7 @@ import classes from "./SchemaEvaluatorIndividual.css";
 import Grid from "@material-ui/core/Grid";
 import Switch from "@material-ui/core/Switch";
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Typography from "@material-ui/core/Typography";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
@@ -34,6 +35,11 @@ import MSAViewer from "react-msa-viewer";
 // Phylocanvas
 import { PhylogeneticTree } from "./Phylocanvas";
 
+// SeqLogo component
+import { ProteinLogo } from "logojs-react";
+import { UncontrolledReactSVGPanZoom, POSITION_NONE } from "react-svg-pan-zoom";
+import { CustomToolbar } from "./CustomToolbar.jsx";
+
 class SchemaEvaluator extends Component {
   state = {
     locus_ind_data: _preComputedDataInd,
@@ -42,10 +48,32 @@ class SchemaEvaluator extends Component {
     testMSA: _msaData,
     phyloData: _phyloData,
     minLen: _minLen,
+    fasta: _fasta,
+    logoMode: 0,
+    logoModeButtonName: "Change Mode to Frequency",
+    counter: 2,
     indTabValue: 0,
     treeType: 0,
     zoom: false,
   };
+
+  constructor(props) {
+    super(props);
+    this.Viewer = React.createRef();
+    this.logo = React.createRef();
+  }
+
+  componentDidMount() {
+    if (this.Viewer == !null) {
+      this.Viewer.current.zoom(0, 250, 10);
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.Viewer == !null) {
+      this.Viewer.current.zoom(0, 250, 10);
+    }
+  }
 
   getMuiTheme = () =>
     createMuiTheme({
@@ -65,8 +93,33 @@ class SchemaEvaluator extends Component {
   handleSelectChange = (selectType, val) => {
     const newState = {};
     newState[selectType] = val.value;
-
     this.setState(newState);
+  };
+
+  handleLogoMode = () => {
+    switch (this.state.logoMode) {
+      case 0:
+        this.setState({
+          logoMode: 1,
+          logoModeButtonName: "Change Mode to Information Content",
+        });
+        break;
+
+      case 1:
+        this.setState({
+          logoMode: 0,
+          logoModeButtonName: "Change Mode to Frequency",
+        });
+        break;
+    }
+  };
+
+  handleIncrement = () => {
+    this.setState((state) => ({ counter: state.counter + 1 }));
+  };
+
+  handleDecrement = () => {
+    this.setState((state) => ({ counter: state.counter - 1 }));
   };
 
   render() {
@@ -110,6 +163,12 @@ class SchemaEvaluator extends Component {
       zoom: {
         marginLeft: "auto",
       },
+    };
+    const miniatureProps = {
+      position: POSITION_NONE,
+      background: "#fff",
+      width: 0,
+      height: 0,
     };
 
     const phylocanvasComponent =
@@ -187,6 +246,85 @@ class SchemaEvaluator extends Component {
                     treeType={treeTypeOption[this.state.treeType].label}
                     newickString={this.state.phyloData.phylo_data}
                   />
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          </div>
+        </Aux>
+      );
+
+    const displayCounter = this.state.counter > 0;
+
+    const seqLogo =
+      this.state.fasta.split(">").length - 1 === 1 ? (
+        <div style={{ marginTop: "20px", width: "100%" }}>
+          <Alert variant="outlined" severity="warning">
+            <Typography variant="subtitle1">
+              No sequence logo was displayed due to an invalid alignment.
+            </Typography>
+          </Alert>
+        </div>
+      ) : (
+        <Aux>
+          <div style={{ marginTop: "40px" }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary>
+                <Typography variant="h5" className={classes.title}>
+                  Sequence Logo
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <div id="logo" style={{ width: "100%", height: "100%" }}>
+                  <UncontrolledReactSVGPanZoom
+                    width={1200}
+                    height={500}
+                    scaleFactorMin={9}
+                    scaleFactorMax={20}
+                    scaleFactor={1.1}
+                    ref={this.Viewer}
+                    detectWheel={false}
+                    scaleFactorOnWheel={1}
+                    detectAutoPan={false}
+                    customToolbar={CustomToolbar}
+                  >
+                    <div width={1200} height={500}>
+                      <ProteinLogo
+                        fasta={this.state.fasta}
+                        mode={
+                          this.state.logoMode === 0
+                            ? "INFORMATION_CONTENT"
+                            : "FREQUENCY"
+                        }
+                        yAxisMax={this.state.counter}
+                      />
+                    </div>
+                  </UncontrolledReactSVGPanZoom>
+                  <br />
+                  <br />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => this.handleLogoMode()}
+                  >
+                    {this.state.logoModeButtonName}
+                  </Button>
+                  <div style={{ marginTop: "30px" }}>
+                    <Typography variant="body1">Change y-axis size.</Typography>
+                    <ButtonGroup
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      aria-label="small outlined button group"
+                    >
+                      <Button onClick={this.handleIncrement}>+</Button>
+                      {displayCounter && (
+                        <Button disabled>{this.state.counter}</Button>
+                      )}
+                      {displayCounter && (
+                        <Button onClick={this.handleDecrement}>-</Button>
+                      )}
+                    </ButtonGroup>
+                  </div>
                 </div>
               </AccordionDetails>
             </Accordion>
@@ -745,6 +883,7 @@ class SchemaEvaluator extends Component {
             </div>
             {locusIndHist}
             {phylocanvasComponent}
+            {seqLogo}
             {msa_component}
           </div>
         </div>

@@ -7,10 +7,10 @@ VERSION = CHEWBBACA.__version__
 setup(
   name = 'chewBBACA',
   packages = ['CHEWBBACA', 'CHEWBBACA.allelecall', 'CHEWBBACA.createschema',
-              'CHEWBBACA.utils','CHEWBBACA.SchemaEvaluator','CHEWBBACA.PrepExternalSchema',
-              'CHEWBBACA.CHEWBBACA_NS'],
+              'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
+              'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder'],
   version = VERSION,
-  description = 'A complete suite for gene-by-gene schema creation and strain identification',
+  description = 'A complete suite for gene-by-gene schema creation and strain identification.',
   author = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede',
   author_email = 'imm-bioinfo@medicina.ulisboa.pt',
   url = 'https://github.com/B-UMMI/chewBBACA', 

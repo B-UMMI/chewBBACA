@@ -6,7 +6,7 @@ VERSION = CHEWBBACA.__version__
 
 setup(
   name = 'chewBBACA',
-  packages = ['CHEWBBACA', 'CHEWBBACA.allelecall', 'CHEWBBACA.createschema',
+  packages = ['CHEWBBACA', 'CHEWBBACA.AlleleCall', 'CHEWBBACA.CreateSchema',
               'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
               'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder'],
   version = VERSION,

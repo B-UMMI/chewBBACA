@@ -28,7 +28,7 @@ def simple_get_request(url, headers, endpoint_list=None,
                        parameters=None, verify=False, timeout=30):
     """Request data through a GET method sent to an endpoint.
 
-    Construct an URI for an endpoint and requests data through
+    Construct an URI for an endpoint and request data through
     a GET method sent to that endpoint.
 
     Parameters
@@ -71,7 +71,7 @@ def simple_post_request(url, headers, endpoint_list=None,
                         data=None, files=None, verify=False):
     """Send data through a POST method.
 
-    Construct an URI for an endpoint and sends data through
+    Construct an URI for an endpoint and send data through
     a POST method.
 
     Parameters
@@ -130,7 +130,7 @@ def check_connection(url, headers=ct.HEADERS_GET_JSON):
 
     Returns
     -------
-    conn : bool
+    connection : bool
         True if it the GET request to the stats/summary
         endpoint was successful (HTTP response status
         code 200 or 201), False otherwise.
@@ -153,7 +153,7 @@ def user_info(base_url, headers_get):
 
     Get the user identifier, role and permission level for a
     user registered in a Chewie-NS instance. The permission
-    level is used to determin eif the user can upload schemas
+    level is used to determine if the user can upload schemas
     to Chewie-NS.
 
     Parameters
@@ -166,9 +166,9 @@ def user_info(base_url, headers_get):
     Returns
     -------
     user_id : str
-        User identifier in Chewie-NS.
+        User identifier in the Chewie-NS instance.
     user_role : str
-        User role in Chewie-NS.
+        User role in the Chewie-NS instance.
     permission : bool
         True if the user has Admin or Contributor privileges,
         False otherwise.
@@ -205,7 +205,7 @@ def species_ids(species_id, base_url, headers_get):
     was not found.
     """
     try:
-        # check if species unique identifier was provided
+        # check if species unique integer identifier was provided
         int(species_id)
         species_url, species_info = simple_get_request(base_url, headers_get,
                                                        ['species', species_id])
@@ -215,8 +215,11 @@ def species_ids(species_id, base_url, headers_get):
         else:
             return 404
     except ValueError:
+        # check if the scientific name for species was provided
         species_name = species_id
+        # get the list of species added to Chewie-NS
         ns_species = species_list(base_url, headers_get, ['species', 'list'])
+        # try to get the species unique integer identifier
         species_id = ns_species.get(species_name, 'not_found')
         if species_id != 'not_found':
             return [species_id, species_name]
@@ -248,7 +251,9 @@ def species_list(base_url, headers_get, endpoint_list):
     res = res.json()
     species_lst = {}
     for sp in res:
+        # get species scientific name
         species = sp['name']['value']
+        # get species unique integer identifier from URl
         species_url = sp['species']['value']
         species_id = species_url.split('/')[-1]
         species_lst[species] = species_id
@@ -271,7 +276,7 @@ def is_url(url):
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc, result.path])
-    except:
+    except Exception:
         return False
 
 

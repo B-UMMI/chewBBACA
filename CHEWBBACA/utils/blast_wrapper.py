@@ -29,10 +29,10 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
     Parameters
     ----------
     makeblastdb_path : str
-        Path to the 'maskeblastdb' executable.
+        Path to the 'makeblastdb' executable.
     input_fasta : str
         Path to the FASTA file that contains the sequences that
-        should be added to the BLAST database.
+        will be used to create the BLAST database.
     output_path : str
         Path to the directory where the database files will be
         created. Database files will have the same basename as
@@ -47,6 +47,7 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
     stderr : list
         A list with the warnings and errors raised by BLAST.
     """
+    # use '-parse-seqids' to be able to retrieve/align sequences by identifier
     blastdb_cmd = [makeblastdb_path, '-in', input_fasta,
                    '-out', output_path, '-parse_seqids',
                    '-dbtype', db_type]
@@ -57,6 +58,7 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
 
     stderr = makedb_cmd.stderr.readlines()
 
+    # ignore errors/warnings provided to `ignore`
     if len(stderr) > 0:
         stderr = im.decode_str(stderr, 'utf8')
         if ignore is not None:
@@ -77,6 +79,9 @@ def determine_blast_task(sequences, blast_type='blastp'):
     sequences : list
         List that contains strings representing DNA or
         protein sequences.
+    blast_type : str
+        Used to define the type of application, 'blastn'
+        or 'blastp'.
 
     Returns
     -------
@@ -89,6 +94,7 @@ def determine_blast_task(sequences, blast_type='blastp'):
     More information about the task option at:
         https://www.ncbi.nlm.nih.gov/books/NBK569839/
     """
+    # get sequence length threshold for BLAST application
     length_threshold = ct.BLAST_TASK_THRESHOLD[blast_type]
     sequence_lengths = [len(p) for p in sequences]
     minimum_length = min(sequence_lengths)
@@ -105,12 +111,10 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_targets=None, ignore=None):
     """Execute BLAST to align sequences against a BLAST database.
 
-    Aligns sequences in a FASTA file against a BLAST database..
-
     Parameters
     ----------
     blast_path : str
-        Path to the BLAST executable.
+        Path to the BLAST application executable.
     blast_db : str
         Path to the BLAST database.
     fasta_file : str
@@ -142,6 +146,7 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     stderr : list
         A list with the warnings and errors raised by BLAST.
     """
+    # do not retrieve hits with high probability of occuring by change (-evalue=0.001)
     blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
                   '-out', blast_output, '-outfmt', ct.BLAST_DEFAULT_OUTFMT,
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
@@ -160,6 +165,7 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
 
     stderr = blast_proc.stderr.readlines()
 
+    # ignore errors/warnings provided to `ignore`
     if len(stderr) > 0:
         stderr = im.decode_str(stderr, 'utf8')
         if ignore is not None:

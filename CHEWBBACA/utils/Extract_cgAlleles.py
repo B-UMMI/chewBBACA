@@ -54,47 +54,43 @@ except ModuleNotFoundError:
 
 
 def binarize_matrix(column):
-    """ Converts a Pandas dataframe column values
-        into numeric values.
+    """Convert a Pandas dataframe column values into numeric values.
 
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
+    Parameters
+    ----------
+    column : pandas.core.series.Series
+        Pandas dataframe column.
 
-        Returns
-        -------
-        Numpy array corresponding to the input column
-        with numeric values equal to 1 for cells that
-        had valid allele identifiers and equal to 0
-        for cells that had missing data.
+    Returns
+    -------
+    Numpy array corresponding to the input column
+    with numeric values equal to 1 for cells that
+    had valid allele identifiers and equal to 0
+    for cells that had missing data.
     """
-
     coln = pd.to_numeric(column)
 
     return np.int64(coln > 0)
 
 
 def above_threshold(column, column_length, threshold):
-    """ Determines if a gene is present in a proportion
-        of genomes equal or greater than a threshold.
+    """Determine if gene presence is equal or above a threshold.
 
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
-        column_length : int
-            Number of cells/genes in the column.
-        threshold : float
-            Core genome determination threshold.
+    Parameters
+    ----------
+    column : pandas.core.series.Series
+        Pandas dataframe column with presence (1) and absence (0)
+        values for a locus in a set of genomes.
+    column_length : int
+        Number of genomes in the dataset.
+    threshold : float
+        Core genome determination threshold.
 
-        Returns
-        -------
-        bool
-            A boolean, True if gene is equal or above
-            threshold, False otherwise.
+    Returns
+    -------
+    bool
+        True if gene is equal or above threshold, False otherwise.
     """
-
     return (np.sum(column) / column_length) >= threshold
 
 

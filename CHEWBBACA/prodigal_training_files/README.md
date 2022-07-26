@@ -1,66 +1,52 @@
-# Here lies Prodigal species specific training files based on the following reference genomes. 
-Open to suggestions.
+# List of genome assemblies used to create the Prodigal training files
 
 **Acinetobacter baumannii**
-[CP000521](https://www.ncbi.nlm.nih.gov/nuccore/CP000521)
-strain: ATCC 17978
+[GCF_008632635.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_008632635.1/)
 
 **Campylobacter jejuni**
-[HE978252](https://www.ncbi.nlm.nih.gov/nuccore/HE978252)
-strain: NCTC 11168-BN148 
+[GCF_000304375.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000304375.1)
 
 **Enterococcus faecium**
-[NC_017960.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_017960.1)
-strain: TX16
+[GCF_000174395.2](https://www.ncbi.nlm.nih.gov/assembly/GCF_000174395.2)
 
 **Escherichia coli**
-[NC_002695.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_002695.1)
-strain: Sakai
+[GCF_000008865.2](https://www.ncbi.nlm.nih.gov/assembly/GCF_000008865.2/)
 
 **Haemophilus influenzae**
-[CP017811.1](https://www.ncbi.nlm.nih.gov/nuccore/CP017811.1)
-strain: NML-Hia-1
+[GCF_001856725.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_001856725.1)
 
 **Legionella pneumophila**
-[NC_002942.5](https://www.ncbi.nlm.nih.gov/nuccore/NC_002942.5)
-strain: Philadelphia
+[GCF_000008485.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000008485.1)
+
+**Listeria monocytogenes**
+[GCF_000196035.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000196035.1/)
 
 **Salmonella enterica enteritidis**
-[NC_011294.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_011294.1)
-strain: P125109
+[GCF_000009505.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000009505.1)
 
 **Staphylococcus aureus**
-[CP000046.1](https://www.ncbi.nlm.nih.gov/nuccore/CP000046.1)
-strain: COL
+[GCF_000012045.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000012045.1)
 
 **Staphylococcus haemolyticus**
-[NC_007168.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_007168.1)
-strain: JCSC1435
+[GCF_000009865.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000009865.1)
 
 **Streptococcus agalactiae**
 [GCF_000007265.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000007265.1/)
-strain: 2603V/R
 
 **Streptococcus canis**
-[NZ_LR134293.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_900636575.1/)
-strain: NCTC12191
+[GCF_900636575.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_900636575.1/)
 
 **Streptococcus dysgalactiae**
-[NC_019042.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000317855.1/)
-strain: AC-2713
+[GCF_000317855.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000317855.1/)
 
 **Streptococcus equi**
-[NC_012470.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000026605.1/)
-strain: H70
+[GCF_000026605.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000026605.1/)
 
 **Streptococcus pneumoniae**
 [GCF_000006885.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000006885.1)
-strain: TIGR4
 
 **Streptococcus pyogenes**
-[NC_002737.2](https://www.ncbi.nlm.nih.gov/assembly/GCF_000006785.2/)
-strain: SF370
+[GCF_000006785.2](https://www.ncbi.nlm.nih.gov/assembly/GCF_000006785.2/)
 
 **Yersinia enterocolitica**
-[GCF_000009345.1](https://www.ncbi.nlm.nih.gov/nuccore/NC_008800.1)
-strain: 8081
+[GCF_000009345.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000009345.1)

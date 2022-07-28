@@ -449,20 +449,17 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # execution time for large sequence sets
     split_dir = fo.join_paths(final_blast_dir, ['cds_subsets'])
     fo.create_directory(split_dir)
-    file_num = math.ceil(len(schema_seqids)/100)
-    filenames = ['cds_subset{0}.fasta'.format(i+1) for i in range(0, file_num)]
-    file_paths = (fo.join_paths(split_dir, [f]) for f in filenames)
-    splitted_fastas = fao.split_fasta(integer_seqids, file_paths, 100)
+    splitted_fastas = fao.split_seqcount(integer_seqids, split_dir, 100)
 
     # create directory to store results from final BLASTp
     final_blastp_dir = fo.join_paths(final_blast_dir, ['BLAST_results'])
     fo.create_directory(final_blastp_dir)
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
-                                                    fo.file_basename(file, False))
-                     for file in splitted_fastas]
+                                                    fo.file_basename(i[0], False))
+                     for i in splitted_fastas]
 
     # add common arguments to all sublists
-    blast_inputs = [[blastp_path, blast_db, file,
+    blast_inputs = [[blastp_path, blast_db, file[0],
                      blast_outputs[i], 1, 1, bw.run_blast]
                     for i, file in enumerate(splitted_fastas)]
 

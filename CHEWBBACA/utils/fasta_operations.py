@@ -18,13 +18,11 @@ try:
     from utils import (file_operations as fo,
                        iterables_manipulation as im,
                        sequence_manipulation as sm,
-                       blast_wrapper as bw,
                        constants as ct)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
                                  sequence_manipulation as sm,
-                                 blast_wrapper as bw,
                                  constants as ct)
 
 
@@ -120,7 +118,7 @@ def write_records(records, output_file):
 
 
 def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
-    """Switche FASTA records headers in a file by integer values.
+    """Switch sequence headers in Fasta file by integer values.
 
     Parameters
     ----------
@@ -150,7 +148,8 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
             new_id = 'seq_{0}'.format(start)
             ids_map[new_id] = record.id
             sequence = str(record.seq)
-            new_rec = '>{0}\n{1}'.format(new_id, sequence)
+            new_rec = fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+                                       [new_id, sequence])
             seqs.append(new_rec)
             start += 1
         elif record is None:
@@ -328,15 +327,15 @@ def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
     return total_selected
 
 
-def split_fasta(fasta_path, file_paths, max_seqs):
-    """Split a FASTA file into multiple files.
+def split_seqcount(fasta_path, output_directory, max_seqs):
+    """Split a FASTA file based on a maximum number of sequences per file.
 
     Parameters
     ----------
     fasta_path : str
         Path to a FASTA file.
-    file_paths : gen
-        Generator with the paths to the new files.
+    output_directory : str
+        Path to the output directory.
     max_seqs : int
         Split FASTA file into files with a maximum number
         of sequences equal to this value.
@@ -347,22 +346,79 @@ def split_fasta(fasta_path, file_paths, max_seqs):
         List with paths to the new files that were
         created by splitting the input FASTA file.
     """
-    splitted_files = []
-    records = [rec for rec in SeqIO.parse(fasta_path, 'fasta')]
+    file_count = 1
+    exhausted = False
     current_recs = []
-    for record in records:
-        current_recs.append(record)
-        if len(current_recs) == max_seqs or record.id == records[-1].id:
-            file_path = file_paths.__next__()
-            splitted_files.append(file_path)
-            write_records(current_recs, file_path)
-            current_recs = []
+    splitted_files = []
+    record_generator = sequence_generator(fasta_path)
+    while exhausted is False:
+        record = next(record_generator, None)
+        if record is not None:
+            current_recs.append(record)
+        else:
+            exhausted = True
+
+        if len(current_recs) == max_seqs or exhausted is True:
+            if len(current_recs) > 0:
+                file_path = fo.join_paths(output_directory,
+                                          ['seqcount{0}.fasta'.format(file_count)])
+                seqids = (rec.id for rec in current_recs)
+                splitted_files.append([file_path, seqids])
+                write_records(current_recs, file_path)
+                current_recs = []
+                file_count += 1
 
     return splitted_files
 
 
+def split_seqlength(fasta_path, output_directory, length_cutoff):
+    """Split a FASTA file based on a sequence length threshold.
+
+    Parameters
+    ----------
+    fasta_path : str
+        Path to a FASTA file.
+    output_directory : str
+        Path to the output directory.
+    length_cutoff : int
+        Sequence length threshold used to split the FASTA file.
+
+    Returns
+    -------
+    List with two tuples: the first contains the path to a FASTA
+    file with sequences equal or above the length cutoff and the
+    list of sequence identifiers of those sequences. The second
+    tuple contains the same data for the sequences below the
+    cutoff or is None if there were no sequences below the cutoff.
+    """
+    length_values = sequence_lengths(fasta_path)
+    below_cutoff = [seqid for seqid, length in length_values.items()
+                    if length < length_cutoff]
+    above_cutoff = list(set(length_values) - set(below_cutoff))
+
+    fasta_index = index_fasta(fasta_path)
+    if above_cutoff > 0:
+        above_outfile = fo.join_paths(output_directory, ['above_cutoff.fasta'])
+        above_count = get_sequences_by_id(fasta_index, above_cutoff, above_outfile)
+        above_seqids = (seqid for seqid in above_cutoff)
+        above_data = [above_outfile, above_seqids]
+    else:
+        above_data = None
+
+    # file has sequences shorter than cutoff value
+    if len(below_cutoff) > 0:
+        below_outfile = fo.join_paths(output_directory, ['below_cutoff.fasta'])
+        below_count = get_sequences_by_id(fasta_index, below_cutoff, below_outfile)
+        below_seqids = (seqid for seqid in below_cutoff)
+        below_data = [below_outfile, below_seqids]
+    else:
+        below_data = None
+
+    return [above_data, below_data]
+
+
 def fasta_stats(fasta_file):
-    """Determine the total number and mean length of sequences in a FASTA file.
+    """Determine the number of sequences in a FASTA file and lengths stats.
 
     Parameters
     ----------
@@ -379,10 +435,12 @@ def fasta_stats(fasta_file):
         Mean sequence length.
     """
     seq_lengths = sequence_lengths(fasta_file)
+    min_length = min(seq_lengths.values())
+    max_length = max(seq_lengths.values())
     mean_length = sum(seq_lengths.values())/len(seq_lengths)
     total_seqs = len(seq_lengths)
 
-    return [fasta_file, total_seqs, mean_length]
+    return [fasta_file, total_seqs, min_length, max_length, mean_length]
 
 
 def translate_fasta(input_fasta, output_directory, translation_table):
@@ -421,63 +479,3 @@ def translate_fasta(input_fasta, output_directory, translation_table):
     fo.write_lines(translated_lines, protein_file)
 
     return [input_fasta, protein_file, len(translated_records)]
-
-
-def determine_self_scores(work_directory, fasta_file, makeblastdb_path,
-                          blast_path, db_type, blast_threads):
-    """Compute the self-alignment raw score for sequences in a FASTA file.
-
-    Parameters
-    ----------
-    work_directory : str
-        Path to the working directory.
-    fasta_file : str
-        Path to the FASTA file that contains the sequences.
-    makeblastdb_path : str
-        Path to the 'maskeblastdb' executable.
-    blast_path : str
-        Path to the BLASTp/n executable.
-    db_type : str
-        Type of the database, nucleotide (nuc) or
-        protein (prot).
-    blast_threads : int
-        Number of threads/cores used to run BLAST.
-
-    Returns
-    -------
-    self_scores : dict
-        Dictionary with sequence identifiers as keys and
-        tuples with the sequence length and the raw score
-        of the self-alignment as values.
-    """
-    # change identifiers to shorten and avoid BLAST error
-    # related with sequence header length
-    output_fasta = fasta_file.replace('.fasta', '_integer_headers.fasta')
-    ids_map = integer_headers(fasta_file, output_fasta, start=1, limit=5000)
-
-    blast_db = fo.join_paths(work_directory,
-                             [fo.file_basename(output_fasta, False)])
-    # will not work if file contains duplicates
-    db_stderr = bw.make_blast_db(makeblastdb_path, output_fasta,
-                                 blast_db, db_type)
-
-    if len(db_stderr) > 0:
-        return db_stderr
-
-    output_basename = fo.file_basename(fasta_file, False)+'_blastout.tsv'
-    output_blast = fo.join_paths(work_directory, [output_basename])
-    blastp_stderr = bw.run_blast(blast_path, blast_db, output_fasta,
-                                 output_blast, threads=blast_threads)
-
-    current_results = fo.read_tabular(output_blast)
-    # get raw score and sequence length
-    # multiply by 3 to get DNA sequence length and add 3 to count stop codon
-    self_results = [line for line in current_results if line[0] == line[4]]
-    self_scores = {}
-    for line in self_results:
-        # multiply by 3 to get DNA sequence length
-        # add 3 to count stop codon
-        dna_length = (int(line[3])*3)+3
-        self_scores[ids_map[line[0]]] = (dna_length, float(line[6]))
-
-    return self_scores

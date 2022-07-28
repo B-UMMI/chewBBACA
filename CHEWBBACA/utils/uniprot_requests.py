@@ -32,17 +32,18 @@ UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def website_availability(url):
-    """
+    """Determine if a website is reachable.
 
     Parameters
     ----------
-    url : TYPE
-        DESCRIPTION.
+    url : str
+        URL to a website.
 
     Returns
     -------
-    None.
-
+    reponse : http.client.HTTPResponse or urllib.error.HTTPError
+        Responde with status code 200 if website is reachable
+        or a different status code if the website was not reachable.
     """
     try:
         response = urlopen(url)

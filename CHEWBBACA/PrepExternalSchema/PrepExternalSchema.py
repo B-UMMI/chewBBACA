@@ -458,15 +458,6 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
     return [invalid_alleles, invalid_genes, summary_stats]
 
 
-# input_files = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/acinetobacter_schema'
-# output_directory = '/home/rfm/Desktop/rfm/Lab_Software/AlleleCall_tests/acinetobacter_adapted'
-# cpu_cores = 6
-# blast_score_ratio = 0.6
-# minimum_length = 0
-# translation_table = 11
-# ptf_path = '/home/rfm/Desktop/rfm/Cloned_repos/chewBBACA/CHEWBBACA/prodigal_training_files/Acinetobacter_baumannii.trn'
-# size_threshold = 0.2
-# blast_path = '/home/rfm/Software/anaconda3/envs/spyder/bin'
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
          minimum_length, translation_table, ptf_path, size_threshold,
          blast_path):

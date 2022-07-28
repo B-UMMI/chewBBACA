@@ -331,8 +331,3 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     status = [input_file, total_genome]
 
     return status
-
-
-if __name__ == "__main__":
-
-    main()

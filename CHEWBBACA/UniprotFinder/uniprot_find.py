@@ -198,7 +198,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         print('\nDetermining self-score of representatives...', end='')
         blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
         makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-        self_scores = fao.determine_self_scores(temp_directory, reps_concat,
+        self_scores = cf.determine_self_scores(reps_concat, temp_directory,
             makeblastdb_path, blastp_path, 'prot', cpu_cores)
         print('done.')
 

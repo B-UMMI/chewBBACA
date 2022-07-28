@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions related with the execution
-of the BLAST software.
+of the BLAST software (https://www.ncbi.nlm.nih.gov/books/NBK279690/).
 
 Code documentation
 ------------------
@@ -32,11 +32,11 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
         Path to the 'makeblastdb' executable.
     input_fasta : str
         Path to the FASTA file that contains the sequences that
-        will be used to create the BLAST database.
+        will be added to the BLAST database.
     output_path : str
         Path to the directory where the database files will be
         created. Database files will have the same basename as
-        the `makeblastdb_path`.
+        the `input_fasta`.
     db_type : str
         Type of the database, nucleotide (nuc) or protein (prot).
     ignore : list or NoneType
@@ -131,7 +131,7 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     ids_file : str
         Path to a file with sequence identifiers, one per line.
         Sequences will only be aligned to the sequences in the
-        BLAST database that have any of the identifiers in this
+        BLAST database that match any of the identifiers in this
         file.
     blast_task : str
         Type of BLAST task.
@@ -152,10 +152,13 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
                   '-evalue', '0.001']
 
+    # add file with list of sequence identifiers to align against
     if ids_file is not None:
         blast_args.extend(['-seqidlist', ids_file])
+    # add type of BLASTp or BLASTn task
     if blast_task is not None:
         blast_args.extend(['-task', blast_task])
+    # add maximum number of target sequences to align against
     if max_targets is not None:
         blast_args.extend(['-max_target_seqs', str(max_targets)])
 

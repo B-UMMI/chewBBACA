@@ -7,29 +7,6 @@ Purpose
 This module removes a set of loci from a TSV file with
 results from the AlleleCall process.
 
-Expected input
---------------
-
-The process expects the following variables whether through command
-line execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_file`` : TSV file that contains a matrix with
-  allelic profiles determined by the AlleleCall process.
-
-    - e.g.: ``/home/user/results_alleles.tsv``
-
-- ``-gl``, ``genes_list`` : File with the list of genes to
-  remove, one identifier per line.
-
-    - e.g.: ``/home/user/genes_list.txt``
-
-- ``-o``, ``output_file`` : Path to the output file.
-
-    - e.g.: ``/home/user/selected_results.tsv``
-
-- ``--inverse`` : List of genes that is provided is the
-  list of genes to keep and all other genes should be removed.
-
 Code documentation
 ------------------
 """
@@ -41,9 +18,9 @@ import argparse
 import pandas as pd
 
 try:
-  from utils import file_operations as fo
+    from utils import file_operations as fo
 except:
-  from CHEWBBACA.utils import file_operations as fo
+    from CHEWBBACA.utils import file_operations as fo
 
 
 def main(input_file, genes_list, output_file, inverse):

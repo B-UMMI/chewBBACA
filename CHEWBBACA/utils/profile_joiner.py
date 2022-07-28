@@ -10,24 +10,6 @@ for the same set of loci or create a new file with the
 allelic profiles for the loci that were common between
 all input files.
 
-Expected input
---------------
-
-The process expects the following variables whether through command
-line execution or invocation of the :py:func:`main` function:
-
-- ``-p``, ``profiles`` : Path to files containing the results from
-  the AlleleCall process (results_alleles.tsv).
-
-    - e.g.: ``/home/user/profile1.tsv /home/user/profile2.tsv``
-
-- ``-o``, ``output_file`` : Path to the output file.
-
-    - e.g.: ``/home/user/joined_profiles.tsv``
-
-- ``--common`` : Create file with profiles for the set of
-  common loci.
-
 Code documentation
 ------------------
 """
@@ -46,25 +28,23 @@ except:
 
 
 def concatenate_profiles(files, loci_list, output_file):
-    """ Concatenates TSV files with allele calling results
-        for a common set of loci.
+    """Concatenate allele calling results for a common set of loci.
 
-        Parameters
-        ----------
-        files : list
-            List with the paths to the TSV files with
-            allele calling results.
-        loci_list : list
-            List with the identifiers of common loci.
-        output_file : str
-            Path to the output file.
+    Parameters
+    ----------
+    files : list
+        List with the paths to the TSV files with
+        allele calling results.
+    loci_list : list
+        List with the identifiers of common loci.
+    output_file : str
+        Path to the output file.
 
-        Returns
-        -------
-        total_profiles : int
-            Number of profiles written to the output file.
+    Returns
+    -------
+    total_profiles : int
+        Number of profiles written to the output file.
     """
-
     total_profiles = 0
     for f in files:
         # create dataframe with columns for loci in list
@@ -122,33 +102,3 @@ def main(profiles, output_file, common):
 
     print('Joined {0} files with a total of {1} '
           'profiles.'.format(len(profiles), total_profiles))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-p', '--profiles', nargs='+', type=str,
-                        required=True, dest='profiles',
-                        help='Path to files containing the results from '
-                             'the AlleleCall process (results_alleles.tsv).')
-
-    parser.add_argument('-o', '--output-file', type=str,
-                        required=True, dest='output_file',
-                        help='Path to the output file.')
-
-    parser.add_argument('--common', action='store_true',
-                        required=False, dest='common',
-                        help='Create file with profiles for '
-                             'the set of common loci.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

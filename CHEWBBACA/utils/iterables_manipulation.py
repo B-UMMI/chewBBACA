@@ -17,11 +17,9 @@ import itertools
 
 try:
     from utils import (constants as ct,
-                       file_operations as fo,
                        fasta_operations as fao)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
-                                 file_operations as fo,
                                  fasta_operations as fao)
 
 

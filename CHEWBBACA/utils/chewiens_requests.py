@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions to perform requests to
-Chewie-NS.
+Chewie-NS (https://github.com/B-UMMI/Chewie-NS).
 
 Code documentation
 ------------------
@@ -131,7 +131,7 @@ def check_connection(url, headers=ct.HEADERS_GET_JSON):
     Returns
     -------
     connection : bool
-        True if it the GET request to the stats/summary
+        True if the GET request to the stats/summary
         endpoint was successful (HTTP response status
         code 200 or 201), False otherwise.
     """

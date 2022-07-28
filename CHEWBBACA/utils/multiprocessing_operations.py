@@ -94,7 +94,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
                                   callback=results.append, chunksize=chunksize)
 
         if show_progress is True:
-            progress = 0
+            progress = None
             while progress != 100:
                 progress = progress_bar(rawr._number_left, len(inputs), progress)
 
@@ -126,7 +126,6 @@ def progress_bar(remaining, total, previous, tickval=5, ticknum=20):
     completed : bool
         Boolean indicating if all inputs have been processed.
     """
-
     # determine percentage of processed inputs
     progress = int(100-(remaining/total)*100)
     # only print if percentage has changed
@@ -182,9 +181,9 @@ def distribute_loci(inputs, cores, method):
         if method == 'seqcount':
             splitted_values[i] += locus[1]
         elif method == 'length':
-            splitted_values[i] += locus[2]
+            splitted_values[i] += locus[4]
         elif method == 'seqcount+length':
-            splitted_values[i] += locus[1] * locus[2]
+            splitted_values[i] += locus[1] * locus[4]
         splitted_ids[i].append(locus[0])
         # at the end of each iteration, choose the sublist
         # with lowest criterion value

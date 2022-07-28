@@ -14,8 +14,6 @@ Code documentation
 import os
 import sys
 
-from Bio import SeqIO
-
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
@@ -26,7 +24,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  gene_prediction as gp,
@@ -40,8 +38,7 @@ except:
 
 def predict_genes(fasta_files, ptf_path, translation_table,
                   prodigal_mode, cpu_cores, output_directory):
-    """ Runs Prodigal to predict coding sequences from FASTA
-        files with genomic sequences.
+    """Execute Prodigal to predict coding sequences from Fasta files.
 
     Parameters
     ----------
@@ -72,7 +69,6 @@ def predict_genes(fasta_files, ptf_path, translation_table,
         failed cases. Returns NoneType if gene prediction
         succeeded for all inputs.
     """
-
     # divide input genomes into equal number of sublists for
     # maximum process progress resolution
     prodigal_inputs = im.divide_list_into_n_chunks(fasta_files,
@@ -103,9 +99,10 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
 def extract_genes(fasta_files, prodigal_path, cpu_cores,
                   temp_directory):
-    """ Extracts coding sequences from FASTA files with genomic
-        sequences and saves coding sequences and info about coding
-        sequences.
+    """Extract coding sequences from FASTA files.
+
+    Extract coding sequences from genomic Fasta files and
+    saves coding sequences and info about coding sequences.
 
     Parameters
     ----------
@@ -130,7 +127,6 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
         Total number of coding sequences extracted from the
         input fasta files.
     """
-
     # divide inputs into 15 sublists for ~7% process
     # progress resolution
     num_chunks = 15
@@ -165,8 +161,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                        outfile_template, ids_map, protein=False,
                        only_seqids=False):
-    """ Identifies duplicated sequences in FASTA files and
-        selects a distinct set of sequences.
+    """Identify duplicated sequences and select distinct set of sequences.
 
     Parameters
     ----------
@@ -190,7 +185,6 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
         distinct_seqs : str
             Path to the FASTA file with distinct sequences.
     """
-
     # create groups of inputs for multiprocessing
     output_files = [fo.join_paths(temp_directory,
                                   [outfile_template.format(str(i+1)+'.fasta')])
@@ -266,8 +260,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
-    """ Identifies sequences smaller that a specified length
-        value.
+    """Identify sequences smaller that a specified length value.
 
     Parameters
     ----------
@@ -290,7 +283,6 @@ def exclude_small(fasta_file, minimum_length, variation=0):
         represents an exception message for a sequence that
         is small.
     """
-
     # determine small sequences and keep their seqids
     small_seqids = sm.determine_small(fasta_file, minimum_length, variation)
 
@@ -302,10 +294,10 @@ def exclude_small(fasta_file, minimum_length, variation=0):
 
 def translate_sequences(sequence_ids, sequences_file, temp_directory,
                         translation_table, minimum_length, cpu_cores):
-    """ Translates DNA sequences, returns information about
-        sequences that are untranslatable and saves
-        translatable DNA sequences and proteins to FASTA
-        files.
+    """Translate DNA sequences.
+
+    Returns information about sequences that are untranslatable
+    and saves translatable DNA sequences and proteins to FASTA files.
 
     Parameters
     ----------
@@ -345,7 +337,6 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
             indicates why the sequence could not be
             translated.
     """
-
     # divide inputs into sublists
     translation_inputs = im.divide_list_into_n_chunks(sequence_ids, cpu_cores)
 
@@ -389,55 +380,54 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                       representatives, grow_clusters, kmer_offset,
                       seq_num_cluster, temp_directory, cpu_cores,
                       divide, position):
-    """ Clusters sequences based on the proportion of shared minimizers.
+    """Cluster sequences based on the proportion of shared minimizers.
 
-        Parameters
-        ----------
-        sequences : dict
-            Dictionary with sequence identifiers as keys and
-            sequences as values.
-        word_size : int
-            Value k for the k-mer size.
-        window_size : int
-            Value for the window size/number of consecutive
-            k-mers per window.
-        clustering_sim : float
-            Similarity threshold to add a sequence to
-            a cluster.
-        representatives : dict
-            Dictionary with k-mers as keys and a list with
-            identifiers of sequences that contain that k-mer
-            as values.
-        grow_clusters : bool
-            If it is allowed to create new clusters.
-        kmer_offset : int
-            Value to indicate offset of consecutive kmers.
-        seq_num_cluster : int
-            Maximum number of clusters that a sequence can be
-            added to.
-        temp_directory : str
-            Path to the directory where the clustering results
-            will be saved to.
-        cpu_cores : int
-            Number of clustering processes to run in parallel.
-        divide : bool
-            If input sequences should be divided into smaller
-            groups that can be processed in parallel.
-        position : bool
-            True if the start position for each k-mer should be saved.
-            False otherwise.
+    Parameters
+    ----------
+    sequences : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
+    word_size : int
+        Value k for the k-mer size.
+    window_size : int
+        Value for the window size/number of consecutive
+        k-mers per window.
+    clustering_sim : float
+        Similarity threshold to add a sequence to
+        a cluster.
+    representatives : dict
+        Dictionary with k-mers as keys and a list with
+        identifiers of sequences that contain that k-mer
+        as values.
+    grow_clusters : bool
+        If it is allowed to create new clusters.
+    kmer_offset : int
+        Value to indicate offset of consecutive kmers.
+    seq_num_cluster : int
+        Maximum number of clusters that a sequence can be
+        added to.
+    temp_directory : str
+        Path to the directory where the clustering results
+        will be saved to.
+    cpu_cores : int
+        Number of clustering processes to run in parallel.
+    divide : bool
+        If input sequences should be divided into smaller
+        groups that can be processed in parallel.
+    position : bool
+        True if the start position for each k-mer should be saved.
+        False otherwise.
 
-        Returns
-        -------
-        clusters : dict
-            Dictionary with representative sequence identifiers
-            as keys and lists of tuples as values. Each tuple
-            contains a sequence identifier of a clustered
-            sequence, the proportion of shared kmers with the
-            representative and the length of the clustered
-            sequence.
+    Returns
+    -------
+    clusters : dict
+        Dictionary with representative sequence identifiers
+        as keys and lists of tuples as values. Each tuple
+        contains a sequence identifier of a clustered
+        sequence, the proportion of shared kmers with the
+        representative and the length of the clustered
+        sequence.
     """
-
     # sort sequences by length
     sorted_seqs = {k: v for k, v in im.sort_iterable(sequences.items(),
                                                      sort_key=lambda x: len(x[1]),
@@ -505,41 +495,40 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
 def cluster_representative_filter(clusters, representative_filter,
                                   output_directory):
-    """ Excludes sequences from clusters based on the proportion
-        of shared kmers with the representative. After removing
-        highly similar sequences, excludes clusters that are
-        singletons (only contain the representative).
+    """Exclude sequences highly similar to cluster representatives.
 
-        Parameters
-        ----------
-        clusters : dict
-            Dictionary with representative sequence identifiers
-            as keys and lists of tuples as values. Each tuple
-            contains a sequence identifier of a clustered
-            sequence, the proportion of shared kmers with the
-            representative and the length of the clustered
-            sequence.
-        representative_filter : float
-            Similarity threshold value. Sequences with
-            equal or greater similarity value with the cluster's
-            representative are excluded from clusters.
-        output_directory : str
-            Path to the directory where the clustering results
-            will be saved to.
+    After removing highly similar sequences, excludes clusters
+    that are singletons (only contain the representative).
 
-        Returns
-        -------
-        A list with the following elements:
-            pruned_clusters : dict
-                Clusters without the sequences that were highly
-                similar to the cluster's representative and without
-                the clusters that were singletons (only contained
-                the representative).
-            excluded_seqids : list
-                List with the sequence identifiers of the sequences
-                that were excluded from the clusters.
+    Parameters
+    ----------
+    clusters : dict
+        Dictionary with representative sequence identifiers
+        as keys and lists of tuples as values. Each tuple
+        contains a sequence identifier of a clustered
+        sequence, the proportion of shared kmers with the
+        representative and the length of the clustered
+        sequence.
+    representative_filter : float
+        Similarity threshold value. Sequences with
+        equal or greater similarity value with the cluster's
+        representative are excluded from clusters.
+    output_directory : str
+        Path to the directory where the clustering results
+        will be saved to.
+
+    Returns
+    -------
+    A list with the following elements:
+        pruned_clusters : dict
+            Clusters without the sequences that were highly
+            similar to the cluster's representative and without
+            the clusters that were singletons (only contained
+            the representative).
+        excluded_seqids : list
+            List with the sequence identifiers of the sequences
+            that were excluded from the clusters.
     """
-
     # remove sequences that are very similar to representatives
     pruning_results = sc.representative_pruner(clusters,
                                                representative_filter)
@@ -577,43 +566,40 @@ def cluster_representative_filter(clusters, representative_filter,
 
 def cluster_intra_filter(clusters, sequences, word_size,
                          intra_filter, output_directory):
-    """ Determines similarity between clustered sequences and
-        excludes sequences that are highly similar to other clustered
-        sequences.
+    """Exclude sequences that are highly similar to other clustered sequences.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
+    clusters : dict
+        Dictionary with representative sequence identifiers
+        as keys and lists of tuples as values. Each tuple
+        contains a sequence identifier of a clustered
+        sequence, the proportion of shared kmers with the
+        representative and the length of the clustered
+        sequence.
+    sequences : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
+    word_size : int
+        Value k for the k-mer size.
+    intra_filter : float
+        Similarity threshold value. Sequences with
+        equal or greater similarity value with other
+        clustered sequences are excluded from clusters.
+    output_directory : str
+        Path to the directory where the clustering results
+        will be saved to.
+
+    Returns
+    -------
+    A list with the following elements:
         clusters : dict
-            Dictionary with representative sequence identifiers
-            as keys and lists of tuples as values. Each tuple
-            contains a sequence identifier of a clustered
-            sequence, the proportion of shared kmers with the
-            representative and the length of the clustered
-            sequence.
-        sequences : dict
-            Dictionary with sequence identifiers as keys and
-            sequences as values.
-        word_size : int
-            Value k for the k-mer size.
-        intra_filter : float
-            Similarity threshold value. Sequences with
-            equal or greater similarity value with other
-            clustered sequences are excluded from clusters.
-        output_directory : str
-            Path to the directory where the clustering results
-            will be saved to.
-
-        Returns
-        -------
-        A list with the following elements:
-            clusters : dict
-                Clusters without the sequences that were highly
-                similar to other clustered sequences.
-            intra_excluded : list
-                List with the identifiers of the sequences that
-                were excluded.
+            Clusters without the sequences that were highly
+            similar to other clustered sequences.
+        intra_excluded : list
+            List with the identifiers of the sequences that
+            were excluded.
     """
-
     # identify clusters with more than 1 sequence
     intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
 
@@ -650,44 +636,43 @@ def cluster_intra_filter(clusters, sequences, word_size,
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
                    only_rep=False):
-    """ Uses BLAST to align sequences in the same clusters.
+    """Use BLAST to align sequences in the same clusters.
 
-        Parameters
-        ----------
-        clusters : dict
-            Dictionary with representative sequence identifiers
-            as keys and lists of tuples as values. Each tuple
-            contains a sequence identifier of a clustered
-            sequence, the proportion of shared kmers with the
-            representative and the length of the clustered
-            sequence.
-        sequences : dict
-            Dictionary with sequence identifiers as keys and
-            sequences as values.
-        output_directory : str
-            Path to the directory where the clustering results
-            will be saved to.
-        blastp_path : str
-            Path to the `BLASTp` executable.
-        makeblastdb_path : str
-            Path to the `makeblastdb` executable.
-        cpu_cores : int
-            Number of BLASTp processes to run in parallel.
+    Parameters
+    ----------
+    clusters : dict
+        Dictionary with representative sequence identifiers
+        as keys and lists of tuples as values. Each tuple
+        contains a sequence identifier of a clustered
+        sequence, the proportion of shared kmers with the
+        representative and the length of the clustered
+        sequence.
+    sequences : dict
+        Dictionary with sequence identifiers as keys and
+        sequences as values.
+    output_directory : str
+        Path to the directory where the clustering results
+        will be saved to.
+    blastp_path : str
+        Path to the `BLASTp` executable.
+    makeblastdb_path : str
+        Path to the `makeblastdb` executable.
+    cpu_cores : int
+        Number of BLASTp processes to run in parallel.
 
-        Returns
-        -------
-        A list with the following elements:
-            blast_results : list
-                List with paths to the files with BLASTp results
-                (one file per cluster).
-            ids_dict : dict
-                Dictionary that maps sequence identifiers to
-                shorter and unique integer identifiers used
-                to avoid errors during BLAST execution related with
-                sequence headers/identifiers that exceed the
-                length limit allowed by BLAST.
+    Returns
+    -------
+    A list with the following elements:
+        blast_results : list
+            List with paths to the files with BLASTp results
+            (one file per cluster).
+        ids_dict : dict
+            Dictionary that maps sequence identifiers to
+            shorter and unique integer identifiers used
+            to avoid errors during BLAST execution related with
+            sequence headers/identifiers that exceed the
+            length limit allowed by BLAST.
     """
-
     # create FASTA file with sequences in clusters
     clustered_seqs_file = fo.join_paths(output_directory,
                                         ['clustered_sequences.fasta'])
@@ -729,7 +714,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
-    # BLAST each sequences in a cluster against every sequence in that cluster
+    # BLAST sequences in a cluster against every sequence in that cluster
     blast_results = mo.map_async_parallelizer(splitted_seqids,
                                               mo.function_helper,
                                               cpu_cores,
@@ -739,8 +724,7 @@ def blast_clusters(clusters, sequences, output_directory,
 
 
 def compute_bsr(subject_score, query_score):
-    """ Computes the BLAST Score Ratio for an alignment
-        between two sequences.
+    """Compute the BLAST Score Ratio for an alignment between two sequences.
 
     Parameters
     ----------
@@ -755,7 +739,120 @@ def compute_bsr(subject_score, query_score):
     bsr : float
         BLAST Score Ratio for the alignment.
     """
-
     bsr = subject_score / query_score
 
     return bsr
+
+
+def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
+                          blast_path, db_type, blast_threads):
+    """Compute the self-alignment raw score for sequences in a FASTA file.
+
+    Parameters
+    ----------
+    fasta_file : str
+        Path to the FASTA file that contains the sequences.
+    output_directory : str
+        Path to the working directory.
+    makeblastdb_path : str
+        Path to the 'makeblastdb' executable.
+    blast_path : str
+        Path to the BLASTp/n executable.
+    db_type : str
+        Type of the database, nucleotide (nuc) or
+        protein (prot).
+    blast_threads : int
+        Number of threads/cores used to run BLAST.
+
+    Returns
+    -------
+    self_scores : dict
+        Dictionary with sequence identifiers as keys and
+        tuples with the sequence length and the raw score
+        of the self-alignment as values.
+    """
+    # change identifiers to shorten and avoid BLAST error
+    # related with sequence header length
+    integer_fasta = fasta_file.replace('.fasta', '_integer_headers.fasta')
+    ids_map = fao.integer_headers(fasta_file, integer_fasta, start=1, limit=5000)
+
+    blast_db = fo.join_paths(output_directory,
+                             [fo.file_basename(integer_fasta, False)])
+    # will not work if file contains duplicates
+    db_stderr = bw.make_blast_db(makeblastdb_path, integer_fasta,
+                                 blast_db, db_type)
+
+    if len(db_stderr) > 0:
+        return db_stderr
+
+    # split Fasta file to BLAST short sequences (<30aa) separately
+    # only possible to have alleles <30aa with non-default schemas
+    above_outfile, below_outfile = fao.split_seqlength(integer_fasta,
+                                                   output_directory,
+                                                   ct.BLAST_TASK_THRESHOLD['blastp'])
+
+    if above_outfile is not None:
+        # divide FASTA file into groups of 100 sequences to reduce
+        # execution time for large sequence sets
+        splitted_fastas = fao.split_seqcount(above_outfile[0], output_directory, 100)
+
+        # create TXT with list of sequence identifiers
+        seqids_files = []
+        for f in splitted_fastas:
+            seqids = list(f[1])
+            seqids_file = fo.join_paths(output_directory, [fo.file_basename(f[0], False)])
+            fo.write_lines(seqids, seqids_file)
+            seqids_files.append(seqids_file)
+    # this should not happen or be very rare, but just in case
+    else:
+        splitted_fastas = []
+
+    # create directory to store results from final BLASTp
+    final_blastp_dir = fo.join_paths(output_directory, ['BLAST_results'])
+    fo.create_directory(final_blastp_dir)
+    blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
+                                                    fo.file_basename(file[0], False))
+                     for file in splitted_fastas]
+
+    # add common arguments to all sublists
+    blast_inputs = [[blast_path, blast_db, file[0],
+                     blast_outputs[i], 1, 1, seqids_files[i], 'blastp', bw.run_blast]
+                    for i, file in enumerate(splitted_fastas)]
+
+    # add file with short sequences
+    if below_outfile is not None:
+        seqids = list(below_outfile[1])
+        seqids_file = fo.join_paths(output_directory, [fo.file_basename(below_outfile[0], False)])
+        fo.write_lines(seqids, seqids_file)
+        below_blastout = '{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
+                                                        fo.file_basename(below_outfile[0], False))
+        blast_outputs.append(below_blastout)
+        blast_inputs.append([blast_path, blast_db, below_outfile[0],
+                             below_blastout, 1, 1, seqids_file,
+                             'blastp-short', bw.run_blast])
+
+    blast_stderr = mo.map_async_parallelizer(blast_inputs,
+                                             mo.function_helper,
+                                             blast_threads,
+                                             show_progress=False)
+
+    blast_stderr = im.flatten_list(blast_stderr)
+    if len(blast_stderr) > 0:
+        sys.exit(blast_stderr)
+
+    # concatenate files with BLASTp results
+    blast_output = fo.join_paths(final_blastp_dir, ['blast_out_concat.tsv'])
+    blast_output = fo.concatenate_files(blast_outputs, blast_output)
+
+    current_results = fo.read_tabular(blast_output)
+    # get raw score and sequence length
+    # multiply by 3 to get DNA sequence length and add 3 to count stop codon
+    self_results = [line for line in current_results if line[0] == line[4]]
+    self_scores = {}
+    for line in self_results:
+        # multiply by 3 to get DNA sequence length
+        # add 3 to count stop codon
+        dna_length = (int(line[3])*3)+3
+        self_scores[ids_map[line[0]]] = (dna_length, float(line[6]))
+
+    return self_scores

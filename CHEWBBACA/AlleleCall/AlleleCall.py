@@ -1433,6 +1433,29 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
+# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/ids.txt'
+# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919'
+# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/test_senterica'
+# ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
+# blast_score_ratio = 0.6
+# minimum_length = 201
+# translation_table = 11
+# size_threshold = 0.2
+# word_size = 5
+# window_size = 5
+# clustering_sim = 0.2
+# cpu_cores = 6
+# blast_path = '/home/rmamede/.conda/envs/spyder/bin'
+# cds_input = False
+# prodigal_mode = 'single'
+# no_inferred = False
+# output_unclassified = False
+# output_missing = False
+# no_cleanup = True
+# hash_profiles = 'crc32'
+# force_reset = True
+# mode = 4
+# ns = True
 def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1707,7 +1730,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
     if os.path.isfile(self_score_file) is False:
         print('Determining BLASTp raw score for each representative...', end='')
-        self_scores = fao.determine_self_scores(temp_directory, concat_reps,
+        self_score_dir = fo.join_paths(reps_protein_dir, ['self_scores'])
+        fo.create_directory(self_score_dir)
+        self_scores = cf.determine_self_scores(concat_reps, self_score_dir,
                                                 makeblastdb_path, blastp_path,
                                                 'prot', cpu_cores)
         fo.pickle_dumper(self_scores, self_score_file)
@@ -1804,10 +1829,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         for locus, file in loci_results.items():
             # get locus length mode
             locus_mode = loci_modes[locus]
-    
+
             # import file with locus classifications
             locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
-    
+
             classification_inputs.append([locus, file,
                                           basename_inverse_map,
                                           locus_results_file, locus_mode,
@@ -1866,6 +1891,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     iteration = 1
     exausted = False
     # keep iterating while new representatives are discovered
+    # this step can run faster if we align several representatives per core, instead of distributing 1 per core.
     while exausted is False:
         iter_string = 'Iteration {0}'.format(iteration)
         print(iter_string)
@@ -2047,7 +2073,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
             # determine self-score for new reps
             candidates_blast_dir = fo.join_paths(new_reps_directory, ['representatives_self_score'])
             fo.create_directory(candidates_blast_dir)
-            new_self_scores = fao.determine_self_scores(candidates_blast_dir, concat_repy,
+            new_self_scores = cf.determine_self_scores(concat_repy, candidates_blast_dir,
                                                         makeblastdb_path, blastp_path,
                                                         'prot', cpu_cores)
 

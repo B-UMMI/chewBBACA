@@ -397,7 +397,7 @@ def split_seqlength(fasta_path, output_directory, length_cutoff):
     above_cutoff = list(set(length_values) - set(below_cutoff))
 
     fasta_index = index_fasta(fasta_path)
-    if above_cutoff > 0:
+    if len(above_cutoff) > 0:
         above_outfile = fo.join_paths(output_directory, ['above_cutoff.fasta'])
         above_count = get_sequences_by_id(fasta_index, above_cutoff, above_outfile)
         above_seqids = (seqid for seqid in above_cutoff)

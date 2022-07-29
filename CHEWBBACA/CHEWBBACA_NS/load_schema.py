@@ -137,47 +137,46 @@ uniprot_sparql = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def import_annotations(tsv_file):
-    """ Reads a TSV file to get loci annotations.
+    """Read a TSV file to get loci annotations.
 
-        This function imports loci annotations from
-        a user-provided TSV file. Users can provide
-        annotations for the full set of loci in the
-        schema or only for a subset.
+    This function imports loci annotations from
+    a user-provided TSV file. Users can provide
+    annotations for the full set of loci in the
+    schema or only for a subset.
 
-        Parameters
-        ----------
-        tsv_file : str
-            Path to a TSV file with loci annotations.
-            The TSV file has the following three columns:
+    Parameters
+    ----------
+    tsv_file : str
+        Path to a TSV file with loci annotations.
+        The TSV file has the following three columns:
 
-            - Loci identifiers (schema's filenames stripped of
-              the '.fasta' suffix).
-            - User annotation, a term that the user attributes
-              to each locus.
-            - Custom annotation, an additional term that the
-              user might want to provide.
+        - Loci identifiers (schema's filenames stripped of
+          the '.fasta' suffix).
+        - User annotation, a term that the user attributes
+          to each locus.
+        - Custom annotation, an additional term that the
+          user might want to provide.
 
-            It is not mandatory to provide terms for both
-            annotation fields.
+        It is not mandatory to provide terms for both
+        annotation fields.
 
-        Returns
-        -------
-        annotations : dict
-            Dictionary with loci identifiers as keys and lists
-            with user and custom annotations as values.
+    Returns
+    -------
+    annotations : dict
+        Dictionary with loci identifiers as keys and lists
+        with user and custom annotations as values.
     """
-
     # read file
     lines = fo.read_tabular(tsv_file)
 
     # fill missing values with N/A
-    lines = [l + ['N/A']*(3-len(l)) for l in lines]
+    lines = [line + ['N/A']*(3-len(line)) for line in lines]
 
     annotations = {}
-    for l in lines:
-        locus = l[0]
+    for line in lines:
+        locus = line[0]
         # do not keep blank values
-        a = ['N/A' if i.strip() == '' else i for i in l[1:]]
+        a = ['N/A' if i.strip() == '' else i for i in line[1:]]
 
         # only keep cases that have at least one non-NA field
         if a[0] != 'N/A' or a[1] != 'N/A':
@@ -187,26 +186,24 @@ def import_annotations(tsv_file):
 
 
 def search_schema(schemas, schema_name):
-    """ Determines if any of the schemas in the input list
-        has the provided name.
+    """Determine if any of the schemas in the input list has the provided name.
 
-        Parameters
-        ----------
-        schemas : list of dict
-            A list that contains dictionaries.
-            Each dictionary has information about a schema.
-        schema_name : str
-            Name of the schema to look for in the input list
-            of schemas.
+    Parameters
+    ----------
+    schemas : list of dict
+        A list that contains dictionaries.
+        Each dictionary has information about a schema.
+    schema_name : str
+        Name of the schema to look for in the input list
+        of schemas.
 
-        Returns
-        -------
-        list
-            A list with the schema URI and schema identifier
-            if the schema is found or a list with the boolean
-            value of False if it is not found.
+    Returns
+    -------
+    list
+        A list with the schema URI and schema identifier
+        if the schema is found or a list with the boolean
+        value of False if it is not found.
     """
-
     match = [s for s in schemas if s['name']['value'] == schema_name]
 
     if len(match) > 0:
@@ -220,45 +217,43 @@ def search_schema(schemas, schema_name):
 
 
 def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
-    """ Determines if it is possible to create a new schema or
-        resume the upload of an incomplete schema.
+    """Determine if it is possible to create a schema or resume its upload.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Chewie Nomenclature Server.
-        headers_get : dict
-            HTTP headers for GET requests.
-        schema_name : str
-            Name of the schema that the user wants to create
-            or resume the upload of.
-        species_id : str
-            The identifier of the schema's species in the
-            Chewie-NS.
-        continue_up : bool
-            False if the schema is to be uploaded as a new schema
-            or True if the schema already exists.
+    Parameters
+    ----------
+    base_url : str
+        Base URL of the Chewie Nomenclature Server.
+    headers_get : dict
+        HTTP headers for GET requests.
+    schema_name : str
+        Name of the schema that the user wants to create
+        or resume the upload of.
+    species_id : str
+        The identifier of the schema's species in the
+        Chewie-NS.
+    continue_up : bool
+        False if the schema is to be uploaded as a new schema
+        or True if the schema already exists.
 
-        Returns
-        -------
-        list
-            A list with the upload type ('novel' for new schemas,
-            'incomplete' for upload resuming) and the schema
-            identifier (NoneType if the schema still does not
-            exist).
+    Returns
+    -------
+    list
+        A list with the upload type ('novel' for new schemas,
+        'incomplete' for upload resuming) and the schema
+        identifier (NoneType if the schema still does not
+        exist).
 
-        Raises
-        ------
-        SystemExit
-            - If `continue_up` is True and the schema does not exist.
-            - If `continue_up` is False and a schema with name value
-              equal to `schema_name` already exists.
-            - If `continue_up` is True and the schema has been fully
-              uploaded.
-            - If `continue_up` is True and the current user is not the
-              one that administrates the schema.
+    Raises
+    ------
+    SystemExit
+        - If `continue_up` is True and the schema does not exist.
+        - If `continue_up` is False and a schema with name value
+          equal to `schema_name` already exists.
+        - If `continue_up` is True and the schema has been fully
+          uploaded.
+        - If `continue_up` is True and the current user is not the
+          one that administrates the schema.
     """
-
     schema_id = None
     schemas_url, schemas_get = cr.simple_get_request(base_url, headers_get,
                                                      ['species', species_id, 'schemas'])
@@ -312,27 +307,25 @@ def schema_status(base_url, headers_get, schema_name, species_id, continue_up):
 
 
 def create_uniprot_queries(file, max_queries=ct.MAX_QUERIES):
-    """ Creates SPARQL queries to search for protein annotations
-        on UniProt.
+    """Create SPARQL queries to search for protein annotations on UniProt.
 
-        Parameters
-        ----------
-        file : str
-            Path to a pickled file that contains a dictionary
-            with protein identifiers as keys and protein
-            sequences as values.
-        max_queries : int
-            Maximum number of queries that will be created.
-            Only the first `max_queries` unique proteins will
-            be used to create queries.
+    Parameters
+    ----------
+    file : str
+        Path to a pickled file that contains a dictionary
+        with protein identifiers as keys and protein
+        sequences as values.
+    max_queries : int
+        Maximum number of queries that will be created.
+        Only the first `max_queries` unique proteins will
+        be used to create queries.
 
-        Returns
-        -------
-        queries_file : str
-            Path to the pickled file that contains a list
-            with the SPARQL queries that were created.
+    Returns
+    -------
+    queries_file : str
+        Path to the pickled file that contains a list
+        with the SPARQL queries that were created.
     """
-
     # import dictionary with protein sequences as values
     protein_seqs = fo.pickle_loader(file)
 
@@ -350,8 +343,7 @@ def create_uniprot_queries(file, max_queries=ct.MAX_QUERIES):
 
 
 def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
-    """ Queries the UniProt SPARQL endpoint to retrieve
-        protein annotations.
+    """Query the UniProt SPARQL endpoint to retrieve protein annotations.
 
         This function uses the SPARQL queries imported from
         a pickled file to search for protein annotations
@@ -360,24 +352,23 @@ def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
         until it reaches the maximum number of searches that is
         allowed.
 
-        Parameters
-        ----------
-        queries_file : str
-            Path to a pickled file that contains a list with
-            SPARQL queries that can be used to search for protein
-            annotations.
+    Parameters
+    ----------
+    queries_file : str
+        Path to a pickled file that contains a list with
+        SPARQL queries that can be used to search for protein
+        annotations.
 
-        Returns
-        -------
-        annotation_info : list of str
-            A list with the following elements:
+    Returns
+    -------
+    annotation_info : list of str
+        A list with the following elements:
 
-            - Locus identifier.
-            - UniProt annotation name.
-            - UniProt annotation label.
-            - UniProt annotation URL.
+        - Locus identifier.
+        - UniProt annotation name.
+        - UniProt annotation label.
+        - UniProt annotation URL.
     """
-
     locus = queries_file.split('/')[-1].split('_prots_up')[0]
 
     # load queries for locus
@@ -433,42 +424,40 @@ def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
 
 
 def quality_control(locus_input):
-    """ Translates DNA sequences based on a set of quality criteria
-        and reports invalid alleles.
+    """Translate DNA sequences and report invalid alleles.
 
-        Parameters
-        ----------
-        locus_input : list
-            A list with the following elements:
+    Parameters
+    ----------
+    locus_input : list
+        A list with the following elements:
 
-            - Path to the FASTA file with the locus DNA
-              sequences (str).
-            - Locus identifier (str).
-            - Genetic code that should be used to translate
-              the DNA sequences (int).
-            - Minimum sequence length value (int). Alleles
-              with a length value that is lower than this value
-              will be considered invalid.
-            - Sequence size threshold value (NoneType). Set
-              to None to avoid removal of alleles that deviate
-              from the sequence length mode based on the current
-              set of sequences, but that did not deviate when they
-              were added.
+        - Path to the FASTA file with the locus DNA
+          sequences (str).
+        - Locus identifier (str).
+        - Genetic code that should be used to translate
+          the DNA sequences (int).
+        - Minimum sequence length value (int). Alleles
+          with a length value that is lower than this value
+          will be considered invalid.
+        - Sequence size threshold value (NoneType). Set
+          to None to avoid removal of alleles that deviate
+          from the sequence length mode based on the current
+          set of sequences, but that did not deviate when they
+          were added.
 
-        Returns
-        -------
-        list
-            A list with the following elements:
+    Returns
+    -------
+    list
+        A list with the following elements:
 
-            - Path to the FASTA file with the locus DNA
-              sequences (str).
-            - Path to a pickled file that contains a dictionary
-              with protein identifiers as keys and protein sequences
-              as values.
-            - A list with the identifiers of invalid alleles
-              (list of str).
+        - Path to the FASTA file with the locus DNA
+          sequences (str).
+        - Path to a pickled file that contains a dictionary
+          with protein identifiers as keys and protein sequences
+          as values.
+        - A list with the identifiers of invalid alleles
+          (list of str).
     """
-
     res = sm.get_seqs_dicts(*locus_input)
 
     prots_file = '{0}_prots'.format(locus_input[0].split('.fasta')[0])
@@ -482,28 +471,26 @@ def quality_control(locus_input):
 
 
 def create_lengths_files(loci_files, out_dir):
-    """ Determines the length of the sequences in a set of
-        FASTA files.
+    """Determine the length of the sequences in a set of FASTA files.
 
-        Parameters
-        ----------
-        loci_files : list of str
-            List with paths to FASTA files.
-        out_dir : str
-            Directory where the output files with the length
-            values of the sequences from each input FASTA file
-            will be created.
+    Parameters
+    ----------
+    loci_files : list of str
+        List with paths to FASTA files.
+    out_dir : str
+        Directory where the output files with the length
+        values of the sequences from each input FASTA file
+        will be created.
 
-        Returns
-        -------
-        length_files : list of str
-            List with paths to the pickled files that contain
-            the sequence length values determined for each input
-            FASTA file. Each pickled file contains a dictionary
-            with hashes (sequence hashes computed with sha256)
-            as keys and sequence lengths as values.
+    Returns
+    -------
+    length_files : list of str
+        List with paths to the pickled files that contain
+        the sequence length values determined for each input
+        FASTA file. Each pickled file contains a dictionary
+        with hashes (sequence hashes computed with sha256)
+        as keys and sequence lengths as values.
     """
-
     length_files = []
     for file in loci_files:
         locus_basename = fo.file_basename(file)
@@ -519,47 +506,48 @@ def create_lengths_files(loci_files, out_dir):
 
 def schema_completedness(base_url, species_id, schema_id, headers_get,
                          hashed_files):
-    """ Returns information that indicates which schema data has
-        been or hasn't been fully uploaded and inserted into the
-        Chewie-NS database.
+    """Determine a schema's upload status.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Chewie Nomenclature server.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
-        headers_get : dict
-            HTTP headers for GET requests.
-        hashed_files : dict
-            Dictionary with file hashes (obtained through BLAKE2
-            hashing of file content) as keys and file paths as
-            values.
+    Returns information that indicates which schema data has
+    been or hasn't been fully uploaded and inserted into the
+    Chewie-NS database.
 
-        Returns
-        -------
-        list
-            A list with the following elements:
+    Parameters
+    ----------
+    base_url : str
+        Base URL of the Chewie Nomenclature server.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
+    headers_get : dict
+        HTTP headers for GET requests.
+    hashed_files : dict
+        Dictionary with file hashes (obtained through BLAKE2
+        hashing of file content) as keys and file paths as
+        values.
 
-            - A dictionary with paths to loci FASTA files as keys
-              and boolean values that indicate if loci data has been
-              uploaded and inserted.
-            - A dictionary with the same structure as the previous
-              one but that only contains entries for loci that were
-              not fully inserted.
-            - A list with the paths to FASTA files of the loci whose
-              set of alleles was not fully uploaded.
+    Returns
+    -------
+    list
+        A list with the following elements:
 
-            The first and second elements, both dictionaries, have
-            lists with four elements as values. The first, second
-            and third elements on those lists are Boolean values
-            that indicate if the locus has been created, linked to
-            the species and linked to the schema, respectively. The
-            last element is the BLAKE2 hash of the locus file.
+        - A dictionary with paths to loci FASTA files as keys
+          and boolean values that indicate if loci data has been
+          uploaded and inserted.
+        - A dictionary with the same structure as the previous
+          one but that only contains entries for loci that were
+          not fully inserted.
+        - A list with the paths to FASTA files of the loci whose
+          set of alleles was not fully uploaded.
+
+        The first and second elements, both dictionaries, have
+        lists with four elements as values. The first, second
+        and third elements on those lists are Boolean values
+        that indicate if the locus has been created, linked to
+        the species and linked to the schema, respectively. The
+        last element is the BLAKE2 hash of the locus file.
     """
-
     # get info about loci and alleles upload
     schema_loci = cr.simple_get_request(base_url, headers_get,
                                         ['species', species_id,
@@ -583,59 +571,58 @@ def schema_completedness(base_url, species_id, schema_id, headers_get,
 
 
 def create_schema(base_url, headers_post, species_id, params):
-    """ Creates a schema in the Chewie-NS.
+    """Create a schema in Chewie-NS.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Nomenclature server.
-        headers_post : dict
-            HTTP headers for POST requests.
-        species_id : int
-            The identifier of the schema's species in the
-            Chewie-NS.
-        params : dict
-            A dictionary with the following key/values pairs:
+    Parameters
+    ----------
+    base_url : str
+        Base URL of the Nomenclature server.
+    headers_post : dict
+        HTTP headers for POST requests.
+    species_id : int
+        The identifier of the schema's species in the
+        Chewie-NS.
+    params : dict
+        A dictionary with the following key/values pairs:
 
-            - bsr (str): BLAST Score Ratio value used to create the
-              schema and perform allele calling.
-            - prodigal_training_file (str): BLAKE2 hash of the Prodigal
-              training file content.
-            - translation_table (str): genetic code used to predict
-              and translate coding sequences.
-            - minimum_locus_length (str): minimum sequence length,
-              sequences with a length value lower than this value
-              are not included in the schema.
-            - chewBBACA_version (str): version of the chewBBACA suite
-              used to create the schema and perform allele calling.
-            - size_threshold (str): sequence size variation percentage
-              threshold, new alleles cannot have a length value that
-              deviates +/- than this value in relation to the locus's
-              representative sequence.
-            - word_size (str): word/k value used to cluster protein
-              sequences during schema creation and allele calling.
-            - cluster_sim (str): proportion of k-mers that two proteins
-              need to have in common to be clustered together.
-            - representative_filter (str): proportion of k-mers that a
-              clustered protein has to have in common with the representative
-              protein of the cluster to be considered the same gene.
-            - intraCluster_filter (str): proportion of k-mers that clustered
-              proteins have to have in common to be considered of the same
-              gene.
-            - name (str): name of the new schema. Must be unique among
-              the schemas' of the species.
-            - SchemaDescription (str): BLAKE2 of the contents of the file
-              with the schema description.
-            - schema_hashes (list of str): list that contains the BLAKE2
-              hashes of the schema files.
+        - bsr (str): BLAST Score Ratio value used to create the
+          schema and perform allele calling.
+        - prodigal_training_file (str): BLAKE2 hash of the Prodigal
+          training file content.
+        - translation_table (str): genetic code used to predict
+          and translate coding sequences.
+        - minimum_locus_length (str): minimum sequence length,
+          sequences with a length value lower than this value
+          are not included in the schema.
+        - chewBBACA_version (str): version of the chewBBACA suite
+          used to create the schema and perform allele calling.
+        - size_threshold (str): sequence size variation percentage
+          threshold, new alleles cannot have a length value that
+          deviates +/- than this value in relation to the locus's
+          representative sequence.
+        - word_size (str): word/k value used to cluster protein
+          sequences during schema creation and allele calling.
+        - cluster_sim (str): proportion of k-mers that two proteins
+          need to have in common to be clustered together.
+        - representative_filter (str): proportion of k-mers that a
+          clustered protein has to have in common with the representative
+          protein of the cluster to be considered the same gene.
+        - intraCluster_filter (str): proportion of k-mers that clustered
+          proteins have to have in common to be considered of the same
+          gene.
+        - name (str): name of the new schema. Must be unique among
+          the schemas' of the species.
+        - SchemaDescription (str): BLAKE2 of the contents of the file
+          with the schema description.
+        - schema_hashes (list of str): list that contains the BLAKE2
+          hashes of the schema files.
 
-        Returns
-        -------
-        list
-            A list with the following elements: the schema URI
-            (str) and the schema identifier (str) in the Chewie-NS.
+    Returns
+    -------
+    list
+        A list with the following elements: the schema URI
+        (str) and the schema identifier (str) in the Chewie-NS.
     """
-
     schema_post = cr.simple_post_request(base_url, headers_post,
                                          ['species', species_id, 'schemas'],
                                          data=json.dumps(params))[1]
@@ -655,36 +642,34 @@ def create_schema(base_url, headers_post, species_id, params):
 def create_loci_file(schema_files, annotations, schema_dir,
                      species_id, schema_id, loci_prefix,
                      absent_loci=None):
-    """ Creates a file with the essential data to insert loci in
-        the Chewie-NS.
+    """Create a file with the essential data to insert loci in Chewie-NS.
 
-        Parameters
-        ----------
-        schema_files : list of str
-            List with paths to schema's FASTA files.
-        annotations : dict
-            Dictionary with loci identifiers as keys and lists
-            with annotation terms as values.
-        schema_dir : str
-            Path to the directory with schema files.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
-        loci_prefix : str
-            Prefix to include in loci identifiers.
-        absent_loci : dict, optional
-            Loci that have not been created or are incomplete.
-            Default value of None collects and saves data
-            from all schema's loci.
+    Parameters
+    ----------
+    schema_files : list of str
+        List with paths to schema's FASTA files.
+    annotations : dict
+        Dictionary with loci identifiers as keys and lists
+        with annotation terms as values.
+    schema_dir : str
+        Path to the directory with schema files.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
+    loci_prefix : str
+        Prefix to include in loci identifiers.
+    absent_loci : dict, optional
+        Loci that have not been created or are incomplete.
+        Default value of None collects and saves data
+        from all schema's loci.
 
-        Returns
-        -------
-        loci_file : str
-            Path to the file with the necessary data to insert loci
-            and associate with species and schema.
+    Returns
+    -------
+    loci_file : str
+        Path to the file with the necessary data to insert loci
+        and associate with species and schema.
     """
-
     loci_file = os.path.join(schema_dir,
                              '{0}_{1}_loci'.format(species_id, schema_id))
     loci_data = [loci_prefix, []]
@@ -706,46 +691,44 @@ def create_loci_file(schema_files, annotations, schema_dir,
 
 def upload_loci_data(loci_file, base_url, species_id,
                      schema_id, headers_post, headers_get, hashed_files):
-    """ Sends the necessary data to create loci and associate
-        those loci with species and schema.
+    """Send data to insert and associate loci to a species and schema.
 
-        Parameters
-        ----------
-        loci_file : str
-            Path to the file with the data to upload to the
-            Chewie-NS.
-        base_url : str
-            Base URL of the Nomenclature server.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
-        headers_post : dict
-            HTTP headers for POST requests.
-        hashed_files : dict
-            Dictionary with file hashes as keys and file paths
-            as values.
+    Parameters
+    ----------
+    loci_file : str
+        Path to the file with the data to upload to the
+        Chewie-NS.
+    base_url : str
+        Base URL of the Nomenclature server.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
+    headers_post : dict
+        HTTP headers for POST requests.
+    hashed_files : dict
+        Dictionary with file hashes as keys and file paths
+        as values.
 
-        Returns
-        -------
-        response_data : dict
-            Dictionary with paths to loci FASTA files as keys and
-            lists with four elements as values. The first, second
-            and third elements on those lists are Boolean values
-            that indicate if the locus has been created, linked to
-            the species and linked to the schema, respectively. The
-            last element is the BLAKE2 hash of the locus file.
+    Returns
+    -------
+    response_data : dict
+        Dictionary with paths to loci FASTA files as keys and
+        lists with four elements as values. The first, second
+        and third elements on those lists are Boolean values
+        that indicate if the locus has been created, linked to
+        the species and linked to the schema, respectively. The
+        last element is the BLAKE2 hash of the locus file.
 
-        Raises
-        ------
-        SystemExit
+    Raises
+    ------
+    SystemExit
 
-            - If the data sent to the NS does not match the data that
-              was determined to be in the schema.
-            - If the response returned from the NS indicates that it
-              was not possible to create and associate any/some loci.
+        - If the data sent to the NS does not match the data that
+          was determined to be in the schema.
+        - If the response returned from the NS indicates that it
+          was not possible to create and associate any/some loci.
     """
-
     # compress file with loci data to reduce upload size
     loci_zip_file = '{0}.zip'.format(loci_file)
     fo.file_zipper(loci_file, loci_zip_file)
@@ -801,40 +784,39 @@ def upload_loci_data(loci_file, base_url, species_id,
 def create_alleles_files(schema_files, loci_responses, invalid_alleles,
                          species_name, base_url, species_id,
                          schema_id, user_id):
-    """ Creates files with the essential data to insert alleles in the NS.
+    """Create files with data to insert alleles in Chewie-NS.
 
-        Parameters
-        ----------
-        schema_files : list
-            List with paths to schema's FASTA files.
-        loci_responses : dict
-            Dictionary with files paths as keys and
-        invalid_alleles : list
-            List with the identifiers of the alleles
-            that were determined to be invalid.
-        species_name : str
-            Name of the species.
-        base_url : str
-            Base URL of the Nomenclature server.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
-        user_id : int
-            Current user identifier.
+    Parameters
+    ----------
+    schema_files : list
+        List with paths to schema's FASTA files.
+    loci_responses : dict
+        Dictionary with files paths as keys and
+    invalid_alleles : list
+        List with the identifiers of the alleles
+        that were determined to be invalid.
+    species_name : str
+        Name of the species.
+    base_url : str
+        Base URL of the Nomenclature server.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
+    user_id : int
+        Current user identifier.
 
-        Returns
-        -------
-        list of list
-            List with the following elements:
+    Returns
+    -------
+    list of list
+        List with the following elements:
 
-            - List with paths to files that contain the data that
-              is necessary to upload to insert all alleles.
-            - List with the loci identifiers in the NS.
-            - List with file hashes for loci files.
-            - List with loci basenames.
+        - List with paths to files that contain the data that
+          is necessary to upload to insert all alleles.
+        - List with the loci identifiers in the NS.
+        - List with file hashes for loci files.
+        - List with loci basenames.
     """
-
     loci_ids = []
     loci_names = []
     loci_hashes = []
@@ -874,40 +856,38 @@ def create_alleles_files(schema_files, loci_responses, invalid_alleles,
 def upload_alleles_data(alleles_data, length_files, base_url,
                         headers_post, headers_post_bytes,
                         species_id, schema_id):
-    """ Uploads files with the data to insert alleles and the
-        length values for the sequences of each locus.
+    """Upload files with data to insert alleles.
 
-        Parameters
-        ----------
-        alleles_data : list
-            List with tuples, one per locus, that contain the path
-            to the ZIP archive with the data to insert alleles,
-            the identifier of the locus, the locus file hash and
-            the basename of the locus file.
-        length_files : list
-            List with paths to the pickled files that contain a
-            dictionary with sequences hashes as keys and sequence
-            length as values.
-        base_url : str
-            Base URL of the Nomenclature server.
-        headers_post : dict
-            HTTP headers for POST requests that accept JSON
-            formatted data.
-        headers_post_bytes : dict
-            HTTP headers for POST requests that support file
-            upload.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
+    Parameters
+    ----------
+    alleles_data : list
+        List with tuples, one per locus, that contain the path
+        to the ZIP archive with the data to insert alleles,
+        the identifier of the locus, the locus file hash and
+        the basename of the locus file.
+    length_files : list
+        List with paths to the pickled files that contain a
+        dictionary with sequences hashes as keys and sequence
+        length as values.
+    base_url : str
+        Base URL of the Nomenclature server.
+    headers_post : dict
+        HTTP headers for POST requests that accept JSON
+        formatted data.
+    headers_post_bytes : dict
+        HTTP headers for POST requests that support file
+        upload.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
 
-        Returns
-        -------
-        failed : list of str
-            List with the identifiers of the loci whose alleles
-            data could not be fully uploaded.
+    Returns
+    -------
+    failed : list of str
+        List with the identifiers of the loci whose alleles
+        data could not be fully uploaded.
     """
-
     failed = []
     uploaded = 0
     for i, a in enumerate(alleles_data):

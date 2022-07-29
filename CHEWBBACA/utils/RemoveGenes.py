@@ -19,7 +19,7 @@ import pandas as pd
 
 try:
     from utils import file_operations as fo
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import file_operations as fo
 
 

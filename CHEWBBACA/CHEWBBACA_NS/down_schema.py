@@ -96,26 +96,24 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 
 def check_compressed(schema_uri, headers_get):
-    """ Determines if there is a compressed version of
-        a schema.
+    """Determine if there is a compressed version of a schema.
 
-        Parameters
-        ----------
-        schema_uri : str
-            The URI of the schema in the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    schema_uri : str
+        The URI of the schema in the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        list
-            A list with the following elements:
+    Returns
+    -------
+    list
+        A list with the following elements:
 
-            - The URI for the compressed version of the schema (str).
-            - The timestamp of the compressed version. Indicates the
-              last modification date of the schema at time of compression.
+        - The URI for the compressed version of the schema (str).
+        - The timestamp of the compressed version. Indicates the
+          last modification date of the schema at time of compression.
     """
-
     zip_uri, zip_response = cr.simple_get_request(schema_uri,
                                                   headers_get, ['zip'],
                                                   parameters={'request_type': 'check'})
@@ -131,49 +129,47 @@ def check_compressed(schema_uri, headers_get):
 
 def download_date(user_date, zip_date, latest, insertion_date,
                   modification_date):
-    """ Determines the date that will be used as timepoint for
-        schema download.
+    """Determine the date that will be used as timepoint for schema download.
 
-        Parameters
-        ----------
-        user_date : str or None
-            Date value that was received by :py:func:`main`.
-            If the user provided a value, it should be a date
-            in the format %Y-%m-%dT%H:%M:%S or %Y-%m-%dT%H:%M:%S.%f.
-            If the user did not provide a value for the argument, it
-            will be None by default.
-        zip_date : str or None
-            Date value of the compressed version of the schema that
-            is available for download. Will be in the format
-            %Y-%m-%dT%H:%M:%S or %Y-%m-%dT%H:%M:%S.%f if there is
-            a compressed version. Will be None if there is no compressed
-            version.
-        latest : bool
-            Boolean value that indicates if the user wants to download
-            the latest version of the schema.
-        insertion_date : str
-            Date on which the initial schema upload/insertion was
-            completed.
-        modification_date : str
-            Date on which the schema was last modified.
+    Parameters
+    ----------
+    user_date : str or None
+        Date value that was received by :py:func:`main`.
+        If the user provided a value, it should be a date
+        in the format %Y-%m-%dT%H:%M:%S or %Y-%m-%dT%H:%M:%S.%f.
+        If the user did not provide a value for the argument, it
+        will be None by default.
+    zip_date : str or None
+        Date value of the compressed version of the schema that
+        is available for download. Will be in the format
+        %Y-%m-%dT%H:%M:%S or %Y-%m-%dT%H:%M:%S.%f if there is
+        a compressed version. Will be None if there is no compressed
+        version.
+    latest : bool
+        Boolean value that indicates if the user wants to download
+        the latest version of the schema.
+    insertion_date : str
+        Date on which the initial schema upload/insertion was
+        completed.
+    modification_date : str
+        Date on which the schema was last modified.
 
-        Returns
-        -------
-        schema_date : str
-            Date selected as timepoint. Schema will be downloaded with
-            the data structure it had on this date.
+    Returns
+    -------
+    schema_date : str
+        Date selected as timepoint. Schema will be downloaded with
+        the data structure it had on this date.
 
-        Raises
-        ------
-        SystemExit
-            - If the value received for the `user_date` is not a
-              valid date in the format %Y-%m-%dT%H:%M:%S or
-              %Y-%m-%dT%H:%M:%S.%f.
-            - If the value received for the `user_date` is a date
-              that is prior to `insertion_date` or greater than the
-              `modification_date`.
+    Raises
+    ------
+    SystemExit
+        - If the value received for the `user_date` is not a
+          valid date in the format %Y-%m-%dT%H:%M:%S or
+          %Y-%m-%dT%H:%M:%S.%f.
+        - If the value received for the `user_date` is a date
+          that is prior to `insertion_date` or greater than the
+          `modification_date`.
     """
-
     # user did not provide a value for 'date' or 'latest' arguments
     if user_date is None and latest is False:
         if zip_date is not None:
@@ -216,28 +212,26 @@ def download_date(user_date, zip_date, latest, insertion_date,
 
 
 def build_fasta(locus_id, locus_info, download_folder):
-    """ Writes DNA sequences from a response object into
-        a FASTA file.
+    """Write DNA sequences from a response object into a FASTA file.
 
-        Parameters
-        ----------
-        locus_id : str
-            Name of the locus in the Chewie-NS.
-        locus_info : dict
-            Response object with the list of DNA
-            sequences of the locus.
-        download_folder : str
-            Path to the directory where the FASTA
-            file with the locus sequences will be
-            created.
+    Parameters
+    ----------
+    locus_id : str
+        Name of the locus in the Chewie-NS.
+    locus_info : dict
+        Response object with the list of DNA
+        sequences of the locus.
+    download_folder : str
+        Path to the directory where the FASTA
+        file with the locus sequences will be
+        created.
 
-        Returns
-        -------
-        locus_file : str
-            Path to the FASTA file with the locus
-            sequences.
+    Returns
+    -------
+    locus_file : str
+        Path to the FASTA file with the locus
+        sequences.
     """
-
     locus_name = locus_id.rstrip('.fasta')
     locus_file = os.path.join(download_folder, locus_id+'.fasta')
     ns_data = locus_info.json()['Fasta']
@@ -262,28 +256,26 @@ def build_fasta(locus_id, locus_info, download_folder):
 
 
 def get_fasta_seqs(url, headers_get, schema_date):
-    """ Retrieves the DNA sequences of a locus in the
-        Chewie-NS.
+    """Retrieve the DNA sequences of a locus in Chewie-NS.
 
-        Parameters
-        ----------
-        url : str
-            Endpoint URL to make the request.
-        headers_get : dict
-            HTTP headers for GET requests.
-        schema_date : str
-            The function will only retrieve alleles
-            that were inserted up to this date.
+    Parameters
+    ----------
+    url : str
+        Endpoint URL to make the request.
+    headers_get : dict
+        HTTP headers for GET requests.
+    schema_date : str
+        The function will only retrieve alleles
+        that were inserted up to this date.
 
-        Returns
-        -------
-        tuple
-            Tuple with the following elements:
-            - URI of the locus.
-            - Response object with the DNA sequences
-              that were downloaded.
+    Returns
+    -------
+    tuple
+        Tuple with the following elements:
+        - URI of the locus.
+        - Response object with the DNA sequences
+          that were downloaded.
     """
-
     payload = {'date': schema_date}
     tries = 0
     max_tries = 3
@@ -299,22 +291,21 @@ def get_fasta_seqs(url, headers_get, schema_date):
 
 
 def schema_loci(schema_uri, headers_get):
-    """ Retrieves the list of loci for a schema.
+    """Retrieve the list of loci for a schema.
 
-        Parameters
-        ----------
-        schema_uri : str
-            The URI of the schema in the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    schema_uri : str
+        The URI of the schema in the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        loci : dict
-            A dictionary with loci URIs as keys and
-            loci names as values.
+    Returns
+    -------
+    loci : dict
+        A dictionary with loci URIs as keys and
+        loci names as values.
     """
-
     # get the list of loci
     loci_url, loci_res = cr.simple_get_request(schema_uri, headers_get, ['loci'])
     loci_res = loci_res.json()['Loci']
@@ -328,30 +319,28 @@ def schema_loci(schema_uri, headers_get):
 
 
 def download_fastas(loci, download_folder, headers_get, schema_date):
-    """ Downloads and writes FASTA files for the loci of a
-        schema in the Chewie-NS
+    """Download and write FASTA files for the loci of a schema in Chewie-NS.
 
-        Parameters
-        ----------
-        loci : dict
-            A dictionary with loci URIs as keys and
-            loci names as values.
-        download_folder : str
-            Path to the directory where the FASTA files
-            will be created.
-        headers_get : dict
-            HTTP headers for GET requests.
-        schema_date : str
-            The function will only retrieve alleles
-            that were inserted up to this date.
+    Parameters
+    ----------
+    loci : dict
+        A dictionary with loci URIs as keys and
+        loci names as values.
+    download_folder : str
+        Path to the directory where the FASTA files
+        will be created.
+    headers_get : dict
+        HTTP headers for GET requests.
+    schema_date : str
+        The function will only retrieve alleles
+        that were inserted up to this date.
 
-        Returns
-        -------
-        ns_files : list
-            List with the paths to the schema's FASTA
-            files that were created.
+    Returns
+    -------
+    ns_files : list
+        List with the paths to the schema's FASTA
+        files that were created.
     """
-
     # Total number of loci
     total_loci = len(loci)
     print('Number of loci to download: {0}'.format(total_loci))
@@ -394,31 +383,29 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
 
 def download_compressed(zip_uri, species_name, schema_name,
                         download_folder, headers_get):
-    """ Downloads and extracts a ZIP archive with a ready-to-use
-        version of a schema in the Chewie-NS.
+    """Download and extract ZIP archive with a ready-to-use schema.
 
-        Parameters
-        ----------
-        zip_uri : str
-            Endpoint URL to make the request to download
-            the compressed schema.
-        species_name : str
-            Scientific name of the schema species.
-        schema_name : str
-            Name of the schema in the Chewie-NS.
-        download_folder : str
-            Path to the directory to which the ZIP archive
-            will be saved.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    zip_uri : str
+        Endpoint URL to make the request to download
+        the compressed schema.
+    species_name : str
+        Scientific name of the schema species.
+    schema_name : str
+        Name of the schema in the Chewie-NS.
+    download_folder : str
+        Path to the directory to which the ZIP archive
+        will be saved.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        schema_path : str
-            ZIP archive contents will be extracted to this
-            directory.
+    Returns
+    -------
+    schema_path : str
+        ZIP archive contents will be extracted to this
+        directory.
     """
-
     zip_name = '{0}{1}_{2}.zip'.format(species_name[0].lower(),
                                        species_name.split(' ')[-1],
                                        schema_name)
@@ -442,35 +429,36 @@ def download_compressed(zip_uri, species_name, schema_name,
 
 def download_ptf(ptf_hash, download_folder, schema_id,
                  species_id, species_name, headers_get, base_url):
-    """ Downloads the Prodigal training file for a schema.
+    """Download the Prodigal training file for a schema.
 
-        Parameters
-        ----------
-        ptf_hash : str
-            Unique identifier of the Prodigal training file
-            (BLAKE2 hash).
-        download_folder : str
-            Path to the directory to which the Prodigal
-            training file should be saved.
-        schema_id : str
-            The identifier of the schema in the Chewie-NS.
-        species_id : str
-            The identifier of the schema's species in the
-            Chewie-NS.
-        species_name : str
-            Scientific name of the schema species.
-        headers_get : dict
-            HTTP headers for GET requests.
-        base_url : str
-            Base URL of the Chewie Nomenclature server.
+    Parameters
+    ----------
+    ptf_hash : str
+        Unique identifier of the Prodigal training file
+        (BLAKE2 hash).
+    download_folder : str
+        Path to the directory to which the Prodigal
+        training file should be saved.
+    schema_id : str
+        The identifier of the schema in the Chewie-NS.
+    species_id : str
+        The identifier of the schema's species in the
+        Chewie-NS.
+    species_name : str
+        Scientific name of the schema species.
+    headers_get : dict
+        HTTP headers for GET requests.
+    base_url : str
+        Base URL of the Chewie Nomenclature server.
 
-        Returns
-        -------
-        ptf_file : str
-            Path to the Prodigal training file.
+    Returns
+    -------
+    ptf_file : str
+        Path to the Prodigal training file.
     """
     ptf_url, ptf_response = cr.simple_get_request(base_url, headers_get,
-                                                  ['species', species_id, 'schemas', schema_id, 'ptf'])
+                                                  ['species', species_id,
+                                                   'schemas', schema_id, 'ptf'])
 
     ptf_file = os.path.join(download_folder,
                             '{0}.trn'.format(species_name.replace(' ', '_')))
@@ -670,5 +658,4 @@ def parse_arguments():
 if __name__ == "__main__":
 
     args = parse_arguments()
-
     main(**vars(args))

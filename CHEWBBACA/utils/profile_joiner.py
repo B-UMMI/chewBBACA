@@ -17,13 +17,12 @@ Code documentation
 
 import os
 import sys
-import argparse
 
 import pandas as pd
 
 try:
     from utils import file_operations as fo
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import file_operations as fo
 
 
@@ -87,7 +86,7 @@ def main(profiles, output_file, common):
         common_loci = headers[0]
         for h in headers[1:]:
             # determine common loci ordered based on headers in first file
-            latest_common = [l for l in common_loci if l in h]
+            latest_common = [locus for locus in common_loci if locus in h]
             # update set of common loci so far
             common_loci = latest_common
 

@@ -655,6 +655,7 @@ def find_missing(integer_list):
     return missing_integers
 
 
+# add new parameter that accepts function to sample kmers
 def kmer_index(fasta_file, word_size, fasta=True):
     """Create a k-mer index from a set of sequences in a FASTA file.
 

@@ -1433,29 +1433,6 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
-# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/ids.txt'
-# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919'
-# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/test_senterica'
-# ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_tests/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# cpu_cores = 6
-# blast_path = '/home/rmamede/.conda/envs/spyder/bin'
-# cds_input = False
-# prodigal_mode = 'single'
-# no_inferred = False
-# output_unclassified = False
-# output_missing = False
-# no_cleanup = True
-# hash_profiles = 'crc32'
-# force_reset = True
-# mode = 4
-# ns = True
 def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,

@@ -625,11 +625,6 @@ def cluster_intra_filter(clusters, sequences, word_size,
     intrasim_out = os.path.join(output_directory, 'clusters.txt')
     sc.write_clusters(pruned_clusters, intrasim_out)
 
-    # # add key because it is representative identifier
-    # clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()])
-    # print('Remaining sequences after intra-cluster pruning: '
-    #       '{0}'.format(clustered_sequences))
-
     return [pruned_clusters, intra_excluded]
 
 
@@ -788,8 +783,8 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     # split Fasta file to BLAST short sequences (<30aa) separately
     # only possible to have alleles <30aa with non-default schemas
     above_outfile, below_outfile = fao.split_seqlength(integer_fasta,
-                                                   output_directory,
-                                                   ct.BLAST_TASK_THRESHOLD['blastp'])
+                                                       output_directory,
+                                                       ct.BLAST_TASK_THRESHOLD['blastp'])
 
     if above_outfile is not None:
         # divide FASTA file into groups of 100 sequences to reduce

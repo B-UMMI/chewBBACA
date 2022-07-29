@@ -162,6 +162,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     return [excluded_seqids, excluded_sims]
 
 
+# change name adn add parameter to accept k-mer sampling used to cluster?
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
                          seq_num_cluster, clustering_sim, grow):
@@ -273,6 +274,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
     return [clusters, reps_sequences, reps_groups]
 
 
+# remove this function? Add code to `minimizer_clustering`?
 def clusterer(sorted_sequences, word_size, window_size,
               clustering_sim, representatives, grow,
               offset, position, seq_num_cluster):

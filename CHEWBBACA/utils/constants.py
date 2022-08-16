@@ -198,3 +198,17 @@ BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
 
 # BLAST outfmt
 BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
+
+# dictionary template to map variables returned by AlleleCall
+ALLELECALL_DICT = {'classification_files': None,
+                   'basename_map': None,
+                   'cds_coordinates': None,
+                   'distinct_file': None,
+                   'all_prots': None,
+                   'dna_distinct_htable': None,
+                   'distinct_pseqids': None,
+                   'failed': None,
+                   'invalid_alleles_file': None,
+                   'unclassified_ids': None,
+                   'self_scores': None,
+                   'new_reps': None}

@@ -177,7 +177,9 @@ LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 # header for TSV file with paralogous counts
-PARALOGOUS_COUNTS_HEADER = 'LOCUS\tPC'
+PARALOGOUS_COUNTS_HEADER = 'Locus\tParalog_Count'
+# header for TSV file with paralogous loci per genome
+PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
 
 # allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
@@ -203,12 +205,12 @@ BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
 ALLELECALL_DICT = {'classification_files': None,
                    'basename_map': None,
                    'cds_coordinates': None,
-                   'distinct_file': None,
-                   'all_prots': None,
-                   'dna_distinct_htable': None,
-                   'distinct_pseqids': None,
-                   'failed': None,
-                   'invalid_alleles_file': None,
+                   'dna_fasta': None,
+                   'protein_fasta': None,
+                   'dna_hashtable': None,
+                   'protein_hashtable': None,
+                   'invalid_inputs': None,
+                   'invalid_alleles': None,
                    'unclassified_ids': None,
                    'self_scores': None,
-                   'new_reps': None}
+                   'representatives': None}

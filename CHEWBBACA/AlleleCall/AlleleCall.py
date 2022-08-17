@@ -1089,7 +1089,7 @@ def identify_paralogous(results_contigs_file, output_directory):
     fo.write_lines(paralogous_counts_lines, paralogous_counts_file)
 
     # write groups of paralogous loci per input
-    paralogous_loci_lines = []
+    paralogous_loci_lines = [ct.PARALOGOUS_LIST_HEADER]
     for p in paralogous_loci:
         paralogous_loci_lines.append('{0}\t{1}\t{2}'.format(*p))
 
@@ -1574,8 +1574,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         template_dict['classification_files'] = classification_files
         template_dict['basename_map'] = basename_inverse_map
         template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['distinct_file'] = distinct_file
-        template_dict['all_prots'] = distinct_file
+        template_dict['dna_fasta'] = distinct_file
+        template_dict['protein_fasta'] = distinct_file
+        template_dict['dna_hashtable'] = dna_distinct_htable
         template_dict['unclassified_ids'] = selected_ids
 
         return template_dict
@@ -1686,12 +1687,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         template_dict['classification_files'] = classification_files
         template_dict['basename_map'] = basename_inverse_map
         template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['distinct_file'] = distinct_file
-        template_dict['all_prots'] = unique_pfasta
-        template_dict['dna_distinct_htable'] = dna_distinct_htable
-        template_dict['distinct_pseqids'] = distinct_pseqids
-        template_dict['failed'] = failed
-        template_dict['invalid_alleles_file'] = invalid_alleles_file
+        template_dict['dna_fasta'] = distinct_file
+        template_dict['protein_fasta'] = unique_pfasta
+        template_dict['dna_hashtable'] = dna_distinct_htable
+        template_dict['protein_hashtable'] = distinct_pseqids
+        template_dict['invalid_inputs'] = failed
+        template_dict['invalid_alleles'] = invalid_alleles_file
         template_dict['unclassified_ids'] = selected_ids
 
         return template_dict
@@ -1867,12 +1868,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         template_dict['classification_files'] = classification_files
         template_dict['basename_map'] = basename_inverse_map
         template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['distinct_file'] = distinct_file
-        template_dict['all_prots'] = all_prots
-        template_dict['dna_distinct_htable'] = dna_distinct_htable
-        template_dict['distinct_pseqids'] = distinct_pseqids
-        template_dict['failed'] = failed
-        template_dict['invalid_alleles_file'] = invalid_alleles_file
+        template_dict['dna_fasta'] = distinct_file
+        template_dict['protein_fasta'] = all_prots
+        template_dict['dna_hashtable'] = dna_distinct_htable
+        template_dict['protein_hashtable'] = distinct_pseqids
+        template_dict['invalid_inputs'] = failed
+        template_dict['invalid_alleles'] = invalid_alleles_file
         template_dict['unclassified_ids'] = unclassified_ids
 
         return template_dict
@@ -2096,15 +2097,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     template_dict['classification_files'] = classification_files
     template_dict['basename_map'] = basename_inverse_map
     template_dict['cds_coordinates'] = cds_coordinates
-    template_dict['distinct_file'] = distinct_file
-    template_dict['all_prots'] = all_prots
-    template_dict['dna_distinct_htable'] = dna_distinct_htable
-    template_dict['distinct_pseqids'] = distinct_pseqids
-    template_dict['failed'] = failed
-    template_dict['invalid_alleles_file'] = invalid_alleles_file
+    template_dict['dna_fasta'] = distinct_file
+    template_dict['protein_fasta'] = all_prots
+    template_dict['dna_hashtable'] = dna_distinct_htable
+    template_dict['protein_hashtable'] = distinct_pseqids
+    template_dict['invalid_inputs'] = failed
+    template_dict['invalid_alleles'] = invalid_alleles_file
     template_dict['unclassified_ids'] = unclassified_ids
     template_dict['self_scores'] = self_scores
-    template_dict['new_reps'] = new_reps
+    template_dict['representatives'] = new_reps
 
     return template_dict
 
@@ -2192,7 +2193,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
         # get seqids that match hashes
         for k, v in novel_alleles.items():
             for r in v:
-                rep_seqid = im.polyline_decoding(results['dna_distinct_htable'][r[0]])[0:2]
+                rep_seqid = im.polyline_decoding(results['dna_hashtable'][r[0]])[0:2]
                 rep_seqid = '{0}-protein{1}'.format(results['basename_map'][rep_seqid[1]], rep_seqid[0])
                 r.append(rep_seqid)
 
@@ -2203,7 +2204,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
                 locus_id = fo.get_locus_id(k)
                 if locus_id is None:
                     locus_id = fo.file_basename(k, False)
-                current_results = results['new_reps'].get(locus_id, None)
+                current_results = results['representatives'].get(locus_id, None)
                 if current_results is not None:
                     for e in current_results:
                         allele_id = [line[1] for line in v if line[0] == e[1]]
@@ -2234,7 +2235,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
             novel_directory = fo.join_paths(temp_directory, ['novel_alleles'])
             novel_rep_directory = fo.join_paths(novel_directory, ['short'])
             fo.create_directory(novel_rep_directory)
-            added = create_novel_fastas(novel_alleles, reps_info, results['distinct_file'], novel_directory)
+            added = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_directory)
             updated_files = added[2]
             if no_inferred is False:
                 # add inferred alleles to schema
@@ -2297,12 +2298,12 @@ def main(input_file, schema_directory, output_directory, ptf_path,
 
     if output_unclassified is True:
         # create Fasta file with the distinct CDS that were not classified
-        create_unclassified_fasta(results['distinct_file'], results['all_prots'], results['unclassified_ids'],
-                                  results['distinct_pseqids'], results_dir, results['basename_map'])
+        create_unclassified_fasta(results['dna_fasta'], results['protein_fasta'], results['unclassified_ids'],
+                                  results['protein_hashtable'], results_dir, results['basename_map'])
 
     if output_missing is True and cds_input is False:
-        # Create Fasta file with CDS that were classified as ASM, ALM, NIPH, ...
-        create_missing_fasta(results['classification_files'], results['distinct_file'], results['basename_map'], results['dna_distinct_htable'],
+        # Create Fasta file with CDS that were classified as ASM, ALM, ...
+        create_missing_fasta(results['classification_files'], results['dna_fasta'], results['basename_map'], results['dna_hashtable'],
                              results_dir, coordinates_files)
 
     if hash_profiles is not None:
@@ -2319,7 +2320,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     # move file with list of excluded CDS
     # file is not created if we only search for exact matches
     if mode != 1:
-        fo.move_file(results['invalid_alleles_file'], results_dir)
+        fo.move_file(results['invalid_alleles'], results_dir)
 
     # if len(failed) > 0:
     #     failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])

@@ -2330,10 +2330,11 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
     if mode != 1:
         fo.move_file(results['invalid_alleles'], results_dir)
 
-    # if len(failed) > 0:
-    #     failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
-    #     lines = ['{0}\t{1}'.format(line[0], line[1]) for line in failed]
-    #     fo.write_lines(lines, failed_file)
+    # write Prodigal stderr for inputs that failed gene prediction
+    if results['invalid_inputs'] is not None:
+        failed_file = fo.join_paths(results_dir, ['prodigal_stderr.tsv'])
+        lines = ['{0}\t{1}'.format(line[0], line[1]) for line in results['invalid_inputs']]
+        fo.write_lines(lines, failed_file)
 
     # remove temporary files
     if no_cleanup is False:

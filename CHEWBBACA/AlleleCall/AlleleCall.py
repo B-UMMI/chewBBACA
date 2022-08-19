@@ -1603,7 +1603,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # write info about invalid alleles to file
     invalid_alleles_file = fo.join_paths(temp_directory,
                                          ['invalid_cds.txt'])
-    invalid_alleles = im.join_list(ut_lines, '\n')
+    invalid_alleles = im.join_list(im.sort_iterable(ut_lines), '\n')
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
     print('Information about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
@@ -1702,6 +1702,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('\nTranslating schema\'s representative alleles...', end='')
     rep_dir = fo.join_paths(schema_directory, ['short'])
     rep_list = fo.listdir_fullpath(rep_dir, '.fasta')
+    # filter to get only files in list of loci
+    rep_basenames = {file: fo.file_basename(file, False).replace('_short', '') for file in rep_list}
+    rep_list = [k for k, v in rep_basenames.items() if v in loci_basenames.values()]
 
     reps_protein_dir = fo.join_paths(protein_dir, ['short'])
     fo.create_directory(reps_protein_dir)
@@ -1821,39 +1824,41 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                 fo.pickle_dumper(locus_results, locus_file)
                 loci_results[locus_id] = locus_file
 
-        # process results per genome and per locus
-        print('\nClassifying clustered proteins...')
-        classification_inputs = []
-        blast_clusters_results_dir = fo.join_paths(clustering_dir, ['results'])
-        fo.create_directory(blast_clusters_results_dir)
-        for locus, file in loci_results.items():
-            # get locus length mode
-            locus_mode = loci_modes[locus]
-
-            # import file with locus classifications
-            locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
-
-            classification_inputs.append([locus, file,
-                                          basename_inverse_map,
-                                          locus_results_file, locus_mode,
-                                          temp_directory, size_threshold,
-                                          blast_score_ratio, blast_clusters_results_dir,
-                                          cds_input,
-                                          classify_inexact_matches])
+        if len(loci_results) > 0:
+            # process results per genome and per locus
+            print('\nClassifying clustered proteins...')
+            classification_inputs = []
+            blast_clusters_results_dir = fo.join_paths(clustering_dir, ['results'])
+            fo.create_directory(blast_clusters_results_dir)
+            for locus, file in loci_results.items():
+                # get locus length mode
+                locus_mode = loci_modes[locus]
     
-        class_results = mo.map_async_parallelizer(classification_inputs,
-                                                  mo.function_helper,
-                                                  cpu_cores,
-                                                  show_progress=True)
-
-        for r in class_results:
-            current_results = fo.pickle_loader(r)
-            for locus, v in current_results.items():
-                loci_modes[locus] = v[1]
-                excluded.extend(v[2])
+                # import file with locus classifications
+                locus_results_file = fo.join_paths(classification_dir, [locus+'_results'])
     
-        # may have repeated elements due to same CDS matching different loci
-        excluded = set(excluded)
+                classification_inputs.append([locus, file,
+                                              basename_inverse_map,
+                                              locus_results_file, locus_mode,
+                                              temp_directory, size_threshold,
+                                              blast_score_ratio, blast_clusters_results_dir,
+                                              cds_input,
+                                              classify_inexact_matches])
+        
+            class_results = mo.map_async_parallelizer(classification_inputs,
+                                                      mo.function_helper,
+                                                      cpu_cores,
+                                                      show_progress=True)
+    
+            for r in class_results:
+                current_results = fo.pickle_loader(r)
+                for locus, v in current_results.items():
+                    loci_modes[locus] = v[1]
+                    excluded.extend(v[2])
+        
+            # may have repeated elements due to same CDS matching different loci
+            excluded = set(excluded)
+
         print('\nClassified {0} distinct proteins.'.format(len(excluded)))
 
     # get seqids of remaining unclassified sequences
@@ -2110,7 +2115,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     return template_dict
 
 
-def main(input_file, schema_directory, output_directory, ptf_path,
+def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode,
@@ -2150,9 +2155,12 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     input_files = im.sort_iterable(input_files, sort_key=str.lower)
     print('Number of inputs: {0}'.format(len(input_files)))
 
-    # get list of loci files
-    loci_files = fo.listdir_fullpath(schema_directory, '.fasta')
+    # get list of loci to call
+    loci_files = fo.read_lines(loci_list)
     print('Number of loci: {0}'.format(len(loci_files)))
+
+    # get list of schema loci
+    schema_loci = fo.listdir_fullpath(schema_directory, '.fasta')
 
     # get size mode for all loci
     loci_modes_file = fo.join_paths(schema_directory, ['loci_modes'])
@@ -2161,7 +2169,7 @@ def main(input_file, schema_directory, output_directory, ptf_path,
     else:
         print('\nDetermining sequence length mode for all loci...', end='')
         loci_modes = {}
-        for file in loci_files:
+        for file in schema_loci:
             alleles_sizes = list(fao.sequence_lengths(file).values())
             # select first value in list if there are several values with same frequency
             loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]

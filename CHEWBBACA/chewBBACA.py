@@ -179,9 +179,8 @@ def create_schema():
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
 
-    genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
-    input_type = os.path.isdir(args.input_files)
-    args.input_files = pv.check_input_type(args.input_files, genomes_list)
+    genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
+    args.input_files = pv.check_input_type(args.input_files, genome_list)
 
     # add clustering config
     args.word_size = ct.WORD_SIZE_DEFAULT
@@ -214,8 +213,7 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    if input_type is True:
-        os.remove(args.input_files)
+    fo.remove_files([genome_list])
 
 
 @pd.process_timer
@@ -413,17 +411,19 @@ def allele_call():
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
 
+    # create output directory
+    fo.create_directory(args.output_directory)
+
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
+    loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     if args.genes_list is not False:
-        schema_genes = pv.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
-        input_type = [False]
+        loci_list = pv.check_input_type(args.genes_list, loci_list, args.schema_directory)
     else:
-        schema_genes = pv.check_input_type(args.schema_directory, 'listGenes2Call.txt')
-        input_type = [True]
+        loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
-    input_type.append(os.path.isdir(args.input_files))
-    genomes_files = pv.check_input_type(args.input_files, 'listGenomes2Call.txt')
+    genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
+    genome_list = pv.check_input_type(args.input_files, genome_list)
 
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
@@ -435,7 +435,7 @@ def allele_call():
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
     ### convert this into AlleleCall.main(**vars(args))
-    AlleleCall.main(genomes_files, args.schema_directory, args.output_directory, args.ptf_path,
+    AlleleCall.main(genome_list, loci_list, args.schema_directory, args.output_directory, args.ptf_path,
                     args.blast_score_ratio, args.minimum_length, args.translation_table,
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
@@ -447,10 +447,9 @@ def allele_call():
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
-    if input_type[0] is True:
-        fo.remove_files([schema_genes])
-    if input_type[1] is True:
-        fo.remove_files([genomes_files])
+    fo.remove_files([loci_list])
+    if genome_list != args.input_files:
+        fo.remove_files([genome_list])
 
 
 @pd.process_timer

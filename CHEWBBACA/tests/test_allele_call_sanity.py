@@ -12,7 +12,7 @@ import shutil
 import pytest
 import filecmp
 from unittest.mock import patch
-#from contextlib import nullcontext as does_not_raise
+# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
 
@@ -30,16 +30,13 @@ args_template = ['chewBBACA.py', 'AlleleCall',
         (args_template+['--gl', 'data/allelecall_data/test_genes_list/test_genes.txt'],
          'data/allelecall_data/test_genes_list/test_genes_results'),
         (args_template[0:3]+['data/allelecall_data/test_genomes_list/test_genomes.txt']+args_template[4:],
-         'data/allelecall_data/test_results')
+          'data/allelecall_data/test_results')
         ])
 def test_allelecall_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
         capture = py.io.StdCapture()
         chewBBACA.main()
         stdout, stderr = capture.reset()
-
-    # check text printed to stdout
-    assert 'Writing output files' in stdout
 
     # check output files
     for root, dirs, files in os.walk(test_args[7]):

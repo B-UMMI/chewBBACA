@@ -14,6 +14,7 @@ Code documentation
 """
 
 
+from genericpath import isfile
 import os
 import sys
 import csv
@@ -92,7 +93,8 @@ def remove_files(files):
         List with paths to the files to be deleted.
     """
     for f in files:
-        os.remove(f)
+        if os.path.isfile(f) is True:
+            os.remove(f)
 
 
 def hash_file(file, hash_object, buffer_size=65536):

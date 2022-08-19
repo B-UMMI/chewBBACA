@@ -214,3 +214,6 @@ ALLELECALL_DICT = {'classification_files': None,
                    'unclassified_ids': None,
                    'self_scores': None,
                    'representatives': None}
+
+GENOME_LIST = 'listGenomes2Call.txt'
+LOCI_LIST = 'listGenes2Call.txt'

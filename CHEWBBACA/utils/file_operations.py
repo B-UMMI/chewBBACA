@@ -163,6 +163,9 @@ def create_directory(directory_path):
     """Create a diretory if it does not exist."""
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
+        return True
+    else:
+        return False
 
 
 def join_paths(parent_path, child_paths):

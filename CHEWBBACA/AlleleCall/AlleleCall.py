@@ -1444,6 +1444,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     """
     """
 
+    # get dictionary template to store variables to return
+    template_dict = ct.ALLELECALL_DICT
+
     # map full paths to basename
     inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
@@ -1453,6 +1456,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     # this reduces memory usage compared to using string identifiers
     basename_map = im.integer_mapping(inputs_basenames.values())
     basename_inverse_map = im.invert_dictionary(basename_map)
+    template_dict['basename_map'] = basename_inverse_map
 
     # inputs are genome assemblies
     if cds_input is False:
@@ -1502,6 +1506,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         cds_files = fasta_files
         cds_coordinates = {}
 
+    if len(failed) > 0:
+        template_dict['invalid_inputs'] = failed
+    if len(cds_coordinates) > 0:
+        template_dict['cds_coordinates'] = cds_coordinates
+
     # create directory to store files from pre-process steps
     preprocess_dir = fo.join_paths(temp_directory, ['3_cds_preprocess'])
     fo.create_directory(preprocess_dir)
@@ -1522,6 +1531,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     dna_distinct_htable, distinct_file, repeated = dna_dedup_results
     print('identified {0} distinct CDS.'.format(len(dna_distinct_htable)))
+    template_dict['dna_fasta'] = distinct_file
+    template_dict['dna_hashtable'] = dna_distinct_htable
 
     # get mapping between locus file path and locus identifier
     loci_basenames = im.mapping_function(loci_files, fo.file_basename, [False])
@@ -1569,14 +1580,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
     # user only wants to determine exact matches
     if mode == 1:
-        # get dictionary template to store variables to return
-        template_dict = ct.ALLELECALL_DICT
         template_dict['classification_files'] = classification_files
-        template_dict['basename_map'] = basename_inverse_map
-        template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['dna_fasta'] = distinct_file
         template_dict['protein_fasta'] = distinct_file
-        template_dict['dna_hashtable'] = dna_distinct_htable
         template_dict['unclassified_ids'] = selected_ids
 
         return template_dict
@@ -1607,6 +1612,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     fo.write_to_file(invalid_alleles, invalid_alleles_file, 'w', '\n')
     print('Information about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
+    template_dict['invalid_alleles'] = invalid_alleles_file
     print('Unclassified CDS: {0}'.format(len(selected_ids)-len(ut_seqids)))
 
     # protein sequences deduplication step
@@ -1620,6 +1626,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                        distinct_prot_template, [basename_map, basename_inverse_map], True, False)
     distinct_pseqids = ds_results[0]
     print('identified {0} distinct proteins.'.format(len(distinct_pseqids)))
+    template_dict['protein_hashtable'] = distinct_pseqids
 
     # translate loci files
     print('\n== Schema translation ==\n')
@@ -1682,17 +1689,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('Unclassified proteins: {0}'.format(total_selected))
 
     if mode == 2:
-        # get dictionary template to store variables to return
-        template_dict = ct.ALLELECALL_DICT
         template_dict['classification_files'] = classification_files
-        template_dict['basename_map'] = basename_inverse_map
-        template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['dna_fasta'] = distinct_file
         template_dict['protein_fasta'] = unique_pfasta
-        template_dict['dna_hashtable'] = dna_distinct_htable
-        template_dict['protein_hashtable'] = distinct_pseqids
-        template_dict['invalid_inputs'] = failed
-        template_dict['invalid_alleles'] = invalid_alleles_file
         template_dict['unclassified_ids'] = selected_ids
 
         return template_dict
@@ -1868,17 +1866,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
     if mode == 3:
-        # get dictionary template to store variables to return
-        template_dict = ct.ALLELECALL_DICT
         template_dict['classification_files'] = classification_files
-        template_dict['basename_map'] = basename_inverse_map
-        template_dict['cds_coordinates'] = cds_coordinates
-        template_dict['dna_fasta'] = distinct_file
         template_dict['protein_fasta'] = all_prots
-        template_dict['dna_hashtable'] = dna_distinct_htable
-        template_dict['protein_hashtable'] = distinct_pseqids
-        template_dict['invalid_inputs'] = failed
-        template_dict['invalid_alleles'] = invalid_alleles_file
         template_dict['unclassified_ids'] = unclassified_ids
 
         return template_dict
@@ -2097,17 +2086,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
 
         iteration += 1
 
-    # get dictionary template to store variables to return
-    template_dict = ct.ALLELECALL_DICT
     template_dict['classification_files'] = classification_files
-    template_dict['basename_map'] = basename_inverse_map
-    template_dict['cds_coordinates'] = cds_coordinates
-    template_dict['dna_fasta'] = distinct_file
     template_dict['protein_fasta'] = all_prots
-    template_dict['dna_hashtable'] = dna_distinct_htable
-    template_dict['protein_hashtable'] = distinct_pseqids
-    template_dict['invalid_inputs'] = failed
-    template_dict['invalid_alleles'] = invalid_alleles_file
     template_dict['unclassified_ids'] = unclassified_ids
     template_dict['self_scores'] = self_scores
     template_dict['representatives'] = new_reps
@@ -2120,7 +2100,7 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
          size_threshold, word_size, window_size, clustering_sim,
          cpu_cores, blast_path, cds_input, prodigal_mode,
          no_inferred, output_unclassified, output_missing,
-         no_cleanup, hash_profiles, force_reset, mode, ns):
+         no_cleanup, hash_profiles, mode, ns):
 
     print('Minimum sequence length: {0}'.format(minimum_length))
     print('Size threshold: {0}'.format(size_threshold))
@@ -2134,15 +2114,6 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
 
     # define directory for temporary files
     temp_directory = fo.join_paths(output_directory, ['temp'])
-    if force_reset is True:
-        exists = fo.delete_directory(temp_directory)
-        if exists:
-            sys.exit('Please delete {0} and retry.'.format(temp_directory))
-    elif os.path.isdir(temp_directory):
-        sys.exit('\nFound intermediate files from another run. Please '
-                 'delete the {0} directory or provide the '
-                 '--force-reset parameter.'.format(temp_directory))
-
     # create directory to store intermediate files
     fo.create_directory(temp_directory)
 
@@ -2263,28 +2234,23 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
 
     end_time = pdt.get_datetime()
 
-    # create output folder
-    results_dir = fo.join_paths(output_directory,
-                                ['results_{0}'.format(pdt.datetime_str(end_time, date_format='%Y%m%dT%H%M%S'))])
-    fo.create_directory(results_dir)
-
     # create output files
     print('\nWriting logging_info.txt...', end='')
     write_logfile(start_time, end_time, len(results['basename_map']), len(results['classification_files']),
-                  cpu_cores, blast_score_ratio, results_dir)
+                  cpu_cores, blast_score_ratio, output_directory)
     print('done.')
 
     print('Writing results_alleles.tsv...', end='')
     profiles_table = write_results_alleles(list(results['classification_files'].values()),
-                                           list(results['basename_map'].values()), results_dir)
+                                           list(results['basename_map'].values()), output_directory)
     print('done.')
 
     print('Writing results_statistics.tsv...', end='')
-    write_results_statistics(results['classification_files'], results['basename_map'], results_dir)
+    write_results_statistics(results['classification_files'], results['basename_map'], output_directory)
     print('done.')
 
     print('Writing loci_summary_stats.tsv...', end='')
-    write_loci_summary(results['classification_files'], results_dir, len(input_files))
+    write_loci_summary(results['classification_files'], output_directory, len(input_files))
     print('done.')
 
     # list files with CDSs coordinates
@@ -2295,44 +2261,44 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
                              for f in coordinates_files}
         print('Writing results_contigsInfo.tsv...', end='')
         results_contigs_outfile = write_results_contigs(list(results['classification_files'].values()), results['basename_map'],
-                                                        results_dir, coordinates_files)
+                                                        output_directory, coordinates_files)
         print('done.')
 
         # determine paralogous loci and write RepeatedLoci.txt file
         print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
-        total_paralogous = identify_paralogous(results_contigs_outfile, results_dir)
+        total_paralogous = identify_paralogous(results_contigs_outfile, output_directory)
         print('done.')
         print('Detected number of paralogous loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
         # create Fasta file with the distinct CDS that were not classified
         create_unclassified_fasta(results['dna_fasta'], results['protein_fasta'], results['unclassified_ids'],
-                                  results['protein_hashtable'], results_dir, results['basename_map'])
+                                  results['protein_hashtable'], output_directory, results['basename_map'])
 
     if output_missing is True and cds_input is False:
         # Create Fasta file with CDS that were classified as ASM, ALM, ...
         create_missing_fasta(results['classification_files'], results['dna_fasta'], results['basename_map'], results['dna_hashtable'],
-                             results_dir, coordinates_files)
+                             output_directory, coordinates_files)
 
     if hash_profiles is not None:
         # create TSV file with hashed profiles
-        ph.main(profiles_table, schema_directory, results_dir,
+        ph.main(profiles_table, schema_directory, output_directory,
                 hash_profiles, cpu_cores, 1000, updated_files,
                 no_inferred)
 
     # move file with CDSs coordinates
     # will not be created if input files contain predicted CDS
     if cds_input is False:
-        fo.move_file(results['cds_coordinates'], results_dir)
+        fo.move_file(results['cds_coordinates'], output_directory)
 
     # move file with list of excluded CDS
     # file is not created if we only search for exact matches
     if mode != 1:
-        fo.move_file(results['invalid_alleles'], results_dir)
+        fo.move_file(results['invalid_alleles'], output_directory)
 
     # write Prodigal stderr for inputs that failed gene prediction
     if results['invalid_inputs'] is not None:
-        failed_file = fo.join_paths(results_dir, ['prodigal_stderr.tsv'])
+        failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
         lines = ['{0}\t{1}'.format(line[0], line[1]) for line in results['invalid_inputs']]
         fo.write_lines(lines, failed_file)
 
@@ -2340,4 +2306,4 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
     if no_cleanup is False:
         fo.delete_directory(temp_directory)
 
-    print('\nResults available in {0}'.format(results_dir))
+    print('\nResults available in {0}'.format(output_directory))

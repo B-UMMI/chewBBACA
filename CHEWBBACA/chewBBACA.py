@@ -26,7 +26,7 @@ try:
     from utils import (TestGenomeQuality, profile_joiner,
                        Extract_cgAlleles, RemoveGenes,
                        profiles_sqlitedb as ps,
-                       process_datetime as pd,
+                       process_datetime as pdt,
                        constants as ct,
                        parameters_validation as pv,
                        file_operations as fo)
@@ -45,7 +45,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  Extract_cgAlleles, RemoveGenes,
                                  profiles_sqlitedb as ps,
-                                 process_datetime as pd,
+                                 process_datetime as pdt,
                                  constants as ct,
                                  parameters_validation as pv,
                                  file_operations as fo)
@@ -59,7 +59,7 @@ except ModuleNotFoundError:
 version = __version__
 
 
-@pd.process_timer
+@pdt.process_timer
 def create_schema():
 
     def msg(name=None):
@@ -176,8 +176,10 @@ def create_schema():
             sys.exit('Invalid path for Prodigal training file.')
 
     # create output directory
-    if not os.path.exists(args.output_directory):
-        os.makedirs(args.output_directory)
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        sys.exit('Output directory already exists. Please provide a path to '
+                 'a directory that will be created to store results.')
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
@@ -216,7 +218,7 @@ def create_schema():
     fo.remove_files([genome_list])
 
 
-@pd.process_timer
+@pdt.process_timer
 def allele_call():
 
     def msg(name=None):
@@ -369,12 +371,6 @@ def allele_call():
     #                          'should be stored in the local SQLite '
     #                          'database.')
 
-    parser.add_argument('--fr', '--force-reset', required=False,
-                        action='store_true', dest='force_reset',
-                        help='Force process reset even if there '
-                             'are temporary files from a previous '
-                             'process that was interrupted.')
-
     parser.add_argument('--convert-legacy', required=False,
                         action='store_true', dest='convert_legacy',
                         help='Convert legacy schemas to latest version.')
@@ -412,7 +408,15 @@ def allele_call():
         args.size_threshold = run_params['size_threshold']
 
     # create output directory
-    fo.create_directory(args.output_directory)
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        current_time = pdt.get_datetime()
+        results_dir = fo.join_paths(args.output_directory,
+                                    ['results_{0}'.format(pdt.datetime_str(current_time, date_format='%Y%m%dT%H%M%S'))])
+        created = fo.create_directory(results_dir)
+        args.output_directory = results_dir
+        print('Output directory exists. Will store results in '
+              '{0}.'.format(results_dir))
 
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
@@ -440,8 +444,7 @@ def allele_call():
                     args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
                     args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
                     args.no_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles, args.force_reset, args.mode,
-                    args.ns)
+                    args.no_cleanup, args.hash_profiles, args.mode, args.ns)
 
     # if args.store_profiles is True:
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
@@ -452,7 +455,7 @@ def allele_call():
         fo.remove_files([genome_list])
 
 
-@pd.process_timer
+@pdt.process_timer
 def evaluate_schema():
 
     def msg(name=None):
@@ -665,7 +668,7 @@ def evaluate_schema():
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 
 
-@pd.process_timer
+@pdt.process_timer
 def test_schema():
 
     def msg(name=None):
@@ -720,7 +723,7 @@ def test_schema():
     TestGenomeQuality.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def extract_cgmlst():
 
     def msg(name=None):
@@ -791,7 +794,7 @@ def extract_cgmlst():
     Extract_cgAlleles.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def remove_genes():
 
     def msg(name=None):
@@ -839,7 +842,7 @@ def remove_genes():
     RemoveGenes.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def join_profiles():
 
     def msg(name=None):
@@ -881,7 +884,7 @@ def join_profiles():
     profile_joiner.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def prep_schema():
 
     def msg(name=None):
@@ -1006,7 +1009,7 @@ def prep_schema():
     genes_list_file = pv.write_gene_list(args.output_directory)
 
 
-@pd.process_timer
+@pdt.process_timer
 def find_uniprot():
 
     def msg(name=None):
@@ -1109,7 +1112,7 @@ def find_uniprot():
     uniprot_find.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def download_schema():
 
     def msg(name=None):
@@ -1192,7 +1195,7 @@ def download_schema():
     down_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def upload_schema():
 
     def msg(name=None):
@@ -1300,7 +1303,7 @@ def upload_schema():
     load_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def synchronize_schema():
 
     def msg(name=None):
@@ -1379,7 +1382,7 @@ def synchronize_schema():
     sync_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def ns_stats():
 
     def msg(name=None):

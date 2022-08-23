@@ -811,7 +811,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 
     # add common arguments to all sublists
     blast_inputs = [[blast_path, blast_db, file[0],
-                     blast_outputs[i], 1, 1, seqids_files[i], 'blastp', bw.run_blast]
+                     blast_outputs[i], 1, 1, seqids_files[i], 'blastp', None, ct.IGNORE_RAISED, bw.run_blast]
                     for i, file in enumerate(splitted_fastas)]
 
     # add file with short sequences
@@ -824,7 +824,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         blast_outputs.append(below_blastout)
         blast_inputs.append([blast_path, blast_db, below_outfile[0],
                              below_blastout, 1, 1, seqids_file,
-                             'blastp-short', bw.run_blast])
+                             'blastp-short', None, ct.IGNORE_RAISED, bw.run_blast])
 
     blast_stderr = mo.map_async_parallelizer(blast_inputs,
                                              mo.function_helper,

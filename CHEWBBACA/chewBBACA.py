@@ -204,7 +204,7 @@ def create_schema():
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                           args.translation_table, args.minimum_length,
+                                           args.translation_table, ct.MSL_MIN,
                                            version, args.size_threshold,
                                            args.word_size, args.window_size,
                                            args.clustering_sim, args.representative_filter,

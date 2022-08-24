@@ -1304,6 +1304,8 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     missing_cases = {}
     for locus, file in class_files.items():
         locus_id = fo.get_locus_id(locus)
+        if locus_id is None:
+            locus_id = fo.file_basename(locus, False)
         locus_classifications = fo.pickle_loader(file)
         # get data for genomes that do not have EXC or INF classifications
         # it will not get invalid classes if a genome is classified as EXC or INF
@@ -2283,7 +2285,7 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
     if hash_profiles is not None:
         # create TSV file with hashed profiles
         ph.main(profiles_table, schema_directory, output_directory,
-                hash_profiles, cpu_cores, 1000, updated_files,
+                hash_profiles, 4, 1000, updated_files,
                 no_inferred)
 
     # move file with CDSs coordinates

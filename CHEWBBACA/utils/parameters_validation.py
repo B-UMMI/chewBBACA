@@ -784,7 +784,7 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
 
     minimum_length = (minimum_length
                       if minimum_length is not None
-                      else ct.MINIMUM_LENGTH_DEFAULT)
+                      else ct.MSL_MIN)
     minimum_length = minimum_sequence_length_type(minimum_length)
 
     size_threshold = (size_threshold

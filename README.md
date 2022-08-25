@@ -42,11 +42,11 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 
 ## Important Notes
 
-- chewBBACA only works with **python 3** (automatic testing for Python 3.7 and Python 3.8 with GitHub Actions).
-- We strongly recommend that users install and use BLAST 2.9.0+ with chewBBACA, as chewBBACA's processes have been extensively tested with that version of BLAST.
+- chewBBACA only works with **python 3** (automatic testing for Python 3.8 and Python 3.9 with GitHub Actions).
+- We strongly recommend that users install and use **BLAST 2.9.0+** with chewBBACA, as chewBBACA's processes have been extensively tested with that version of BLAST.
 - chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
 - chewBBACA defines an allele as a complete Coding DNA Sequence, with start and stop codons according 
- to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. 
+ to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. Alleles that contain ambiguous bases are also excluded.
 - Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
 
 ## Useful links
@@ -61,10 +61,10 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 
 ## Installation
 
-Install using [conda](https://anaconda.org/bioconda/chewbbaca):
+Install the latest released version using [conda](https://anaconda.org/bioconda/chewbbaca):
 
 ```
-conda install -c bioconda chewbbaca
+conda create -c bioconda -c conda-forge -n chewie chewbbaca=2.8.5 blast=2.9
 ```
 
 Install using [pip](https://pypi.org/project/chewBBACA/):
@@ -75,7 +75,7 @@ pip3 install chewbbaca
 
 chewBBACA has the following dependencies:
 
-Python dependencies (defined in the [requirements](https://github.com/B-UMMI/chewBBACA/blob/master/CHEWBBACA/requirements.txt) file, should be automatically installed):
+Python dependencies (defined in the [requirements](https://github.com/B-UMMI/chewBBACA/blob/master/CHEWBBACA/requirements.txt) file, should be automatically installed when using conda or pip):
 * numpy>=1.14.0
 * scipy>=0.13.3
 * biopython>=1.70
@@ -85,11 +85,9 @@ Python dependencies (defined in the [requirements](https://github.com/B-UMMI/che
 * pandas>=0.22.0
 
 Main dependencies:
-* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/).
-* [Prodigal 2.6.0](https://github.com/hyattpd/prodigal/releases/) or above
-
-Other dependencies (for schema evaluation only):
-* [MAFFT](https://mafft.cbrc.jp/alignment/software/)
+* [BLAST 2.9.0+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/)
+* [Prodigal 2.6.0](https://github.com/hyattpd/prodigal/releases/)
+* [MAFFT](https://mafft.cbrc.jp/alignment/software/) (for schema evaluation only)
 
 Installation through conda should take care of all dependencies. If you install through pip you will need to ensure that you have BLAST, Prodigal and MAFFT installed and added to the PATH.
 
@@ -99,14 +97,14 @@ Installation through conda should take care of all dependencies. If you install 
 
 Option 1 - Genome assemblies
 
-Include all genome assemblies in a directory and adapt the following command:
+Include all genome assemblies (complete or draft genome assemblies in Fasta format) in a directory and adapt the following template command:
 ```
 chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
 
 Option 2 - Adapt an external schema
 
-Include all loci files in a directory and adapt the following command:
+Include all loci files (one Fasta file per locus, each file contains all alleles for a specific locus) in a directory and adapt the following template command:
 ```
 chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
@@ -125,7 +123,7 @@ chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o O
 
 **Important:**
 - Genome assemblies and loci files from external schemas must be in FASTA format.
-- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results.
+- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results (the training file used for schema creation is added to the schema's directory and automatically detected at start of allele calling without the need to pass it to the `--ptf` parameter).
 - Use the `--cpu` parameter to enable parallelization and considerably reduce execution time.
 - The file passed to the `--gl` parameter must have one locus identifier per line (a locus identifier is the name of the FASTA file that contains the locus alleles).
 
@@ -143,53 +141,50 @@ chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderNa
 
 **Parameters:**
 
-`-i`, `--input-files` Path to the directory that contains the input FASTA
-     files. Alternatively, a single file with a list of
-     paths to FASTA files, one per line.
+`-i, --input-files`: (REQUIRED) Path to the directory that contains the input FASTA files. 
+		     Alternatively, a single file with a list of paths to FASTA files, one 
+		     per line.
 
-`-o`, `--output-directory` Output directory where the process will store
-     intermediate files and create the schema's
-     directory.
+`-o, --output-directory`: (REQUIRED) Output directory where the process will store
+     			  intermediate files and create the schema's directory.
 
-`--n`, `--schema-name` (Optional) Name given to the folder that will store the schema
-      files (default: schema_seed).
+`--n, --schema-name`: (Optional) Name given to the folder that will store the schema
+      		      files (default: schema_seed).
 
-`--ptf`, `--training-file` (Optional) Path to the Prodigal training file. We strongly
-        advise users to provide a Prodigal training file and to keep
-        using the same training file to ensure consistent results
-        (default: None).
+`--ptf, --training-file`: (Optional) Path to the Prodigal training file. We strongly
+        		  advise users to provide a Prodigal training file and to keep
+        		  using the same training file to ensure consistent results (default: None).
 
-`--bsr`, `--blast-score-ratio` (Optional) BLAST Score Ratio value. Sequences with alignments
-        with a BSR value equal to or greater than this
-        value will be considered as sequences from the same
-        gene (default: 0.6).
+`--bsr, --blast-score-ratio`: (Optional) BLAST Score Ratio value. Sequences with alignments
+        		      with a BSR value equal to or greater than this value will be 
+			      considered as sequences from the same gene (default: 0.6).
 
-`--l`, `--minimum-length` (Optional) Minimum sequence length value. Coding sequences
-      shorter than this value are excluded (default: 201).
+`--l, --minimum-length`: (Optional) Minimum sequence length value. Coding sequences
+      			 shorter than this value are excluded (default: 201).
 
-`--t`, `--translation-table` (Optional) Genetic code used to predict genes and to translate
-      coding sequences (default: 11).
+`--t, --translation-table`: (Optional) Genetic code used to predict genes and to translate
+      			    coding sequences (default: 11).
 
-`--st`, `--size-threshold` (Optional) CDS size variation threshold. Added to the schema's
-       config file and used to identify alleles with a
-       length value that deviates from the locus length
-       mode during the allele calling process (default: 0.2).
+`--st, --size-threshold`: (Optional) CDS size variation threshold. Added to the schema's
+       			  config file and used to identify alleles with a
+       			  length value that deviates from the locus length
+       			  mode during the allele calling process (default: 0.2).
 
-`--cpu`, `--cpu-cores` (Optional) Number of CPU cores that will be used to run the
-        CreateSchema process (will be redefined to a lower
-        value if it is equal to or exceeds the total number
-        of available CPU cores)(default: 1).
+`--cpu, --cpu-cores`: (Optional) Number of CPU cores that will be used to run the
+        	      CreateSchema process (will be redefined to a lower
+        	      value if it is equal to or exceeds the total number
+        	      of available CPU cores)(default: 1).
 
-`--b`, `--blast-path` (Optional) Path to the BLAST executables (default: assumes BLAST
-	executables were added to PATH).
+`--b, --blast-path`: (Optional) Path to the BLAST executables (default: assumes BLAST
+		     executables were added to PATH).
 
-`--pm`, `--prodigal-mode` (Optional) Prodigal running mode (default: single).
+`--pm, --prodigal-mode`: (Optional) Prodigal running mode (default: single).
 
-`--CDS` (Optional) If provided, input is a single or several FASTA
-        files with coding sequences (default: False).
+`--CDS`: (Optional) If provided, input is a single or several FASTA
+         files with coding sequences (default: False).
 	
-`--no-cleanup` (Optional) If provided, intermediate files generated during process
-	execution are not removed at the end (default: False).
+`--no-cleanup`: (Optional) If provided, intermediate files generated during process
+		execution are not removed at the end (default: False).
 
 **Outputs:**
 
@@ -204,11 +199,11 @@ OutputFolderName
 │   ├── ...
 │   ├── GenomeID_proteinN.fasta
 │   └── Training_file.trn
-├── invalid_alleles.txt
-└── cds_info.tsv
+├── invalid_cds.txt
+└── cds_coordinates.tsv
 ```
 
-One fasta file per distinct gene identified in the schema creation process in the `OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele identified for that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The `OutputFolderName/SchemaName` directory also contains a directory named `short` that includes fasta files with the representative sequences for each locus. The training file passed to create the schema is also included in `OutputFolderName/SchemaName` and will be automatically detected during the allele calling process. A file with the locations of the identified genes in each genome passed to create the schema, `cds_info.tsv`, and a file with the list of alleles predicted by Prodigal that were excluded in the subsequent steps , `invalid_alleles.txt`, are included in `OutputFolderName`.
+One fasta file per distinct gene identified in the schema creation process in the `OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele identified for that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The `OutputFolderName/SchemaName` directory also contains a directory named `short` that includes fasta files with the representative sequences for each locus. The training file passed to create the schema is also included in `OutputFolderName/SchemaName` and will be automatically detected during the allele calling process. A file with the locations of the identified genes in each genome passed to create the schema, `cds_coordinates.tsv`, and a file with the list of alleles predicted by Prodigal that were excluded in the subsequent steps , `invalid_cds.txt`, are included in `OutputFolderName`.
 
 --------------
 
@@ -226,57 +221,54 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 
 **Parameters:** 
 
-`-i`, `--input-files` Path to the directory with the genome FASTA files or to a file
-     with a list of paths to the FASTA files, one per line.
+`-i, --input-files`: (REQUIRED) Path to the directory with the genome FASTA files or to a file
+     		     with a list of paths to the FASTA files, one per line.
 
-`-g`, `--schema-directory` Path to the schema directory with the genes FASTA files.  
+`-g, --schema-directory`: (REQUIRED) Path to the schema directory with the loci FASTA files.  
 
-`-o`, `--output-directory` Output directory where the allele calling results will be stored.
+`-o, --output-directory`: (REQUIRED) Output directory where the allele calling results will be stored
+			  (will create a subdirectory if the path passed by the user already exists,
+			  the subdirectory will be named "results_<TIMESTAMP>").
 
-`--ptf`, `--training-file` (Optional) Path to the Prodigal training file. Default is to
-        get training file from the schema's directory (default: searches for a training 
-	file in the schema's directory).
+`--ptf, --training-file`: (Optional) Path to the Prodigal training file. Default is to
+        		   get training file from the schema's directory (default: searches
+			   for a training file in the schema's directory).
 
-`--gl`, `--genes-list` (Optional) Path to a file with the list of genes in the schema
-       that the process should identify alleles for (default: False).
+`--gl, --genes-list`: (Optional) Path to a file with the list of genes in the schema
+       		      that the process should identify alleles for (default: False).
 
-`--bsr`, `--blast-score-ratio` (Optional) BLAST Score Ratio value. Sequences with alignments
-	with a BSR value equal to or greater than this value will be considered
-	as sequences from the same gene (default: uses value defined in schema config).
+`--bsr, --blast-score-ratio`: (Optional) BLAST Score Ratio value. Sequences with alignments
+			      with a BSR value equal to or greater than this value will be considered
+			      as sequences from the same gene (default: uses value defined in the schema
+			      config file).
 
-`--l`, `--minimum-length` (Optional) Minimum sequence length accepted for a coding sequence
-	to be included in the schema (default: uses value defined in schema config).
+`--l, --minimum-length`: (Optional) Minimum sequence length accepted for a coding sequence
+			 to be included in the schema (default: uses value defined in schema
+			 config file. Default value added to the config file is `0`).
 
-`--t`, `--translation-table` (Optional) Genetic code used to predict genes and to translate coding
-	sequences. Must match the genetic code used to create the training file
-	(default: uses value defined in schema config).
+`--t, --translation-table`: (Optional) Genetic code used to predict genes and to translate coding
+			    sequences. Must match the genetic code used to create the training file
+			    (default: uses value defined in schema config).
 
-`--st`, `--size-threshold` (Optional) CDS size variation threshold. If set to a value
-	of 0.2, alleles with size variation +-20 percent will be classified as
-	ASM/ALM (default: uses value defined in schema config).
+`--st, --size-threshold`: (Optional) CDS size variation threshold. If set to a value
+			  of 0.2, alleles with size variation +-20 percent will be classified as
+			  ASM/ALM (default: uses value defined in schema config).
 
-`--cpu`, `--cpu-cores` (Optional) Number of CPU cores/threads that will be used to
-        run the CreateSchema process (will be redefined to
-        a lower value if it is equal to or exceeds the
-        total number of available CPU cores/threads)(default: 1).
+`--cpu, --cpu-cores`: (Optional) Number of CPU cores that will be used to
+        	      run the AlleleCall process (will be redefined to
+        	      a lower value if it is equal to or exceeds the
+        	      total number of available CPU cores/threads)(default: 1).
 
-`--b`, `--blast-path` (Optional) Path to the BLASTp executables. Use this option if chewBBACA cannot find
-     BLASTp executables or if you want to use anoter BLAST installation that is not
-     the one added to the PATH (default: assumes BLAST executables were added to PATH).
+`--b, --blast-path`: (Optional) Path to the BLAST executables. Use this option if chewBBACA cannot find
+     		     the BLASTp and makeblastdb executables or if you want to use anoter BLAST installation 
+		     that is not the one added to the PATH (default: assumes BLAST executables were added to PATH).
 
-`--pm` (Optional) Prodigal running mode (default: single).
+`--pm, --prodigal-mode`: (Optional) Prodigal running mode (default: single).
 
-`--fc` (Optional) Continue the previous allele calling process if it was
-       interrupted (default: False).
+`--cds, --cds-input`: (Optional) 
 
-`--fr` (Optional) Force process reset even if there are temporary
-       files from a previous process that was interrupted (default: False).
 
-`--db`, `--store-profiles` (Optional) If the profiles in the output matrix should be
-	stored in a local SQLite database. The SQLite database is stored in the "profiles_database"
-	folder inside the schema's directory (default: False).
-
-By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` argument. If a text file with a list of gene identifiers, one per line, is passed to the `--gl` parameter, the process will only perform allele calling for the genes in the list.
+By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` parameter. If a text file with a list of gene identifiers, one per line, is passed to the `--gl` parameter, the process will only perform allele calling for the genes in that list.
 
 
 **Outputs**:

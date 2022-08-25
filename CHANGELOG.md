@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.0 - 2022-08-25
+
+New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop.
+
+### Additional changes
+
+- Users can control the addition of novel alleles to the schema with the `--no-inferred` parameter.
+- The AlleleCall process has 4 execution modes (1: only exact matches at DNA level; 2: exact matches at DNA and Protein level; 3: exact matches and minimizer-based clustering to find similar alleles with BSR > 0.7; 4: runs the full process to find exact matches and all matches with BSR >= 0.6).
+- The allelic profiles in the `results_alleles.tsv` file can be hashed by providing the `--hash-profiles` parameter and a valid hash type as argument (hash algorithms available from the [hashlib](python) library and crc32 and adler32 from the [zlib](https://docs.python.org/3/library/zlib.html) library).
+- The UniprotFinder allows users to search for annotations through UniProt's SPARQL endpoint or based on matches against UniProt's reference proteomes or both.
+- Bugfix for an issue in the UniprotFinder module that was leading to errors when the data returned by UniProt's SPARQL endpoint only contained one set of annotation terms).
+- Bugfix for an issue in the [map_async_parallelizer](https://github.com/B-UMMI/chewBBACA/blob/d7572c085677319500546dbb4ed8eee69cc3d2c2/CHEWBBACA/utils/multiprocessing_operations.py#L51) function that led to high memory usage.
+- Bugfix for PLOT3, PLOT5 and LOTSC classification types. LOTSC classification was not always attributed when a contig was smaller than the matched representative allele and some PLOT5 cases were classified as LOTSC. LOTSC cases counted as exact matches in the `results_statistics.tsv` file.
+
 ## 2.8.5 - 2021-07-05
 
 - Updated **JoinProfiles** process to accept any number of files to join. Added `--common` flag to identify and join results for the set of loci common to all input files.

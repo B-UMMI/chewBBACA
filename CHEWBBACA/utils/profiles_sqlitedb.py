@@ -4,7 +4,8 @@
 Purpose
 -------
 
-This module
+This module contains functions related with the creation and
+manipulation of the SQLite database used to store allelic profiles.
 
 Notes
 -----
@@ -33,17 +34,17 @@ def create_database_file(db_file):
         If the database file already exists,
         it will establish and close connection.
 
-        Parameters
-        ----------
-        df_file : str
-            Path to the SQLite database file.
+    Parameters
+    ----------
+    df_file : str
+        Path to the SQLite database file.
 
-        Returns
-        -------
-        error : None or sqlite3.OperationalError
-            None if the SQLite database file was
-            successfully created, OperationalError
-            if it could not create/establish connection
+    Returns
+    -------
+    error : None or sqlite3.OperationalError
+        None if the SQLite database file was
+        successfully created, OperationalError
+        if it could not create/establish connection
     """
 
     conn = None
@@ -64,17 +65,17 @@ def create_connection(db_file):
     """ Creates a database connection to a SQLite
         database.
 
-        Parameters
-        ----------
-        db_file: str
-            Path to the SQLite database file.
+    Parameters
+    ----------
+    db_file: str
+        Path to the SQLite database file.
 
-        Returns
-        -------
-        conn : sqlite3.Connection or sqlite3.OperationalError
-            SQLite Connection object if connection was
-            successfull or error if it was not possible
-            to connect to the database.
+    Returns
+    -------
+    conn : sqlite3.Connection or sqlite3.OperationalError
+        SQLite Connection object if connection was
+        successfull or error if it was not possible
+        to connect to the database.
     """
 
     try:
@@ -88,19 +89,19 @@ def create_connection(db_file):
 def execute_statement(conn, statement):
     """ Executes a SQL statement.
 
-        Parameters
-        ----------
-        conn : sqlite3.Connection
-            SQLite Connection object.
-        statement : str
-            SQL statement to execute.
+    Parameters
+    ----------
+    conn : sqlite3.Connection
+        SQLite Connection object.
+    statement : str
+        SQL statement to execute.
 
-        Returns
-        -------
-        error : None or sqlite3.OperationalError
-            None if the SQLite database file was
-            successfully created, OperationalError
-            if it could not create/establish connection
+    Returns
+    -------
+    error : None or sqlite3.OperationalError
+        None if the SQLite database file was
+        successfully created, OperationalError
+        if it could not create/establish connection
     """
 
     error = None
@@ -116,19 +117,19 @@ def execute_statement(conn, statement):
 def select_all_rows(db_file, table):
     """ Retrieves all rows in a table.
 
-        Parameters
-        ----------
-        db_file : str
-            Path to the SQLite database file.
-        table : str
-            Name of the table.
+    Parameters
+    ----------
+    db_file : str
+        Path to the SQLite database file.
+    table : str
+        Name of the table.
 
-        Returns
-        -------
-        rows : list of tup
-            List of all rows in the table. Each row
-            is represented by a tuple with the values
-            for all columns.
+    Returns
+    -------
+    rows : list of tup
+        List of all rows in the table. Each row
+        is represented by a tuple with the values
+        for all columns.
     """
 
     conn = create_connection(db_file)
@@ -147,20 +148,20 @@ def select_all_rows(db_file, table):
 def create_insert_statement(table, columns, placeholders):
     """ Creates a base SQL insert statement.
 
-        Parameters
-        ----------
-        table : str
-            Name of the table.
-        columns : list
-            List with the names of the columns
-            that values will be inserted into.
+    Parameters
+    ----------
+    table : str
+        Name of the table.
+    columns : list
+        List with the names of the columns
+        that values will be inserted into.
 
-        Returns
-        -------
-        statement : str
-            SQL insert statement that can be
-            used to insert values into `columns`
-            of a `table`.
+    Returns
+    -------
+    statement : str
+        SQL insert statement that can be
+        used to insert values into `columns`
+        of a `table`.
     """
 
     statement = ('INSERT OR IGNORE INTO {0}({1}) '
@@ -173,18 +174,18 @@ def create_insert_statement(table, columns, placeholders):
 def insert_loci(db_file, matrix_file):
     """ Inserts loci into the loci table.
 
-        Parameters
-        ----------
-        db_file : str
-            Path to the SQLite database file.
-        matrix_file : str
-            Path to the TSV file with a matrix
-            of allelic profiles.
+    Parameters
+    ----------
+    db_file : str
+        Path to the SQLite database file.
+    matrix_file : str
+        Path to the TSV file with a matrix
+        of allelic profiles.
 
-        Returns
-        -------
-        The number of loci that were insert
-        into the table.
+    Returns
+    -------
+    The number of loci that were insert
+    into the table.
     """
 
     matrix_lines = read_matrix(matrix_file)
@@ -208,21 +209,21 @@ def insert_loci(db_file, matrix_file):
 def insert_multiple(db_file, base_statement, data):
     """ Executes several insert statements.
 
-        Parameters
-        ----------
-        df_file : str
-            Path to the SQLite database file.
-        base_statement : str
-            Base SQL insert statement to execute.
-        data : list of tup
-            A list with tuples that contain the
-            column values to insert for each row.
+    Parameters
+    ----------
+    df_file : str
+        Path to the SQLite database file.
+    base_statement : str
+        Base SQL insert statement to execute.
+    data : list of tup
+        A list with tuples that contain the
+        column values to insert for each row.
 
-        Returns
-        -------
-        error : None or sqlite3.OperationalError
-            None if the SQL statement was successfully
-            inserted, SQLite OperationalError otherwise.
+    Returns
+    -------
+    error : None or sqlite3.OperationalError
+        None if the SQL statement was successfully
+        inserted, SQLite OperationalError otherwise.
     """
 
     error = None
@@ -243,15 +244,15 @@ def create_database(db_file):
         that will store the allelic profiles determined with
         a schema.
 
-        Parameters
-        ----------
-        db_file : str
-            Path to the SQLite database file.
+    Parameters
+    ----------
+    db_file : str
+        Path to the SQLite database file.
 
-        Returns
-        -------
-        True if the SQLite database file and tables were
-        successfully created, SQLite OperationalError otherwise.
+    Returns
+    -------
+    True if the SQLite database file and tables were
+    successfully created, SQLite OperationalError otherwise.
     """
 
     message = create_database_file(db_file)
@@ -310,15 +311,15 @@ def read_matrix(matrix_file):
     """ Reads a TSV file that contains a matrix with
         allelic profiles.
 
-        Parameters
-        ----------
-        matrix_file : str
-            Path to the TSV file with the matrix.
+    Parameters
+    ----------
+    matrix_file : str
+        Path to the TSV file with the matrix.
 
-        Returns
-        -------
-        matrix_lines : list of list
-            A list with all the lines in the TSV file.
+    Returns
+    -------
+    matrix_lines : list of list
+        A list with all the lines in the TSV file.
     """
 
     with open(matrix_file, 'r') as m:
@@ -331,17 +332,17 @@ def get_loci_ids(matrix_lines):
     """ Extracts loci identifiers from a list
         with lines from a matrix of allelic profiles.
 
-        Parameters
-        ----------
-        matrix_lines : list of list
-            A list with all the lines read from a TSV
-            file that contains a matrix of allelic profiles.
+    Parameters
+    ----------
+    matrix_lines : list of list
+        A list with all the lines read from a TSV
+        file that contains a matrix of allelic profiles.
 
-        Returns
-        -------
-        loci_ids : list
-            List with the identifiers of all loci represented
-            in the allelic profiles.
+    Returns
+    -------
+    loci_ids : list
+        List with the identifiers of all loci represented
+        in the allelic profiles.
     """
 
     loci_ids = [locus.rstrip('.fasta') for locus in matrix_lines[0][1:]]
@@ -353,17 +354,17 @@ def get_sample_ids(matrix_lines):
     """ Extracts sample identifiers from a list
         with lines from a matrix of allelic profiles.
 
-        Parameters
-        ----------
-        matrix_lines : list of list
-            A list with all the lines read from a TSV
-            file that contains a matrix of allelic profiles.
+    Parameters
+    ----------
+    matrix_lines : list of list
+        A list with all the lines read from a TSV
+        file that contains a matrix of allelic profiles.
 
-        Returns
-        -------
-        sample_ids : list
-            List with the sample identifiers of all allelic
-            profiles.
+    Returns
+    -------
+    sample_ids : list
+        List with the sample identifiers of all allelic
+        profiles.
     """
 
     sample_ids = [l[0].rstrip('.fasta') for l in matrix_lines[1:]]
@@ -375,16 +376,16 @@ def get_profiles(matrix_lines):
     """ Extracts profiles from a list with lines from
         a matrix of allelic profiles.
 
-        Parameters
-        ----------
-        matrix_lines : list of list
-            A list with all the lines read from a TSV
-            file that contains a matrix of allelic profiles.
+    Parameters
+    ----------
+    matrix_lines : list of list
+        A list with all the lines read from a TSV
+        file that contains a matrix of allelic profiles.
 
-        Returns
-        -------
-        profiles : list of dict
-            List with one dictionary per allelic profile.
+    Returns
+    -------
+    profiles : list of dict
+        List with one dictionary per allelic profile.
     """
 
     profiles = []
@@ -400,17 +401,17 @@ def get_profiles(matrix_lines):
 def remove_inf(profile):
     """ Remove 'INF-' prefix from inferred alleles.
 
-        Parameters
-        ----------
-        profile : list
-            List with the allele identifiers in an allelic
-            profile.
+    Parameters
+    ----------
+    profile : list
+        List with the allele identifiers in an allelic
+        profile.
 
-        Returns
-        -------
-        clean_profile : list
-            List with allele identifiers stripped of the
-            'INF-' prefix.
+    Returns
+    -------
+    clean_profile : list
+        List with allele identifiers stripped of the
+        'INF-' prefix.
     """
 
     clean_profile = [a.lstrip('INF-') if 'INF-' in a else a for a in profile]
@@ -494,24 +495,24 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     """ Inserts the data contained in a AlleleCall matrix into
         the SQLite database of the schema.
 
-        Parameters
-        ----------
-        matrix_file : str
-            Path to the TSV file with the matrix.
-        db_file : str
-            Path to the SQLite database file.
-        insert_date : str
-            Date in the name of the folder created
-            by the AlleleCall process to save results
-            (in the format Y-m-dTH:M:S).
+    Parameters
+    ----------
+    matrix_file : str
+        Path to the TSV file with the matrix.
+    db_file : str
+        Path to the SQLite database file.
+    insert_date : str
+        Date in the name of the folder created
+        by the AlleleCall process to save results
+        (in the format Y-m-dTH:M:S).
 
-        Returns
-        -------
-        A list with the following elements:
+    Returns
+    -------
+    A list with the following elements:
 
-        - Number of inserted profiles.
-        - Total number of profiles.
-        - Number of unique profiles.
+    - Number of inserted profiles.
+    - Total number of profiles.
+    - Number of unique profiles.
     """
 
     loci_list_db = select_all_rows(db_file, 'loci')
@@ -594,30 +595,30 @@ def select_outdated(loci, reassigned, cursor):
     """ Retrives the allelic profiles that have outdated
         allele identifiers.
 
-        Parameters
-        ----------
-        loci : dict
-            A dictionary with the numeric identifiers
-            of loci as keys and the integer identifier
-            of each locus in the local SQLite database.
-        reassigned : dict
-            A dictionary with loci identifiers as keys.
-            Each key has a dictionary as value, with the
-            current alleles identifiers as keys and the
-            updated identifiers as values.
-        cursor : sqlite3.Cursor
-            SQLite cursor object.
+    Parameters
+    ----------
+    loci : dict
+        A dictionary with the numeric identifiers
+        of loci as keys and the integer identifier
+        of each locus in the local SQLite database.
+    reassigned : dict
+        A dictionary with loci identifiers as keys.
+        Each key has a dictionary as value, with the
+        current alleles identifiers as keys and the
+        updated identifiers as values.
+    cursor : sqlite3.Cursor
+        SQLite cursor object.
 
-        Returns
-        -------
-        profiles : dict of list
-            A dictionary with profiles hashes as keys and
-            lists as values. Each list contains the profile
-            as str type and a variable number of tuples,
-            one tuple per allele identifier that must be
-            updated (tuples contain the locus identifier,
-            the outdated allele identifier and the updated
-            allele identifier).
+    Returns
+    -------
+    profiles : dict of list
+        A dictionary with profiles hashes as keys and
+        lists as values. Each list contains the profile
+        as str type and a variable number of tuples,
+        one tuple per allele identifier that must be
+        updated (tuples contain the locus identifier,
+        the outdated allele identifier and the updated
+        allele identifier).
     """
 
     profiles = {}
@@ -645,24 +646,24 @@ def alter_profiles(profiles, cursor):
     """ Alters allele identifiers in allelic profiles
         that are outdated.
 
-        Parameters
-        ----------
-        profiles : dict
-            A dictionary with profiles hashes as keys and
-            lists as values. Each list contains the profile
-            as str type and a variable number of tuples,
-            one tuple per allele identifier that must be
-            updated (tuples contain the locus identifier,
-            the outdated allele identifier and the updated
-            allele identifier).
-        cursor : sqlite3.Cursor
-            SQLite cursor object.
+    Parameters
+    ----------
+    profiles : dict
+        A dictionary with profiles hashes as keys and
+        lists as values. Each list contains the profile
+        as str type and a variable number of tuples,
+        one tuple per allele identifier that must be
+        updated (tuples contain the locus identifier,
+        the outdated allele identifier and the updated
+        allele identifier).
+    cursor : sqlite3.Cursor
+        SQLite cursor object.
 
-        Returns
-        -------
-        results : dict of str
-            A dictionary with profiles hashes as keys and
-            updated profiles as values.
+    Returns
+    -------
+    results : dict of str
+        A dictionary with profiles hashes as keys and
+        updated profiles as values.
     """
 
     results = {}
@@ -686,19 +687,19 @@ def alter_profiles(profiles, cursor):
 def update_profiles(schema_directory, reassigned):
     """ Updates allele identifiers that have been changed.
 
-        Parameters
-        ----------
-        schema_directory : str
-            Path to the directory with the schema files.
-        reassigned : dict of dict
-            A dictionary with loci identifiers as keys.
-            Each key has a dictionary as value, with the
-            current alleles identifiers as keys and the
-            updated identifiers as values.
+    Parameters
+    ----------
+    schema_directory : str
+        Path to the directory with the schema files.
+    reassigned : dict of dict
+        A dictionary with loci identifiers as keys.
+        Each key has a dictionary as value, with the
+        current alleles identifiers as keys and the
+        updated identifiers as values.
 
-        Returns
-        -------
-        The number of profiles that were altered.
+    Returns
+    -------
+    The number of profiles that were altered.
     """
 
     db_file = os.path.join(schema_directory, 'profiles_database',

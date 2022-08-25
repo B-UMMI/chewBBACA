@@ -13,7 +13,7 @@ import pytest
 import shutil
 import filecmp
 from unittest.mock import patch
-#from contextlib import nullcontext as does_not_raise
+# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
 
@@ -87,7 +87,7 @@ def test_prep_invalid_input(test_args, expected):
         [(['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/valid_input',
            '-o', 'preped_schema'],
-          'data/prep_data/expected_results1')
+          'data/prep_data/expected_results')
          ])
 def test_prep_valid_input(test_args, expected):
     with patch.object(sys, 'argv', test_args):

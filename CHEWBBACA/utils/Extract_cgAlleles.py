@@ -47,148 +47,121 @@ import os
 import numpy as np
 import pandas as pd
 
-
-def replace_chars(column):
-    """ Replaces all non-numeric characters
-        in a column with allele identifiers.
-
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
-
-        Returns
-        -------
-        replace_missing : pandas.core.series.Series
-            Input column with cells that only contain
-            numeric characters.
-    """
-
-    # remove 'INF-' from inferred alleles
-    replace_inf = column.replace(to_replace='INF-',
-                                 value='', regex=True)
-    # replace '*' in novel alleles from schemas in Chewie-NS
-    # before replacing missing data cases to avoid replacing '*' with '0'
-    replace_inf = replace_inf.replace(to_replace='\*',
-                                      value='', regex=True)
-    # replace missing data with '0'
-    replace_missing = replace_inf.replace(to_replace='\D+.*',
-                                          value='0', regex=True)
-
-    return replace_missing
+try:
+    from utils import iterables_manipulation as im
+except ModuleNotFoundError:
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def binarize_matrix(column):
-    """ Converts a Pandas dataframe column values
-        into numeric values.
+    """Convert a Pandas dataframe column values into numeric values.
 
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
+    Parameters
+    ----------
+    column : pandas.core.series.Series
+        Pandas dataframe column.
 
-        Returns
-        -------
-        Numpy array corresponding to the input column
-        with numeric values equal to 1 for cells that
-        had valid allele identifiers and equal to 0
-        for cells that had missing data.
+    Returns
+    -------
+    Numpy array corresponding to the input column
+    with numeric values equal to 1 for cells that
+    had valid allele identifiers and equal to 0
+    for cells that had missing data.
     """
-
     coln = pd.to_numeric(column)
 
     return np.int64(coln > 0)
 
 
 def above_threshold(column, column_length, threshold):
-    """ Determines if a gene is present in a proportion
-        of genomes equal or greater than a threshold.
+    """Determine if gene presence is equal or above a threshold.
 
-        Parameters
-        ----------
-        column : pandas.core.series.Series
-            Pandas dataframe column.
-        column_length : int
-            Number of cells/genes in the column.
-        threshold : float
-            Core genome determination threshold.
+    Parameters
+    ----------
+    column : pandas.core.series.Series
+        Pandas dataframe column with presence (1) and absence (0)
+        values for a locus in a set of genomes.
+    column_length : int
+        Number of genomes in the dataset.
+    threshold : float
+        Core genome determination threshold.
 
-        Returns
-        -------
-        bool
-            A boolean, True if gene is equal or above
-            threshold, False otherwise.
+    Returns
+    -------
+    bool
+        True if gene is equal or above threshold, False otherwise.
     """
-
     return (np.sum(column) / column_length) >= threshold
 
 
 def remove_genomes(matrix, genomesToRemove):
-    """ Removes rows from a Pandas dataframe if the
-        index identifier matches the identifier of
-        a genome to remove.
+    """Remove rows from an allele calling matrix.
 
-        Parameters
-        ----------
-        matrix : pandas.core.frame.DataFrame
-            Pandas dataframe with allelic profiles.
-            Each row has the allelic profile of a genome
-            and each column has the allele identifiers
-            determined for a single gene.
-        genomesToRemove : list
-            List with the set of genomes to remove.
+    Remove rows from a Pandas dataframe if the
+    index identifier matches the identifier of
+    a genome to remove.
 
-        Returns
-        -------
-        pruned_matrix : pandas.core.frame.DataFrame
-            Input dataframe without the rows whose
-            index matched an identifier of a genome
-            to remove.
+    Parameters
+    ----------
+    matrix : pandas.core.frame.DataFrame
+        Pandas dataframe with allelic profiles.
+        Each row has the allelic profile of a genome
+        and each column has the allele identifiers
+        determined for a locus.
+    genomesToRemove : list
+        List with the set of genomes to remove.
+
+    Returns
+    -------
+    pruned_matrix : pandas.core.frame.DataFrame
+        Input dataframe without the rows whose
+        index matched an identifier of a genome
+        to remove.
     """
-
+    # determine row indexes that match any genome to remove
     to_remove_bool = matrix.index.isin(genomesToRemove)
+    # create new matrix without rows that matched any genome to remove
     pruned_matrix = matrix.loc[~ to_remove_bool]
 
-    # remove genomes
-    for genome in matrix.index:
-        if genome in genomesToRemove:
-            print('Removed genome: {0}'.format(genome))
+    print('Removed {0} profiles that matched list of '
+          'genomes to exclude.'.format(len(genomesToRemove)))
 
     return pruned_matrix
 
 
 def remove_genes(matrix, presence_absence, genesToRemove, threshold):
-    """ Determines genes that are in a proportion of genomes
-        above or below a threshold.
+    """Prune allele call results based on presence/absence threshold.
 
-        Parameters
-        ----------
-        matrix : pandas.core.frame.DataFrame
-            Pandas dataframe with allelic profiles.
-            Each row has the allelic profile of a genome
-            and each column has the allele identifiers
-            determined for a single gene.
-        presence_absence : pandas.core.frame.DataFrame
-            Pandas dataframe with numeric values equal to
-            1 for the cells that had valid allele identifiers
-            and equal to 0 for missing data.
-        genesToRemove : list
-            List with a set of genes to exclude from the core
-            genome.
-        threshold : float
-            Core genome determination threshold.
+    Removes columns from an allele calling matrix based on
+    threshold for loci presence/absence.
 
-        Returns
-        -------
-        pruned_matrix : pandas.core.frame.DataFrame
-            Input dataframe without the columns whose
-            headers matched an identifier of a gene
-            to remove or that was below the threshold.
-        genes_to_delete : set
-            Set with identifiers of genes that were not included
-            in the core genome.
+    Parameters
+    ----------
+    matrix : pandas.core.frame.DataFrame
+        Pandas dataframe with allelic profiles.
+        Each row has the allelic profile of a genome
+        and each column has the allele identifiers
+        determined for a single gene.
+    presence_absence : pandas.core.frame.DataFrame
+        Pandas dataframe with numeric values equal to
+        1 for the cells that had valid allele identifiers
+        and equal to 0 for missing data.
+    genesToRemove : list
+        List with a set of genes to exclude from the core
+        genome.
+    threshold : float
+        Core genome determination threshold.
+
+    Returns
+    -------
+    pruned_matrix : pandas.core.frame.DataFrame
+        Input dataframe without the columns whose
+        headers matched an identifier of a gene
+        to remove or that was below the threshold.
+    genes_to_delete : set
+        Set with identifiers of genes that were not included
+        in the core genome.
     """
-
     # determine genes at or above threshold
     pa_rows, _ = presence_absence.shape
     is_above_threshold = presence_absence.apply(above_threshold,
@@ -205,27 +178,26 @@ def remove_genes(matrix, presence_absence, genesToRemove, threshold):
 
 
 def presAbs(matrix, output_directory):
-    """ Creates a presence absence matrix.
+    """Create a presence/absence matrix.
 
-        Parameters
-        ----------
-        matrix : pandas.core.frame.DataFrame
-            Pandas dataframe with allelic profiles.
-            Each row has the allelic profile of a genome
-            and each column has the allele identifiers
-            determined for a single gene.
-        output_directory : str
-            Path to the directory where the TSV file with
-            the presence absence matrix will be stored.
+    Parameters
+    ----------
+    matrix : pandas.core.frame.DataFrame
+        Pandas dataframe with allelic profiles.
+        Each row has the allelic profile of a genome
+        and each column has the allele identifiers
+        determined for a single gene.
+    output_directory : str
+        Path to the directory where the TSV file with
+        the presence absence matrix will be stored.
 
-        Returns
-        -------
-        presence_absence : pandas.core.frame.DataFrame
-            Pandas dataframe with numeric values equal to
-            1 for the cells that had valid allele identifiers
-            and equal to 0 for missing data.
+    Returns
+    -------
+    presence_absence : pandas.core.frame.DataFrame
+        Pandas dataframe with numeric values equal to
+        1 for the cells that had valid allele identifiers
+        and equal to 0 for missing data.
     """
-
     presence_absence = matrix.apply(binarize_matrix)
 
     pa_path = os.path.join(output_directory, 'Presence_Absence.tsv')
@@ -235,22 +207,21 @@ def presAbs(matrix, output_directory):
 
 
 def missing_data_table(presence_absence):
-    """ Determines missing data per genome.
+    """Determine missing data per genome.
 
-        Parameters
-        ----------
-        presence_absence : pandas.core.frame.DataFrame
-            Pandas dataframe with numeric values equal to
-            1 for the cells that have valid allele identifiers
-            and equal to 0 for missing data.
+    Parameters
+    ----------
+    presence_absence : pandas.core.frame.DataFrame
+        Pandas dataframe with numeric values equal to
+        1 for the cells that have valid allele identifiers
+        and equal to 0 for missing data.
 
-        Returns
-        -------
-        missing_data_df : pandas.core.frame.DataFrame
-            Dataframe with number of missing genes and
-            percentage of missing genes per genome.
+    Returns
+    -------
+    missing_data_df : pandas.core.frame.DataFrame
+        Dataframe with number of missing genes and
+        percentage of missing genes per genome.
     """
-
     _, n_genes = presence_absence.shape
     genes_present = presence_absence.apply(np.count_nonzero, axis=1)
 
@@ -268,47 +239,47 @@ def missing_data_table(presence_absence):
 
 def determine_cgMLST(input_file, output_directory, genesToRemove,
                      genomesToRemove, threshold):
-    """ Determines the cgMLST based on an input matrix of allelic
-        profiles.
+    """Determine the cgMLST based on allele calling results.
 
-        Parameters
-        ----------
-        input_file : str
-            Path a TSV file with allelic profiles for a set
-            of genomes.
-        output_directory : str
-            Path to the directory where the process will
-            store output files.
-        genesToRemove : list
-            List with a set of genes to remove from the
-            analysis.
-        genomesToRemove : list
-            List with a set of genomes to remove from the
-            analysis.
-        threshold : float
-            Core genome determination threshold.
+    Parameters
+    ----------
+    input_file : str
+        Path a TSV file with allelic profiles for a set
+        of genomes.
+    output_directory : str
+        Path to the directory where the process will
+        store output files.
+    genesToRemove : list
+        List with a set of genes to remove from the
+        analysis.
+    genomesToRemove : list
+        List with a set of genomes to remove from the
+        analysis.
+    threshold : float
+        Core genome determination threshold.
 
-        Returns
-        -------
-        List with the paths to three files:
+    Returns
+    -------
+    List with the paths to three files:
 
-        - Path a TSV file with the cgMLST matrix.
-        - Path to a TXT file with the list of genes that
-          constitute the core genome.
-        - Path to a TSV file with the information about
-          missing data per genome.
+    - Path a TSV file with the cgMLST matrix.
+    - Path to a TXT file with the list of genes that
+      constitute the core genome.
+    - Path to a TSV file with the information about
+      missing data per genome.
     """
-
     # import matrix with allelic profiles
     matrix = pd.read_csv(input_file, header=0, index_col=0,
                          sep='\t', low_memory=False)
+    total_loci = len(matrix.columns)
 
     # remove genomes
-    genome_pruned = remove_genomes(matrix, genomesToRemove)
+    if len(genomesToRemove) > 0:
+        matrix = remove_genomes(matrix, genomesToRemove)
 
     # mask missing data
-    print('\nMasking missing data...', end='')
-    masked_matrix = genome_pruned.apply(replace_chars)
+    print('Masking missing data...', end='')
+    masked_matrix = matrix.apply(im.replace_chars)
     print('done.')
 
     # build presence/absence matrix
@@ -343,7 +314,7 @@ def determine_cgMLST(input_file, output_directory, genesToRemove,
 
     retained = len(gene_pruned.columns)
     print('\nCore genome composed of {0}/{1} genes.'
-          ''.format(retained, len(matrix.columns)))
+          ''.format(retained, total_loci))
 
     return [cgmlst_path, loci_path, mdata_path]
 

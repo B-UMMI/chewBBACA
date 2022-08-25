@@ -13,19 +13,20 @@ import os
 import sys
 import pickle
 import shutil
+import hashlib
 import argparse
 
 try:
     from __init__ import __version__
-    from allelecall import BBACA
-    from createschema import CreateSchema
+    from AlleleCall import AlleleCall
+    from CreateSchema import CreateSchema
     from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
     from UniprotFinder import uniprot_find
     from utils import (TestGenomeQuality, profile_joiner,
                        Extract_cgAlleles, RemoveGenes,
                        profiles_sqlitedb as ps,
-                       process_datetime as pd,
+                       process_datetime as pdt,
                        constants as ct,
                        parameters_validation as pv,
                        file_operations as fo)
@@ -34,17 +35,17 @@ try:
 
     from CHEWBBACA_NS import (down_schema, load_schema,
                               sync_schema, stats_requests)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA import __version__
-    from CHEWBBACA.allelecall import BBACA
-    from CHEWBBACA.createschema import CreateSchema
+    from CHEWBBACA.AlleleCall import AlleleCall
+    from CHEWBBACA.CreateSchema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.UniprotFinder import uniprot_find
     from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
                                  Extract_cgAlleles, RemoveGenes,
                                  profiles_sqlitedb as ps,
-                                 process_datetime as pd,
+                                 process_datetime as pdt,
                                  constants as ct,
                                  parameters_validation as pv,
                                  file_operations as fo)
@@ -58,7 +59,7 @@ except:
 version = __version__
 
 
-@pd.process_timer
+@pdt.process_timer
 def create_schema():
 
     def msg(name=None):
@@ -112,7 +113,7 @@ def create_schema():
                         help='Path to the Prodigal training file.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-                        required=False, default=0.6, dest='blast_score_ratio',
+                        required=False, default=ct.DEFAULT_BSR, dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
@@ -175,12 +176,13 @@ def create_schema():
             sys.exit('Invalid path for Prodigal training file.')
 
     # create output directory
-    if not os.path.exists(args.output_directory):
-        os.makedirs(args.output_directory)
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        sys.exit('Output directory already exists. Please provide a path to '
+                 'a directory that will be created to store results.')
 
-    genomes_list = os.path.join(args.output_directory, 'listGenomes2Call.txt')
-    input_type = os.path.isdir(args.input_files)
-    args.input_files = pv.check_input_type(args.input_files, genomes_list)
+    genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
+    args.input_files = pv.check_input_type(args.input_files, genome_list)
 
     # add clustering config
     args.word_size = ct.WORD_SIZE_DEFAULT
@@ -198,11 +200,11 @@ def create_schema():
     if args.ptf_path is not None:
         shutil.copy(args.ptf_path, schema_dir)
         # determine PTF checksum
-        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                           args.translation_table, args.minimum_length,
+                                           args.translation_table, ct.MSL_MIN,
                                            version, args.size_threshold,
                                            args.word_size, args.window_size,
                                            args.clustering_sim, args.representative_filter,
@@ -213,15 +215,14 @@ def create_schema():
 
     # remove temporary file with paths
     # to genome files
-    if input_type is True:
-        os.remove(args.input_files)
+    fo.remove_files([genome_list])
 
 
-@pd.process_timer
+@pdt.process_timer
 def allele_call():
 
     def msg(name=None):
-        # simple command to perform AlleleCall with schema deafult parameters
+        # simple command to perform AlleleCall with schema default parameters
         simple_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
                       '-g <schema_directory> '
                       '-o <output_directory> ')
@@ -229,21 +230,20 @@ def allele_call():
         params_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
                       '-g <schema_directory> '
                       '-o <output_directory> '
-                      '--ptf <ptf_path>\n'
-                      '\t\t\t  --cpu <cpu_cores> '
-                      '--bsr <blast_score_ratio> '
+                      '--cpu <cpu_cores> '
+                      '\n\t\t\t  --bsr <blast_score_ratio> '
                       '--l <minimum_length>\n'
                       '\t\t\t  --t <translation_table> '
                       '--st <size_threshold>')
-        # command to perform AlleleCall with single Fasta file
-        # cds_cmd = ('chewBBACA.py AlleleCall -i <input_file> '
-        #                                    '-o <output_directory> '
-        #                                    '--ptf <ptf_path> '
-        #                                    '--CDS')
+        # command to perform AlleleCall with Fasta files that contain CDS
+        cds_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
+                                            '-g <schema_directory>'
+                                            '-o <output_directory> '
+                                            '--cds')
 
         usage_msg = ('\nPerform AlleleCall with schema default parameters:\n  {0}\n'
-                     '\nPerform AlleleCall with non-default parameters:\n  {1}\n'.format(simple_cmd, params_cmd))
-        # '\nPerform AlleleCall with single FASTA file that contains coding sequences:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+                     '\nPerform AlleleCall with non-default parameters:\n  {1}\n'
+                     '\nPerform AlleleCall with FASTA files that contain CDS:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -324,43 +324,60 @@ def allele_call():
                         required=False, default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
-    parser.add_argument('--pm', '--prodigal-mode', required=False,
-                        choices=['single', 'meta'],
+    parser.add_argument('--pm', '--prodigal-mode', type=str,
+                        required=False, choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--contained', action='store_true',
-                        required=False, default=False, dest='contained',
-                        help=argparse.SUPPRESS)
+    parser.add_argument('--cds', '--cds-input', action='store_true',
+                        required=False, dest='cds_input',
+                        help='Input files contain coding sequences (one '
+                             'Fasta file per strain). Skips gene '
+                             'prediction with Prodigal.')
 
-    parser.add_argument('--CDS', action='store_true',
-                        required=False, default=False, dest='cds_input',
-                        help=argparse.SUPPRESS)
+    parser.add_argument('--no-inferred', required=False,
+                        action='store_true', dest='no_inferred',
+                        help='If provided, the process will not add '
+                             'the sequences of inferred alleles to the '
+                             'schema.')
 
-    parser.add_argument('--fc', '--force-continue', action='store_true',
-                        required=False, dest='force_continue',
-                        help='Continue allele call process that '
-                             'was interrupted.')
+    parser.add_argument('--output-unclassified', required=False,
+                        action='store_true', dest='output_unclassified',
+                        help='Create Fasta file with unclassified '
+                             'coding sequences.')
 
-    parser.add_argument('--fr', '--force-reset', action='store_true',
-                        required=False, dest='force_reset',
-                        help='Force process reset even if there '
-                             'are temporary files from a previous '
-                             'process that was interrupted.')
+    parser.add_argument('--output-missing', required=False,
+                        action='store_true', dest='output_missing',
+                        help='Create Fasta file with coding sequences '
+                             'for NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5 '
+                             'and LOTSC classifications.')
 
-    parser.add_argument('--db', '--store-profiles', required=False, action='store_true',
-                        dest='store_profiles',
-                        help='If the profiles in the output matrix '
-                             'should be stored in the local SQLite '
-                             'database.')
+    parser.add_argument('--no-cleanup', required=False,
+                        action='store_true', dest='no_cleanup',
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed at '
+                             'the end.')
 
-    parser.add_argument('--json', action='store_true',
-                        required=False, dest='json_report',
-                        help='Output report in JSON format.')
+    parser.add_argument('--hash-profiles', type=str, required=False,
+                        dest='hash_profiles',
+                        help='Create TSV file with hashed allelic profiles. '
+                             'Profiles can be hashed with any of the hash '
+                             'algorithms implemented in the hashlib and zlib '
+                             'libraries.')
 
-    parser.add_argument('--v', '--verbose', required=False, action='store_true',
-                        dest='verbose',
-                        help='Increased output verbosity during execution.')
+    # parser.add_argument('--db', '--store-profiles', required=False,
+    #                     action='store_true', dest='store_profiles',
+    #                     help='If the profiles in the output matrix '
+    #                          'should be stored in the local SQLite '
+    #                          'database.')
+
+    parser.add_argument('--convert-legacy', required=False,
+                        action='store_true', dest='convert_legacy',
+                        help='Convert legacy schemas to latest version.')
+
+    parser.add_argument('--mode', type=int, required=False,
+                        choices=[1,2,3,4], default=4,
+                        help='')
 
     args = parser.parse_args()
 
@@ -373,7 +390,7 @@ def allele_call():
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
-                                            args.size_threshold, args.force_continue)
+                                            args.size_threshold, args.convert_legacy)
         args.ptf_path, args.blast_score_ratio, \
             args.translation_table, args.minimum_length, \
             args.size_threshold = upgraded
@@ -383,47 +400,62 @@ def allele_call():
         run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                     args.blast_score_ratio, args.translation_table,
                                                     args.minimum_length, args.size_threshold,
-                                                    args.force_continue, config_file, args.schema_directory)
+                                                    args.convert_legacy, config_file, args.schema_directory)
         args.ptf_path = run_params['ptf_path']
         args.blast_score_ratio = run_params['bsr']
         args.translation_table = run_params['translation_table']
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
 
+    # create output directory
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        current_time = pdt.get_datetime()
+        results_dir = fo.join_paths(args.output_directory,
+                                    ['results_{0}'.format(pdt.datetime_str(current_time, date_format='%Y%m%dT%H%M%S'))])
+        created = fo.create_directory(results_dir)
+        args.output_directory = results_dir
+        print('Output directory exists. Will store results in '
+              '{0}.'.format(results_dir))
+
     # if is a fasta pass as a list of genomes with a single genome,
     # if not check if is a folder or a txt with a list of paths
+    loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     if args.genes_list is not False:
-        schema_genes = pv.check_input_type(args.genes_list, 'listGenes2Call.txt', args.schema_directory)
-        input_type = [False]
+        loci_list = pv.check_input_type(args.genes_list, loci_list, args.schema_directory)
     else:
-        schema_genes = pv.check_input_type(args.schema_directory, 'listGenes2Call.txt')
-        input_type = [True]
+        loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
-    input_type.append(os.path.isdir(args.input_files))
-    genomes_files = pv.check_input_type(args.input_files, 'listGenomes2Call.txt')
+    genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
+    genome_list = pv.check_input_type(args.input_files, genome_list)
 
     # determine if schema was downloaded from Chewie-NS
     ns_config = os.path.join(args.schema_directory, '.ns_config')
     args.ns = os.path.isfile(ns_config)
 
-    BBACA.main(genomes_files, schema_genes, args.cpu_cores,
-               args.output_directory, args.blast_score_ratio,
-               args.blast_path, args.force_continue, args.json_report,
-               args.verbose, args.force_reset, args.contained,
-               args.ptf_path, args.cds_input, args.size_threshold,
-               args.translation_table, args.ns, args.prodigal_mode)
+    # add clustering config
+    args.word_size = ct.WORD_SIZE_DEFAULT
+    args.window_size = ct.WINDOW_SIZE_DEFAULT
+    args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
-    if args.store_profiles is True:
-        updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
+    ### convert this into AlleleCall.main(**vars(args))
+    AlleleCall.main(genome_list, loci_list, args.schema_directory, args.output_directory, args.ptf_path,
+                    args.blast_score_ratio, args.minimum_length, args.translation_table,
+                    args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
+                    args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
+                    args.no_inferred, args.output_unclassified, args.output_missing,
+                    args.no_cleanup, args.hash_profiles, args.mode, args.ns)
+
+    # if args.store_profiles is True:
+    #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
     # remove temporary files with paths to genomes and schema files
-    if input_type[0] is True:
-        fo.remove_files([schema_genes])
-    if input_type[1] is True:
-        fo.remove_files([genomes_files])
+    fo.remove_files([loci_list])
+    if genome_list != args.input_files:
+        fo.remove_files([genome_list])
 
 
-@pd.process_timer
+@pdt.process_timer
 def evaluate_schema():
 
     def msg(name=None):
@@ -636,7 +668,7 @@ def evaluate_schema():
     print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
 
 
-@pd.process_timer
+@pdt.process_timer
 def test_schema():
 
     def msg(name=None):
@@ -691,7 +723,7 @@ def test_schema():
     TestGenomeQuality.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def extract_cgmlst():
 
     def msg(name=None):
@@ -762,7 +794,7 @@ def extract_cgmlst():
     Extract_cgAlleles.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def remove_genes():
 
     def msg(name=None):
@@ -810,7 +842,7 @@ def remove_genes():
     RemoveGenes.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def join_profiles():
 
     def msg(name=None):
@@ -852,7 +884,7 @@ def join_profiles():
     profile_joiner.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def prep_schema():
 
     def msg(name=None):
@@ -963,7 +995,7 @@ def prep_schema():
     if args.ptf_path is not None:
         shutil.copy(args.ptf_path, args.output_directory)
         # determine PTF checksum
-        ptf_hash = fo.hash_file(args.ptf_path, 'rb')
+        ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
     # write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
@@ -977,7 +1009,7 @@ def prep_schema():
     genes_list_file = pv.write_gene_list(args.output_directory)
 
 
-@pd.process_timer
+@pdt.process_timer
 def find_uniprot():
 
     def msg(name=None):
@@ -1060,6 +1092,10 @@ def find_uniprot():
                         default=1, dest='proteome_matches',
                         help='Maximum number of proteome matches to report.')
 
+    parser.add_argument('--no-sparql', action='store_true',
+                        required=False, dest='no_sparql',
+                        help='')
+
     parser.add_argument('--no-cleanup', action='store_true',
                         required=False, dest='no_cleanup',
                         help='If provided, intermediate files generated '
@@ -1076,7 +1112,7 @@ def find_uniprot():
     uniprot_find.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def download_schema():
 
     def msg(name=None):
@@ -1159,7 +1195,7 @@ def download_schema():
     down_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def upload_schema():
 
     def msg(name=None):
@@ -1267,7 +1303,7 @@ def upload_schema():
     load_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def synchronize_schema():
 
     def msg(name=None):
@@ -1335,10 +1371,10 @@ def synchronize_schema():
                              'NS. (only authorized users can submit '
                              'new alleles).')
 
-    parser.add_argument('--update-profiles', required=False,
-                        action='store_true', dest='update_profiles',
-                        help='If the process should update local profiles '
-                             'stored in the SQLite database.')
+    # parser.add_argument('--update-profiles', required=False,
+    #                     action='store_true', dest='update_profiles',
+    #                     help='If the process should update local profiles '
+    #                          'stored in the SQLite database.')
 
     args = parser.parse_args()
     del args.SyncSchema
@@ -1346,7 +1382,7 @@ def synchronize_schema():
     sync_schema.main(**vars(args))
 
 
-@pd.process_timer
+@pdt.process_timer
 def ns_stats():
 
     def msg(name=None):

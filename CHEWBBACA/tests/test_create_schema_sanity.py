@@ -4,11 +4,12 @@
 import py
 import os
 import sys
+import shutil
 import pickle
 import pytest
 import filecmp
 from unittest.mock import patch
-#from contextlib import nullcontext as does_not_raise
+# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
 
@@ -130,3 +131,9 @@ def test_createschema_empty_pairs(test_args, expected):
 
     assert e.type == SystemExit
     assert expected in e.value.code
+
+    # delete results
+    try:
+        shutil.rmtree(test_args[5])
+    except Exception as e2:
+        pass

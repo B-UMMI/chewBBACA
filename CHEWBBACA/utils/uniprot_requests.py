@@ -13,6 +13,7 @@ Code documentation
 
 
 import time
+from urllib.request import urlopen
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
@@ -20,7 +21,7 @@ try:
                        file_operations as fo,
                        fasta_operations as fao,
                        sequence_manipulation as sm)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  fasta_operations as fao,
@@ -30,27 +31,47 @@ except:
 UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
-def select_name(result):
-    """ Extracts the annotation description from the result
-        of a query to UniProt's SPARQL endpoint.
+def website_availability(url):
+    """Determine if a website is reachable.
 
-        Parameters
-        ----------
-        result : dict
-            A dictionary with the results from querying
-            the UniProt SPARQL endpoint.
+    Parameters
+    ----------
+    url : str
+        URL to a website.
 
-        Returns
-        -------
-        A list with the following elements:
-            name : str
-                The annotation descrition.
-            url : str
-                The URL to the UniProt page about the protein record.
-            label : str
-                A label that has descriptive value.
+    Returns
+    -------
+    reponse : http.client.HTTPResponse or urllib.error.HTTPError
+        Responde with status code 200 if website is reachable
+        or a different status code if the website was not reachable.
     """
+    try:
+        response = urlopen(url)
+    except Exception as e:
+        response = e
 
+    return response
+
+
+def select_name(result):
+    """Extract an annotation from the result of a query to UniProt.
+
+    Parameters
+    ----------
+    result : dict
+        A dictionary with the results from querying
+        the UniProt SPARQL endpoint.
+
+    Returns
+    -------
+    A list with the following elements:
+        selected_name : str
+            The annotation description.
+        selected_url : str
+            The URL to the UniProt page about the protein record.
+        selected_label : str
+            A label that has descriptive value.
+    """
     url = ''
     name = ''
     label = ''
@@ -58,13 +79,17 @@ def select_name(result):
     selected_url = ''
     selected_label = ''
 
-    i = 1
+    i = 0
     found = False
     # get the entries with results
-    aux = result['results']['bindings']
-    total_res = len(aux)
+    try:
+        aux = result['results']['bindings']
+    # response does not contain annotation data
+    except Exception as e:
+        aux = {}
+
     # only check results that are not empty
-    if total_res > 0:
+    if len(aux) > 0:
         # iterate over all results to find suitable
         while found is False:
             current_res = aux[i]
@@ -94,7 +119,7 @@ def select_name(result):
                 selected_name = name
                 selected_url = url
                 selected_label = label
-                found=True
+                found = True
             else:
                 if selected_name == '':
                     selected_name = name
@@ -102,29 +127,27 @@ def select_name(result):
                     selected_label = label
 
             i += 1
-            if i == total_res:
+            if i == len(aux):
                 found = True
 
     return [selected_name, selected_url, selected_label]
 
 
 def uniprot_query(sequence):
-    """ Constructs a SPARQL query to search for exact matches in
-        UniProt's SPARQL endpoint.
+    """Construct a SPARQL query to search for exact matches in UniProt.
 
-        Parameters
-        ----------
-        sequence : str
-            The Protein sequence that will be added to
-            the query/searched for.
+    Parameters
+    ----------
+    sequence : str
+        The Protein sequence that will be added to
+        the query/searched for.
 
-        Returns
-        -------
-        query : str
-            The SPARQL query that will allow to search for
-            exact matches in the UniProt database.
+    Returns
+    -------
+    query : str
+        The SPARQL query that will allow to search for
+        exact matches in the UniProt database.
     """
-
     query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
              'PREFIX up: <http://purl.uniprot.org/core/> '
              'select ?seq ?fname ?sname2 ?label  where {'
@@ -139,20 +162,20 @@ def uniprot_query(sequence):
 
 
 def get_data(sparql_query):
-    """ Sends requests to query UniProts's SPARQL endpoint.
+    """Send requests to query UniProts's SPARQL endpoint.
 
-        Parameters
-        ----------
-        sparql_query : str
-            SPARQL query.
+    Parameters
+    ----------
+    sparql_query : str
+        SPARQL query.
 
-        Returns
-        -------
-        result : dict
-            Dictionary with data retrieved from UniProt.
+    Returns
+    -------
+    result : dict
+        Dictionary with data retrieved from UniProt.
     """
-
     tries = 0
+    failed = []
     max_tries = 5
     success = False
     while success is False and tries < max_tries:
@@ -163,32 +186,36 @@ def get_data(sparql_query):
             result = UNIPROT_SERVER.query().convert()
             success = True
         except Exception as e:
+            # might fail if sequence is too long for GET method(URITooLong)
+            failed.append(e)
             tries += 1
-            result = e
             time.sleep(1)
 
-    return result
+    if success is False:
+        result = {}
+
+    return [result, failed]
 
 
 def get_proteomes(proteome_ids, output_dir):
-    """ Downloads reference proteomes from UniProt's FTP.
-    
-        Parameters
-        ----------
-        proteomes : list
-            List with a sublist per proteome to download.
-            Each sublist has the information about a proteome
-            that was contained in the README file with the list
-            of UniProt's reference proteomes.
-        output_dir : str
-            Path to the output directory where downloaded
-            proteomes will be saved to.
+    """Download reference proteomes from UniProt's FTP.
 
-        Returns
-        -------
+    Parameters
+    ----------
+    proteomes : list
+        List with a sublist per proteome to download.
+        Each sublist has the information about a proteome
+        that was contained in the README file with the list
+        of UniProt's reference proteomes.
+    output_dir : str
+        Path to the output directory where downloaded
+        proteomes will be saved to.
+
+    Returns
+    -------
+    proteomes_files : list
         Local paths to the downloaded proteomes.
     """
-
     print('Downloading reference proteomes...')
     # construct FTP URLs for each proteome
     downloaded = 0
@@ -209,84 +236,84 @@ def get_proteomes(proteome_ids, output_dir):
 
 
 def get_annotation(gene, translation_table):
-    """ Retrieves and selects annotation terms for a set of
-        alleles from the same locus.
+    """Retrieve and select best annotation for a locus.
 
-        Parameters
-        ----------
-        gene : str
-            Path to a FASTA file with the DNA sequences for
-            the alleles of the locus.
-        translation_table : int
-            Translation table used to translate DNA sequences.
+    Parameters
+    ----------
+    gene : str
+        Path to a FASTA file with the DNA sequences for
+        the alleles of the locus.
+    translation_table : int
+        Translation table used to translate DNA sequences.
 
-        Returns
-        -------
-        gene : str
-            Path to a FASTA file with the DNA sequences for
-            the alleles of the locus.
-        selected_name : str
-            Product name selected from the terms retrieved from UniProt.
-        selected_url : str
-            URL for the page with information about the selected terms.
+    Returns
+    -------
+    gene : str
+        Path to a FASTA file with the DNA sequences for
+        the alleles of the locus.
+    selected_name : str
+        Product name selected from the terms retrieved from UniProt.
+    selected_url : str
+        URL for the page with information about the selected terms.
     """
-
-    selected_name = ''
     selected_url = ''
+    selected_name = ''
+    # import locus alleles
     sequences = fao.import_sequences(gene)
     for seqid, sequence in sequences.items():
+        # translate allele
         protein_sequence = str(sm.translate_sequence(sequence,
                                                      table_id=translation_table))
 
-        protein_sequence = protein_sequence.replace("*", "")
-
         query = uniprot_query(protein_sequence)
-        result = get_data(query)
+        result, failed = get_data(query)
 
-        name, url, label = select_name(result)
+        if len(result) > 0:
+            name, url, label = select_name(result)
 
-        lowercase_name = name.lower()
-        if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
-            if selected_name == '':
+            lowercase_name = name.lower()
+            if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
+                if selected_name == '':
+                    selected_name = name
+                    selected_url = url
+                continue
+            elif name == '':
+                continue
+            else:
                 selected_name = name
                 selected_url = url
-            continue
-        elif name == '':
-            continue
-        else:
-            selected_name = name
-            selected_url = url
-            break
+                break
 
-    return [gene, selected_name, selected_url]
+    return [gene, selected_name, selected_url, failed]
 
 
 def extract_proteome_terms(header_items):
-    """ Extracts the sequence identifier, product name,
-        gene name and species name fields from the sequence
-        header of a reference proteome from Uniprot.
+    """Extract information from the header of a proteome record.
 
-        Parameters
-        ----------
-        header_items : dict
-            Dictionary with the keys and values from a Biopython
-            Bio.SeqRecord.SeqRecord object. Created by passing the
-            Biopython Bio.SeqRecord.SeqRecord object to the vars
-            function.
+    Extracts the sequence identifier, product name, gene name
+    and species name fields from the sequence header of a
+    reference proteome from Uniprot.
 
-        Returns
-        -------
-        seqid : str
-            Sequence identifier of the record. Composed
-            of the db, UniqueIdentifier and EntryName fields.
-        record_product : str
-            ProteinName field value in the sequence header.
-        record_gene_name : str
-            GeneName field (GN) in the sequence header.
-        record_species : str
-            OrganismName field (OS) in the sequence header.
+    Parameters
+    ----------
+    header_items : dict
+        Dictionary with the keys and values from a Biopython
+        Bio.SeqRecord.SeqRecord object. Created by passing the
+        Biopython Bio.SeqRecord.SeqRecord object to the vars
+        function.
+
+    Returns
+    -------
+    seqid : str
+        Sequence identifier of the record. Composed
+        of the db, UniqueIdentifier and EntryName fields.
+    record_product : str
+        ProteinName field value in the sequence header.
+    record_gene_name : str
+        GeneName field (GN) in the sequence header.
+    record_species : str
+        OrganismName field (OS) in the sequence header.
     """
-
     # some tags might be missing
     seqid = header_items.get('id', 'not_found')
     record_description = header_items.get('description', 'not_found')
@@ -303,5 +330,5 @@ def extract_proteome_terms(header_items):
             record_gene_name = (record_description.split('GN=')[1]).split(' PE=')[0]
         else:
             record_gene_name = 'not_found'
-    
+
     return [seqid, record_product, record_gene_name, record_species]

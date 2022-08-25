@@ -69,25 +69,26 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 
 def species_stats(base_url, headers_get):
-    """ Retrieves the list of species in the Chewie-NS
-        and the total number of schemas, loci and alleles
-        per species.
+    """Retrive summary statistics for a Chewie-NS instance.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Retrieves the list of species in the Chewie-NS
+    and the total number of schemas, loci and alleles
+    per species.
 
-        Returns
-        -------
-        species_stats : list of str
-            A list with formatted strings that can be joined
-            and printed to display a table with the information
-            retrieved from the Chewie-NS.
+    Parameters
+    ----------
+    base_url : str
+        Base URL of the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
+
+    Returns
+    -------
+    species_stats : list of str
+        A list with formatted strings that can be joined
+        and printed to display a table with the information
+        retrieved from the Chewie-NS.
     """
-
     # get species and number of schemas
     species = species_schemas_count(base_url, headers_get)
 
@@ -117,27 +118,28 @@ def species_stats(base_url, headers_get):
 
 
 def schema_stats(species_id, base_url, headers_get):
-    """ Retrieves schema properties, number of loci and
-        number of alleles for all schemas of a species in
+    """Retrieve list of schemas for a species in Chewie-NS.
+
+    Retrieves schema properties, number of loci and
+    number of alleles for all schemas of a species in
+    the Chewie-NS.
+
+    Parameters
+    ----------
+    species_id : str
+        The integer identifier of the species in
         the Chewie-NS.
+    base_url : str
+        Base URL of the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Parameters
-        ----------
-        species_id : str
-            The integer identifier of the species in
-            the Chewie-NS.
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
-
-        Returns
-        -------
-        res : list of dict or None
-            List with one dict per schema ot NoneType
-            if it was not possible to retrieve information.
+    Returns
+    -------
+    res : list of dict or None
+        List with one dict per schema ot NoneType
+        if it was not possible to retrieve information.
     """
-
     endpoint_list = ['stats', 'species', species_id, 'totals']
     # unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
@@ -151,25 +153,23 @@ def schema_stats(species_id, base_url, headers_get):
 
 
 def species_schemas_count(base_url, headers_get):
-    """ Returns the number of schemas per species in
-        the Chewie-NS.
+    """Return the number of schemas per species in Chewie-NS.
 
-        Parameters
-        ----------
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    base_url : str
+        Base URL of the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        info : list of list
-            A list with a sublist per species.
-            Each sublist contains the species
-            identifier, the name of the species
-            and the total number of schemas.
+    Returns
+    -------
+    info : list of list
+        A list with a sublist per species.
+        Each sublist contains the species
+        identifier, the name of the species
+        and the total number of schemas.
     """
-
     endpoint_list = ['stats', 'species']
     # unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
@@ -197,28 +197,26 @@ def species_schemas_count(base_url, headers_get):
 
 
 def species_schemas(species_id, base_url, headers_get):
-    """ Retrieves the species and all the schemas for that
-        species.
+    """Retrieve the list of schemas for a species in Chewie-NS.
 
-        Parameters
-        ----------
-        species_id : str
-            The integer identifier of the species in
-            the Chewie-NS.
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    species_id : str
+        The integer identifier of the species in
+        Chewie-NS.
+    base_url : str
+        Base URL of the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        res : list of dict
-            The first dictionary contains the species
-            URI and name and the following dictionaries
-            contain the URI and name for all schemas
-            associated with the species.
+    Returns
+    -------
+    res : list of dict
+        The first dictionary contains the species
+        URI and name and the following dictionaries
+        contain the URI and name for all schemas
+        associated with the species.
     """
-
     endpoint_list = ['species', species_id]
     # unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
@@ -228,36 +226,37 @@ def species_schemas(species_id, base_url, headers_get):
 
 
 def single_species(species_id, base_url, headers_get):
-    """ Retrieves the list of schemas for a species in
-        the Chewie-NS and the total number of loci and
-        alleles per schema.
+    """Retrieve summary statistics for a species' schemas.
 
-        Parameters
-        ----------
-        species_id : str
-            The integer identifier of the species in
-            the Chewie-NS.
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Retrieves the list of schemas for a species in
+    a Chewie-NS instance and the total number of loci and
+    alleles per schema.
 
-        Returns
-        -------
-        schemas_stats : list of str
-            A list with formatted strings that can be joined
-            and printed to display a table with the information
-            retrieved from the Chewie-NS.
+    Parameters
+    ----------
+    species_id : str
+        The integer identifier of the species in
+        Chewie-NS.
+    base_url : str
+        Base URL for a Chewie-NS instance.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Raises
-        ------
-        SystemExit
-            - If the process cannot retrieve a species with
-              specified identifier.
-            - If the process could not retrieve schemas for the
-              species.
+    Returns
+    -------
+    schemas_stats : list of str
+        A list with formatted strings that can be joined
+        and printed to display a table with the information
+        retrieved from Chewie-NS.
+
+    Raises
+    ------
+    SystemExit
+        - If the process cannot retrieve a species with
+          specified identifier.
+        - If the process could not retrieve schemas for the
+          species.
     """
-
     # get all schemas for species
     schemas = species_schemas(species_id, base_url, headers_get)
     if 'NOT FOUND' in schemas:
@@ -292,39 +291,38 @@ def single_species(species_id, base_url, headers_get):
 
 
 def single_schema(species_id, schema_id, base_url, headers_get):
-    """ Retrieves information about a schema in the Chewie-NS.
+    """Retrieve information about a schema in Chewie-NS.
 
-        Parameters
-        ----------
-        species_id : str
-            The integer identifier of the species in
-            the Chewie-NS.
-        schema_id : str
-            The integer identifier of the schema in
-            the Chewie-NS.
-        base_url : str
-            Base URL of the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
+    Parameters
+    ----------
+    species_id : str
+        The integer identifier of the species in
+        the Chewie-NS.
+    schema_id : str
+        The integer identifier of the schema in
+        the Chewie-NS.
+    base_url : str
+        Base URL of the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
 
-        Returns
-        -------
-        schema_info : list of str
-            A list with formatted strings that can be joined
-            and printed to display a table with the information
-            retrieved from the Chewie-NS.
+    Returns
+    -------
+    schema_info : list of str
+        A list with formatted strings that can be joined
+        and printed to display a table with the information
+        retrieved from the Chewie-NS.
 
-        Raises
-        ------
-        SystemExit
-            - If the process cannot retrieve a species with
-              specified identifier.
-            - If the process cannot retrieve schemas for the
-              species.
-            - If the process cannot retrieve information about
-              the schema with specified identifier.
+    Raises
+    ------
+    SystemExit
+        - If the process cannot retrieve a species with
+          specified identifier.
+        - If the process cannot retrieve schemas for the
+          species.
+        - If the process cannot retrieve information about
+          the schema with specified identifier.
     """
-
     # get all schemas for species
     species = species_schemas(species_id, base_url, headers_get)
     if 'NOT FOUND' in species:
@@ -451,5 +449,4 @@ def main(mode, nomenclature_server, species_id, schema_id):
 if __name__ == '__main__':
 
     args = parse_arguments()
-
     main(args[0], args[1], args[2], args[3])

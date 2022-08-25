@@ -13,38 +13,6 @@ ensuring that local and remote alleles have the same integer identifiers.
 The process also allows users to submit novel alleles and update the remote
 schema. Novel alleles that are not submitted keep a '*' in the identifier.
 
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-sc``, ``schema_directory`` : Path to the directory with the schema to be
-  synced.
-
-    - e.g.: ``/home/user/chewie_schemas/ecoli_schema``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores that will be used to
-  determine new representatives if the process downloads new alleles from
-  the Chewie-NS.
-
-    - e.g.: ``4``
-
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the
-  Nomenclature Server. The default option will get the base URL from
-  the schema's URI. It is also possible to specify other options that
-  are available in chewBBACA's configs, such as: "main" will establish
-  a connection to "https://chewbbaca.online/", "tutorial" to
-  "https://tutorial.chewbbaca.online/" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
-  the IP address to other Chewie-NS instances.
-
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
-
-- ``--submit`` : If the process should identify new alleles in the local
-  schema and send them to the Chewie-NS (only registered users can submit
-  new alleles).
-
 Code documentation
 ------------------
 """
@@ -56,7 +24,6 @@ import json
 import time
 import shutil
 import hashlib
-import argparse
 import requests
 from collections import defaultdict
 from SPARQLWrapper import SPARQLWrapper
@@ -88,33 +55,31 @@ uniprot_sparql = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def create_lengths_files(upload, temp_dir):
-    """ Creates files with the length values of the sequences
-        that will be sent to the Chewie-NS.
+    """Create files with sequence length values to send to Cheiwe-NS.
 
-        Parameters
-        ----------
-        upload : dict
-            Dictionary with loci identifiers as keys and lists
-            as values. Each list contains the following elements:
+    Parameters
+    ----------
+    upload : dict
+        Dictionary with loci identifiers as keys and lists
+        as values. Each list contains the following elements:
 
-            - A dictionary with sequences hashes as keys and a list
-              with the sequence identifier, DNA sequence and sequence
-              length value.
-            - The locus URI.
-        temp_dir : str
-            Path to the directory where the output files with
-            the length values of the sequences will be created.
+        - A dictionary with sequences hashes as keys and a list
+          with the sequence identifier, DNA sequence and sequence
+          length value.
+        - The locus URI.
+    temp_dir : str
+        Path to the directory where the output files with
+        the length values of the sequences will be created.
 
-        Returns
-        -------
-        length_files : list of str
-            List with paths to the pickled files that contain
-            the sequence length values. Each pickled file
-            contains a dictionary with hashes (sequence hashes
-            computed with sha256) as keys and sequence lengths
-            as values.
+    Returns
+    -------
+    length_files : list of str
+        List with paths to the pickled files that contain
+        the sequence length values. Each pickled file
+        contains a dictionary with hashes (sequence hashes
+        computed with sha256) as keys and sequence lengths
+        as values.
     """
-
     length_files = []
     for locus, v in upload.items():
         records = v[0]
@@ -130,43 +95,42 @@ def create_lengths_files(upload, temp_dir):
 
 def create_alleles_files(upload, base_url, user_id, species_name,
                          species_id, schema_id, temp_dir):
-    """ Creates files with the essential data to insert alleles in the NS.
+    """Create files with the essential data to insert alleles in Chewie-NS.
 
-        Parameters
-        ----------
-        upload : dict
-            Dictionary with loci identifiers as keys and lists
-            as values. Each list contains the following elements:
+    Parameters
+    ----------
+    upload : dict
+        Dictionary with loci identifiers as keys and lists
+        as values. Each list contains the following elements:
 
-            - A dictionary with sequences hashes as keys and a list
-              with the sequence identifier, DNA sequence and sequence
-              length value.
-            - The locus URI.
-        base_url : str
-            Base URL of the Chewie-NS.
-        user_id : int
-            Current user identifier.
-        species_name : str
-            Name of the species.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
-        temp_dir : str
-            Path to the directory where the output files  will
-            be created.
+        - A dictionary with sequences hashes as keys and a list
+          with the sequence identifier, DNA sequence and sequence
+          length value.
+        - The locus URI.
+    base_url : str
+        Base URL of the Chewie-NS.
+    user_id : int
+        Current user identifier.
+    species_name : str
+        Name of the species.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
+    temp_dir : str
+        Path to the directory where the output files  will
+        be created.
 
-        Returns
-        -------
-        list of list
-            List with the following elements:
+    Returns
+    -------
+    list of list
+        List with the following elements:
 
-            - List with paths to files that contain the data that
-              is necessary to upload and insert new alleles.
-            - List with the loci identifiers in the NS.
-            - List with loci basenames.
+        - List with paths to files that contain the data that
+          is necessary to upload and insert new alleles.
+        - List with the loci identifiers in the NS.
+        - List with loci basenames.
     """
-
     loci_ids = []
     loci_names = []
     alleles_files = []
@@ -197,57 +161,53 @@ def create_alleles_files(upload, base_url, user_id, species_name,
 
 def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
                         headers_post_bytes, species_id, schema_id):
-    """ Uploads files with the data to insert alleles and the
-        length values for the sequences of each locus.
+    """Upload files with the data to insert alleles in Chewie-NS.
 
-        Parameters
-        ----------
-        alleles_data : list
-            List with tuples, one per locus, that contain the path
-            to the ZIP archive with the data to insert alleles,
-            the identifier of the locus, the locus file hash and
-            the basename of the locus file.
-        length_files : list
-            List with paths to the pickled files that contain a
-            dictionary with sequences hashes as keys and sequence
-            length as values.
-        base_url : str
-            Base URL of the Nomenclature server.
-        headers_post : dict
-            HTTP headers for POST requests that accept JSON
-            formatted data.
-        headers_post_bytes : dict
-            HTTP headers for POST requests that support file
-            upload.
-        species_id : int
-            The identifier of the schema's species in the NS.
-        schema_id : int
-            The identifier of the schema in the NS.
+    Parameters
+    ----------
+    alleles_data : list
+        List with tuples, one per locus, that contain the path
+        to the ZIP archive with the data to insert alleles,
+        the identifier of the locus, the locus file hash and
+        the basename of the locus file.
+    length_files : list
+        List with paths to the pickled files that contain a
+        dictionary with sequences hashes as keys and sequence
+        length as values.
+    base_url : str
+        Base URL of the Nomenclature server.
+    headers_post : dict
+        HTTP headers for POST requests that accept JSON
+        formatted data.
+    headers_post_bytes : dict
+        HTTP headers for POST requests that support file
+        upload.
+    species_id : int
+        The identifier of the schema's species in the NS.
+    schema_id : int
+        The identifier of the schema in the NS.
 
-        Returns
-        -------
-        failed : list of str
-            List with the identifiers of the loci whose alleles
-            data could not be fully uploaded.
-        zip_res : dict
-            A dictionary with the response returned by the last
-            POST method. It has loci identifiers as keys and
-            lists with two dictionaries as values (the dictionaries
-            have sequences hashes as keys and sequence identifiers in
-            the Chewie-NS as values. The first dictionary has the hashes
-            of the sequences that were sent to the Chewie-NS but that were
-            already present in the loci and the identifiers of those repeated
-            alleles that were sent to the Chewie-NS. The second dictionary
-            has the same structure but for the sequences that were accepted and
-            inserted into each locus).
+    Returns
+    -------
+    failed : list of str
+        List with the identifiers of the loci whose alleles
+        data could not be fully uploaded.
+    zip_res : dict
+        A dictionary with the response returned by the last
+        POST method. It has loci identifiers as keys and
+        lists with two dictionaries as values (the dictionaries
+        have sequences hashes as keys and sequence identifiers in
+        the Chewie-NS as values. The first dictionary has the hashes
+        of the sequences that were sent to the Chewie-NS but that were
+        already present in the loci and the identifiers of those repeated
+        alleles that were sent to the Chewie-NS. The second dictionary
+        has the same structure but for the sequences that were accepted and
+        inserted into each locus).
     """
-
     uploaded = 0
     failed = []
     for i, a in enumerate(alleles_data):
-
         locus_id = a[1]
-
         # get length of alleles from current locus
         current_len = length_files[i]
         data = fo.pickle_loader(current_len)
@@ -293,35 +253,33 @@ def upload_alleles_data(alleles_data, length_files, base_url, headers_post,
 
 
 def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
-    """ Creates FASTA files with the information contained in
-        a pickled file.
+    """Create FASTA files from pickled files.
 
-        Parameters
-        ----------
-        locus : str
-            The identifier of the locus with '.fasta' suffix.
-        pickled_file : str
-            Path to the pickled file with a dictionary that
-            has integer identifiers as keys and a tuple with
-            two elements: the identifier that should be assigned
-            to the allele (might differ from the key if the allele
-            is new, in which case it starts with '*') and the DNA
-            sequence of the allele.
-        temp_dir : str
-            Path to the directory where the output FASTA file will
-            be created.
-        identifiers : dict
-            The `zip_res` variable returned by the
-            :py:func:`upload_alleles_data` function. It will be used
-            to change allele identifiers that were successfully
-            inserted into the Chewie-NS.
+    Parameters
+    ----------
+    locus : str
+        The identifier of the locus with '.fasta' suffix.
+    pickled_file : str
+        Path to the pickled file with a dictionary that
+        has integer identifiers as keys and a tuple with
+        two elements: the identifier that should be assigned
+        to the allele (might differ from the key if the allele
+        is new, in which case it starts with '*') and the DNA
+        sequence of the allele.
+    temp_dir : str
+        Path to the directory where the output FASTA file will
+        be created.
+    identifiers : dict
+        The `zip_res` variable returned by the
+        :py:func:`upload_alleles_data` function. It will be used
+        to change allele identifiers that were successfully
+        inserted into the Chewie-NS.
 
-        Returns
-        -------
-        fasta_path : str
-            Path to the FASTA file created by this function
+    Returns
+    -------
+    fasta_path : str
+        Path to the FASTA file created by this function
     """
-
     locus_id = locus.rstrip('.fasta')
     locus_int = locus_id.split('-')[-1].lstrip('0')
     if locus_int in identifiers:
@@ -384,45 +342,46 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
 
 def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
                      count, headers_get, ns_date):
-    """ Retrieves alleles added to a schema in the Chewie-NS
-        during a time interval, up to the maximum number of
-        alleles that the server returns at a time (50000).
+    """Retrieve alleles added to Chewie-NS since last sync date.
 
-        Parameters
-        ----------
-        loci_new_alleles : dict
-            A dictionary with loci identifiers as keys and
-            dictionaries with alleles identifiers and DNA
-            sequences as values.
-        server_time : str
-            The function will return alleles added to the
-            schema after this date (format Y-%m-%dT%H:%M:%S).
-        schema_uri : str
-            The URI of the schema in the Chewie-NS.
-        count : int
-            The cumulative number of sequences that has been
-            returned.
-        headers_get : dict
-            HTTP headers for GET requests.
-        ns_date : str
-            The function will return alleles added to the
-            schema up to this date (format Y-%m-%dT%H:%M:%S).
+    Retrieves alleles added to a schema in Chewie-NS
+    during a time interval, up to the maximum number of
+    alleles that the server returns at a time (50000).
 
-        Returns
-        -------
-        A list with the following variables:
+    Parameters
+    ----------
+    loci_new_alleles : dict
+        A dictionary with loci identifiers as keys and
+        dictionaries with alleles identifiers and DNA
+        sequences as values.
+    server_time : str
+        The function will return alleles added to the
+        schema after this date (format Y-%m-%dT%H:%M:%S).
+    schema_uri : str
+        The URI of the schema in the Chewie-NS.
+    count : int
+        The cumulative number of sequences that has been
+        returned.
+    headers_get : dict
+        HTTP headers for GET requests.
+    ns_date : str
+        The function will return alleles added to the
+        schema up to this date (format Y-%m-%dT%H:%M:%S).
 
-        loci_new_alleles :  dict
-            Input `loci_new_alleles` dictionary with alleles
-            returned in the current and previous iterations.
-        server_time : str
-            The date of insertion of the last allele returned by
-            the Chewie-NS.
-        count : int
-            The cumulative number of sequences that has been
-            returned.
+    Returns
+    -------
+    A list with the following variables:
+
+    loci_new_alleles :  dict
+        Input `loci_new_alleles` dictionary with alleles
+        returned in the current and previous iterations.
+    server_time : str
+        The date of insertion of the last allele returned by
+        the Chewie-NS.
+    count : int
+        The cumulative number of sequences that has been
+        returned.
     """
-
     # request the new alleles starting on the date given
     url = cr.make_url(schema_uri, 'loci')
     payload = {'local_date': server_time, 'ns_date': ns_date}
@@ -458,117 +417,106 @@ def retrieve_alleles(loci_new_alleles, server_time, schema_uri,
 
 def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
                  temp_dir, rearranged):
-    """ Reassigns alleles identifiers of loci that were altered
-        in the Chewie-NS since last sync process. Identifier
-        reassignment will ensure that local and remote alleles
-        have the same identifiers or that alleles that are only
-        local are assigned an identifier that does not match any
-        identifier in the Chewie-NS.
+    """Reassign local allele identifiers based on Chewie-NS nomenclature.
 
-        Parameters
-        ----------
-        loci : dict
-            A dictionary with loci identifiers as keys and nested
-            dictionaries as values (one nested dictionary per entry,
-            with alleles identifiers as keys and DNA sequences as values).
-        schema_dir : str
-            Path to the schema's diretory.
-        pickled_loci : dict
-            A dictionary that will be used to store paths to
-            pickled files with the records for each locus that is
-            processed.
-        not_in_ns : dict
-            A dictionary that will be used to store information
-            about local alleles that are not in the Chewie-NS.
-        temp_dir : str
-            Path to the directory where the output FASTA file will
-            be created.
+    Reassigns allele identifiers of loci that were altered
+    in the Chewie-NS since last sync process. Identifier
+    reassignment will ensure that local and remote alleles
+    have the same identifiers or that alleles that are only
+    local are assigned an identifier that does not match any
+    identifier in the Chewie-NS.
 
-        Returns
-        -------
-        A list with three elements:
+    Parameters
+    ----------
+    loci : dict
+        A dictionary with loci identifiers as keys and nested
+        dictionaries as values (one nested dictionary per entry,
+        with alleles identifiers as keys and DNA sequences as values).
+    schema_dir : str
+        Path to the schema's diretory.
+    pickled_loci : dict
+        A dictionary that will be used to store paths to
+        pickled files with the records for each locus that is
+        processed.
+    not_in_ns : dict
+        A dictionary that will be used to store information
+        about local alleles that are not in the Chewie-NS.
+    temp_dir : str
+        Path to the directory where the output FASTA file will
+        be created.
 
-        - pickled_loci : dict
-            Input `pickled_loci` variable updated with the paths
-            to the pickled files with the records of the loci that
-            were altered in the Chewie-NS since last sync process.
-        - not_in_ns : dict
-            Input `not_in_ns` variable that was updated with the
-            information about all alleles that are not in the
-            Chewie-NS.
-        - rearranged : dict
-            A dictionary with loci identifiers as keys and lists
-            as values. Each list contains one or more two-element
-            tuples that represent identifiers reassignments
-            (e.g.: (*2, 3), *2 --> 3 ).
+    Returns
+    -------
+    A list with three elements:
+
+    - pickled_loci : dict
+        Input `pickled_loci` variable updated with the paths
+        to the pickled files with the records of the loci that
+        were altered in the Chewie-NS since last sync process.
+    - not_in_ns : dict
+        Input `not_in_ns` variable that was updated with the
+        information about all alleles that are not in the
+        Chewie-NS.
+    - rearranged : dict
+        A dictionary with loci identifiers as keys and lists
+        as values. Each list contains one or more two-element
+        tuples that represent identifiers reassignments
+        (e.g.: (*2, 3), *2 --> 3 ).
     """
-
     for locus, alleles in loci.items():
-
         locus_id = locus.rstrip('.fasta')
-
-        # get latest alleles retrieved from the Chewie-NS
-        ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
-
         # paths for current and temp locus file
         locus_file = os.path.join(schema_dir, locus)
 
-        # get local locus sequences
-        records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
-                   for rec in SeqIO.parse(locus_file, 'fasta')}
+        # get the latest alleles retrieved from Chewie-NS
+        ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
 
-        # check if the NS and local schema have the same set of
-        # sequence identifiers
-        ns_ids = set(list(ns_seqs.values()))
-        local_ids = set([rec[0] for seqid, rec in records.items()])
+        local_seqs = {str(rec.seq): [rec.id, (rec.id).split('_')[-1]]
+                      for rec in SeqIO.parse(locus_file, 'fasta')}
 
-        # proceed to next locus if set of identifiers is equa
-        if ns_ids == local_ids:
-            continue
+        # create dictionary with updated records
+        # add local records without '*'
+        updated_records = {v[0]: [v[1], k] for k, v in local_seqs.items() if '*' not in v[1]}
 
-        # invert local dict
-        inv_local = {v[1]: [k, v[0]] for k, v in records.items()}
-
-        # alter identifiers of local alleles that were added to the NS
+        # add records that were added to the remote schema since last sync
         switched = {}
         for seq, seqid in ns_seqs.items():
-            records[seqid] = [seqid.split('_')[-1], seq]
-            if seq in inv_local:
-                switched[inv_local[seq][1]] = seqid
-                del records[inv_local[seq][0]]
+            updated_records[seqid] = [seqid.split('_')[-1], seq]
+            if seq in local_seqs:
+                switched[local_seqs[seq][1]] = seqid
+                # remove sequence from local sequences to avoid sending
+                # duplicated sequences to Chewie-NS
+                del local_seqs[seq]
 
-        # identify alleles with '*' and move them to top
-        max_id = max([int(v[0]) for k, v in records.items() if '*' not in k])
+        # identify largest allele identifier in Chewie-NS
+        max_id = max([int(v[0]) for k, v in updated_records.items()])
 
-        novel_ids = [k for k in records if '*' in k]
-        sorted_novel = sorted(novel_ids, key=lambda x: int(x.split('*')[-1]))
+        local_ids = [(v[1], k) for k, v in local_seqs.items() if '*' in v[0]]
+        sorted_novel = sorted(local_ids, key=lambda x: int(x[0][1:]))
 
         for si in sorted_novel:
             max_id += 1
             new_id = '*{0}'.format(max_id)
             new_seqid = '{0}_{1}'.format(locus_id, new_id)
-            records[new_seqid] = [new_id, records[si][1]]
-            if si != new_seqid:
-                del records[si]
-                switched[si.split('_')[-1]] = new_id
+            updated_records[new_seqid] = [new_id, si[1]]
+            switched[si[0]] = new_id
 
-        # determine records that are not in the NS
-        novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
-                         [v[0], v[1], len(v[1])]
-                         for k, v in records.items() if '*' in v[0]}
-        if len(novel_alleles) > 0:
+        if len(updated_records) > 0:
+            novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+                             [v[0], v[1], len(v[1])]
+                             for k, v in updated_records.items() if '*' in v[0]}
             not_in_ns[locus] = [novel_alleles]
 
         if len(switched) > 0:
             rearranged[locus] = switched
 
-        updated_records = {}
-        for seqid, seq in records.items():
-            int_seqid = int(seq[0]) if '*' not in seq[0] else int(seq[0][1:])
-            updated_records[int_seqid] = (seq[0], seq[1])
+        updated_records2 = {}
+        for seqid, v in updated_records.items():
+            int_seqid = int(v[0]) if '*' not in v[0] else int(v[0][1:])
+            updated_records2[int_seqid] = (seqid, v[1])
 
         temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
-        fo.pickle_dumper(updated_records, temp_file)
+        fo.pickle_dumper(updated_records2, temp_file)
 
         pickled_loci[locus] = temp_file
 
@@ -576,44 +524,45 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
 
 
 def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
-    """ Determines if local schema has new alleles for loci that
-        were not updated in the Chewie-NS. Creates a pickled
-        file for each locus that has new alleles.
+    """Determine set of loci that were altered locally only.
 
-        Parameters
-        ----------
-        loci : dict
-            A dictionary with loci identifiers as keys and nested
-            dictionaries as values (one nested dictionary per entry,
-            with alleles identifiers as keys and DNA sequences as values).
-        schema_dir : str
-            Path to the schema's diretory.
-        pickled_loci : dict
-            A dictionary that will be used to store paths to
-            pickled files with the records for each locus that is
-            processed.
-        not_in_ns : dict
-            A dictionary that will be used to store information
-            about local alleles that are not in the Chewie-NS.
-        temp_dir : str
-            Path to the directory where the output FASTA file will
-            be created.
+    Determines if local schema has new alleles for loci that
+    were not updated in the Chewie-NS. Creates a pickled
+    file for each locus that has new alleles.
 
-        Returns
-        -------
-        A list with two elements:
+    Parameters
+    ----------
+    loci : dict
+        A dictionary with loci identifiers as keys and nested
+        dictionaries as values (one nested dictionary per entry,
+        with alleles identifiers as keys and DNA sequences as values).
+    schema_dir : str
+        Path to the schema's diretory.
+    pickled_loci : dict
+        A dictionary that will be used to store paths to
+        pickled files with the records for each locus that is
+        processed.
+    not_in_ns : dict
+        A dictionary that will be used to store information
+        about local alleles that are not in the Chewie-NS.
+    temp_dir : str
+        Path to the directory where the output FASTA file will
+        be created.
 
-        - pickled_loci : dict
-            Input `pickled_loci` variable updated with the paths
-            to the pickled files with the records of the loci that
-            were not altered in the Chewie-NS since last sync process
-            but were altered locally.
-        - not_in_ns : dict
-            Input `not_in_ns` variable that was updated with the
-            information about all alleles that are not in the
-            Chewie-NS.
+    Returns
+    -------
+    A list with two elements:
+
+    - pickled_loci : dict
+        Input `pickled_loci` variable updated with the paths
+        to the pickled files with the records of the loci that
+        were not altered in the Chewie-NS since last sync process
+        but were altered locally.
+    - not_in_ns : dict
+        Input `not_in_ns` variable that was updated with the
+        information about all alleles that are not in the
+        Chewie-NS.
     """
-
     for gene in loci:
         locus_id = gene.rstrip('.fasta')
         locus_file = os.path.join(schema_dir, gene)
@@ -641,58 +590,59 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
 
 
 def update_loci_files(loci, local_loci, schema_dir, temp_dir):
-    """ Determines which loci were or were not updated in the
-        remote schema, alleles that are not in the Chewie-NS,
-        reassigns identifiers to ensure that alleles that are
-        common to local and remote schema have the same
-        identifiers and saves updated records to pickled files
-        to allow the update of the local schema and of the
-        remote schema by sending novel alleles to the Chewie-NS.
+    """Determine set loci/alleles to update in the local and remote schemas.
 
-        Parameters
-        ----------
-        loci : dict
-            Dictionary with the alleles added to the remote
-            schema since last sync date.
-        local_loci : list
-            List with the names of the schema's loci files.
-        schema_dir : str
-            Path to the schema's diretory.
-        temp_dir : str
-            Path to the directory where the output pickled files
-            will be created.
+    Determines which loci were or were not updated in the
+    remote schema, alleles that are not in the Chewie-NS,
+    reassigns identifiers to ensure that alleles that are
+    common to local and remote schema have the same
+    identifiers and saves updated records to pickled files
+    to allow the update of the local schema and of the
+    remote schema by sending novel alleles to the Chewie-NS.
 
-        Returns
-        -------
-        A list with five elements:
+    Parameters
+    ----------
+    loci : dict
+        Dictionary with the alleles added to the remote
+        schema since last sync date.
+    local_loci : list
+        List with the names of the schema's loci files.
+    schema_dir : str
+        Path to the schema's diretory.
+    temp_dir : str
+        Path to the directory where the output pickled files
+        will be created.
 
-        - not_in_ns : dict
-            Dictionary with information about local alleles that are not
-            in the Chewie-NS. It has loci identifiers as keys and lists
-            as values. Each list contains the following elements:
+    Returns
+    -------
+    A list with five elements:
 
-            - A dictionary with sequences hashes as keys and a list
-              with the sequence identifier, DNA sequence and sequence
-              length value.
-            - The locus URI.
-        - pickled_loci : dict
-            A dictionary with paths to pickled files that contain the
-            records for each locus that has been altered in the remote
-            schema and/or locally with new alleles added during the
-            AlleleCall process.
-        - updated : dict
-            Dictionary with the alleles added to the remote
-            schema since last sync date.
-        - not_updated : list
-            List of loci that were not altered in the remote schema
-            since last sync process.
-        - rearranged : dict
-            A dictionary with loci identifiers as keys and lists
-            as values. Each list contains one or more two-element
-            tuples that represent identifiers reassignments
-            (e.g.: (*2, 3), *2 --> 3 ).
+    - not_in_ns : dict
+        Dictionary with information about local alleles that are not
+        in the Chewie-NS. It has loci identifiers as keys and lists
+        as values. Each list contains the following elements:
+
+        - A dictionary with sequences hashes as keys and a list
+          with the sequence identifier, DNA sequence and sequence
+          length value.
+        - The locus URI.
+    - pickled_loci : dict
+        A dictionary with paths to pickled files that contain the
+        records for each locus that has been altered in the remote
+        schema and/or locally with new alleles added during the
+        AlleleCall process.
+    - updated : dict
+        Dictionary with the alleles added to the remote
+        schema since last sync date.
+    - not_updated : list
+        List of loci that were not altered in the remote schema
+        since last sync process.
+    - rearranged : dict
+        A dictionary with loci identifiers as keys and lists
+        as values. Each list contains one or more two-element
+        tuples that represent identifiers reassignments
+        (e.g.: (*2, 3), *2 --> 3 ).
     """
-
     rearranged = {}
     not_in_ns = {}
     pickled_loci = {}
@@ -712,42 +662,40 @@ def update_loci_files(loci, local_loci, schema_dir, temp_dir):
                                              pickled_loci, not_in_ns,
                                              temp_dir)
 
-    return [not_in_ns, pickled_loci, updated, not_updated, rearranged]
+    return [not_in_ns, pickled_loci, rearranged]
 
 
 def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
-    """ Retrieves alleles added to a schema in the Chewie-NS after
-        a specified date.
+    """Retrieve alleles added to a schema in Chewie-NS after a specified date.
 
-        Parameters
-        ----------
-        local_date : str
-            Last sync date. The function will return alleles added
-            to the remote schema after this date (format Y-%m-%dT%H:%M:%S).
-        schema_uri : str
-            The URI of the schema in the Chewie-NS.
-        headers_get : dict
-            HTTP headers for GET requests.
-        ns_date : str
-            Last modification date of the remote schema in the Chewie-NS.
-            The function will return alleles added to the schema up to
-            this date (format Y-%m-%dT%H:%M:%S).
+    Parameters
+    ----------
+    local_date : str
+        Last sync date. The function will return alleles added
+        to the remote schema after this date (format Y-%m-%dT%H:%M:%S).
+    schema_uri : str
+        The URI of the schema in the Chewie-NS.
+    headers_get : dict
+        HTTP headers for GET requests.
+    ns_date : str
+        Last modification date of the remote schema in the Chewie-NS.
+        The function will return alleles added to the schema up to
+        this date (format Y-%m-%dT%H:%M:%S).
 
-        Returns
-        -------
-        A list with the following variables:
+    Returns
+    -------
+    A list with the following variables:
 
-        new_alleles : dict
-            A dictionary with loci identifiers as keys and
-            dictionaries with alleles identifiers and DNA
-            sequences as values.
-        server_time : str
-            The last modification date of the remote schema.
-        count : int
-            The total number of sequences that were retrieved from
-            the Chewie-NS.
+    new_alleles : dict
+        A dictionary with loci identifiers as keys and
+        dictionaries with alleles identifiers and DNA
+        sequences as values.
+    server_time : str
+        The last modification date of the remote schema.
+    count : int
+        The total number of sequences that were retrieved from
+        the Chewie-NS.
     """
-
     # get list of sequences that are new considering the last date
     count = 0
     server_time = local_date
@@ -765,55 +713,8 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
     return [new_alleles, server_time, count]
 
 
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-sc', type=str, dest='schema_directory',
-                        required=True,
-                        help='Path to the directory with the schema to be'
-                             'synced.')
-
-    parser.add_argument('--cpu', type=int, required=False,
-                        dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used to determine new representatives '
-                             'if the process downloads new alleles from '
-                             'the Chewie-NS.')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        dest='nomenclature_server',
-                        default=None,
-                        help='The base URL for the Nomenclature Server. '
-                             'The default option will get the base URL from the '
-                             'schema\'s URI. It is also possible to specify other '
-                             'options that are available in chewBBACA\'s configs, '
-                             'such as: "main" will establish a connection to '
-                             '"https://chewbbaca.online/", "tutorial" to '
-                             '"https://tutorial.chewbbaca.online/" and "local" '
-                             'to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--submit', required=False,
-                        action='store_true', dest='submit',
-                        help='If the process should identify new alleles '
-                             'in the local schema and send them to the '
-                             'NS. (only users with permissions level of '
-                             'Contributor can submit new alleles).')
-
-    parser.add_argument('--b', type=pv.check_blast, required=False,
-                        default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    args = parser.parse_args()
-
-    return args
-
-
 def main(schema_directory, cpu_cores, nomenclature_server,
-         submit, blast_path, update_profiles):
+         submit, blast_path):#, update_profiles):
 
     # get ns configs
     local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
@@ -870,14 +771,13 @@ def main(schema_directory, cpu_cores, nomenclature_server,
             if k != 'chewBBACA_version']) is not True:
         sys.exit('Cannot sync schema with multiple values per parameter.')
 
-    # check if schema exists in the NS
+    # check if schema exists in Chewie-NS
     schema_name, ns_params = cr.get_species_schemas(schema_id,
                                                     species_id,
                                                     nomenclature_server,
                                                     headers_get)[2:]
 
     # verify that local configs match NS configs
-    # add window size
     if all([str(schema_params[k][0]) == ns_params[k]['value']
             for k in schema_params
             if k not in ['chewBBACA_version', 'window_size']]) is not True:
@@ -925,10 +825,8 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure
-    not_in_ns, pickled_loci, \
-        updated, not_update, \
-        rearranged = update_loci_files(loci_alleles, genes,
-                                       schema_directory, temp_dir)
+    not_in_ns, pickled_loci, rearranged = update_loci_files(loci_alleles, genes,
+                                                            schema_directory, temp_dir)
 
     total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
     print('Local schema has {0} novel alleles for {1} '
@@ -1066,13 +964,13 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                                      rearranged)
 
     # change identifiers in SQLite DB
-    if len(rearranged) > 0 and update_profiles is True:
-        print('\nUpdating local allele identifiers...')
-        altered = ps.update_profiles(schema_directory, rearranged)
-        if altered is not None:
-            print('Updated {0} profiles.\n'.format(altered))
-        else:
-            print('Could not find local SQLite database to upload profiles.\n')
+    # if len(rearranged) > 0 and update_profiles is True:
+    #     print('\nUpdating local allele identifiers...')
+    #     altered = ps.update_profiles(schema_directory, rearranged)
+    #     if altered is not None:
+    #         print('Updated {0} profiles.\n'.format(altered))
+    #     else:
+    #         print('Could not find local SQLite database to upload profiles.\n')
 
     # Re-determine the representative sequences
     if attributed > 0 or count > 0:
@@ -1110,15 +1008,5 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     # delete pre-computed BSR values from 'short' directory
     # representatives might have changed and BSR values are outdated
-    short_dir = os.path.join(schema_directory, 'short')
-    bsr_files = [os.path.join(short_dir, f)
-                 for f in os.listdir(short_dir)
-                 if f.endswith('_bsr.txt')]
-    fo.remove_files(bsr_files)
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-
-    main(**vars(args))
+    bsr_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+    fo.remove_files([bsr_file])

@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This module contains functions/classes related to parameters
-and arguments validation.
+This module contains functions/classes related to parameter
+and argument validation.
 
 Code documentation
 ------------------
@@ -17,6 +17,7 @@ import re
 import sys
 import csv
 import shutil
+import hashlib
 import argparse
 import platform
 import subprocess
@@ -93,25 +94,25 @@ def arg_list(arg, arg_name):
 def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
     """ Validates BLAST Score Ratio (BSR) value passed to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The BSR passed to chewBBACA.
-        min_value : float
-            Minimum acceptable BSR value.
-        max_value : float
-            Maximum acceptable BSR value.
+    Parameters
+    ----------
+    arg : float
+        The BLAST Score Ratio (BSR) value passed to chewBBACA.
+    min_value : float
+        Minimum acceptable BSR value.
+    max_value : float
+        Maximum acceptable BSR value.
 
-        Returns
-        -------
-        valid : float
-            The BSR value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The BSR value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the BSR value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the BSR value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'BLAST Score Ratio')
@@ -134,25 +135,25 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
     """ Validates the minimum sequence length value (MSL) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : int
-            The MSL value passed to chewBBACA.
-        min_value : int
-            Minimum acceptable MSL value.
-        max_value : int
-            Maximum acceptable MSL value.
+    Parameters
+    ----------
+    arg : int
+        The MSL value passed to chewBBACA.
+    min_value : int
+        Minimum acceptable MSL value.
+    max_value : int
+        Maximum acceptable MSL value.
 
-        Returns
-        -------
-        valid : int
-            The MSL value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : int
+        The MSL value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the MSL value cannot be converted to int type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the MSL value cannot be converted to int type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'minimum sequence length')
@@ -175,26 +176,26 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
     """ Validates the size threshold value (ST) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The ST value passed to chewBBACA. Must be of type float
-            or NoneType if no size threshold filter should be applied.
-        min_value : float
-            Minimum acceptable ST value.
-        max_value : float
-            Maximum acceptable ST value.
+    Parameters
+    ----------
+    arg : float
+        The ST value passed to chewBBACA. Must be of type float
+        or NoneType if no size threshold filter should be applied.
+    min_value : float
+        Minimum acceptable ST value.
+    max_value : float
+        Maximum acceptable ST value.
 
-        Returns
-        -------
-        valid : float
-            The ST value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The ST value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the ST value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the ST value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'size threshold')
@@ -221,26 +222,26 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
     """ Validates the translation table value (TT) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : int
-            The TT value passed to chewBBACA. Must be of type int
-            and match the identifier of one of the genetic codes.
-        genetic_codes : dict
-            Dictionary with genetic codes identifiers as keys and
-            descriptions as values.
+    Parameters
+    ----------
+    arg : int
+        The TT value passed to chewBBACA. Must be of type int
+        and match the identifier of one of the genetic codes.
+    genetic_codes : dict
+        Dictionary with genetic codes identifiers as keys and
+        descriptions as values.
 
-        Returns
-        -------
-        valid : int
-            The TT value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : int
+        The TT value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the TT value cannot be converted to int type
-            or if it does not match any of the acceptable genetic
-            codes.
+    Raises
+    ------
+    SystemExit
+        - If the TT value cannot be converted to int type
+        or if it does not match any of the acceptable genetic
+        codes.
     """
 
     arg = arg_list(arg, 'translation table')
@@ -270,25 +271,25 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
     """ Validates the word size value (WS) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The WS value passed to chewBBACA.
-        min_value : float
-            Minimum acceptable WS value.
-        max_value : float
-            Maximum acceptable WS value.
+    Parameters
+    ----------
+    arg : float
+        The WS value passed to chewBBACA.
+    min_value : float
+        Minimum acceptable WS value.
+    max_value : float
+        Maximum acceptable WS value.
 
-        Returns
-        -------
-        valid : float
-            The WS value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The WS value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the WS value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the WS value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'word size')
@@ -316,25 +317,25 @@ def validate_cs(arg, min_value=ct.CLUSTERING_SIMILARITY_MIN,
     """ Validates the clustering similarity value (CS) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The CS value passed to chewBBACA. Must be of type float.
-        min_value : float
-            Minimum acceptable CS value.
-        max_value : float
-            Maximum acceptable CS value.
+    Parameters
+    ----------
+    arg : float
+        The CS value passed to chewBBACA. Must be of type float.
+    min_value : float
+        Minimum acceptable CS value.
+    max_value : float
+        Maximum acceptable CS value.
 
-        Returns
-        -------
-        valid : float
-            The CS value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The CS value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the CS value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the CS value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'clustering similarity')
@@ -362,25 +363,25 @@ def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
     """ Validates the representative filter value (RF) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The RF value passed to chewBBACA. Must be of type float.
-        min_value : float
-            Minimum acceptable RF value.
-        max_value : float
-            Maximum acceptable RF value.
+    Parameters
+    ----------
+    arg : float
+        The RF value passed to chewBBACA. Must be of type float.
+    min_value : float
+        Minimum acceptable RF value.
+    max_value : float
+        Maximum acceptable RF value.
 
-        Returns
-        -------
-        valid : float
-            The RF value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The RF value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the RF value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the RF value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'representative filter')
@@ -407,25 +408,25 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
     """ Validates the intra-cluster filter value (IF) passed
         to chewBBACA.
 
-        Parameters
-        ----------
-        arg : float
-            The IF value passed to chewBBACA. Must be of type float.
-        min_value : float
-            Minimum acceptable IF value.
-        max_value : float
-            Maximum acceptable IF value.
+    Parameters
+    ----------
+    arg : float
+        The IF value passed to chewBBACA. Must be of type float.
+    min_value : float
+        Minimum acceptable IF value.
+    max_value : float
+        Maximum acceptable IF value.
 
-        Returns
-        -------
-        valid : float
-            The IF value passed to chewBBACA, if it is valid.
+    Returns
+    -------
+    valid : float
+        The IF value passed to chewBBACA, if it is valid.
 
-        Raises
-        ------
-        SystemExit
-            - If the IF value cannot be converted to float type
-            or if it is not contained in the acceptable interval.
+    Raises
+    ------
+    SystemExit
+        - If the IF value cannot be converted to float type
+        or if it is not contained in the acceptable interval.
     """
 
     arg = arg_list(arg, 'intra-cluster filter')
@@ -451,22 +452,22 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
 def validate_ns_url(arg):
     """ Verify if Chewie-NS URL passed to chewBBACA is valid.
 
-        Parameters
-        ----------
-        arg : str
-            Identifier of the Chewie-NS instance or the URL
-            to a instance of Chewie-NS.
+    Parameters
+    ----------
+    arg : str
+        Identifier of the Chewie-NS instance or the URL
+        to a instance of Chewie-NS.
 
-        Returns
-        -------
-        ns_url : str
-            URL to connect to the instance of Chewie-NS.
+    Returns
+    -------
+    ns_url : str
+        URL to connect to the instance of Chewie-NS.
 
-        Raises
-        ------
-        SystemExit
-            - If it is not possible to connect to the
-            chewie-NS instance.
+    Raises
+    ------
+    SystemExit
+        - If it is not possible to connect to the
+        chewie-NS instance.
     """
 
     if arg in ct.HOST_NS:
@@ -488,23 +489,23 @@ def validate_ns_url(arg):
 def validate_python_version(minimum_version=ct.MIN_PYTHON):
     """ Validates Python version used to run chewBBACA.
 
-        Parameters
-        ----------
-        minimum_version : tuple
-            A tuple with the Puthon version as (MAJOR, MINOR, PATCH).
-            According to the rules of Semanting Versioning
-            (https://semver.org/).
+    Parameters
+    ----------
+    minimum_version : tuple
+        A tuple with the Puthon version as (MAJOR, MINOR, PATCH).
+        According to the rules of Semanting Versioning
+        (https://semver.org/).
 
-        Returns
-        -------
-        python_version : str
-            Python version in format "MAJOR.MINOR.PATCH".
+    Returns
+    -------
+    python_version : str
+        Python version in format "MAJOR.MINOR.PATCH".
 
-        Raises
-        ------
-        SystemExit
-            - If the Python version does not meet minimum requirements
-            or it was not possible to determine/detect a version.
+    Raises
+    ------
+    SystemExit
+        - If the Python version does not meet minimum requirements
+        or it was not possible to determine/detect a version.
     """
 
     python_version = platform.python_version()
@@ -524,17 +525,16 @@ def verify_cpu_usage(cpu_to_use):
         cores/threads does not exceed system limit or affect
         system performance.
 
-        Parameters
-        ----------
-        cpu_to_use : int
-            Value provided for the number of CPU cores/threads.
+    Parameters
+    ----------
+    cpu_to_use : int
+        Value provided for the number of CPU cores/threads.
 
-        Returns
-        -------
-        cpu_to_use : int
-            Value of CPU cores/threads that will be used after
-            determining if the provided value was safe.
-
+    Returns
+    -------
+    cpu_to_use : int
+        Value of CPU cores/threads that will be used after
+        determining if the provided value was safe.
     """
     total_cpu = multiprocessing.cpu_count()
 
@@ -572,15 +572,15 @@ def is_exe(fpath):
 def which(program):
     """ Determines if program is in PATH.
 
-        Parameters
-        ----------
-        program : str
-            The name used to call the program.
+    Parameters
+    ----------
+    program : str
+        The name used to call the program.
 
-        Returns
-        -------
-        program_path : str
-            Program path added to PATH.
+    Returns
+    -------
+    program_path : str
+        Program path added to PATH.
     """
 
     proc = subprocess.Popen(['which', program],
@@ -597,30 +597,30 @@ def which(program):
 def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
     """ Determines if BLAST is installed and validates its version.
 
-        Parameters
-        ----------
-        blast_path : str or Nonetype
-            Path to the directory with BLAST executables or
-            NoneType if user did not provide a value.
-        major : int
-            BLAST minimun MAJOR version.
-        minor : int
-            BLAST minimum MINOR version.
+    Parameters
+    ----------
+    blast_path : str or Nonetype
+        Path to the directory with BLAST executables or
+        NoneType if user did not provide a value.
+    major : int
+        BLAST minimun MAJOR version.
+    minor : int
+        BLAST minimum MINOR version.
 
-        Returns
-        -------
-        blast_path : str
-            Path to the directory with BLAST executables.
+    Returns
+    -------
+    blast_path : str
+        Path to the directory with BLAST executables.
 
-        Raises
-        ------
-        SystemExit
-            - If the user did not provide a value and BLAST is
-            not in PATH.
-            - If the user provided a value but that path does not
-            contain BLAST executables.
-            - If it is not possible to determine the BLAST
-            version or if it does not match minimum requirements.
+    Raises
+    ------
+    SystemExit
+        - If the user did not provide a value and BLAST is
+        not in PATH.
+        - If the user provided a value but that path does not
+        contain BLAST executables.
+        - If it is not possible to determine the BLAST
+        version or if it does not match minimum requirements.
     """
 
     # search for BLAST in PATH
@@ -688,7 +688,7 @@ def hash_ptf(ptf_path):
     """
 
     if ptf_path is not None:
-        ptf_hash = fo.hash_file(ptf_path, 'rb')
+        ptf_hash = fo.hash_file(ptf_path, hashlib.blake2b())
     else:
         ptf_hash = None
 
@@ -784,7 +784,7 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
 
     minimum_length = (minimum_length
                       if minimum_length is not None
-                      else ct.MINIMUM_LENGTH_DEFAULT)
+                      else ct.MSL_MIN)
     minimum_length = minimum_sequence_length_type(minimum_length)
 
     size_threshold = (size_threshold
@@ -804,33 +804,33 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
         configuration file. Creates the file with the list of loci in
         the schema.
 
-        Parameters
-        ----------
-        ptf_path : str or None
-            Path to the Prodigal training file or NoneType
-            if no value was provided.
-        schema_directory : str
-            Path to the schema's directory.
-        blast_score_ratio : float
-            BLAST Score Ratio value.
-        translation_table : int
-            Translation table integer identifier.
-        minimum_length : int
-            Minimum sequence length value.
-        version : str
-            chewBBACA's version.
-        size_threshold : float
-            Allele size variation threshold.
-        force_continue : bool
-            True if argument values should be automatically
-            validated and set to default values if their type
-            is NoneType. False to validate provided values and
-            ask for a value if the user did not provide one.
+    Parameters
+    ----------
+    ptf_path : str or None
+        Path to the Prodigal training file or NoneType
+        if no value was provided.
+    schema_directory : str
+        Path to the schema's directory.
+    blast_score_ratio : float
+        BLAST Score Ratio value.
+    translation_table : int
+        Translation table integer identifier.
+    minimum_length : int
+        Minimum sequence length value.
+    version : str
+        chewBBACA's version.
+    size_threshold : float
+        Allele size variation threshold.
+    force_continue : bool
+        True if argument values should be automatically
+        validated and set to default values if their type
+        is NoneType. False to validate provided values and
+        ask for a value if the user did not provide one.
 
-        Returns
-        -------
-        Valid/selected values for ptf_path, blast_score_ratio,
-        translation_table, minimum_length and size_threshold.
+    Returns
+    -------
+    Valid/selected values for ptf_path, blast_score_ratio,
+    translation_table, minimum_length and size_threshold.
     """
 
     if force_continue is False:
@@ -885,26 +885,26 @@ def validate_ptf_path(ptf_path, schema_directory):
         is valid. Gets the training file in the schema's
         directory if the input path is of type NoneType.
 
-        Parameters
-        ----------
-        ptf_path : str or NoneType
-            Path to the Prodigal training file or NoneType
-            if no value was provided.
-        schema_directory : str
-            Path to the schema's directory.
+    Parameters
+    ----------
+    ptf_path : str or NoneType
+        Path to the Prodigal training file or NoneType
+        if no value was provided.
+    schema_directory : str
+        Path to the schema's directory.
 
-        Returns
-        -------
-        ptf_path : str or bool
-            Path to the Prodigal training file or False if
-            no training file should be used.
+    Returns
+    -------
+    ptf_path : str or bool
+        Path to the Prodigal training file or False if
+        no training file should be used.
 
-        Raises
-        ------
-        SystemExit
-            - If there is more than one training file in
-            the schema's directory.
-            - If a path was provided and it is not valid.
+    Raises
+    ------
+    SystemExit
+        - If there is more than one training file in
+        the schema's directory.
+        - If a path was provided and it is not valid.
     """
 
     if ptf_path is None:
@@ -944,32 +944,32 @@ def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
         file matches any of the hashes from training files
         that have been used with the schema.
 
-        Paramters
-        ---------
-        ptf_hash : str
-            BLAKE2b hash computed based on the contents of
-            the training file.
-        schema_ptfs : list
-            List with the hashes of all training files that
-            have been used with the schema.
-        force_continue : bool
-            True if the hash should be added to the list with
-            all hashes from training files used with the
-            schema without prompting the user. False otherwise.
+    Paramters
+    ---------
+    ptf_hash : str
+        BLAKE2b hash computed based on the contents of
+        the training file.
+    schema_ptfs : list
+        List with the hashes of all training files that
+        have been used with the schema.
+    force_continue : bool
+        True if the hash should be added to the list with
+        all hashes from training files used with the
+        schema without prompting the user. False otherwise.
 
-        Returns
-        -------
-        unmatch : bool
-            True if the hash is not in the list with all hashes
-            from all training files used with the schema. False
-            otherwise.
+    Returns
+    -------
+    unmatch : bool
+        True if the hash is not in the list with all hashes
+        from all training files used with the schema. False
+        otherwise.
 
-        Raises
-        ------
-        SystemExit
-            - If the user does not agree to add the hash from a
-            new training file to the list with all hashes for
-            training files that have been used with the schema.
+    Raises
+    ------
+    SystemExit
+        - If the user does not agree to add the hash from a
+        new training file to the list with all hashes for
+        training files that have been used with the schema.
     """
 
     unmatch = False
@@ -1004,35 +1004,35 @@ def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
     """ Validates the path to the Prodigal training file and
         its hash value.
 
-        Parameters
-        ----------
-        ptf_path : str or NoneType
-            Path to the Prodigal training file or NoneType
-            if no value was provided.
-        schema_directory : str
-            Path to the schema's directory.
-        schema_ptfs : list
-            List with the hashes of all training files that
-            have been used with the schema.
-        force_continue : bool
-            True if the path and hash of the training file
-            should be validated without prompting the user.
-            False otherwise.
+    Parameters
+    ----------
+    ptf_path : str or NoneType
+        Path to the Prodigal training file or NoneType
+        if no value was provided.
+    schema_directory : str
+        Path to the schema's directory.
+    schema_ptfs : list
+        List with the hashes of all training files that
+        have been used with the schema.
+    force_continue : bool
+        True if the path and hash of the training file
+        should be validated without prompting the user.
+        False otherwise.
 
-        Returns
-        -------
-        ptf_path : str or bool
-            Path to the training file if the user provided a
-            valid path or if no value was provided and the
-            schema has a training file. False if the user
-            passed 'False' or if no value was passed and the
-            schema has no training file.
-        ptf_hash : str
-            BLAKE2b hash computed based on the contents of
-            the training file.
-        unmatch : bool
-            True if the training file does not match any of
-            the training files previously used with the schema.
+    Returns
+    -------
+    ptf_path : str or bool
+        Path to the training file if the user provided a
+        valid path or if no value was provided and the
+        schema has a training file. False if the user
+        passed 'False' or if no value was passed and the
+        schema has no training file.
+    ptf_hash : str
+        BLAKE2b hash computed based on the contents of
+        the training file.
+    unmatch : bool
+        True if the training file does not match any of
+        the training files previously used with the schema.
     """
 
     ptf_path = validate_ptf_path(ptf_path, schema_directory)
@@ -1058,38 +1058,38 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
         user wants to use values that do not match schema's
         default values.
 
-        Parameters
-        ----------
-        schema_params : dict
-            Dictionary with the schema's config values.
-        ptf_path : str or NoneType
-            Path to the Prodigal training file or NoneType
-            if no value was passed through the command line.
-        blast_score_ratio : float or NoneType
-            BLAST Score Ratio value. NoneType if no value was
-            passed.
-        translation_table : int
-            Translation table value. NoneType if no value was
-            passed.
-        minimum_length : int
-            Minimum sequence length value. NoneType if no value was
-            passed.
-        size_threshold : float
-            Allele size variation threshold. NoneType if no value was
-            passed.
-        force_continue : bool
-            True to validate parameters values without prompting users.
-            False otherwise.
-        config_file : str
-            Path to the schema's configuration file.
-        schema_directory : str
-            Path to the schema's directory.
+    Parameters
+    ----------
+    schema_params : dict
+        Dictionary with the schema's config values.
+    ptf_path : str or NoneType
+        Path to the Prodigal training file or NoneType
+        if no value was passed through the command line.
+    blast_score_ratio : float or NoneType
+        BLAST Score Ratio value. NoneType if no value was
+        passed.
+    translation_table : int
+        Translation table value. NoneType if no value was
+        passed.
+    minimum_length : int
+        Minimum sequence length value. NoneType if no value was
+        passed.
+    size_threshold : float
+        Allele size variation threshold. NoneType if no value was
+        passed.
+    force_continue : bool
+        True to validate parameters values without prompting users.
+        False otherwise.
+    config_file : str
+        Path to the schema's configuration file.
+    schema_directory : str
+        Path to the schema's directory.
 
-        Returns
-        -------
-        run_params : dict
-            Dictionary with the arguments validated values that
-            will be used for allele calling.
+    Returns
+    -------
+    run_params : dict
+        Dictionary with the arguments validated values that
+        will be used for allele calling.
     """
 
     # run parameters values
@@ -1160,17 +1160,17 @@ def write_gene_list(schema_dir):
     """ Creates list with gene files in a schema and
         uses the pickle module to save the list to a file.
 
-        Parameters
-        ----------
-        schema_dir : str
-            Path to the directory with schema files.
+    Parameters
+    ----------
+    schema_dir : str
+        Path to the directory with schema files.
 
-        Returns
-        -------
-        A list with two elements. A boolean value that
-        is True if the file with the list of genes was
-        created and False otherwise. The second element
-        is the path to the created file.
+    Returns
+    -------
+    A list with two elements. A boolean value that
+    is True if the file with the list of genes was
+    created and False otherwise. The second element
+    is the path to the created file.
     """
 
     schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
@@ -1187,53 +1187,53 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     """ Writes chewBBACA's parameters values used to create
         a schema to a file.
 
-        Parameters
-        ----------
-        blast_score_ratio : float
-            BLAST Score Ratio value used to create the
-            schema.
-        ptf_hash : str
-            BLAKE2 hash of the Prodigal training file
-            content.
-        translation_table : int
-            Genetic code used to predict and translate
-            coding sequences.
-        minimum_sequence_length : int
-            Minimum sequence length, sequences with a
-            length value lower than this value are not
-            included in the schema.
-        chewie_version : str
-            Version of the chewBBACA suite used to create
-            the schema.
-        size_threshold : float
-            Sequence size variation percentage threshold,
-            new alleles cannot have a length value that
-            deviates +/- than this value in relation to the
-            locus's representative sequence.
-        word_size : int
-            Word/k value used to cluster protein sequences
-            during schema creation and allele calling.
-        clustering_sim : float
-            Proportion of k-mers/minimizers that two proteins
-            need to have in common to be clustered together.
-        representative_filter : float
-            Proportion of k-mers/minimizers that a clustered
-            protein has to have in common with the representative
-            protein of the cluster to be considered the same gene.
-        intra_filter : float
-            Proportion of k-mers/minimizers that clustered
-            proteins have to have in common to be considered
-            of the same gene.
-        output_directory : str
-            Path to the output directory where the file with
-            schema parameters values will be created.
+    Parameters
+    ----------
+    blast_score_ratio : float
+        BLAST Score Ratio value used to create the
+        schema.
+    ptf_hash : str
+        BLAKE2 hash of the Prodigal training file
+        content.
+    translation_table : int
+        Genetic code used to predict and translate
+        coding sequences.
+    minimum_sequence_length : int
+        Minimum sequence length, sequences with a
+        length value lower than this value are not
+        included in the schema.
+    chewie_version : str
+        Version of the chewBBACA suite used to create
+        the schema.
+    size_threshold : float
+        Sequence size variation percentage threshold,
+        new alleles cannot have a length value that
+        deviates +/- than this value in relation to the
+        locus's representative sequence.
+    word_size : int
+        Word/k value used to cluster protein sequences
+        during schema creation and allele calling.
+    clustering_sim : float
+        Proportion of k-mers/minimizers that two proteins
+        need to have in common to be clustered together.
+    representative_filter : float
+        Proportion of k-mers/minimizers that a clustered
+        protein has to have in common with the representative
+        protein of the cluster to be considered the same gene.
+    intra_filter : float
+        Proportion of k-mers/minimizers that clustered
+        proteins have to have in common to be considered
+        of the same gene.
+    output_directory : str
+        Path to the output directory where the file with
+        schema parameters values will be created.
 
-        Returns
-        -------
-        A list with two elements. A boolean value that
-        is True if the file with the parameters values was
-        created and False otherwise. The second element
-        is the path to the created file.
+    Returns
+    -------
+    A list with two elements. A boolean value that
+    is True if the file with the parameters values was
+    created and False otherwise. The second element
+    is the path to the created file.
     """
 
     size_threshold = None if size_threshold in [None, 'None'] else float(size_threshold)
@@ -1260,18 +1260,18 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
 def read_configs(schema_path, filename):
     """ Reads file with schema config values.
 
-        Parameters
-        ----------
-        schema_path : str
-            Path to the schema's directory.
-        filename : str
-            Name of the file that contains the config values.
+    Parameters
+    ----------
+    schema_path : str
+        Path to the schema's directory.
+    filename : str
+        Name of the file that contains the config values.
 
-        Returns
-        -------
-        configs : dict
-            Dictionary with config names as keys and config
-            values as values.
+    Returns
+    -------
+    configs : dict
+        Dictionary with config names as keys and config
+        values as values.
     """
 
     config_file = os.path.join(schema_path, filename)
@@ -1290,30 +1290,30 @@ def check_input_type(input_path, output_file, parent_dir=None):
         function creates a file with the list of paths
         to FASTA files in the directory.
 
-        Parameters
-        ----------
-        input_path : str
-            Path to file or directory.
-        output_file : str
-            Path to the output file with the list of FASTA
-            files.
-        parent_dir : str
-            Parent directory to add to construct paths
-            to input files when users provide a file
-            with file names.
+    Parameters
+    ----------
+    input_path : str
+        Path to file or directory.
+    output_file : str
+        Path to the output file with the list of FASTA
+        files.
+    parent_dir : str
+        Parent directory to add to construct paths
+        to input files when users provide a file
+        with file names.
 
-        Returns
-        -------
-        list_files : str
-            Path to a file with a list of paths for FASTA
-            files.
+    Returns
+    -------
+    list_files : str
+        Path to a file with a list of paths for FASTA
+        files.
 
-        Raises
-        ------
-        SystemExit
-            - If there were no FASTA files in the directory.
-            - If input path is not a valid path for a file or
-              for a directory.
+    Raises
+    ------
+    SystemExit
+        - If there were no FASTA files in the directory.
+        - If input path is not a valid path for a file or
+          for a directory.
     """
 
     # check if input argument is a file or a directory
@@ -1375,12 +1375,3 @@ def check_input_type(input_path, output_file, parent_dir=None):
                  'files (one per line).')
 
     return list_files
-
-
-def process_header(process):
-    """ Print a header with the name of the process.
-    """
-
-    header = 'chewBBACA - {0}'.format(process)
-    hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header, hf))

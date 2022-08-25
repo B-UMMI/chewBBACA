@@ -51,7 +51,6 @@ import multiprocessing
 from operator import itemgetter
 from collections import Counter
 
-
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Align.Applications import MafftCommandline
@@ -521,9 +520,9 @@ def create_pre_computed_data(
         )
 
         if show_progress is True:
-            completed = False
-            while completed is False:
-                completed = mo.progress_bar(rawr_main, len(schema_files))
+            progress = 0
+            while progress != 100:
+                progress = mo.progress_bar(rawr_main._number_left, len(schema_files), progress)
 
         rawr_main.wait()
 
@@ -542,9 +541,9 @@ def create_pre_computed_data(
         )
 
         if show_progress is True:
-            completed = False
-            while completed is False:
-                completed = mo.progress_bar(rawr_ind, len(schema_files))
+            progress = 0
+            while progress != 100:
+                progress = mo.progress_bar(rawr_ind._number_left, len(schema_files), progress)
 
         rawr_ind.wait()
 
@@ -659,9 +658,9 @@ def create_pre_computed_data(
         )
 
         if show_progress is True:
-            completed = False
-            while completed is False:
-                completed = mo.progress_bar(rawr_cds, len(schema_files))
+            progress = 0
+            while progress != 100:
+                progress = mo.progress_bar(rawr_cds._number_left, len(schema_files), progress)
 
         rawr_cds.wait()
 
@@ -752,7 +751,7 @@ def create_pre_computed_data(
                 annotations_reader = csv.DictReader(a, delimiter="\t", restval="-")
                 for row in annotations_reader:
                     if len(row.keys()) == 14:
-                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                        annotations_data["{0}.fasta".format(row["Locus"])] = [
                                 row["Genome"],
                                 row["Contig"],
                                 row["Start"],
@@ -769,7 +768,7 @@ def create_pre_computed_data(
                             ]
                         
                     else:
-                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                        annotations_data["{0}.fasta".format(row["Locus"])] = [
                                 row["Genome"],
                                 row["Contig"],
                                 row["Start"],
@@ -1071,9 +1070,9 @@ def create_protein_files(
     )
 
     if show_progress is True:
-        completed = False
-        while completed is False:
-            completed = mo.progress_bar(rawr_prot, len(schema_files))
+        progress = 0
+        while progress != 100:
+            progress = mo.progress_bar(rawr_prot._number_left, len(schema_files), progress)
 
     rawr_prot.wait()
 
@@ -1203,9 +1202,9 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     rawr = pool.map_async(call_mafft, protein_files, chunksize=1)
 
     if show_progress is True:
-        completed = False
-        while completed is False:
-            completed = mo.progress_bar(rawr, len(protein_files))
+        progress = 0
+        while progress != 100:
+            progress = mo.progress_bar(rawr._number_left, len(protein_files), progress)
 
     rawr.wait()
 

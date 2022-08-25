@@ -6,7 +6,7 @@ VERSION = CHEWBBACA.__version__
 
 setup(
   name = 'chewBBACA',
-  packages = ['CHEWBBACA', 'CHEWBBACA.allelecall', 'CHEWBBACA.createschema',
+  packages = ['CHEWBBACA', 'CHEWBBACA.AlleleCall', 'CHEWBBACA.CreateSchema',
               'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
               'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder'],
   version = VERSION,
@@ -18,7 +18,7 @@ setup(
   install_requires = ['numpy>=1.14.0', 'scipy>=0.13.3', 'biopython>=1.70',
                       'plotly>=1.12.9', 'SPARQLWrapper>=1.8.0', 'pandas>=0.22.0',
                       'requests>=2.2.1'],
-  python_requires = '>=3.4',
+  python_requires = '>=3.8',
   include_package_data = True,
   entry_points={'console_scripts': ["chewBBACA.py = CHEWBBACA.chewBBACA:main",
                                     "chewie = CHEWBBACA.chewBBACA:main"]

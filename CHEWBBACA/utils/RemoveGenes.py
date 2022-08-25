@@ -7,29 +7,6 @@ Purpose
 This module removes a set of loci from a TSV file with
 results from the AlleleCall process.
 
-Expected input
---------------
-
-The process expects the following variables whether through command
-line execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_file`` : TSV file that contains a matrix with
-  allelic profiles determined by the AlleleCall process.
-
-    - e.g.: ``/home/user/results_alleles.tsv``
-
-- ``-gl``, ``genes_list`` : File with the list of genes to
-  remove, one identifier per line.
-
-    - e.g.: ``/home/user/genes_list.txt``
-
-- ``-o``, ``output_file`` : Path to the output file.
-
-    - e.g.: ``/home/user/selected_results.tsv``
-
-- ``--inverse`` : List of genes that is provided is the
-  list of genes to keep and all other genes should be removed.
-
 Code documentation
 ------------------
 """
@@ -41,9 +18,9 @@ import argparse
 import pandas as pd
 
 try:
-  from utils import file_operations as fo
-except:
-  from CHEWBBACA.utils import file_operations as fo
+    from utils import file_operations as fo
+except ModuleNotFoundError:
+    from CHEWBBACA.utils import file_operations as fo
 
 
 def main(input_file, genes_list, output_file, inverse):
@@ -54,7 +31,8 @@ def main(input_file, genes_list, output_file, inverse):
         genes_list = [g[0] for g in genes_list]
 
     # get list of loci in allele call results
-    loci = fo.get_headers([input_file])[0]
+    loci = fo.read_lines(input_file, strip=True, num_lines=1)
+    loci = loci[0].split('\t')
     print('Total loci: {0}'.format(len(loci)-1))
 
     if inverse is True:
@@ -62,7 +40,7 @@ def main(input_file, genes_list, output_file, inverse):
     else:
         columns_to_keep = [g for g in loci if g not in genes_list]
 
-    columns_to_remove = (len(loci)) - len(columns_to_keep)
+    columns_to_remove = (len(loci)-1) - len(columns_to_keep)
     print('Loci to remove: {0}'.format(columns_to_remove))
 
     # include first column with sample ids

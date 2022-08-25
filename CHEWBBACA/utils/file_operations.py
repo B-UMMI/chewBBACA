@@ -14,7 +14,6 @@ Code documentation
 """
 
 
-from genericpath import isfile
 import os
 import sys
 import csv
@@ -25,6 +24,8 @@ import shutil
 import pickle
 import zipfile
 import urllib.request
+from itertools import islice
+from genericpath import isfile
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 
@@ -223,7 +224,7 @@ def delete_directory(directory_path, max_retries=5):
     return exists
 
 
-def read_lines(input_file, strip=True):
+def read_lines(input_file, strip=True, num_lines=None):
     """Read lines in a file.
 
     Parameters
@@ -240,9 +241,13 @@ def read_lines(input_file, strip=True):
         List with the lines read from the input file.
     """
     with open(input_file, 'r') as infile:
-        lines = [line for line in infile.readlines()]
-        if strip is True:
-            lines = [line.strip() for line in lines]
+        if num_lines is None:
+            lines = [line for line in infile.readlines()]
+        else:
+            lines = list(islice(infile, num_lines))
+
+    if strip is True:
+        lines = [line.strip() for line in lines]
 
     return lines
 

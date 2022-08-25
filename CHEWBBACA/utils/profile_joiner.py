@@ -66,7 +66,10 @@ def main(profiles, output_file, common):
     if len(profiles) == 1:
         sys.exit('Provided a single file. Nothing to do.')
 
-    headers = fo.get_headers(profiles)
+    headers = []
+    for file in profiles:
+        header = fo.read_lines(file, strip=True, num_lines=1)
+        headers.append(header[0].split('\t'))
 
     if common is False:
         # check if headers are equal

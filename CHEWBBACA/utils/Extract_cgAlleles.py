@@ -118,12 +118,12 @@ def remove_genomes(matrix, genomesToRemove):
         index matched an identifier of a genome
         to remove.
     """
-    # determine row indexesthat match any genome to remove
+    # determine row indexes that match any genome to remove
     to_remove_bool = matrix.index.isin(genomesToRemove)
     # create new matrix without rows that matched any genome to remove
     pruned_matrix = matrix.loc[~ to_remove_bool]
 
-    print('Removed {0} profiles tha matched list of '
+    print('Removed {0} profiles that matched list of '
           'genomes to exclude.'.format(len(genomesToRemove)))
 
     return pruned_matrix
@@ -271,13 +271,15 @@ def determine_cgMLST(input_file, output_directory, genesToRemove,
     # import matrix with allelic profiles
     matrix = pd.read_csv(input_file, header=0, index_col=0,
                          sep='\t', low_memory=False)
+    total_loci = len(matrix.columns)
 
     # remove genomes
-    genome_pruned = remove_genomes(matrix, genomesToRemove)
+    if len(genomesToRemove) > 0:
+        matrix = remove_genomes(matrix, genomesToRemove)
 
     # mask missing data
-    print('\nMasking missing data...', end='')
-    masked_matrix = genome_pruned.apply(im.replace_chars)
+    print('Masking missing data...', end='')
+    masked_matrix = matrix.apply(im.replace_chars)
     print('done.')
 
     # build presence/absence matrix
@@ -312,7 +314,7 @@ def determine_cgMLST(input_file, output_directory, genesToRemove,
 
     retained = len(gene_pruned.columns)
     print('\nCore genome composed of {0}/{1} genes.'
-          ''.format(retained, len(matrix.columns)))
+          ''.format(retained, total_loci))
 
     return [cgmlst_path, loci_path, mdata_path]
 

@@ -751,7 +751,7 @@ def create_pre_computed_data(
                 annotations_reader = csv.DictReader(a, delimiter="\t", restval="-")
                 for row in annotations_reader:
                     if len(row.keys()) == 14:
-                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                        annotations_data["{0}.fasta".format(row["Locus"])] = [
                                 row["Genome"],
                                 row["Contig"],
                                 row["Start"],
@@ -768,7 +768,7 @@ def create_pre_computed_data(
                             ]
                         
                     else:
-                        annotations_data["{0}.fasta".format(row["Locus_ID"])] = [
+                        annotations_data["{0}.fasta".format(row["Locus"])] = [
                                 row["Genome"],
                                 row["Contig"],
                                 row["Start"],

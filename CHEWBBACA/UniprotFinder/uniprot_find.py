@@ -27,6 +27,7 @@ try:
     from utils import (
         constants as ct,
         blast_wrapper as bw,
+        core_functions as cf,
         file_operations as fo,
         uniprot_requests as ur,
         fasta_operations as fao,
@@ -37,6 +38,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         constants as ct,
         blast_wrapper as bw,
+        core_functions as cf,
         file_operations as fo,
         uniprot_requests as ur,
         fasta_operations as fao,

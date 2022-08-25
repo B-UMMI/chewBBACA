@@ -203,7 +203,7 @@ OutputFolderName
 └── cds_coordinates.tsv
 ```
 
-One fasta file per distinct gene identified in the schema creation process in the `OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele identified for that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The `OutputFolderName/SchemaName` directory also contains a directory named `short` that includes fasta files with the representative sequences for each locus. The training file passed to create the schema is also included in `OutputFolderName/SchemaName` and will be automatically detected during the allele calling process. A file with the locations of the identified genes in each genome passed to create the schema, `cds_coordinates.tsv`, and a file with the list of alleles predicted by Prodigal that were excluded in the subsequent steps , `invalid_cds.txt`, are included in `OutputFolderName`.
+One fasta file per distinct gene identified in the schema creation process in the `OutputFolderName/SchemaName` directory. The name attributed to each fasta file in the schema is based on the genome of origin of the first allele identified for that gene and on the order of gene prediction (e.g.: `GCA-000167715-protein12.fasta`, first allele for the gene was identified in an assembly with the prefix `GCA-000167715` and the gene was the 12th gene predicted by Prodigal in that assembly). The `OutputFolderName/SchemaName` directory also contains a directory named `short` that includes fasta files with the representative sequences for each locus. The training file passed to create the schema is also included in `OutputFolderName/SchemaName` and will be automatically detected during the allele calling process. A file with the locations of the identified genes in each genome passed to create the schema, `cds_coordinates.tsv`, and a file with the list of alleles predicted by Prodigal that were excluded in the subsequent steps, `invalid_cds.txt`, are included in `OutputFolderName`.
 
 --------------
 
@@ -294,21 +294,42 @@ By default, the AlleleCall process uses the Prodigal training file included in t
 
 ```
 OutputFolderName
-└── results_datestamp
-    ├── results_statistics.tsv
-    ├── results_contigsInfo.tsv
-    ├── results_alleles.tsv
-    ├── RepeatedLoci.txt
-    └── logging_info.txt
+├── cds_coordinates.tsv
+├── invalid_cds.txt
+├── loci_summary_stats.tsv
+├── results_statistics.tsv
+├── results_contigsInfo.tsv
+├── results_alleles.tsv
+├── paralogous_counts.tsv
+├── paralogous_loci.tsv
+└── logging_info.txt
 ```
 
-The `results_statistics.tsv` file contains the total number of exact matches (EXC), inferred new alleles (INF), loci not found (LNF), loci on contig tips (PLOT), non-informative paralogous hits (NIPH), alleles larger than locus length mode (ALM) and alleles smaller than locus length mode (ASM) classifications attributed for each genome.
+The `cds_coordinates.tsv` file contains the coordinates (genome unique identifier, contig identifier, start position, stop position, protein identifier attributed by chewBBACA sequentially and coding strand) of the coding sequences identified in each genome.
+
+The `invalid_cds.txt` file contains with the list of alleles predicted by Prodigal that were excluded based on sequence size and presence of ambiguous bases.
+
+The `loci_summary_stats.tsv` file contains the counts for each classification type (EXC, INF, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM, ALM, ASM, LNF) and the total number of classified CDS (non-LNF) per locus.
+
+The `results_statistics.tsv` file contains the total number of exact matches (EXC), inferred new alleles (INF), loci on contig tips (PLOT3/PLOT5), loci identified on contigs smaller than the matched schema representative (LOTSC), non-informative paralogous hits (NIPH/NIPHEM), alleles larger than locus length mode (ALM), alleles smaller than locus length mode (ASM) and loci not found (LNF) classifications attributed for each genome.
 
 The `results_contigsInfo.tsv` file contains the loci positions in the genomes analyzed. The first column contains the name of the genome files used in the allele calling and the other columns (with loci names in the headers) the locus position information or the classification attributed by chewBBACA if it was not an exact match or inferred allele.
 
 The `results_alleles.tsv` file contains the allelic profiles determined for the input samples. The first column has the identifiers of the genome assemblies for which the allele call was performed. The remaining columns contain the allele call data for loci present in the schema, with the column headers being the locus identifiers.
 
+The `paralogous_counts.tsv` file contains the list of paralogous loci and the number of times those loci matched a CDS that was also similar to other loci in the schema.
+
+The `paralogous_loci.tsv` file contains the sets of paralogous loci identified per genome (genome identifier, identifiers of the paralogous loci and the coordinates of the CDS that is similar to the group of paralogous loci).
+
 The `RepeatedLoci.txt` file provides information about homologous loci detection. This output is useful to identify loci in the schema that are highly similar and loci that have a high number of CDS hits that are not exact matches or new inferred alleles.
+
+The `logging_info.txt` contains summary information about the allele calling process.
+
+If the `--output-unclassified` parameter is provided, the process will create a Fasta file with the DNA sequences of the distinct CDS that were not classified.
+
+If the `--output-missing` parameter is provided, the process will create a Fasta file with the DNA sequences of the CDS classified as PLOT3, PLOT5, LOTSC, NIPH, NIPHEM, ALM and ASM.
+
+If the `--hash-profiles` parameter is provided, the process will use the provided hash algorithm to create a TSV file with hashed profiles (each allele identifier is substituted by the hash of the DNA sequence).
 
 Please visit the Wiki section about [Allele Calling](https://github.com/B-UMMI/chewBBACA/wiki/2.-Allele-Calling) if you want to know more about the types of classifications attributed by chewBBACA and the output files.
 

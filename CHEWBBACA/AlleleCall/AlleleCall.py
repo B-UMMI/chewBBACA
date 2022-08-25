@@ -2273,14 +2273,18 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
         print('Detected number of paralogous loci: {0}'.format(total_paralogous))
 
     if output_unclassified is True:
+        print('Writing Fasta file with unclassified CDS...', end='')
         # create Fasta file with the distinct CDS that were not classified
         create_unclassified_fasta(results['dna_fasta'], results['protein_fasta'], results['unclassified_ids'],
                                   results['protein_hashtable'], output_directory, results['basename_map'])
+        print('done.')
 
     if output_missing is True and cds_input is False:
         # Create Fasta file with CDS that were classified as ASM, ALM, ...
+        print('Writing Fasta file with CDS classified as ASM, ALM, NIPH, NIPHEM, PLOT3, PLOT5 and LOTSC...', end='')
         create_missing_fasta(results['classification_files'], results['dna_fasta'], results['basename_map'], results['dna_hashtable'],
                              output_directory, coordinates_files)
+        print('done.')
 
     if hash_profiles is not None:
         # create TSV file with hashed profiles

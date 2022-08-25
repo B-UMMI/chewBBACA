@@ -265,7 +265,26 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 
 `--pm, --prodigal-mode`: (Optional) Prodigal running mode (default: single).
 
-`--cds, --cds-input`: (Optional) 
+`--cds, --cds-input`: (Optional) Input files contain coding sequences (one Fasta file per strain). Skips gene
+		      prediction with Prodigal (default: False).
+
+`--no-inferred`: (Optional) If provided, the process will not add the sequences of inferred alleles to the
+		 schema (default: False).
+
+`--output-unclassified`: (Optional) Create a Fasta file with unclassified coding sequences (default: False).
+
+`--output-missing`: (Optional) Create a Fasta file with coding sequences classified as NIPH, NIPHEM, ASM, ALM,
+		    PLOT3, PLOT5 and LOTSC (default: False).
+
+`--no-cleanup`: (Optional) If provided, intermediate files generated during process execution are not removed 
+		at the end (default: False).
+
+`--hash-profile`: (Optional) Create TSV file with hashed allelic profiles. Profiles can be hashed with any of 
+		  the hash algorithms implemented in the hashlib and zlib libraries (default: None).
+
+`--mode`: (Optional) Execution mode (1: only exact matches at DNA level; 2: exact matches at DNA and Protein 
+	  level; 3: exact matches and minimizer-based clustering to find similar alleles based on BSR+0.1; 
+	  4: runs the full process to find exact matches and similar matches based on BSR value) (default: 4).
 
 
 By default, the AlleleCall process uses the Prodigal training file included in the schema's directory and it is not necessary to pass a training file to the `--ptf` parameter. If a text file with a list of gene identifiers, one per line, is passed to the `--gl` parameter, the process will only perform allele calling for the genes in that list.

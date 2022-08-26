@@ -47,7 +47,7 @@ Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carr
 - chewBBACA includes Prodigal training files for some species. You can consult the list of Prodigal training files that are readily available [here](https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files). We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.
 - chewBBACA defines an allele as a complete Coding DNA Sequence, with start and stop codons according 
  to the [NCBI genetic code table 11](http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi) identified using [Prodigal 2.6.0 ](https://github.com/hyattpd/prodigal/releases/). It will automatically exclude any allele for which the DNA sequence does not contain start or stop codons and for which the length is not multiple of three. Alleles that contain ambiguous bases are also excluded.
-- Make sure that your fasta files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
+- Make sure that your FASTA files are UNIX format. If they were created in Linux or MacOS systems they should be in the correct format, but if they were created in Windows systems, you should do a a quick conversion using for example [dos2unix](https://waterlan.home.xs4all.nl/dos2unix.html).
 
 ## Useful links
 
@@ -97,14 +97,14 @@ Installation through conda should take care of all dependencies. If you install 
 
 Option 1 - Genome assemblies
 
-Include all genome assemblies (complete or draft genome assemblies in Fasta format) in a directory and adapt the following template command:
+Include all genome assemblies (complete or draft genome assemblies in FASTA format) in a directory and adapt the following template command:
 ```
 chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
 
 Option 2 - Adapt an external schema
 
-Include all loci files (one Fasta file per locus, each file contains all alleles for a specific locus) in a directory and adapt the following template command:
+Include all loci files (one FASTA file per locus, each file contains all alleles for a specific locus) in a directory and adapt the following template command:
 ```
 chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile
 ```
@@ -325,9 +325,9 @@ The `RepeatedLoci.txt` file provides information about homologous loci detection
 
 The `logging_info.txt` contains summary information about the allele calling process.
 
-If the `--output-unclassified` parameter is provided, the process will create a Fasta file with the DNA sequences of the distinct CDS that were not classified.
+If the `--output-unclassified` parameter is provided, the process will create a FASTA file with the DNA sequences of the distinct CDS that were not classified.
 
-If the `--output-missing` parameter is provided, the process will create a Fasta file with the DNA sequences of the CDS classified as PLOT3, PLOT5, LOTSC, NIPH, NIPHEM, ALM and ASM.
+If the `--output-missing` parameter is provided, the process will create a FASTA file with the DNA sequences of the CDS classified as PLOT3, PLOT5, LOTSC, NIPH, NIPHEM, ALM and ASM.
 
 If the `--hash-profiles` parameter is provided, the process will use the provided hash algorithm to create a TSV file with hashed profiles (each allele identifier is substituted by the hash of the DNA sequence).
 

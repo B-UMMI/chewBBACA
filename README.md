@@ -227,8 +227,7 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 `-g, --schema-directory`: (Required) Path to the schema directory with the loci FASTA files.  
 
 `-o, --output-directory`: (Required) Output directory where the allele calling results will be stored
-			  (will create a subdirectory if the path passed by the user already exists,
-			  the subdirectory will be named "results_<TIMESTAMP>").
+			  (will create a subdirectory named "results_\<TIMESTAMP\>" if the path passed by the user already exists).
 
 `--ptf, --training-file`: (Optional) Path to the Prodigal training file. Default is to
         		   get training file from the schema's directory (default: searches
@@ -244,7 +243,7 @@ chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /p
 
 `--l, --minimum-length`: (Optional) Minimum sequence length accepted for a coding sequence
 			 to be included in the schema (default: uses value defined in schema
-			 config file. Default value added to the config file is `0`).
+			 config file. Default value added to the config file is 0).
 
 `--t, --translation-table`: (Optional) Genetic code used to predict genes and to translate coding
 			    sequences. Must match the genetic code used to create the training file
@@ -307,7 +306,7 @@ OutputFolderName
 
 The `cds_coordinates.tsv` file contains the coordinates (genome unique identifier, contig identifier, start position, stop position, protein identifier attributed by chewBBACA sequentially and coding strand) of the coding sequences identified in each genome.
 
-The `invalid_cds.txt` file contains with the list of alleles predicted by Prodigal that were excluded based on sequence size and presence of ambiguous bases.
+The `invalid_cds.txt` file contains the list of alleles predicted by Prodigal that were excluded based on sequence size and presence of ambiguous bases.
 
 The `loci_summary_stats.tsv` file contains the counts for each classification type (EXC, INF, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM, ALM, ASM, LNF) and the total number of classified CDS (non-LNF) per locus.
 
@@ -320,8 +319,6 @@ The `results_alleles.tsv` file contains the allelic profiles determined for the 
 The `paralogous_counts.tsv` file contains the list of paralogous loci and the number of times those loci matched a CDS that was also similar to other loci in the schema.
 
 The `paralogous_loci.tsv` file contains the sets of paralogous loci identified per genome (genome identifier, identifiers of the paralogous loci and the coordinates of the CDS that is similar to the group of paralogous loci).
-
-The `RepeatedLoci.txt` file provides information about homologous loci detection. This output is useful to identify loci in the schema that are highly similar and loci that have a high number of CDS hits that are not exact matches or new inferred alleles.
 
 The `logging_info.txt` contains summary information about the allele calling process.
 
@@ -542,7 +539,7 @@ A: The set of genome assemblies used for schema creation should be carefully sel
 ### Q: [Allele calling](#ii-allele-call-using-a-cgwgmlst-schema) just crashed, do I need to start over?  
 A: chewBBACA should allow you to continue where you stopped, just re-run the same command and you should be prompted to continue the allele call or use the flag `--fc`. If the process keeps crashing with the same set of inputs, it is very likely that one or more of the inputs is misformatted or has a format that is incompatible with chewBBACA. Please ensure that your input files are genome assemblies or coding sequences in FASTA format. Consider opening an [issue](https://github.com/B-UMMI/chewBBACA/issues) to report the problem, we will do our best to help solve the issue and user feedback is very important for the continued improvement of chewBBACA.
 
-### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST, does this even work?  
+### Q: I ran all the steps and my cgMLST loci size is smaller than traditional MLST...does this even work?  
 A: In order to have a robust definition of a cgMLST schema for a given bacterial species, a set of representative strains of the diversity of a given species should be selected. Furthermore, since cgMLST schema definition is based on pre-defined thresholds, only when a sufficient number of strains have been analyzed can the cgMLST schema be considered stable. This number will always depend on the population structure and diversity of the species in question. cgMLST schemas are defined as the set of loci that are present in all strains under analysis, but defining a smaller loci presence threshold, such as 95%, might be necessary to include very frequent genes or ubiquitous genes that are not present in some strains due to sequencing/assembly limitations.
 The quality of the genome assemblies is also an important factor that can impact profoundly the MLST schema definition (e.g.: genome assemblies with a high number of missing loci, contaminated genome assemblies, misclassified genome assemblies). The [TestGenomeQuality](#iv-evaluate-wgmlst-call-quality-per-genome) process can be used to identify genome assemblies that are responsible for a considerable loss of loci. You can pass a list of genomes to remove to the [ExtractCgMLST](#v-defining-the-cgmlst-schema) process to exclude those genomes from the analysis that determines the set of loci that constitute the core-genome. Identifying and removing low quality genome assemblies can significantly improve the determination of the core-genome.
 

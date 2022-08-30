@@ -2,7 +2,17 @@
 
 ## 3.0.0 - 2022-08-25
 
-New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop.
+New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop. The main steps of the new implementation are the following:
+
+- Gene prediction with Prodigal followed by coding sequence (CDS) extraction to create FASTA files that contain all CDS extracted from the inputs. CDS coordinates are saved to pickle files.
+- CDS deduplication to identify the distinct set of CDS and keep information about the inputs that contain each distinct CDS (hashtable with mapping between CDS SHA-256 and list of unique integer identifiers for the inputs that contain each CDS compressed with [polyline encoding](https://developers.google.com/maps/documentation/utilities/polylinealgorithm) adapted from [numcompress](https://github.com/amit1rrr/numcompress)).
+- Exact match between distinct CDS and schema alleles at DNA level. Information about CDS classified at this stage is stored in pickle files that are updated throughout the process.
+- Translation of distinct CDS that were not an exact match in the previous step. This step excludes CDS with ambiguous bases and CDS that are below the minimum length value defined.
+- Translated CDS deduplication to identify the distinct set of translated CDS and keep information about the inputs that contain CDS that encode each distinct protein (hashtable with mapping between translated CDS SHA-256 and list of unique integer identifiers for the distinct CDS encoded with polyline encoding).
+- Minimizer-based clustering (interior minimizers selected based on lexicographic order, k=5, w=5) to find translated CDS similar to schema representative alleles.
+- Alignment, using BLASTp, of each cluster representative against all CDS added to its cluster to identify and classify matches with a BLAST Score Ratio (BSR) > 0.7.
+- Alignment, using BLASTp, of each schema representative against the remaining CDS that were not classified in the previous steps to find matches 0.6 >= BSR <= 0.7 that are evaluated to determine new representative alleles.
+- Assessment of the classifications for each locus to attribute allele identifiers and other classification types (ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and LNF).
 
 ### Additional changes
 

@@ -1,7 +1,7 @@
 Important Notes
 ===============
 
-- chewBBACA only works with **python 3** (automatic testing for Python 3.8 and Python 3.9
+- chewBBACA only works with **Python 3** (automatic testing for Python 3.8 and Python 3.9
   with GitHub Actions).
 - We strongly recommend that users install and use **BLAST 2.9.0+** with chewBBACA, as
   chewBBACA's processes have been extensively tested with that version of BLAST.

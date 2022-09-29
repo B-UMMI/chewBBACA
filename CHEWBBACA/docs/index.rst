@@ -10,14 +10,39 @@ Welcome to chewBBACA's documentation!
    :maxdepth: 1
    :caption: Getting Started
 
-   getting_started/overview
-   getting_started/important_notes
-   getting_started/useful_links
-   getting_started/installation
-   getting_started/quick_start
+   user/getting_started/overview
+   user/getting_started/important_notes
+   user/getting_started/useful_links
+   user/getting_started/installation
+   user/getting_started/quick_start
 
 .. toctree::
    :maxdepth: 1
    :caption: chewBBACA modules
 
-   user/modules_list
+   user/modules/CreateSchema
+   user/modules/AlleleCall
+   user/modules/SchemaEvaluator
+   user/modules/TestGenomeQuality
+   user/modules/ExtractCgMLST
+   user/modules/RemoveGenes
+   user/modules/PrepExternalSchema
+   user/modules/JoinProfiles
+   user/modules/UniprotFinder
+   user/modules/DownloadSchema
+   user/modules/LoadSchema
+   user/modules/SyncSchema
+   user/modules/NSStats
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+
+   user/tutorials/step_by_step
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Help and support
+
+   user/help_support/contacts
+   user/help_support/faq

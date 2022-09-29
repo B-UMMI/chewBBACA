@@ -1,8 +1,6 @@
 Useful links
 ============
 
-- An extensive `tutorial repository <https://github.com/B-UMMI/chewBBACA_tutorial>`_ is
-  available as example on how to run an analysis pipeline using chewBBACA.
 - Look through the list of schemas in `Chewie-NS <https://chewbbaca.online/>`_.
   Chewie-NS allows chewBBACA users to download and update cg/wgMLST schemas,
   allowing the easy sharing of results, while ensuring the reproducibility and

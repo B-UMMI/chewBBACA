@@ -12,26 +12,22 @@ the software name. BSR stands for BLAST Score Ratio as proposed by `Rasko DA et 
 
 chewBBACA is a comprehensive pipeline including a set of functions for the creation and
 validation of whole genome and core genome MultiLocus Sequence Typing (wg/cgMLST) schemas,
-providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
-settings and a set of functions to visualize and validate allele variation in the loci.
+providing an allele calling algorithm based on BLAST Score Ratio that can be run in multiprocessor 
+settings and a set of functions for schema and results evaluation.
 chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting
 from de novo assemblers.
 
 .. important:: chewBBACA only works with **python 3** (automatic testing for Python 3.8 and Python 3.9
                with GitHub Actions).
 
-.. warning:: We strongly recommend that users install and use **BLAST 2.9.0+** with chewBBACA, as
-             chewBBACA's processes have been extensively tested with that version of BLAST.
+.. warning:: We strongly recommend that users install and use **BLAST 2.9.0+**, as
+             chewBBACA's modules have been extensively tested with that version of BLAST.
 
 The general workflow of chewBBACA is represented in the following image:
 
 .. image:: http://i.imgur.com/aqNsv7i.png
-
-chewBBACA is developed by the `Molecular Microbiology and Infection Unit (UMMI) 
-<http://im.fm.ul.pt>`_ at the 
-`Instituto de Medicina Molecular João Lobo Antunes 
-<https://imm.medicina.ulisboa.pt/>`_ and `Faculdade de Medicina, Universidade de Lisboa 
-<https://www.medicina.ulisboa.pt/>`_.
+   :width: 700px
+   :align: center
 
 Citation
 --------
@@ -42,7 +38,7 @@ chewBBACA has been published (version 2.0.5 at the time) in Microbial Genomics u
 
 When using chewBBACA please use the following citation:
 
-Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
+Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. doi:10.1099/mgen.0.000166
 
 Licensing
 ---------
@@ -50,12 +46,6 @@ Licensing
 This project is licensed under the `GPLv3 license 
 <https://github.com/B-UMMI/Nomenclature_Server_docker_compose/blob/master/LICENSE>`_.
 The source code of chewBBACA is available at `<https://github.com/B-UMMI/chewBBACA>`_.
-
-Contacts
---------
-
-For any issues contact the development team at imm-bioinfo@medicina.ulisboa.pt or 
-open an issue at the chewBBACA Github `repository <https://github.com/B-UMMI/chewBBACA>`_.
 
 Funding
 -------
@@ -73,3 +63,5 @@ Funding
   Araşrrma Kurumu, TÜBİTAK)]
 
 .. image:: http://i.imgur.com/XhvagNV.png
+   :width: 500px
+   :align: center

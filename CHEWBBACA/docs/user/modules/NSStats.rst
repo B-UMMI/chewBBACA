@@ -1,15 +1,14 @@
 NSStats -  Retrieve basic information about the species and schemas in Chewie-NS
 ================================================================================
 
-The `NSStats <https://github.com/B-UMMI/chewBBACA/blob/master/CHEWBBACA/CHEWBBACA_NS/stats_requests.py>`_
-process included in the chewBBACA suite enables the retrieval of information from Chewie-NS server. 
-Its main objective is to provide information about the list of species and schemas in Chewie-NS, 
-so that users can quickly identify a schema of interest and download it.
+The *NSStats* process enables the retrieval of information from the Chewie-NS server. Its main
+objective is to provide information about the list of species and schemas in Chewie-NS, so that
+users can quickly identify a schema of interest and download it.
 
 Basic Usage
 -----------
 
-Retrieve the list of species and the total number of schemas, loci and alleles per species
+Retrieve the list of species and the total number of schemas, loci and alleles per species:
 
 ::
 
@@ -28,7 +27,7 @@ Retrieve the list of species and the total number of schemas, loci and alleles p
     Yersinia enterocolitica             10          1          6344       126383  
     ------------------------------------------------------------------------------
 
-Retrieve the list of schemas for a species and the total number of loci and alleles per schema
+Retrieve the list of schemas for a species and the total number of loci and alleles per schema:
 
 ::
 
@@ -42,7 +41,7 @@ Retrieve the list of schemas for a species and the total number of loci and alle
     INNUENDO_cgMLST                     2          8558      2830016  
     ------------------------------------------------------------------
 
-Retrieve property values for a schema
+Retrieve property values for a schema:
 
 ::
 
@@ -73,25 +72,18 @@ Parameters
 
 ::
 
-    $ chewBBACA.py NSStats -h
+    -m, --mode                  (Required) The process can retrieve the list of species ("species"
+                                option) in the Chewie-NS or the list of schemas for a species
+                                ("schemas" option) (default: None).
 
-    ...
-                                
-      -m {species,schemas}      The process can retrieve the list of species
-                                ("species" option) in the Chewie-NS or the list of
-                                schemas for a species ("schemas" option).
-                                (default: None)
-                                
-      --ns NOMENCLATURE_SERVER  The base URL for the Nomenclature Server. The
-                                default value, "main", will establish a connection
-                                to "https://chewbbaca.online/", "tutorial" to
-                                "https://tutorial.chewbbaca.online/" and "local"
-                                to "http://127.0.0.1:5000/NS/api/" (localhost).
-                                Users may also provide the IP address to other
-                                Chewie-NS instances. (default: main)
-                                
-      --sp SPECIES_ID           The integer identifier of a species in the Chewie-
-                                NS. (default: None)
-                                
-      --sc SCHEMA_ID            The integer identifier of a schema in the Chewie-
-                                NS. (default: None)
+    --sp, --species-id          (Optional) The integer identifier of a species in the Chewie-NS
+                                (default: None).
+
+    --sc, --schema-id           (Optional) The integer identifier of a schema in the Chewie- NS
+                                (default: None).
+
+    --ns, --nomenclature-server (Optional) The base URL for the Nomenclature Server. The default
+                                value, "main", will establish a connection to "https://chewbbaca.online/",
+                                "tutorial" to "https://tutorial.chewbbaca.online/" and "local" to
+                                "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
+                                the IP address to other Chewie-NS instances (default: main).

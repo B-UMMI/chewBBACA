@@ -10,14 +10,14 @@ alignment (MSA) and a visualization of the MSA.
 	See an example `here <https://saureus-report.herokuapp.com/>`_.
 
 Basic Usage
------------
+:::::::::::
 
 ::
 
 	chewBBACA.py SchemaEvaluator -i /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
 
 Parameters
-----------
+::::::::::
 
 ::
 
@@ -48,7 +48,7 @@ Parameters
     --no-cleanup              (Optional) Does not remove intermediate files after report generation.
 
 Outputs
--------
+:::::::
 
 - A main report HTML file that contains information about the schema.
 - Various HTML files containing a detailed report about each locus.
@@ -66,7 +66,7 @@ Outputs
 		  sequences, invalid start/stop codons and sequence lengths not being a multiple of 3.
 
 Main report components
-......................
+----------------------
 
 The first component gives a small introduction that details the type of information contained in
 the main and individual locus reports.
@@ -163,18 +163,17 @@ Loci Analysis
 .............
 
 The final component of the report presents a stacked bar chart and a table. In this component the
-alleles of each locus are checked for their integrity as CDSs.
+alleles of each locus are checked for their integrity as CDSs. The table includes the
+*Uniprot Annotation*, the product name found through UniProt's SPARQL endpoint, and the
+*Proteome Product*, the product name attributed based on high similarity to proteins included
+in UniProt's reference proteomes. In addition, the *Missing Allele IDs* column presents the IDs
+of alleles that are missing in the initial list of each locus and the *Total Invalid Alleles*
+and *Valid Alleles* columns present the sum of invalid alleles and the total no. of valid alleles,
+respectively.
 
-In addition, the *Uniprot Annotation* and *Proteome Product* present, respectively, the Uniprot
-and reference proteome annotations found by chewBBACA's UniprotFinder module.
+The stacked bar chart presents, per locus, and sorted by the total number of alleles, the number
+of alleles per locus. The alleles are divided into 5 classes:
 
-Furthermore, the *Missing Allele IDs* column presents the IDs of alleles that are missing in
-initial list of each locus and the *Total Invalid Alleles* and *Valid Alleles* columns present
-the sum of invalid alleles and the total no. of valid alleles, respectively.
-
-The stacked bar chart presents,
-per locus, and sorted by the total number of alleles, the number of alleles per locus. The alleles
-are divided into 5 classes:
 	a) more than one stop codon (green);
 	b) allele length not a multiple of 3 (orange);
 	c) missing start or stop codon (red);
@@ -183,8 +182,8 @@ are divided into 5 classes:
 
 .. note::
 	In order to identify the *Missing Allele IDs*, the module expects the headers of the input
-	FASTA files to have the locusID followed by the allele integer (e.g.: >lmo_1) or simply the
-	allele integer (e.g.: >1).
+	FASTA files to have the locus identifier followed by the allele integer identifier
+	(e.g.: >lmo_1) or simply the allele integer identifier (e.g.: >1).
 
 .. image:: https://user-images.githubusercontent.com/33930141/116113169-27f8be00-a6b0-11eb-99a4-a03e8e8fedc7.png
 	:width: 1400px
@@ -195,7 +194,7 @@ are divided into 5 classes:
 	:align: center
 
 Individual Report Components
-............................
+----------------------------
 
 Clicking on a point (locus) on Panel C or Panel D or on the name of the locus on the Loci
 Analysis table will open a new page containing a detailed report about the selected locus.
@@ -203,14 +202,17 @@ Analysis table will open a new page containing a detailed report about the selec
 Locus Individual Analysis
 .........................
 
-The first component presents a panel with 2 charts.
-- A histogram summarizing the size distribution of the alleles (frequency of binned sizes);
+The first component presents a panel with 2 charts:
+
+- A histogram summarizing the size distribution of the alleles (frequency of binned sizes).
+
 - A scatter plot representing the actual sizes of each allele ordered by allele number.
 
 .. note::
-	The red line represents the `--ml` minus 20% used in the creation of the report below
-	this size range, alleles are considered *shorter than* `--ml`. Alleles in the yellow
-	area are **not** considered *shorter than* `--ml`.
+	The red line represents the minimum sequence value, ``--ml``, minus a size variation threshold
+	of 20% (the default value for the size variation threshold used by the AlleleCall module).
+	Alleles shorter than this value are below the size variation threshold. The yellow area
+	represents the values that are within the size threshold.
 
 .. image:: https://user-images.githubusercontent.com/33930141/116114802-9d18c300-a6b1-11eb-90d5-5b86a721b095.png
 	:width: 1400px
@@ -224,11 +226,12 @@ Locus Information
 .................
 
 The second component presents a table containing the CDS analysis of the selected locus. It also
-presents 4 new columns, in comparison with the table in the [Loci Analysis](#loci-analysis) of
-the main report, with information on the:
-- Number of alleles;
-- Size Range, in nucleotides (nt);
-- Allele median size (nt);
+presents 4 new columns, in comparison with the table in the *Loci Analysis* of the main report,
+with information on the:
+
+- Number of alleles.
+- Size Range, in nucleotides (nt).
+- Allele median size (nt).
 - Allele mode size (nt).
 
 .. image:: https://user-images.githubusercontent.com/33930141/105175131-6b74e680-5b1b-11eb-845f-5121c91cf5be.png
@@ -238,8 +241,8 @@ the main report, with information on the:
 Exceptions
 ..........
 
-The third component displays a table containing exceptions detected in the analysis (if any) and
-in which alleles were they detected.
+The third component displays a table containing the list of alleles that are considered exceptions
+based on the parameters used to evaluate the schema.
 
 .. image:: https://user-images.githubusercontent.com/33930141/105175517-f524b400-5b1b-11eb-9554-e2094d4c1639.png
 	:width: 1400px
@@ -263,7 +266,7 @@ The fifth component displays a sequence logo obtained from the multiple sequence
 produced by `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_.
 
 The *Change mode to frequency/information_content* button allows users to change how letter
-heights are computed; may be either *information_content* (default) or *frequency*.
+heights are computed.
 
 .. image:: https://user-images.githubusercontent.com/33930141/116115456-51b2e480-a6b2-11eb-88ad-747d542f9e98.png
 	:width: 1400px
@@ -280,4 +283,3 @@ to check the remaining rows and columns.
 .. image:: https://user-images.githubusercontent.com/33930141/105175977-885de980-5b1c-11eb-86ad-b68b13f09cb0.png
 	:width: 1400px
 	:align: center
-

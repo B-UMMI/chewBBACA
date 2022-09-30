@@ -18,7 +18,7 @@ Welcome to chewBBACA's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: chewBBACA modules
+   :caption: User Guide
 
    user/modules/CreateSchema
    user/modules/AlleleCall

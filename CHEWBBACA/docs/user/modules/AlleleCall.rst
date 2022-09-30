@@ -193,44 +193,44 @@ Outputs
 
 The column headers stand for:
 
-	- *EXC* - alleles which have exact matches (100% DNA identity) with previously identified
-	  alleles.
-	- *INF* - inferred new alleles that had no exact match in the schema but are highly
-	  similar to loci in the schema. The *INF-* prefix in the allele identifier indicates that
-	  such allele was newly inferred in that genome, and the number following the prefix is the
-	  allele identifier attributed to such allele. Inferred alleles are added to the FASTA file of the locus they
-	  share high similarity with.
-	- *LNF* - loci not found. No alleles were found for the number of loci in the schema shown.
-	  This means that, for those loci, there were no BLAST hits or they were not within the BSR
-	  threshold for allele assignment.
-	- *PLOT3/PLOT5* - possible loci on the tip of the query genome contigs (see image below). A locus
-	  is classified as *PLOT* when the CDS of the query genome has a BLAST hit with a known larger
-	  allele that covers the CDS sequence entirely and the unaligned regions of the larger allele
-	  exceed one of the query genome contigs ends (a locus can be classified as *PLOT5* or *PLOT3*
-	  depending on whether the CDS in the genome under analysis matching the schema locus is located
-	  in the 5' end or 3' end (respectively) of the contig). This could be an artifact caused by
-	  genome fragmentation resulting in a shorter CDS prediction by Prodigal. To avoid locus
-	  misclassification, loci in such situations are classified as *PLOT*.
+- *EXC* - alleles which have exact matches (100% DNA identity) with previously identified
+  alleles.
+- *INF* - inferred new alleles that had no exact match in the schema but are highly
+  similar to loci in the schema. The *INF-* prefix in the allele identifier indicates that
+  such allele was newly inferred in that genome, and the number following the prefix is the
+  allele identifier attributed to such allele. Inferred alleles are added to the FASTA file of the locus they
+  share high similarity with.
+- *LNF* - loci not found. No alleles were found for the number of loci in the schema shown.
+  This means that, for those loci, there were no BLAST hits or they were not within the BSR
+  threshold for allele assignment.
+- *PLOT3/PLOT5* - possible loci on the tip of the query genome contigs (see image below). A locus
+  is classified as *PLOT* when the CDS of the query genome has a BLAST hit with a known larger
+  allele that covers the CDS sequence entirely and the unaligned regions of the larger allele
+  exceed one of the query genome contigs ends (a locus can be classified as *PLOT5* or *PLOT3*
+  depending on whether the CDS in the genome under analysis matching the schema locus is located
+  in the 5' end or 3' end (respectively) of the contig). This could be an artifact caused by
+  genome fragmentation resulting in a shorter CDS prediction by Prodigal. To avoid locus
+  misclassification, loci in such situations are classified as *PLOT*.
 
 .. image:: http://i.imgur.com/41oONeS.png
 	:width: 700px
 	:align: center
 
-	- *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
-	  than the matched allele.
-	- *NIPH* - non-informative paralogous hit (see image below). When ≥2 CDSs in the query
-	  genome match one locus in the schema with a BSR > 0.6, that locus is classified as *NIPH*.
-	  This suggests that such locus can have paralogous (or orthologous) loci in the query genome
-	  and should be removed from the analysis due to the potential uncertainty in allele assignment
-	  (for example, due to the presence of multiple copies of the same mobile genetic element (MGE)
-	  or as a consequence of gene duplication followed by pseudogenization). A high number of *NIPH*
-	  may also indicate a poorly assembled genome due to a high number of smaller contigs which
-	  result in partial CDS predictions. These partial CDSs may contain conserved domains that
-	  match multiple loci.
-	- *NIPHEM* - similar to the *NIPH* classification, but specifically
-	  referring to exact matches. Whenever several CDSs from the same genome match a single or
-	  multiple alleles of the same locus with 100% DNA similarity during the first DNA sequence
-	  comparison, the *NIPHEM* tag is attributed.
+- *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
+  than the matched allele.
+- *NIPH* - non-informative paralogous hit (see image below). When ≥2 CDSs in the query
+  genome match one locus in the schema with a BSR > 0.6, that locus is classified as *NIPH*.
+  This suggests that such locus can have paralogous (or orthologous) loci in the query genome
+  and should be removed from the analysis due to the potential uncertainty in allele assignment
+  (for example, due to the presence of multiple copies of the same mobile genetic element (MGE)
+  or as a consequence of gene duplication followed by pseudogenization). A high number of *NIPH*
+  may also indicate a poorly assembled genome due to a high number of smaller contigs which
+  result in partial CDS predictions. These partial CDSs may contain conserved domains that
+  match multiple loci.
+- *NIPHEM* - similar to the *NIPH* classification, but specifically
+  referring to exact matches. Whenever several CDSs from the same genome match a single or
+  multiple alleles of the same locus with 100% DNA similarity during the first DNA sequence
+  comparison, the *NIPHEM* tag is attributed.
 
 .. image:: http://i.imgur.com/4VQtejr.png
 	:width: 700px
@@ -277,12 +277,14 @@ Example for the ``SAMD00008628`` genome:
 
 	- locus1 with ``contig2&161414-162560&0`` information was found in this genome. It is located
 	  in (``&`` character is the field delimiter):
-		- the sequence with identifier ``contig2``.
-		- between 161,414 bp and 162,560 bp (reported as ``162560-161414`` because the CDS is encoded
-		  in the reverse strand). These nucleotide positions are inclusive positions and include
-		  the stop codon as well.
-		- in the reverse strand (represented by a ``0`` signal). ``1`` means that the CDS is encoded
-		  in the direct strand.
+
+	    - the sequence with identifier ``contig2``.
+	    - between 161,414 bp and 162,560 bp (reported as ``162560-161414`` because the CDS is encoded
+	      in the reverse strand). These nucleotide positions are inclusive positions and include the
+	      stop codon as well.
+	    - in the reverse strand (represented by a ``0`` signal). ``1`` means that the CDS is encoded
+	      in the direct strand.
+
 	- locus2 was not found (*LNF*).
 
 - The ``results_alleles.tsv`` file contains the allelic profiles determined for the input samples.

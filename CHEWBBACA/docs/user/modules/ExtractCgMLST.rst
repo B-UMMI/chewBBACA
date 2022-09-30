@@ -1,11 +1,11 @@
-ExtractCgMLST - Determines the set of loci that constitute the core genome
+ExtractCgMLST - Determine the set of loci that constitute the core genome
 ==========================================================================
 
 Requirements to define a core genome MLST (cgMLST) schema
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 cgMLST schemas are defined as the set of loci that are present in all  strains under analysis
-or, due to sequencing/assembly limitations, > 95% of strains analyzed. In order to have a
+or, due to sequencing/assembly limitations, >95% of strains analyzed. In order to have a
 robust definition of a cgMLST schema for a given bacterial species, a set of representative
 strains of the diversity of a given species should be selected. Furthermore, since cgMLST
 schema definition is based on pre-defined thresholds, only when a sufficient number of strains
@@ -35,40 +35,43 @@ Parameters
 
 ::
 
-	`-i, --input-file`: (Required) Path to input file containing a matrix with allelic profiles.
+    -i, --input-file       (Required) Path to input file containing a matrix with allelic profiles.
 
-	`-o, --output-directory`: (Required) Path to the directory where the process will store output files.
+    -o, --output-directory (Required) Path to the directory where the process will store output
+                           files.
 
-	`--t, --threshold`: (Optional) Genes that constitute the core genome must be in a
-					proportion of genomes that is at least equal to this value.
-					(e.g 0.95 to get a matrix with the loci that are present in at 
-					least 95% of the genomes) (default: 1).
+    --t, --threshold       (Optional) Genes that constitute the core genome must be in a proportion
+                           of genomes that is at least equal to this value. (e.g 0.95 to get a
+                           matrix with the loci that are present in at  least 95% of the genomes)
+                           (default: 1).
 
-	`--r, --genes2remove`: (Optional) Path to file with a list of genes/columns to remove 
-					from the matrix (one gene identifier per line, e.g. the list of
-					genes listed in the RepeatedLoci.txt file created by the AlleleCall
-					process) (default: False).
+    --r, --genes2remove    (Optional) Path to file with a list of genes/columns to remove from the
+                           matrix (one gene identifier per line, e.g.: the list of genes listed in
+                           the ``paralogous_counts.tsv`` file created by the *AlleleCall* process)
+                           (default: False).
 
-	`--g, --genomes2remove`: (Optional) Path to file with a list of genomes/rows to remove from the
-					matrix (one genome identifier per line, e.g. list of genomes to be 
-					removed based on the results from the TestGenomeQuality process) (default: False).
+    --g, --genomes2remove  (Optional) Path to file with a list of genomes/rows to remove from the
+                           matrix (one genome identifier per line, e.g. list of genomes to be
+                           removed based on the results from the TestGenomeQuality process)
+                           (default: False).
 
 .. note::
-	The matrix with allelic profiles created by the ExtractCgMLST process can be imported into `PHYLOViZ <https://online.phyloviz.net/index>`_
-	to visualize and explore typing results.
+	The matrix with allelic profiles created by the *ExtractCgMLST* process can be imported
+	into `PHYLOViZ <https://online.phyloviz.net/index>`_ to visualize and explore typing results.
 
 Outputs
 -------
 
 The output folder contains 3 files:
- - `Presence_Abscence.tsv` - allele presence and absence matrix (1 or 0, respectively) for
-   all the loci found in the `-i` file (including those loci and genomes that were flagged
-   to be excluded);
- - `cgMLST.tsv` - matrix with the allelic profiles for the cgMLST (already excluding the list
-   of loci and list of genomes passed to the `--r` and `--g` parameters, respectively);
- - `cgMLSTschema.txt` - list of loci that constitute the redefined cgMLST schema. 
- - `mdata_stats.tsv` - total number and percentage of loci missing from each genome.
+
+ - ``Presence_Abscence.tsv`` - allele presence and absence matrix (1 or 0, respectively) for
+   all the loci found in the ``-i`` file (including those loci and genomes that were flagged
+   to be excluded).
+ - ``cgMLST.tsv`` - matrix with the allelic profiles for the cgMLST (already excluding the list
+   of loci and list of genomes passed to the ``--r`` and ``--g`` parameters, respectively).
+ - ``cgMLSTschema.txt`` - list of loci that constitute the cgMLST schema.
+ - ``mdata_stats.tsv`` - total number and percentage of loci missing from each genome.
 
 .. important::
-	The cgMLSTschema.txt file can be passed to the `--gl` parameter of the _AlleleCall_
+	The ``cgMLSTschema.txt`` file can be passed to the ``--gl`` parameter of the *AlleleCall*
 	module to perform allele calling only for the loci in the cgMLST schema.

@@ -5,24 +5,32 @@ Objective
 :::::::::
 
 The objective of this tutorial is to illustrate a complete workflow for creating a wgMLST and a
-cgMLST schema for a colection of 714 *Streptococcus agalactiae* genomes (32 complete genomes
+cgMLST schema for a collection of 714 *Streptococcus agalactiae* genomes (32 complete genomes
 and 682 draft genome assemblies deposited on the NCBI databases) by providing step-by-step
 instructions and displaying the obtained outputs.
 
 Please start by going through the following steps:
 
-1. Download the Zip archive with the 32 complete genomes `here <>`_.
-2. Create a folder named `chewBBACA_tutorial` where all files from the tutorial will be stored.
-3. Uncompress the Zip archive with the 32 complete genomes into the `chewBBACA_tutorial` folder.
-4. Install chewBBACA. Check :doc:`Installation <user/getting_started/installation>`
-   for instructions on how to install chewBBACA. chewBBACA includes Prodigal training files
-   for several species, including for *Streptococcus agalactiae*. You can check the list of
-   available training files `here <https://github.com/B-UMMI/chewBBACA/raw/master/CHEWBBACA/prodigal_training_files/>`_.
-   We have included the training file for *Streptococcus agalactiae* in this repository.
+- Install chewBBACA. Check :doc:`</user/getting_started/installation>` for instructions
+  on how to install chewBBACA.
+- Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7129300#.Yzb26_fTUUE>`_.
+- Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
+  the necessary data).
 
-All information about the NCBI genomes used in this example is on the
-[.tsv file](https://github.com/B-UMMI/chewBBACA_tutorial/tree/master/genomes/NCBI_genomes_proks.Sagalactiae_allGenomes.2016_08_03.tsv)
-inside the `genomes` folder.
+.. important::
+	The paths and commands used in this tutorial assume that the working directory is the top-level
+	directory of the folder **chewBBACA_tutorial** created after uncompressing the ZIP file.
+	The commands should be modified if they are executed from a different working directory.
+	The expected results for each section were included in the ``expected_results`` folder
+	for reference (each subfolder has the name of one of the sections).
+
+Metadata about the NCBI genomes used in this tutorial is on the TSV file ``genomes/GBS_NCBI_metadata.tsv``.
+
+chewBBACA includes Prodigal training files for several species, including for
+*Streptococcus agalactiae*. You can check the list of available training files
+`here <https://github.com/B-UMMI/chewBBACA/raw/master/CHEWBBACA/prodigal_training_files/>`_. We
+have included the training file for *Streptococcus agalactiae*,
+``Streptococcus_agalactiae.trn``, in the tutorial data.
 
 .. note::
 	The execution times reported in this tutorial were obtained for a DELL XPS13 (10th
@@ -30,28 +38,20 @@ inside the `genomes` folder.
 	Using a computer with less powerful specifications can increase the duration
 	of the analyses.  
 
-.. important::
-	The commands used in this tutorial assume that the working directory is the top-level
-	directory of the folder **chewBBACA_tutorial**. The commands should be modified if they
-	are executed from a different working directory. We have included the expected results
-	for each section in the `expected_results` folder for reference (each subfolder has
-	the name of one of the sections).
-
 Schema creation
 :::::::::::::::
 
-We will start by creating a wgMLST schema based on **32** *Streptococcus agalactiae* complete
+We will start by creating a wgMLST schema based on 32 *Streptococcus agalactiae* complete
 genomes (32 genomes with a level of assembly classified as complete genome or chromossome)
-available at NCBI. The sequences are present in the `complete_genomes` directory created during
-the extraction process of the Zip archive into the `chewBBACA_tutorial` folder. To create
-the wgMLST schema, run the following command:  
+available at NCBI. Uncompress the ``genomes/GBS_32_complete_genomes.zip`` file
+to create the folder ``genomes/complete_genomes``. To create the wgMLST schema, run the following command:  
 
 ::
 
-	chewBBACA.py CreateSchema -i complete_genomes/ -o tutorial_schema --ptf Streptococcus_agalactiae.trn --cpu 6
+	chewBBACA.py CreateSchema -i genomes/complete_genomes/ -o tutorial_schema --ptf Streptococcus_agalactiae.trn --cpu 6
 
-The schema seed will be available at `tutorial_schema/schema_seed`. We passed the value `6` to
-the `--cpu` parameter to use 6 CPU cores, but you should pass a value based on the
+The schema seed will be available at ``tutorial_schema/schema_seed``. We passed the value ``6`` to
+the ``--cpu`` parameter to use 6 CPU cores, but you should pass a value based on the
 specifications of your machine. In our system, the process took 56 seconds to complete
 resulting on a wgMLST schema with 3128 loci. At this point the schema is defined as a set of
 loci each with a single representative allele.
@@ -67,9 +67,9 @@ following command:
 
 ::
 
-	chewBBACA.py AlleleCall -i complete_genomes/ -g tutorial_schema/schema_seed -o results32_wgMLST --cpu 6
+	chewBBACA.py AlleleCall -i genomes/complete_genomes/ -g tutorial_schema/schema_seed -o results32_wgMLST --cpu 6
 
-The allele call used the default BSR threshold of 0.6 and took approximately 17
+The allele call used the default BSR threshold of ``0.6`` and took approximately 17
 minutes to complete (an average of 32 seconds per genome). The allele call identified 14,720
 novel alleles and added those alleles to the schema, increasing the number of alleles in the
 schema from 3,128 to 17,848.
@@ -77,20 +77,20 @@ schema from 3,128 to 17,848.
 Paralog detection
 :::::::::::::::::
 
-The next step in the analysis is to determine if some of the loci can be considered paralogs,
+The next step in the analysis is to determine if some of the loci can be considered paralogs
 based on the result of the wgMLST allele calling. The *AlleleCall* module returns a list of
-Paralogous genes in the *RepeatedLoci.txt* file that can be found on the
-*results32_wgMLST/results_<datestamp>* folder. The *RepeatedLoci.txt* file contains a set of 20
-loci that were identified as possible paralogs. These loci should be removed from the schema
-due to the potential uncertainty in allele assignment.
-To remove the set of 20 paralogous loci from the allele calling results, run the following command:
+Paralogous genes in the ``paralogous_counts.tsv`` file that can be found on the
+``results32_wgMLST/results_<datestamp>`` folder. The ``paralogous_counts.tsv`` file contains a set
+of 20 loci that were identified as possible paralogs. These loci should be removed from the schema
+due to the potential uncertainty in allele assignment. To remove the set of 20 paralogous loci
+from the allele calling results, run the following command:
 
 ::
 
-	chewBBACA.py RemoveGenes -i results32_wgMLST/results_<datestamp>/results_alleles.tsv -g results32_wgMLST/results_<datestamp>/RepeatedLoci.txt -o results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv
+	chewBBACA.py RemoveGenes -i results32_wgMLST/results_<datestamp>/results_alleles.tsv -g results32_wgMLST/results_<datestamp>/paralogous_counts.tsv -o results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv
 
 This will remove the columns matching the 20 paralogous loci from the allele calling results and
-save the allelic profiles into the *results_alleles_NoParalogs.tsv* file (the new file contains
+save the allelic profiles into the ``results_alleles_NoParalogs.tsv`` file (the new file contains
 allelic profiles with 3108 loci).
 
 cgMLST schema determination
@@ -98,7 +98,7 @@ cgMLST schema determination
 
 We can now determine the set of loci in the core genome based on the allele calling results.
 The set of loci in the core genome is determined based on a threshold of loci presence in the
-analysed genomes. We can run the TestGenomeQuality module to determine the impact of several
+analysed genomes. We can run the *TestGenomeQuality* module to determine the impact of several
 threshold values on the number of loci in the core genome.
 
 ::
@@ -108,6 +108,8 @@ threshold values on the number of loci in the core genome.
 The process will automatically open a HTML file with the following plot:
 
 .. image:: https://i.imgur.com/uf3Hygd.png
+	:width: 1400px
+	:align: center
 
 Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_complete_genomes.html>`_.
 
@@ -116,34 +118,33 @@ A set of **1136 loci** were found to be present in all the analyzed complete gen
 in at least 95% of the complete genomes will be used. We selected that threshold value to account
 for loci that may not be identified due to sequencing coverage and assembly problems.
 
-We can run the ExtraCgMLST module to quickly determine the set of loci in the core genome at 95%.
+We can run the *ExtraCgMLST* module to quickly determine the set of loci in the core genome at 95%.
 
 ::
 
 	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv -o results32_wgMLST/results_<datestamp>/cgMLST_95 --t 0.95
 
 The list with the 1267 loci in the core genome at 95% is in the
-`results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt` file. This file can be passed
-to the `--gl` parameter of the AlleleCall process to perform allele calling only for the set of
+``results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt`` file. This file can be passed
+to the ``--gl`` parameter of the AlleleCall process to perform allele calling only for the set of
 genes that constitute the core genome.
 
 Allele call for 682 *Streptococcus agalactiae* assemblies
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-**682 assemblies** of *Streptococcus agalactiae* available on NCBI were downloaded (03-08-2016,
-downloadable zip file `here <https://drive.google.com/file/d/0Bw6VuoagsdhmaWEtR25fODlJTEk/view?usp=sharing>`_, 
-run `unzip GBS_Aug2016.zip` to extract genome files into a folder named `GBS_Aug2016`) and analyzed with
-`MLST <https://github.com/tseemann/mlst>`_ in order to exclude possibly mislabeled samples as
-*Streptococcus agalactiae*. Out of the **682 genomes**, 2 (GCA_000323065.2_ASM32306v2 and
+682 assemblies of *Streptococcus agalactiae* available on NCBI were downloaded (03-08-2016) and
+analyzed with `MLST <https://github.com/tseemann/mlst>`_ in order to exclude possibly mislabeled
+samples as *Streptococcus agalactiae*. Out of the 682 genomes, 2 (GCA_000323065.2_ASM32306v2 and
 GCA_001017915.1_ASM101791v1) were detected as being of a different species/contamination and
-were removed from the analysis.
+were removed from the analysis. Uncompress the ``genomes/GBS_680_genomes.zip`` file to create a
+folder named ``GBS_Aug2016``.
 
 Allele call was performed on the *bona fide* *Streptococcus agalactiae* **680 genomes** using the
 **1267 loci** that constitute the core genome at 95%. Paralog detection found no paralog loci.
 
 ::
 
-	chewBBACA.py AlleleCall -i path/to/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt -o results680_cgMLST --cpu 6
+	chewBBACA.py AlleleCall -i genomes/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt -o results680_cgMLST --cpu 6
 
 The process took approximately 39 minutes to complete (an average of 3.4 secs per genome).
 
@@ -167,6 +168,8 @@ all the genomes.
 	chewBBACA.py TestGenomeQuality -i cgMLST_all.tsv -n 13 -t 300 -s 5
 
 .. image:: https://i.imgur.com/m1OSycz.png
+	:width: 1400px
+	:align: center
 
 Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html>_`.
 
@@ -182,20 +185,21 @@ present in all considered genomes (650 genomes/440 loci), which we felt would af
 discriminatory power.
 
 The genomes that were removed at each threshold are indicated in the file
-`analysis_all/removedGenomes.txt` and a file `analysis_all/removedGenomes_25.txt` was created
+``expected_results/Evaluate_genome_quality/removedGenomes.txt`` and a file
+``expected_results/Evaluate_genome_quality/removedGenomes_25.txt`` was created
 with only the genomes removed at the 25 threshold.
 
-The following command creates a directory `analysis_all/cgMLST_25/` and saves the cgMLST schema
-selected at the chosen threshold to the file `cgMLST.tsv`.
+The following command creates a folder named ``cgMLST_25`` and saves the cgMLST schema selected
+at the chosen threshold to the file ``cgMLST_25/cgMLST.tsv``.
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_all.tsv -o cgMLST_25 --g removedGenomes_25.txt
+	chewBBACA.py ExtractCgMLST -i cgMLST_all.tsv -o cgMLST_25 --g expected_results/Evaluate_genome_quality/removedGenomes_25.txt
 
 Minimum Spanning Tree
 :::::::::::::::::::::
 
-`analysis_all/cgMLST_25/cgMLST.tsv` was uploaded to `Phyloviz online <https://online.phyloviz.net>`_
+The file ``cgMLST_25/cgMLST.tsv`` was uploaded to `Phyloviz online <https://online.phyloviz.net>`_
 and can be accessed `here <https://online.phyloviz.net/main/dataset/share/cfab1610a3ca3a80cf9c139e436ce741fc5fa29dcc5aeb3988025491d7194044fc73f5284eafad8356322fb0e29e50d6e06d5808ae369a2b37d1ece96e4e716d8d7eeb5c85a5a30c5d3d63bf014643013fa981108bd5bfbacf0a145ab41656a9a67c489b878cb0aa9f2de534ee81b201e198>`_.
 
 Genome Quality analysis
@@ -217,10 +221,14 @@ The first plot represents the total number of bp in contigs with a size >10 kbp 
 the assemblies, sorted by decreasing values.
 
 .. image:: http://i.imgur.com/I0fNqtd.png
+	:width: 1400px
+	:align: center
 
 The second plot represents the total number of contigs and the number of contigs >10kbp.
 
 .. image:: http://i.imgur.com/fabxi0Z.png
+	:width: 1400px
+	:align: center
 
 Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/AssemblyStatsStack.html>`_
 

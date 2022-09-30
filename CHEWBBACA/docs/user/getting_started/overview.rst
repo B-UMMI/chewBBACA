@@ -50,17 +50,16 @@ The source code of chewBBACA is available at `<https://github.com/B-UMMI/chewBBA
 Funding
 -------
 
-- INNUENDO project (https://www.innuendoweb.org) co-funded by the European Food Safety
-  Authority (EFSA), grant agreement GP/EFSA/AFSCO/2015/01/CT2 (“New approaches in
-  identifying and characterizing microbial and chemical hazards”).” The conclusions,
-  findings, and opinions expressed in this review paper reflect only the view of the
-  authors and not the official position of the European Food Safety Authority (EFSA).
-- ONEIDA project (http://www.itqb.unl.pt/oneida) (LISBOA-01-0145-FEDER-016417) co-funded
-  by FEEI - "Fundos Europeus Estruturais e de Investimento" from "Programa Operacional
-  Regional Lisboa 2020" FCT - "Fundação para a Ciência e a Tecnologia"
-- BacGenTrack (http://darwin.phyloviz.net/dokuwiki/doku.php?id=pip:tubitak) (TUBITAK/0004/2014)
-  [FCT/ Scientific and Technological Research Council of Turkey (Türkiye Bilimsel ve Teknolojik
-  Araşrrma Kurumu, TÜBİTAK)]
+- INNUENDO project co-funded by the European Food Safety Authority (EFSA), grant agreement
+  GP/EFSA/AFSCO/2015/01/CT2 ("New approaches in identifying and characterizing microbial and
+  chemical hazards"). The conclusions, findings, and opinions expressed in this review paper
+  reflect only the view of the authors and not the official position of the European Food Safety
+  Authority (EFSA).
+- ONEIDA project (LISBOA-01-0145-FEDER-016417) co-funded by FEEI - "Fundos Europeus Estruturais
+  e de Investimento" from "Programa Operacional Regional Lisboa 2020" FCT - "Fundação para a
+  Ciência e a Tecnologia".
+- BacGenTrack (TUBITAK/0004/2014) [FCT/ Scientific and Technological Research Council of Turkey
+  (Türkiye Bilimsel ve Teknolojik Araşrrma Kurumu, TÜBİTAK)]
 
 .. image:: http://i.imgur.com/XhvagNV.png
    :width: 500px

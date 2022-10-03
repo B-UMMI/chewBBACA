@@ -38,7 +38,8 @@ Welcome to chewBBACA's documentation!
    :maxdepth: 1
    :caption: Tutorials
 
-   user/tutorials/step_by_step
+   user/tutorials/chewie_step_by_step
+   user/tutorials/chewieNS_step_by_step
 
 .. toctree::
    :maxdepth: 1

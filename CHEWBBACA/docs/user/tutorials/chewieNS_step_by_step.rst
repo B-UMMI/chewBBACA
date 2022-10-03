@@ -102,7 +102,7 @@ chewBBACA installation
 
 By taking advantage of chewie-NS’ API, chewBBACA is capable of handling not only the schema creation,
 but also its upload, synchronization and download. The set of modules to interact with chewie-NS
-included in the chewBBACA suite provide a simple and automatic solution for the main tasks
+included in chewBBACA provide a simple and automatic solution for the main tasks
 that users will want to perform.
 
 You can install `chewBBACA <https://github.com/B-UMMI/chewBBACA>`_ through 
@@ -110,12 +110,8 @@ You can install `chewBBACA <https://github.com/B-UMMI/chewBBACA>`_ through
 chewBBACA has dependencies that will not be included if you install it through pip. If you install
 through pip you need to ensure that you have `Prodigal <https://github.com/hyattpd/Prodigal>`_ 
 and `BLAST <https://www.ncbi.nlm.nih.gov/books/NBK279671/>`_ installed and added to PATH. 
-Please visit `chewBBACA's <https://github.com/B-UMMI/chewBBACA>`_ homepage for detailed 
-instructions on how to install it.
-
-.. important:: We recommend using BLAST 2.9.0. Older versions might not include functionalities
-               used in the latest version of chewBBACA.
-
+Please visit `Installation </user/getting_started/installation>`_ for detailed 
+instructions on how to install chewBBACA.
 
 Uploading the tutorial schema
 :::::::::::::::::::::::::::::

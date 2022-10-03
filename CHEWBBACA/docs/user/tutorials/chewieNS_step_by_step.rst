@@ -110,7 +110,7 @@ You can install `chewBBACA <https://github.com/B-UMMI/chewBBACA>`_ through
 chewBBACA has dependencies that will not be included if you install it through pip. If you install
 through pip you need to ensure that you have `Prodigal <https://github.com/hyattpd/Prodigal>`_ 
 and `BLAST <https://www.ncbi.nlm.nih.gov/books/NBK279671/>`_ installed and added to PATH. 
-Please visit :doc:`Installation </user/getting_started/Installation>` for detailed 
+Please visit :doc:`Installation </user/getting_started/installation>` for detailed 
 instructions on how to install chewBBACA.
 
 Uploading the tutorial schema

@@ -11,7 +11,7 @@ instructions and displaying the obtained outputs.
 
 Please start by going through the following steps:
 
-- Install chewBBACA. Check :doc:`</user/getting_started/installation>` for instructions
+- Install chewBBACA. Check :doc:`Installation </user/getting_started/installation>` for instructions
   on how to install chewBBACA.
 - Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7129300#.Yzb26_fTUUE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all

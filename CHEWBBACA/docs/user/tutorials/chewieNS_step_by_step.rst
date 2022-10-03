@@ -122,7 +122,7 @@ Uploading the tutorial schema
 
 To upload schemas to the main instance of chewie-NS it is necessary to have Contributor privileges, but
 in the chewie-NS tutorial instance schema upload is available to anyone that wishes to test it.
-Before uploading the schema please visit the :doc:`upload_api` documentation page to learn more about the
+Before uploading the schema please visit the :doc:`LoadSchema </user/modules/LoadSchema>` documentation page to learn more about the
 whole process.
 
 .. important:: The name attributed to the schema needs to be unique. You will not be able to upload
@@ -222,7 +222,7 @@ Downloading the schema
 
 In order to use a schema you have uploaded to chewie-NS, you will have to download it.
 
-To know more about the ``DownloadSchema`` process, please visit the :doc:`</user/modules/DownloadSchema>` page
+To know more about the ``DownloadSchema`` process, please visit the :doc:`DownloadSchema </user/modules/DownloadSchema>` page
 in the documentation.
 
 To download the schema you have uploaded, please run the following command:
@@ -402,7 +402,7 @@ not in chewie-NS, we will need to run the ``SyncSchema`` process. This process w
 alleles added to the remote schema in chewie-NS since the last time we synchronized the local
 and remote schemas and offer the option to submit novel alleles that have been identified in
 local analyses and are not in chewie-NS. To learn more about the ``SyncSchema`` process, please
-visit the :doc:`</user/modules/SyncSchema>` page.
+visit the :doc:`SyncSchema </user/modules/SyncSchema>` page.
 
 Running the ``SyncSchema`` process is fairly simple. To retrieve new alleles added to the remote
 schema since the last synchronization process, we only need to provide the path to the directory

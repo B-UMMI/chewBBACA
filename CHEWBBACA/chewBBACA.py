@@ -376,7 +376,11 @@ def allele_call():
                         help='Convert legacy schemas to latest version.')
 
     parser.add_argument('--mode', type=int, required=False,
-                        choices=[1,2,3,4], default=4,
+                        choices=[1, 2, 3, 4], default=4,
+                        help='')
+
+    parser.add_argument('--speedup', required=False,
+                        action='store_true', dest='speedup',
                         help='')
 
     args = parser.parse_args()
@@ -406,6 +410,12 @@ def allele_call():
         args.translation_table = run_params['translation_table']
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
+
+    if args.speedup is True:
+        print('Creating directory with pre-computed data to speedup '
+              'allele calling. Ignoring other options.')
+        AlleleCall.speedup(args.schema_directory, args.translation_table,
+                           args.cpu_cores)
 
     # create output directory
     created = fo.create_directory(args.output_directory)

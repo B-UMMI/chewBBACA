@@ -13,6 +13,7 @@ Code documentation
 
 import os
 import sys
+import math
 
 try:
     from utils import (constants as ct,
@@ -433,12 +434,13 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                                                      sort_key=lambda x: len(x[1]),
                                                      reverse=True)}
 
-    if divide is True:
+    if divide is not None:
         # divide sequences into sublists
         # do not divide based on number of available cores as it may
         # lead to different results with different number of cores
-        cluster_inputs = im.split_iterable(sorted_seqs,
-                                           int(len(sorted_seqs)/40+10))
+        # divide into clusters with fixed number of sequences
+        cluster_inputs = im.split_iterable(sorted_seqs, divide)
+        print(len(cluster_inputs), len(cluster_inputs[0]))
     else:
         cluster_inputs = [sorted_seqs]
 

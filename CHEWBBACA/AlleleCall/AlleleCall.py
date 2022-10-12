@@ -1508,25 +1508,25 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
-# fasta_files = input_files
-# schema_directory = schema_directory
-# temp_directory = temp_directory
-# ptf_path = ptf_path
-# blast_score_ratio = blast_score_ratio
-# minimum_length = minimum_length
-# translation_table = translation_table
-# size_threshold = size_threshold
-# word_size = word_size
-# window_size = window_size
-# clustering_sim = clustering_sim
-# cpu_cores = cpu_cores
-# blast_path = blast_path
-# prodigal_mode = prodigal_mode
-# cds_input = cds_input
-# mode = mode
-# loci_modes = loci_modes.copy()
-# loci_files = loci_files
-# ordered_loci = fo.pickle_loader('/home/rmamede/Desktop/rmamede/chewBBACA_development/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/.genes_list')
+fasta_files = input_files
+schema_directory = schema_directory
+temp_directory = temp_directory
+ptf_path = ptf_path
+blast_score_ratio = blast_score_ratio
+minimum_length = minimum_length
+translation_table = translation_table
+size_threshold = size_threshold
+word_size = word_size
+window_size = window_size
+clustering_sim = clustering_sim
+cpu_cores = cpu_cores
+blast_path = blast_path
+prodigal_mode = prodigal_mode
+cds_input = cds_input
+mode = mode
+loci_modes = loci_modes.copy()
+loci_files = loci_files
+ordered_loci = fo.pickle_loader('/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized/.genes_list')
 def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                    blast_score_ratio, minimum_length, translation_table,
                    size_threshold, word_size, window_size, clustering_sim,
@@ -1959,6 +1959,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     concat_reps = fo.join_paths(reps_protein_dir, ['concat_reps.fasta'])
     fo.concatenate_files(protein_repfiles, concat_reps)
 
+    # create dict with mapping between allele header and locus id
+    rep_recs = fao.sequence_generator(concat_reps)
+    rep_map = {}
+    for rec in rep_recs:
+        rep_map[rec.id] = '_'.join((rec.id).split('_')[:-1])
+
     # determine self-score for representatives if file is missing
     self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
     if os.path.isfile(self_score_file) is False:
@@ -2145,23 +2151,36 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
         # iterative process until the process does not detect new representatives
         print('Loci: {0}'.format(len(protein_repfiles)))
 
+        # concatenate to create groups of 100 loci
+        concat_repfiles = []
+        for i in range(0, len(protein_repfiles), 100):
+            concat_file = fo.join_paths(iteration_directory, ['concat_reps{0}-{1}.fasta'.format(i+1, i+len(protein_repfiles[i:i+100]))])
+            fo.concatenate_files(protein_repfiles[i:i+100], concat_file)
+            concat_repfiles.append(concat_file)
+
         # create BLASTp inputs
         output_files = []
         blast_inputs = []
         # create directory to store BLASTp results
         iteration_blast_dir = fo.join_paths(iteration_directory, ['BLAST_results'])
         fo.create_directory(iteration_blast_dir)
-        for file in protein_repfiles:
-            locus_id = fo.get_locus_id(file)
-            if locus_id is None:
-                # need to add 'short' or locus id will not be split
-                locus_id = fo.file_basename(file).split('_short')[0]
+        for file in concat_repfiles:
+            # locus_id = fo.get_locus_id(file)
+            # if locus_id is None:
+            #     # need to add 'short' or locus id will not be split
+            #     locus_id = fo.file_basename(file).split('_short')[0]
+            # outfile = fo.join_paths(iteration_blast_dir,
+            #                         [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
+            concat_rep_basename = fo.file_basename(file, False)
             outfile = fo.join_paths(iteration_blast_dir,
-                                    [locus_id+'_blast_results_iter{0}.tsv'.format(iteration)])
+                                    [concat_rep_basename+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
             blast_inputs.append([blastp_path, blast_db, file, outfile,
-                                 1, 1, remaining_seqids_file, bw.run_blast])
+                                 1, 1, remaining_seqids_file, 'blastp', 10,
+                                 ct.IGNORE_RAISED, bw.run_blast])
+
+        blast_start = time.time()
 
         print('BLASTing loci representatives against unclassified proteins...', end='')
         # BLAST representatives against unclassified sequences
@@ -2171,11 +2190,27 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
                                                    show_progress=False)
         print('done.')
 
+        blast_end = time.time()
+        blast_delta = blast_end - blast_start
+        print(blast_delta)
+
+        loci_output_files = []
+        for f in output_files:
+            concat_results = fo.read_tabular(f)
+            loci_separate_results = {}
+            for line in concat_results:
+                loci_separate_results.setdefault(rep_map[line[0]], []).append(line)
+            for k, v in loci_separate_results.items():
+                loci_separate_outfile = fo.join_paths(iteration_blast_dir, ['{0}_blast_results_iter{1}.tsv'.format(k, iteration)])
+                lines = ['\t'.join(l) for l in v]
+                fo.write_lines(lines, loci_separate_outfile)
+                loci_output_files.append(loci_separate_outfile)
+
         loci_results = {}
         # create directory to store files with matches
         iteration_matches_dir = fo.join_paths(iteration_directory, ['matches'])
         fo.create_directory(iteration_matches_dir)
-        for f in output_files:
+        for f in loci_output_files:
             locus_id = fo.get_locus_id(f)
             if locus_id is None:
                 locus_id = fo.file_basename(f).split('_blast')[0]
@@ -2293,12 +2328,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
             selected_dir = fo.join_paths(new_reps_directory, ['selected'])
             fo.create_directory(selected_dir)
             # create files with representative sequences
+            rep_map = {}
             reps_ids = []
             protein_repfiles = []
             for k, v in representatives.items():
                 # get new representative for locus
                 current_new_reps = [e[0] for e in v]
                 reps_ids.extend(current_new_reps)
+                for c in current_new_reps:
+                    rep_map[c] = k
 
                 # need to add 'short' or locus id will not be split
                 rep_file = fo.join_paths(selected_dir,
@@ -2329,29 +2367,29 @@ def allele_calling(fasta_files, schema_directory, temp_directory, ptf_path,
     return template_dict
 
 
-# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
-# loci_list = '/home/rmamede/Desktop/rmamede/chewBBACA_development/genes.txt'
-# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919'
-# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_optimizations'
-# ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/Salmonella_enterica_INNUENDO_cgMLST_2021-05-31T20_28_21.350919/Salmonella_enterica.trn'
-# blast_score_ratio = 0.6
-# minimum_length = 201
-# translation_table = 11
-# size_threshold = 0.2
-# word_size = 5
-# window_size = 5
-# clustering_sim = 0.2
-# cpu_cores = 6
-# blast_path = '/home/rmamede/.conda/envs/spyder/bin'
-# cds_input = False
-# prodigal_mode = 'single'
-# no_inferred = False
-# output_unclassified = False
-# output_missing = False
-# no_cleanup = True
-# hash_profiles = 'crc32'
-# mode = 4
-# ns = False
+input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
+loci_list = '/home/rmamede/Desktop/rmamede/chewBBACA_development/genes.txt'
+schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized'
+output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_optimized'
+ptf_path = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized/Salmonella_enterica.trn'
+blast_score_ratio = 0.6
+minimum_length = 201
+translation_table = 11
+size_threshold = 0.2
+word_size = 5
+window_size = 5
+clustering_sim = 0.2
+cpu_cores = 6
+blast_path = '/home/rmamede/.conda/envs/spyder/bin'
+cds_input = False
+prodigal_mode = 'single'
+no_inferred = False
+output_unclassified = False
+output_missing = False
+no_cleanup = True
+hash_profiles = 'crc32'
+mode = 4
+ns = False
 def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
          blast_score_ratio, minimum_length, translation_table,
          size_threshold, word_size, window_size, clustering_sim,
@@ -2486,6 +2524,36 @@ def main(input_file, loci_list, schema_directory, output_directory, ptf_path,
                     loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
                 fo.pickle_dumper(loci_modes, loci_modes_file)
                 print('done.')
+                # update hash tables with allele hashes
+                update_DNAtable = {}
+                update_PROTEINtable = {}
+                loci_indexes = fo.pickle_loader(fo.join_paths(schema_directory, ['.genes_list']))
+                for k, v in added[2].items():
+                    locus_index = loci_indexes.index(fo.file_basename(k))
+                    records = fao.sequence_generator(v[0])
+                    for rec in records:
+                        allele_id = (rec.id).split('_')[-1]
+                        sequence = str(rec.seq)
+                        seq_hash = im.hash_sequence(sequence)
+                        update_DNAtable.setdefault(seq_hash, []).extend([locus_index, allele_id])
+                        prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, translation_table)))
+                        update_PROTEINtable.setdefault(prot_hash, []).extend([locus_index, allele_id])
+
+                # update hash tables
+                pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
+                dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
+                latest_table = sorted(dna_tables)[-1]
+                current_table = fo.pickle_loader(latest_table)
+                for k, v in update_DNAtable.items():
+                    current_table.setdefault(k, []).extend(v)
+                fo.pickle_dumper(current_table, latest_table)
+                
+                prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
+                latest_table = sorted(dna_tables)[-1]
+                current_table = fo.pickle_loader(latest_table)
+                for k, v in update_PROTEINtable.items():
+                    current_table.setdefault(k, []).extend(v)
+                fo.pickle_dumper(current_table, latest_table)
         else:
             print('No new alleles to add to schema.')
 

@@ -379,10 +379,6 @@ def allele_call():
                         choices=[1, 2, 3, 4], default=4,
                         help='')
 
-    parser.add_argument('--speedup', required=False,
-                        action='store_true', dest='speedup',
-                        help='')
-
     args = parser.parse_args()
 
     # determine if Prodigal is installed and in PATH
@@ -410,12 +406,6 @@ def allele_call():
         args.translation_table = run_params['translation_table']
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
-
-    if args.speedup is True:
-        print('Creating directory with pre-computed data to speedup '
-              'allele calling. Ignoring other options.')
-        AlleleCall.speedup(args.schema_directory, args.translation_table,
-                           args.cpu_cores)
 
     # create output directory
     created = fo.create_directory(args.output_directory)
@@ -448,13 +438,23 @@ def allele_call():
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
-    ### convert this into AlleleCall.main(**vars(args))
-    AlleleCall.main(genome_list, loci_list, args.schema_directory, args.output_directory, args.ptf_path,
-                    args.blast_score_ratio, args.minimum_length, args.translation_table,
-                    args.size_threshold, args.word_size, args.window_size, args.clustering_sim,
-                    args.cpu_cores, args.blast_path, args.cds_input, args.prodigal_mode,
+    config = {'Minimum sequence length': args.minimum_length,
+              'Size threshold': args.size_threshold,
+              'Translation table': args.translation_table,
+              'BLAST Score Ratio': args.blast_score_ratio,
+              'Word size': args.word_size,
+              'Window size': args.window_size,
+              'Clustering similarity': args.clustering_sim,
+              'Prodigal training file': args.ptf_path,
+              'CPU cores': args.cpu_cores,
+              'BLAST path': args.blast_path,
+              'CDS input': args.cds_input,
+              'Prodigal mode': args.prodigal_mode,
+              'Mode': args.mode}
+
+    AlleleCall.main(genome_list, loci_list, args.schema_directory, args.output_directory,
                     args.no_inferred, args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles, args.mode, args.ns)
+                    args.no_cleanup, args.hash_profiles, args.ns, config)
 
     # if args.store_profiles is True:
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

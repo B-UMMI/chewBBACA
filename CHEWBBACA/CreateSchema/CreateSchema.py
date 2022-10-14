@@ -345,10 +345,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     fo.create_directory(clustering_dir)
 
     print('Clustering proteins...')
+    group_size = math.ceil(len(proteins)/40)
     cs_results = cf.cluster_sequences(proteins, word_size, window_size,
                                       clustering_sim, None, True,
                                       1, 1, clustering_dir, cpu_cores,
-                                      True, False)
+                                      group_size, False)
     print('\nClustered {0} proteins into {1} clusters.'
           ''.format(len(proteins), len(cs_results)))
 

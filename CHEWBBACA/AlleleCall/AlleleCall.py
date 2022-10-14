@@ -868,7 +868,6 @@ def assign_allele_ids(classification_files, ns):
                 if cds_hash in matched_alleles:
                     locus_results[genome_id].append(matched_alleles[cds_hash])
                 else:
-                    # possible to have EXC match to INF that was converted to NIPH
                     max_alleleid += 1
                     if ns is True:
                         locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
@@ -882,6 +881,9 @@ def assign_allele_ids(classification_files, ns):
                         novel_alleles.setdefault(locus, []).append([cds_hash, str(max_alleleid)])
 
                     # EXC to INF to enable accurate count of INF classifications
+                    # some INF classifications might be converted to NIPH based on similar
+                    # matches on the same genome. Matches to the new INF/NIPH will be
+                    # classified as EXC and need to be added as new alleles and converted to INF
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
 

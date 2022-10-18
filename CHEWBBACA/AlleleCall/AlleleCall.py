@@ -44,56 +44,86 @@ except ModuleNotFoundError:
                                  multiprocessing_operations as mo)
 
 
+def create_mode_file(loci_files, output_file):
+    """
+    """
+
+    loci_modes = {}
+    for file in loci_files:
+        locus_id = fo.file_basename(file, False)
+        allele_sizes = list(fao.sequence_lengths(file).values())
+        # select first value in list if there are several values with same frequency
+        loci_modes[locus_id] = [sm.determine_mode(allele_sizes)[0], allele_sizes]
+
+    fo.pickle_dumper(loci_modes, output_file)
+
+    return loci_modes
+
+
+def create_hash_table(fasta_files, table_id, translation_table, output_directory, file_prefix):
+    """
+    """
+
+    # create hash table for DNA
+    hashtable = {}
+    for file in fasta_files:
+        locus_index = file[1]
+        alleles = [(rec.id, str(rec.seq))
+                   for rec in fao.sequence_generator(file[0])]
+        if translation_table is not None:
+            alleles = [(rec[0], str(sm.translate_sequence(rec[1], translation_table)))
+                       for rec in alleles]
+
+        for record in alleles:
+            allele_id = record[0].split('_')[-1]
+            allele_hash = im.hash_sequence(record[1])
+            hashtable.setdefault(allele_hash, []).extend([locus_index, allele_id])
+
+    table_file = fo.join_paths(output_directory, ['{0}{1}'.format(file_prefix, table_id)])
+    fo.pickle_dumper(hashtable, table_file)
+
+    return table_file
+
+
+# output_directory = pre_computed_dir
+# loci_files = schema_loci_fullpath
+# translation_table = config['Translation table']
+# cpu_cores = config['CPU cores']
 def speedup(output_directory, loci_files, translation_table, cpu_cores):
     """
     """
 
-    hash_tables = [[], []]
-
     # define maximum number of sequence hashes per hash table
     max_sequences = ct.HASH_TABLE_MAXIMUM_ALLELES
 
-    # create hash tables for DNA
-    table_id = 1
-    dna_hashtable = {}
+    input_groups = []
+    current_group = []
+    total_alleles = 0
     for file in loci_files:
-        alleles = fao.sequence_generator(file)
-        locus_index = loci_files.index(file)
+        with open(file, 'r') as infile:
+            num_alleles = sum(1 for _ in infile) / 2
+        total_alleles += num_alleles
+        current_group.append((file, loci_files.index(file)))
+        if total_alleles >= max_sequences or file == loci_files[-1]:
+            input_groups.append(current_group)
+            current_group = []
+            total_alleles = 0
 
-        for record in alleles:
-            allele_id = (record.id).split('_')[-1]
-            allele_hash = im.hash_sequence(str(record.seq))
-            dna_hashtable.setdefault(allele_hash, []).extend([locus_index, allele_id])
+    inputs = [[g, i+1, None, output_directory, 'DNAtable', create_hash_table]
+              for i, g in enumerate(input_groups)]
 
-        if len(dna_hashtable) >= max_sequences or file == loci_files[-1]:
-            table_file = fo.join_paths(output_directory, ['DNAtable{0}'.format(table_id)])
-            fo.pickle_dumper(dna_hashtable, table_file)
-            hash_tables[0].append(table_file)
-            dna_hashtable = {}
-            table_id += 1
+    hash_tables = mo.map_async_parallelizer(inputs,
+                                            mo.function_helper,
+                                            cpu_cores,
+                                            show_progress=False)
 
-    # create hash tables for translated alleles
-    table_id = 1
-    protein_hashtable = {}
-    for file in loci_files:
-        alleles = fao.sequence_generator(file)
-        locus_index = loci_files.index(file)
-        translated_records = [[rec.id,
-                               str(sm.translate_dna(str(rec.seq),
-                                                    translation_table, 0)[0][0])]
-                              for rec in alleles]
+    inputs = [[g, i+1, translation_table, output_directory, 'PROTEINtable', create_hash_table]
+              for i, g in enumerate(input_groups)]
 
-        for record in translated_records:
-            allele_id = record[0].split('_')[-1]
-            allele_hash = im.hash_sequence(str(record[1]))
-            protein_hashtable.setdefault(allele_hash, []).extend([locus_index, allele_id])
-
-        if len(protein_hashtable) >= max_sequences or file == loci_files[-1]:
-            table_file = fo.join_paths(output_directory, ['PROTEINtable{0}'.format(table_id)])
-            fo.pickle_dumper(protein_hashtable, table_file)
-            hash_tables[1].append(table_file)
-            protein_hashtable = {}
-            table_id += 1
+    hash_tables = mo.map_async_parallelizer(inputs,
+                                            mo.function_helper,
+                                            cpu_cores,
+                                            show_progress=False)
 
     return hash_tables
 
@@ -822,7 +852,10 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     fao.get_sequences_by_id(dna_index, unclassified_seqids, output_file)
 
 
-def assign_allele_ids(classification_files, ns):
+# classification_files = results['classification_files']
+# ns = ns
+# def assign_allele_ids(classification_files, ns):
+def assign_allele_ids(locus_files, ns):
     """Assign allele identifiers to coding sequences classified as EXC or INF.
 
     Parameters
@@ -840,55 +873,61 @@ def assign_allele_ids(classification_files, ns):
     """
     # assign allele identifiers
     novel_alleles = {}
-    for locus, results in classification_files.items():
+    #for locus, results in classification_files.items():
+    # import allele calling results and sort to get INF first
+    locus_results = fo.pickle_loader(locus_files[1])
+    # sort by input order
+    sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
+
+    # only keep INF and EXC classifications
+    sorted_results = [r for r in sorted_results
+                      if r[1][0] in ['EXC', 'INF']]
+
+    # sort to get INF classifications first
+    sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
+                            reverse=True)
+
+    if len(sorted_results) > 0:
         # import locus records
-        records = fao.import_sequences(locus)
+        records = fao.import_sequences(locus_files[0])
         # determine hash for all locus alleles
         matched_alleles = {im.hash_sequence(v): k.split('_')[-1]
                            for k, v in records.items()}
         # get greatest allele integer identifier
         max_alleleid = max([int(rec.replace('*', '').split('_')[-1])
                             for rec in records])
-        # import allele calling results and sort to get INF first
-        locus_results = fo.pickle_loader(results)
-        # sort by input order
-        sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
-        # sort to get INF classifications first
-        sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
-                                reverse=True)
 
         for k in sorted_results:
             genome_id = k[0]
             current_results = k[1]
-            if current_results[0] in ['EXC', 'INF']:
-                # get match that was EXC or INF
-                current_match = [c for c in current_results[1:]
-                                 if c[3] in ['EXC', 'INF']][0]
-                cds_hash = current_match[2]
-                if cds_hash in matched_alleles:
-                    locus_results[genome_id].append(matched_alleles[cds_hash])
+            # get match that was EXC or INF
+            current_match = [c for c in current_results[1:]
+                             if c[3] in ['EXC', 'INF']][0]
+            cds_hash = current_match[2]
+            if cds_hash in matched_alleles:
+                locus_results[genome_id].append(matched_alleles[cds_hash])
+            else:
+                max_alleleid += 1
+                if ns is True:
+                    locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
+                    matched_alleles[cds_hash] = '*' + str(max_alleleid)
+                    # add the unique SHA256 value
+                    novel_alleles.setdefault(locus_files[0], []).append([cds_hash, '*' + str(max_alleleid)])
                 else:
-                    max_alleleid += 1
-                    if ns is True:
-                        locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
-                        matched_alleles[cds_hash] = '*' + str(max_alleleid)
-                        # add the unique SHA256 value
-                        novel_alleles.setdefault(locus, []).append([cds_hash, '*' + str(max_alleleid)])
-                    else:
-                        locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
-                        matched_alleles[cds_hash] = str(max_alleleid)
-                        # add the unique SHA256 value
-                        novel_alleles.setdefault(locus, []).append([cds_hash, str(max_alleleid)])
+                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                    matched_alleles[cds_hash] = str(max_alleleid)
+                    # add the unique SHA256 value
+                    novel_alleles.setdefault(locus_files[0], []).append([cds_hash, str(max_alleleid)])
 
-                    # EXC to INF to enable accurate count of INF classifications
-                    # some INF classifications might be converted to NIPH based on similar
-                    # matches on the same genome. Matches to the new INF/NIPH will be
-                    # classified as EXC and need to be added as new alleles and converted to INF
-                    if current_results[0] == 'EXC':
-                        locus_results[genome_id][0] = 'INF'
+                # EXC to INF to enable accurate count of INF classifications
+                # some INF classifications might be converted to NIPH based on similar
+                # matches on the same genome. Matches to the new INF/NIPH will be
+                # classified as EXC and need to be added as new alleles and converted to INF
+                if current_results[0] == 'EXC':
+                    locus_results[genome_id][0] = 'INF'
 
         # save updated results
-        fo.pickle_dumper(locus_results, results)
+        fo.pickle_dumper(locus_results, locus_files[1])
 
     return novel_alleles
 
@@ -2240,20 +2279,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     return template_dict
 
 
-def create_mode_file(loci_files, output_file):
-    """
-    """
-
-    loci_modes = {}
-    for file in loci_files:
-        locus_id = fo.file_basename(file, False)
-        allele_sizes = list(fao.sequence_lengths(file).values())
-        # select first value in list if there are several values with same frequency
-        loci_modes[locus_id] = [sm.determine_mode(allele_sizes)[0], allele_sizes]
-
-    fo.pickle_dumper(loci_modes, output_file)
-    
-    
 # input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
 # loci_list = '/home/rmamede/Desktop/rmamede/chewBBACA_development/genes.txt'
 # schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized'
@@ -2312,7 +2337,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
         loci_modes = fo.pickle_loader(loci_modes_file)
     else:
         print('\nDetermining sequence length mode for all loci...', end='')
-        create_mode_file(schema_loci_fullpath, loci_modes_file)
+        loci_modes = create_mode_file(schema_loci_fullpath, loci_modes_file)
         print('done.')
 
     # check if schema contains folder with pre-computed hash tables
@@ -2341,8 +2366,15 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                        for k in sorted(list(results['classification_files'].keys()))}
 
     # assign allele identifiers to novel alleles
-    ## try to optimize
-    novel_alleles = assign_allele_ids(results['classification_files'], ns)
+    assignment_inputs = list(results['classification_files'].items())
+    assignment_inputs = [[g, ns, assign_allele_ids] for g in assignment_inputs]
+
+    novel_alleles = mo.map_async_parallelizer(assignment_inputs,
+                                              mo.function_helper,
+                                              config['CPU cores'],
+                                              show_progress=False)
+
+    novel_alleles = im.merge_dictionaries(novel_alleles)
 
     # count total for each classification type
     global_counts, total_cds = count_classifications(results['classification_files'].values())
@@ -2413,36 +2445,43 @@ def main(input_file, loci_list, schema_directory, output_directory,
                     loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
                 fo.pickle_dumper(loci_modes, loci_modes_file)
                 print('done.')
+
                 # update hash tables with allele hashes
-                update_DNAtable = {}
-                update_PROTEINtable = {}
-                loci_indexes = fo.pickle_loader(fo.join_paths(schema_directory, ['.genes_list']))
+                update_table = {}
+                prot_hashes = {}
                 for k, v in added[2].items():
-                    locus_index = loci_indexes.index(fo.file_basename(k))
+                    locus_index = loci_to_call[k]
                     records = fao.sequence_generator(v[0])
                     for rec in records:
                         allele_id = (rec.id).split('_')[-1]
                         sequence = str(rec.seq)
                         seq_hash = im.hash_sequence(sequence)
-                        update_DNAtable.setdefault(seq_hash, []).extend([locus_index, allele_id])
                         prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, config['Translation table'])))
-                        update_PROTEINtable.setdefault(prot_hash, []).extend([locus_index, allele_id])
+                        update_table.setdefault(seq_hash, []).extend([locus_index, allele_id])
+                        prot_hashes.setdefault(seq_hash, []).append(prot_hash)
 
                 # update hash tables
-                pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
                 dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
-                latest_table = sorted(dna_tables)[-1]
-                current_table = fo.pickle_loader(latest_table)
-                for k, v in update_DNAtable.items():
-                    current_table.setdefault(k, []).extend(v)
-                fo.pickle_dumper(current_table, latest_table)
-                
                 prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
-                latest_table = sorted(dna_tables)[-1]
-                current_table = fo.pickle_loader(latest_table)
-                for k, v in update_PROTEINtable.items():
-                    current_table.setdefault(k, []).extend(v)
-                fo.pickle_dumper(current_table, latest_table)
+                latest_dna_table = sorted(dna_tables, key=lambda x: int(x[-1]))[-1]
+                latest_prot_table = sorted(prot_tables, key=lambda x: int(x[-1]))[-1]
+                current_dna_table = fo.pickle_loader(latest_dna_table)
+                current_prot_table = fo.pickle_loader(latest_prot_table)
+                for k, v in update_table.items():
+                    current_dna_table.setdefault(k, []).extend(v)
+                    current_prot_table.setdefault(prot_hashes[k][0], []).extend(v)
+                    if len(current_dna_table) >= ct.HASH_TABLE_MAXIMUM_ALLELES:
+                        fo.pickle_dumper(current_dna_table, latest_dna_table)
+                        fo.pickle_dumper(current_prot_table, latest_prot_table)
+                        new_index = int(latest_dna_table.split('DNAtable')[-1]) + 1
+                        latest_dna_table = fo.join_paths(pre_computed_dir, 'DNAtable{0}'.format(new_index))
+                        current_dna_table = {}
+                        current_prot_table = fo.join_paths(pre_computed_dir, 'PROTEINtable{0}'.format(new_index))
+                        current_prot_table = {}
+
+                if len(current_dna_table) > 0:
+                    fo.pickle_dumper(current_dna_table, latest_dna_table)
+                    fo.pickle_dumper(current_prot_table, latest_prot_table)
         else:
             print('No new alleles to add to schema.')
 

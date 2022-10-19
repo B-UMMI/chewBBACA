@@ -85,10 +85,6 @@ def create_hash_table(fasta_files, table_id, translation_table, output_directory
     return table_file
 
 
-# output_directory = pre_computed_dir
-# loci_files = schema_loci_fullpath
-# translation_table = config['Translation table']
-# cpu_cores = config['CPU cores']
 def speedup(output_directory, loci_files, translation_table, cpu_cores):
     """
     """
@@ -251,11 +247,6 @@ def count_classifications(classification_files):
     return [classification_counts, total_cds]
 
 
-# table_file = dna_tables[0]
-# presence_DNAhashtable = dna_distinct_htable
-# loci_files = im.invert_dictionary(loci_files)
-# classification_files = classification_files
-# input_ids = basename_inverse_map
 def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classification_files,
                       input_ids):
     """Find exact matches between input CDSs and alleles from a locus.
@@ -852,9 +843,6 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     fao.get_sequences_by_id(dna_index, unclassified_seqids, output_file)
 
 
-# classification_files = results['classification_files']
-# ns = ns
-# def assign_allele_ids(classification_files, ns):
 def assign_allele_ids(locus_files, ns):
     """Assign allele identifiers to coding sequences classified as EXC or INF.
 
@@ -873,7 +861,6 @@ def assign_allele_ids(locus_files, ns):
     """
     # assign allele identifiers
     novel_alleles = {}
-    #for locus, results in classification_files.items():
     # import allele calling results and sort to get INF first
     locus_results = fo.pickle_loader(locus_files[1])
     # sort by input order
@@ -1563,13 +1550,6 @@ def select_representatives(representative_candidates, locus, fasta_file,
     return [locus, selected]
 
 
-# fasta_files = input_files
-# schema_directory = schema_directory
-# temp_directory = temp_directory
-# loci_modes = loci_modes.copy()
-# loci_files = loci_to_call
-# config = config
-# pre_computed_dir = pre_computed_dir
 def allele_calling(fasta_files, schema_directory, temp_directory,
                    loci_modes, loci_files, config, pre_computed_dir):
     """
@@ -2279,29 +2259,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     return template_dict
 
 
-# input_file = '/home/rmamede/Desktop/rmamede/chewBBACA_development/ids.txt'
-# loci_list = '/home/rmamede/Desktop/rmamede/chewBBACA_development/genes.txt'
-# schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized'
-# output_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/test_optimized'
-# no_inferred = False
-# output_unclassified = False
-# output_missing = False
-# no_cleanup = True
-# hash_profiles = 'crc32'
-# ns = False
-# config = {'Minimum sequence length': 201,
-#           'Size threshold': 0.2,
-#           'Translation table': 11,
-#           'BLAST Score Ratio': 0.6,
-#           'Word size': 5,
-#           'Window size': 5,
-#           'Clustering similarity': 0.2,
-#           'Prodigal training file': '/home/rmamede/Desktop/rmamede/chewBBACA_development/senterica_schema_optimized/Salmonella_enterica.trn',
-#           'CPU cores': 6,
-#           'BLAST path': '/home/rmamede/.conda/envs/spyder/bin',
-#           'CDS input': False,
-#           'Prodigal mode': 'single',
-#           'Mode': 4}
 def main(input_file, loci_list, schema_directory, output_directory,
          no_inferred, output_unclassified, output_missing,
          no_cleanup, hash_profiles, ns, config):

@@ -217,3 +217,7 @@ ALLELECALL_DICT = {'classification_files': None,
 
 GENOME_LIST = 'listGenomes2Call.txt'
 LOCI_LIST = 'listGenes2Call.txt'
+
+LOCI_LIST_FILE = '.genes_list'
+
+HASH_TABLE_MAXIMUM_ALLELES = 500000

@@ -286,7 +286,11 @@ def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classificat
     sorted_common = sorted(list(common_data.items()), key=lambda x: x[1][0])
     groups = {}
     for r in sorted_common:
-        groups.setdefault(loci_files[r[1][0]], []).append((r[0], r[1][1]))
+        # only gets information about the first locus that contains alleles
+        # does not get addiitonal info if allele is present in several loci
+        groups.setdefault(r[1][0], []).append((r[0], r[1][1]))
+
+    groups = {loci_files[k]: v for k, v in groups.items() if k in loci_files}
 
     matched_seqids = []
     dna_exact_hits = 0
@@ -373,7 +377,11 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     sorted_common = sorted(list(common_data.items()), key=lambda x: x[1][0])
     groups = {}
     for r in sorted_common:
-        groups.setdefault(loci_files[r[1][0]], []).append((r[0], r[1][1]))
+        # only gets information about the first locus that contains alleles
+        # does not get addiitonal info if allele is present in several loci
+        groups.setdefault(r[1][0], []).append((r[0], r[1][1]))
+
+    groups = {loci_files[k]: v for k, v in groups.items() if k in loci_files}
 
     exact_phashes = []
     exc_prot = 0

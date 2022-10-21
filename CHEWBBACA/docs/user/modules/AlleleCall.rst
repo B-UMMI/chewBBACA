@@ -136,6 +136,13 @@ Parameters
                                 with any of the hash algorithms implemented in the hashlib and zlib libraries
                                 (default: None).
 
+    --force-continue            (Optional) If provided, chewBBACA will add config files with default parameter
+                                values to schemas that are missing those files and will also proceed if any of
+                                the argument values does not match the value in the config files. Otherwise, it
+                                will prompt users for the parameter values to add to the config files and for
+                                permission to proceed if the argument values differ from the ones in the config
+                                files (default: False).
+
     --mode                      (Optional) Execution mode (1: only exact matches at DNA level; 2: exact matches
                                 at DNA and Protein level; 3: exact matches and minimizer-based clustering to find
                                 similar alleles based on BSR+0.1; 4: runs the full process to find exact matches

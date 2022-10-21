@@ -1127,7 +1127,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
                       'parameters values that differ from the ones '
                       'used for schema creation will also invalidate '
                       'the schema for uploading and synchronization '
-                      'with Chewie-NS.\nContinue?\n')
+                      'with Chewie-NS.\nContinue? (yes/no)\n')
             params_answer = fo.input_timeout(prompt, ct.prompt_timeout)
         else:
             params_answer = 'yes'

@@ -75,7 +75,7 @@ def create_schema():
         # command to create schema from FASTA with coding sequences
         cds_cmd = ('chewBBACA.py CreateSchema -i <input_files> '
                    '-o <output_directory> --ptf <ptf_path> '
-                   '--CDS')
+                   '--cds')
 
         usage_msg = ('\nCreate schema from genome assemblies:\n  {0}\n'
                      '\nCreate schema with non-default parameters:\n  {1}\n'
@@ -96,24 +96,28 @@ def create_schema():
     parser.add_argument('-i', '--input-files', nargs='?', type=str,
                         required=True, dest='input_files',
                         help='Path to the directory that contains the input '
-                             'FASTA files. Alternatively, a single file with '
+                             'FASTA files. Alternatively, a TXT file with '
                              'a list of paths to FASTA files, one per line.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
                         help='Output directory where the process will store '
-                             'intermediate files and create the schema\'s directory.')
+                             'intermediate files and create the schema\'s '
+                             'directory.')
 
     parser.add_argument('--n', '--schema-name', type=str,
-                        required=False, default='schema_seed', dest='schema_name',
-                        help='Name given to the folder that will store the schema files.')
+                        required=False, default='schema_seed',
+                        dest='schema_name',
+                        help='Name given to the folder that will store the '
+                             'schema files.')
 
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
                         help='Path to the Prodigal training file.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-                        required=False, default=ct.DEFAULT_BSR, dest='blast_score_ratio',
+                        required=False, default=ct.DEFAULT_BSR,
+                        dest='blast_score_ratio',
                         help='BLAST Score Ratio value. Sequences with '
                              'alignments with a BSR value equal to or '
                              'greater than this value will be considered '
@@ -154,20 +158,24 @@ def create_schema():
                         default='single', dest='prodigal_mode',
                         help='Prodigal running mode.')
 
-    parser.add_argument('--CDS', required=False, action='store_true',
-                        dest='cds_input',
-                        help='If provided, input is a single or several FASTA files '
-                             'with coding sequences.')
+    parser.add_argument('--cds', '--cds-input', required=False,
+                        action='store_true', dest='cds_input',
+                        help='If provided, chewBBACA skips the gene '
+                             'prediction step and assumes the input FASTA '
+                             'files contain coding sequences.')
 
     parser.add_argument('--no-cleanup', required=False, action='store_true',
                         dest='no_cleanup',
-                        help='If provided, intermediate files generated during '
-                             'process execution are not removed at the end.')
+                        help='If provided, intermediate files generated '
+                             'during process execution are not deleted at '
+                             'the end.')
 
     args = parser.parse_args()
     del args.CreateSchema
 
-    prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
+    # check if Prodigal is installed if input files are genome assemblies
+    if args.cds_input is False:
+        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     # check if ptf exists
     if args.ptf_path is not None:
@@ -184,14 +192,14 @@ def create_schema():
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
 
-    # add clustering config
+    # add clustering parameters
     args.word_size = ct.WORD_SIZE_DEFAULT
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
     args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
     args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
-    # start CreateSchema process
+    # run CreateSchema process
     CreateSchema.main(**vars(args))
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
@@ -210,8 +218,8 @@ def create_schema():
                                            args.clustering_sim, args.representative_filter,
                                            args.intra_filter, schema_dir)
 
-    # create hidden file with genes/loci list
-    genes_list_file = pv.write_gene_list(schema_dir)
+    # create file with genes/loci list
+    pv.write_gene_list(schema_dir)
 
     # remove temporary file with paths
     # to genome files
@@ -263,31 +271,33 @@ def allele_call():
 
     parser.add_argument('-i', '--input-files', nargs='?', type=str,
                         required=True, dest='input_files',
-                        help='Path to the directory with the genomes FASTA '
+                        help='Path to the directory with the genome FASTA '
                              'files or to a file with a list of paths to '
                              'the FASTA files, one per line.')
 
     parser.add_argument('-g', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
                         help='Path to the schema directory with the'
-                             ' genes FASTA files.')
+                             ' loci FASTA files.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
-                        help='Output directory where the allele '
-                             'calling results will be stored.')
+                        help='Output directory where the allele calling '
+                             'results will be stored (will create a '
+                             'subdirectory named "results_<TIMESTAMP>" '
+                             'if the path passed by the user already exists).')
 
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
-                        help='Path to the Prodigal training file. '
-                             'Default is to get training file from '
-                             'schema directory.')
+                        help='Path to the Prodigal training file. Default is '
+                             'to get training file from the schema\'s '
+                             'directory')
 
     parser.add_argument('--gl', '--genes-list', type=str,
                         required=False, default=False, dest='genes_list',
                         help='Path to a file with the list of genes '
                              'in the schema that the process should '
-                             'identify alleles for.')
+                             'identify alleles for (one per line).')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
                         required=False, dest='blast_score_ratio',
@@ -304,13 +314,16 @@ def allele_call():
     parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
                         required=False, dest='translation_table',
                         help='Genetic code used to predict genes and'
-                             ' to translate coding sequences.')
+                             ' to translate coding sequences. Must match '
+                             'the genetic code used to create the training '
+                             'file.')
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
                         required=False, dest='size_threshold',
                         help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent will be classified as ASM/ALM')
+                             'value of 0.2, alleles with size that deviates '
+                             '+-20 percent from the locus length mode will be '
+                             'classified as ASM/ALM')
 
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
@@ -332,14 +345,17 @@ def allele_call():
     parser.add_argument('--cds', '--cds-input', action='store_true',
                         required=False, dest='cds_input',
                         help='Input files contain coding sequences (one '
-                             'Fasta file per strain). Skips gene '
-                             'prediction with Prodigal.')
+                             'Fasta file per strain). chewBBACA skips the '
+                             'gene prediction step with Prodigal if this '
+                             'argument is provided.')
 
     parser.add_argument('--no-inferred', required=False,
                         action='store_true', dest='no_inferred',
                         help='If provided, the process will not add '
-                             'the sequences of inferred alleles to the '
-                             'schema.')
+                             'the sequences of inferred alleles (INF) to the '
+                             'schema. Allelic profiles will still include '
+                             'the allele identifiers attributed to the '
+                             'inferred alleles.')
 
     parser.add_argument('--output-unclassified', required=False,
                         action='store_true', dest='output_unclassified',
@@ -349,8 +365,8 @@ def allele_call():
     parser.add_argument('--output-missing', required=False,
                         action='store_true', dest='output_missing',
                         help='Create Fasta file with coding sequences '
-                             'for NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5 '
-                             'and LOTSC classifications.')
+                             'classified as NIPH, NIPHEM, ASM, ALM, PLOT3, '
+                             'PLOT5 and LOTSC classifications.')
 
     parser.add_argument('--no-cleanup', required=False,
                         action='store_true', dest='no_cleanup',
@@ -371,26 +387,43 @@ def allele_call():
     #                          'should be stored in the local SQLite '
     #                          'database.')
 
-    parser.add_argument('--convert-legacy', required=False,
-                        action='store_true', dest='convert_legacy',
-                        help='Convert legacy schemas to latest version.')
+    parser.add_argument('--force-continue', required=False,
+                        action='store_true', dest='force_continue',
+                        help='If provided, chewBBACA will add config files '
+                             'with default parameter values to schemas that '
+                             ' are missing those files and will also proceed '
+                             'if any of the argument values does not match '
+                             'the value in the config files. Otherwise, it '
+                             'will prompt users for the parameter values to '
+                             'add to the config files and for permission to '
+                             'proceed if the argument values differ from the '
+                             'ones in the config files.')
 
     parser.add_argument('--mode', type=int, required=False,
                         choices=[1, 2, 3, 4], default=4,
-                        help='')
+                        help='Execution mode. (1: only exact matches at DNA '
+                             'level; 2: exact matches at DNA and Protein '
+                             'level; 3: exact matches and minimizer-based '
+                             'clustering to find similar alleles based on '
+                             'BSR+0.1; 4: runs the full process to find '
+                             'exact matches and similar matches based on '
+                             'BSR value) (default: 4).')
 
     args = parser.parse_args()
 
     # determine if Prodigal is installed and in PATH
-    prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
+    # check if Prodigal is installed if input files are genome assemblies
+    if args.cds_input is False:
+        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
 
     config_file = os.path.join(args.schema_directory, '.schema_config')
-    # legacy schemas do not have config file, create one if user wants to continue
+    # legacy schemas do not have config file
+    # create one with provided arguments
     if os.path.isfile(config_file) is False:
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
-                                            args.size_threshold, args.convert_legacy)
+                                            args.size_threshold, args.force_continue)
         args.ptf_path, args.blast_score_ratio, \
             args.translation_table, args.minimum_length, \
             args.size_threshold = upgraded
@@ -400,7 +433,7 @@ def allele_call():
         run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                     args.blast_score_ratio, args.translation_table,
                                                     args.minimum_length, args.size_threshold,
-                                                    args.convert_legacy, config_file, args.schema_directory)
+                                                    args.force_continue, config_file, args.schema_directory)
         args.ptf_path = run_params['ptf_path']
         args.blast_score_ratio = run_params['bsr']
         args.translation_table = run_params['translation_table']
@@ -409,20 +442,25 @@ def allele_call():
 
     # create output directory
     created = fo.create_directory(args.output_directory)
+    # output directory exists
+    # create a subdirectory to store intermediate files and results
     if created is False:
         current_time = pdt.get_datetime()
+        current_time_str = pdt.datetime_str(current_time,
+                                            date_format='%Y%m%dT%H%M%S')
         results_dir = fo.join_paths(args.output_directory,
-                                    ['results_{0}'.format(pdt.datetime_str(current_time, date_format='%Y%m%dT%H%M%S'))])
+                                    ['results_{0}'.format(current_time_str)])
         created = fo.create_directory(results_dir)
         args.output_directory = results_dir
         print('Output directory exists. Will store results in '
               '{0}.'.format(results_dir))
 
-    # if is a fasta pass as a list of genomes with a single genome,
-    # if not check if is a folder or a txt with a list of paths
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
+    # user provided a list of genes to call
     if args.genes_list is not False:
-        loci_list = pv.check_input_type(args.genes_list, loci_list, args.schema_directory)
+        loci_list = pv.check_input_type(args.genes_list, loci_list,
+                                        args.schema_directory)
+    # working with the whole schema
     else:
         loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
@@ -430,14 +468,15 @@ def allele_call():
     genome_list = pv.check_input_type(args.input_files, genome_list)
 
     # determine if schema was downloaded from Chewie-NS
-    ns_config = os.path.join(args.schema_directory, '.ns_config')
+    ns_config = fo.join_paths(args.schema_directory, ['.ns_config'])
     args.ns = os.path.isfile(ns_config)
 
-    # add clustering config
+    # add clustering arguments
     args.word_size = ct.WORD_SIZE_DEFAULT
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
+    # single dictionary with most arguments
     config = {'Minimum sequence length': args.minimum_length,
               'Size threshold': args.size_threshold,
               'Translation table': args.translation_table,
@@ -452,8 +491,9 @@ def allele_call():
               'Prodigal mode': args.prodigal_mode,
               'Mode': args.mode}
 
-    AlleleCall.main(genome_list, loci_list, args.schema_directory, args.output_directory,
-                    args.no_inferred, args.output_unclassified, args.output_missing,
+    AlleleCall.main(genome_list, loci_list, args.schema_directory,
+                    args.output_directory, args.no_inferred,
+                    args.output_unclassified, args.output_missing,
                     args.no_cleanup, args.hash_profiles, args.ns, config)
 
     # if args.store_profiles is True:
@@ -495,42 +535,47 @@ def evaluate_schema():
 
     parser.add_argument('-i', '--input-files', type=str, required=True,
                         dest='input_files',
-                        help='Path to the schema\'s directory or path to a file containing '
-                             'the paths to the FASTA files of the loci that will be evaluated, '
+                        help='Path to the schema\'s directory or path to '
+                             'a file containing the paths to the FASTA '
+                             'files of the loci that will be evaluated, '
                              'one per line.')
 
     parser.add_argument('-o', '--output', type=str, required=True,
                         dest='output_file',
-                        help='Path to the output directory where the report HTML '
-                             'files will be generated.')
+                        help='Path to the output directory where the report '
+                             'HTML files will be generated.')
 
     parser.add_argument('-a', '--annotations', type=str, required=False,
                         dest='annotations',
-                        help='Path to the tsv table output from the Uniprot Finder module.')
+                        help='Path to the TSV file from the UniprotFinder '
+                             'module.')
 
-    parser.add_argument('--ta', '--translation-table', type=pv.translation_table_type, required=False,
+    parser.add_argument('--ta', '--translation-table',
+                        type=pv.translation_table_type, required=False,
                         default=11, dest='translation_table',
                         help='Genetic code used to translate coding '
                              'sequences.')
 
     parser.add_argument('--th', '--threshold', type=float, required=False,
                         default=0.05, dest='threshold',
-                        help='Allele size variation threshold. If an allele has '
-                             'a size within the interval of the locus mode -/+ '
-                             'the threshold, it will be considered a conserved '
-                             'allele.')
+                        help='Allele size variation threshold. If an allele '
+                             'has a size within the interval of the locus '
+                             'mode -/+ the threshold, it will be considered '
+                             'a conserved allele.')
 
-    parser.add_argument('--ml','--minimum-length', type=pv.minimum_sequence_length_type,
+    parser.add_argument('--ml', '--minimum-length',
+                        type=pv.minimum_sequence_length_type,
                         required=False, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
-                        'coding sequence to be included in the schema.')
+                             'coding sequence to be included in the schema.')
 
     parser.add_argument('--cons', '--conserved', action='store_true',
                         required=False, dest='conserved',
-                        help='If all alleles must be within the threshold for the '
-                                'locus to be considered as having low length variability.')
+                        help='If all alleles must be within the threshold '
+                             'for the locus to be considered as having low '
+                             'length variability.')
 
-    parser.add_argument('--cpu', type=int, required=False,
+    parser.add_argument('--cpu', type=pv.verify_cpu_usage, required=False,
                         default=1, dest='cpu_cores',
                         help='Number of CPU cores to use to run the process.')
 
@@ -541,8 +586,9 @@ def evaluate_schema():
 
     parser.add_argument('--no-cleanup', action='store_true', required=False,
                         dest='no_cleanup',
-                        help='Stops the removal of intermediate files created '
-                             'during the report generation.')
+                        help='If provided, intermediate files generated '
+                             'during process execution are not removed at '
+                             'the end.')
 
     args = parser.parse_args()
     del args.SchemaEvaluator
@@ -636,7 +682,7 @@ def evaluate_schema():
                 cpu_to_use,
                 minimum_length,
                 ct.SIZE_THRESHOLD_DEFAULT,
-                translation_table, 
+                translation_table,
                 show_progress=True)
 
         # Run MAFFT
@@ -646,14 +692,17 @@ def evaluate_schema():
         # Write HTML files
         if os.path.exists(config_file):
             schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length, chewie_schema=True)
+                input_files, pre_computed_data_path, protein_file_path,
+                output_file, minimum_length, chewie_schema=True)
         else:
             schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path, output_file, minimum_length)
+                input_files, pre_computed_data_path, protein_file_path,
+                output_file, minimum_length)
 
         # html_files main.js
         shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                                 "resources", "main_ind.js"), schema_evaluator_html_files_path)
+                                 "resources", "main_ind.js"),
+                    schema_evaluator_html_files_path)
 
     # remove intermediate files created
     # during the report generation
@@ -675,7 +724,9 @@ def evaluate_schema():
 
             shutil.rmtree(prot_files_dir)
 
-    print("The report has been created. Please open the schema_evaluator_report.html in the SchemaEvaluator_pre_computed_data directory.")
+    print('The report has been created. Please open the '
+          'schema_evaluator_report.html in the '
+          'SchemaEvaluator_pre_computed_data directory.')
 
 
 @pdt.process_timer
@@ -809,7 +860,7 @@ def remove_genes():
 
     def msg(name=None):
 
-        # simple command to remove a set of genes from a matrix with allelic profiles
+        # simple command to remove a set of genes/columns from a matrix
         simple_cmd = ('  chewBBACA.py RemoveGenes -i <input_file> '
                       '-g <genes_list> '
                       '-o <output_file>')
@@ -825,17 +876,18 @@ def remove_genes():
                                      formatter_class=ModifiedHelpFormatter)
 
     parser.add_argument('RemoveGenes', nargs='+',
-                        help='Remove loci from a matrix with allelic profiles.')
+                        help='Remove loci from a matrix with allelic '
+                             'profiles.')
 
     parser.add_argument('-i', '--input-file', type=str,
                         required=True, dest='input_file',
-                        help='TSV file that contains a matrix with allelic profiles '
-                             'determined by the AlleleCall process.')
+                        help='TSV file that contains a matrix with allelic '
+                             'profiles determined by the AlleleCall process.')
 
     parser.add_argument('-g', '--genes-list', type=str,
                         required=True, dest='genes_list',
-                        help='File with the list of genes to remove, one identifier '
-                             'per line.')
+                        help='File with the list of genes to remove, one '
+                             'identifier per line.')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
@@ -843,8 +895,9 @@ def remove_genes():
 
     parser.add_argument('--inverse', action='store_true',
                         default=False, dest='inverse',
-                        help='List of genes that is provided is the list of genes to '
-                             'keep and all other genes should be removed.')
+                        help='List of genes that is provided is the list of '
+                             'genes to keep and all other genes should be '
+                             'removed.')
 
     args = parser.parse_args()
     del args.RemoveGenes
@@ -960,22 +1013,26 @@ def prep_schema():
                              'will be included in the adapted schema.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-                        required=False, default=ct.DEFAULT_BSR, dest='blast_score_ratio',
+                        required=False, default=ct.DEFAULT_BSR,
+                        dest='blast_score_ratio',
                         help='The BLAST Score Ratio value that will be '
                              'used to adapt the external schema.')
 
-    parser.add_argument('--l', '--minimum-length', type=pv.minimum_sequence_length_type,
-                        required=False, default=ct.MSL_MIN, dest='minimum_length',
+    parser.add_argument('--l', '--minimum-length',
+                        type=pv.minimum_sequence_length_type, required=False,
+                        default=ct.MSL_MIN, dest='minimum_length',
                         help='Minimum sequence length accepted. Sequences with'
-                             ' a length value smaller than the value passed to this'
-                             ' argument will be discarded.')
+                             ' a length value smaller than the value passed '
+                             'to this argument will be discarded.')
 
-    parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
-                        required=False, default=11, dest='translation_table',
+    parser.add_argument('--t', '--translation-table',
+                        type=pv.translation_table_type, required=False,
+                        default=11, dest='translation_table',
                         help='Genetic code to use for CDS translation.')
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
-                        required=False, default=ct.SIZE_THRESHOLD_DEFAULT, dest='size_threshold',
+                        required=False, default=ct.SIZE_THRESHOLD_DEFAULT,
+                        dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
                              '+-20 percent when compared to the representative '
@@ -985,8 +1042,8 @@ def prep_schema():
                         default=1, dest='cpu_cores',
                         help='The number of CPU cores to use.')
 
-    parser.add_argument('--b', '--blast-path', type=pv.check_blast, required=False,
-                        default='', dest='blast_path',
+    parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+                        required=False, default='', dest='blast_path',
                         help='Path to the BLAST executables.')
 
     args = parser.parse_args()

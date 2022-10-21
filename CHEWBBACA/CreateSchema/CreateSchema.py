@@ -7,26 +7,6 @@ Purpose
 This module enables the creation of a whole genome multi locus sequence
 typing (wgMLST) schema seed.
 
-The process starts by predicting and extracting genes from all input
-files/assemblies (skipped if a single or several FASTA files with coding
-sequences are passed as input and the ``--CDS`` flag is included in the
-command). This is followed by the identification and removal of repeated
-and small sequences from the set of coding sequences extracted from all
-files/assemblies. 'Distinct' DNA sequences are translated and the resulting
-protein sequences go through another deduplication step (repeated protein
-sequences result from DNA sequences that code for the same protein). Protein
-sequences are sorted and clustered based on the percentage of shared distinct
-minimizers. Two filters are applied to each cluster to identify and exclude
-sequences that are highly similar to the cluster's representative or to other
-sequences in the cluster (the threshold is set at >=90% shared minimizers).
-BLASTp is used to determine the similarity of the remaining sequences in each
-cluster, if the clusters are not singletons (have a single protein sequence),
-and exclude sequences based on high BLAST Score Ratio (BSR) values. A final
-step uses BLASTp to determine the similarity of this set of sequences and
-determine the 'distinct' set of loci that constitute the schema seed. The
-schema seed contains 1 FASTA file per distinct locus and a single
-representative allele for each locus.
-
 Expected input
 --------------
 
@@ -129,7 +109,6 @@ Code documentation
 import os
 import sys
 import math
-import argparse
 
 from Bio import SeqIO
 
@@ -154,27 +133,28 @@ except:
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
-    """ Creates the schema seed directory with one FASTA file per
-        distinct locus and the `short` directory with the FASTA files
-        used to save the representative sequences.
+    """Create the schema directory structure.
 
-        Parameters
-        ----------
-        schema_seed_fasta : str
-            Path to the FASTA file that contains the sequences that
-            constitute the schema seed. Each FASTA record in the file
-            is a representative sequence chosen for a locus.
-        output_directory : str
-            Path to the main output directory of the process.
-        schema_name : str
-            Name for the schema's directory.
+    Creates the schema seed directory with one FASTA file per
+    distinct locus and the `short` directory with the FASTA files
+    used to save the representative sequences.
 
-        Returns
-        -------
-        schema_files : list
-            List with the paths to the FASTA files in the schema seed.
+    Parameters
+    ----------
+    schema_seed_fasta : str
+        Path to the FASTA file that contains the sequences that
+        constitute the schema seed. Each FASTA record in the file
+        is a representative sequence chosen for a locus.
+    output_directory : str
+        Path to the main output directory of the process.
+    schema_name : str
+        Name for the schema's directory.
+
+    Returns
+    -------
+    schema_files : list
+        List with the paths to the FASTA files in the schema seed.
     """
-
     schema_dir = fo.join_paths(output_directory, [schema_name])
     fo.create_directory(schema_dir)
 
@@ -183,7 +163,8 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
                       for rec in SeqIO.parse(schema_seed_fasta, 'fasta')}
 
     loci_basenames = {k: k+'.fasta' for k in schema_records}
-    loci_paths = {k: fo.join_paths(schema_dir, [v]) for k, v in loci_basenames.items()}
+    loci_paths = {k: fo.join_paths(schema_dir, [v])
+                  for k, v in loci_basenames.items()}
 
     for k, v in schema_records.items():
         current_representative = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [k+'_1', v])
@@ -200,8 +181,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        size_threshold, word_size, window_size, clustering_sim,
                        representative_filter, intra_filter, cpu_cores, blast_path,
                        prodigal_mode, cds_input):
-    """ Creates a schema seed based on a set of FASTA files that
-        contain genome assemblies or coding sequences.
+    """Determine a schema seed.
     """
 
     # define directory for temporary files

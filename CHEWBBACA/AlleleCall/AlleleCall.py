@@ -3,8 +3,9 @@
 """
 Purpose
 -------
-This module enables
 
+This module performs allele calling to determine the allelic profiles
+for a set of bacterial strains.
 
 Code documentation
 ------------------
@@ -44,10 +45,25 @@ except ModuleNotFoundError:
                                  multiprocessing_operations as mo)
 
 
-def create_mode_file(loci_files, output_file):
-    """
-    """
+def loci_mode_file(loci_files, output_file):
+    """Determine the allele size mode for a set of loci.
 
+    Parameters
+    ----------
+    loci_files : list
+        List with the full paths to loci FASTA files.
+    output_file : str
+        Path to the output file created to store the sequence size mode
+        values (created by the Pickle module).
+
+    Returns
+    -------
+    loci_modes : str
+        Path to the output file with the allele size mode values (a
+        dictionary with loci identifiers as keys and the allele size
+        mode and list of allele sizes as values is saved with the
+        Pickle module).
+    """
     loci_modes = {}
     for file in loci_files:
         locus_id = fo.file_basename(file, False)
@@ -60,11 +76,33 @@ def create_mode_file(loci_files, output_file):
     return loci_modes
 
 
-def create_hash_table(fasta_files, table_id, translation_table, output_directory, file_prefix):
-    """
-    """
+def allele_hash_table(fasta_files, table_id, translation_table,
+                      output_directory, file_prefix):
+    """Create a hash table with allele hashes mapped to allele identifiers.
 
-    # create hash table for DNA
+    Parameters
+    ----------
+    fasta_files : list
+        List with paths to loci FASTA files.
+    table_id : int
+        Unique integer identifier added to the name of the output file.
+    translation_table : int
+        Genetic code used to translate the alleles if the hashes should be
+        determined based on the aminoacid sequences. Will use the DNA
+        sequences if this argument is not provided.
+    output_directory : str
+        Path to the output directory.
+    file_prefix : str
+        Prefix added to the name of the file before the unique integer
+        identifier.
+
+    Returns
+    -------
+    table_file : str
+        Path to the output file (a dictionary with allele hashes as keys
+        and the locus integer index and allele identifier as values is saved
+        with the Pickle module).
+    """
     hashtable = {}
     for file in fasta_files:
         locus_index = file[1]
@@ -85,8 +123,28 @@ def create_hash_table(fasta_files, table_id, translation_table, output_directory
     return table_file
 
 
-def speedup(output_directory, loci_files, translation_table, cpu_cores):
-    """
+def pre_compute_hash_tables(output_directory, loci_files, translation_table,
+                            cpu_cores):
+    """Create allele and translated allele hash tables.
+
+    Parameters
+    ----------
+    output_directory : str
+        Path to the output directory.
+    loci_files : list
+        List with paths to loci FASTA files.
+    translation_table : int
+        Genetic code used to translate the alleles if the hashes should be
+        determined based on the aminoacid sequences. Will use the DNA
+        sequences if this argument is not provided.
+    cpu_cores : int
+        Number of CPU cores used to compute the hash tables.
+
+    Returns
+    -------
+    hash_tables : list
+        List with the paths for the files that contain the hash tables (
+        files are created in the output diretory with the Pickle module).
     """
 
     # define maximum number of sequence hashes per hash table
@@ -105,7 +163,7 @@ def speedup(output_directory, loci_files, translation_table, cpu_cores):
             current_group = []
             total_alleles = 0
 
-    inputs = [[g, i+1, None, output_directory, 'DNAtable', create_hash_table]
+    inputs = [[g, i+1, None, output_directory, 'DNAtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
     hash_tables = mo.map_async_parallelizer(inputs,
@@ -113,7 +171,7 @@ def speedup(output_directory, loci_files, translation_table, cpu_cores):
                                             cpu_cores,
                                             show_progress=False)
 
-    inputs = [[g, i+1, translation_table, output_directory, 'PROTEINtable', create_hash_table]
+    inputs = [[g, i+1, translation_table, output_directory, 'PROTEINtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
     hash_tables = mo.map_async_parallelizer(inputs,
@@ -188,7 +246,7 @@ def update_classification(genome_id, locus_results, match_info):
                 locus_results[genome_id][0] = 'NIPH'
         # multiple matches and classes
         elif len(classes_counts) > 1:
-            # mix of classes that include both EXC and INF are classified as NIPH
+            # inputs that include both EXC and INF are classified as NIPH
             if 'EXC' and 'INF' in classes_counts:
                 locus_results[genome_id][0] = 'NIPH'
             # any class with PLOT3, PLOT5 or LOTSC are classified as NIPH
@@ -247,8 +305,8 @@ def count_classifications(classification_files):
     return [classification_counts, total_cds]
 
 
-def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classification_files,
-                      input_ids):
+def dna_exact_matches(table_file, presence_DNAhashtable, loci_files,
+                      classification_files, input_ids):
     """Find exact matches between input CDSs and alleles from a locus.
 
     Parameters
@@ -279,7 +337,6 @@ def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classificat
     total_matches : int
         Number of exact matches.
     """
-
     variant_table = fo.pickle_loader(table_file)
     common = set(variant_table.keys()).intersection(set(presence_DNAhashtable.keys()))
     common_data = {c: variant_table[c] for c in common}
@@ -310,7 +367,8 @@ def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classificat
             # classify as exact matches
             # skip first value, it is the protein id
             for gid in matched_inputs[1:]:
-                locus_classifications = update_classification(gid, locus_classifications,
+                locus_classifications = update_classification(gid,
+                                                              locus_classifications,
                                                               match_data)
 
             locus_total_matches += len(matched_inputs[1:])
@@ -328,7 +386,8 @@ def dna_exact_matches(table_file, presence_DNAhashtable, loci_files, classificat
 
 
 def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
-                          classification_files, input_ids, dna_index, presence_DNAhashtable):
+                          classification_files, input_ids, dna_index,
+                          presence_DNAhashtable):
     """Find exact matches at protein level.
 
     Parameters
@@ -370,7 +429,6 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     total_distinct_prots : int
         Number of matched distinct prots.
     """
-
     variant_table = fo.pickle_loader(table_file)
     common = set(variant_table.keys()).intersection(set(presence_PROThashtable.keys()))
     common_data = {c: variant_table[c] for c in common}
@@ -957,7 +1015,6 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
     updated_novel : dict
         
     """
-
     # create index for Fasta file with distinct CDSs
     sequence_index = fao.index_fasta(sequences_file)
 
@@ -2302,7 +2359,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
         loci_modes = fo.pickle_loader(loci_modes_file)
     else:
         print('\nDetermining sequence length mode for all loci...', end='')
-        loci_modes = create_mode_file(schema_loci_fullpath, loci_modes_file)
+        loci_modes = loci_mode_file(schema_loci_fullpath, loci_modes_file)
         print('done.')
 
     # check if schema contains folder with pre-computed hash tables
@@ -2312,8 +2369,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
         # create hash tables to speedup exact matching and avoid schema
         # translation in each run
         fo.create_directory(pre_computed_dir)
-        speedup(pre_computed_dir, schema_loci_fullpath,
-                config['Translation table'], config['CPU cores'])
+        pre_compute_hash_tables(pre_computed_dir,
+                                schema_loci_fullpath,
+                                config['Translation table'],
+                                config['CPU cores'])
         print('done.')
 
     # get index for loci to call

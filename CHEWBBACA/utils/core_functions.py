@@ -440,7 +440,6 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
         # lead to different results with different number of cores
         # divide into clusters with fixed number of sequences
         cluster_inputs = im.split_iterable(sorted_seqs, divide)
-        print(len(cluster_inputs), len(cluster_inputs[0]))
     else:
         cluster_inputs = [sorted_seqs]
 

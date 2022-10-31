@@ -268,7 +268,7 @@ def update_classification(genome_id, locus_results, match_info):
     return locus_results
 
 
-def count_classifications(classification_files):
+def count_classifications(classification_files, classification_labels):
     """Determine counts for each classification type except LNF.
 
     Parameters
@@ -299,7 +299,7 @@ def count_classifications(classification_files):
         classification_counts += locus_counts
 
     # add classification that might be missing
-    classification_counts.update(Counter({k: 0 for k in ct.ALLELECALL_CLASSIFICATIONS[:-1]
+    classification_counts.update(Counter({k: 0 for k in classification_labels[:-1]
                                           if k not in classification_counts}))
 
     return [classification_counts, total_cds]
@@ -591,7 +591,8 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
             return 'ALM'
 
 
-def write_loci_summary(classification_files, output_directory, total_inputs):
+def write_loci_summary(classification_files, output_directory, total_inputs,
+                       classification_labels):
     """Write a TSV file with classification counts per locus.
 
     Parameters
@@ -613,9 +614,9 @@ def write_loci_summary(classification_files, output_directory, total_inputs):
         locus_results = fo.pickle_loader(v)
 
         # count locus classifications
-        current_counts = count_classifications([v])
+        current_counts = count_classifications([v], classification_labels)
         counts_list = [locus_id]
-        for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]:
+        for c in classification_labels[:-1]:
             counts_list.append(str(current_counts[0][c]))
         # add LNF count
         counts_list.append(str(total_inputs-len(locus_results)))
@@ -674,7 +675,7 @@ def write_logfile(start_time, end_time, total_inputs,
 
 
 def write_results_alleles(classification_files, input_identifiers,
-                          output_directory):
+                          output_directory, missing_class):
     """Write a TSV file with the allelic profiles for the input samples.
 
     Parameters
@@ -707,7 +708,7 @@ def write_results_alleles(classification_files, input_identifiers,
                     locus_column.append(current_result[0])
             # locus was not identified in the input
             else:
-                locus_column.append('LNF')
+                locus_column.append(missing_class)
 
         columns.append(locus_column)
 
@@ -722,7 +723,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 
 def write_results_statistics(classification_files, input_identifiers,
-                             output_directory):
+                             output_directory, classification_labels):
     """Write a TSV file with classification counts per input.
 
     Parameters
@@ -738,7 +739,7 @@ def write_results_statistics(classification_files, input_identifiers,
         be created.
     """
     # initialize classification counts per input
-    class_counts = {i: {c: 0 for c in ct.ALLELECALL_CLASSIFICATIONS}
+    class_counts = {i: {c: 0 for c in classification_labels}
                     for i in input_identifiers}
     for file in classification_files.values():
         locus_id = fo.get_locus_id(file)
@@ -750,15 +751,15 @@ def write_results_statistics(classification_files, input_identifiers,
             if i in locus_results:
                 class_counts[i][locus_results[i][0]] += 1
             else:
-                class_counts[i]['LNF'] += 1
+                class_counts[i][classification_labels[-1]] += 1
 
     # substitute integer identifiers by string identifiers
     class_counts = {input_identifiers[i]: v for i, v in class_counts.items()}
 
     # initialize with header line
-    lines = [['FILE'] + ct.ALLELECALL_CLASSIFICATIONS]
+    lines = [['FILE'] + classification_labels]
     for k, v in class_counts.items():
-        input_line = [k] + [str(v[c]) for c in ct.ALLELECALL_CLASSIFICATIONS]
+        input_line = [k] + [str(v[c]) for c in classification_labels]
         lines.append(input_line)
 
     outlines = ['\t'.join(line) for line in lines]
@@ -768,7 +769,7 @@ def write_results_statistics(classification_files, input_identifiers,
 
 
 def write_results_contigs(classification_files, input_identifiers,
-                          output_directory, cds_coordinates_files):
+                          output_directory, cds_coordinates_files, classification_labels):
     """Write a TSV file with the CDS coordinates for each input.
 
     Writes a TSV file with coding sequence coordinates (contig
@@ -797,7 +798,7 @@ def write_results_contigs(classification_files, input_identifiers,
         Path to the output file that contains the sequence
         coordinates.
     """
-    invalid_classes = ct.ALLELECALL_CLASSIFICATIONS[2:]
+    invalid_classes = classification_labels[2:]
     intermediate_file = fo.join_paths(output_directory,
                                       ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
@@ -813,7 +814,7 @@ def write_results_contigs(classification_files, input_identifiers,
         # get classification for other cases
         column += [locus_results[i][1][2]
                    if i in locus_results and locus_results[i][0] not in invalid_classes
-                   else locus_results.get(i, ['LNF'])[0]
+                   else locus_results.get(i, [classification_labels[-1]])[0]
                    for i in input_identifiers]
 
         columns.append(column)
@@ -1220,7 +1221,7 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
     return input_matches
 
 
-def identify_paralogous(results_contigs_file, output_directory):
+def identify_paralogous(results_contigs_file, output_directory, classification_labels):
     """Identifiy groups of paralogous loci in the schema.
 
     Parameters
@@ -1247,7 +1248,7 @@ def identify_paralogous(results_contigs_file, output_directory):
             current_input = line[0]
             locus_results = line[1:]
             counts = {k: v for k, v in Counter(locus_results).items()
-                      if v > 1 and k not in ct.ALLELECALL_CLASSIFICATIONS[2:]}
+                      if v > 1 and k not in classification_labels[2:]}
 
             for p in counts:
                 duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
@@ -1448,7 +1449,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
 
 
 def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
-                         output_directory, coordinates_files):
+                         output_directory, coordinates_files, classification_labels):
     """Create Fasta file with sequences for missing data classes.
 
     Parameters
@@ -1475,7 +1476,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
         and paths to pickled files that contain a dictionary with the
         coordinates of the CDS identified in each input.
     """
-    invalid_cases = ct.ALLELECALL_CLASSIFICATIONS[2:-1]
+    invalid_cases = classification_labels[2:-1]
 
     # get information about missing cases for each input genome
     missing_cases = {}
@@ -2135,8 +2136,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                  1, 1, remaining_seqids_file, 'blastp', 10,
                                  ct.IGNORE_RAISED, bw.run_blast])
 
-        blast_start = time.time()
-
         print('BLASTing loci representatives against unclassified proteins...', end='')
         # BLAST representatives against unclassified sequences
         blastp_results = mo.map_async_parallelizer(blast_inputs,
@@ -2144,10 +2143,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                    config['CPU cores'],
                                                    show_progress=False)
         print('done.')
-
-        blast_end = time.time()
-        blast_delta = blast_end - blast_start
-        print(blast_delta)
 
         loci_output_files = []
         for f in output_files:
@@ -2385,6 +2380,11 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     print('\n== Wrapping up ==\n')
 
+    # adjust missing locus classification based on mode
+    classification_labels = ct.ALLELECALL_CLASSIFICATIONS
+    if config['Mode'] != 4:
+        classification_labels[-1] = ct.PROBABLE_LNF
+
     # sort classification files to have allele call matrix format similar to v2.0
     results['classification_files'] = {k: results['classification_files'][k]
                                        for k in sorted(list(results['classification_files'].keys()))}
@@ -2401,7 +2401,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     novel_alleles = im.merge_dictionaries(novel_alleles)
 
     # count total for each classification type
-    global_counts, total_cds = count_classifications(results['classification_files'].values())
+    global_counts, total_cds = count_classifications(results['classification_files'].values(),
+                                                     classification_labels)
 
     print('Classified a total of {0} CDS.'.format(total_cds))
     print('\n'.join(['{0}: {1}'.format(k, v)
@@ -2519,15 +2520,15 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     print('Writing results_alleles.tsv...', end='')
     profiles_table = write_results_alleles(list(results['classification_files'].values()),
-                                           list(results['basename_map'].values()), output_directory)
+                                           list(results['basename_map'].values()), output_directory, classification_labels[-1])
     print('done.')
 
     print('Writing results_statistics.tsv...', end='')
-    write_results_statistics(results['classification_files'], results['basename_map'], output_directory)
+    write_results_statistics(results['classification_files'], results['basename_map'], output_directory, classification_labels)
     print('done.')
 
     print('Writing loci_summary_stats.tsv...', end='')
-    write_loci_summary(results['classification_files'], output_directory, len(input_files))
+    write_loci_summary(results['classification_files'], output_directory, len(input_files), classification_labels)
     print('done.')
 
     # list files with CDSs coordinates
@@ -2538,12 +2539,12 @@ def main(input_file, loci_list, schema_directory, output_directory,
                              for f in coordinates_files}
         print('Writing results_contigsInfo.tsv...', end='')
         results_contigs_outfile = write_results_contigs(list(results['classification_files'].values()), results['basename_map'],
-                                                        output_directory, coordinates_files)
+                                                        output_directory, coordinates_files, classification_labels)
         print('done.')
 
         # determine paralogous loci and write RepeatedLoci.txt file
         print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
-        total_paralogous = identify_paralogous(results_contigs_outfile, output_directory)
+        total_paralogous = identify_paralogous(results_contigs_outfile, output_directory, classification_labels)
         print('done.')
         print('Detected number of paralogous loci: {0}'.format(total_paralogous))
 
@@ -2558,7 +2559,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
         # Create Fasta file with CDS that were classified as ASM, ALM, ...
         print('Writing Fasta file with CDS classified as ASM, ALM, NIPH, NIPHEM, PLOT3, PLOT5 and LOTSC...', end='')
         create_missing_fasta(results['classification_files'], results['dna_fasta'], results['basename_map'], results['dna_hashtable'],
-                             output_directory, coordinates_files)
+                             output_directory, coordinates_files, classification_labels)
         print('done.')
 
     if hash_profiles is not None:

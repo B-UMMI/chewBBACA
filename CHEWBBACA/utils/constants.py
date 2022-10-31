@@ -186,6 +186,9 @@ ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
                               'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
                               'ASM', 'LNF']
 
+# PLNF classificaton for modes {1,2,3}
+PROBABLE_LNF = 'PLNF'
+
 # regex pattern to match locus identifier
 LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
 

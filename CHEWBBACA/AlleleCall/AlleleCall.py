@@ -15,7 +15,6 @@ Code documentation
 import os
 import csv
 import sys
-import time
 import math
 from collections import Counter
 
@@ -798,7 +797,9 @@ def write_results_contigs(classification_files, input_identifiers,
         Path to the output file that contains the sequence
         coordinates.
     """
-    invalid_classes = classification_labels[2:]
+    # do not include PM class so that CDS coordinates can be used to identify
+    # paralogous loci
+    invalid_classes = classification_labels[2:-2]
     intermediate_file = fo.join_paths(output_directory,
                                       ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
@@ -827,6 +828,7 @@ def write_results_contigs(classification_files, input_identifiers,
     # transpose intermediate file
     transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
 
+    invalid_classes.append(classification_labels[-1])
     # use CDS hash to get coordinates in origin input
     output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
     with open(transposed_file, 'r') as infile:
@@ -910,7 +912,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     fao.get_sequences_by_id(dna_index, unclassified_seqids, output_file)
 
 
-def assign_allele_ids(locus_files, ns):
+def assign_allele_ids(locus_files, ns, repeated):
     """Assign allele identifiers to coding sequences classified as EXC or INF.
 
     Parameters
@@ -958,27 +960,33 @@ def assign_allele_ids(locus_files, ns):
             current_match = [c for c in current_results[1:]
                              if c[3] in ['EXC', 'INF']][0]
             cds_hash = current_match[2]
-            if cds_hash in matched_alleles:
-                locus_results[genome_id].append(matched_alleles[cds_hash])
-            else:
-                max_alleleid += 1
-                if ns is True:
-                    locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
-                    matched_alleles[cds_hash] = '*' + str(max_alleleid)
-                    # add the unique SHA256 value
-                    novel_alleles.setdefault(locus_files[0], []).append([cds_hash, '*' + str(max_alleleid)])
+            # do not add to schema CDSs that matched several loci
+            if cds_hash not in repeated:
+                if cds_hash in matched_alleles:
+                    locus_results[genome_id].append(matched_alleles[cds_hash])
                 else:
-                    locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
-                    matched_alleles[cds_hash] = str(max_alleleid)
-                    # add the unique SHA256 value
-                    novel_alleles.setdefault(locus_files[0], []).append([cds_hash, str(max_alleleid)])
-
-                # EXC to INF to enable accurate count of INF classifications
-                # some INF classifications might be converted to NIPH based on similar
-                # matches on the same genome. Matches to the new INF/NIPH will be
-                # classified as EXC and need to be added as new alleles and converted to INF
-                if current_results[0] == 'EXC':
-                    locus_results[genome_id][0] = 'INF'
+                    max_alleleid += 1
+                    if ns is True:
+                        locus_results[genome_id].append('INF-*{0}'.format(max_alleleid))
+                        matched_alleles[cds_hash] = '*' + str(max_alleleid)
+                        # add the unique SHA256 value
+                        novel_alleles.setdefault(locus_files[0], []).append([cds_hash, '*' + str(max_alleleid)])
+                    else:
+                        locus_results[genome_id].append('INF-{0}'.format(max_alleleid))
+                        matched_alleles[cds_hash] = str(max_alleleid)
+                        # add the unique SHA256 value
+                        novel_alleles.setdefault(locus_files[0], []).append([cds_hash, str(max_alleleid)])
+    
+                    # EXC to INF to enable accurate count of INF classifications
+                    # some INF classifications might be converted to NIPH based on similar
+                    # matches on the same genome. Matches to the new INF/NIPH will be
+                    # classified as EXC and need to be added as new alleles and converted to INF
+                    if current_results[0] == 'EXC':
+                        locus_results[genome_id][0] = 'INF'
+            # classify as PM (Paralogous Match) when a CDS matches several loci
+            else:
+                locus_results[genome_id].append('PM')
+                locus_results[genome_id][0] = 'PM'
 
         # save updated results
         fo.pickle_dumper(locus_results, locus_files[1])
@@ -2389,9 +2397,35 @@ def main(input_file, loci_list, schema_directory, output_directory,
     results['classification_files'] = {k: results['classification_files'][k]
                                        for k in sorted(list(results['classification_files'].keys()))}
 
+    # determine CDSs that matched multiple loci
+    multiple = {}
+    for k, v in results['classification_files'].items():
+        # import allele calling results and sort to get INF first
+        locus_results = fo.pickle_loader(v)
+        # sort by input order
+        sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
+    
+        # only keep INF and EXC classifications
+        sorted_results = [r for r in sorted_results
+                          if r[1][0] in ['EXC', 'INF']]
+    
+        # sort to get INF classifications first
+        sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
+                                reverse=True)
+
+        if len(sorted_results) > 0:
+            for res in sorted_results:
+                multiple.setdefault(res[1][1][2], []).append(fo.file_basename(k))
+
+    # get CDSs with multiple matches
+    multiple2 = {k: v for k, v in multiple.items() if len(set(v)) > 1}
+
+    repeated = list(multiple2.keys())
+    print('{0} CDSs matched multiple loci'.format(len(repeated)))
+
     # assign allele identifiers to novel alleles
     assignment_inputs = list(results['classification_files'].items())
-    assignment_inputs = [[g, ns, assign_allele_ids] for g in assignment_inputs]
+    assignment_inputs = [[g, ns, repeated, assign_allele_ids] for g in assignment_inputs]
 
     novel_alleles = mo.map_async_parallelizer(assignment_inputs,
                                               mo.function_helper,
@@ -2442,10 +2476,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
                         # delete old entries
                         if r[0] not in reps_to_del:
                             reps_to_del.add(r[0])
-        
+
                 for r in reps_to_del:
                     del(results['self_scores'][r])
-    
+
                 # save updated self-scores
                 self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
                 fo.pickle_dumper(results['self_scores'], self_score_file)

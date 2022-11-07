@@ -2419,9 +2419,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     # get CDSs with multiple matches
     multiple2 = {k: v for k, v in multiple.items() if len(set(v)) > 1}
-
     repeated = list(multiple2.keys())
-    print('{0} CDSs matched multiple loci'.format(len(repeated)))
 
     # assign allele identifiers to novel alleles
     assignment_inputs = list(results['classification_files'].items())

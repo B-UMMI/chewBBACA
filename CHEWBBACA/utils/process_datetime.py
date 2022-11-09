@@ -136,12 +136,16 @@ def process_timer(func):
         # get process name and print header
         process_header(sys.argv[1])
 
-        start = get_datetime()
-        start_str = datetime_str(start)
-        print('Started at: {0}\n'.format(start_str))
+        # do not measure time if it is only needed to print the help message
+        if any([option in ['-h', '--help'] for option in sys.argv]) is False:
+            start = get_datetime()
+            start_str = datetime_str(start)
+            print('Started at: {0}\n'.format(start_str))
+
         # run function
         func(*args, **kwargs)
 
+        # does not print elapsed time if the help message is printed
         end = get_datetime()
         end_str = datetime_str(end)
         print('\nFinished at: {0}'.format(end_str))

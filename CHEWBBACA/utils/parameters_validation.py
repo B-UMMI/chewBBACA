@@ -77,11 +77,28 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 
 def arg_list(arg, arg_name):
-    """ Determines if argument that is only allowed to have
-        a single value has several values. A list with several
-        values raises an exception.
-    """
+    """Determine if more than one value has been used for a single parameter.
 
+    Parameter
+    ---------
+    arg : list
+        List with the values used for a sinlge parameter to perform
+        allele calling.
+    arg_name : str
+        The name of the parameter to include in the exception
+        message if more than one parameter value has been used
+        to perform allele calling.
+
+    Returns
+    -------
+    The single parameter value used to perform allele calling.
+
+    Raises
+    ------
+    SystemExit
+        - If more than one parameter value has been used to
+        perform allele calling.
+    """
     if isinstance(arg, list) is True:
         if len(arg) > 1:
             sys.exit('\nMultiple {0} values.'.format(arg_name))
@@ -92,7 +109,7 @@ def arg_list(arg, arg_name):
 
 
 def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
-    """ Validates BLAST Score Ratio (BSR) value passed to chewBBACA.
+    """Validate the BLAST Score Ratio (BSR) value passed to chewBBACA.
 
     Parameters
     ----------
@@ -114,7 +131,6 @@ def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
         - If the BSR value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'BLAST Score Ratio')
 
     try:
@@ -132,8 +148,7 @@ def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
 
 
 def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX):
-    """ Validates the minimum sequence length value (MSL) passed
-        to chewBBACA.
+    """Validate the minimum sequence length value (MSL) passed to chewBBACA.
 
     Parameters
     ----------
@@ -155,7 +170,6 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
         - If the MSL value cannot be converted to int type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'minimum sequence length')
 
     try:
@@ -173,8 +187,7 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
 
 
 def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
-    """ Validates the size threshold value (ST) passed
-        to chewBBACA.
+    """Validate the size threshold value (ST) passed to chewBBACA.
 
     Parameters
     ----------
@@ -197,7 +210,6 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
         - If the ST value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'size threshold')
 
     try:
@@ -219,8 +231,7 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
 
 
 def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
-    """ Validates the translation table value (TT) passed
-        to chewBBACA.
+    """Validate the translation table value (TT) passed to chewBBACA.
 
     Parameters
     ----------
@@ -243,7 +254,6 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
         or if it does not match any of the acceptable genetic
         codes.
     """
-
     arg = arg_list(arg, 'translation table')
 
     try:
@@ -268,8 +278,7 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
 
 
 def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
-    """ Validates the word size value (WS) passed
-        to chewBBACA.
+    """Validate the word size value (WS) passed to chewBBACA.
 
     Parameters
     ----------
@@ -291,7 +300,6 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
         - If the WS value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'word size')
 
     try:
@@ -314,8 +322,7 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
 
 def validate_cs(arg, min_value=ct.CLUSTERING_SIMILARITY_MIN,
                 max_value=ct.CLUSTERING_SIMILARITY_MAX):
-    """ Validates the clustering similarity value (CS) passed
-        to chewBBACA.
+    """Validate the clustering similarity value (CS) passed to chewBBACA.
 
     Parameters
     ----------
@@ -337,7 +344,6 @@ def validate_cs(arg, min_value=ct.CLUSTERING_SIMILARITY_MIN,
         - If the CS value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'clustering similarity')
 
     try:
@@ -360,8 +366,7 @@ def validate_cs(arg, min_value=ct.CLUSTERING_SIMILARITY_MIN,
 
 def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
                 max_value=ct.REPRESENTATIVE_FILTER_MAX):
-    """ Validates the representative filter value (RF) passed
-        to chewBBACA.
+    """Validate the representative filter value (RF) passed to chewBBACA.
 
     Parameters
     ----------
@@ -383,7 +388,6 @@ def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
         - If the RF value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'representative filter')
 
     try:
@@ -405,8 +409,7 @@ def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
 
 def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
                 max_value=ct.INTRA_CLUSTER_MAX):
-    """ Validates the intra-cluster filter value (IF) passed
-        to chewBBACA.
+    """Validate the intra-cluster filter value (IF) passed to chewBBACA.
 
     Parameters
     ----------
@@ -428,7 +431,6 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
         - If the IF value cannot be converted to float type
         or if it is not contained in the acceptable interval.
     """
-
     arg = arg_list(arg, 'intra-cluster filter')
 
     try:
@@ -450,7 +452,7 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
 
 
 def validate_ns_url(arg):
-    """ Verify if Chewie-NS URL passed to chewBBACA is valid.
+    """Verify if the Chewie-NS URL passed to chewBBACA is valid.
 
     Parameters
     ----------
@@ -469,7 +471,6 @@ def validate_ns_url(arg):
         - If it is not possible to connect to the
         chewie-NS instance.
     """
-
     if arg in ct.HOST_NS:
         ns_url = ct.HOST_NS[arg]
     else:
@@ -487,7 +488,7 @@ def validate_ns_url(arg):
 
 
 def validate_python_version(minimum_version=ct.MIN_PYTHON):
-    """ Validates Python version used to run chewBBACA.
+    """Validate Python version used to run chewBBACA.
 
     Parameters
     ----------
@@ -507,7 +508,6 @@ def validate_python_version(minimum_version=ct.MIN_PYTHON):
         - If the Python version does not meet minimum requirements
         or it was not possible to determine/detect a version.
     """
-
     python_version = platform.python_version()
 
     try:
@@ -521,9 +521,7 @@ def validate_python_version(minimum_version=ct.MIN_PYTHON):
 
 
 def verify_cpu_usage(cpu_to_use):
-    """ Verify if the value provided for the number of CPU
-        cores/threads does not exceed system limit or affect
-        system performance.
+    """Verify if the cores/threads value does not exceed available resources.
 
     Parameters
     ----------
@@ -562,15 +560,22 @@ def verify_cpu_usage(cpu_to_use):
 
 
 def is_exe(fpath):
-    """ Determines if path points to a file and
-        if the file is an executable.
-    """
+    """Determine if path points to a file and if the file is an executable.
 
+    Parameters
+    ----------
+    fpath : str
+        Path to a file.
+
+    Returns
+    -------
+    True if the file exists and is executable, False otherwise.
+    """
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
 def which(program):
-    """ Determines if program is in PATH.
+    """Determine if a program is in PATH.
 
     Parameters
     ----------
@@ -582,7 +587,6 @@ def which(program):
     program_path : str
         Program path added to PATH.
     """
-
     proc = subprocess.Popen(['which', program],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
@@ -595,7 +599,7 @@ def which(program):
 
 
 def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
-    """ Determines if BLAST is installed and validates its version.
+    """Determine if BLAST is installed and validates its version.
 
     Parameters
     ----------
@@ -622,7 +626,6 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
         - If it is not possible to determine the BLAST
         version or if it does not match minimum requirements.
     """
-
     # search for BLAST in PATH
     if not blast_path:
         blastp_path = which(ct.BLASTP_ALIAS)
@@ -664,9 +667,23 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
 
 
 def check_prodigal(prodigal_path):
-    """ Determines if Prodigal is installed and in the PATH.
-    """
+    """Determine if Prodigal is installed and added to the PATH.
 
+    Parameters
+    ----------
+    prodigal_path : str
+        Name or path used to call Prodigal.
+
+    Returns
+    -------
+    True if Prodigal is installed.
+
+    Raises
+    ------
+    SystemExit
+        - If it is not possible to run the command to determine
+        the Prodigal version.
+    """
     # check Prodigal version
     try:
         proc = subprocess.Popen([prodigal_path, '-v'],
@@ -684,9 +701,19 @@ def check_prodigal(prodigal_path):
 
 
 def hash_ptf(ptf_path):
-    """ Determines hash value for a Prodigal training file.
-    """
+    """Determine hash value for a Prodigal training file.
 
+    Parameters
+    ----------
+    ptf_path : str or None
+        Path to the Prodigal training file or None if no
+        training file will be used.
+
+    Returns
+    -------
+    ptf_hash : str
+        Blake2b hash computed from file content.
+    """
     if ptf_path is not None:
         ptf_hash = fo.hash_file(ptf_path, hashlib.blake2b())
     else:
@@ -702,7 +729,6 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
         NoneType. Raises SystemExit if a provided value is not
         valid.
     """
-
     prompt = ('It seems that your schema was created with chewBBACA '
               '2.1.0 or lower.\nIt is highly recommended that you run '
               'the PrepExternalSchema process to guarantee full '
@@ -799,10 +825,11 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
 def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                           translation_table, minimum_length, version,
                           size_threshold, force_continue):
-    """ Upgrades a legacy schema to current version.
-        Determines configuration values and adds them to the
-        configuration file. Creates the file with the list of loci in
-        the schema.
+    """Upgrade a legacy schema to current version.
+
+    Determines configuration values and adds them to the
+    configuration file. Creates the file with the list of loci in
+    the schema.
 
     Parameters
     ----------
@@ -832,7 +859,6 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
     Valid/selected values for ptf_path, blast_score_ratio,
     translation_table, minimum_length and size_threshold.
     """
-
     if force_continue is False:
         values = prompt_arguments(ptf_path, blast_score_ratio,
                                   translation_table, minimum_length,

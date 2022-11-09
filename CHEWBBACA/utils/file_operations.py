@@ -25,7 +25,6 @@ import pickle
 import zipfile
 import urllib.request
 from itertools import islice
-from genericpath import isfile
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 

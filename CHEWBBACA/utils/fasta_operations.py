@@ -117,7 +117,7 @@ def write_records(records, output_file):
         fasta_out.write_file(records)
 
 
-def integer_headers(input_fasta, output_fasta, start=1, limit=5000):
+def integer_headers(input_fasta, output_fasta, start=1, limit=50000):
     """Switch sequence headers in Fasta file by integer values.
 
     Parameters
@@ -387,9 +387,10 @@ def split_seqlength(fasta_path, output_directory, length_cutoff):
     -------
     List with two tuples: the first contains the path to a FASTA
     file with sequences equal or above the length cutoff and the
-    list of sequence identifiers of those sequences. The second
-    tuple contains the same data for the sequences below the
-    cutoff or is None if there were no sequences below the cutoff.
+    list of sequence identifiers of those sequences or is None if
+    there were no sequences above the cutoff. The second tuple
+    contains the same data for the sequences below the cutoff or
+    is None if there were no sequences below the cutoff.
     """
     length_values = sequence_lengths(fasta_path)
     below_cutoff = [seqid for seqid, length in length_values.items()
@@ -418,7 +419,7 @@ def split_seqlength(fasta_path, output_directory, length_cutoff):
 
 
 def fasta_stats(fasta_file):
-    """Determine the number of sequences in a FASTA file and lengths stats.
+    """Determine the number of sequences in a FASTA file and length stats.
 
     Parameters
     ----------
@@ -464,6 +465,8 @@ def translate_fasta(input_fasta, output_directory, translation_table):
     protein_file : str
         Path to the FASTA file that contains the translated
         sequences.
+    Also returns the number of sequences that were translated
+    successfully.
     """
     records = sequence_generator(input_fasta)
     translated_records = [[rec.id,

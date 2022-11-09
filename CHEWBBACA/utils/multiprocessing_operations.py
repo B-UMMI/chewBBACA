@@ -59,11 +59,11 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
     ----------
     inputs : list
         List with inputs to process.
-    function
+    function : func
         Function to be parallelized.
     cpu : int
         Number of processes to create (based on the
-        number of cores).
+        number of CPU cores).
     callback : str
         Results can be appended, "append", to the
         list that stores results or the list of results
@@ -147,7 +147,8 @@ def distribute_loci(inputs, cores, method):
     Creates balanced lists of loci to distribute per number of
     available cores. Loci lists can be created based on the number
     of sequences per locus (seqcount), the mean length of the
-    sequences in each locus or the product of both values.
+    sequences (length) in each locus or the product of both values
+    (seqcount+length).
 
     Parameters
     ----------
@@ -192,10 +193,31 @@ def distribute_loci(inputs, cores, method):
     return splitted_ids
 
 
-def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_progress=False):
-    """
-    """
+def parallelize_function(function, inputs, common_args=None,
+                         cpu_cores=1, show_progress=False):
+    """Create list of inputs and parallelize function calls.
 
+    Parameters
+    ----------
+    function : func
+        Function to be parallelized.
+    inputs : list
+        List of inputs to divide into sublists.
+    common_args : list
+        List of common arguments to add to each sublist.
+        The common args are values that will be passed to the
+        function.
+    cpu_cores : int
+        Number of CPU cores used to parallelize the function.
+    show_progress : bool
+        True to show a progress bar for the percentage of
+        inputs that have been processed, False otherwise.
+
+    Returns
+    -------
+    results : list
+        List with the results returned by the function calls.
+    """
     # create chunks to distribute per cores
     input_lists = im.divide_list_into_n_chunks(inputs, len(inputs))
 

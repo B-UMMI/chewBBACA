@@ -12,6 +12,7 @@ Code documentation
 """
 
 
+import sys
 import platform
 
 
@@ -24,8 +25,8 @@ DEFAULT_BSR = 0.6
 # minimum sequence length defaults
 MSL_MIN = 0
 # large value to ensure that all sequences above minimum value are accepted
-MSL_MAX = 99999
-# default value of 201 nucleotides (67 aminoacids)
+MSL_MAX = sys.maxsize
+# default minimum sequence length value of 201 nucleotides (67 aminoacids)
 MINIMUM_LENGTH_DEFAULT = 201
 
 # size variation threshold defaults
@@ -37,7 +38,7 @@ ST_MAX = 1.0
 # ASM if below threshold and ALM if above
 SIZE_THRESHOLD_DEFAULT = 0.2
 
-# word size/k size used for minimizer clustering
+# word size/k value used for minimizer clustering
 # this value should not be modified
 WORD_SIZE_MIN = 5
 WORD_SIZE_MAX = 5
@@ -51,6 +52,7 @@ WINDOW_SIZE_DEFAULT = 5
 
 # minimum decimal proportion of shared distinct minimizers for
 # a sequence to be added to a cluster
+# this value should not be modified
 CLUSTERING_SIMILARITY_MIN = 0.20
 CLUSTERING_SIMILARITY_MAX = 0.20
 CLUSTERING_SIMILARITY_DEFAULT = 0.20
@@ -85,7 +87,7 @@ GENETIC_CODES_DEFAULT = 11
 # valid FASTA file extensions
 FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn', '.fa']
 
-# NS related constants
+# Chewie-NS related constants
 HEADERS_GET_ = {'Authorization': None,
                 'accept': 'application/octet-stream'}
 
@@ -109,15 +111,13 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
 UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 MAX_QUERIES = 10
 
-# authors, GitHub repository, documentation,
-# tutorial repository and contacts
+# Authors, GitHub repository, documentation, tutorial and contacts
 authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
 repository = 'https://github.com/B-UMMI/chewBBACA'
-wiki = 'https://github.com/B-UMMI/chewBBACA/wiki'
-tutorial = 'https://github.com/B-UMMI/chewBBACA_tutorial'
+documentation = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
 contacts = 'imm-bioinfo@medicina.ulisboa.pt'
 
-# timeout, in seconds, for user input
+# timeout, in seconds, to wait for user input
 prompt_timeout = 30
 
 # minimum MAJOR and MINOR BLAST versions
@@ -224,3 +224,5 @@ LOCI_LIST = 'listGenes2Call.txt'
 LOCI_LIST_FILE = '.genes_list'
 
 HASH_TABLE_MAXIMUM_ALLELES = 500000
+
+UNIPROT_SPARQL_THREADS = 4

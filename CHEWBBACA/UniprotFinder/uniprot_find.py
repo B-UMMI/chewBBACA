@@ -238,15 +238,13 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     return proteome_results
 
 
-def sparql_annotations(loci_files, translation_table, cpu_cores):
+def sparql_annotations(loci_files, translation_table):
     """Retrieve annotations from UniProt's SPARQL endpoint.
 
     Parameters
     ----------
     loci_files : list
         List with the paths to the loci FASTA files.
-    cpu_cores : int
-        Number of files to process in parallel.
 
     Returns
     -------
@@ -263,7 +261,7 @@ def sparql_annotations(loci_files, translation_table, cpu_cores):
 
     # this works with all alleles in the loci to maximize
     # chance of finding info
-    workers = cpu_cores if cpu_cores <= 4 else 4
+    workers = ct.UNIPROT_SPARQL_THREADS
     annotations = mo.map_async_parallelizer(uniprot_args,
                                             mo.function_helper,
                                             workers,
@@ -405,7 +403,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
                 translation_table = 11
 
             # get annotations through UniProt SPARQL endpoint
-            results = sparql_annotations(loci_paths, translation_table, cpu_cores)
+            results = sparql_annotations(loci_paths, translation_table)
 
             sparql_results = {fo.file_basename(r[0], False): r[1:-1]
                               for r in results}

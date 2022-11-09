@@ -13,7 +13,6 @@ Code documentation
 
 import os
 import sys
-import math
 
 try:
     from utils import (constants as ct,
@@ -250,7 +249,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
                                   [outfile_template.format('merged.fasta')])
     # get the representative record for each distinct sequence
     fao.get_sequences_by_id(cds_index, distinct_seqids,
-                            distinct_seqs, 20000)
+                            distinct_seqs, 50000)
 
     fo.remove_files(dedup_files+[cds_file])
 
@@ -698,7 +697,7 @@ def blast_clusters(clusters, sequences, output_directory,
     fo.create_directory(blast_results_dir)
 
     # create files with replaced sequence identifiers per cluster
-    seqids_to_blast = sc.blast_inputs(clusters, blast_results_dir, ids_dict,
+    seqids_to_blast = sc.blast_seqids(clusters, blast_results_dir, ids_dict,
                                       only_rep)
 
     # distribute clusters per available cores

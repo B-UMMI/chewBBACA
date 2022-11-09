@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions related with sequence clustering
-based on k-mers.
+based on k-mer sets.
 
 Code documentation
 ------------------
@@ -162,7 +162,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
     return [excluded_seqids, excluded_sims]
 
 
-# change name adn add parameter to accept k-mer sampling used to cluster?
+# change name and add parameter to accept k-mer sampling used to cluster?
 def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                          offset, clusters, reps_sequences, reps_groups,
                          seq_num_cluster, clustering_sim, grow):
@@ -274,7 +274,6 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
     return [clusters, reps_sequences, reps_groups]
 
 
-# remove this function? Add code to `minimizer_clustering`?
 def clusterer(sorted_sequences, word_size, window_size,
               clustering_sim, representatives, grow,
               offset, position, seq_num_cluster):
@@ -484,7 +483,7 @@ def cluster_blaster(seqids, sequences, output_directory,
     return out_files
 
 
-def blast_inputs(clusters, output_directory, ids_dict, only_rep):
+def blast_seqids(clusters, output_directory, ids_dict, only_rep):
     """Create files with the identifiers of the sequences in each cluster.
 
     Parameters

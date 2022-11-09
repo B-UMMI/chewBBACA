@@ -655,7 +655,7 @@ def find_missing(integer_list):
     return missing_integers
 
 
-# add new parameter that accepts function to sample kmers
+# add new parameter that accepts method to sample kmers
 def kmer_index(fasta_file, word_size, fasta=True):
     """Create a k-mer index from a set of sequences in a FASTA file.
 
@@ -665,6 +665,9 @@ def kmer_index(fasta_file, word_size, fasta=True):
         Path to a Fasta file.
     word_size : int
         Value k for the k-mer size.
+    fasta : bool
+        True if input is a FASTA file, False if it is a dictionary
+        with sequence identifiers as keys and sequences as values.
 
     Returns
     -------
@@ -855,7 +858,8 @@ def polyline_encoding(number_list, precision=0):
     """
     compressed_values = ''
     # store the precision value
-    # to ensure proper character display, encoded values are summed with 63 (the ASCII character '?')
+    # to ensure proper character display, encoded values are summed with 63
+    # (the ASCII character '?')
     compressed_values += chr(precision+63)
     previous_num = 0
     for number in number_list:
@@ -869,7 +873,8 @@ def polyline_encoding(number_list, precision=0):
         # to know that the number is negative
         difference = ~(difference << 1) if difference < 0 else difference << 1
 
-        # process 5-bit chunks from right to left until we get a value that is smaller than 0b100000/0x20/32
+        # process 5-bit chunks from right to left until we get a value that
+        # is smaller than 0b100000/0x20/32
         while difference >= 0x20:
             # use 0x1f (0b11111) as bitmask to get the smallest 5-bit chunk
             # and 0x20 is used as continuation bit to help decode
@@ -984,8 +989,7 @@ def replace_list_values(input_list, replace_dict):
 
 
 def replace_chars(column, missing_replace='0'):
-    """ Replaces all non-numeric characters
-        in a column with allele identifiers.
+    """Replace all non-numeric characters in a column with allele identifiers.
 
     Parameters
     ----------
@@ -998,7 +1002,6 @@ def replace_chars(column, missing_replace='0'):
         Input column with cells that only contain
         numeric characters.
     """
-
     # remove 'INF-' from inferred alleles
     replace_inf = column.replace(to_replace='INF-',
                                  value='', regex=True)

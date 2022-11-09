@@ -503,6 +503,9 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
     unique_fasta : str
         Path to a FASTA file that will be created to
         store distinct sequences.
+    map_ids : dict
+        Dictionary with mapping between genome string
+        identifiers and genome integer identifiers.
 
     Returns
     -------
@@ -559,7 +562,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
 
 
 def determine_small(sequences_file, minimum_length, variation=0):
-    """Find protein sequences that are shorter a specified length.
+    """Find protein sequences that are shorter than a specified length.
 
     Parameters
     ----------

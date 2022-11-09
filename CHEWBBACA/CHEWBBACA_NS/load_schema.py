@@ -75,11 +75,6 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``4``
 
-- ``--thr``, ``threads`` : Number of threads to use to search for annotations
-  on UniProt (default=20).
-
-    - e.g.: ``20``
-
 - ``--ns_url``, ``nomenclature_server`` : The base URL for the Nomenclature
   Server. The default value, "main", will establish a connection to
   "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
@@ -982,11 +977,6 @@ def parse_arguments():
                         help='Number of CPU cores that will '
                              'be used in the Schema Pre-processing step.')
 
-    parser.add_argument('--thr', type=int, required=False,
-                        default=20, dest='threads',
-                        help='Number of threads to use to search for '
-                             'annotations on UniProt.')
-
     parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
                         default='main',
                         dest='nomenclature_server',
@@ -1009,7 +999,7 @@ def parse_arguments():
 
 
 def main(schema_directory, species_id, schema_name, loci_prefix,
-         description_file, annotations, cpu_cores, threads,
+         description_file, annotations, cpu_cores,
          nomenclature_server, continue_up):
 
     if 'tutorial' not in nomenclature_server:
@@ -1206,7 +1196,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     if len(miss_annotation) > 0:
         # create SPARQL queries to query UniProt SPARQL endpoint
         print('Creating SPARQL queries to search UniProt for annotations...')
-        with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=ct.UNIPROT_SPARQL_THREADS) as executor:
             for res in executor.map(create_uniprot_queries, miss_annotation):
                 queries_files.append(res)
 
@@ -1215,7 +1205,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
         loci_annotations = {}
         total_found = 0
         total_loci = len(queries_files)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=ct.UNIPROT_SPARQL_THREADS) as executor:
             # Start the load operations and mark each future with its URL
             for res in executor.map(get_annotation, queries_files):
                 loci_annotations[res[0]] = res[1:]

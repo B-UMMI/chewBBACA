@@ -144,19 +144,25 @@ def create_schema():
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
                         help='Number of CPU cores that will be '
-                             'used to run the CreateSchema process '
+                             'used to run the process '
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores).')
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     parser.add_argument('--pm', '--prodigal-mode', required=False,
                         choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',
-                        help='Prodigal running mode.')
+                        help='Prodigal running mode ("single" for '
+                             'finished genomes, reasonable quality '
+                             'draft genomes and big viruses. "meta" '
+                             'for metagenomes, low quality draft '
+                             'genomes, small viruses, and small '
+                             'plasmids).')
 
     parser.add_argument('--cds', '--cds-input', required=False,
                         action='store_true', dest='cds_input',
@@ -249,9 +255,9 @@ def allele_call():
                                             '-o <output_directory> '
                                             '--cds')
 
-        usage_msg = ('\nPerform AlleleCall with schema default parameters:\n  {0}\n'
-                     '\nPerform AlleleCall with non-default parameters:\n  {1}\n'
-                     '\nPerform AlleleCall with FASTA files that contain CDS:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+        usage_msg = ('\nPerform allele calling with schema default parameters:\n  {0}\n'
+                     '\nPerform allele calling with non-default parameters:\n  {1}\n'
+                     '\nPerform allele calling with FASTA files that contain CDS:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -263,7 +269,7 @@ def allele_call():
                                                  'adds them to the schema.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter,
-                                     epilog='It is strongly advised to perform AlleleCall '
+                                     epilog='It is strongly advised to perform allele calling '
                                             'with the default schema parameters to ensure '
                                             'more consistent results.')
 
@@ -328,19 +334,25 @@ def allele_call():
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
                         help='Number of CPU cores/threads that will be '
-                             'used to run the CreateSchema process '
+                             'used to run the process '
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     parser.add_argument('--pm', '--prodigal-mode', type=str,
                         required=False, choices=['single', 'meta'],
                         default='single', dest='prodigal_mode',
-                        help='Prodigal running mode.')
+                        help='Prodigal running mode ("single" for '
+                             'finished genomes, reasonable quality '
+                             'draft genomes and big viruses. "meta" '
+                             'for metagenomes, low quality draft '
+                             'genomes, small viruses, and small '
+                             'plasmids).')
 
     parser.add_argument('--cds', '--cds-input', action='store_true',
                         required=False, dest='cds_input',
@@ -366,7 +378,7 @@ def allele_call():
                         action='store_true', dest='output_missing',
                         help='Create Fasta file with coding sequences '
                              'classified as NIPH, NIPHEM, ASM, ALM, PLOT3, '
-                             'PLOT5 and LOTSC classifications.')
+                             'PLOT5 and LOTSC.')
 
     parser.add_argument('--no-cleanup', required=False,
                         action='store_true', dest='no_cleanup',
@@ -401,13 +413,14 @@ def allele_call():
 
     parser.add_argument('--mode', type=int, required=False,
                         choices=[1, 2, 3, 4], default=4,
-                        help='Execution mode. (1: only exact matches at DNA '
+                        help='Execution mode (1: only exact matches at DNA '
                              'level; 2: exact matches at DNA and Protein '
                              'level; 3: exact matches and minimizer-based '
                              'clustering to find similar alleles based on '
                              'BSR+0.1; 4: runs the full process to find '
                              'exact matches and similar matches based on '
-                             'BSR value) (default: 4).')
+                             'BSR value, including the determination of new '
+                             'representative alleles to add to the schema).')
 
     args = parser.parse_args()
 
@@ -420,6 +433,11 @@ def allele_call():
     # legacy schemas do not have config file
     # create one with provided arguments
     if os.path.isfile(config_file) is False:
+        schema_files = os.listdir(args.schema_directory)
+        # exit if there is no 'short' directory or if there are no FASTA files
+        if 'short' not in schema_files or len(fo.filter_files(schema_files, ['.fasta'])) == 0:
+            sys.exit('Provided path does not include all the necessary schema files. '
+                     'Please verify that you have passed the correct path to the schema.')
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
@@ -547,8 +565,8 @@ def evaluate_schema():
 
     parser.add_argument('-a', '--annotations', type=str, required=False,
                         dest='annotations',
-                        help='Path to the TSV file from the UniprotFinder '
-                             'module.')
+                        help='Path to the TSV file created by the '
+                             'UniprotFinder module.')
 
     parser.add_argument('--ta', '--translation-table',
                         type=pv.translation_table_type, required=False,
@@ -575,14 +593,18 @@ def evaluate_schema():
                              'for the locus to be considered as having low '
                              'length variability.')
 
-    parser.add_argument('--cpu', type=pv.verify_cpu_usage, required=False,
-                        default=1, dest='cpu_cores',
-                        help='Number of CPU cores to use to run the process.')
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+                        required=False, default=1, dest='cpu_cores',
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads).')
 
     parser.add_argument('--light', action='store_true', required=False,
                         dest='light_mode',
                         help='Skips the indepth analysis of the individual '
-                             'schema loci, including MAFFT.')
+                             'loci, including the MSA with MAFFT.')
 
     parser.add_argument('--no-cleanup', action='store_true', required=False,
                         dest='no_cleanup',
@@ -736,7 +758,7 @@ def test_schema():
         # simple command to evaluate genome quality
         simple_cmd = ('chewBBACA.py TestGenomeQuality -i <input_file> '
                       '-n <max_iteration> '
-                      '-t <max_threshold>'
+                      '-t <max_threshold> '
                       '-s <step>')
 
         usage_msg = (
@@ -929,8 +951,10 @@ def join_profiles():
 
     parser.add_argument('-p', '--profiles', nargs='+', type=str,
                         required=True, dest='profiles',
-                        help='Path to files containing the results from '
-                             'the AlleleCall process (results_alleles.tsv).')
+                        help='Path to the files containing the results from '
+                             'the AlleleCall process (the AlleleCall process '
+                             'saves the allelic profiles in the '
+                             '"results_alleles.tsv" file).')
 
     parser.add_argument('-o', '--output-file', type=str,
                         required=True, dest='output_file',
@@ -938,8 +962,8 @@ def join_profiles():
 
     parser.add_argument('--common', action='store_true',
                         required=False, dest='common',
-                        help='Create file with profiles for '
-                             'the set of common loci.')
+                        help='Create file with profiles for the set of '
+                             'common loci.')
 
     args = parser.parse_args()
     del args.JoinProfiles
@@ -973,7 +997,7 @@ def prep_schema():
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='PrepExternalSchema',
-                                     description='This script enables the '
+                                     description='Enables the '
                                                  'adaptation of external '
                                                  'schemas so that the loci '
                                                  'and alleles present in '
@@ -1035,16 +1059,22 @@ def prep_schema():
                         dest='size_threshold',
                         help='CDS size variation threshold. At the default '
                              'value of 0.2, alleles with size variation '
-                             '+-20 percent when compared to the representative '
-                             'will not be included in the final schema.')
+                             '+-20 percent when compared to the selected '
+                             'representatives will not be included in the '
+                             'final schema.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=int, required=False,
-                        default=1, dest='cpu_cores',
-                        help='The number of CPU cores to use.')
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage, 
+                        required=False, default=1, dest='cpu_cores',
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads).')
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     args = parser.parse_args()
     del args.PrepExternalSchema
@@ -1144,9 +1174,16 @@ def find_uniprot():
                              'sequences are aligned against reference '
                              'proteomes.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
-                        help='Number of CPU cores used to run the process.')
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads). '
+                             'This value is only used if local sequences '
+                             'are aligned against reference proteomes with '
+                             'BLASTp.')
 
     parser.add_argument('--taxa', nargs='+', type=str,
                         required=False, dest='taxa',
@@ -1161,7 +1198,8 @@ def find_uniprot():
 
     parser.add_argument('--no-sparql', action='store_true',
                         required=False, dest='no_sparql',
-                        help='')
+                        help='Do not search for annotations through '
+                             'UniProt SPARQL endpoint.')
 
     parser.add_argument('--no-cleanup', action='store_true',
                         required=False, dest='no_cleanup',
@@ -1171,7 +1209,8 @@ def find_uniprot():
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     args = parser.parse_args()
     del args.UniprotFinder
@@ -1212,28 +1251,33 @@ def download_schema():
     parser.add_argument('-sp', '--species-id', type=str,
                         required=True, dest='species_id',
                         help='The integer identifier or name of the species '
-                             'that the schema is associated to in the NS.')
+                             'that the schema is associated to in Chewie-NS.')
 
     parser.add_argument('-sc', '--schema-id', type=str,
                         required=True, dest='schema_id',
                         help='The URI, integer identifier or name of '
-                             'the schema to download from the NS.')
+                             'the schema to download from Chewie-NS.')
 
     parser.add_argument('-o', '--download-folder', type=str,
                         required=True, dest='download_folder',
                         help='Output folder to which the schema will '
                              'be saved.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
-                        help='Number of CPU cores that will '
-                             'be passed to the PrepExternalSchema process to '
-                             'determine representatives and create the '
-                             'final schema.')
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads). '
+                             'This value is only used if local sequences '
+                             'are aligned against reference proteomes with '
+                             'BLASTp. This value is only used if it is '
+                             'necessary to construct the schema locally.')
 
     parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
                         required=False, default='main', dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
+                        help='The base URL for the Chewie-NS instance. '
                              'The default value, "main", will establish a '
                              'connection to "https://chewbbaca.online/", '
                              '"tutorial" to "https://tutorial.chewbbaca.online/" '
@@ -1243,7 +1287,8 @@ def download_schema():
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     parser.add_argument('--d', '--date', type=str,
                         required=False, default=None, dest='date',
@@ -1253,8 +1298,8 @@ def download_schema():
     parser.add_argument('--latest', action='store_true',
                         required=False, dest='latest',
                         help='If the compressed version that is available is '
-                             'not the latest, downloads all loci and constructs '
-                             'schema locally.')
+                             'not the latest, downloads all loci FASTA files '
+                             'and constructs schema locally.')
 
     args = parser.parse_args()
     del args.DownloadSchema
@@ -1277,7 +1322,6 @@ def upload_schema():
                       '-sp <species_id> '
                       '-sn <schema_name>\n'
                       '\t\t\t  -lp <loci_prefix> '
-                      '--thr <threads> '
                       '--ns <nomenclature_server_url>')
 
         # command to continue schema upload that was interrupted or aborted
@@ -1309,7 +1353,7 @@ def upload_schema():
                         required=True, dest='species_id',
                         help='The integer identifier or name of the species '
                              'that the schema will be associated to in '
-                             'the NS.')
+                             'Chewie-NS.')
 
     parser.add_argument('-sn', '--schema-name', type=str,
                         required=True, dest='schema_name',
@@ -1339,19 +1383,20 @@ def upload_schema():
                              'annotations and the third has custom '
                              'annotations.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used in the Schema Pre-processing step.')
-
-    parser.add_argument('--thr', '--threads', type=int,
-                        required=False, default=5, dest='threads',
-                        help='Number of threads to use to search for '
-                             'annotations on UniProt')
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads). '
+                             'This value will be used to accelerate the '
+                             'quality control step that checks all alleles '
+                             'in the schema.')
 
     parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
                         required=False, default='main', dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
+                        help='The base URL for the Chewie-NS instance. '
                              'The default value, "main", will establish a '
                              'connection to "https://chewbbaca.online/", '
                              '"tutorial" to "https://tutorial.chewbbaca.online/" '
@@ -1361,8 +1406,8 @@ def upload_schema():
 
     parser.add_argument('--continue_up', required=False, action='store_true',
                         dest='continue_up',
-                        help='If the process should check if the schema '
-                             'upload was interrupted and try to finish it.')
+                        help='Check if the schema upload was interrupted and '
+                             'attempt to continue upload.')
 
     args = parser.parse_args()
     del args.LoadSchema
@@ -1394,8 +1439,8 @@ def synchronize_schema():
 
     parser = argparse.ArgumentParser(prog='SyncSchema',
                                      description='Synchronize a local schema, previously '
-                                                 'downloaded from the NS, with its latest '
-                                                 'version in the NS.',
+                                                 'downloaded from Chewie-NS, with its latest '
+                                                 'version in Chewie-NS.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
@@ -1404,19 +1449,24 @@ def synchronize_schema():
 
     parser.add_argument('-sc', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
-                        help='Path to the directory with the schema to be'
+                        help='Path to the directory with the schema to be '
                              'synced.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=int,
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
-                        help='Number of CPU cores that will '
-                             'be used to determine new representatives '
-                             'if the process downloads new alleles from '
-                             'the Chewie-NS.')
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads). '
+                             'This value will only be used if the process '
+                             'retrieves novel alleles from the remote '
+                             'schema and needs to redetermine the set '
+                             'of representative alleles.')
 
     parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
                         required=False, default=None, dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
+                        help='The base URL for the Chewie-NS instance. '
                              'The default option will get the base URL from the '
                              'schema\'s URI. It is also possible to specify other '
                              'options that are available in chewBBACA\'s configs, '
@@ -1429,7 +1479,8 @@ def synchronize_schema():
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
                         required=False, default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
+                        help='Path to the directory that contains the '
+                             'BLAST executables.')
 
     parser.add_argument('--submit', required=False,
                         action='store_true', dest='submit',
@@ -1473,7 +1524,7 @@ def ns_stats():
     parser = argparse.ArgumentParser(prog='NSStats',
                                      description='Retrieve basic information '
                                                  'about the species and schemas in '
-                                                 'the Chewie-NS.',
+                                                 'a Chewie-NS instance.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
@@ -1484,23 +1535,23 @@ def ns_stats():
                         required=True, dest='mode',
                         choices=['species', 'schemas'],
                         help='The process can retrieve the list of species '
-                             '("species" option) in the Chewie-NS or the '
+                             '("species" option) in Chewie-NS or the '
                              'list of schemas for a species '
                              '("schemas" option).')
 
     parser.add_argument('--sp', '--species-id', type=str,
                         required=False, dest='species_id', default=None,
                         help='The integer identifier of a '
-                             'species in the Chewie-NS.')
+                             'species in Chewie-NS.')
 
     parser.add_argument('--sc', '--schema-id', type=str,
                         required=False, dest='schema_id', default=None,
                         help='The integer identifier of a schema in '
-                             'the Chewie-NS.')
+                             'Chewie-NS.')
 
     parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
                         required=False, default='main', dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
+                        help='The base URL for the Chewie-NS instance. '
                              'The default value, "main", will establish a '
                              'connection to "https://chewbbaca.online/", '
                              '"tutorial" to "https://tutorial.chewbbaca.online/" '
@@ -1556,17 +1607,17 @@ def main():
                                   'and schemas in Chewie-NS.',
                                   ns_stats]}
 
+    matches = ["--v", "-v", "-version", "--version"]
+    if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
+        # print version and exit
+        print('chewBBACA version: {0}'.format(version))
+        sys.exit(0)
+
     print('\nchewBBACA version: {0}'.format(version))
     print('Authors: {0}'.format(ct.authors))
     print('Github: {0}'.format(ct.repository))
-    print('Wiki: {0}'.format(ct.wiki))
-    print('Tutorial: {0}'.format(ct.tutorial))
+    print('Documentation: {0}'.format(ct.documentation))
     print('Contacts: {0}\n'.format(ct.contacts))
-
-    matches = ["--v", "-v", "-version", "--version"]
-    if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
-        print(version)
-        sys.exit(0)
 
     # display help message if selected process is not valid
     if len(sys.argv) == 1 or sys.argv[1] not in functions_info:

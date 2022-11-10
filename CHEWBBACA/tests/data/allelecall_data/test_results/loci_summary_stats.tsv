@@ -1,11 +1,11 @@
-Locus	EXC	INF	PLOT3	PLOT5	LOTSC	NIPH	NIPHEM	ALM	ASM	LNF	Total_CDS
-sagalactiae-protein1	1	0	0	0	0	0	0	0	0	0	1
-sagalactiae-protein10	1	0	0	0	0	0	0	0	0	0	1
-sagalactiae-protein2	1	0	0	0	0	0	0	0	0	0	1
-sagalactiae-protein3	1	0	0	0	0	0	0	0	0	0	1
-sagalactiae-protein4	0	0	0	0	0	0	0	0	0	1	0
-sagalactiae-protein5	0	0	0	0	0	0	0	0	0	1	0
-sagalactiae-protein6	0	0	0	0	0	0	0	0	0	1	0
-sagalactiae-protein7	1	0	0	0	0	0	0	0	0	0	1
-sagalactiae-protein8	0	0	0	0	0	0	0	0	0	1	0
-sagalactiae-protein9	1	0	0	0	0	0	0	0	0	0	1
+Locus	EXC	INF	PLOT3	PLOT5	LOTSC	NIPH	NIPHEM	ALM	ASM	PM	LNF	Total_CDS
+sagalactiae-protein1	1	0	0	0	0	0	0	0	0	0	0	1
+sagalactiae-protein10	1	0	0	0	0	0	0	0	0	0	0	1
+sagalactiae-protein2	1	0	0	0	0	0	0	0	0	0	0	1
+sagalactiae-protein3	1	0	0	0	0	0	0	0	0	0	0	1
+sagalactiae-protein4	0	0	0	0	0	0	0	0	0	0	1	0
+sagalactiae-protein5	0	0	0	0	0	0	0	0	0	0	1	0
+sagalactiae-protein6	0	0	0	0	0	0	0	0	0	0	1	0
+sagalactiae-protein7	1	0	0	0	0	0	0	0	0	0	0	1
+sagalactiae-protein8	0	0	0	0	0	0	0	0	0	0	1	0
+sagalactiae-protein9	1	0	0	0	0	0	0	0	0	0	0	1

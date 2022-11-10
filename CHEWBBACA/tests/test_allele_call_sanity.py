@@ -133,9 +133,6 @@ def test_invalid_input(test_args, expected):
          (args_template+['--l', '-1'],
           '\nInvalid minimum sequence length value. '
           'Must be equal or greater than 0.'),
-         (args_template+['--l', '100000'],
-          '\nInvalid minimum sequence length value. '
-          'Must be equal or greater than 0.'),
          (args_template+['--l', 'sus'],
           '\nInvalid minimum sequence length value. '
           'Value must be a positive integer.'),

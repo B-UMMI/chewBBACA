@@ -26,7 +26,6 @@ import shutil
 import hashlib
 import requests
 from collections import defaultdict
-from SPARQLWrapper import SPARQLWrapper
 from urllib3.exceptions import InsecureRequestWarning
 
 from Bio import SeqIO
@@ -49,9 +48,6 @@ except:
 
 # Suppress only the single warning from urllib3 needed.
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-
-
-uniprot_sparql = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def create_lengths_files(upload, temp_dir):

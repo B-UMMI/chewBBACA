@@ -19,6 +19,14 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ### Check the [documentation](https://chewbbaca.readthedocs.io/en/latest/index.html) for implementation details and guidance on using chewBBACA.
 
+## News
+
+### 2.8.5 - 2021-07-05
+
+- Updated **JoinProfiles** module to accept any number of files to join. Added `--common` flag to identify and join results for the set of loci common to all input files.
+
+Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.
+
 ## Citation
 
 When using chewBBACA please use the following citation:

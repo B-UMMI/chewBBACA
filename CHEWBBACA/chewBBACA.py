@@ -779,6 +779,11 @@ def test_schema():
                         required=True, dest='input_file',
                         help='Path to file with a matrix of allelic profiles.')
 
+    parser.add_argument('-o', '--output-directory', type=str,
+                        required=True, dest='output_directory',
+                        help='Path to the output directory that will '
+                             'store output files')
+
     parser.add_argument('-n', '--max-iteration', type=int,
                         required=True, dest='max_iteration',
                         help='Maximum number of iterations.')
@@ -788,17 +793,9 @@ def test_schema():
                         help='Maximum threshold of bad calls above 95 percent.')
 
     parser.add_argument('-s', '--step', type=int,
-                        required=True, dest='step',
+                        required=True, default=5,
+                        dest='step',
                         help='Step between each threshold analysis.')
-
-    parser.add_argument('-o', '--output-directory', type=str,
-                        required=False, default='.', dest='output_directory',
-                        help='Path to the output directory that will '
-                             'store output files')
-
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        default=False, dest='verbose',
-                        help='Increase stdout verbosity.')
 
     args = parser.parse_args()
     del args.TestGenomeQuality

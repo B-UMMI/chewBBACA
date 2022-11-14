@@ -1,0 +1,280 @@
+YPO0002_65: sense(Extra in frame stop codon found.),antisense(First codon 'TCA' is not a start codon),revsense(First codon 'AGT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YPO0002_105: sequence length is not a multiple of 3
+YPO0002_106: sequence length is not a multiple of 3
+YPO0002_107: sequence length is not a multiple of 3
+YPO0003_128: sense(First codon 'AAT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TTA' is not a start codon)
+YPO0003_143: sequence length is not a multiple of 3
+YPO0003_144: sequence length is not a multiple of 3
+YPO0003_145: sequence length is not a multiple of 3
+YPO0003_146: sequence length is not a multiple of 3
+YPO0003_147: sequence length is not a multiple of 3
+YPO0003_148: sequence length is not a multiple of 3
+YPO0003_149: sequence length is not a multiple of 3
+YPO0003_264: sense(First codon 'CAA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'GTT' is not a start codon)
+BD65_RS15605_73: sequence length is not a multiple of 3
+BD65_RS15605_108: sense(Final codon 'AGC' is not a stop codon),antisense(First codon 'GCT' is not a start codon),revsense(First codon 'CGA' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_150: sequence length is not a multiple of 3
+BD65_RS15605_151: sequence length is not a multiple of 3
+BD65_RS15605_153: sequence length is not a multiple of 3
+BD65_RS15605_175: sense(Final codon 'AGC' is not a stop codon),antisense(First codon 'GCT' is not a start codon),revsense(First codon 'CGA' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_187: sense(Final codon 'AGC' is not a stop codon),antisense(First codon 'GCT' is not a start codon),revsense(First codon 'CGA' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_200: sense(Final codon 'TCC' is not a stop codon),antisense(First codon 'GGA' is not a start codon),revsense(First codon 'CCT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_221: sense(Final codon 'TGC' is not a stop codon),antisense(First codon 'GCA' is not a start codon),revsense(First codon 'CGT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_258: sequence length is not a multiple of 3
+BD65_RS15605_265: sequence length is not a multiple of 3
+BD65_RS15605_268: sequence length is not a multiple of 3
+BD65_RS15605_270: sequence length is not a multiple of 3
+BD65_RS15605_271: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+BD65_RS15605_276: sequence length is not a multiple of 3
+YPO0001_93: sequence length is not a multiple of 3
+YPO0001_94: sequence length is not a multiple of 3
+YPO0001_142: sequence length is not a multiple of 3
+YPO0001_143: sequence length is not a multiple of 3
+YE0312_2: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_4: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_6: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_9: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_11: sense(First codon 'GTA' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAT' is not a start codon)
+YE0312_12: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_15: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_16: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_17: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_18: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_19: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_23: sense(First codon 'GTA' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAT' is not a start codon)
+YE0312_24: sense(First codon 'GTA' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAT' is not a start codon)
+YE0312_25: sense(First codon 'GTA' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAT' is not a start codon)
+YE0312_26: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_28: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_30: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_31: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_32: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_33: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_35: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_37: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_40: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_43: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_44: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_45: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_46: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_47: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_48: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_49: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_51: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_55: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_56: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_63: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_64: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_65: sequence length is not a multiple of 3
+YE0312_66: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_67: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_68: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_69: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_70: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_71: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_72: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_73: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_74: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_75: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_76: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_78: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_79: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_82: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_83: sequence length is not a multiple of 3
+YE0312_88: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_90: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_92: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_96: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_98: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_99: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_101: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_102: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_103: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_104: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_106: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_107: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_108: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_109: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_110: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_112: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_114: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_115: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_116: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_118: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_119: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_121: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_122: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_123: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_124: sequence length is not a multiple of 3
+YE0312_125: sense(Extra in frame stop codon found.),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAC' is not a start codon)
+YE0312_126: sequence length is not a multiple of 3
+YE0312_127: sense(Extra in frame stop codon found.),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAC' is not a start codon)
+YE0312_128: sequence length is not a multiple of 3
+YE0312_129: sequence length is not a multiple of 3
+YE0312_130: sense(Extra in frame stop codon found.),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAC' is not a start codon)
+YE0312_131: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_132: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_133: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_134: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_135: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_136: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_139: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_141: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_144: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_145: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_146: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_148: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_150: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_152: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_155: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_156: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_157: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_158: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_159: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_160: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_161: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_162: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_163: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_164: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_165: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_166: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_167: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_168: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_169: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_170: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_171: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_172: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_173: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_174: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_175: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_177: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_179: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_182: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_183: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_184: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_186: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_189: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_192: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_193: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_194: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_199: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_200: sense(First codon 'GTA' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAT' is not a start codon)
+YE0312_201: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_204: sense(First codon 'GTC' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAG' is not a start codon)
+YE0312_206: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_207: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_208: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_209: sequence length is not a multiple of 3
+YE0312_210: sense(First codon 'GTT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_211: sense(First codon 'GTT' is not a start codon),antisense(First codon 'CTA' is not a start codon),revsense(First codon 'GAT' is not a start codon),revantisense(First codon 'CAA' is not a start codon)
+YE0312_214: sequence length is not a multiple of 3
+YE105_RS20150_91: sense(Extra in frame stop codon found.),antisense(First codon 'TCA' is not a start codon),revsense(First codon 'AGT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YE105_RS20150_92: sequence length is not a multiple of 3
+YE105_RS20150_93: sequence length is not a multiple of 3
+YE105_RS20150_94: sense(Extra in frame stop codon found.),antisense(First codon 'TCA' is not a start codon),revsense(First codon 'AGT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YE105_RS20150_95: sense(Extra in frame stop codon found.),antisense(First codon 'TCA' is not a start codon),revsense(First codon 'AGT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YE105_RS20150_96: sequence length is not a multiple of 3
+YE105_RS20150_151: sequence length is not a multiple of 3
+YE105_RS20150_154: sequence length is not a multiple of 3
+YE3303_4: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_6: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_8: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_9: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_10: sense(First codon 'AGC' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TCG' is not a start codon)
+YE3303_25: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_26: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_27: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_28: sense(First codon 'AGC' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TCG' is not a start codon)
+YE3303_29: sense(First codon 'AGC' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TCG' is not a start codon)
+YE3303_30: sense(First codon 'AGC' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TCG' is not a start codon)
+YE3303_40: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_41: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_45: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_85: sequence length is not a multiple of 3
+YE3303_88: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_89: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_90: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_91: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_108: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_112: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YE3303_114: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_115: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_116: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_117: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_118: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_119: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_120: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_121: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_122: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_123: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_134: sense(First codon 'AGC' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TCG' is not a start codon)
+YE3303_135: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_143: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YE3303_171: sequence length is not a multiple of 3
+YE3303_172: sense(First codon 'AAG' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TTC' is not a start codon)
+YE3303_173: sense(First codon 'CAA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'GTT' is not a start codon)
+YE3303_174: sequence length is not a multiple of 3
+YE3303_193: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_195: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_196: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_197: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_234: sequence length is not a multiple of 3
+YE3303_270: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_276: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_277: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_278: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_279: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_281: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_282: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_291: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_294: sense(First codon 'GCA' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CGT' is not a start codon)
+YE3303_295: sequence length is not a multiple of 3
+YE3303_296: sequence length is not a multiple of 3
+YE3303_301: sequence length is not a multiple of 3
+YE3303_302: sequence length is not a multiple of 3
+YE3303_303: sequence length is not a multiple of 3
+Y_RS20815_137: sequence length is not a multiple of 3
+Y_RS20815_232: sequence length is not a multiple of 3
+Y_RS20815_233: sequence length is not a multiple of 3
+Y_RS20815_234: sequence length is not a multiple of 3
+Y_RS20815_235: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_236: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_237: sequence length is not a multiple of 3
+Y_RS20815_238: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_239: sequence length is not a multiple of 3
+Y_RS20815_240: sequence length is not a multiple of 3
+Y_RS20815_275: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_276: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_412: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+Y_RS20815_413: sequence length is not a multiple of 3
+Y_RS20815_422: sequence length is not a multiple of 3
+Y_RS20815_423: sequence length is not a multiple of 3
+Y_RS20815_441: sequence length is not a multiple of 3
+Y_RS20815_443: sequence length is not a multiple of 3
+Y_RS20815_444: sequence length is not a multiple of 3
+Y_RS20815_450: sequence length is not a multiple of 3
+Y_RS20815_451: sequence length is not a multiple of 3
+Y_RS20815_453: sequence length is not a multiple of 3
+YP02742_85: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YP02742_101: sequence length is not a multiple of 3
+YP02742_105: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YP02742_191: sequence length is not a multiple of 3
+YP02742_192: sequence length is not a multiple of 3
+YP02742_193: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YP02742_194: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YP02742_195: sequence length is not a multiple of 3
+YP02742_196: sequence length is not a multiple of 3
+YP02742_197: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YP02742_290: sequence length is not a multiple of 3
+YP02742_332: sense(First codon 'AAT' is not a start codon),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TTA' is not a start codon)
+YP02742_340: sequence length is not a multiple of 3
+YP02742_349: sequence length is not a multiple of 3
+YP02742_351: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'TAC' is not a start codon)
+YER_AA1032AA_00894_166: sense(Extra in frame stop codon found.),antisense(First codon 'TTA' is not a start codon),revsense(First codon 'AAT' is not a start codon),revantisense(First codon 'CAC' is not a start codon)
+YER_AA1032AA_00894_167: sequence length is not a multiple of 3
+YER_AA1032AA_00894_168: sequence length is not a multiple of 3
+YER_AA1032AA_00894_169: sequence length is not a multiple of 3
+YER_AA1032AA_00894_172: sense(Extra in frame stop codon found.),antisense(First codon 'TCA' is not a start codon),revsense(First codon 'AGT' is not a start codon),revantisense(First codon 'CAC' is not a start codon)
+YER_AA1032AA_00894_221: sequence length is not a multiple of 3
+YER_AA1032AA_00894_274: sequence length is not a multiple of 3
+YER_AA1032AA_00894_278: sequence length is not a multiple of 3

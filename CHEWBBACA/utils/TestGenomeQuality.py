@@ -2,7 +2,6 @@
 
 
 import os
-import argparse
 from collections import Counter
 
 import plotly
@@ -11,22 +10,12 @@ import plotly.graph_objs as go
 
 
 def presAbs(d2c):
-    print("generating presence abscence matrix")
-    # genelist= d2[:1,1:]
-    # print "Warning: all profiles must have same length"
-    # for item in d2c:
-    # print "genome "+str(item[0])+" has a profile length of "+str(len(item))
-    geneslist = d2c[:1, :]
-    genomeslist = d2c[1:, :1]
-
-    # d2c = d2c[1:,:]
 
     row = 1
     while row < d2c.shape[0]:
         column = 1
         while column < d2c.shape[1]:
             try:
-
                 aux = int(d2c[row, column])
                 if aux > 0:
                     d2c[row, column] = 1
@@ -42,30 +31,17 @@ def presAbs(d2c):
 
             column += 1
         row += 1
-    print("done")
 
     return d2c
 
 
 # function to report the most problematic locus/genomes and report the number of good locus by % of genomes
 # a list of genomes with a sum of problems higher than the given ythreshold will be returned
-def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
+def presence3(d2, ythreshold, vector, abscenceMatrix):
 
-    if verbose:
-        def verboseprint(*args):
-            for arg in args:
-                print(arg, end="")
-            print()
-    else:
-        verboseprint = lambda *a: None  # do-nothing function
-
-    verboseprint( "checking loci with missing data ...")
     d2d = d2
-
     genomeslist = d2d[1:, :1]
     geneslist = d2d[0]
-
-    # d2d = d2d[1:,1:]
 
     column = 1
     totals = []
@@ -76,29 +52,23 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
     plus95 = 0
     plus99 = 0
     plus995 = 0
-    badGenomesScoreDict = {}
     listgenes2show = []
 
     # if a locus has one problematic call, check how many genomes have problem in that call
-
     while column < d2d.shape[1]:
         row = 1
         notfound = 0
         badgenomes = []
         while row < d2d.shape[0]:
-
             if not abscenceMatrix:
-
                 if "LNF" in d2d[row, column] or d2d[row, column] == "NIPH" or "LOT" in d2d[row][column] or "ALM" in \
                         d2d[row][column] or "ASM" in d2d[row][column] or "ABM" in d2d[row][column] or "ERROR" in \
                         d2d[row][column] or "undefined" in d2d[row][column] or "small match" in d2d[row][
-                    column] or "allele incomplete" in d2d[row][column]:
+                        column] or "allele incomplete" in d2d[row][column]:
 
-                    # if d2d[row,column] == "LNF" :
                     d2d[row, column] = 0
                     notfound += 1
                     badgenomes.append(row - 1)
-
                 else:
                     d2d[row, column] = 1
                     pass
@@ -148,14 +118,6 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
         if int(elem[1]) > ythreshold:
             reallybadgenomes.append((elem)[0])
 
-    verboseprint('')
-    verboseprint( "number genes in 100% genomes: " + str(len(allverygood)))
-    verboseprint( "number genes above 99%: " + str(plus99))
-    verboseprint( "number genes above 95%: " + str(plus95))
-    verboseprint( "number genes above 99.5%: " + str(plus995))
-    verboseprint( "number genes in 0% genomes: " + str(len(allverybad)))
-    verboseprint( len(totals) )
-
     d2d = d2d.T
 
     # number of used genomes
@@ -182,28 +144,14 @@ def presence3(d2, ythreshold, vector, abscenceMatrix,verbose):
     # number of loci at 99.5%
     vector[3].append(plus995)
 
-    verboseprint( "checked loci with missing data" )
-
     return d2d, reallybadgenomes, vector, True, listgenes2show
 
 
-def removegenomes(d2a, bagenomeslist,verbose):
+def removegenomes(d2a, bagenomeslist):
 
-    if verbose:
-        def verboseprint(*args):
-            for arg in args:
-                print(arg, end="")
-            print()
-    else:
-        verboseprint = lambda *a: None  # do-nothing function
-
-    rowid = 1
     deleted = 0
     genomesList = (d2a[1:, :1]).tolist()
 
-    verboseprint( len(genomesList))
-    verboseprint( len(bagenomeslist))
-    verboseprint( "removing genomes...")
     badgenomeslist2 = []
     for elem in bagenomeslist:
         badgenomeslist2.append(elem)
@@ -217,20 +165,10 @@ def removegenomes(d2a, bagenomeslist,verbose):
                 deleted += 1
                 i -= 1
 
-    verboseprint( "genomes removed")
-    verboseprint( d2a.shape)
     return d2a
 
 
-def clean(d2, iterations, ythreshold,out_folder,verbose):
-
-    if verbose:
-        def verboseprint(*args):
-            for arg in args:
-                print(arg, end="")
-            print()
-    else:
-        verboseprint = lambda *a: None  # do-nothing function
+def clean(d2, iterations, ythreshold, out_folder):
 
     abscencematrix = True
 
@@ -256,29 +194,24 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
             lastremovedgenomesCount = len(removedlistgenomes)
         elif iterationStabilizedat is None and i > 0:
             iterationStabilizedat = i
-            verboseprint( "stabilized at " + str(i))
             isStable = True
             listgenes2showtotal.append(listgenes2show)
         if not isStable:
-            verboseprint( "\n########## ITERATION NUMBER %s  ##########  \n" % str(i) )
-            verboseprint( "total removed genomes :" + str(len(removedlistgenomes)))
-            d2 = removegenomes(d2, toremovegenomes,verbose)
+            d2 = removegenomes(d2, toremovegenomes)
             matrix3, toremovegenomes, statsvector, abscencematrix, listgenes2show = presence3(d2, ythreshold,
                                                                                               statsvector,
-                                                                                              abscencematrix,verbose)
-
+                                                                                              abscencematrix)
         else:
             for vector in statsvector:
                 vector.append(vector[-1])
 
         i += 1
 
-    with open(os.path.join(out_folder,"removedGenomes.txt"), "a") as f:
-        f.write( (str(ythreshold) +"\t"+ (' '.join(map(str, removedlistgenomes)))+ "\n"))
+    with open(os.path.join(out_folder, "removedGenomes.txt"), "a") as f:
+        f.write((str(ythreshold) + "\t" + (' '.join(map(str, removedlistgenomes))) + "\n"))
 
-
-    with open(os.path.join(out_folder,"Genes_95%.txt"), "a") as f:
-        f.write(str(ythreshold) +"\t")
+    with open(os.path.join(out_folder, "Genes_95%.txt"), "a") as f:
+        f.write(str(ythreshold) + "\t")
 
         for x in listgenes2showtotal:
             f.write((' '.join(map(str, x))) + "\n")
@@ -286,17 +219,7 @@ def clean(d2, iterations, ythreshold,out_folder,verbose):
     return statsvector, iterationStabilizedat
 
 
-def main(input_file, max_iteration, max_threshold,
-         step, output_directory, verbose):
-
-    if verbose:
-        def verboseprint(*args):
-            for arg in args:
-                print(arg, end="")
-            print()
-    else:
-        verboseprint = lambda *a: None  # do-nothing function
-
+def main(input_file, output_directory, max_iteration, max_threshold, step):
 
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -307,45 +230,34 @@ def main(input_file, max_iteration, max_threshold,
     listStableIter = []
 
     # for each threshold run a clean function on the dataset, using the previous run output (to be removed genomes) as input for the new one
+    with open(os.path.join(output_directory, "removedGenomes.txt"), "w") as f:
+        f.write("Threshold\tRemoved_genomes\n")
+    with open(os.path.join(output_directory, "Genes_95%.txt"), "w") as f:
+        f.write("Threshold\tPresent_genes\n")
 
-    with open(os.path.join(output_directory,"removedGenomes.txt"), "w") as f:
-        f.write( "Threshold\tRemoved_genomes\n")
-    with open(os.path.join(output_directory,"Genes_95%.txt"), "w") as f:
-        f.write( "Threshold\tPresent_genes\n")
-
-    print("will try to open file...")
-    # d2=np.loadtxt(inputfile, delimiter='\t')
     d2original = np.genfromtxt(input_file, delimiter='\t', dtype=None)
     d2copy = np.copy(d2original)
-    # create abscence/presence matrix for easier processing
+    # create abscence/presence matrix
+    print('Creating presence/absence matrix.')
     d2copy = presAbs(d2copy)
-    print("file was read")
 
     while threshold < max_threshold:
+        print('Calculating for threshold {0}...'.format(threshold))
         thresholdlist.append(threshold)
-        print(" ######## CALCULATING WITH THRESHOLD AT " + str(threshold) + " ########")
-        result, stabilizedIter = clean(d2copy, max_iteration, threshold,output_directory,verbose)
+        result, stabilizedIter = clean(d2copy, max_iteration, threshold, output_directory)
         listStableIter.append(stabilizedIter)
         allresults.append(result)
 
         threshold += step
 
-    x = list(range(0, len(allresults)))
-
-    i = 0
-
     labels = ["number of genomes",
               "Number of Loci present in 95% genomes",
               "Number of Loci present in 99% genomes",
               "Number of Loci present in 99.5% genomes",
-              # "Number of Loci present in 0% genomes",
-              # "Selected genomes to be removed",
               "Number of Loci present in 100% genomes"]
 
     i = max_iteration
     while i <= max_iteration:
-        threshindex = 0
-
         aux2 = []
         for resultPerThresh in allresults:
             aux = []
@@ -364,7 +276,6 @@ def main(input_file, max_iteration, max_threshold,
 
         listtraces = []
         for line in d2:
-
             if (linenmbr == 0):
                 trace = go.Scatter(
                     x=thresholdlist,
@@ -373,10 +284,7 @@ def main(input_file, max_iteration, max_threshold,
                     mode='lines+markers',
                     yaxis='y2',
                     marker=dict(symbol='diamond-dot', size=10)
-
                 )
-
-
             else:
                 trace = go.Scatter(
                     x=thresholdlist,
@@ -400,25 +308,14 @@ def main(input_file, max_iteration, max_threshold,
             ),
             yaxis2=dict(
                 title='Number of genomes',
-                # ~ titlefont=dict(
-                # ~ color='rgb(148, 103, 189)'
-                # ~ ),
-                # ~ tickfont=dict(
-                # ~ color='rgb(148, 103, 189)'
-                # ~ ),
                 overlaying='y',
                 side='right'
             )
         )
 
         fig = go.Figure({"data": listtraces, "layout": layout})
-        plot_url = plotly.offline.plot(fig, filename=os.path.join(output_directory,'GenomeQualityPlot.html'))
+        plotly.offline.plot(fig, filename=os.path.join(output_directory, 'GenomeQualityPlot.html'))
 
-        i += 1
-
-    i = 0
-    for stableiter in listStableIter:
-        verboseprint( "At threshold " + str(thresholdlist[i]) + " it stabilized at the iteration number " + str(stableiter) )
         i += 1
 
 

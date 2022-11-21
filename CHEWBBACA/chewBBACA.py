@@ -193,7 +193,7 @@ def create_schema():
     created = fo.create_directory(args.output_directory)
     if created is False:
         sys.exit('Output directory already exists. Please provide a path to '
-                 'a directory that will be created to store results.')
+                 'a directory that will be created to store the results.')
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)

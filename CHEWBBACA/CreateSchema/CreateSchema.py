@@ -184,10 +184,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     """Determine a schema seed.
     """
 
-    # define directory for temporary files
-    temp_directory = fo.join_paths(output_directory, ['temp'])
-    fo.create_directory(temp_directory)
-
     # map full paths to basename
     inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
@@ -197,6 +193,22 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # this reduces memory usage compared to using string identifiers
     basename_map = im.integer_mapping(inputs_basenames.values())
     basename_inverse_map = im.invert_dictionary(basename_map)
+
+    # detect if some inputs share the same unique prefix
+    if len(basename_inverse_map) < len(fasta_files):
+        basename_counts = [[basename, list(inputs_basenames.values()).count(basename)]
+                           for basename in basename_map]
+        repeated_basenames = ['{0}: {1}'.format(*l)
+                              for l in basename_counts if l[1] > 1]
+        fo.delete_directory(output_directory)
+        sys.exit('\nSome input files share the same filename prefix '
+                 '(substring before the first "." in the filename). '
+                 'Please make sure that every input file has a unique '
+                 'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
+
+    # define directory for temporary files
+    temp_directory = fo.join_paths(output_directory, ['temp'])
+    fo.create_directory(temp_directory)
 
     if cds_input is False:
         print('Number of inputs: {0}'.format(len(fasta_files)))

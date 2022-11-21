@@ -200,17 +200,20 @@ Outputs
 
 The column headers stand for:
 
-- *EXC* - alleles which have exact matches (100% DNA identity) with previously identified
-  alleles.
-- *INF* - inferred new alleles that had no exact match in the schema but are highly
+- *EXC* - EXaCt matches (100% DNA identity) with previously identified alleles.
+- *INF* - INFerred new alleles that had no exact match in the schema but are highly
   similar to loci in the schema. The *INF-* prefix in the allele identifier indicates that
   such allele was newly inferred in that genome, and the number following the prefix is the
   allele identifier attributed to such allele. Inferred alleles are added to the FASTA file of the locus they
   share high similarity with.
-- *LNF* - loci not found. No alleles were found for the number of loci in the schema shown.
+- *LNF* - Locus Not Found. No alleles were found for the number of loci in the schema shown.
   This means that, for those loci, there were no BLAST hits or they were not within the BSR
   threshold for allele assignment.
-- *PLOT3/PLOT5* - possible loci on the tip of the query genome contigs (see image below). A locus
+- *PLNF* - Probable Locus Not Found. Attributed when a locus is not found during execution modes 1, 2 and 3.
+  Those modes do not perform the complete analysis, that is only performed in mode 4 (default), and the
+  distinct classification indicates that a more thorough analysis might have found a match for the loci
+  that were not found.
+- *PLOT3/PLOT5* - Possible Locus On the Tip of the query genome contigs (see image below). A locus
   is classified as *PLOT* when the CDS of the query genome has a BLAST hit with a known larger
   allele that covers the CDS sequence entirely and the unaligned regions of the larger allele
   exceed one of the query genome contigs ends (a locus can be classified as *PLOT5* or *PLOT3*
@@ -225,7 +228,7 @@ The column headers stand for:
 
 - *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
   than the matched allele.
-- *NIPH* - non-informative paralogous hit (see image below). When ≥2 CDSs in the query
+- *NIPH* - Non-Informative Paralogous Hit (see image below). When ≥2 CDSs in the query
   genome match one locus in the schema with a BSR > 0.6, that locus is classified as *NIPH*.
   This suggests that such locus can have paralogous (or orthologous) loci in the query genome
   and should be removed from the analysis due to the potential uncertainty in allele assignment
@@ -238,17 +241,21 @@ The column headers stand for:
   referring to exact matches. Whenever several CDSs from the same genome match a single or
   multiple alleles of the same locus with 100% DNA similarity during the first DNA sequence
   comparison, the *NIPHEM* tag is attributed.
+- *PAMA* - PAralogous MAtch. Attributed to CDSs that are highly similar to more than one locus.
+  This type of classification allows the identification of groups of similar loci in the
+  schema that are classified as paralogous loci and listed in the ``paralogous_counts.tsv`` and
+  ``paralogous_loci.tsv`` files.
 
 .. image:: http://i.imgur.com/4VQtejr.png
 	:width: 700px
 	:align: center
 
-- *ALM* - alleles 20% larger than the length mode of the distribution of the matched
+- *ALM* - Alleles 20% Larger than the length Mode of the distribution of the matched
   loci (CDS length > (locus length mode + locus length mode * 0.2)) (see image below).
   This determination is based on the currently identified set of alleles for a given locus.
   It is important to remember that, although infrequently, the mode may change as more
   alleles for a given locus are called and added to a schema.
-- *ASM* - similar to *ALM* but for alleles 20% smaller than the length mode distribution
+- *ASM* - similar to *ALM* but for Alleles 20% Smaller than the length Mode distribution
   of the matched loci (CDS length < (locus length mode - locus length mode * 0.2)). As with
   *ALMs* it is important to remember that, although infrequently, the mode may change as
   more alleles for a given locus are called and added to a schema.

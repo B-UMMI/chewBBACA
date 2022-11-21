@@ -8,7 +8,7 @@ Install the latest released version using `conda <https://anaconda.org/bioconda/
 
 ::
 
-	conda create -c bioconda -c conda-forge -n chewie chewbbaca=2.8.5 blast=2.9
+	conda create -c bioconda -c conda-forge -n chewie chewbbaca=2.8.5
 
 Pip
 ...
@@ -23,13 +23,13 @@ Install using `pip <https://pypi.org/project/chewBBACA/>`_:
 Python dependencies
 ...................
 
-* numpy>=1.14.0
-* scipy>=0.13.3
-* biopython>=1.70
-* plotly>=1.12.9
-* SPARQLWrapper>=1.8.0
-* requests>=2.2.1
-* pandas>=0.22.0
+* numpy >=1.23.4
+* scipy >=1.9.3
+* biopython >=1.78
+* plotly >=5.8.0
+* SPARQLWrapper >=2.0.0
+* requests >=2.27.1
+* pandas >=1.5.1
 
 .. note::
 	These dependencies are defined in the `requirements <https://github.com/B-UMMI/chewBBACA/blob/master/CHEWBBACA/requirements.txt>`_
@@ -38,9 +38,9 @@ Python dependencies
 Other dependencies
 ..................
 
-* `BLAST 2.9.0+ <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/>`_
-* `Prodigal 2.6.0 <https://github.com/hyattpd/prodigal/releases/>`_
-* `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ (for schema evaluation only)
+* `BLAST >=2.12.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_
+* `Prodigal >=2.6.3 <https://github.com/hyattpd/prodigal/releases/>`_
+* `MAFFT >=7.505 <https://mafft.cbrc.jp/alignment/software/>`_ (for schema evaluation only)
 
 .. important::
 	Installation through conda should take care of all dependencies. If you install through

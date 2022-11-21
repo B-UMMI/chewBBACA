@@ -8,11 +8,11 @@ the original schema being tested.
 The algorithm description is the following:
 
 	1) For a given genome, let *nl* be the number of loci that are not present (neither EXC nor INF, see the :doc:`AlleleCall section </user/modules/AlleleCall>`
-	for more detail in loci classification) but are found in at least a 95% of the genomes in analysis.
+	   for more detail in loci classification) but are found in at least a 95% of the genomes in analysis;
 	2) For a specific exclusion threshold (*et*, maximum number of absent loci), genomes that have *nl > et* are excluded from the analysis in the next iteration.
-	If no genomes are removed, do not proceed to step 3.
+	   If no genomes are removed, do not proceed to step 3;
 	3) Return to step 1. The total number of genomes to be used in step 1 will be recalculated leaving out the genomes excluded in step 2. The *et* value
-	(starting at 0) is incremented by a *s* value previously defined by the user.
+	   (starting at 0) is incremented by a *s* value previously defined by the user.
 
 Basic Usage
 -----------
@@ -28,7 +28,7 @@ Parameters
 
     -i, --input-files      (Required) Path to file with a matrix of allelic profiles (default: None).
 
-	-o, --output-directory (Required) Path to the output directory that will store output files (default: None).
+    -o, --output-directory (Required) Path to the output directory that will store output files (default: None).
 
     -n, --max-iteration    (Required) Maximum number of iterations. Each iteration removes a set of genomes over
 	                       the defined threshold (-t) and recalculates loci presence percentages (default: None).

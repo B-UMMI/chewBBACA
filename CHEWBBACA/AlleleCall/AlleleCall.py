@@ -983,10 +983,10 @@ def assign_allele_ids(locus_files, ns, repeated):
                     # classified as EXC and need to be added as new alleles and converted to INF
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
-            # classify as PM (Paralogous Match) when a CDS matches several loci
+            # classify as PAMA (PAralogous MAtch) when a CDS matches several loci
             else:
-                locus_results[genome_id].append('PM')
-                locus_results[genome_id][0] = 'PM'
+                locus_results[genome_id].append(ct.ALLELECALL_CLASSIFICATIONS[9])
+                locus_results[genome_id][0] = ct.ALLELECALL_CLASSIFICATIONS[9]
 
         # save updated results
         fo.pickle_dumper(locus_results, locus_files[1])

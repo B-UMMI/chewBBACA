@@ -173,7 +173,7 @@ PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
 PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
 # header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
-                     'NIPHEM\tALM\tASM\tPM\tLNF\tTotal_CDS')
+                     'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
 # header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 # header for TSV file with paralogous counts
@@ -184,7 +184,7 @@ PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
 # allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
                               'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
-                              'ASM', 'PM', 'LNF']
+                              'ASM', 'PAMA', 'LNF']
 
 # PLNF classificaton for modes {1,2,3}
 PROBABLE_LNF = 'PLNF'

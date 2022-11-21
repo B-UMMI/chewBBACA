@@ -1643,6 +1643,20 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     basename_inverse_map = im.invert_dictionary(basename_map)
     template_dict['basename_map'] = basename_inverse_map
 
+    # detect if some inputs share the same unique prefix
+    if len(basename_inverse_map) < len(fasta_files):
+        basename_counts = [[basename, list(inputs_basenames.values()).count(basename)]
+                           for basename in basename_map]
+        repeated_basenames = ['{0}: {1}'.format(*l)
+                              for l in basename_counts if l[1] > 1]
+        # only delete temp directory created for each run
+        # do not delete output directory because it might include other files
+        fo.delete_directory(temp_directory)
+        sys.exit('\nSome input files share the same filename prefix '
+                 '(substring before the first "." in the filename). '
+                 'Please make sure that every input file has a unique '
+                 'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
+
     # inputs are genome assemblies
     if config['CDS input'] is False:
         # create directory to store files with Prodigal results
@@ -2576,22 +2590,35 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
         # determine paralogous loci and write RepeatedLoci.txt file
         print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
-        total_paralogous = identify_paralogous(results_contigs_outfile, output_directory, classification_labels)
+        total_paralogous = identify_paralogous(results_contigs_outfile,
+                                               output_directory,
+                                               classification_labels)
         print('done.')
-        print('Detected number of paralogous loci: {0}'.format(total_paralogous))
+        print('Detected number of paralogous loci: '
+              '{0}'.format(total_paralogous))
 
     if output_unclassified is True:
         print('Writing Fasta file with unclassified CDS...', end='')
         # create Fasta file with the distinct CDS that were not classified
-        create_unclassified_fasta(results['dna_fasta'], results['protein_fasta'], results['unclassified_ids'],
-                                  results['protein_hashtable'], output_directory, results['basename_map'])
+        create_unclassified_fasta(results['dna_fasta'],
+                                  results['protein_fasta'],
+                                  results['unclassified_ids'],
+                                  results['protein_hashtable'],
+                                  output_directory,
+                                  results['basename_map'])
         print('done.')
 
     if output_missing is True and config['CDS input'] is False:
         # Create Fasta file with CDS that were classified as ASM, ALM, ...
-        print('Writing Fasta file with CDS classified as ASM, ALM, NIPH, NIPHEM, PLOT3, PLOT5 and LOTSC...', end='')
-        create_missing_fasta(results['classification_files'], results['dna_fasta'], results['basename_map'], results['dna_hashtable'],
-                             output_directory, coordinates_files, classification_labels)
+        print('Writing Fasta file with CDS classified as ASM, ALM, NIPH, '
+              'NIPHEM, PLOT3, PLOT5 and LOTSC...', end='')
+        create_missing_fasta(results['classification_files'],
+                             results['dna_fasta'],
+                             results['basename_map'],
+                             results['dna_hashtable'],
+                             output_directory,
+                             coordinates_files,
+                             classification_labels)
         print('done.')
 
     if hash_profiles is not None:
@@ -2613,7 +2640,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     # write Prodigal stderr for inputs that failed gene prediction
     if results['invalid_inputs'] is not None:
         failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
-        lines = ['{0}\t{1}'.format(line[0], line[1]) for line in results['invalid_inputs']]
+        lines = ['{0}\t{1}'.format(line[0], line[1])
+                 for line in results['invalid_inputs']]
         fo.write_lines(lines, failed_file)
 
     # remove temporary files

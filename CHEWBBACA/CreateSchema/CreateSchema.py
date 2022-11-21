@@ -274,7 +274,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                        False, True)
 
     distinct_seqids, distinct_file, repeated = ds_results
-    print('removed {0} sequences.'.format(repeated))
+    print('removed {0} sequences.'.format(int(repeated)))
 
     print('Kept {0} distinct sequences.'.format(len(distinct_seqids)))
 

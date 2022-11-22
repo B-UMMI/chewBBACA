@@ -519,8 +519,7 @@ def allele_call():
 
     # remove temporary files with paths to genomes and schema files
     fo.remove_files([loci_list])
-    if genome_list != args.input_files:
-        fo.remove_files([genome_list])
+    fo.remove_files([genome_list])
 
 
 @pdt.process_timer

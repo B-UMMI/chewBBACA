@@ -1330,7 +1330,7 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
     Returns
     -------
-    list_files : str
+    output_file : str
         Path to a file with a list of paths for FASTA
         files.
 
@@ -1344,26 +1344,38 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
     # check if input argument is a file or a directory
     if os.path.isfile(input_path):
-        # list of input genomes must have full paths
-        if parent_dir is not None:
+        # check if it's not a FASTA file
+        if fao.validate_fasta(input_path) is True:
+            sys.exit('Input file is a FASTA file. Please provide '
+                     'the path to the parent directory that contains '
+                     'the FASTA files or a file with the list of full '
+                     'paths to the FASTA files (one per line).')
 
-            with open(input_path, 'r') as infile:
-                lines = list(csv.reader(infile))
-
+        # read list of input files
+        with open(input_path, 'r') as infile:
+            lines = list(csv.reader(infile))
             lines = [f[0] for f in lines]
 
+        # list of input genomes must have full paths
+        if parent_dir is not None:
             # add parent directory path if necessary
             lines = [os.path.join(parent_dir, f)
                      if parent_dir not in f
                      else f
                      for f in lines]
 
+        # check that all files exist
+        files_exist = [file for file in lines
+                       if os.path.exists(file) is False]
+        if len(files_exist) > 0:
+            sys.exit('Could not find some of the files provided in '
+                     'the input list. Please verify that you\'ve '
+                     'provided the full paths to valid input '
+                     'files.\n{0}'.format('\n'.join(files_exist)))
+        # save file paths to output file
+        else:
             with open(output_file, 'w') as outfile:
                 outfile.write('\n'.join(lines))
-
-            list_files = output_file
-        else:
-            list_files = input_path
 
     elif os.path.isdir(input_path):
         # we need to get only files with FASTA extension
@@ -1391,8 +1403,6 @@ def check_input_type(input_path, output_file, parent_dir=None):
                      'filenames end with one of the '
                      'following suffixes: {0}.'
                      ''.format(ct.FASTA_SUFFIXES))
-
-        list_files = output_file
     else:
         sys.exit('\nInput argument is not a valid directory or '
                  'file with a list of paths. Please provide a '
@@ -1400,4 +1410,4 @@ def check_input_type(input_path, output_file, parent_dir=None):
                  'or a file with the list of full paths to FASTA '
                  'files (one per line).')
 
-    return list_files
+    return output_file

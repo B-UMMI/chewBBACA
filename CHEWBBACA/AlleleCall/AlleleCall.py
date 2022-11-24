@@ -181,6 +181,50 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
     return hash_tables
 
 
+def update_hash_tables(loci_files, loci_to_call, translation_table, pre_computed_dir):
+    """
+    """
+
+    # update hash tables with allele hashes
+    update_table = {}
+    prot_hashes = {}
+    for k, v in loci_files.items():
+        locus_index = loci_to_call[k]
+        records = fao.sequence_generator(v[0])
+        for rec in records:
+            allele_id = (rec.id).split('_')[-1]
+            sequence = str(rec.seq)
+            seq_hash = im.hash_sequence(sequence)
+            prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, translation_table)))
+            update_table.setdefault(seq_hash, []).extend([locus_index, allele_id])
+            prot_hashes.setdefault(seq_hash, []).append(prot_hash)
+
+    # update hash tables
+    dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
+    prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
+    latest_dna_table = sorted(dna_tables, key=lambda x: int(x[-1]))[-1]
+    latest_prot_table = sorted(prot_tables, key=lambda x: int(x[-1]))[-1]
+    current_dna_table = fo.pickle_loader(latest_dna_table)
+    current_prot_table = fo.pickle_loader(latest_prot_table)
+    for k, v in update_table.items():
+        current_dna_table.setdefault(k, []).extend(v)
+        current_prot_table.setdefault(prot_hashes[k][0], []).extend(v)
+        if len(current_dna_table) >= ct.HASH_TABLE_MAXIMUM_ALLELES:
+            fo.pickle_dumper(current_dna_table, latest_dna_table)
+            fo.pickle_dumper(current_prot_table, latest_prot_table)
+            new_index = int(latest_dna_table.split('DNAtable')[-1]) + 1
+            latest_dna_table = fo.join_paths(pre_computed_dir, 'DNAtable{0}'.format(new_index))
+            current_dna_table = {}
+            current_prot_table = fo.join_paths(pre_computed_dir, 'PROTEINtable{0}'.format(new_index))
+            current_prot_table = {}
+
+    if len(current_dna_table) > 0:
+        fo.pickle_dumper(current_dna_table, latest_dna_table)
+        fo.pickle_dumper(current_prot_table, latest_prot_table)
+
+    return True
+
+
 def create_classification_file(locus_id, output_directory, locus_results):
     """Create file to store classifications for a locus.
 
@@ -797,8 +841,7 @@ def write_results_contigs(classification_files, input_identifiers,
         Path to the output file that contains the sequence
         coordinates.
     """
-    # do not include PM class so that CDS coordinates can be used to identify
-    # paralogous loci
+    # do not include PAMA class
     invalid_classes = classification_labels[2:-2]
     intermediate_file = fo.join_paths(output_directory,
                                       ['inter_results_contigsInfo.tsv'])
@@ -829,6 +872,29 @@ def write_results_contigs(classification_files, input_identifiers,
     transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
 
     invalid_classes.append(classification_labels[-1])
+
+    # get all hashes that match more than one locus per input
+    # alleles that match more than one locus are only identified if they are
+    # classified as EXC or INF for both loci
+    # if they are classified as EXC/INF for one locus and NIPH for the other,
+    # they will not be identified based on results for that genome
+    # we need to get all alleles that match multiple loci before deciding if
+    # they should be added to the schema.
+    repeated = set()
+    with open(transposed_file, 'r') as infile:
+        csv_reader = csv.reader(infile, delimiter='\t')
+        header = csv_reader.__next__()
+        for i, l in enumerate(csv_reader):
+            genome_id = l[0]
+            # count number of ocurrences for each hash
+            hashes = [h for h in l[1:] if h not in invalid_classes]
+            hash_counts = Counter(hashes)
+            repeated_hashes = [count
+                               for count in hash_counts.most_common()
+                               if count[1] > 1]
+            for h in repeated_hashes:
+                repeated.add(h[0])
+
     # use CDS hash to get coordinates in origin input
     output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
     with open(transposed_file, 'r') as infile:
@@ -836,7 +902,7 @@ def write_results_contigs(classification_files, input_identifiers,
         header = csv_reader.__next__()
         output_lines = [header]
         for i, l in enumerate(csv_reader):
-            genome_id = l[0]
+            genome_id = l[0]            
             # open file with loci coordinates
             coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
             # start position is 0-based, stop position is upper-bound exclusive
@@ -860,7 +926,7 @@ def write_results_contigs(classification_files, input_identifiers,
     # delete intermediate files
     fo.remove_files([intermediate_file, transposed_file])
 
-    return output_file
+    return [output_file, repeated]
 
 
 def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
@@ -1067,6 +1133,7 @@ def add_inferred_alleles(inferred_alleles):
     
     """
 
+    added = []
     for locus, files in inferred_alleles.items():
         locus_id = fo.get_locus_id(locus)
         if locus_id is None:
@@ -1076,6 +1143,7 @@ def add_inferred_alleles(inferred_alleles):
         novel_alleles = fo.read_lines(files[0])
         # append novel alleles to locus FASTA file
         fo.write_lines(novel_alleles, locus, write_mode='a')
+        added.append(len(novel_alleles)//2)
 
         if len(files) > 1:
             # add representatives
@@ -1085,7 +1153,7 @@ def add_inferred_alleles(inferred_alleles):
                                              ['short', locus_id+'_short.fasta'])
             fo.write_lines(novel_representatives, locus_short_path, write_mode='a')
 
-    return True
+    return added
 
 
 def select_highest_scores(blast_outfile):
@@ -1857,8 +1925,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                 dna_index,
                                                 dna_distinct_htable)
 
-        [exact_phashes, exc_prot, exc_cds, exc_distinct_prot, loci_modes]
-
         exact_phashes.extend(protein_matches[0])
         exc_prot += protein_matches[1]
         exc_cds += protein_matches[2]
@@ -2411,29 +2477,28 @@ def main(input_file, loci_list, schema_directory, output_directory,
     results['classification_files'] = {k: results['classification_files'][k]
                                        for k in sorted(list(results['classification_files'].keys()))}
 
-    # determine CDSs that matched multiple loci
-    multiple = {}
-    for k, v in results['classification_files'].items():
-        # import allele calling results and sort to get INF first
-        locus_results = fo.pickle_loader(v)
-        # sort by input order
-        sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
-    
-        # only keep INF and EXC classifications
-        sorted_results = [r for r in sorted_results
-                          if r[1][0] in ['EXC', 'INF']]
-    
-        # sort to get INF classifications first
-        sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
-                                reverse=True)
+    # list files with CDSs coordinates
+    if config['CDS input'] is False:
+        coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
+        coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
+        coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
+                             for f in coordinates_files}
+    else:
+        coordinates_files = None
 
-        if len(sorted_results) > 0:
-            for res in sorted_results:
-                multiple.setdefault(res[1][1][2], []).append(fo.file_basename(k))
+    print('Writing results_contigsInfo.tsv...', end='')
+    results_contigs_outfile, repeated = write_results_contigs(list(results['classification_files'].values()), results['basename_map'],
+                                                              output_directory, coordinates_files, classification_labels)
+    print('done.')
 
-    # get CDSs with multiple matches
-    multiple2 = {k: v for k, v in multiple.items() if len(set(v)) > 1}
-    repeated = list(multiple2.keys())
+    # determine paralogous loci and write RepeatedLoci.txt file
+    print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
+    total_paralogous = identify_paralogous(results_contigs_outfile,
+                                           output_directory,
+                                           classification_labels)
+    print('done.')
+    print('Detected number of paralogous loci: '
+          '{0}'.format(total_paralogous))
 
     # assign allele identifiers to novel alleles
     assignment_inputs = list(results['classification_files'].items())
@@ -2445,14 +2510,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                               show_progress=False)
 
     novel_alleles = im.merge_dictionaries(novel_alleles)
-
-    # count total for each classification type
-    global_counts, total_cds = count_classifications(results['classification_files'].values(),
-                                                     classification_labels)
-
-    print('Classified a total of {0} CDS.'.format(total_cds))
-    print('\n'.join(['{0}: {1}'.format(k, v)
-                     for k, v in global_counts.items()]))
 
     updated_files = {}
     if config['Mode'] != 1:
@@ -2506,60 +2563,20 @@ def main(input_file, loci_list, schema_directory, output_directory,
             if no_inferred is False:
                 # add inferred alleles to schema
                 added2 = add_inferred_alleles(added[2])
-                print('Added {0} novel alleles to schema.'.format(added[0]))
-                print('Added {0} representative alleles to schema.'.format(added[1]))
                 # recompute mode for loci with novel alleles
-                print('\nDetermining sequence length mode for updated loci...', end='')
                 for file in novel_alleles:
                     alleles_sizes = list(fao.sequence_lengths(file).values())
                     # select first value in list if there are several values with same frequency
                     loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
                 fo.pickle_dumper(loci_modes, loci_modes_file)
-                print('done.')
 
-                # update hash tables with allele hashes
-                update_table = {}
-                prot_hashes = {}
-                for k, v in added[2].items():
-                    locus_index = loci_to_call[k]
-                    records = fao.sequence_generator(v[0])
-                    for rec in records:
-                        allele_id = (rec.id).split('_')[-1]
-                        sequence = str(rec.seq)
-                        seq_hash = im.hash_sequence(sequence)
-                        prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, config['Translation table'])))
-                        update_table.setdefault(seq_hash, []).extend([locus_index, allele_id])
-                        prot_hashes.setdefault(seq_hash, []).append(prot_hash)
-
-                # update hash tables
-                dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
-                prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
-                latest_dna_table = sorted(dna_tables, key=lambda x: int(x[-1]))[-1]
-                latest_prot_table = sorted(prot_tables, key=lambda x: int(x[-1]))[-1]
-                current_dna_table = fo.pickle_loader(latest_dna_table)
-                current_prot_table = fo.pickle_loader(latest_prot_table)
-                for k, v in update_table.items():
-                    current_dna_table.setdefault(k, []).extend(v)
-                    current_prot_table.setdefault(prot_hashes[k][0], []).extend(v)
-                    if len(current_dna_table) >= ct.HASH_TABLE_MAXIMUM_ALLELES:
-                        fo.pickle_dumper(current_dna_table, latest_dna_table)
-                        fo.pickle_dumper(current_prot_table, latest_prot_table)
-                        new_index = int(latest_dna_table.split('DNAtable')[-1]) + 1
-                        latest_dna_table = fo.join_paths(pre_computed_dir, 'DNAtable{0}'.format(new_index))
-                        current_dna_table = {}
-                        current_prot_table = fo.join_paths(pre_computed_dir, 'PROTEINtable{0}'.format(new_index))
-                        current_prot_table = {}
-
-                if len(current_dna_table) > 0:
-                    fo.pickle_dumper(current_dna_table, latest_dna_table)
-                    fo.pickle_dumper(current_prot_table, latest_prot_table)
-        else:
-            print('No new alleles to add to schema.')
+                # add novel alleles hashes to pre-computed hash tables
+                update_hash_tables(added[2], loci_to_call, config['Translation table'], pre_computed_dir)
 
     end_time = pdt.get_datetime()
 
     # create output files
-    print('\nWriting logging_info.txt...', end='')
+    print('Writing logging_info.txt...', end='')
     write_logfile(start_time, end_time, len(results['basename_map']), len(results['classification_files']),
                   config['CPU cores'], config['BLAST Score Ratio'], output_directory)
     print('done.')
@@ -2576,26 +2593,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
     print('Writing loci_summary_stats.tsv...', end='')
     write_loci_summary(results['classification_files'], output_directory, len(input_files), classification_labels)
     print('done.')
-
-    # list files with CDSs coordinates
-    if config['CDS input'] is False:
-        coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
-        coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
-        coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
-                             for f in coordinates_files}
-        print('Writing results_contigsInfo.tsv...', end='')
-        results_contigs_outfile = write_results_contigs(list(results['classification_files'].values()), results['basename_map'],
-                                                        output_directory, coordinates_files, classification_labels)
-        print('done.')
-
-        # determine paralogous loci and write RepeatedLoci.txt file
-        print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
-        total_paralogous = identify_paralogous(results_contigs_outfile,
-                                               output_directory,
-                                               classification_labels)
-        print('done.')
-        print('Detected number of paralogous loci: '
-              '{0}'.format(total_paralogous))
 
     if output_unclassified is True:
         print('Writing Fasta file with unclassified CDS...', end='')
@@ -2643,6 +2640,17 @@ def main(input_file, loci_list, schema_directory, output_directory,
         lines = ['{0}\t{1}'.format(line[0], line[1])
                  for line in results['invalid_inputs']]
         fo.write_lines(lines, failed_file)
+
+    # count total for each classification type
+    global_counts, total_cds = count_classifications(results['classification_files'].values(),
+                                                     classification_labels)
+
+    print('Classified a total of {0} CDS.'.format(total_cds))
+    print('\n'.join(['{0}: {1}'.format(k, v)
+                     for k, v in global_counts.items()]))
+    if no_inferred is False and config['Mode'] != 1 and len(novel_alleles) > 0:
+        print('Added {0} novel alleles to schema.'.format(sum(added2)))
+        print('Added {0} representative alleles to schema.'.format(added[1]))
 
     # remove temporary files
     if no_cleanup is False:

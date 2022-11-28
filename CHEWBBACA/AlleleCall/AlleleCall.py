@@ -841,13 +841,15 @@ def write_results_contigs(classification_files, input_identifiers,
         Path to the output file that contains the sequence
         coordinates.
     """
-    # do not include PAMA class
-    invalid_classes = classification_labels[2:-2]
+    # do not include LNF class
+    invalid_classes = classification_labels[2:-1]
     intermediate_file = fo.join_paths(output_directory,
                                       ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
     # limit the number of lines to store in memory
     line_limit = 500
+    # get hash if coordinates are available, seqid otherwise
+    id_index = 2 if cds_coordinates_files is not None else 1
     for i, file in enumerate(classification_files):
         locus_id = fo.get_locus_id(file)
         if locus_id is None:
@@ -855,8 +857,8 @@ def write_results_contigs(classification_files, input_identifiers,
         locus_results = fo.pickle_loader(file)
         column = [locus_id]
         # get sequence hash for exact and inferred
-        # get classification for other cases
-        column += [locus_results[i][1][2]
+        # get classification for other cases or LNF for no classification
+        column += [locus_results[i][1][id_index]
                    if i in locus_results and locus_results[i][0] not in invalid_classes
                    else locus_results.get(i, [classification_labels[-1]])[0]
                    for i in input_identifiers]
@@ -871,6 +873,8 @@ def write_results_contigs(classification_files, input_identifiers,
     # transpose intermediate file
     transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
 
+    # include LNF class in list to exclude from counting
+    # and coordinate retrieval
     invalid_classes.append(classification_labels[-1])
 
     # get all hashes that match more than one locus per input
@@ -880,48 +884,78 @@ def write_results_contigs(classification_files, input_identifiers,
     # they will not be identified based on results for that genome
     # we need to get all alleles that match multiple loci before deciding if
     # they should be added to the schema.
-    repeated = set()
+    repeated = {}
     with open(transposed_file, 'r') as infile:
         csv_reader = csv.reader(infile, delimiter='\t')
         header = csv_reader.__next__()
         for i, l in enumerate(csv_reader):
             genome_id = l[0]
-            # count number of ocurrences for each hash
+            # count number of ocurrences for each hash/seqid
             hashes = [h for h in l[1:] if h not in invalid_classes]
             hash_counts = Counter(hashes)
             repeated_hashes = [count
                                for count in hash_counts.most_common()
                                if count[1] > 1]
             for h in repeated_hashes:
-                repeated.add(h[0])
+                repeated.setdefault(h[0], [])
 
-    # use CDS hash to get coordinates in origin input
+    # create final output file
     output_file = fo.join_paths(output_directory, ['results_contigsInfo.tsv'])
     with open(transposed_file, 'r') as infile:
         csv_reader = csv.reader(infile, delimiter='\t')
         header = csv_reader.__next__()
         output_lines = [header]
-        for i, l in enumerate(csv_reader):
-            genome_id = l[0]            
-            # open file with loci coordinates
-            coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
-            # start position is 0-based, stop position is upper-bound exclusive
-            cds_coordinates = [coordinates[c][0]
-                               if c in coordinates else c
-                               for c in l[1:]]
+        # convert hashes to CDS coordinates
+        if cds_coordinates_files is not None:
+            for i, l in enumerate(csv_reader):
+                genome_id = l[0]
+                # open file with loci coordinates
+                coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
+                # start position is 0-based, stop position is upper-bound exclusive
+                # convert to PAMA CDSs that matched multiple loci
+                cds_coordinates = []
+                for j, c in enumerate(l[1:]):
+                    if c not in repeated:
+                        cds_coordinates.append(coordinates.get(c, [c])[0])
+                    else:
+                        cds_coordinates.append(classification_labels[-2])
+                        # add CDS coordinates to list of PAMA classifications
+                        repeated_coordinates = coordinates[c][0]
+                        repeated[c].append([genome_id, header[j+1],
+                                            '{0}&{1}-{2}&{3}'.format(*repeated_coordinates[:3],
+                                                                     repeated_coordinates[4])])
 
-            # contig identifier, start and stop positions and strand
-            # 1 for sense, 0 for antisense
-            cds_coordinates_line = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
-                                    if c not in invalid_classes else c
-                                    for c in cds_coordinates]
+                # contig identifier, start and stop positions and strand
+                # 1 for sense, 0 for antisense
+                cds_coordinates = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
+                                   if c not in invalid_classes else c
+                                   for c in cds_coordinates]
 
-            output_lines.append([genome_id]+cds_coordinates_line)
+                output_lines.append([genome_id]+cds_coordinates)
 
-            if len(output_lines) >= line_limit or (i+1) == len(input_identifiers):
-                output_lines = ['\t'.join(l) for l in output_lines]
-                fo.write_lines(output_lines, output_file, write_mode='a')
-                output_lines = []
+                if len(output_lines) >= line_limit or (i+1) == len(input_identifiers):
+                    output_lines = ['\t'.join(l) for l in output_lines]
+                    fo.write_lines(output_lines, output_file, write_mode='a')
+                    output_lines = []
+        # use distinct sequence identifier if coordinates are not available
+        else:
+            for i, l in enumerate(csv_reader):
+                genome_id = l[0]
+                cds_coordinates = []
+                for j, c in enumerate(l[1:]):
+                    if c not in repeated:
+                        cds_coordinates.append(c)
+                    else:
+                        cds_coordinates.append(classification_labels[-2])
+                        # add CDS coordinates to list of PAMA classifications
+                        repeated[c].append([genome_id, header[j+1], c])
+
+                output_lines.append([genome_id]+cds_coordinates)
+
+                if len(output_lines) >= line_limit or (i+1) == len(input_identifiers):
+                    output_lines = ['\t'.join(l) for l in output_lines]
+                    fo.write_lines(output_lines, output_file, write_mode='a')
+                    output_lines = []
 
     # delete intermediate files
     fo.remove_files([intermediate_file, transposed_file])
@@ -1042,7 +1076,7 @@ def assign_allele_ids(locus_files, ns, repeated):
                         matched_alleles[cds_hash] = str(max_alleleid)
                         # add the unique SHA256 value
                         novel_alleles.setdefault(locus_files[0], []).append([cds_hash, str(max_alleleid)])
-    
+
                     # EXC to INF to enable accurate count of INF classifications
                     # some INF classifications might be converted to NIPH based on similar
                     # matches on the same genome. Matches to the new INF/NIPH will be
@@ -1051,7 +1085,7 @@ def assign_allele_ids(locus_files, ns, repeated):
                         locus_results[genome_id][0] = 'INF'
             # classify as PAMA (PAralogous MAtch) when a CDS matches several loci
             else:
-                locus_results[genome_id].append(ct.ALLELECALL_CLASSIFICATIONS[9])
+                #locus_results[genome_id].append(ct.ALLELECALL_CLASSIFICATIONS[9])
                 locus_results[genome_id][0] = ct.ALLELECALL_CLASSIFICATIONS[9]
 
         # save updated results
@@ -1297,13 +1331,13 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
     return input_matches
 
 
-def identify_paralogous(results_contigs_file, output_directory, classification_labels):
+def identify_paralogous(repeated, output_directory):
     """Identifiy groups of paralogous loci in the schema.
 
     Parameters
     ----------
-    results_contigs_file : str
-        Path to the 'results_contigsInfo.tsv' file.
+    repeated : dict
+        
     output_directory : str
         Path to the output directory where the file with
         the list of paralogus loci will be created.
@@ -1312,45 +1346,26 @@ def identify_paralogous(results_contigs_file, output_directory, classification_l
     -------
     The total number of paralogous loci detected.
     """
-    with open(results_contigs_file, 'r') as infile:
-        # read as iterator to keep memory usage low
-        reader = csv.reader(infile, delimiter='\t')
-        # get list of loci
-        loci = (reader.__next__())[1:]
 
-        paralogous_loci = []
-        paralogous_counts = {}
-        for line in reader:
-            current_input = line[0]
-            locus_results = line[1:]
-            counts = {k: v for k, v in Counter(locus_results).items()
-                      if v > 1 and k not in classification_labels[2:]}
-
-            for p in counts:
-                duplicate = [loci[i] for i, e in enumerate(locus_results) if e == p]
-                duplicate_str = '&'.join(duplicate)
-                paralogous_loci.append([current_input, duplicate_str, p])
-                for locus in duplicate:
-                    if locus not in paralogous_counts:
-                        paralogous_counts[locus] = 1
-                    else:
-                        paralogous_counts[locus] += 1
-
-    # write file with paralogous counts per locus
-    paralogous_counts_lines = [ct.PARALOGOUS_COUNTS_HEADER]
-    paralogous_counts_lines.extend(['{0}\t{1}'.format(*i) for i in paralogous_counts.items()])
-    paralogous_counts_file = fo.join_paths(output_directory, [ct.PARALOGOUS_COUNTS_BASENAME])
-    fo.write_lines(paralogous_counts_lines, paralogous_counts_file)
+    paralogous_data = {}
+    total_paralogous = set()
+    for k, v in repeated.items():
+        for p in v:
+            paralogous_data.setdefault(p[2], {})
+            paralogous_data[p[2]].setdefault(p[0], []).append(p[1])
+            total_paralogous.add(p[1])
 
     # write groups of paralogous loci per input
-    paralogous_loci_lines = [ct.PARALOGOUS_LIST_HEADER]
-    for p in paralogous_loci:
-        paralogous_loci_lines.append('{0}\t{1}\t{2}'.format(*p))
+    paralogous_lines = [ct.PARALOGOUS_LIST_HEADER]
+    for cds, g in paralogous_data.items():
+        paralogous_lines.extend(['{0}\t{1}\t{2}'.format(k, '|'.join(v), cds)
+                                 for k, v in g.items()])
 
-    paralogous_loci_outfile = fo.join_paths(output_directory, [ct.PARALOGOUS_LOCI_BASENAME])
-    fo.write_lines(paralogous_loci_lines, paralogous_loci_outfile)
+    paralogous_loci_outfile = fo.join_paths(output_directory,
+                                            [ct.PARALOGOUS_LOCI_BASENAME])
+    fo.write_lines(paralogous_lines, paralogous_loci_outfile)
 
-    return len(paralogous_counts)
+    return len(total_paralogous)
 
 
 def classify_inexact_matches(locus, genomes_matches, inv_map,
@@ -1556,57 +1571,86 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
     # get information about missing cases for each input genome
     missing_cases = {}
+    # get hash if coordinates are available, seqid otherwise
+    id_index = 2 if coordinates_files is not None else 1
     for locus, file in class_files.items():
         locus_id = fo.get_locus_id(locus)
         if locus_id is None:
             locus_id = fo.file_basename(locus, False)
         locus_classifications = fo.pickle_loader(file)
         # get data for genomes that do not have EXC or INF classifications
-        # it will not get invalid classes if a genome is classified as EXC or INF
+        # it will not get invalid classes if a genome is classified as EXC|INF
         for gid, v in locus_classifications.items():
             if v[0] in invalid_cases:
-                genome_info = [locus_id, v[0], [[e[2], e[3]] for e in v[1:]]]
+                genome_info = [locus_id, v[0], [[e[id_index], e[3]] for e in v[1:]]]
                 missing_cases.setdefault(input_map[gid], []).append(genome_info)
 
-    # get seqids that match hashes
-    for k, v in missing_cases.items():
-        genome_coordinates = fo.pickle_loader(coordinates_files[k])[0]
-        # genomes may have duplicated CDSs
-        # store hash and increment i to get correct positions
-        hashes = {}
-        for c in v:
-            locus_id = c[0]
-            classification = c[1]
-            for h in c[2]:
-                current_hash = h[0]
-                coordinates = genome_coordinates[current_hash]
+    if coordinates_files is not None:
+        for k, v in missing_cases.items():
+            genome_coordinates = fo.pickle_loader(coordinates_files[k])[0]
+            # genomes may have duplicated CDSs
+            # store hash and increment i to get correct positions
+            hashes = {}
+            for c in v:
+                locus_id = c[0]
+                classification = c[1]
+                for h in c[2]:
+                    current_hash = h[0]
+                    coordinates = genome_coordinates[current_hash]
 
-                if current_hash not in hashes:
-                    hashes[current_hash] = {locus_id: 0}
-                else:
-                    # multiple matches to the same locus
-                    if locus_id in hashes[current_hash]:
-                        hashes[current_hash][locus_id] += 1
-                    # multiple matches to multiple loci
+                    if current_hash not in hashes:
+                        hashes[current_hash] = {locus_id: 0}
                     else:
-                        hashes[current_hash][locus_id] = 0
+                        # multiple matches to the same locus
+                        if locus_id in hashes[current_hash]:
+                            hashes[current_hash][locus_id] += 1
+                        # multiple matches to multiple loci
+                        else:
+                            hashes[current_hash][locus_id] = 0
 
-                current_index = hashes[current_hash][locus_id]
-                protid = coordinates[current_index][3]
-                h.append('{0}-protein{1}&{2}|{3}&{4}'.format(k, protid, h[1], c[0], c[1]))
+                    current_index = hashes[current_hash][locus_id]
+                    protid = coordinates[current_index][3]
+                    h.append('{0}|{1}&{2}|{0}-protein{3}&{4}'.format(k, locus_id, classification, protid, h[1]))
+    else:
+        for k, v in missing_cases.items():
+            for c in v:
+                locus_id = c[0]
+                classification = c[1]
+                for h in c[2]:
+                    seqid = h[0]
+                    seqid_classification = h[1]
+                    h.append('{0}|{1}&{2}|{3}&{4}'.format(k,
+                                                          locus_id,
+                                                          classification,
+                                                          seqid,
+                                                          seqid_classification))
 
     missing_records = []
     dna_index = fao.index_fasta(fasta_file)
-    for genome, v in missing_cases.items():
-        current_records = []
-        for c in v:
-            for h in c[2]:
-                hash_entry = im.polyline_decoding(dna_hashtable[h[0]])
-                seqid = '{0}-protein{1}'.format(input_map[hash_entry[1]], hash_entry[0])
-                new_rec = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [h[2], str(dna_index[seqid].seq)])
-                current_records.append(new_rec)
+    if coordinates_files is not None:
+        for genome, v in missing_cases.items():
+            current_records = []
+            for c in v:
+                for h in c[2]:
+                    hash_entry = im.polyline_decoding(dna_hashtable[h[0]])
+                    seqid = '{0}-protein{1}'.format(input_map[hash_entry[1]], hash_entry[0])
+                    new_rec = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+                                                   [h[2],
+                                                    str(dna_index[seqid].seq)])
+                    current_records.append(new_rec)
+    
+            missing_records.extend(current_records)
+    else:
+        for genome, v in missing_cases.items():
+            current_records = []
+            for c in v:
+                for h in c[2]:
+                    new_rec = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+                                                   [h[2],
+                                                    str(dna_index[h[0]].seq)])
+                    current_records.append(new_rec)
 
-        missing_records.extend(current_records)
+            missing_records.extend(current_records)
 
     output_file = fo.join_paths(output_directory, ['missing_classes.fasta'])
     fo.write_lines(missing_records, output_file)
@@ -2473,9 +2517,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if config['Mode'] != 4:
         classification_labels[-1] = ct.PROBABLE_LNF
 
-    # sort classification files to have allele call matrix format similar to v2.0
-    results['classification_files'] = {k: results['classification_files'][k]
-                                       for k in sorted(list(results['classification_files'].keys()))}
+    # sort for order similar to v2.0
+    results['classification_files'] = dict(sorted(results['classification_files'].items()))
 
     # list files with CDSs coordinates
     if config['CDS input'] is False:
@@ -2487,22 +2530,24 @@ def main(input_file, loci_list, schema_directory, output_directory,
         coordinates_files = None
 
     print('Writing results_contigsInfo.tsv...', end='')
-    results_contigs_outfile, repeated = write_results_contigs(list(results['classification_files'].values()), results['basename_map'],
-                                                              output_directory, coordinates_files, classification_labels)
+    results_contigs_outfile, repeated = write_results_contigs(list(results['classification_files'].values()),
+                                                              results['basename_map'],
+                                                              output_directory,
+                                                              coordinates_files,
+                                                              classification_labels)
     print('done.')
 
     # determine paralogous loci and write RepeatedLoci.txt file
-    print('Writing paralogous_counts.tsv and paralogous_loci.tsv...', end='')
-    total_paralogous = identify_paralogous(results_contigs_outfile,
-                                           output_directory,
-                                           classification_labels)
+    print('Writing paralogous_loci.tsv...', end='')
+    total_paralogous = identify_paralogous(repeated, output_directory)
     print('done.')
     print('Detected number of paralogous loci: '
           '{0}'.format(total_paralogous))
 
     # assign allele identifiers to novel alleles
     assignment_inputs = list(results['classification_files'].items())
-    assignment_inputs = [[g, ns, repeated, assign_allele_ids] for g in assignment_inputs]
+    assignment_inputs = [[g, ns, set(list(repeated.keys())), assign_allele_ids]
+                         for g in assignment_inputs]
 
     novel_alleles = mo.map_async_parallelizer(assignment_inputs,
                                               mo.function_helper,
@@ -2577,26 +2622,39 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     # create output files
     print('Writing logging_info.txt...', end='')
-    write_logfile(start_time, end_time, len(results['basename_map']), len(results['classification_files']),
-                  config['CPU cores'], config['BLAST Score Ratio'], output_directory)
+    write_logfile(start_time,
+                  end_time,
+                  len(results['basename_map']),
+                  len(results['classification_files']),
+                  config['CPU cores'],
+                  config['BLAST Score Ratio'],
+                  output_directory)
     print('done.')
 
     print('Writing results_alleles.tsv...', end='')
     profiles_table = write_results_alleles(list(results['classification_files'].values()),
-                                           list(results['basename_map'].values()), output_directory, classification_labels[-1])
+                                           list(results['basename_map'].values()),
+                                           output_directory,
+                                           classification_labels[-1])
     print('done.')
 
     print('Writing results_statistics.tsv...', end='')
-    write_results_statistics(results['classification_files'], results['basename_map'], output_directory, classification_labels)
+    write_results_statistics(results['classification_files'],
+                             results['basename_map'],
+                             output_directory,
+                             classification_labels)
     print('done.')
 
     print('Writing loci_summary_stats.tsv...', end='')
-    write_loci_summary(results['classification_files'], output_directory, len(input_files), classification_labels)
+    write_loci_summary(results['classification_files'],
+                       output_directory,
+                       len(input_files),
+                       classification_labels)
     print('done.')
 
     if output_unclassified is True:
-        print('Writing Fasta file with unclassified CDS...', end='')
-        # create Fasta file with the distinct CDS that were not classified
+        print('Writing FASTA file with unclassified CDSs...', end='')
+        # create Fasta file with the distinct CDSs that were not classified
         create_unclassified_fasta(results['dna_fasta'],
                                   results['protein_fasta'],
                                   results['unclassified_ids'],
@@ -2605,10 +2663,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                   results['basename_map'])
         print('done.')
 
-    if output_missing is True and config['CDS input'] is False:
+    if output_missing is True:
         # Create Fasta file with CDS that were classified as ASM, ALM, ...
-        print('Writing Fasta file with CDS classified as ASM, ALM, NIPH, '
-              'NIPHEM, PLOT3, PLOT5 and LOTSC...', end='')
+        print('Writing FASTA file with CDSs classified as ASM, ALM, NIPH, '
+              'NIPHEM, PAMA, PLOT3, PLOT5 and LOTSC...', end='')
         create_missing_fasta(results['classification_files'],
                              results['dna_fasta'],
                              results['basename_map'],
@@ -2620,9 +2678,11 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     if hash_profiles is not None:
         # create TSV file with hashed profiles
+        print('Writing file with hashed profiles...', end='')
         ph.main(profiles_table, schema_directory, output_directory,
                 hash_profiles, 4, 1000, updated_files,
                 no_inferred)
+        print('done.')
 
     # move file with CDSs coordinates
     # will not be created if input files contain predicted CDS
@@ -2645,7 +2705,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     global_counts, total_cds = count_classifications(results['classification_files'].values(),
                                                      classification_labels)
 
-    print('Classified a total of {0} CDS.'.format(total_cds))
+    print('Classified a total of {0} CDSs.'.format(total_cds))
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))
     if no_inferred is False and config['Mode'] != 1 and len(novel_alleles) > 0:

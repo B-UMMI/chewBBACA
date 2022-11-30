@@ -53,21 +53,21 @@ def loci_mode_file(loci_files, output_file):
         List with the full paths to loci FASTA files.
     output_file : str
         Path to the output file created to store the sequence size mode
-        values (created by the Pickle module).
+        values (created with the Pickle module).
 
     Returns
     -------
     loci_modes : str
         Path to the output file with the allele size mode values (a
         dictionary with loci identifiers as keys and the allele size
-        mode and list of allele sizes as values is saved with the
+        mode and the list of allele sizes as values is saved with the
         Pickle module).
     """
     loci_modes = {}
     for file in loci_files:
         locus_id = fo.file_basename(file, False)
         allele_sizes = list(fao.sequence_lengths(file).values())
-        # select first value in list if there are several values with same frequency
+        # select first if there are several values with same frequency
         loci_modes[locus_id] = [sm.determine_mode(allele_sizes)[0], allele_sizes]
 
     fo.pickle_dumper(loci_modes, output_file)
@@ -145,7 +145,6 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
         List with the paths for the files that contain the hash tables (
         files are created in the output diretory with the Pickle module).
     """
-
     # define maximum number of sequence hashes per hash table
     max_sequences = ct.HASH_TABLE_MAXIMUM_ALLELES
 
@@ -153,8 +152,10 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
     current_group = []
     total_alleles = 0
     for file in loci_files:
+        # count number of sequences per file
         with open(file, 'r') as infile:
             num_alleles = sum(1 for _ in infile) / 2
+        # increment total sequences and reset if it reaches limit
         total_alleles += num_alleles
         current_group.append((file, loci_files.index(file)))
         if total_alleles >= max_sequences or file == loci_files[-1]:
@@ -162,6 +163,8 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
             current_group = []
             total_alleles = 0
 
+    # create inputs to parallelize hash table creation
+    # hash tables for DNA sequences
     inputs = [[g, i+1, None, output_directory, 'DNAtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
@@ -170,6 +173,7 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
                                             cpu_cores,
                                             show_progress=False)
 
+    # hash tables for translated alleles
     inputs = [[g, i+1, translation_table, output_directory, 'PROTEINtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
@@ -182,47 +186,76 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
 
 
 def update_hash_tables(loci_files, loci_to_call, translation_table, pre_computed_dir):
-    """
-    """
+    """Update pre-computed hash tables.
 
-    # update hash tables with allele hashes
-    update_table = {}
-    prot_hashes = {}
+    Parameters
+    ----------
+    loci_files : dict
+        Dictionary with paths to schema loci FASTA files as keys and
+        a list with the paths to the temporary FASTA files that contain
+        the newly inferred alleles for the loci as values.
+    loci_to_call : dict
+        Dictionary with paths to schema loci FASTA files as keys and
+        loci integer identifiers as values.
+    translation_table : int
+        Genetic code used to translate the alleles.
+    pre_computed_dir : str
+        Path to the directory that contains the files with the pre-computed
+        hash tables.
+
+    Returns
+    -------
+    Total number of new allele hashes added to the pre-computed hash tables.
+    """
+    # create hash tables with data for new alleles
+    novel_DNAtable = {}
+    novel_PROTEINtable = {}
     for k, v in loci_files.items():
+        # get locus integer identifier
         locus_index = loci_to_call[k]
+        # import new alleles
         records = fao.sequence_generator(v[0])
         for rec in records:
+            # compute allele SHA256 hash
             allele_id = (rec.id).split('_')[-1]
             sequence = str(rec.seq)
             seq_hash = im.hash_sequence(sequence)
             prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, translation_table)))
-            update_table.setdefault(seq_hash, []).extend([locus_index, allele_id])
-            prot_hashes.setdefault(seq_hash, []).append(prot_hash)
+            # add to hash tables that will be used to update pre-computed data
+            novel_DNAtable.setdefault(seq_hash, []).extend([locus_index, allele_id])
+            novel_PROTEINtable.setdefault(seq_hash, []).append(prot_hash)
 
-    # update hash tables
+    # update pre-computed hash tables
+    # list files with pre-computed hash tables and select last created
     dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
     prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
     latest_dna_table = sorted(dna_tables, key=lambda x: int(x[-1]))[-1]
     latest_prot_table = sorted(prot_tables, key=lambda x: int(x[-1]))[-1]
+    # load hash tables to update
     current_dna_table = fo.pickle_loader(latest_dna_table)
     current_prot_table = fo.pickle_loader(latest_prot_table)
-    for k, v in update_table.items():
+    for k, v in novel_DNAtable.items():
+        # add entry for each new allele
         current_dna_table.setdefault(k, []).extend(v)
-        current_prot_table.setdefault(prot_hashes[k][0], []).extend(v)
+        current_prot_table.setdefault(novel_PROTEINtable[k][0], []).extend(v)
+        # check if it reached the maximum number of alleles per table file
         if len(current_dna_table) >= ct.HASH_TABLE_MAXIMUM_ALLELES:
+            # save current hash tables and create new files
             fo.pickle_dumper(current_dna_table, latest_dna_table)
             fo.pickle_dumper(current_prot_table, latest_prot_table)
             new_index = int(latest_dna_table.split('DNAtable')[-1]) + 1
-            latest_dna_table = fo.join_paths(pre_computed_dir, 'DNAtable{0}'.format(new_index))
+            latest_dna_table = fo.join_paths(pre_computed_dir,
+                                             ['DNAtable{0}'.format(new_index)])
             current_dna_table = {}
-            current_prot_table = fo.join_paths(pre_computed_dir, 'PROTEINtable{0}'.format(new_index))
+            current_prot_table = fo.join_paths(pre_computed_dir,
+                                               ['PROTEINtable{0}'.format(new_index)])
             current_prot_table = {}
 
     if len(current_dna_table) > 0:
         fo.pickle_dumper(current_dna_table, latest_dna_table)
         fo.pickle_dumper(current_prot_table, latest_prot_table)
 
-    return True
+    return len(novel_DNAtable)
 
 
 def create_classification_file(locus_id, output_directory, locus_results):
@@ -812,7 +845,8 @@ def write_results_statistics(classification_files, input_identifiers,
 
 
 def write_results_contigs(classification_files, input_identifiers,
-                          output_directory, cds_coordinates_files, classification_labels):
+                          output_directory, cds_coordinates_files,
+                          classification_labels):
     """Write a TSV file with the CDS coordinates for each input.
 
     Writes a TSV file with coding sequence coordinates (contig
@@ -834,12 +868,18 @@ def write_results_contigs(classification_files, input_identifiers,
         Dictionary with input string identifiers as keys
         and paths to pickled files with coding sequence
         coordinates as values.
+    classification_labels : list
+        List with the class labels attributed by chewBBACA.
 
     Returns
     -------
     output_file : str
         Path to the output file that contains the sequence
         coordinates.
+    repeated : dict
+        Dictionary with hashes for the CDSs that matched multiple loci
+        as keys and a list with information about the genome of origin
+        and matched loci as values.
     """
     # do not include LNF class
     invalid_classes = classification_labels[2:-1]
@@ -1020,6 +1060,13 @@ def assign_allele_ids(locus_files, ns, repeated):
     classification_files : dict
         Dictionary with the paths to loci FASTA files as keys
         and paths to loci classification files as values.
+    ns : bool
+        If the schema was downloaded from Chewie-NS. If True,
+        adds '*' before allele integer identifiers.
+    repeated : list
+        List of allele SHA256 hashes for the alleles that matched
+        multiple loci. Those alleles are not assigned identifers
+        and the classification is changes to PAMA (PAralogous MAtch).
 
     Returns
     -------
@@ -1083,9 +1130,8 @@ def assign_allele_ids(locus_files, ns, repeated):
                     # classified as EXC and need to be added as new alleles and converted to INF
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
-            # classify as PAMA (PAralogous MAtch) when a CDS matches several loci
+            # classify as PAMA when a CDS matches multiple loci
             else:
-                #locus_results[genome_id].append(ct.ALLELECALL_CLASSIFICATIONS[9])
                 locus_results[genome_id][0] = ct.ALLELECALL_CLASSIFICATIONS[9]
 
         # save updated results
@@ -1096,7 +1142,7 @@ def assign_allele_ids(locus_files, ns, repeated):
 
 def create_novel_fastas(inferred_alleles, inferred_representatives,
                         sequences_file, output_directory):
-    """
+    """Create FASTA files with the novel alleles for each locus.
 
     Parameters
     ----------
@@ -1112,7 +1158,8 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
         Path to FASTA file that contains the distinct coding
         sequences identified in the inputs.
     output_directory : str
-        
+        Path to the directory where the FASTA files that contain
+        the novel alleles will be saved to.
 
     Returns
     -------
@@ -1122,7 +1169,8 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
         Total number of representative alleles added to the
         schema.
     updated_novel : dict
-        
+        Dictionary with loci identifiers as keys and paths to
+        the FASTA files that contain the novel alleles as values.
     """
     # create index for Fasta file with distinct CDSs
     sequence_index = fao.index_fasta(sequences_file)
@@ -1164,9 +1212,18 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
 def add_inferred_alleles(inferred_alleles):
     """Add inferred alleles to a schema.
 
-    
-    """
+    Prameters
+    ---------
+    inferred_alleles . dict
+        Dictionary with loci identifiers as keys and paths
+        to the FASTA files that contain the novel alleles as values.
 
+    Returns
+    -------
+    added : list
+        List that contains the number of novel alleles added for each
+        locus (same order as `inferred_alleles` keys)
+    """
     added = []
     for locus, files in inferred_alleles.items():
         locus_id = fo.get_locus_id(locus)
@@ -1248,10 +1305,11 @@ def process_blast_results(blast_results, bsr_threshold, query_scores,
         length, query sequence length and query sequence identifier
         for the highest-scoring match for each target as values.
     """
-    # replace query and target identifiers if they were simplified to avoid BLAST warnings/errors
-    # substituting more than it should?
+    # replace query and target identifiers if they were simplified
+    # to avoid BLAST warnings/errors
     if inputids_mapping is not None:
-        blast_results = [im.replace_list_values(r, inputids_mapping) for r in blast_results]
+        blast_results = [im.replace_list_values(r, inputids_mapping)
+                         for r in blast_results]
 
     # determine BSR values
     match_info = {}
@@ -1263,8 +1321,8 @@ def process_blast_results(blast_results, bsr_threshold, query_scores,
         # only keep matches above BSR threshold
         if bsr >= bsr_threshold:
             # BLAST has 1-based positions
-            qstart = (int(r[1])-1)*3 # subtract 1 to exclude start position
-            qend = (int(r[2])*3)+3 # add 3 to count stop codon
+            qstart = (int(r[1])-1)*3  # subtract 1 to exclude start position
+            qend = (int(r[2])*3)+3  # add 3 to count stop codon
             target_length = (int(r[5])*3)+3
             query_length = query_scores[query_id][0]
 
@@ -1276,7 +1334,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores,
 
 def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
                    phashtable, inv_map):
-    """Expand distinct matches to create matches to all matched inputs.
+    """Expand distinct matches to create matches for all matched inputs.
 
     Parameters
     ----------
@@ -1337,7 +1395,9 @@ def identify_paralogous(repeated, output_directory):
     Parameters
     ----------
     repeated : dict
-        
+        Dictionary with hashes for the CDSs that matched multiple loci
+        as keys and a list with information about the genome of origin
+        and matched loci as values.
     output_directory : str
         Path to the output directory where the file with
         the list of paralogus loci will be created.
@@ -1346,7 +1406,6 @@ def identify_paralogous(repeated, output_directory):
     -------
     The total number of paralogous loci detected.
     """
-
     paralogous_data = {}
     total_paralogous = set()
     for k, v in repeated.items():
@@ -1395,6 +1454,12 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
         Sequence size variation threshold.
     blast_score_ratio : float
         BLAST Score Ratio value.
+    output_directory : str
+        Path to the directory where the files with information for
+        each locus will be saved to.
+    cds_input : bool
+        True if the input files contained CDSs, False if they contained
+        contigs.
 
     Returns
     -------
@@ -1566,6 +1631,8 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
         Dictionary with the mapping between input string identifiers
         and paths to pickled files that contain a dictionary with the
         coordinates of the CDS identified in each input.
+    classification_labels : list
+        List with the class labels attributed by chewBBACA.
     """
     invalid_cases = classification_labels[2:-1]
 
@@ -1585,6 +1652,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                 genome_info = [locus_id, v[0], [[e[id_index], e[3]] for e in v[1:]]]
                 missing_cases.setdefault(input_map[gid], []).append(genome_info)
 
+    # input files contained genome assemblies
     if coordinates_files is not None:
         for k, v in missing_cases.items():
             genome_coordinates = fo.pickle_loader(coordinates_files[k])[0]
@@ -1611,6 +1679,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                     current_index = hashes[current_hash][locus_id]
                     protid = coordinates[current_index][3]
                     h.append('{0}|{1}&{2}|{0}-protein{3}&{4}'.format(k, locus_id, classification, protid, h[1]))
+    # input files contained CDSs and there are no genome coordinates
     else:
         for k, v in missing_cases.items():
             for c in v:
@@ -1638,7 +1707,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                                                    [h[2],
                                                     str(dna_index[seqid].seq)])
                     current_records.append(new_rec)
-    
+
             missing_records.extend(current_records)
     else:
         for genome, v in missing_cases.items():
@@ -1738,9 +1807,51 @@ def select_representatives(representative_candidates, locus, fasta_file,
 
 def allele_calling(fasta_files, schema_directory, temp_directory,
                    loci_modes, loci_files, config, pre_computed_dir):
-    """
-    """
+    """Perform allele calling for a set of inputs.
 
+    Parameters
+    ----------
+    fasta_files : list
+        List with the full paths to the input FASTA files, one per
+        strain.
+    schema_directory : str
+        Path to the schema directory.
+    temp_directory : str
+        Path to the temporary directory in which the intermediate files
+        are created.
+    loci_modes : dict
+        Dictionary with the allele size mode for each locus.
+    loci_files : dict
+        Dictionary with the paths to the loci FASTA files as keys and
+        the loci integer identifiers as values.
+    config : dict
+        Dictionary with the config values that will be used to perform
+        allele calling.
+    pre_computed_dir : str
+        Path to the the directory that contains the files with the
+        pre-computed hash tables.
+
+    Returns
+    -------
+    template_dict : dict
+        Dictionary used to store data and paths to files with results
+        (paths to files with the classification results, dictionary with
+        the mapping between input identifiers and unique integer identifiers,
+        paths to files with the CDSs coordinates for each input genome,
+        path to a FASTA file with all distinct DNA sequences, path to a
+        FASTA file with all distinct protein sequences, a hash table with
+        the mapping between the SHA256 hash for each distinct CDS extracted
+        from the input genomes and the list of input genomes that contain
+        each CDS, a hash table with the mapping between the SHA256 hash
+        for each translated CDS and the distinct DNA CDSs that code for each
+        protein, list with the paths to input files for which it was not
+        possible to predict CDSs with prodigal, path to file with invalid
+        CDSs, list with the sequence identifiers for the sequences that
+        were not classified, dictionary with the mapping between the
+        sequence identifiers of the representative alleles and their
+        self-alignment BLASTp raw score, dictionary with information
+        about new representatives for each locus).
+    """
     # get dictionary template to store variables to return
     template_dict = ct.ALLELECALL_DICT
 
@@ -2616,7 +2727,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                 fo.pickle_dumper(loci_modes, loci_modes_file)
 
                 # add novel alleles hashes to pre-computed hash tables
-                update_hash_tables(added[2], loci_to_call, config['Translation table'], pre_computed_dir)
+                total_hashes = update_hash_tables(added[2], loci_to_call,
+                                   config['Translation table'], pre_computed_dir)
 
     end_time = pdt.get_datetime()
 

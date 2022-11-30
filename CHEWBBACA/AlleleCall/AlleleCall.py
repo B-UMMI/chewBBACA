@@ -1407,12 +1407,20 @@ def identify_paralogous(repeated, output_directory):
     The total number of paralogous loci detected.
     """
     paralogous_data = {}
-    total_paralogous = set()
+    paralogous_counts = {}
     for k, v in repeated.items():
         for p in v:
             paralogous_data.setdefault(p[2], {})
             paralogous_data[p[2]].setdefault(p[0], []).append(p[1])
-            total_paralogous.add(p[1])
+            paralogous_counts.setdefault(p[1], []).append(1)
+
+    # write paralogous loci counts
+    paralogous_counts_lines = [ct.PARALOGOUS_COUNTS_HEADER]
+    paralogous_counts_lines.extend(['{0}\t{1}'.format(k, sum(v))
+                                    for k, v in paralogous_counts.items()])
+    paralogous_counts_outfile = fo.join_paths(output_directory,
+                                              [ct.PARALOGOUS_COUNTS_BASENAME])
+    fo.write_lines(paralogous_counts_lines, paralogous_counts_outfile)
 
     # write groups of paralogous loci per input
     paralogous_lines = [ct.PARALOGOUS_LIST_HEADER]
@@ -1424,7 +1432,7 @@ def identify_paralogous(repeated, output_directory):
                                             [ct.PARALOGOUS_LOCI_BASENAME])
     fo.write_lines(paralogous_lines, paralogous_loci_outfile)
 
-    return len(total_paralogous)
+    return len(paralogous_counts)
 
 
 def classify_inexact_matches(locus, genomes_matches, inv_map,
@@ -2649,7 +2657,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     print('done.')
 
     # determine paralogous loci and write RepeatedLoci.txt file
-    print('Writing paralogous_loci.tsv...', end='')
+    print('Writing paralogous_loci.tsv and paralogous_counts.tsv...', end='')
     total_paralogous = identify_paralogous(repeated, output_directory)
     print('done.')
     print('Detected number of paralogous loci: '
@@ -2823,6 +2831,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if no_inferred is False and config['Mode'] != 1 and len(novel_alleles) > 0:
         print('Added {0} novel alleles to schema.'.format(sum(added2)))
         print('Added {0} representative alleles to schema.'.format(added[1]))
+    elif no_inferred is True or len(novel_alleles) == 0:
+        print('No new alleles to add to schema.')
 
     # remove temporary files
     if no_cleanup is False:

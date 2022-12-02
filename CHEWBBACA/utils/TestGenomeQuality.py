@@ -23,7 +23,7 @@ def presAbs(d2c):
                     d2c[row, column] = 0
             except:
                 try:
-                    aux = str((d2c[row, column]).decode("utf-8")).replace("INF-", "")
+                    aux = str((d2c[row, column])).replace("INF-", "")
                     aux = int(aux)
                     d2c[row, column] = 1
                 except Exception as e:
@@ -93,7 +93,7 @@ def presence3(d2, ythreshold, vector, abscenceMatrix):
             xthreshold = 0.95
 
         if value > xthreshold:
-            listgenes2show.append(geneslist[column].decode("utf-8"))
+            listgenes2show.append(geneslist[column])
 
         if value > xthreshold and value < 1:
             for badgenome in badgenomes:
@@ -188,7 +188,7 @@ def clean(d2, iterations, ythreshold, out_folder):
     while i <= iterations:
 
         for elem in toremovegenomes:
-            removedlistgenomes.append(elem.decode("utf-8"))
+            removedlistgenomes.append(elem)
 
         if len(removedlistgenomes) > lastremovedgenomesCount and i > 0:
             lastremovedgenomesCount = len(removedlistgenomes)
@@ -235,14 +235,14 @@ def main(input_file, output_directory, max_iteration, max_threshold, step):
     with open(os.path.join(output_directory, "Genes_95%.txt"), "w") as f:
         f.write("Threshold\tPresent_genes\n")
 
-    d2original = np.genfromtxt(input_file, delimiter='\t', dtype=None)
+    d2original = np.genfromtxt(input_file, delimiter='\t', dtype=None, encoding=None)
     d2copy = np.copy(d2original)
     # create abscence/presence matrix
     print('Creating presence/absence matrix.')
     d2copy = presAbs(d2copy)
 
-    while threshold < max_threshold:
-        print('Calculating for threshold {0}...'.format(threshold))
+    while threshold <= max_threshold:
+        print('\r', 'Calculating for threshold {0}...'.format(threshold), end='')
         thresholdlist.append(threshold)
         result, stabilizedIter = clean(d2copy, max_iteration, threshold, output_directory)
         listStableIter.append(stabilizedIter)

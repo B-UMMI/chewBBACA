@@ -813,7 +813,7 @@ def extract_cgmlst():
         # command to determine cgMLST with custom threshold
         threshold_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
                          '-o <output_directory> '
-                         '\n\t\t\t     --p <threshold>')
+                         '\n\t\t\t     --t <threshold>')
 
         # command to remove specific genes and genomes from the analysis
         remove_cmd = ('  chewBBACA.py ExtractCgMLST -i <input_file> '
@@ -1564,10 +1564,10 @@ def ns_stats():
 def main():
 
     functions_info = {'CreateSchema': ['Create a gene-by-gene schema based on '
-                                       'a set of input genomes.',
+                                       'a set of genome assemblies or coding sequences.',
                                        create_schema],
                       'AlleleCall': ['Determine the allelic profiles of a set of '
-                                     'input genomes based on a schema.',
+                                     'bacterial genomes based on a schema.',
                                      allele_call],
                       'SchemaEvaluator': ['Tool that builds an html output '
                                           'to better navigate/visualize '
@@ -1576,18 +1576,18 @@ def main():
                       'TestGenomeQuality': ['Analyze your allele call output '
                                             'to refine schemas.',
                                             test_schema],
-                      'ExtractCgMLST': ['Determines the set of '
+                      'ExtractCgMLST': ['Determine the set of '
                                         'loci that constitute the '
                                         'core genome based on a '
-                                        'threshold.',
+                                        'loci presence threshold.',
                                         extract_cgmlst],
-                      'RemoveGenes': ['Remove a provided list of loci from '
+                      'RemoveGenes': ['Remove a list of loci from '
                                       'your allele call output.',
                                       remove_genes],
                       'PrepExternalSchema': ['Adapt an external schema to be '
                                              'used with chewBBACA.',
                                              prep_schema],
-                      'JoinProfiles': ['Joins allele calling results from '
+                      'JoinProfiles': ['Join allele calling results from '
                                        'different runs.',
                                        join_profiles],
                       'UniprotFinder': ['Retrieve annotations for loci in a schema.',

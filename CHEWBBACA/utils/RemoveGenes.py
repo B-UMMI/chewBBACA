@@ -28,19 +28,19 @@ def main(input_file, genes_list, output_file, inverse):
     # read genes list
     with open(genes_list, 'r') as infile:
         genes_list = list(csv.reader(infile, delimiter='\t'))
-        genes_list = [g[0] for g in genes_list]
+        genes_list = [g[0] for g in genes_list[1:]]
 
     # get list of loci in allele call results
     loci = fo.read_lines(input_file, strip=True, num_lines=1)
-    loci = loci[0].split('\t')
-    print('Total loci: {0}'.format(len(loci)-1))
+    loci = loci[0].split('\t')[1:]
+    print('Total loci: {0}'.format(len(loci)))
 
     if inverse is True:
         columns_to_keep = [g for g in loci if g in genes_list]
     else:
         columns_to_keep = [g for g in loci if g not in genes_list]
 
-    columns_to_remove = (len(loci)-1) - len(columns_to_keep)
+    columns_to_remove = (len(loci)) - len(columns_to_keep)
     print('Loci to remove: {0}'.format(columns_to_remove))
 
     # include first column with sample ids

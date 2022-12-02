@@ -311,6 +311,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     # protein sequences deduplication step
     # create directory to store files from protein deduplication
+    print('\nRemoving duplicated protein sequences...', end='')
     protein_dedup_dir = fo.join_paths(preprocess_dir,
                                       ['translated_cds_deduplication'])
     fo.create_directory(protein_dedup_dir)
@@ -325,6 +326,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     schema_seqids = im.sort_iterable(distinct_protein_seqs,
                                      sort_key=lambda x: x.lower())
 
+    print('removed {0} sequences.'.format(int(repeated)))
     print('\nKept {0} sequences after filtering the initial '
           'sequences.'.format(len(distinct_protein_seqs)))
 

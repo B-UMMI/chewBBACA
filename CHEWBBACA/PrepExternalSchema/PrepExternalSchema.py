@@ -63,6 +63,7 @@ Code documentation
 """
 
 import os
+import math
 import shutil
 import argparse
 import itertools
@@ -227,15 +228,6 @@ def select_candidate(candidates, proteins, seqids,
     return [representatives, final_representatives]
 
 
-# genes = even_genes_groups[0][0]
-# schema_path = even_genes_groups[0][1]
-# schema_short_path = even_genes_groups[0][2]
-# bsr = even_genes_groups[0][3]
-# min_len = even_genes_groups[0][4]
-# table_id = even_genes_groups[0][5]
-# size_threshold = even_genes_groups[0][6]
-# blastp_path = even_genes_groups[0][7]
-# makeblastdb_path = even_genes_groups[0][8]
 def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                table_id, size_threshold, blastp_path, makeblastdb_path):
     """ Adapts a set of genes/loci from an external schema so that
@@ -503,11 +495,10 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
-    even_genes_groups = mo.distribute_loci(genes_info, cpu_cores*4,
-                                               'seqcount')
+    # divide into 100 input sets to get 1% progress resolution
+    even_genes_groups = mo.distribute_loci(genes_info, 100, 'seqcount')
     # with few inputs, some sublists might be empty
     even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
-
     # add common arguments
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)

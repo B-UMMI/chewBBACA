@@ -112,9 +112,10 @@ def allele_hash_table(fasta_files, table_id, translation_table,
                        for rec in alleles]
 
         for record in alleles:
+            # needs to be string because of '*' added to schemas from Chewie-NS
             allele_id = record[0].split('_')[-1]
             allele_hash = im.hash_sequence(record[1])
-            hashtable.setdefault(allele_hash, []).extend([locus_index, allele_id])
+            hashtable.setdefault(allele_hash, []).append((locus_index, allele_id))
 
     table_file = fo.join_paths(output_directory, ['{0}{1}'.format(file_prefix, table_id)])
     fo.pickle_dumper(hashtable, table_file)
@@ -223,16 +224,18 @@ def update_hash_tables(loci_files, loci_to_call, translation_table,
             seq_hash = im.hash_sequence(sequence)
             prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, translation_table)))
             # add to hash tables that will be used to update pre-computed data
-            novel_dnatable.setdefault(seq_hash, []).extend([locus_index, allele_id])
+            novel_dnatable.setdefault(seq_hash, []).append((locus_index, allele_id))
             novel_proteintable.setdefault(seq_hash, []).append(prot_hash)
 
     # update pre-computed hash tables
     # list files with pre-computed hash tables and select last created
     dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
     prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
-    latest_dna_table = sorted(dna_tables, key=lambda x: int(x[-1]))[-1]
-    latest_prot_table = sorted(prot_tables, key=lambda x: int(x[-1]))[-1]
     # load hash tables to update
+    latest_dna_table = sorted(dna_tables,
+                              key=lambda x: int(x.split('table')[-1]))[-1]
+    latest_prot_table = sorted(prot_tables,
+                               key=lambda x: int(x.split('table')[-1]))[-1]
     current_dna_table = fo.pickle_loader(latest_dna_table)
     current_prot_table = fo.pickle_loader(latest_prot_table)
     for key, value in novel_dnatable.items():
@@ -417,12 +420,13 @@ def dna_exact_matches(table_file, presence_dnahashtable, loci_files,
     variant_table = fo.pickle_loader(table_file)
     matches = set(variant_table.keys()).intersection(set(presence_dnahashtable.keys()))
     matches_data = {m: variant_table[m] for m in matches}
-    sorted_matches = sorted(list(matches_data.items()), key=lambda x: x[1][0])
+    # sort based on locus integer identifier
+    sorted_matches = sorted(list(matches_data.items()), key=lambda x: x[1][0][0])
     groups = {}
     for match in sorted_matches:
         # only get information about the first locus that contains alleles
-        # does not get addiitonal info if allele is present in several loci
-        groups.setdefault(match[1][0], []).append((match[0], match[1][1]))
+        # does not get additional info if allele is present in several loci
+        groups.setdefault(match[1][0][0], []).append((match[0], match[1][0][1]))
 
     groups = {loci_files[k]: v
               for k, v in groups.items()
@@ -511,12 +515,12 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     variant_table = fo.pickle_loader(table_file)
     common = set(variant_table.keys()).intersection(set(presence_PROThashtable.keys()))
     common_data = {c: variant_table[c] for c in common}
-    sorted_common = sorted(list(common_data.items()), key=lambda x: x[1][0])
+    sorted_common = sorted(list(common_data.items()), key=lambda x: x[1][0][0])
     groups = {}
     for r in sorted_common:
         # only gets information about the first locus that contains alleles
         # does not get addiitonal info if allele is present in several loci
-        groups.setdefault(r[1][0], []).append((r[0], r[1][1]))
+        groups.setdefault(r[1][0][0], []).append((r[0], r[1][0][1]))
 
     groups = {loci_files[k]: v for k, v in groups.items() if k in loci_files}
 

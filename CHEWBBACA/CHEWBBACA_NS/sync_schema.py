@@ -709,6 +709,11 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
     return [new_alleles, server_time, count]
 
 
+schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/Schema_Comparison/chewiev3/sagalactiae_tutorial/sagalactiae_ns/sagalactiae_tut_test'
+cpu_cores = 4
+nomenclature_server = 'https://tutorial.chewbbaca.online/api/NS/api/'
+submit = True
+blast_path = '/home/rmamede/.conda/envs/spyder/bin/'
 def main(schema_directory, cpu_cores, nomenclature_server,
          submit, blast_path):#, update_profiles):
 
@@ -958,6 +963,17 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     for locus, pick in pickled_loci.items():
         rearranged = pickle_to_fasta(locus, pick, temp_dir, results,
                                      rearranged)
+
+    # update pre-computed tables
+    pre_computed_dir = fo.join_paths(schema_directory, )
+    if os.path.isdir(pre_computed_dir):
+        schema_loci_fullpath = [fo.join_paths(schema_directory, [file])
+                                for file in genes]
+        loci_to_call = {file: schema_loci_fullpath.index(file)
+                        for file in schema_loci_fullpath}
+        update_hash_tables(rearranged, loci_files, loci_to_call,
+                           schema_params['translation_table'][0],
+                           pre_computed_dir)
 
     # change identifiers in SQLite DB
     # if len(rearranged) > 0 and update_profiles is True:

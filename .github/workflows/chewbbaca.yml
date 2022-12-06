@@ -73,7 +73,7 @@ jobs:
         prodigal -v
 
     - name: checkout chewbbaca
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: B-UMMI/chewBBACA
         path: chewbbaca

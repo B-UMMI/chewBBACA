@@ -18,7 +18,7 @@ setup(
   install_requires = ['numpy>=1.23.4', 'scipy>=1.9.3', 'biopython>=1.78',
                       'plotly>=5.8.0', 'SPARQLWrapper>=2.0.0', 'pandas>=1.5.1',
                       'requests>=2.27.1'],
-  python_requires = '>=3.8',
+  python_requires = '>=3.7',
   include_package_data = True,
   entry_points={'console_scripts': ["chewBBACA.py = CHEWBBACA.chewBBACA:main",
                                     "chewie = CHEWBBACA.chewBBACA:main"]

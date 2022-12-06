@@ -35,15 +35,17 @@ try:
     from utils import (constants as ct,
                        file_operations as fo,
                        chewiens_requests as cr,
-                       profiles_sqlitedb as ps,
-                       parameters_validation as pv)
+                       # profiles_sqlitedb as ps,
+                       parameters_validation as pv,
+                       iterables_manipulation as im)
 except:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  chewiens_requests as cr,
-                                 profiles_sqlitedb as ps,
-                                 parameters_validation as pv)
+                                 # profiles_sqlitedb as ps,
+                                 parameters_validation as pv,
+                                 iterables_manipulation as im)
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -82,7 +84,8 @@ def create_lengths_files(upload, temp_dir):
         locus_id = locus.rstrip('.fasta')
         lengths = {locus: {h: info[2] for h, info in records.items()}}
 
-        lengths_file = os.path.join(temp_dir, '{0}_lengths'.format(locus_id))
+        lengths_file = fo.join_paths(temp_dir,
+                                     ['{0}_lengths'.format(locus_id)])
         fo.pickle_dumper(lengths, lengths_file)
         length_files.append(lengths_file)
 
@@ -144,10 +147,10 @@ def create_alleles_files(upload, base_url, user_id, species_name,
         locus_name = locus.rstrip('.fasta')
         loci_names.append(locus_name)
 
-        alleles_file = os.path.join(temp_dir,
-                                    '{0}_{1}_{2}'.format(species_id,
-                                                         schema_id,
-                                                         locus_id))
+        alleles_file = fo.join_paths(temp_dir,
+                                     ['{0}_{1}_{2}'.format(species_id,
+                                                           schema_id,
+                                                           locus_id)])
         alleles_files.append(alleles_file)
 
         fo.pickle_dumper(post_inputs, alleles_file)
@@ -293,12 +296,12 @@ def pickle_to_fasta(locus, pickled_file, temp_dir, identifiers, reassigned):
 
     natsorted_locus = sorted(locus_sequences)
 
-    fasta_path = os.path.join(temp_dir, locus)
+    fasta_path = fo.join_paths(temp_dir, [locus])
     records = []
     for seqid in natsorted_locus:
         recid = locus_sequences[seqid][0]
         seq = locus_sequences[seqid][1]
-        seq_hash = hashlib.sha256(seq.encode('utf-8')).hexdigest()
+        seq_hash = im.hash_sequence(seq)
         # switch by the identifier attributed by the Chewie-NS
         if seq_hash in attributed:
             new_recid = attributed[seq_hash]
@@ -462,7 +465,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
     for locus, alleles in loci.items():
         locus_id = locus.rstrip('.fasta')
         # paths for current and temp locus file
-        locus_file = os.path.join(schema_dir, locus)
+        locus_file = fo.join_paths(schema_dir, [locus])
 
         # get the latest alleles retrieved from Chewie-NS
         ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
@@ -498,7 +501,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
             switched[si[0]] = new_id
 
         if len(updated_records) > 0:
-            novel_alleles = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+            novel_alleles = {im.hash_sequence(v[1]):
                              [v[0], v[1], len(v[1])]
                              for k, v in updated_records.items() if '*' in v[0]}
             not_in_ns[locus] = [novel_alleles]
@@ -511,7 +514,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
             int_seqid = int(v[0]) if '*' not in v[0] else int(v[0][1:])
             updated_records2[int_seqid] = (seqid, v[1])
 
-        temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
+        temp_file = fo.join_paths(temp_dir, ['{0}_pickled'.format(locus_id)])
         fo.pickle_dumper(updated_records2, temp_file)
 
         pickled_loci[locus] = temp_file
@@ -561,13 +564,13 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
     """
     for gene in loci:
         locus_id = gene.rstrip('.fasta')
-        locus_file = os.path.join(schema_dir, gene)
+        locus_file = fo.join_paths(schema_dir, [gene])
         # get local locus sequences
         records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
                    for rec in SeqIO.parse(locus_file, 'fasta')}
 
         # determine if there are sequences with '*'
-        novel_local = {hashlib.sha256(v[1].encode('utf-8')).hexdigest():
+        novel_local = {im.hash_sequence(v[1]):
                        [v[0], v[1], len(v[1])]
                        for k, v in records.items() if '*' in v[0]}
         if len(novel_local) > 0:
@@ -577,7 +580,7 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
                 int_seqid = int(seq[0].replace('*', ''))
                 updated_records[int_seqid] = (seq[0], seq[1])
 
-            temp_file = os.path.join(temp_dir, '{0}_pickled'.format(locus_id))
+            temp_file = fo.join_paths(temp_dir, ['{0}_pickled'.format(locus_id)])
             fo.pickle_dumper(updated_records, temp_file)
 
             pickled_loci[gene] = temp_file
@@ -709,13 +712,8 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
     return [new_alleles, server_time, count]
 
 
-schema_directory = '/home/rmamede/Desktop/rmamede/chewBBACA_development/Schema_Comparison/chewiev3/sagalactiae_tutorial/sagalactiae_ns/sagalactiae_tut_test'
-cpu_cores = 4
-nomenclature_server = 'https://tutorial.chewbbaca.online/api/NS/api/'
-submit = True
-blast_path = '/home/rmamede/.conda/envs/spyder/bin/'
 def main(schema_directory, cpu_cores, nomenclature_server,
-         submit, blast_path):#, update_profiles):
+         submit, blast_path):  # update_profiles):
 
     # get ns configs
     local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
@@ -808,7 +806,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                  'process. Local schema is up-to-date.')
 
     # Create a temporary dir for the new alleles
-    temp_dir = os.path.join(os.path.dirname(schema_directory), 'temp')
+    temp_dir = fo.join_paths(os.path.dirname(schema_directory), ['temp'])
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
@@ -822,7 +820,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
           ''.format(count, len(loci_alleles)))
 
     # Get schema files from genes list file
-    genes_list = os.path.join(schema_directory, '.genes_list')
+    genes_list = fo.join_paths(schema_directory, ['.genes_list'])
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure
@@ -965,15 +963,20 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                                      rearranged)
 
     # update pre-computed tables
-    pre_computed_dir = fo.join_paths(schema_directory, )
+    # pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
+    # if os.path.isdir(pre_computed_dir):
+    #     schema_loci_fullpath = [fo.join_paths(schema_directory, [file])
+    #                             for file in genes]
+    #     loci_to_call = {file: schema_loci_fullpath.index(file)
+    #                     for file in schema_loci_fullpath}
+    #     update_hash_tables(rearranged, loci_files, loci_to_call,
+    #                        schema_params['translation_table'][0],
+    #                        pre_computed_dir)
+    # delete pre-computed directory
+    # future versions will change the pre-computed hash tables
+    pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
     if os.path.isdir(pre_computed_dir):
-        schema_loci_fullpath = [fo.join_paths(schema_directory, [file])
-                                for file in genes]
-        loci_to_call = {file: schema_loci_fullpath.index(file)
-                        for file in schema_loci_fullpath}
-        update_hash_tables(rearranged, loci_files, loci_to_call,
-                           schema_params['translation_table'][0],
-                           pre_computed_dir)
+        fo.delete_directory(pre_computed_dir)
 
     # change identifiers in SQLite DB
     # if len(rearranged) > 0 and update_profiles is True:
@@ -993,7 +996,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
         # delete invalid alleles and genes files
         parent_dir = os.path.dirname(schema_directory)
-        files = [os.path.join(parent_dir, file)
+        files = [fo.join_paths(parent_dir, [file])
                  for file in os.listdir(parent_dir)
                  if 'invalid' in file]
 
@@ -1008,7 +1011,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
         server_time = last_modified
 
         # update NS config file with latest server time
-        ns_configs = os.path.join(schema_directory, '.ns_config')
+        ns_configs = fo.join_paths(schema_directory, ['.ns_config'])
         fo.pickle_dumper([server_time, schema_uri], ns_configs)
 
     print('Received {0} new alleles for {1} loci and sent '
@@ -1017,6 +1020,10 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     # delete temp directory
     shutil.rmtree(temp_dir)
+
+    # delete pre-computed loci mode values
+    mode_file = fo.join_paths(schema_directory, ['loci_modes'])
+    fo.remove_files([mode_file])
 
     # delete pre-computed BSR values from 'short' directory
     # representatives might have changed and BSR values are outdated

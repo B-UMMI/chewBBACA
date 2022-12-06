@@ -55,7 +55,7 @@ jobs:
         mafft --version
 
     - name: checkout prodigal
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: hyattpd/Prodigal
         path: prodigal

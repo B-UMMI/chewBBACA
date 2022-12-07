@@ -8,6 +8,11 @@ import plotly
 import numpy as np
 import plotly.graph_objs as go
 
+try:
+    from utils import constants as ct
+except:
+    from CHEWBBACA.utils import constants as ct
+
 
 def presAbs(d2c):
 
@@ -23,7 +28,10 @@ def presAbs(d2c):
                     d2c[row, column] = 0
             except:
                 try:
+                    # remove 'INF-' prefix
                     aux = str((d2c[row, column])).replace("INF-", "")
+                    # remove '*' added to chewie-NS schemas
+                    aux = str((d2c[row, column])).replace("*", "")
                     aux = int(aux)
                     d2c[row, column] = 1
                 except Exception as e:
@@ -35,9 +43,11 @@ def presAbs(d2c):
     return d2c
 
 
-# function to report the most problematic locus/genomes and report the number of good locus by % of genomes
-# a list of genomes with a sum of problems higher than the given ythreshold will be returned
+# function to report the most problematic locus/genomes and report the number of good loci by % of genomes
+# a list of genomes with a sum of problems higher than the given threshold will be returned
 def presence3(d2, ythreshold, vector, abscenceMatrix):
+
+    classifications = ct.ALLELECALL_CLASSIFICATIONS + [ct.PROBABLE_LNF]
 
     d2d = d2
     genomeslist = d2d[1:, :1]
@@ -61,11 +71,7 @@ def presence3(d2, ythreshold, vector, abscenceMatrix):
         badgenomes = []
         while row < d2d.shape[0]:
             if not abscenceMatrix:
-                if "LNF" in d2d[row, column] or d2d[row, column] == "NIPH" or "LOT" in d2d[row][column] or "ALM" in \
-                        d2d[row][column] or "ASM" in d2d[row][column] or "ABM" in d2d[row][column] or "ERROR" in \
-                        d2d[row][column] or "undefined" in d2d[row][column] or "small match" in d2d[row][
-                        column] or "allele incomplete" in d2d[row][column]:
-
+                if any([c in d2d[row][column] for c in classifications]):
                     d2d[row, column] = 0
                     notfound += 1
                     badgenomes.append(row - 1)
@@ -247,7 +253,6 @@ def main(input_file, output_directory, max_iteration, max_threshold, step):
         result, stabilizedIter = clean(d2copy, max_iteration, threshold, output_directory)
         listStableIter.append(stabilizedIter)
         allresults.append(result)
-
         threshold += step
 
     labels = ["number of genomes",

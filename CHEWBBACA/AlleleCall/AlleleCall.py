@@ -251,7 +251,7 @@ def update_hash_tables(loci_files, loci_to_call, translation_table,
             latest_dna_table = fo.join_paths(pre_computed_dir,
                                              ['DNAtable{0}'.format(new_index)])
             current_dna_table = {}
-            current_prot_table = fo.join_paths(pre_computed_dir,
+            latest_prot_table = fo.join_paths(pre_computed_dir,
                                                ['PROTEINtable{0}'.format(new_index)])
             current_prot_table = {}
 

@@ -76,10 +76,6 @@ Provide FASTA files with coding sequences (one file per genome/strain):
 	chewBBACA.py AlleleCall -i InputFiles -g OutputSchemaFolder/SchemaName -o OutputFolderName --cds
 
 .. important::
-	The file passed to the `--gl` parameter must have one locus identifier per line (a locus
-	identifier is the name of the FASTA file that contains the locus alleles).
-
-.. important::
-	- Genome assemblies and loci files from external schemas must be in FASTA format.
+	- The file passed to the `--gl` parameter must have one locus identifier per line (a locus identifier is the name of the FASTA file that contains the locus alleles).
 	- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results (the training file used for schema creation is added to the schema's directory and automatically detected at start of allele calling without the need to pass it to the `--ptf` parameter).
 	- Use the `--cpu` parameter to enable parallelization and considerably reduce execution time.

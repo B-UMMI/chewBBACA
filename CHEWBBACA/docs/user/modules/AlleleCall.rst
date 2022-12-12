@@ -18,37 +18,52 @@ Therefore, in gene-by-gene methods, the definition of an allele is determined by
 similarity search method and all the parameters used to decide if an allele can be identified
 as a *bona fide* allele of a given locus.
 
-In chewBBACA, an allele needs to be a CDS defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_.
-To ensure reproducibility of the CDS prediction, the same Prodigal training file for
-each bacterial species should be used and provided as input. 
+In chewBBACA, by default, an allele needs to be a CDS defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_.
+To ensure reproducibility of the CDS prediction, the same Prodigal training file for each bacterial species should
+be used and provided as input. Users can also provide input files with CDSs, in which case the gene prediction step
+with Prodigal will be skipped.
 
 .. important::
 	Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
 	information about the requirements to create a training file.
 
-.. image:: http://i.imgur.com/H9pKjHQ.png
-	:width: 1400px
-	:align: center
+The allele calling algorithm has the following main steps:
 
-A 100% DNA identity comparison is performed first on all the genome CDSs against
-each locus allele database. If an exact match is found an allele identification is attributed
-to the CDS. The next step translates the remaining unclassified CDSs and searches for
-exact matches at protein level against the schema. Exact matches are classified as new inferred alleles (INF).
-If not a BLAST Score Ratio `(BSR) <https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2>`_
-approach is used to identify the allele. To improve computational efficiency, chewBBACA
-processes each locus in the schema separately for homology search, parallelising the jobs
-using the specified number of CPUs. Therefore, for each locus, the short list containing the
-more divergent alleles of each locus is queried against the BLASTp database. The BSR is
-calculated for each hit and based on these results and a size validation step, the locus
-is either considered not found (*LNF*) or a new allele for the locus is inferred. After
-running each genome, the loci database is updated with the new alleles found and, whenever
-required, a locus short list is also updated with a new divergent allele.
-There are also other options of allele classification (*NIPH*, *ASM*, *ALM* and *PLOT*)
-that are described later on in this document. All thresholds for considering or excluding
-alleles can be altered. For BSR we considered a value of 0.6 which is related to a DNA
-identity of 70%-80%. For size exclusion (*ASM* and *ALM* classifications), the allele
-length mode (of the updated database) +/- 20% considered as default was based in empirical
-observations of manually curated allele variation for several species.
+- Gene predictipon with prodigal to identify CDSs in each input genome (there is also the
+  option to provide FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction
+  step with Prodigal).
+
+- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and
+  the genomes that contain those CDSs).
+
+- Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
+  in the input files (information about the exact matches found for each locus are saved to intermediate
+  classification files, one per locus in the schema).
+
+- CDS translation (This step identifies and excludes CDSs that contain ambiguous bases and with
+  length below the theshold defined by the ``--l`` parameter).
+
+- Identification of distinct proteins (chewBBACA stores information about distinct proteins and
+  the list of distinct CDSs that encode those proteins).
+
+- Exact matches at protein level between the translated alleles of each locus in the schema and the
+  translated CDSs identified in the input files (informationa bout exact matches is saved to the
+  classification files).
+
+- Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and
+  clustered based on the percentage of shared distinct minimizers (default >= 20%) with the schema
+  representative alleles.
+
+- Use BLASTp to align the representative allele of each cluster against the proteins added to the cluster.
+  Compute the BLAST Score Ratio (BSR) for each alignment and classify proteins with BSR >0.7.
+
+- Align the schema representatives against the distinct proteins that have not been classified. Compute the
+  BSR for each alignment and classify proteins with BSR >=0.6. For each locus, determine new representative
+  alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new representatives against
+  the remaining unclassified proteins. Keep iterating until no proteins are classified for any locus.
+
+- Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
+  information stored in the classification files.
 
 Perform allele calling
 ::::::::::::::::::::::

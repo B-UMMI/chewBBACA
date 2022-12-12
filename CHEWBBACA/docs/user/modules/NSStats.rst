@@ -1,7 +1,7 @@
 NSStats -  Retrieve basic information about the species and schemas in Chewie-NS
 ================================================================================
 
-The *NSStats* process enables the retrieval of information from the Chewie-NS server. Its main
+The *NSStats* module enables the retrieval of information from the Chewie-NS server. Its main
 objective is to provide information about the list of species and schemas in Chewie-NS, so that
 users can quickly identify a schema of interest and download it.
 

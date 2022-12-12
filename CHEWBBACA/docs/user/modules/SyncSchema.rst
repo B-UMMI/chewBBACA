@@ -1,7 +1,7 @@
 SyncSchema - Synchronize a schema with its remote version in Chewie-NS
 ======================================================================
 
-The *SyncSchema* process allows users to synchronize local schemas, previously downloaded from
+The *SyncSchema* module allows users to synchronize local schemas, previously downloaded from
 Chewie-NS, with their remote versions. All chewBBACA users can synchronize schemas to **get the
 latest alleles added to Chewie-NS and to ensure that a common allele identifier nomenclature is
 maintained for the alleles that are common between the local instance and the remote schemas**.
@@ -9,9 +9,9 @@ We also provide the option to **submit novel alleles**, that were identified loc
 present in Chewie-NS.
 
 .. important::
-    Only users registered at the Chewie-NS public server can submit new local alleles to update
-    remote schemas, although all users can download schemas and novel alleles from the Chewie-NS
-    public server.
+    Only authorized users can submit new local alleles to update remote schemas, although all users
+    can download schemas and novel alleles from the Chewie-NS public server. Please send a request to
+    imm-bioinfo@medicina.ulisboa.pt if you wish to submit novel alleles.
 
 To synchronize a local schema with its remote Chewie-NS public server version it is only necessary to provide the path
 to the schema directory. The simplicity of the process is ensured by a configuration file,
@@ -52,15 +52,12 @@ On synchronizing, novel alleles retrieved from Chewie-NS are compared to novel l
 the process reassigns allele identifiers to ensure that the alleles common to local and remote
 schemas have the same identifiers. Local alleles that are not in Chewie-NS are shifted to the last
 positions in the FASTA files and keep a ``*`` in the identifier. If the user wants to submit those
-alleles it should add the ``--submit`` flag and the necessary data will be collected and uploaded
-to Chewie-NS.Chewie-NS will return the identifiers assigned to the submitted alleles and the local
-process will remove the '*' from the submitted alleles and assign the permanent identifiers. If the
-process retrieves new alleles from Chewie-NS, it will redetermine representative sequences **ONLY**
-for the loci in the local schema that were altered by the synchronization process.
-
-.. note::
-    If the local schema has a SQLite database to store allelic profiles, the SyncSchema process
-    will also update the allele identifiers in the stored profiles.
+alleles (only available to authorized users) it should add the ``--submit`` flag and the necessary
+data will be collected and uploaded to Chewie-NS. Chewie-NS will return the identifiers assigned to
+the submitted alleles and the local process will remove the '*' from the submitted alleles and
+assign the permanent identifiers. If the process retrieves new alleles from Chewie-NS, it will
+redetermine representative sequences **ONLY** for the loci in the local schema that were altered
+by the synchronization process.
 
 .. important::
     It is strongly advised that users adjust the value of the ``--cpu`` argument in order to

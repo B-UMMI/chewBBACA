@@ -48,28 +48,38 @@ The schema creation algorithm has the following main steps:
   option to provide FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction
   step with Prodigal).
 
-- Identification of the distinct CDSs. chewBBACA stores information about each distinct CDS and
-  the genomes that contain those CDSs.
+- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and
+  the genomes that contain those CDSs).
 
 - Exclusion of the CDSs smaller than the value passed to the ``--l`` parameter (default: 201).
 
-- CDS translation. This step identifies and removes CDSs that contain ambiguous bases.
+- CDS translation (This step identifies and excludes CDSs that contain ambiguous bases).
 
-- Identification of distinct translated CDSs.
+- Identification of distinct proteins (chewBBACA stores information about distinct proteins and
+  the list of distinct CDSs that encode those proteins).
 
-- Minimizer-based clustering.
+- Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and
+  clustered based on the percentage of shared distinct minimizers (default >= 20%). The first protein
+  is chosen as representative of the first cluster and a new cluster is defined each time a protein
+  cannot be added to any of the previously defined clusters based on the percentage of minimizers
+  shared with the cluster repsentatives.
 
-- Exclude CDSs that share >=90% minimizers with cluster representatives.
+- Exclude proteins that share >=90% minimizers with cluster representatives (we assume that these
+  sequences represent alleles for the same gene and only keep one representative per gene).
 
-- Exclude CDSs that share >=90% minimizers with other CDSs in the same cluster of equal or greater length.
+- Exclude proteins that share >=90% minimizers with other proteins in the same cluster (a cluster
+  might include sequences from multiple genes and we want to keep only one representative sequence
+  per gene).
 
-- Align CDSs in each cluster with BLASTp to select a set of representative CDSs per cluster.
+- Align proteins in each cluster with BLASTp to select a set of representative proteins per cluster.
 
-- Align all sleected representative with BALSTp to identify and remove representative CDSs highly similar to
-  other representative CDSs.
+- Align the selected representatives for all clusters with BLASTp to identify and exclude representative
+  proteins that are highly similar (default: BLAST Score Ratio >= 0.6) to other representative proteins.
+  The remaining set of proteins is not considered highly similar based on the clustering or alignment
+  approach and constitutes the schema seed.
 
-- Creation of the schema directory structure with one FASTA file per representative CDS selected by the schema creation
-  process.
+- Create the schema seed directory structure with one FASTA file per representative CDS (proteins are converted
+  back into DNA). The schema seed can be used to perform allele calling.
 
 .. image::
 

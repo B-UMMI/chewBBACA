@@ -1,7 +1,7 @@
 LoadSchema - Upload a schema to Chewie-NS
 =========================================
 
-The *LoadSchema* process enables the upload of schemas to Chewie-NS.
+The *LoadSchema* module enables the upload of schemas to Chewie-NS.
 
 .. important::
     **You need to be a registered user in Chewie-NS with Contributor privileges to be able to upload schemas!**

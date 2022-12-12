@@ -17,12 +17,6 @@ settings and a set of functions for schema and results evaluation.
 chewBBACA performs the schema creation and allele calls on complete or draft genomes resulting
 from de novo assemblers.
 
-.. important:: chewBBACA only works with **python 3** (automatic testing for Python 3.8 and Python 3.9
-               with GitHub Actions).
-
-.. warning:: We strongly recommend that users install and use **BLAST 2.9.0+**, as
-             chewBBACA's modules have been extensively tested with that version of BLAST.
-
 The general workflow of chewBBACA is represented in the following image:
 
 .. image:: http://i.imgur.com/aqNsv7i.png

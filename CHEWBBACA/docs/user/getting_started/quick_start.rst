@@ -1,8 +1,7 @@
 Quick Start
 ===========
 
-The following sections contain information about how to create a schema from scratch based on
-a collection of genome assemblies or adapt an external schema for usage with chewBBACA, and
+The following sections contain information about how to create a schema from scratch and
 perform allele calling to determine the allelic profiles of a set of strains of interest.
 
 Create a schema
@@ -18,13 +17,28 @@ and adapt the following template command:
 	
 	chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
 
+Option 2 - Coding sequences
+............................
+
+If you do not need/want to use Prodigal for gene prediction, you can provide FASTA files with coding
+sequences and use the `--cds` parameter to skip the gene prediction step:
+
+::
+	
+	chewBBACA.py CreateSchema -i InputFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile --cds
+
 .. important::
+	We recommend that you provide a Prodigal training file even when you provide FASTA files with
+	coding sequences. This will ensure that a training file is included in the schema for future use
+	if needed.
+
+.. note::
 	The CreateSchema module creates a schema seed with one representative allele per locus in the
 	schema. To include more allele variants in the schema, we recommend starting by performing
-	allele calling with the set of genome assemblies used for schema creation.
+	allele calling with the set of genome assemblies/coding sequences used for schema creation.
 
 
-Option 2 - Adapt an external schema
+Option 3 - Adapt an external schema
 ...................................
 
 Include all loci files (one FASTA file per locus, each file contains all alleles for a specific
@@ -49,12 +63,17 @@ Determine the allelic profiles for genome assemblies:
 
 	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName
 
-
 Use a subset of the loci in a schema:
 
 ::
 
 	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName --gl LociList.txt
+
+Provide FASTA files with coding sequences (one file per genome/strain):
+
+::
+
+	chewBBACA.py AlleleCall -i InputFiles -g OutputSchemaFolder/SchemaName -o OutputFolderName --cds
 
 .. important::
 	The file passed to the `--gl` parameter must have one locus identifier per line (a locus

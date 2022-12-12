@@ -38,7 +38,7 @@ Python dependencies
 Other dependencies
 ..................
 
-* `BLAST >=2.12.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_
+* `BLAST >=2.9.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_
 * `Prodigal >=2.6.3 <https://github.com/hyattpd/prodigal/releases/>`_
 * `MAFFT >=7.505 <https://mafft.cbrc.jp/alignment/software/>`_ (for schema evaluation only)
 

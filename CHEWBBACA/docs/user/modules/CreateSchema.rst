@@ -28,21 +28,48 @@ In most cg/wg/pg/ag MLST schemas, contrary to MLST schemas, each locus correspon
 (CDS). However, depending on the allele calling algorithm, the alleles called for a given locus can be
 CDSs or best matches to existing CDSs without enforcing the need for the identified allele to be a CDS.  
 
-In **chewBBACA**, schemas are composed of loci defined by CDSs and all the called alleles of a given
-locus are CDSs as defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_. The use of Prodigal,
-instead of simply ensuring the presence of start and stop codons, adds an extra layer of confidence
-in identifying the most probable CDS for each allele. Because of this approach there may be variability
-in the size of the alleles identified by **chewBBACA** and by default a threshold of +/-20% of the mode
-of the size of the alleles of a given locus is used to identify a locus as present.
+In **chewBBACA**, schemas are composed of loci defined by CDSs and, by default, all the called alleles of a given
+locus are CDSs as defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_ (it is also possible to provide
+FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
+The use of Prodigal, instead of simply ensuring the presence of start and stop codons, adds an extra layer
+of confidence in identifying the most probable CDS for each allele. Because of this approach there may
+be variability in the size of the alleles identified by **chewBBACA** and by default a threshold of +/-20%
+of the mode of the size of the alleles of a given locus is used to identify a locus as present.
 
 Create a wgMLST schema
 ::::::::::::::::::::::
 
-Given a set of genomes in FASTA format, chewBBACA offers the option to create a new schema by defining
+Given a set of genome assemblies in FASTA format, chewBBACA offers the option to create a new schema by defining
 the distinct loci present in the genomes.
 
-An overview of the schema creation algorithm implemented in the CreateSchema module is represented
-in the following image:
+The schema creation algorithm has the following main steps:
+
+- Gene predictipon with prodigal to identify CDSs in each input genome (there is also the
+  option to provide FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction
+  step with Prodigal).
+
+- Identification of the distinct CDSs. chewBBACA stores information about each distinct CDS and
+  the genomes that contain those CDSs.
+
+- Exclusion of the CDSs smaller than the value passed to the ``--l`` parameter (default: 201).
+
+- CDS translation. This step identifies and removes CDSs that contain ambiguous bases.
+
+- Identification of distinct translated CDSs.
+
+- Minimizer-based clustering.
+
+- Exclude CDSs that share >=90% minimizers with cluster representatives.
+
+- Exclude CDSs that share >=90% minimizers with other CDSs in the same cluster of equal or greater length.
+
+- Align CDSs in each cluster with BLASTp to select a set of representative CDSs per cluster.
+
+- Align all sleected representative with BALSTp to identify and remove representative CDSs highly similar to
+  other representative CDSs.
+
+- Creation of the schema directory structure with one FASTA file per representative CDS selected by the schema creation
+  process.
 
 .. image::
 
@@ -103,7 +130,7 @@ Parameters
 
     --pm, --prodigal-mode       (Optional) Prodigal running mode (default: single).
 
-    --CDS                       (Optional) If provided, input is a single or several FASTA files with coding
+    --cds                       (Optional) If provided, input is a single or several FASTA files with coding
                                 sequences (default: False).
 		
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution

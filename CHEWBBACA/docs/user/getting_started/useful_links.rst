@@ -9,8 +9,8 @@ Useful links
   question. Chat can be faster and better than email for troubleshooting purposes.
 - A ready to use `docker image <https://hub.docker.com/r/ummidock/chewbbaca>`_
   automatically built from the latest version of chewBBACA in Ubuntu 16.04.
-- chewBBACA is available as a `Galaxy module <https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303>`_
-  many thanks to Stefano Morabito and `Arnold Knijn <https://github.com/aknijn>`_
+- chewBBACA is available as a `Galaxy module <https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303>`_.
+  Many thanks to Stefano Morabito and `Arnold Knijn <https://github.com/aknijn>`_
   for EURL VTEC in ISS, Rome!
 - Check our `Changelog <https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md>`_
   to know more about the latest changes!

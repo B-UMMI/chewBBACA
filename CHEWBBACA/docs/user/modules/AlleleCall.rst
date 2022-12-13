@@ -47,7 +47,7 @@ The allele calling algorithm has the following main steps:
   the list of distinct CDSs that encode those proteins).
 
 - Exact matches at protein level between the translated alleles of each locus in the schema and the
-  translated CDSs identified in the input files (informationa bout exact matches is saved to the
+  translated CDSs identified in the input files (information about exact matches is saved to the
   classification files).
 
 - Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and

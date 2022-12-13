@@ -21,7 +21,7 @@ Option 2 - Coding sequences
 ............................
 
 If you do not need/want to use Prodigal for gene prediction, you can provide FASTA files with coding
-sequences and use the `--cds` parameter to skip the gene prediction step:
+sequences (CDSs) and use the ``--cds`` parameter to skip the gene prediction step:
 
 ::
 	
@@ -29,8 +29,7 @@ sequences and use the `--cds` parameter to skip the gene prediction step:
 
 .. important::
 	We recommend that you provide a Prodigal training file even when you provide FASTA files with
-	coding sequences. This will ensure that a training file is included in the schema for future use
-	if needed.
+	CDSs. This will ensure that a training file is included in the schema for future use if needed.
 
 .. note::
 	The CreateSchema module creates a schema seed with one representative allele per locus in the
@@ -76,6 +75,6 @@ Provide FASTA files with coding sequences (one file per genome/strain):
 	chewBBACA.py AlleleCall -i InputFiles -g OutputSchemaFolder/SchemaName -o OutputFolderName --cds
 
 .. important::
-	- The file passed to the `--gl` parameter must have one locus identifier per line (a locus identifier is the name of the FASTA file that contains the locus alleles).
-	- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results (the training file used for schema creation is added to the schema's directory and automatically detected at start of allele calling without the need to pass it to the `--ptf` parameter).
-	- Use the `--cpu` parameter to enable parallelization and considerably reduce execution time.
+	- The file passed to the ``--gl`` parameter must have one locus identifier per line (a locus identifier is the name of the FASTA file that contains the locus alleles).
+	- We strongly advise users to provide a Prodigal training file and to keep using the same training file to ensure consistent results (the training file used for schema creation is added to the schema's directory and automatically detected at start of allele calling without the need to pass it to the ``--ptf`` parameter).
+	- Use the ``--cpu`` parameter to enable parallelization and considerably reduce execution time.

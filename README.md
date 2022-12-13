@@ -21,9 +21,9 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-### 2.8.5 - 2021-07-05
+## 3.0.0 - 2022-12-14
 
-- Updated **JoinProfiles** module to accept any number of files to join. Added `--common` flag to identify and join results for the set of loci common to all input files.
+- New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.
 

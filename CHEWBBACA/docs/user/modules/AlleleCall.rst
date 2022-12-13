@@ -37,7 +37,7 @@ The allele calling algorithm has the following main steps:
   the genomes that contain those CDSs).
 
 - Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
-  in the input files (information about the exact matches found for each locus are saved to intermediate
+  in the input files (information about the exact matches found for each locus are saved to
   classification files, one per locus in the schema).
 
 - CDS translation (This step identifies and excludes CDSs that contain ambiguous bases and with
@@ -58,9 +58,10 @@ The allele calling algorithm has the following main steps:
   Compute the BLAST Score Ratio (BSR) for each alignment and classify proteins with BSR >0.7.
 
 - Align the schema representatives against the distinct proteins that have not been classified. Compute the
-  BSR for each alignment and classify proteins with BSR >=0.6. For each locus, determine new representative
-  alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new representatives against
-  the remaining unclassified proteins. Keep iterating until no proteins are classified for any locus.
+  BSR for each alignment and classify proteins with alignments with BSR >=0.6. For each locus, determine new
+  representative alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new
+  representatives against the remaining unclassified proteins. Keep iterating until no proteins are classified
+  for any locus.
 
 - Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
   information stored in the classification files.
@@ -164,7 +165,7 @@ Parameters
                                 and similar matches based on BSR value) (default: 4).
 
 .. important::
-	By default, the *AlleleCall* process uses the Prodigal training file included in the schema's
+	By default, the *AlleleCall* module uses the Prodigal training file included in the schema's
 	directory and it is not necessary to pass a training file to the ``--ptf`` parameter.
 
 .. note::

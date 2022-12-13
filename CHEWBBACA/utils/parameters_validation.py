@@ -1356,22 +1356,26 @@ def check_input_type(input_path, output_file, parent_dir=None):
             lines = list(csv.reader(infile))
             lines = [f[0] for f in lines]
 
-        # list of input genomes must have full paths
+        # list of input genes must have full paths
         if parent_dir is not None:
             # add parent directory path if necessary
             lines = [os.path.join(parent_dir, f)
                      if parent_dir not in f
                      else f
                      for f in lines]
+            # add FASTA extension if it's missing
+            lines = [file+'.fasta'
+                     for file in lines
+                     if file.endswith('.fasta') is False]
 
         # check that all files exist
-        files_exist = [file for file in lines
-                       if os.path.exists(file) is False]
-        if len(files_exist) > 0:
+        missing = [file for file in lines
+                   if os.path.exists(file) is False]
+        if len(missing) > 0:
             sys.exit('Could not find some of the files provided in '
                      'the input list. Please verify that you\'ve '
                      'provided the full paths to valid input '
-                     'files.\n{0}'.format('\n'.join(files_exist)))
+                     'files.\n{0}'.format('\n'.join(missing)))
         # save file paths to output file
         else:
             with open(output_file, 'w') as outfile:

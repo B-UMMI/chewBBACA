@@ -360,7 +360,7 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
     fo.create_directory(temp_directory)
 
     # validate input files
-    genes_list = fo.join_paths(temp_directory, ['listGenes.txt'])
+    genes_list = fo.join_paths(temp_directory, [ct.LOCI_LIST])
     genes_list = pv.check_input_type(input_files, genes_list)
     loci_paths = fo.read_lines(genes_list)
     loci_basenames = [fo.file_basename(locus, False) for locus in loci_paths]

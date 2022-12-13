@@ -71,12 +71,13 @@ The schema creation algorithm has the following main steps:
   might include sequences from multiple genes and we want to keep only one representative sequence
   per gene).
 
-- Align proteins in each cluster with BLASTp to select a set of representative proteins per cluster.
+- Align proteins in each cluster with BLASTp to select a set of representative proteins per cluster
+  based on the BLAST Score Ratio computed for each alignment.
 
 - Align the selected representatives for all clusters with BLASTp to identify and exclude representative
-  proteins that are highly similar (default: BLAST Score Ratio >= 0.6) to other representative proteins.
-  The remaining set of proteins is not considered highly similar based on the clustering or alignment
-  approach and constitutes the schema seed.
+  proteins that are highly similar (default: BSR >= 0.6) to other representative proteins. The remaining
+  set of proteins is not considered highly similar based on the clustering or alignment approach and
+  constitutes the schema seed.
 
 - Create the schema seed directory structure with one FASTA file per representative CDS (proteins are converted
   back into DNA). The schema seed can be used to perform allele calling.

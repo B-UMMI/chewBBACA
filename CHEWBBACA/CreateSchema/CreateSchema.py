@@ -252,6 +252,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         fo.move_file(cds_coordinates, output_directory)
     else:
         cds_files = fasta_files
+        failed = []
         print('Number of inputs: {0}'.format(len(cds_files)))
 
     # create directory to store files from pre-process steps

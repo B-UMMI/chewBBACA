@@ -1,5 +1,5 @@
-Started script at: 11:44:38-10/11/2022
-Finished script at: 11:44:40-10/11/2022
+Started script at: 13:09:06-13/12/2022
+Finished script at: 13:09:09-13/12/2022
 Number of inputs: 1
 Number of loci: 7
 Used this number of CPU cores: 1

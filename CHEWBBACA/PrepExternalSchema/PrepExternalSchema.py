@@ -474,7 +474,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # list schema gene files
     genes_file = pv.check_input_type(input_files,
-                                     fo.join_paths(args.output_directory, [ct.LOCI_LIST]))
+                                     fo.join_paths(output_directory, [ct.LOCI_LIST]))
 
     # import list of schema files
     with open(genes_file, 'r') as gf:

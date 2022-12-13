@@ -63,7 +63,6 @@ Code documentation
 """
 
 import os
-import math
 import shutil
 import argparse
 import itertools
@@ -78,7 +77,7 @@ try:
                        parameters_validation as pv,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  file_operations as fo,
@@ -91,40 +90,38 @@ except:
 
 def bsr_categorizer(blast_results, representatives,
                     representatives_scores, min_bsr, max_bsr):
-    """ Determines the BLAST hits that have a BSR below a minimum threshold
-        and the BLAST hits that have a BSR above a maximum threshold.
+    """Identify BLAST hits below and above the BSR min and max thresholds.
 
-        Parameters
-        ----------
-        blast_results : list of list
-            A list with sublists, each sublist contains information
-            about a BLAST hit.
-        representatives : list
-            List with sequence identifiers of representative
-            sequences.
-        representatives_scores : dict
-            Dictionary with self BLAST raw score for every
-            representative.
-        min_bsr : float
-            Minimum BSR value accepted to consider a sequence as
-            a possible new representative.
-        max_bsr : float
-            Maximum BSR value accepted to consider a sequence as
-            a possible new representative.
+    Parameters
+    ----------
+    blast_results : list of list
+        A list with sublists, each sublist contains information
+        about a BLAST hit.
+    representatives : list
+        List with sequence identifiers of representative
+        sequences.
+    representatives_scores : dict
+        Dictionary with self BLAST raw score for every
+        representative.
+    min_bsr : float
+        Minimum BSR value accepted to consider a sequence as
+        a possible new representative.
+    max_bsr : float
+        Maximum BSR value accepted to consider a sequence as
+        a possible new representative.
 
-        Returns
-        -------
-        List with the following elements:
-            high_bsr : list
-                list with all sequence identifiers of subject
-                sequences that had hits with a BSR higher than the
-                maximum defined threshold.
-            low_bsr : list
-                list with all sequence identifiers of subject
-                sequences that had hits with a BSR lower than the
-                minimum defined threshold.
+    Returns
+    -------
+    List with the following elements:
+        high_bsr : list
+            list with all sequence identifiers of subject
+            sequences that had hits with a BSR higher than the
+            maximum defined threshold.
+        low_bsr : list
+            list with all sequence identifiers of subject
+            sequences that had hits with a BSR lower than the
+            minimum defined threshold.
     """
-
     high_bsr = []
     hotspot_bsr = []
     low_bsr = []
@@ -161,30 +158,29 @@ def bsr_categorizer(blast_results, representatives,
 
 def select_candidate(candidates, proteins, seqids,
                      representatives, final_representatives):
-    """ Chooses a new representative sequence.
+    """Select a new representative sequence.
 
-        Parameters
-        ----------
-        candidates : list
-            List with the sequence identifiers of all candidates.
-        proteins : dict
-            A dictionary with protein identifiers as keys and
-            protein sequences as values.
-        seqids : list
-            A list with the sequence identifiers that still have
-            no representative (representatives identifiers are
-            included because they have to be BLASTed in order to
-            determine their self score).
-        representatives : list
-            The sequence identifiers of all representatives.
+    Parameters
+    ----------
+    candidates : list
+        List with the sequence identifiers of all candidates.
+    proteins : dict
+        A dictionary with protein identifiers as keys and
+        protein sequences as values.
+    seqids : list
+        A list with the sequence identifiers that still have
+        no representative (representatives identifiers are
+        included because they have to be BLASTed in order to
+        determine their self score).
+    representatives : list
+        The sequence identifiers of all representatives.
 
-        Returns
-        -------
-        representatives : list
-            The set of all representatives, including the new
-            representative that was chosen by the function.
+    Returns
+    -------
+    representatives : list
+        The set of all representatives, including the new
+        representative that was chosen by the function.
     """
-
     # with more than one sequence as candidate, select longest
     if len(candidates) > 1:
 
@@ -230,9 +226,11 @@ def select_candidate(candidates, proteins, seqids,
 
 def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
                table_id, size_threshold, blastp_path, makeblastdb_path):
-    """ Adapts a set of genes/loci from an external schema so that
-        that schema  can be used with chewBBACA. Removes invalid alleles
-        and selects representative alleles to include in the "short" directory.
+    """Adapts a set of genes/loci from an external schema.
+
+    Adapts an external schema for usage with chewBBACA. Removes invalid
+    alleles and selects representative alleles to include in the "short"
+    directory.
 
     Parameters
     ----------
@@ -267,7 +265,6 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
     The function writes the schema files .
     """
-
     # divide input list into variables
     summary_stats = []
     invalid_genes = []

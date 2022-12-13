@@ -58,7 +58,7 @@ try:
     from utils import (constants as ct,
                        chewiens_requests as cr,
                        parameters_validation as pv)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  chewiens_requests as cr,
                                  parameters_validation as pv)
@@ -383,6 +383,30 @@ def single_schema(species_id, schema_id, base_url, headers_get):
     return schema_info
 
 
+def main(mode, nomenclature_server, species_id, schema_id):
+
+    headers_get = ct.HEADERS_GET_JSON
+
+    print('\nRetrieving data...')
+    if mode == 'species':
+        stats = species_stats(nomenclature_server, headers_get)
+    elif mode == 'schemas':
+        if species_id is not None:
+            if schema_id is not None:
+                stats = single_schema(species_id, schema_id,
+                                      nomenclature_server, headers_get)
+            else:
+                stats = single_species(species_id, nomenclature_server,
+                                       headers_get)
+        else:
+            sys.exit('\nPlease provide a valid species identifier '
+                     'to get the list of available schemas.\n')
+
+    # print stats
+    stats_text = '\n'.join(stats)
+    print('\n{0}\n'.format(stats_text))
+
+
 def parse_arguments():
 
     parser = argparse.ArgumentParser(description=__doc__,
@@ -418,35 +442,10 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    return [args.stats_mode, args.nomenclature_server,
-            args.species_id, args.schema_id]
-
-
-def main(mode, nomenclature_server, species_id, schema_id):
-
-    headers_get = ct.HEADERS_GET_JSON
-
-    print('\nRetrieving data...')
-    if mode == 'species':
-        stats = species_stats(nomenclature_server, headers_get)
-    elif mode == 'schemas':
-        if species_id is not None:
-            if schema_id is not None:
-                stats = single_schema(species_id, schema_id,
-                                      nomenclature_server, headers_get)
-            else:
-                stats = single_species(species_id, nomenclature_server,
-                                       headers_get)
-        else:
-            sys.exit('\nPlease provide a valid species identifier '
-                     'to get the list of available schemas.\n')
-
-    # print stats
-    stats_text = '\n'.join(stats)
-    print('\n{0}\n'.format(stats_text))
+    return args
 
 
 if __name__ == '__main__':
 
     args = parse_arguments()
-    main(args[0], args[1], args[2], args[3])
+    main(**(vars(args)))

@@ -114,7 +114,7 @@ try:
                        fasta_operations as fao,
                        parameters_validation as pv,
                        sequence_manipulation as sm)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  uniprot_requests as ur,
@@ -929,75 +929,6 @@ def upload_alleles_data(alleles_data, length_files, base_url,
     return failed
 
 
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', type=str, required=True,
-                        dest='schema_directory',
-                        help='Path to the directory of the schema to upload.')
-
-    parser.add_argument('-sp', type=str, required=True,
-                        dest='species_id',
-                        help='The integer identifier or name of the species '
-                             'that the schema will be associated to in '
-                             'the NS.')
-
-    parser.add_argument('-sn', type=str, required=True,
-                        dest='schema_name',
-                        help='A brief and meaningful name that '
-                             'should help understand the type and content '
-                             'of the schema.')
-
-    parser.add_argument('-lp', type=str, required=True,
-                        dest='loci_prefix',
-                        help='Prefix included in the name of each locus of '
-                             'the schema.')
-
-    parser.add_argument('--df', type=str, required=False,
-                        dest='description_file', default=None,
-                        help='Path to a text file with a description '
-                             'about the schema. Markdown syntax is supported '
-                             'in order to offer greater customizability of '
-                             'the rendered description in the Frontend. '
-                             'Will default to the schema\'s name if the user '
-                             'does not provide a valid path for a file.')
-
-    parser.add_argument('--a', type=str, required=False,
-                        dest='annotations', default=None,
-                        help='Path to a TSV file with loci annotations. '
-                             'The first column has loci identifiers '
-                             '(w/o .fasta extension), the second has user '
-                             'annotations and the third has custom '
-                             'annotations.')
-
-    parser.add_argument('--cpu', type=int, required=False,
-                        dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used in the Schema Pre-processing step.')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        default='main',
-                        dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
-                             'The default value, "main", will establish a '
-                             'connection to "https://chewbbaca.online/", '
-                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
-                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--continue_up', required=False, action='store_true',
-                        dest='continue_up',
-                        help='If the process should check if the schema '
-                             'upload was interrupted and try to resume it.')
-
-    args = parser.parse_args()
-
-    return args
-
-
 def main(schema_directory, species_id, schema_name, loci_prefix,
          description_file, annotations, cpu_cores,
          nomenclature_server, continue_up):
@@ -1354,6 +1285,75 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     if len(absent_loci) > 0:
         os.remove(loci_file)
         os.remove('{0}.zip'.format(loci_file))
+
+
+def parse_arguments():
+
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('-i', type=str, required=True,
+                        dest='schema_directory',
+                        help='Path to the directory of the schema to upload.')
+
+    parser.add_argument('-sp', type=str, required=True,
+                        dest='species_id',
+                        help='The integer identifier or name of the species '
+                             'that the schema will be associated to in '
+                             'the NS.')
+
+    parser.add_argument('-sn', type=str, required=True,
+                        dest='schema_name',
+                        help='A brief and meaningful name that '
+                             'should help understand the type and content '
+                             'of the schema.')
+
+    parser.add_argument('-lp', type=str, required=True,
+                        dest='loci_prefix',
+                        help='Prefix included in the name of each locus of '
+                             'the schema.')
+
+    parser.add_argument('--df', type=str, required=False,
+                        dest='description_file', default=None,
+                        help='Path to a text file with a description '
+                             'about the schema. Markdown syntax is supported '
+                             'in order to offer greater customizability of '
+                             'the rendered description in the Frontend. '
+                             'Will default to the schema\'s name if the user '
+                             'does not provide a valid path for a file.')
+
+    parser.add_argument('--a', type=str, required=False,
+                        dest='annotations', default=None,
+                        help='Path to a TSV file with loci annotations. '
+                             'The first column has loci identifiers '
+                             '(w/o .fasta extension), the second has user '
+                             'annotations and the third has custom '
+                             'annotations.')
+
+    parser.add_argument('--cpu', type=int, required=False,
+                        dest='cpu_cores', default=1,
+                        help='Number of CPU cores that will '
+                             'be used in the Schema Pre-processing step.')
+
+    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
+                        default='main',
+                        dest='nomenclature_server',
+                        help='The base URL for the Nomenclature Server. '
+                             'The default value, "main", will establish a '
+                             'connection to "https://chewbbaca.online/", '
+                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
+                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
+                             'Users may also provide the IP address to other '
+                             'Chewie-NS instances.')
+
+    parser.add_argument('--continue_up', required=False, action='store_true',
+                        dest='continue_up',
+                        help='If the process should check if the schema '
+                             'upload was interrupted and try to resume it.')
+
+    args = parser.parse_args()
+
+    return args
 
 
 if __name__ == "__main__":

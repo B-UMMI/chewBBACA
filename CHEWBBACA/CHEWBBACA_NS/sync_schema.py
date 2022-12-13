@@ -23,7 +23,6 @@ import sys
 import json
 import time
 import shutil
-import hashlib
 import requests
 from collections import defaultdict
 from urllib3.exceptions import InsecureRequestWarning
@@ -38,7 +37,7 @@ try:
                        # profiles_sqlitedb as ps,
                        parameters_validation as pv,
                        iterables_manipulation as im)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,

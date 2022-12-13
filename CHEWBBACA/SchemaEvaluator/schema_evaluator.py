@@ -61,37 +61,33 @@ try:
         fasta_operations as fao,
         sequence_manipulation as sm,
         iterables_manipulation as im,
-        multiprocessing_operations as mo,
-    )
-except:
+        multiprocessing_operations as mo)
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         file_operations as fo,
         fasta_operations as fao,
         sequence_manipulation as sm,
         iterables_manipulation as im,
-        multiprocessing_operations as mo,
-    )
+        multiprocessing_operations as mo)
 
 
 # Schema Evaluator Auxiliary Functions
 def gene_seqs_info_schema_evaluator(gene, threshold, conserved):
-    """Determines the total number of alleles and the mean length
-    of allele sequences per gene.
+    """Determine the number of alleles and the mean allele length per locus.
 
     Parameters
     ----------
     gene : string
-        a string with names/paths for FASTA files.
+        A string with names/paths for FASTA files.
 
     Returns
     -------
     genes_info : list
-        a list with a sublist for each input
+        A list with a sublist for each input
         gene file. Each sublist contains a gene identifier, the
         total number of alleles for that gene and the mean length
         of allele sequences for that gene.
     """
-
     seq_generator = SeqIO.parse(gene, "fasta")
     alleles_lengths = [len(allele) for allele in seq_generator]
     alleles_lengths.sort()
@@ -196,23 +192,21 @@ def gene_seqs_info_schema_evaluator(gene, threshold, conserved):
 
 
 def gene_seqs_info_individual_schema_evaluator(gene):
-    """Determines the total number of alleles and
-    the mean length of allele sequences for each locus.
+    """Determine the number of alleles and the mean allele length for a locus.
 
     Parameters
     ----------
     gene : string
-        a string with names/paths for FASTA files.
+        A string with names/paths for FASTA files.
 
     Returns
     -------
     genes_info : list
-        a list with a sublist for each input
+        A list with a sublist for each input
         gene file. Each sublist contains a gene identifier, the
         total number of alleles for that gene and the mean length
         of allele sequences for that gene.
     """
-
     seq_generator = SeqIO.parse(gene, "fasta")
 
     # Allele IDs and lengths
@@ -252,22 +246,21 @@ def gene_seqs_info_individual_schema_evaluator(gene):
 
 
 def gene_seqs_info_boxplot(schema_dir):
-    """Determines boxplot statistics.
+    """Determine boxplot statistics.
 
     Parameters
-    -----------
+    ----------
     schema_dir : list
-        a list with names/paths for FASTA files.
+        A list with names/paths for FASTA files.
 
     Returns
     -------
     json_to_file : dict
-        a dict with a subdict for each input
+        A dict with a subdict for each input
         gene file. Each subdict contains information about each
         gene such as, mode of the allele sizes, number of alleles
         and summary statistics (min, max, median, mode and quartiles).
     """
-
     schema_files = [
         os.path.join(schema_dir, file)
         for file in os.listdir(schema_dir)
@@ -334,24 +327,23 @@ def gene_seqs_info_boxplot(schema_dir):
 
 
 # Functions that obtain the data for panel E
-def create_cds_df(
-    schema_file, minimum_length, minimum_length_to_translate, translation_table
-):
-    """Detects alleles that aren't CDSs.
+def create_cds_df(schema_file, minimum_length, minimum_length_to_translate,
+                  translation_table):
+    """Detect alleles that aren't CDSs.
 
     Parameters
     ----------
     schema_dir : list
-        a list with names/paths for FASTA files.
+        A list with names/paths for FASTA files.
     minimum_length: int
         Minimum sequence length accepted in nt.
     translation_table: int
-        the translation table to be used.
+        The translation table to be used.
 
     Returns
     -------
     res_sorted : dict
-        a dict obtained from a dataframe containing the
+        A dict obtained from a dataframe containing the
         number of non-CDSs detected. It will be used to
         populate a table in the report.
     """
@@ -414,53 +406,41 @@ def create_cds_df(
     return res_sorted
 
 
-def create_pre_computed_data(
-    schema_dir,
-    translation_table,
-    output_path,
-    annotations,
-    cpu_to_use,
-    minimum_length,
-    size_threshold,
-    threshold,
-    conserved,
-    chewie_schema=False,
-    show_progress=False,
-):
-    """Creates a file with pre-computed data for
-    the Schema Evaluator plotly charts.
+def create_pre_computed_data(schema_dir, translation_table, output_path,
+                             annotations, cpu_to_use, minimum_length,
+                             size_threshold, threshold, conserved,
+                             chewie_schema=False, show_progress=False):
+    """Create a file with pre-computed data for the Plotly charts.
 
     Parameters
     ----------
     schema_dir : list
-        a list with names/paths for FASTA files.
+        A list with names/paths for FASTA files.
     translation_table: int
-        the translation table to be used.
+        The translation table to be used.
     output_path : str
-        the directory where the output files will
+        The directory where the output files will
         be saved.
     annotations : str
-        path to the output file of the UniprotFinder
+        Path to the output file of the UniprotFinder
         module
     cpu_to_use: int
-        number of CPU cores to use for multiprocessing.
+        Number of CPU cores to use for multiprocessing.
     minimum_length: int
-        minimum sequence length accepted in nt.
+        Minimum sequence length accepted in nt.
     size_threshold: int
         CDS size variation threshold.
     chewie_schema: bool
-        identifies the schema as a chewBBACA created schema.
+        Identifies the schema as a chewBBACA created schema.
     show_progress: bool
-        shows a progress bar for multiprocessing.
+        Shows a progress bar for multiprocessing.
 
     Returns
     -------
     out_path : str
-        the directory where the output files will
+        The directory where the output files will
         be saved.
-
     """
-
     schema_files = [
         os.path.join(schema_dir, file)
         for file in os.listdir(schema_dir)
@@ -766,7 +746,6 @@ def create_pre_computed_data(
                                 row["Proteome_Species"],
                                 row["Proteome_BSR"]
                             ]
-                        
                     else:
                         annotations_data["{0}.fasta".format(row["Locus"])] = [
                                 row["Genome"],
@@ -960,65 +939,55 @@ def create_pre_computed_data(
 
 
 def make_protein_record(nuc_record, record_id):
-    """Returns a new SeqRecord with the
-    translated sequence (default table).
+    """Return a new SeqRecord with the translated sequence (default table).
 
     Parameters
     ----------
     nuc_record : str
-        protein sequence.
+        Protein sequence.
     record_id: str
-        record id.
+        Record identifier.
 
     Returns
     -------
     SeqRecord
-        a SeqRecord object with the
+        A SeqRecord object with the
         translated record.
 
     """
     return SeqRecord(seq=nuc_record, id=record_id, description="")
 
 
-def create_protein_files(
-    schema_dir,
-    output_path,
-    cpu_to_use,
-    minimum_length,
-    size_threshold,
-    translation_table,
-    chewie_schema=False,
-    show_progress=False,
-):
-    """Generates FASTA files with the protein
-    sequence of the schema loci.
+def create_protein_files(schema_dir, output_path, cpu_to_use,
+                         minimum_length, size_threshold, translation_table,
+                         chewie_schema=False, show_progress=False):
+    """Generate FASTA files with the protein sequence of the schema loci.
 
     Parameters
     ----------
     schema_dir : list
-        a list with names/paths for FASTA files.
+        A list with names/paths for FASTA files.
     output_path : str
-        the directory where the output files will
+        The directory where the output files will
         be saved.
     cpu_to_use: int
-        number of CPU cores to use for
+        Number of CPU cores to use for
         multiprocessing.
     minimum_length: int
-        minimum sequence length accepted in nt.
+        Minimum sequence length accepted in nt.
     translation_table: int
-        the translation table to be used.
+        The translation table to be used.
     chewie_schema: bool
-        identifies the schema as a chewBBACA created schema.
+        Identifies the schema as a chewBBACA created schema.
     show_progress: bool
-        shows a progress bar for multiprocessing.
+        Shows a progress bar for multiprocessing.
 
     Returns
     -------
     out_path : str
-        the directory where the output files will
+        The directory where the output files will
         be saved.
     """
-
     out_path = os.path.join(output_path, "prot_files")
     exception_path = os.path.join(out_path, "exceptions")
 
@@ -1080,26 +1049,24 @@ def create_protein_files(
 
 
 def generate_protein_files(fasta, output_path, minimum_length, translation_table):
-    """Generates FASTA files with the protein
-    sequence of the schema loci.
+    """Generate FASTA files with the protein sequence of the schema loci.
 
     Parameters
     ----------
     schema_dir : list
-        a list with names/paths for FASTA files.
+        A list with names/paths for FASTA files.
     output_path : str
-        the directory where the output files will
+        The directory where the output files will
         be saved.
     minimum_length: int
-        minimum sequence length accepted in nt.
+        Minimum sequence length accepted in nt.
     translation_table: int
-        the translation table to be used.
+        The translation table to be used.
 
     Returns
     -------
     None
     """
-
     out_path = os.path.join(output_path, "prot_files")
     exception_path = os.path.join(out_path, "exceptions")
 
@@ -1135,12 +1102,12 @@ def generate_protein_files(fasta, output_path, minimum_length, translation_table
 
 
 def call_mafft(genefile):
-    """Calls MAFFT to generate an alignment.
+    """Call MAFFT to generate an alignment.
 
     Parameters
     ----------
     genefile : str
-        a string with the name/path for
+        A string with the name/path for
         the FASTA file.
 
     Returns
@@ -1148,7 +1115,6 @@ def call_mafft(genefile):
     bool
         True if sucessful, False otherwise.
     """
-
     try:
         mafft_cline = MafftCommandline(
             input=genefile,
@@ -1170,7 +1136,7 @@ def call_mafft(genefile):
 
 
 def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
-    """Run MAFFT with multprocessing and saves the output.
+    """Run MAFFT with multprocessing and save the output.
 
     Parameters
     ----------
@@ -1188,7 +1154,6 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     -------
     None.
     """
-
     print("\nRunning MAFFT...\n")
 
     protein_files = [
@@ -1209,15 +1174,10 @@ def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
     rawr.wait()
 
 
-def write_individual_html(
-    input_files,
-    pre_computed_data_path,
-    protein_file_path,
-    output_path,
-    minimum_length,
-    chewie_schema=False,
-):
-    """Writes HTML files for each locus.
+def write_individual_html(input_files, pre_computed_data_path,
+                          protein_file_path, output_path, minimum_length,
+                          chewie_schema=False):
+    """Write HTML files for each locus.
 
     Parameters
     ----------
@@ -1242,7 +1202,6 @@ def write_individual_html(
     -------
     None.
     """
-
     print("\nWriting individual report HTML files...\n")
 
     out_path = os.path.join(output_path, "html_files")

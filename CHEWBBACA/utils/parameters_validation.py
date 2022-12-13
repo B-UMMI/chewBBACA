@@ -28,7 +28,7 @@ try:
                        file_operations as fo,
                        chewiens_requests as cr,
                        fasta_operations as fao)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  chewiens_requests as cr,

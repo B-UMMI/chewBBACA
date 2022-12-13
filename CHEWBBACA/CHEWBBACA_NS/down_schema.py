@@ -82,7 +82,7 @@ try:
                        process_datetime as pd,
                        chewiens_requests as cr,
                        parameters_validation as pv)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,

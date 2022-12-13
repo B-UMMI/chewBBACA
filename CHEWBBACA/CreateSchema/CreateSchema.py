@@ -121,7 +121,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
                                  core_functions as cf,
@@ -181,9 +181,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        size_threshold, word_size, window_size, clustering_sim,
                        representative_filter, intra_filter, cpu_cores, blast_path,
                        prodigal_mode, cds_input):
-    """Determine a schema seed.
-    """
-
+    """Create a schema seed based on a set of input FASTA files."""
     # map full paths to basename
     inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])

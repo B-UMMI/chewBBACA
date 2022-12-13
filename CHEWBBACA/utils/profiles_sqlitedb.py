@@ -25,7 +25,7 @@ import sqlite3
 
 try:
     from utils import process_datetime as pd
-except:
+except ModuleNotFoundError:
     from CHEWBBACA.utils import process_datetime as pd
 
 

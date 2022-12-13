@@ -252,7 +252,7 @@ def update_hash_tables(loci_files, loci_to_call, translation_table,
                                              ['DNAtable{0}'.format(new_index)])
             current_dna_table = {}
             latest_prot_table = fo.join_paths(pre_computed_dir,
-                                               ['PROTEINtable{0}'.format(new_index)])
+                                              ['PROTEINtable{0}'.format(new_index)])
             current_prot_table = {}
 
     if len(current_dna_table) > 0:
@@ -561,7 +561,7 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
                         # first time seeing CDS
                         if cds_hash not in locus_matched_dna:
                             current_class = 'INF'
-                             # representative_seqid = r[1]
+                            # representative_seqid = r[1]
                             locus_matched_dna[cds_hash] = m
                             locus_lengths.append(len(cds))
                         else:
@@ -2175,8 +2175,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     protein_files = mo.parallelize_function(fao.translate_fasta, rep_list,
                                             [reps_protein_dir,
                                              config['Translation table']],
-                                             config['CPU cores'],
-                                             False)
+                                            config['CPU cores'],
+                                            False)
     protein_repfiles = [r[1] for r in protein_files]
     print('done.')
 
@@ -2589,8 +2589,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             candidates_blast_dir = fo.join_paths(new_reps_directory, ['representatives_self_score'])
             fo.create_directory(candidates_blast_dir)
             new_self_scores = cf.determine_self_scores(concat_repy, candidates_blast_dir,
-                                                        makeblastdb_path, blastp_path,
-                                                        'prot', config['CPU cores'])
+                                                       makeblastdb_path, blastp_path,
+                                                       'prot', config['CPU cores'])
 
             self_scores = {**self_scores, **new_self_scores}
 

@@ -1365,8 +1365,9 @@ def check_input_type(input_path, output_file, parent_dir=None):
                      for f in lines]
             # add FASTA extension if it's missing
             lines = [file+'.fasta'
-                     for file in lines
-                     if file.endswith('.fasta') is False]
+                     if file.endswith('.fasta') is False
+                     else file
+                     for file in lines]
 
         # check that all files exist
         missing = [file for file in lines

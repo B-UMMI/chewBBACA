@@ -14,7 +14,7 @@ New implementation of the **AlleleCall** process. The new implementation was dev
 - Added the `--cds` parameter to accept FASTA files with CDSs (one FASTA file per genome) and skip gene prediction with Prodigal.
 - Users can control the addition of novel alleles to the schema with the `--no-inferred` parameter.
 - Added the `--output-unclassified` parameter to write a FASTA file (`unclassified_sequences.fasta`) with the distinct CDSs that were not classified in a run.
-- Added the `--output-missing` parameter to write a FASTA file and a TSV file with information about the classified sequences that led to a locus being classified as ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and PAMA.
+- Added the `--output-missing` parameter to write a FASTA file (`missing_classes.fasta`) and a TSV file with information about the classified sequences that led to a locus being classified as ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and PAMA.
 - Added the `--no-cleanup` parameter to keep the temporary folder with intermediate files created during a run.
 - Removed the `--contained`, `--force-reset`, `--store-profiles` (to be reimplemented in a future release), `--json` and `--verbose` parameters.
 - The `--force-continue` parameter no longer allows users to continue a run that was interrupted. This parameter is now used to ignore warnings and prompts about missing configuration files and the usage of multiple argument values per parameter.

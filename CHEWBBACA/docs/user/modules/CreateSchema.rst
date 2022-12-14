@@ -50,12 +50,12 @@ The schema creation algorithm has the following main steps:
 
 - Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and the
   genomes that contain those CDSs in a hashtable with the mapping between CDS SHA-256 and list of unique
-  integer identifiers for the inputs that contain each CDS compressed with [polyline encoding](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
-  adapted from [numcompress](https://github.com/amit1rrr/numcompress)).
+  integer identifiers for the inputs that contain each CDS compressed with `polyline encoding <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_
+  adapted from `numcompress <https://github.com/amit1rrr/numcompress>`_).
 
 - Exclusion of the CDSs smaller than the value passed to the ``--l`` parameter (default: 201).
 
-- Translation of distinct CDSs that were not an exact match in the previous step. (This step identifies
+- Translation of distinct CDSs that were not an exact match in the previous step (This step identifies
   and excludes CDSs that contain ambiguous bases).
 
 - Protein deduplication to identify the distinct set of proteins and keep information about the inputs that
@@ -146,7 +146,7 @@ Parameters
     --pm, --prodigal-mode       (Optional) Prodigal running mode (default: single).
 
     --cds                       (Optional) If provided, input is a single or several FASTA files with coding
-                                sequences (default: False).
+                                sequences (one per input genome, default: False).
 		
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution
                                 are not removed at the end (default: False).

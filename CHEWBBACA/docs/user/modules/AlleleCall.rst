@@ -35,15 +35,15 @@ The allele calling algorithm has the following main steps:
 
 - Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and the
   genomes that contain those CDSs in a hashtable with the mapping between CDS SHA-256 and list of unique
-  integer identifiers for the inputs that contain each CDS compressed with [polyline encoding](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
-  adapted from [numcompress](https://github.com/amit1rrr/numcompress)).
+  integer identifiers for the inputs that contain each CDS compressed with `polyline encoding <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_
+  adapted from `numcompress <https://github.com/amit1rrr/numcompress>`_).
 
 - Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
   in the input files (information about the exact matches found for each locus are saved to
   classification files, one per locus in the schema. The classification files are updated throughout
   the process with information about the matches and classifications at each step).
 
-- Translation of distinct CDSs that were not an exact match in the previous step. (This step identifies
+- Translation of distinct CDSs that were not an exact match in the previous step (This step identifies
   and excludes CDSs that contain ambiguous bases and with length below the theshold defined by the ``--l``
   parameter).
 
@@ -359,13 +359,13 @@ Example for the ``SAMD00008628`` genome:
 
 - The ``logging_info.txt`` contains summary information about the allele calling process.
 
-- If the ``--output-unclassified`` parameter is provided, the process will create a FASTA file
+- If the ``--output-unclassified`` parameter is provided, the process will create a FASTA file, ``unclassified_sequences.fasta``,
   with the DNA sequences of the distinct CDSs that were not classified.
 
-- If the ``--output-missing`` parameter is provided, the process will create a FASTA file with
-  the DNA sequences of the CDSs classified as *PLOT3*, *PLOT5*, *LOTSC*, *NIPH*, *NIPHEM*, *ALM*
-  and *ASM*.
+- If the ``--output-missing`` parameter is provided, the process will create a FASTA file, ``missing_classes.fasta``, and a
+  TSV file with information about the classified sequences that led to a locus being classified
+  as *ASM*, *ALM*, *PLOT3*, *PLOT5*, *LOTSC*, *NIPH*, *NIPHEM* and *PAMA*.
 
 - If the ``--hash-profiles`` parameter is provided, the process will use the provided hash
-  algorithm to create a TSV file with hashed profiles (each allele identifier is substituted
+  algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted
   by the hash of the DNA sequence).

@@ -13,23 +13,23 @@ New implementation of the **AlleleCall** process. The new implementation was dev
 - The process creates the `pre_computed` folder to store files with hash tables that are used to speedup exact matching and avoid running the step to translate the schema alleles in every run.
 - Added the `--cds` parameter to accept FASTA files with CDSs (one FASTA file per genome) and skip gene prediction with Prodigal.
 - Users can control the addition of novel alleles to the schema with the `--no-inferred` parameter.
-- Added the `--output-unclassified` parameter to write FASTA file (`unclassified_sequences.fasta`) with the distinct CDSs that were not classified in a run.
+- Added the `--output-unclassified` parameter to write a FASTA file (`unclassified_sequences.fasta`) with the distinct CDSs that were not classified in a run.
 - Added the `--output-missing` parameter to write a FASTA file and a TSV file with information about the classified sequences that led to a locus being classified as ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and PAMA.
 - Added the `--no-cleanup` parameter to keep the temporary folder with intermediate files created during a run.
 - Removed the `--contained`, `--force-reset`, `--store-profiles` (to be reimplemented in a future release), `--json` and `--verbose` parameters.
 - The `--force-continue` parameter no longer allows users to continue a run that was interrupted. This parameter is now used to ignore warnings and prompts about missing configuration files and the usage of multiple argument values per parameter.
 - The allelic profiles in the `results_alleles.tsv` file can be hashed by providing the `--hash-profiles` parameter and a valid hash type as argument (hash algorithms available from the [hashlib](python) library and crc32 and adler32 from the [zlib](https://docs.python.org/3/library/zlib.html) library).
 - The process creates a TSV file, `cds_coordinates.tsv`, with the genomic coordinates for all CDSs identified in the input files.
-- The process creates a TSV file with summary statistics for loci classifications.
+- The process creates a TSV file, `loci_summary_stats.tsv`, with summary statistics for loci classifications.
 - The process no longer creates the `RepeatedLoci.txt` file. It now creates the `paralogous_counts.tsv` and `paralogous_loci.tsv` files with more detailed information about the loci identified as paralogous.
-- The PLNF class is attributed in modes 1, 2 and 3 to indicate that a more thorough analysis might have found a match for the loci that were not found.
+- The PLNF class is attributed in modes 1, 2 and 3 to indicate that a more thorough analysis might have found a match for the loci that were not found (LNF).
 - CDSs that match several loci are classified as PAMA.
 - Bugfix for PLOT3, PLOT5 and LOTSC classification types. LOTSC classification was not always attributed when a contig was smaller than the matched representative allele and some PLOT5 cases were classified as LOTSC. LOTSC cases counted as exact matches in the `results_statistics.tsv` file.
 
 ### Additional changes
 
 - The UniprotFinder allows users to search for annotations through UniProt's SPARQL endpoint or based on matches against UniProt's reference proteomes or both.
-- Bugfix for an issue in the UniprotFinder module that was leading to errors when the data returned by UniProt's SPARQL endpoint only contained one set of annotation terms).
+- Bugfix for an issue in the UniprotFinder module that was leading to errors when the data returned by UniProt's SPARQL endpoint only contained one set of annotation terms.
 - Bugfix for an issue in the UniprotFinder module that was preventing the annotations from being written to the output file.
 - Bugfix for an issue in the [map_async_parallelizer](https://github.com/B-UMMI/chewBBACA/blob/d7572c085677319500546dbb4ed8eee69cc3d2c2/CHEWBBACA/utils/multiprocessing_operations.py#L51) function that led to high memory usage.
 - Implemented and changed several functions in the modules included in the `utils` folder to optimize code reusability, reduce runtime and peak memory usage, especially for large schemas and datasets (these changes affect mostly the CreateSchema and AlleleCall modules).

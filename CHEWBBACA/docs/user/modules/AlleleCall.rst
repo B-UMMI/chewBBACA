@@ -29,39 +29,43 @@ with Prodigal will be skipped.
 
 The allele calling algorithm has the following main steps:
 
-- Gene predictipon with prodigal to identify CDSs in each input genome (there is also the
-  option to provide FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction
-  step with Prodigal).
+- Gene predictipon with Prodigal followed by coding sequence (CDS) extraction to create FASTA files
+  that contain all CDSs extracted from the inputs. (there is also the option to provide FASTA files
+  with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
 
-- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and
-  the genomes that contain those CDSs).
+- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and the
+  genomes that contain those CDSs in a hashtable with the mapping between CDS SHA-256 and list of unique
+  integer identifiers for the inputs that contain each CDS compressed with [polyline encoding](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
+  adapted from [numcompress](https://github.com/amit1rrr/numcompress)).
 
 - Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
   in the input files (information about the exact matches found for each locus are saved to
-  classification files, one per locus in the schema).
+  classification files, one per locus in the schema. The classification files are updated throughout
+  the process with information about the matches and classifications at each step).
 
-- CDS translation (This step identifies and excludes CDSs that contain ambiguous bases and with
-  length below the theshold defined by the ``--l`` parameter).
+- Translation of distinct CDSs that were not an exact match in the previous step. (This step identifies
+  and excludes CDSs that contain ambiguous bases and with length below the theshold defined by the ``--l``
+  parameter).
 
-- Identification of distinct proteins (chewBBACA stores information about distinct proteins and
-  the list of distinct CDSs that encode those proteins).
+- Protein deduplication to identify the distinct set of proteins and keep information about the inputs that
+  contain CDSs that encode each distinct protein (hashtable with mapping between protein SHA-256 and list of
+  unique integer identifiers for the distinct CDSs encoded with polyline encoding).
 
 - Exact matches at protein level between the translated alleles of each locus in the schema and the
-  translated CDSs identified in the input files (information about exact matches is saved to the
-  classification files).
+  translated CDSs identified in the input files (classification files are updated).
 
 - Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and
-  clustered based on the percentage of shared distinct minimizers (default >= 20%) with the schema
-  representative alleles.
+  clustered based on the percentage of shared distinct minimizers (default >= 20%, interior minimizers
+  selected based on lexicographic order, k=5, w=5) with the schema representative alleles.
 
-- Use BLASTp to align the representative allele of each cluster against the proteins added to the cluster.
-  Compute the BLAST Score Ratio (BSR) for each alignment and classify proteins with BSR >0.7.
+- Alignment, using BLASTp, of each cluster representative against all proteins added to its cluster to
+  identify and classify matches with a BLAST Score Ratio (BSR) >0.7 (classification files are updated).
 
 - Align the schema representatives against the distinct proteins that have not been classified. Compute the
   BSR for each alignment and classify proteins with alignments with BSR >=0.6. For each locus, determine new
   representative alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new
   representatives against the remaining unclassified proteins. Keep iterating until no proteins are classified
-  for any locus.
+  for any locus (classification files are updated in each iteration).
 
 - Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
   information stored in the classification files.

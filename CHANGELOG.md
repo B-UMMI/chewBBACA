@@ -2,27 +2,38 @@
 
 ## 3.0.0 - 2022-12-14
 
-New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop. The main steps of the new implementation are the following:
+New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop. This new version is fully compatible with schemas created with previous versions.
 
-- Gene prediction with Prodigal followed by coding sequence (CDS) extraction to create FASTA files that contain all CDSs extracted from the inputs. CDS coordinates are saved to pickle files.
-- CDS deduplication to identify the distinct set of CDSs and keep information about the inputs that contain each distinct CDS (hashtable with mapping between CDS SHA-256 and list of unique integer identifiers for the inputs that contain each CDS compressed with [polyline encoding](https://developers.google.com/maps/documentation/utilities/polylinealgorithm) adapted from [numcompress](https://github.com/amit1rrr/numcompress)).
-- Exact match between distinct CDSs and schema alleles at DNA level. Information about CDSs classified at this stage is stored in pickle files that are updated throughout the process.
-- Translation of distinct CDSs that were not an exact match in the previous step. This step excludes CDSs with ambiguous bases and CDSs that are below the minimum length value defined.
-- Protein deduplication to identify the distinct set of proteins and keep information about the inputs that contain CDSs that encode each distinct protein (hashtable with mapping between protein SHA-256 and list of unique integer identifiers for the distinct CDSs encoded with polyline encoding).
-- Minimizer-based clustering (interior minimizers selected based on lexicographic order, k=5, w=5) to find translated CDSs similar to schema representative alleles.
-- Alignment, using BLASTp, of each cluster representative against all CDSs added to its cluster to identify and classify matches with a BLAST Score Ratio (BSR) > 0.7.
-- Alignment, using BLASTp, of each schema representative against the remaining CDSs that were not classified in the previous steps to find matches 0.6 >= BSR <= 0.7 that are evaluated to determine new representative alleles.
-- Assessment of the classifications for each locus to attribute allele identifiers and other classification types (ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and LNF).
+### AlleleCall changes
+
+- The new implementation avoids redundant comparisons through the identification of the set of distinct CDSs in the input files. The classification for a distinct CDS is propagated to classify all input genomes that contain the CDS.
+- Implemented a clustering step based on minimizers to cluster the translated CDSs. This step complements the alignment-based strategy with BLASTp to increase computational efficiency and classification accuracy.
+- The AlleleCall process has 4 execution modes (1: only exact matches at DNA level; 2: exact matches at DNA and Protein level; 3: exact matches and minimizer-based clustering to find similar alleles with BSR > 0.7; 4: runs the full process to find exact matches and all matches with BSR >= 0.6).
+- Files with information about loci length modes (`loci_modes`) and the self-alignment raw score for the representative alleles (`short/self_scores`) are pre-computed and automatically updated (the process no longer creates and updates a file with the self-alignment raw score per locus).
+- The process creates the `pre_computed` folder to store files with hash tables that are used to speedup exact matching and avoid running the step to translate the schema alleles in every run.
+- Added the `--cds` parameter to accept FASTA files with CDSs (one FASTA file per genome) and skip gene prediction with Prodigal.
+- Users can control the addition of novel alleles to the schema with the `--no-inferred` parameter.
+- Added the `--output-unclassified` parameter to write FASTA file (`unclassified_sequences.fasta`) with the distinct CDSs that were not classified in a run.
+- Added the `--output-missing` parameter to write a FASTA file and a TSV file with information about the classified sequences that led to a locus being classified as ASM, ALM, PLOT3, PLOT5, LOTSC, NIPH, NIPHEM and PAMA.
+- Added the `--no-cleanup` parameter to keep the temporary folder with intermediate files created during a run.
+- Removed the `--contained`, `--force-reset`, `--store-profiles` (to be reimplemented in a future release), `--json` and `--verbose` parameters.
+- The `--force-continue` parameter no longer allows users to continue a run that was interrupted. This parameter is now used to ignore warnings and prompts about missing configuration files and the usage of multiple argument values per parameter.
+- The allelic profiles in the `results_alleles.tsv` file can be hashed by providing the `--hash-profiles` parameter and a valid hash type as argument (hash algorithms available from the [hashlib](python) library and crc32 and adler32 from the [zlib](https://docs.python.org/3/library/zlib.html) library).
+- The process creates a TSV file, `cds_coordinates.tsv`, with the genomic coordinates for all CDSs identified in the input files.
+- The process creates a TSV file with summary statistics for loci classifications.
+- The process no longer creates the `RepeatedLoci.txt` file. It now creates the `paralogous_counts.tsv` and `paralogous_loci.tsv` files with more detailed information about the loci identified as paralogous.
+- The PLNF class is attributed in modes 1, 2 and 3 to indicate that a more thorough analysis might have found a match for the loci that were not found.
+- CDSs that match several loci are classified as PAMA.
+- Bugfix for PLOT3, PLOT5 and LOTSC classification types. LOTSC classification was not always attributed when a contig was smaller than the matched representative allele and some PLOT5 cases were classified as LOTSC. LOTSC cases counted as exact matches in the `results_statistics.tsv` file.
 
 ### Additional changes
 
-- Users can control the addition of novel alleles to the schema with the `--no-inferred` parameter.
-- The AlleleCall process has 4 execution modes (1: only exact matches at DNA level; 2: exact matches at DNA and Protein level; 3: exact matches and minimizer-based clustering to find similar alleles with BSR > 0.7; 4: runs the full process to find exact matches and all matches with BSR >= 0.6).
-- The allelic profiles in the `results_alleles.tsv` file can be hashed by providing the `--hash-profiles` parameter and a valid hash type as argument (hash algorithms available from the [hashlib](python) library and crc32 and adler32 from the [zlib](https://docs.python.org/3/library/zlib.html) library).
 - The UniprotFinder allows users to search for annotations through UniProt's SPARQL endpoint or based on matches against UniProt's reference proteomes or both.
 - Bugfix for an issue in the UniprotFinder module that was leading to errors when the data returned by UniProt's SPARQL endpoint only contained one set of annotation terms).
+- Bugfix for an issue in the UniprotFinder module that was preventing the annotations from being written to the output file.
 - Bugfix for an issue in the [map_async_parallelizer](https://github.com/B-UMMI/chewBBACA/blob/d7572c085677319500546dbb4ed8eee69cc3d2c2/CHEWBBACA/utils/multiprocessing_operations.py#L51) function that led to high memory usage.
-- Bugfix for PLOT3, PLOT5 and LOTSC classification types. LOTSC classification was not always attributed when a contig was smaller than the matched representative allele and some PLOT5 cases were classified as LOTSC. LOTSC cases counted as exact matches in the `results_statistics.tsv` file.
+- Implemented and changed several functions in the modules included in the `utils` folder to optimize code reusability, reduce runtime and peak memory usage, especially for large schemas and datasets (these changes affect mostly the CreateSchema and AlleleCall modules).
+- Updated function docstrings and added comments.
 
 ## 2.8.5 - 2021-07-05
 
@@ -69,37 +80,37 @@ More in-depth information can be found about the module on its [wiki page](https
 
 ## 2.5.6 - 2020-11-10
 
-* Fixed BLAST version detection. BLAST versions greater than 2.9 (e.g.: 2.10) were not correctly detected. Thanks to [Eric DEVEAUD](https://github.com/EricDeveaud) for creating a pull request with a fix for this issue!
-* Fixed issue that would lead to error when users provided a file with the list of genes to the AlleleCall process
-* Added function that uses the subprocess module to run BLAST and capture warnings raised during normal execution of BLAST >= 2.10.
+- Fixed BLAST version detection. BLAST versions greater than 2.9 (e.g.: 2.10) were not correctly detected. Thanks to [Eric DEVEAUD](https://github.com/EricDeveaud) for creating a pull request with a fix for this issue!
+- Fixed issue that would lead to error when users provided a file with the list of genes to the AlleleCall process
+- Added function that uses the subprocess module to run BLAST and capture warnings raised during normal execution of BLAST >= 2.10.
 
 ## 2.5.5 - 2020-09-15
 
-* Removed Bio.Alphabet imports and generic_dna mentions. New version of the BioPython package was not compatible with the way chewBBACA was using those features.
+- Removed Bio.Alphabet imports and generic_dna mentions. New version of the BioPython package was not compatible with the way chewBBACA was using those features.
 
 ## 2.5.4 - 2020-08-10
 
-* Corrected problem related with versioning inconsistencies that would lead to errors during validation steps.
+- Corrected problem related with versioning inconsistencies that would lead to errors during validation steps.
 
 ## 2.5.3 - 2020-08-10
 
-*  Organized argparsing for several processes and fixed argparsing issues introduced in version 2.5.0 for the `TestGenomeQuality`, `SchemaEvaluator` and `UniprotFinder` processes.
+- Organized argparsing for several processes and fixed argparsing issues introduced in version 2.5.0 for the `TestGenomeQuality`, `SchemaEvaluator` and `UniprotFinder` processes.
 
 ## 2.5.2 - 2020-08-08
 
-* Removed overconservative constraints leading to compatibility issues between different chewBBACA versions.
-* Implemented check to verify if Users have authorization to submit novel alleles during the SyncSchema process.
-* Corrected argparsing for the `RemoveGenes` process.
-* Corrected issue that would not let Users properly Sync Tutorial schemas.
+- Removed overconservative constraints leading to compatibility issues between different chewBBACA versions.
+- Implemented check to verify if Users have authorization to submit novel alleles during the SyncSchema process.
+- Corrected argparsing for the `RemoveGenes` process.
+- Corrected issue that would not let Users properly Sync Tutorial schemas.
 
 ## 2.5.1 - 2020-08-05
 
-* Chewie verifies if Chewie-NS instance is available before starting processes.
-* SyncSchema gets Chewie-NS base URL from configuration file.
-* Schemas can be created without a Prodigal training file and without a size threshold value.
-* LoadSchema and SyncSchema processes display info about loci and allele insertion progress.
-* Corrected bug leading to errors during the AlleleCall process. Schema adaptation during the SyncSchema process may change loci representatives and pre-computed BSR values would become outdated.
-* Corrected bug leading to error during the update of allelic profiles if new allele identifiers contained '*'.
+- Chewie verifies if Chewie-NS instance is available before starting processes.
+- SyncSchema gets Chewie-NS base URL from configuration file.
+- Schemas can be created without a Prodigal training file and without a size threshold value.
+- LoadSchema and SyncSchema processes display info about loci and allele insertion progress.
+- Corrected bug leading to errors during the AlleleCall process. Schema adaptation during the SyncSchema process may change loci representatives and pre-computed BSR values would become outdated.
+- Corrected bug leading to error during the update of allelic profiles if new allele identifiers contained '*'.
 
 ## 2.5.0 - 2020-06-30
 
@@ -125,50 +136,50 @@ This version also includes other changes:
 
 ## 2.1.0 - 2019-11-05
 
-* New `PrepExternalSchema` implementation: Algorithmic optimizations to improve speed and maintain memory efficiency. New output files with summary information about schema adaptation and excluded sequences and options to control the Blast Score Ratio, minimum sequence length and genetic code values passed to the process.
+- New `PrepExternalSchema` implementation: algorithmic optimizations to improve speed and maintain memory efficiency. New output files with summary information about schema adaptation and excluded sequences and options to control the Blast Score Ratio, minimum sequence length and genetic code values passed to the process.
 
 ## chewBBACA released as a galaxy module!
 
-Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome ! 
+Many Thanks to Stefano Morabito and Arnold Knijn (https://github.com/aknijn) for EURL VTEC in ISS, Rome! 
 https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303
 
 ## 2.0.17 - 2019-02-10
 
-* New alleles also have a timestamp added to the allele name.
+- New alleles also have a timestamp added to the allele name.
 
 ## 2.0.16 - 2018-01-06
 
-* Corrected bug from 2.0.15 when no prodigal training file provided.
+- Corrected bug from 2.0.15 when no Prodigal training file was provided.
 
 ## 2.0.15 - 2018-01-06
 
-* Added prodigal training files to the package. They are now at CHEWBBACA/prodigal_training_files.
+- Added Prodigal training files to the package. Available at `CHEWBBACA/prodigal_training_files`.
  
 ## 2.0.13 - 2018-09-18
 
-* when using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change(2.0.12) would not change the original source fasta, this would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
+- When using the function `PrepExternalSchema`, older behavior would remove any locus with a single translation error while the latest change (2.0.12) would not change the original source fasta, which would make the schema unusable. It is now enforced that the alleles that do not translate are removed from the fasta, be sure to backup your data before using this function.
  
 ## 2.0.11 - 2018-06-05
 
-* corrected bug when -h on allele call
-* new option for the schema creation. A schema can be created based on a single fasta file, jumping the prodigal gene prediction running. Use `--CDS` and provide a sinfle fasta file on the `-i` input.
+- Corrected bug when `-h` parameter was provided for allele call.
+- New option for the schema creation. A schema can be created based on a single fasta file, skipping the gene prediction step. Use `--CDS` and provide a single FASTA file to the `-i` parameter.
  
 ## 2.0.10 - 2018-05-21
 
-* cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker)
-* new option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
+- cgMLST profile extraction function (ExtractCgMLST) more efficient (thanks Dillon Barker).
+- New option for the allele call, size threshold previously hardcoded at 0.2 can now be changed using the `--st` option. Size threshold is important for the definition of ASM and ALM (alleles smaller/larger than mode).
  
 ## 2.0.9 - 2018-04-04
 
-* blast results during allele call are not saved as a file, instead are piped directly for processing
-* new option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option  
+- Blast results during allele call are not saved as a file, instead are piped directly for processing.
+- New option for the allele call, if genome fasta input is already a fasta of CDS use the `--CDS` option.
  
 ## 2.0.7 - 2018-02-23
 
-* corrected bug that prevented usage of latest blast version (>=2.7.0)
-* version flag can now be used `--version`
-* instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
+- Corrected bug that prevented usage of latest blast version (>=2.7.0).
+- Version flag can now be used `--version`.
+- Instead of calling the main script `chewBBACA.py` you can now use `chewie` (if installed trought pip).
  
 ## 2.0.5 - 2018-02-18
 
-* AlleleCall : -i option accepts a single fasta file now
+- AlleleCall: `-i` parameter accepts a single fasta file now.

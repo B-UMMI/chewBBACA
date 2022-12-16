@@ -8,7 +8,14 @@ Install the latest released version using `conda <https://anaconda.org/bioconda/
 
 ::
 
-	conda create -c bioconda -c conda-forge -n chewie chewbbaca=2.8.5
+	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.0.0"
+
+If you're having issues installing chewBBACA through conda, we recommend that you install
+`mamba <https://mamba.readthedocs.io/en/latest/index.html>`_ and run the following command:
+
+::
+
+	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.0.0"
 
 Pip
 ...

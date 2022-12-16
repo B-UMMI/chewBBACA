@@ -5,14 +5,14 @@ Objective
 :::::::::
 
 The objective of this tutorial is to illustrate a complete workflow for creating a wgMLST and a
-cgMLST schema for a collection of 714 *Streptococcus agalactiae* genomes (32 complete genomes
-and 682 draft genome assemblies deposited on the NCBI databases) by providing step-by-step
+cgMLST schema for a collection of 712 *Streptococcus agalactiae* genomes (32 complete genomes
+and 680 draft genome assemblies deposited on the NCBI databases) by providing step-by-step
 instructions and displaying the obtained outputs.
 
 Please start by going through the following steps:
 
-- Install chewBBACA. Check :doc:`Installation </user/getting_started/installation>` for instructions
-  on how to install chewBBACA.
+- Install chewBBACA v3.0.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
+  on how to install chewBBACA v3.0.0.
 - Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7129300#.Yzb26_fTUUE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
   the necessary data).
@@ -52,8 +52,8 @@ to create the folder ``genomes/complete_genomes``. To create the wgMLST schema, 
 
 The schema seed will be available at ``tutorial_schema/schema_seed``. We passed the value ``6`` to
 the ``--cpu`` parameter to use 6 CPU cores, but you should pass a value based on the
-specifications of your machine. In our system, the process took 56 seconds to complete
-resulting on a wgMLST schema with 3128 loci. At this point the schema is defined as a set of
+specifications of your machine. In our system, the process took 45 seconds to complete
+resulting on a wgMLST schema with 3,127 loci. At this point the schema is defined as a set of
 loci each with a single representative allele.
 
 Allele calling
@@ -69,10 +69,9 @@ following command:
 
 	chewBBACA.py AlleleCall -i genomes/complete_genomes/ -g tutorial_schema/schema_seed -o results32_wgMLST --cpu 6
 
-The allele call used the default BSR threshold of ``0.6`` and took approximately 17
-minutes to complete (an average of 32 seconds per genome). The allele call identified 14,720
+The allele call used the default BSR threshold of ``0.6`` and took 1m26s to complete (an average of ~2.7 seconds per genome). The allele call identified 14,704
 novel alleles and added those alleles to the schema, increasing the number of alleles in the
-schema from 3,128 to 17,848.
+schema from 3,127 to 17,831.
 
 Paralog detection
 :::::::::::::::::
@@ -80,56 +79,38 @@ Paralog detection
 The next step in the analysis is to determine if some of the loci can be considered paralogs
 based on the result of the wgMLST allele calling. The *AlleleCall* module returns a list of
 Paralogous genes in the ``paralogous_counts.tsv`` file that can be found on the
-``results32_wgMLST/results_<datestamp>`` folder. The ``paralogous_counts.tsv`` file contains a set
-of 20 loci that were identified as possible paralogs. These loci should be removed from the schema
-due to the potential uncertainty in allele assignment. To remove the set of 20 paralogous loci
+``results32_wgMLST`` folder. The ``paralogous_counts.tsv`` file contains a set
+of 10 loci that were identified as possible paralogs. These loci should be removed from the schema
+due to the potential uncertainty in allele assignment. To remove the set of 10 paralogous loci
 from the allele calling results, run the following command:
 
 ::
 
-	chewBBACA.py RemoveGenes -i results32_wgMLST/results_<datestamp>/results_alleles.tsv -g results32_wgMLST/results_<datestamp>/paralogous_counts.tsv -o results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv
+	chewBBACA.py RemoveGenes -i results32_wgMLST/results_alleles.tsv -g results32_wgMLST/paralogous_counts.tsv -o results32_wgMLST/results_alleles_NoParalogs.tsv
 
-This will remove the columns matching the 20 paralogous loci from the allele calling results and
+This will remove the columns matching the 10 paralogous loci from the allele calling results and
 save the allelic profiles into the ``results_alleles_NoParalogs.tsv`` file (the new file contains
-allelic profiles with 3108 loci).
+allelic profiles with 3,117 loci).
 
 cgMLST schema determination
 :::::::::::::::::::::::::::
 
 We can now determine the set of loci in the core genome based on the allele calling results.
 The set of loci in the core genome is determined based on a threshold of loci presence in the
-analysed genomes. We can run the *TestGenomeQuality* module to determine the impact of several
-threshold values on the number of loci in the core genome.
-
-::
-
-	chewBBACA.py TestGenomeQuality -i results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv -n 13 -t 200 -s 5 -o results32_wgMLST/results_<datestamp>/genome_quality_32
-
-The process will automatically open a HTML file with the following plot:
-
-.. image:: https://i.imgur.com/uf3Hygd.png
-	:width: 1400px
-	:align: center
-
-Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_complete_genomes.html>`_.
-
-A set of **1136 loci** were found to be present in all the analyzed complete genomes, while
-**1267 loci** were present in at least 95%. For further analysis only the **1267** loci present
-in at least 95% of the complete genomes will be used. We selected that threshold value to account
-for loci that may not be identified due to sequencing coverage and assembly problems.
-
-We can run the *ExtraCgMLST* module to quickly determine the set of loci in the core genome at 95%.
+analysed genomes. We can run the *ExtraCgMLST* module to quickly determine the set of loci in
+the core genome at 95%. We selected that threshold value to account for loci that may not be
+identified due to sequencing coverage and assembly problems.
 
 ::
 
 	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv -o results32_wgMLST/results_<datestamp>/cgMLST_95 --t 0.95
 
-The list with the 1267 loci in the core genome at 95% is in the
-``results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt`` file. This file can be passed
+The list with the 1,271 loci in the core genome at 95% is in the
+``results32_wgMLST/cgMLST_95/cgMLSTschema.txt`` file. This file can be passed
 to the ``--gl`` parameter of the AlleleCall process to perform allele calling only for the set of
 genes that constitute the core genome.
 
-Allele call for 682 *Streptococcus agalactiae* assemblies
+Allele call for 680 *Streptococcus agalactiae* assemblies
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 682 assemblies of *Streptococcus agalactiae* available on NCBI were downloaded (03-08-2016) and
@@ -140,16 +121,16 @@ were removed from the analysis. Uncompress the ``genomes/GBS_680_genomes.zip`` f
 folder named ``GBS_Aug2016``.
 
 Allele call was performed on the *bona fide* *Streptococcus agalactiae* **680 genomes** using the
-**1267 loci** that constitute the core genome at 95%. Paralog detection found no paralog loci.
+**1,271 loci** that constitute the core genome at 95%.
 
 ::
 
-	chewBBACA.py AlleleCall -i genomes/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLSTschema.txt -o results680_cgMLST --cpu 6
+	chewBBACA.py AlleleCall -i genomes/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/cgMLST_95/cgMLSTschema.txt -o results680_cgMLST --cpu 6
 
-The process took approximately 39 minutes to complete (an average of 3.4 secs per genome).
+The process took 6m26s to complete (~0.57 seconds per genome). Paralog detection found no paralog loci.
 
-Evaluate genome quality
-:::::::::::::::::::::::
+Redetermination of the cgMLST
+:::::::::::::::::::::::::::::
 
 We can now concatenate the cgMLST results for the 32 complete genomes with the cgMLST results
 for the 680 genomes to have all the results in a single file. To concatenate the allelic profiles
@@ -157,93 +138,48 @@ of both analyses run the following command:
 
 ::
 
-	chewBBACA.py JoinProfiles -p results32_wgMLST/results_<datestamp>/cgMLST_95/cgMLST.tsv results680_cgMLST/results_<datestamp>/results_alleles.tsv -o cgMLST_all.tsv
+	chewBBACA.py JoinProfiles -p results32_wgMLST/cgMLST_95/cgMLST.tsv results680_cgMLST/results_alleles.tsv -o cgMLST_712.tsv
 
-
-The concatenated file was analyzed in order to assess the cgMLST allele quality attribution for
-all the genomes.
-
-::
-
-	chewBBACA.py TestGenomeQuality -i cgMLST_all.tsv -n 13 -t 300 -s 5
-
-.. image:: https://i.imgur.com/m1OSycz.png
-	:width: 1400px
-	:align: center
-
-Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/GenomeQualityPlot_all_genomes.html>_`.
-
-While the number of loci present in 95% of genomes remains virtually constant at around **1200**
-loci, considering all or most of the genomes (90%<x≤100%) the number of loci present is lower and
-presents some variation when specific genomes are removed from the analysis.
-
-We selected the results at the threshold of 25 for further analysis. Although this selection is
-somewhat arbitrary, when moving to a lower threshold there is step increase in the number of loci
-present in 95% and 99% of genomes that could represent the exclusion of a more divergent clade
-from the analysis. Furthermore, at the threshold of 25 there is an acceptable number of loci
-present in all considered genomes (650 genomes/440 loci), which we felt would afford a good
-discriminatory power.
-
-The genomes that were removed at each threshold are indicated in the file
-``expected_results/Evaluate_genome_quality/removedGenomes.txt`` and a file
-``expected_results/Evaluate_genome_quality/removedGenomes_25.txt`` was created
-with only the genomes removed at the 25 threshold.
-
-The following command creates a folder named ``cgMLST_25`` and saves the cgMLST schema selected
-at the chosen threshold to the file ``cgMLST_25/cgMLST.tsv``.
+We also redetermined the cgMLST at 95% based on the allele calling results for this more diverse set of
+strains:
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_all.tsv -o cgMLST_25 --g expected_results/Evaluate_genome_quality/removedGenomes_25.txt
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_712 --t 0.95
+
+The number of loci present in 95% of genomes based on the 712 assemblies is 1,195, a slight decrease
+from the number of loci present in 95% of the 32 genomes used for schema creation.
+
+Evaluate genome quality
+:::::::::::::::::::::::
+
+One important factor that was not evaluated, and that can greatly affect the cgMLST determination,
+is the quality of the genome assemblies. Since the quality of the used assemblies was not confirmed,
+it is possible that some of the assemblies included were of low quality. A general analysis of the
+assemblies (available at genomes/GBS_assembly_stats.tsv) show a N50 variation that ranges from 8,055
+to over 2.2M, while the number of contigs ranges between 1 and 553. These results made us suspect
+that the quality of the genomes could have affected the allele call results and consequently caused
+a significant drop in the number of loci that constitute the cgMLST. We defined a set of minimum quality
+criteria to select high quality genome assemblies, that are the following:
+
+- Less than 150 contigs.
+- Genome size between 1,674,000 and 2,512,000 bases (defined according to the species genome size values provided by the NCBI `here <https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/species_genome_size.txt.gz>`_).
+- Less than 1000 N bases.
+- Less than 5% missing loci from the cgMLST (64 loci).
+
+We identified 65 genome assemblies that did not meet the minimum quality criteria and 2 genomes that NCBI excluded from RefSeq,
+`GCA_000221325.2 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000221325.2>`_ and
+`GCA_000427055.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000427055.1>`_, due to ``genome length too large`` and
+``many frameshifted proteins``, respectively. We used the following command to recompute the cgMLST:
+
+::
+
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --t 0.95 --g expected_results/Evaluate genome quality/excluded_genomes.txt
+
+The cgMLST at 95% included 1,248 loci.
 
 Minimum Spanning Tree
 :::::::::::::::::::::
 
-The file ``cgMLST_25/cgMLST.tsv`` was uploaded to `Phyloviz online <https://online.phyloviz.net>`_
-and can be accessed `here <https://online.phyloviz.net/main/dataset/share/cfab1610a3ca3a80cf9c139e436ce741fc5fa29dcc5aeb3988025491d7194044fc73f5284eafad8356322fb0e29e50d6e06d5808ae369a2b37d1ece96e4e716d8d7eeb5c85a5a30c5d3d63bf014643013fa981108bd5bfbacf0a145ab41656a9a67c489b878cb0aa9f2de534ee81b201e198>`_.
-
-Genome Quality analysis
-:::::::::::::::::::::::
-
-Since the quality of the used assemblies was not confirmed, it is possible that some of the
-assemblies included were of low quality. A general analysis of the assemblies show a N50
-variation that ranges from 8,055 to over 2.2M, while the number of contigs ranges between
-1 and 553. These results made us suspect that the quality of the genomes could have affected
-the allele call results and consequently caused a significant drop in the number of loci
-detected as present in all genomes.  
-
-As stated previously, to obtain the cgMLST schema, some genomes (n=62) had to be removed since
-they were extremes cases of missing data. In order to assess the possible reason for their poor
-allele call performance, two plots were built. The removed genomes were then highlighted and
-dashed lines were drawn linking the values for the same genomes.
-
-The first plot represents the total number of bp in contigs with a size >10 kbp and the N50 of
-the assemblies, sorted by decreasing values.
-
-.. image:: http://i.imgur.com/I0fNqtd.png
-	:width: 1400px
-	:align: center
-
-The second plot represents the total number of contigs and the number of contigs >10kbp.
-
-.. image:: http://i.imgur.com/fabxi0Z.png
-	:width: 1400px
-	:align: center
-
-Interactive version `here <http://im.fm.ul.pt/chewBBACA/GenomeQual/AssemblyStatsStack.html>`_
-
-At first sight, most of the removed genomes (56/62) were located on the lower range of N50 and
-bp in contigs >10 kbp (fig.3) and the higher number of contigs (fig.4).
-
-The 5 genomes that were outside this pattern were individually checked:
-
-- `GCA_000186445.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000186445.1>`_ - 21 contigs
-  but only 1 is above 10k (Scaffold with lot of Ns, 134 real contigs)
-- `GCA_000221325.2 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000221325.2>`_ - NCBI curated
-  it out of RefSeq because it had a genome length too large
-- `GCA_000427055.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000427055.1>`_ - NCBI curated
-  it out of RefSeq because it had many frameshifted proteins
-- `GCA_000289455.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000289455.1>`_ - No ST found.
-  We concluded the assembly has a problem but we have not yet identified it.
-- `GCA_000288835.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000288835.1>`_ - NCBI curated
-  it out of RefSeq because it had many frameshifted proteins.
+The file ``cgMLST95_645/cgMLST.tsv`` can be uploaded to `Phyloviz online <https://online.phyloviz.net>`_
+to visualize a Minimum Spanning Tree.

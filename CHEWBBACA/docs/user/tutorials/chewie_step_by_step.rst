@@ -163,7 +163,7 @@ a significant drop in the number of loci that constitute the cgMLST. We defined 
 criteria to select high quality genome assemblies, that are the following:
 
 - Less than 150 contigs.
-- Genome size between 1,674,000 and 2,512,000 bases (defined according to the species genome size values provided by the NCBI `here <https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/species_genome_size.txt.gz>`_).
+- Genome size between 1,674,000 and 2,512,000 bases (defined according to the species genome size values provided by the NCBI on 16-12-2022 and available `here <https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/species_genome_size.txt.gz>`_).
 - Less than 1000 N bases.
 - Less than 5% missing loci from the cgMLST (64 loci).
 
@@ -178,10 +178,11 @@ We used the following command to recompute the cgMLST:
 
 	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --t 0.95 --g expected_results/Evaluate genome quality/excluded_genomes.txt
 
-The cgMLST at 95% included 1,249 loci.
+The determined cgMLST includes 1,249 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
 
 Minimum Spanning Tree
 :::::::::::::::::::::
 
-The file ``cgMLST95_645/cgMLST.tsv`` can be uploaded to `Phyloviz online <https://online.phyloviz.net>`_
-to visualize a Minimum Spanning Tree.
+You can upload the file ``cgMLST95_645/cgMLST.tsv`` and any of the associated metadata to `Phyloviz online <https://online.phyloviz.net>`_
+to visualize a Minimum Spanning Tree and perform various dataset operations that allow you to explore and analyse the results generated
+during this tutorial.

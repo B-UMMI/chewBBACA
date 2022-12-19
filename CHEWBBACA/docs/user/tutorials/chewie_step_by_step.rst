@@ -13,7 +13,7 @@ Please start by going through the following steps:
 
 - Install chewBBACA v3.0.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
   on how to install chewBBACA v3.0.0.
-- Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7129300#.Yzb26_fTUUE>`_.
+- Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7457513#.Y6BTwfenxhE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
   the necessary data).
 
@@ -89,7 +89,7 @@ from the allele calling results, run the following command:
 	chewBBACA.py RemoveGenes -i results32_wgMLST/results_alleles.tsv -g results32_wgMLST/paralogous_counts.tsv -o results32_wgMLST/results_alleles_NoParalogs.tsv
 
 This will remove the columns matching the 10 paralogous loci from the allele calling results and
-save the allelic profiles into the ``results_alleles_NoParalogs.tsv`` file (the new file contains
+save the allelic profiles into the ``results32_wgMLST/results_alleles_NoParalogs.tsv`` file (the new file contains
 allelic profiles with 3,117 loci).
 
 cgMLST schema determination
@@ -103,7 +103,7 @@ identified due to sequencing coverage and assembly problems.
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_<datestamp>/results_alleles_NoParalogs.tsv -o results32_wgMLST/results_<datestamp>/cgMLST_95 --t 0.95
+	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_alleles_NoParalogs.tsv -o results32_wgMLST/cgMLST_95 --t 0.95
 
 The list with the 1,271 loci in the core genome at 95% is in the
 ``results32_wgMLST/cgMLST_95/cgMLSTschema.txt`` file. This file can be passed
@@ -156,7 +156,7 @@ Evaluate genome quality
 One important factor that was not evaluated, and that can greatly affect the cgMLST determination,
 is the quality of the genome assemblies. Since the quality of the used assemblies was not confirmed,
 it is possible that some of the assemblies included were of low quality. A general analysis of the
-assemblies (available at genomes/GBS_assembly_stats.tsv) show a N50 variation that ranges from 8,055
+assemblies (available at ``genomes/GBS_assembly_stats.tsv``) shows a N50 variation that ranges from 8,055
 to over 2.2M, while the number of contigs ranges between 1 and 553. These results made us suspect
 that the quality of the genomes could have affected the allele call results and consequently caused
 a significant drop in the number of loci that constitute the cgMLST. We defined a set of minimum quality
@@ -170,13 +170,15 @@ criteria to select high quality genome assemblies, that are the following:
 We identified 65 genome assemblies that did not meet the minimum quality criteria and 2 genomes that NCBI excluded from RefSeq,
 `GCA_000221325.2 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000221325.2>`_ and
 `GCA_000427055.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000427055.1>`_, due to ``genome length too large`` and
-``many frameshifted proteins``, respectively. We used the following command to recompute the cgMLST:
+``many frameshifted proteins``, respectively (the list of excluded genome assemblies is available at
+``expected_results/Evaluate_genome_quality/excluded_genomes.txt``).
+We used the following command to recompute the cgMLST:
 
 ::
 
 	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --t 0.95 --g expected_results/Evaluate genome quality/excluded_genomes.txt
 
-The cgMLST at 95% included 1,248 loci.
+The cgMLST at 95% included 1,249 loci.
 
 Minimum Spanning Tree
 :::::::::::::::::::::

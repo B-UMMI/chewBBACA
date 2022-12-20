@@ -1014,3 +1014,14 @@ def replace_chars(column, missing_replace='0'):
                                           value=missing_replace, regex=True)
 
     return replace_missing
+
+
+def inclusive_range(start, stop, step):
+    """
+    """
+
+    i = start
+    while i < stop:
+        yield i
+        i += step
+    yield stop

@@ -23,8 +23,9 @@ try:
     from SchemaEvaluator import schema_evaluator
     from PrepExternalSchema import PrepExternalSchema
     from UniprotFinder import uniprot_find
-    from utils import (TestGenomeQuality, profile_joiner,
-                       Extract_cgAlleles, RemoveGenes,
+    from ExtractCgMLST import Extract_cgAlleles
+    from utils import (profile_joiner,
+                       RemoveGenes,
                        profiles_sqlitedb as ps,
                        process_datetime as pdt,
                        constants as ct,
@@ -42,8 +43,9 @@ except ModuleNotFoundError:
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.UniprotFinder import uniprot_find
-    from CHEWBBACA.utils import (TestGenomeQuality, profile_joiner,
-                                 Extract_cgAlleles, RemoveGenes,
+    from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
+    from CHEWBBACA.utils import (profile_joiner,
+                                 RemoveGenes,
                                  profiles_sqlitedb as ps,
                                  process_datetime as pdt,
                                  constants as ct,
@@ -751,58 +753,6 @@ def evaluate_schema():
 
 
 @pdt.process_timer
-def test_schema():
-
-    def msg(name=None):
-        # simple command to evaluate genome quality
-        simple_cmd = ('chewBBACA.py TestGenomeQuality -i <input_file> '
-                      '-n <max_iteration> '
-                      '-t <max_threshold> '
-                      '-s <step>')
-
-        usage_msg = (
-            '\nEvaluate genome quality with default parameters:\n  {0}\n'.format(simple_cmd))
-
-        return usage_msg
-
-    parser = argparse.ArgumentParser(description='This process evaluates the quality of genomes '
-                                                 'based on the results of the AlleleCall process.',
-                                     usage=msg(),
-                                     formatter_class=ModifiedHelpFormatter)
-
-    parser.add_argument('TestGenomeQuality', nargs='+',
-                        help='Evaluate the quality of input genomes based '
-                             'on allele calling results.')
-
-    parser.add_argument('-i', '--input-file', type=str,
-                        required=True, dest='input_file',
-                        help='Path to file with a matrix of allelic profiles.')
-
-    parser.add_argument('-o', '--output-directory', type=str,
-                        required=True, dest='output_directory',
-                        help='Path to the output directory that will '
-                             'store output files')
-
-    parser.add_argument('-n', '--max-iteration', type=int,
-                        required=True, dest='max_iteration',
-                        help='Maximum number of iterations.')
-
-    parser.add_argument('-t', '--max-threshold', type=int,
-                        required=True, dest='max_threshold',
-                        help='Maximum threshold of bad calls above 95 percent.')
-
-    parser.add_argument('-s', '--step', type=int,
-                        required=True, default=5,
-                        dest='step',
-                        help='Step between each threshold analysis.')
-
-    args = parser.parse_args()
-    del args.TestGenomeQuality
-
-    TestGenomeQuality.main(**vars(args))
-
-
-@pdt.process_timer
 def extract_cgmlst():
 
     def msg(name=None):
@@ -831,8 +781,7 @@ def extract_cgmlst():
     parser = argparse.ArgumentParser(prog='ExtractCgMLST',
                                      description='Determines the set of '
                                                  'loci that constitute the '
-                                                 'core genome based on a '
-                                                 'threshold.',
+                                                 'core genome based on loci presence thresholds.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
@@ -849,11 +798,19 @@ def extract_cgmlst():
                         help='Path to the directory where the process '
                              'will store output files.')
 
-    parser.add_argument('--t', '--threshold', type=float,
-                        required=False, default=1, dest='threshold',
+    parser.add_argument('--t', '--threshold', nargs='+', type=float,
+                        required=False, default=ct.CGMLST_THRESHOLDS,
+                        dest='threshold',
                         help='Genes that constitute the core genome '
                              'must be in a proportion of genomes that is '
-                             'at least equal to this value.')
+                             'at least equal to this value. Users can '
+                             'provide multiple values.')
+
+    parser.add_argument('--s', '--step', type=int,
+                        required=False, default=1,
+                        dest='step',
+                        help='Number of genomes added to the cgMLST '
+                             'computation at each step.')
 
     parser.add_argument('--r', '--genes2remove', type=str,
                         required=False, default=False, dest='genes2remove',
@@ -1573,13 +1530,10 @@ def main():
                                           'to better navigate/visualize '
                                           'your schema.',
                                           evaluate_schema],
-                      'TestGenomeQuality': ['Analyze your allele call output '
-                                            'to refine schemas.',
-                                            test_schema],
-                      'ExtractCgMLST': ['Determine the set of '
+                      'ExtractCgMLST': ['Determines the set of '
                                         'loci that constitute the '
-                                        'core genome based on a '
-                                        'loci presence threshold.',
+                                        'core genome based on loci '
+                                        'presence thresholds.',
                                         extract_cgmlst],
                       'RemoveGenes': ['Remove a list of loci from '
                                       'your allele call output.',
@@ -1617,8 +1571,8 @@ def main():
 
     # display help message if selected process is not valid
     if len(sys.argv) == 1 or sys.argv[1] not in functions_info:
-        print('\n\tUSAGE: chewBBACA.py [module] -h \n')
-        print('Select one of the following functions :\n')
+        print('USAGE: chewBBACA.py [module] -h \n')
+        print('Select one of the following modules :\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))
         sys.exit(0)

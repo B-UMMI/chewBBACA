@@ -8,7 +8,7 @@ setup(
   name = 'chewBBACA',
   packages = ['CHEWBBACA', 'CHEWBBACA.AlleleCall', 'CHEWBBACA.CreateSchema',
               'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
-              'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder'],
+              'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder', 'CHEWBBACA.ExtractCgMLST'],
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification.',
   author = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede',

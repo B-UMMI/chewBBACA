@@ -16,7 +16,7 @@ The process expects the following variables whether through command line
 execution or invocation of the :py:func:`main` function:
 
 - ``-i``, ``input_file`` : Path to input file containing a matrix with
-  allelic profiles.
+     'allelic profiles.
 
     - e.g.: ``/home/user/chewie/results/matrix``
 
@@ -25,10 +25,15 @@ execution or invocation of the :py:func:`main` function:
 
     - e.g.: ``/home/user/chewie/results/output_directory``
 
-- ``--p``, ``threshold`` : Genes that constitute the core genome must be
+- ``--t``, ``threshold`` : Genes that constitute the core genome must be
   in a proportion of genomes that is at least equal to this value.
 
     - e.g.: ``0.95``
+
+- ``--s``, ``step`` : Number of genomes added to the cgMLST computation
+  at each step.
+
+    - e.g.: ``5``
 
 - ``--r``, ``genes2remove`` : Path to file with a list of genes/columns to
   remove from the matrix (one gene identifier per line).
@@ -51,12 +56,10 @@ import plotly.graph_objects as go
 
 try:
     from utils import (file_operations as fo,
-                       iterables_manipulation as im,
-                       constants as ct)
+                       iterables_manipulation as im)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
-                                 iterables_manipulation as im,
-                                 constants as ct)
+                                 iterables_manipulation as im)
 
 
 def binarize_matrix(column):
@@ -94,7 +97,7 @@ def remove_genomes(matrix, genomesToRemove):
         and each column has the allele identifiers
         determined for a locus.
     genomesToRemove : list
-        List with the set of genomes to remove.
+        List of genomes to remove.
 
     Returns
     -------
@@ -112,9 +115,18 @@ def remove_genomes(matrix, genomesToRemove):
 
 
 def remove_genes(matrix, genesToRemove):
-    """
-    """
+    """Remove columns from an allele calling matrix.
 
+    Parameters
+    ----------
+    matrix : pandas.core.frame.DataFrame
+        Pandas dataframe with allelic profiles.
+        Each row has the allelic profile of a genome
+        and each column has the allele identifiers
+        determined for a locus.
+    genesToRemove : list
+        List of loci to remove.
+    """
     matrix = matrix[matrix.columns[~matrix.columns.isin(genesToRemove)]]
 
     return matrix
@@ -155,21 +167,22 @@ def compute_cgMLST(matrix, sorted_genomes, threshold, step):
         and each column has the allele identifiers
         determined for a single gene.
     sorted_genomes : list
-        
+        List of genome identifiers sorted in order of
+        decresing number of loci.
     threshold : float
         Core genome determination threshold.
     step : int
-        
+        Number of genomes added to the cgMLST computation at
+        each step.
 
     Returns
     -------
-    pruned_matrix : pandas.core.frame.DataFrame
-        Input dataframe without the columns whose
-        headers matched an identifier of a gene
-        to remove or that was below the threshold.
-    genes_to_delete : set
-        Set with identifiers of genes that were not included
-        in the core genome.
+    pruned_df : pandas.core.frame.DataFrame
+        Dataframe with the cgMLST profiles for the last step value
+        (the last step includes all genomes in the input matrix).
+    cgMLST_size : dict
+        Dictionary with the number of genomes used to compute the
+        cgMLST as keys and the size of the core-genome as values.
     """
     # determine genes at or above threshold
     cgMLST_size = {}
@@ -208,6 +221,9 @@ def presAbs(matrix, output_directory):
         Pandas dataframe with numeric values equal to
         1 for the cells that had valid allele identifiers
         and equal to 0 for missing data.
+    pa_path : str
+        Path to the output TSV file that contains the
+        presence-absence matrix.
     """
     presence_absence = matrix.apply(binarize_matrix)
 
@@ -260,14 +276,15 @@ def main(input_file, output_directory, threshold, step,
     output_directory : str
         Path to the directory where the process will
         store output files.
-    genes2remove : list
-        List with a set of genes to remove from the
-        analysis.
-    genomes2remove : list
-        List with a set of genomes to remove from the
-        analysis.
-    thresholds : float
-        Core genome determination threshold.
+    threshold : list
+        Core genome determination thresholds.
+    step : int
+        Number of genomes added to the cgMLST computation at
+        each step.
+    genes2remove : str
+        Path to TXT file with the list of genomes to remove.
+    genomes2remove : str
+        Path to TXT file with the list of loci to remove.
 
     Returns
     -------
@@ -299,10 +316,7 @@ def main(input_file, output_directory, threshold, step,
         genomesToRemove = fo.read_lines(genomes2remove)
     print('{0} genomes to exclude.'.format(len(genomesToRemove)))
 
-    if threshold is None:
-        cgMLST_thresholds = ct.CGMLST_THRESHOLDS
-    else:
-        cgMLST_thresholds = threshold
+    cgMLST_thresholds = threshold
 
     # remove genomes
     if len(genomesToRemove) > 0:
@@ -349,7 +363,7 @@ def main(input_file, output_directory, threshold, step,
                                                    step)
 
         retained = len(gene_pruned.columns)
-        print('\ncgMLST for loci presence threshold of {0}% composed '
+        print('\ncgMLST for loci presence threshold of {0} composed '
               'of {1}/{2} genes.'.format(t, retained, total_loci))
 
         # write cgMLST matrix
@@ -403,3 +417,8 @@ def main(input_file, output_directory, threshold, step,
     plot(fig, filename=output_html, auto_open=False)
     print('HTML file with cgMLST per loci presence threshold '
           'and per step saved to {0}'.format(output_html))
+
+
+if __name__ == '__main__':
+
+    main()

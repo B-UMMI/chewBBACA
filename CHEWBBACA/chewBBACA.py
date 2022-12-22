@@ -799,15 +799,18 @@ def extract_cgmlst():
                              'will store output files.')
 
     parser.add_argument('--t', '--threshold', nargs='+', type=float,
-                        required=False, dest='threshold',
+                        required=False, default=ct.CGMLST_THRESHOLDS,
+                        dest='threshold',
                         help='Genes that constitute the core genome '
                              'must be in a proportion of genomes that is '
-                             'at least equal to this value.')
+                             'at least equal to this value. Users can '
+                             'provide multiple values.')
 
     parser.add_argument('--s', '--step', type=int,
                         required=False, default=1,
                         dest='step',
-                        help='')
+                        help='Number of genomes added to the cgMLST '
+                             'computation at each step.')
 
     parser.add_argument('--r', '--genes2remove', type=str,
                         required=False, default=False, dest='genes2remove',

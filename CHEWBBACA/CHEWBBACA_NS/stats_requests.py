@@ -50,6 +50,7 @@ Code documentation
 
 
 import sys
+import logging
 import requests
 import argparse
 from urllib3.exceptions import InsecureRequestWarning
@@ -63,6 +64,8 @@ except ModuleNotFoundError:
                                  chewiens_requests as cr,
                                  parameters_validation as pv)
 
+# create logger (writes to same file as main script)
+logger = logging.getLogger('chewBBACA.NSStats')
 
 # Suppress only the single warning from urllib3 needed.
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
@@ -113,6 +116,8 @@ def species_stats(base_url, headers_get):
                              '{:^10}'.format(sp[1], sp[0], sp[2],
                                              total_loci, total_alleles))
     species_stats.append('-'*78)
+
+    logger.info(f'Retrieved data for {len(species_stats)-4} species.')
 
     return species_stats
 
@@ -178,10 +183,12 @@ def species_schemas_count(base_url, headers_get):
     if 'message' in res:
         res = res['message']
     else:
-        sys.exit('Could not retrieve species info.')
+        logger.error('Could not retrieve species info.')
+        sys.exit(1)
 
     if len(res) == 0:
-        sys.exit('Could not retrieve species info.')
+        logger.error('Could not retrieve species info.')
+        sys.exit(1)
     else:
         info = []
         for s in res:
@@ -260,8 +267,9 @@ def single_species(species_id, base_url, headers_get):
     # get all schemas for species
     schemas = species_schemas(species_id, base_url, headers_get)
     if 'NOT FOUND' in schemas:
-        sys.exit('Could not find information about a species with '
-                 'provided identifier (id={0}).'.format(species_id))
+        logger.error('Could not find information about a species with '
+                     'provided identifier (id={0}).'.format(species_id))
+        sys.exit(1)
     species_name = schemas[0]['name']['value']
     schemas = {s['schemas']['value'].split('/')[-1]: s['schemaName']['value']
                for s in schemas[1:]}
@@ -269,8 +277,9 @@ def single_species(species_id, base_url, headers_get):
     # get more info for all schema
     stats = schema_stats(species_id, base_url, headers_get)
     if stats is None:
-        sys.exit('Could not retrieve schemas for {0} '
-                 '(id={1}).'.format(species_name, species_id))
+        logger.error('Could not retrieve schemas for {0} '
+                     '(id={1}).'.format(species_name, species_id))
+        sys.exit(1)
     schemas_stats = []
     schemas_stats.append('{0} (id={1})'.format(species_name, species_id))
     schemas_stats.append('-'*66)
@@ -326,21 +335,24 @@ def single_schema(species_id, schema_id, base_url, headers_get):
     # get all schemas for species
     species = species_schemas(species_id, base_url, headers_get)
     if 'NOT FOUND' in species:
-        sys.exit('Could not find information about a species with '
-                 'provided identifier (id={0}).'.format(species_id))
+        logger.error('Could not find information about a species with '
+                     'provided identifier (id={0}).'.format(species_id))
+        sys.exit(1)
     species_name = species[0]['name']['value']
 
     schemas = schema_stats(species_id, base_url, headers_get)
 
     if schemas is None:
-        sys.exit('Could not retrieve schemas for {0} '
-                 '(id={1}).'.format(species_name, species_id))
+        logger.error('Could not retrieve schemas for {0} '
+                     '(id={1}).'.format(species_name, species_id))
+        sys.exit(1)
     else:
         schema = [s for s in schemas if s['uri'].split('/')[-1] == schema_id]
 
     if len(schema) == 0:
-        sys.exit('Could not find information about schema with '
-                 'specified identifier (id={0}).'.format(schema_id))
+        logger.error('Could not find information about schema with '
+                     'specified identifier (id={0}).'.format(schema_id))
+        sys.exit(1)
 
     schema = schema[0]
     schema_info = []
@@ -387,7 +399,8 @@ def main(mode, nomenclature_server, species_id, schema_id):
 
     headers_get = ct.HEADERS_GET_JSON
 
-    print('\nRetrieving data...')
+    logger.info(f'Retrieving data from {nomenclature_server}')
+    print('Retrieving data...')
     if mode == 'species':
         stats = species_stats(nomenclature_server, headers_get)
     elif mode == 'schemas':
@@ -399,12 +412,13 @@ def main(mode, nomenclature_server, species_id, schema_id):
                 stats = single_species(species_id, nomenclature_server,
                                        headers_get)
         else:
-            sys.exit('\nPlease provide a valid species identifier '
-                     'to get the list of available schemas.\n')
+            logger.ERROR('Please provide a valid species identifier '
+                         'to get the list of available schemas.')
+            sys.exit(1)
 
     # print stats
     stats_text = '\n'.join(stats)
-    print('\n{0}\n'.format(stats_text))
+    print('\n{0}'.format(stats_text))
 
 
 def parse_arguments():

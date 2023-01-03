@@ -233,8 +233,8 @@ def presAbs(matrix, output_directory):
     return [presence_absence, pa_path]
 
 
-def missing_data_table(presence_absence):
-    """Determine missing data per genome.
+def count_missing_loci(presence_absence):
+    """Count number of missing loci per genome.
 
     Parameters
     ----------
@@ -246,15 +246,15 @@ def missing_data_table(presence_absence):
     Returns
     -------
     missing_data_df : pandas.core.frame.DataFrame
-        Dataframe with number of missing genes and
-        percentage of missing genes per genome.
+        Dataframe with number of missing loci and
+        percentage of missing loci per genome.
     """
-    _, n_genes = presence_absence.shape
+    _, n_loci = presence_absence.shape
     genes_present = presence_absence.apply(np.count_nonzero, axis=1)
 
     missing_data = {'FILE': presence_absence.index,
-                    'missing': n_genes - genes_present,
-                    'percentage': 1 - (genes_present / n_genes)}
+                    'missing': n_loci - genes_present,
+                    'percentage': round(1 - (genes_present / n_loci), 4)}
 
     missing_data_df = pd.DataFrame(missing_data,
                                    columns=['FILE',
@@ -262,6 +262,37 @@ def missing_data_table(presence_absence):
                                             'percentage'])
 
     return missing_data_df
+
+
+def count_loci_presence(presence_absence):
+    """Count the number of genomes each loci is present in.
+
+    Parameters
+    ----------
+    presence_absence : pandas.core.frame.DataFrame
+        Pandas dataframe with numeric values equal to
+        1 for the cells that have valid allele identifiers
+        and equal to 0 for missing data.
+
+    Returns
+    -------
+    loci_presence_df : pandas.core.frame.DataFrame
+        Dataframe with the number of genomes and the percentage
+        of genomes each locus is present in.
+    """
+    n_genomes, _ = presence_absence.shape
+    loci_presence_counts = presence_absence.apply(np.count_nonzero, axis=0)
+
+    loci_presence = {'Locus': presence_absence.columns,
+                     'present': loci_presence_counts,
+                     'percentage': round(loci_presence_counts / n_genomes, 4)}
+
+    loci_presence_df = pd.DataFrame(loci_presence,
+                                    columns=['Locus',
+                                             'present',
+                                             'percentage'])
+
+    return loci_presence_df
 
 
 def main(input_file, output_directory, threshold, step,
@@ -303,8 +334,7 @@ def main(input_file, output_directory, threshold, step,
                          sep='\t', low_memory=False)
 
     total_genomes, total_loci = matrix.shape
-    print('Input matrix has {0} profiles for {1} '
-          'loci.'.format(total_genomes, total_loci))
+    print(f'Input matrix has {total_genomes} profiles for {total_loci} loci.')
 
     # read list of genes and list of genomes to exclude
     genesToRemove = []
@@ -341,7 +371,7 @@ def main(input_file, output_directory, threshold, step,
 
     # count number of missing data per genome
     print('Determining missing data per genome...')
-    missing_data_df = missing_data_table(pa_matrix)
+    missing_data_df = count_missing_loci(pa_matrix)
     missing_stats = missing_data_df['missing'].describe()
 
     # sort genomes based on order of decreasing missing data
@@ -351,7 +381,16 @@ def main(input_file, output_directory, threshold, step,
     # write table with missing data stats
     mdata_path = os.path.join(output_directory, 'mdata_stats.tsv')
     missing_data_df.to_csv(mdata_path, sep='\t', index=False)
-    print('Missing data table saved to {0}'.format(mdata_path))
+    print('Table with missing data per genome saved to {0}'.format(mdata_path))
+
+    # count missing data per locus
+    loci_presence_df = count_loci_presence(pa_matrix)
+    # sort based on decreasing loci presence
+    loci_presence_df = loci_presence_df.sort_values('present', ascending=False)
+    # write table with loci_presence_stats
+    lpresence_path = os.path.join(output_directory, 'loci_presence.tsv')
+    loci_presence_df.to_csv(lpresence_path, sep='\t', index=False)
+    print('Table with loci presence counts saved to {0}'.format(lpresence_path))
 
     # compute cgMLST
     line_traces = []

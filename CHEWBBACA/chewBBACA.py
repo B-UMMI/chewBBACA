@@ -14,6 +14,7 @@ import sys
 import pickle
 import shutil
 import hashlib
+import logging
 import argparse
 
 try:
@@ -59,6 +60,30 @@ except ModuleNotFoundError:
 
 
 version = __version__
+
+# config logging
+handlers = [ct.FILE_HANDLER, ct.STDOUT_HANDLER]
+logging.basicConfig(level=logging.DEBUG, handlers=handlers)
+# create logger (necessary to get the name of the modules logging the messages)
+logger = logging.getLogger('chewBBACA')
+
+
+def parse_arguments(parser):
+
+    # check if only the process name was provided
+    if len(sys.argv) == 2:
+        logger.info(f'Printed help message because no arguments were '
+                    f'provided to run {sys.argv[1]} module.')
+        # print help message
+        parser.print_help()
+        sys.exit(0)
+    else:
+        # parse arguments
+        args = parser.parse_args()
+        # delete process name from namespace
+        delattr(args, sys.argv[1])
+
+    return args
 
 
 @pdt.process_timer
@@ -178,8 +203,7 @@ def create_schema():
                              'during process execution are not deleted at '
                              'the end.')
 
-    args = parser.parse_args()
-    del args.CreateSchema
+    args = parse_arguments(parser)
 
     # check if Prodigal is installed if input files are genome assemblies
     if args.cds_input is False:
@@ -424,7 +448,7 @@ def allele_call():
                              'BSR value, including the determination of new '
                              'representative alleles to add to the schema).')
 
-    args = parser.parse_args()
+    args = parse_arguments(parser)
 
     # determine if Prodigal is installed and in PATH
     # check if Prodigal is installed if input files are genome assemblies
@@ -613,8 +637,7 @@ def evaluate_schema():
                              'during process execution are not removed at '
                              'the end.')
 
-    args = parser.parse_args()
-    del args.SchemaEvaluator
+    args = parse_arguments(parser)
 
     input_files = args.input_files
     output_file = args.output_file
@@ -824,8 +847,7 @@ def extract_cgmlst():
                              'remove from the matrix (one genome identifier '
                              'per line).')
 
-    args = parser.parse_args()
-    del args.ExtractCgMLST
+    args = parse_arguments(parser)
 
     Extract_cgAlleles.main(**vars(args))
 
@@ -874,8 +896,7 @@ def remove_genes():
                              'genes to keep and all other genes should be '
                              'removed.')
 
-    args = parser.parse_args()
-    del args.RemoveGenes
+    args = parse_arguments(parser)
 
     RemoveGenes.main(**vars(args))
 
@@ -918,8 +939,7 @@ def join_profiles():
                         help='Create file with profiles for the set of '
                              'common loci.')
 
-    args = parser.parse_args()
-    del args.JoinProfiles
+    args = parse_arguments(parser)
 
     profile_joiner.main(**vars(args))
 
@@ -1029,8 +1049,7 @@ def prep_schema():
                         help='Path to the directory that contains the '
                              'BLAST executables.')
 
-    args = parser.parse_args()
-    del args.PrepExternalSchema
+    args = parse_arguments(parser)
 
     # check if ptf exists
     if args.ptf_path is not None:
@@ -1165,8 +1184,7 @@ def find_uniprot():
                         help='Path to the directory that contains the '
                              'BLAST executables.')
 
-    args = parser.parse_args()
-    del args.UniprotFinder
+    args = parse_arguments(parser)
 
     uniprot_find.main(**vars(args))
 
@@ -1254,8 +1272,7 @@ def download_schema():
                              'not the latest, downloads all loci FASTA files '
                              'and constructs schema locally.')
 
-    args = parser.parse_args()
-    del args.DownloadSchema
+    args = parse_arguments(parser)
 
     down_schema.main(**vars(args))
 
@@ -1362,8 +1379,7 @@ def upload_schema():
                         help='Check if the schema upload was interrupted and '
                              'attempt to continue upload.')
 
-    args = parser.parse_args()
-    del args.LoadSchema
+    args = parse_arguments(parser)
 
     load_schema.main(**vars(args))
 
@@ -1447,8 +1463,7 @@ def synchronize_schema():
     #                     help='If the process should update local profiles '
     #                          'stored in the SQLite database.')
 
-    args = parser.parse_args()
-    del args.SyncSchema
+    args = parse_arguments(parser)
 
     sync_schema.main(**vars(args))
 
@@ -1512,8 +1527,7 @@ def ns_stats():
                              'Users may also provide the IP address to other '
                              'Chewie-NS instances.')
 
-    args = parser.parse_args()
-    del args.NSStats
+    args = parse_arguments(parser)
 
     stats_requests.main(**vars(args))
 
@@ -1557,20 +1571,19 @@ def main():
                                   'and schemas in Chewie-NS.',
                                   ns_stats]}
 
-    matches = ["--v", "-v", "-version", "--version"]
+    matches = ['--v', '-v', '-version', '--version']
     if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
         # print version and exit
         print('chewBBACA version: {0}'.format(version))
         sys.exit(0)
 
-    print('\nchewBBACA version: {0}'.format(version))
-    print('Authors: {0}'.format(ct.authors))
-    print('Github: {0}'.format(ct.repository))
-    print('Documentation: {0}'.format(ct.documentation))
-    print('Contacts: {0}\n'.format(ct.contacts))
-
     # display help message if selected process is not valid
     if len(sys.argv) == 1 or sys.argv[1] not in functions_info:
+        print('\nchewBBACA version: {0}'.format(version))
+        print('Authors: {0}'.format(ct.authors))
+        print('Github: {0}'.format(ct.repository))
+        print('Documentation: {0}'.format(ct.documentation))
+        print('Contacts: {0}\n'.format(ct.contacts))
         print('USAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following modules :\n')
         for f in functions_info:
@@ -1579,6 +1592,14 @@ def main():
 
     # Check python version
     python_version = pv.validate_python_version()
+
+    logger.info('chewBBACA version: {0}'.format(version))
+    logger.info('Authors: {0}'.format(ct.authors))
+    logger.info('Github: {0}'.format(ct.repository))
+    logger.info('Documentation: {0}'.format(ct.documentation))
+    logger.info('Contacts: {0}'.format(ct.contacts))
+    logger.info('Python version: {0}'.format(python_version))
+    logger.info('Command used: {0}'.format(' '.join(sys.argv)))
 
     process = sys.argv[1]
     functions_info[process][1]()

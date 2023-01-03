@@ -13,6 +13,7 @@ Code documentation
 
 
 import sys
+import logging
 import platform
 
 
@@ -154,15 +155,6 @@ UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/'
 # list of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
 
-# AlleleCall logfile basename and content template
-LOGFILE_BASENAME = 'logging_info.txt'
-LOGFILE_TEMPLATE = ('Started script at: {0}\n'
-                    'Finished script at: {1}\n'
-                    'Number of inputs: {2}\n'
-                    'Number of loci: {3}\n'
-                    'Used this number of CPU cores: {4}\n'
-                    'Used a BSR of: {5}\n')
-
 # basename for files created by AlleleCall
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
@@ -227,3 +219,27 @@ HASH_TABLE_MAXIMUM_ALLELES = 200000
 UNIPROT_SPARQL_THREADS = 4
 
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
+
+# logging
+# logfile basename
+LOGFILE_BASENAME = 'chewie.log'
+# handler for file logging
+FILE_HANDLER = logging.FileHandler(filename=LOGFILE_BASENAME)
+FILE_HANDLER.setLevel(logging.DEBUG)
+FILE_FORMATTER = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s][%(filename)s:%(funcName)s:%(lineno)s]: %(message)s',
+                                   datefmt='%d-%m-%y %H:%M:%S')
+FILE_HANDLER.setFormatter(FILE_FORMATTER)
+
+# handler for stdout logging
+STDOUT_HANDLER = logging.StreamHandler()
+STDOUT_HANDLER.setLevel(logging.WARNING)
+CMD_FORMATTER = logging.Formatter(fmt='[%(levelname)s]: %(message)s',
+                                  datefmt='%d-%m-%y %H:%M:%S')
+STDOUT_HANDLER.setFormatter(CMD_FORMATTER)
+# AlleleCall template
+LOGFILE_TEMPLATE = ('Started script at: {0}\n'
+                    'Finished script at: {1}\n'
+                    'Number of inputs: {2}\n'
+                    'Number of loci: {3}\n'
+                    'Used this number of CPU cores: {4}\n'
+                    'Used a BSR of: {5}\n')

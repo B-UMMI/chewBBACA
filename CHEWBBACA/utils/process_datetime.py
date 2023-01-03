@@ -136,8 +136,8 @@ def process_timer(func):
         # get process name and print header
         process_header(sys.argv[1])
 
-        # do not measure time if it is only needed to print the help message
-        if any([option in ['-h', '--help'] for option in sys.argv]) is False:
+        # do not measure time if it is only needed to print the help message or if only the process name was provided
+        if any([option in ['-h', '--help'] for option in sys.argv]) is False and len(sys.argv) > 2:
             start = get_datetime()
             start_str = datetime_str(start)
             print('Started at: {0}\n'.format(start_str))

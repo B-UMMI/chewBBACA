@@ -131,6 +131,8 @@ MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else 'ma
 
 # Prodigal alias (must be in PATH)
 PRODIGAL_PATH = 'prodigal'
+# Prodigal default mode
+PRODIGAL_DEFAULT_MODE = 'single'
 
 # BLAST warnings to be ignored
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
@@ -223,19 +225,9 @@ CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 # logging
 # logfile basename
 LOGFILE_BASENAME = 'chewie.log'
-# handler for file logging
-FILE_HANDLER = logging.FileHandler(filename=LOGFILE_BASENAME)
-FILE_HANDLER.setLevel(logging.DEBUG)
-FILE_FORMATTER = logging.Formatter(fmt='[%(asctime)s][%(levelname)s][%(name)s][%(filename)s:%(funcName)s:%(lineno)s]: %(message)s',
-                                   datefmt='%d-%m-%y %H:%M:%S')
-FILE_HANDLER.setFormatter(FILE_FORMATTER)
-
-# handler for stdout logging
-STDOUT_HANDLER = logging.StreamHandler()
-STDOUT_HANDLER.setLevel(logging.WARNING)
-CMD_FORMATTER = logging.Formatter(fmt='[%(levelname)s]: %(message)s',
-                                  datefmt='%d-%m-%y %H:%M:%S')
-STDOUT_HANDLER.setFormatter(CMD_FORMATTER)
+FILE_HANDLER_FORMAT = '[%(asctime)s][%(levelname)s][%(name)s][%(filename)s:%(funcName)s:%(lineno)s]: %(message)s'
+FILE_HANLDER_DATEFMT = '%Y-%m-%dT%H:%M:%S'
+STDOUT_HANDLER_FORMAT = '[%(levelname)s]: %(message)s'
 # AlleleCall template
 LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Finished script at: {1}\n'

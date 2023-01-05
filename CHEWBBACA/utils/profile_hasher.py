@@ -26,7 +26,7 @@ except ModuleNotFoundError:
                                  multiprocessing_operations as mo)
 
 
-def hash_column(column, locus_file, hashing_function):
+def hash_column(column, locus_file, hash_function):
     """Substitute allele identifiers by allele sequence hashes.
 
     Parameters
@@ -36,7 +36,7 @@ def hash_column(column, locus_file, hashing_function):
         hash values computed from each allele sequence.
     locus_file : str
         Path to the FASTA file that contains the locus alleles.
-    hashing_function : func
+    hash_function : func
         Hashing function used to hash each allele.
 
     Returns
@@ -56,7 +56,7 @@ def hash_column(column, locus_file, hashing_function):
     hashed_alleles = {}
     for seqid, seq in locus_alleles.items():
         # hash function does not accept string object, encode to get bytes object
-        hashed_seq = hashing_function(seq.encode())
+        hashed_seq = hash_function(seq.encode())
         # bitwise operation to convert crc32 and adler32 hashes to unsigned
         # integer and ensure the computed value is the same for Python 2 & 3
         if isinstance(hashed_seq, int):
@@ -71,7 +71,7 @@ def hash_column(column, locus_file, hashing_function):
     return hashed_column
 
 
-def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
+def hash_profiles(profiles_table, loci_ids, loci_files, hash_function,
                   nrows, skiprows, output_directory):
     """Hash a set of allelic profiles read from a TSV file.
 
@@ -84,7 +84,7 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     loci_files : list
         List with the paths to the FASTA files that contain the
         loci alleles.
-    hashing_function : func
+    hash_function : func
         Hashing function used to hash each allele.
     nrows : int
         Number of rows/allelic profiles to read from the input
@@ -109,7 +109,7 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     for locus in loci_ids:
         locus_column = current_rows[locus]
         hashed_column = hash_column(locus_column, loci_files[locus],
-                                    hashing_function)
+                                    hash_function)
         hashed_profiles.append(hashed_column)
 
     hashed_df = pd.concat(hashed_profiles, axis=1)
@@ -123,18 +123,8 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     return output_file
 
 
-def main(profiles_table, schema_directory, output_directory, hash_type,
+def main(profiles_table, schema_directory, output_directory, hash_function,
          cpu_cores, nrows, updated_files, no_inferred):
-
-    # get hash function
-    hashing_function = getattr(hashlib, hash_type, None)
-    if hashing_function is None:
-        hashing_function = getattr(zlib, hash_type, None)
-
-    if hashing_function is None:
-        print('{0} hash function is not available in '
-              'hashlib or zlib modules.'.format(hash_type))
-        return False
 
     # get loci identifiers
     with open(profiles_table, 'r') as infile:
@@ -165,7 +155,7 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
     # divide and process by row chunks
     for i in range(0, len(sample_ids), nrows):
         multi_inputs.append([profiles_table, loci_ids, loci_files,
-                             hashing_function, nrows, range(1, i+1),
+                             hash_function, nrows, range(1, i+1),
                              output_directory, hash_profiles])
 
     hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper,

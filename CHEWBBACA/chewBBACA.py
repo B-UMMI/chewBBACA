@@ -25,7 +25,8 @@ try:
     from PrepExternalSchema import PrepExternalSchema
     from UniprotFinder import uniprot_find
     from ExtractCgMLST import Extract_cgAlleles
-    from utils import (profile_joiner,
+    from utils import (setup_logger as sl,
+                       profile_joiner,
                        RemoveGenes,
                        profiles_sqlitedb as ps,
                        process_datetime as pdt,
@@ -45,7 +46,8 @@ except ModuleNotFoundError:
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.UniprotFinder import uniprot_find
     from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
-    from CHEWBBACA.utils import (profile_joiner,
+    from CHEWBBACA.utils import (setup_logger as sl,
+                                 profile_joiner,
                                  RemoveGenes,
                                  profiles_sqlitedb as ps,
                                  process_datetime as pdt,
@@ -61,9 +63,6 @@ except ModuleNotFoundError:
 
 version = __version__
 
-# config logging
-handlers = [ct.FILE_HANDLER, ct.STDOUT_HANDLER]
-logging.basicConfig(level=logging.DEBUG, handlers=handlers)
 # create logger (necessary to get the name of the modules logging the messages)
 logger = logging.getLogger('chewBBACA')
 
@@ -151,17 +150,20 @@ def create_schema():
                              'as sequences from the same gene.')
 
     parser.add_argument('--l', '--minimum-length', type=pv.minimum_sequence_length_type,
-                        required=False, default=201, dest='minimum_length',
+                        required=False, default=ct.MINIMUM_LENGTH_DEFAULT,
+                        dest='minimum_length',
                         help='Minimum sequence length value. Coding sequences '
                              'shorter than this value are excluded.')
 
     parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
-                        required=False, default=11, dest='translation_table',
+                        required=False, default=ct.GENETIC_CODES_DEFAULT,
+                        dest='translation_table',
                         help='Genetic code used to predict genes and'
                              ' to translate coding sequences.')
 
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
-                        required=False, default=0.2, dest='size_threshold',
+                        required=False, default=ct.SIZE_THRESHOLD_DEFAULT,
+                        dest='size_threshold',
                         help='CDS size variation threshold. Added to the '
                              'schema\'s config file and used to identify '
                              'alleles with a length value that deviates from '
@@ -183,7 +185,7 @@ def create_schema():
 
     parser.add_argument('--pm', '--prodigal-mode', required=False,
                         choices=['single', 'meta'],
-                        default='single', dest='prodigal_mode',
+                        default=ct.PRODIGAL_DEFAULT_MODE, dest='prodigal_mode',
                         help='Prodigal running mode ("single" for '
                              'finished genomes, reasonable quality '
                              'draft genomes and big viruses. "meta" '
@@ -207,19 +209,23 @@ def create_schema():
 
     # check if Prodigal is installed if input files are genome assemblies
     if args.cds_input is False:
-        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
+        prodigal_version = pv.check_prodigal(ct.PRODIGAL_PATH)
+        logger.info(f'{prodigal_version}')
 
     # check if ptf exists
     if args.ptf_path is not None:
         ptf_exists = os.path.isfile(args.ptf_path)
         if ptf_exists is False:
-            sys.exit('Invalid path for Prodigal training file.')
+            logger.error('Invalid path for Prodigal training file.')
+            sys.exit(1)
 
     # create output directory
     created = fo.create_directory(args.output_directory)
     if created is False:
-        sys.exit('Output directory already exists. Please provide a path to '
-                 'a directory that will be created to store the results.')
+        logger.error('Output directory already exists. Please provide '
+                     'a path to a directory that will be created to '
+                     'store the schema.')
+        sys.exit(1)
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
@@ -238,7 +244,7 @@ def create_schema():
     # copy training file to schema directory
     ptf_hash = None
     if args.ptf_path is not None:
-        shutil.copy(args.ptf_path, schema_dir)
+        fo.copy_file(args.ptf_path, schema_dir)
         # determine PTF checksum
         ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
@@ -307,7 +313,7 @@ def allele_call():
                              'files or to a file with a list of paths to '
                              'the FASTA files, one per line.')
 
-    parser.add_argument('-g', '--schema-directory', type=str,
+    parser.add_argument('-g', '--schema-directory', type=pv.check_schema_directory,
                         required=True, dest='schema_directory',
                         help='Path to the schema directory with the'
                              ' loci FASTA files.')
@@ -372,7 +378,7 @@ def allele_call():
 
     parser.add_argument('--pm', '--prodigal-mode', type=str,
                         required=False, choices=['single', 'meta'],
-                        default='single', dest='prodigal_mode',
+                        default=ct.PRODIGAL_DEFAULT_MODE, dest='prodigal_mode',
                         help='Prodigal running mode ("single" for '
                              'finished genomes, reasonable quality '
                              'draft genomes and big viruses. "meta" '
@@ -412,8 +418,8 @@ def allele_call():
                              'during process execution are not removed at '
                              'the end.')
 
-    parser.add_argument('--hash-profiles', type=str, required=False,
-                        dest='hash_profiles',
+    parser.add_argument('--hash-profiles', type=pv.check_hash_type,
+                        required=False, dest='hash_profiles',
                         help='Create TSV file with hashed allelic profiles. '
                              'Profiles can be hashed with any of the hash '
                              'algorithms implemented in the hashlib and zlib '
@@ -453,17 +459,16 @@ def allele_call():
     # determine if Prodigal is installed and in PATH
     # check if Prodigal is installed if input files are genome assemblies
     if args.cds_input is False:
-        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
+        prodigal_version = pv.check_prodigal(ct.PRODIGAL_PATH)
+        logger.info(f'{prodigal_version}')
 
     config_file = os.path.join(args.schema_directory, '.schema_config')
     # legacy schemas do not have config file
     # create one with provided arguments
     if os.path.isfile(config_file) is False:
-        schema_files = os.listdir(args.schema_directory)
-        # exit if there is no 'short' directory or if there are no FASTA files
-        if 'short' not in schema_files or len(fo.filter_files(schema_files, ['.fasta'])) == 0:
-            sys.exit('Provided path does not include all the necessary schema files. '
-                     'Please verify that you have passed the correct path to the schema.')
+        logger.warning('Schema directory does not contain the ".schema_config"'
+                       ' file. Schema needs to be upgraded to work with '
+                       f'chewBBACA {version}.')
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
@@ -496,8 +501,8 @@ def allele_call():
                                     ['results_{0}'.format(current_time_str)])
         created = fo.create_directory(results_dir)
         args.output_directory = results_dir
-        print('Output directory exists. Will store results in '
-              '{0}.'.format(results_dir))
+        logger.warning('Output directory exists. Will store results in '
+                       'f{results_dir}.')
 
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     # user provided a list of genes to call
@@ -654,121 +659,95 @@ def evaluate_schema():
 
     # check if input file path exists
     if not os.path.exists(input_files):
-        sys.exit("Input argument is not a valid directory. Exiting...")
+        logger.error('Path to input directory does not exist.')
+        sys.exit(1)
 
     # check if the schema was created with chewBBACA
-    config_file = os.path.join(input_files, ".schema_config")
+    config_file = os.path.join(input_files, '.schema_config')
+    # variable used to identify if schema was created with chewBBACA
+    chewie = False
     if os.path.exists(config_file):
         # get the schema configs
-        with open(config_file, "rb") as cf:
-            chewie_schema_configs = pickle.load(cf)
-        print("This schema was created with chewBBACA {0}.".format(
-            chewie_schema_configs["chewBBACA_version"][0]))
+        chewie_schema_configs = fo.pickle_loader(config_file)
+        creation_version = chewie_schema_configs['chewBBACA_version'][0]
+        print(f'Schema created with chewBBACA {creation_version}.')
+        logger.info(f'Schema created with chewBBACA {creation_version}.')
+        chewie = True
 
-        # create pre-computed data
-        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files,
-            translation_table,
-            output_file,
-            annotations,
-            cpu_to_use,
-            minimum_length,
-            ct.SIZE_THRESHOLD_DEFAULT,
-            threshold,
-            conserved,
-            chewie_schema=True, 
-            show_progress=True)
-    else:
-        # create pre-computed data
-        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files, 
-            translation_table, 
-            output_file,
-            annotations,
-            cpu_to_use, 
-            minimum_length,
-            ct.SIZE_THRESHOLD_DEFAULT,
-            threshold,
-            conserved,
-            show_progress=True)
+    # create pre-computed data
+    pre_computed_data_path = schema_evaluator.create_pre_computed_data(
+        input_files,
+        translation_table,
+        output_file,
+        annotations,
+        cpu_to_use,
+        minimum_length,
+        ct.SIZE_THRESHOLD_DEFAULT,
+        threshold,
+        conserved,
+        chewie_schema=chewie,
+        show_progress=True)
 
-    schema_evaluator_main_path = os.path.join(
-        output_file, "SchemaEvaluator_pre_computed_data"
-    )
+    schema_evaluator_main_path = fo.join_paths(output_file,
+                                               ['SchemaEvaluator_pre_computed_data'])
 
-    schema_evaluator_html_files_path = os.path.join(
-        output_file, "html_files"
-    )
+    schema_evaluator_html_files_path = fo.join_paths(output_file,
+                                                     ['html_files'])
 
     # Copy the main.js files to the respective directories
-
     # Global main.js
     script_path = os.path.dirname(os.path.abspath(__file__))
-    shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                             "resources", "main.js"), schema_evaluator_main_path)
+    main_js_file = fo.join_paths(script_path, ['SchemaEvaluator',
+                                               'resources',
+                                               'main.js'])
+    fo.copy_file(main_js_file, schema_evaluator_main_path)
 
     # translate and run MAFFT
     if not light_mode:
-
         # Translate loci
-        if os.path.exists(config_file):
-            protein_file_path = schema_evaluator.create_protein_files(
-                input_files,
-                pre_computed_data_path,
-                cpu_to_use,
-                minimum_length,
-                ct.SIZE_THRESHOLD_DEFAULT,
-                translation_table,
-                chewie_schema=True,
-                show_progress=True)
-        else:
-            protein_file_path = schema_evaluator.create_protein_files(
-                input_files,
-                pre_computed_data_path,
-                cpu_to_use,
-                minimum_length,
-                ct.SIZE_THRESHOLD_DEFAULT,
-                translation_table,
-                show_progress=True)
+        protein_file_path = schema_evaluator.create_protein_files(
+            input_files,
+            pre_computed_data_path,
+            cpu_to_use,
+            minimum_length,
+            ct.SIZE_THRESHOLD_DEFAULT,
+            translation_table,
+            chewie_schema=chewie,
+            show_progress=True)
 
         # Run MAFFT
         schema_evaluator.run_mafft(
             protein_file_path, cpu_to_use, show_progress=True)
 
         # Write HTML files
-        if os.path.exists(config_file):
-            schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path,
-                output_file, minimum_length, chewie_schema=True)
-        else:
-            schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path,
-                output_file, minimum_length)
+        schema_evaluator.write_individual_html(
+            input_files, pre_computed_data_path, protein_file_path,
+            output_file, minimum_length, chewie_schema=chewie)
 
         # html_files main.js
-        shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                                 "resources", "main_ind.js"),
-                    schema_evaluator_html_files_path)
+        individual_js_file = fo.join_paths(script_path, ['SchemaEvaluator',
+                                                         'resources',
+                                                         'main_ind.js'])
+        fo.copy_file(individual_js_file,
+                     schema_evaluator_html_files_path)
 
     # remove intermediate files created
     # during the report generation
     if not no_cleanup:
         # Removes pre-computed data in json format.
         json_files = [
-            os.path.join(schema_evaluator_main_path, file)
+            fo.join_paths(schema_evaluator_main_path, [file])
             for file in os.listdir(schema_evaluator_main_path)
-            if ".json" in file
+            if '.json' in file
         ]
 
-        for jf in json_files:
-            os.remove(jf)
+        fo.remove_files(json_files)
 
         if not light_mode:
             # Removes translated loci and MAFFT outputs.
-            prot_files_dir = os.path.join(
-                schema_evaluator_main_path, "prot_files")
-
-            shutil.rmtree(prot_files_dir)
+            prot_files_dir = fo.join_paths(schema_evaluator_main_path,
+                                           'prot_files')
+            fo.delete_directory(prot_files_dir)
 
     print('The report has been created. Please open the '
           'schema_evaluator_report.html in the '
@@ -1055,14 +1034,15 @@ def prep_schema():
     if args.ptf_path is not None:
         ptf_exists = os.path.isfile(args.ptf_path)
         if ptf_exists is False:
-            sys.exit('Invalid path for Prodigal training file.')
+            logger.error('Invalid path for Prodigal training file.')
+            sys.exit(1)
 
     PrepExternalSchema.main(**vars(args))
 
     # copy training file to schema directory
     ptf_hash = None
     if args.ptf_path is not None:
-        shutil.copy(args.ptf_path, args.output_directory)
+        fo.copy_file(args.ptf_path, args.output_directory)
         # determine PTF checksum
         ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
@@ -1593,13 +1573,8 @@ def main():
     # Check python version
     python_version = pv.validate_python_version()
 
-    logger.info('chewBBACA version: {0}'.format(version))
-    logger.info('Authors: {0}'.format(ct.authors))
-    logger.info('Github: {0}'.format(ct.repository))
-    logger.info('Documentation: {0}'.format(ct.documentation))
-    logger.info('Contacts: {0}'.format(ct.contacts))
-    logger.info('Python version: {0}'.format(python_version))
-    logger.info('Command used: {0}'.format(' '.join(sys.argv)))
+    # setup logging
+    sl.main(version, ct.LOGFILE_BASENAME)
 
     process = sys.argv[1]
     functions_info[process][1]()

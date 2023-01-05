@@ -22,7 +22,9 @@ import time
 import gzip
 import shutil
 import pickle
+import logging
 import zipfile
+import functools
 import urllib.request
 from itertools import islice
 from multiprocessing import TimeoutError
@@ -36,6 +38,24 @@ try:
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  iterables_manipulation as im)
+
+
+logger = logging.getLogger('FO')
+
+
+# decorator to capture and log exceptions
+def capture_exceptions(func):
+    # use functools to preserve info about wrapped function
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            # run function
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.exception(e)
+            sys.exit(1)
+
+    return wrapper
 
 
 def file_basename(file_path, file_extension=True, delimiter='.'):
@@ -92,9 +112,12 @@ def remove_files(files):
     files : list
         List with paths to the files to be deleted.
     """
-    for f in files:
-        if os.path.isfile(f) is True:
-            os.remove(f)
+    for file in files:
+        try:
+            os.remove(file)
+            logger.debug(f'Deleted {file}')
+        except Exception as e:
+            logger.exception(e)
 
 
 def hash_file(file, hash_object, buffer_size=65536):
@@ -159,6 +182,7 @@ def filter_files(files, suffixes, reverse=False):
     return filtered
 
 
+@capture_exceptions
 def create_directory(directory_path):
     """Create a diretory if it does not exist."""
     if not os.path.exists(directory_path):
@@ -218,7 +242,7 @@ def delete_directory(directory_path, max_retries=5):
     # check if directory still exists
     exists = os.path.isdir(directory_path)
     if exists is True:
-        print('Could not remove {0}'.format(directory_path))
+        logger.warning(f'Could not delete {directory_path}')
 
     return exists
 
@@ -251,6 +275,7 @@ def read_lines(input_file, strip=True, num_lines=None):
     return lines
 
 
+@capture_exceptions
 def pickle_dumper(content, output_file):
     """Use the Pickle module to serialize an object.
 
@@ -266,6 +291,7 @@ def pickle_dumper(content, output_file):
         pickle.dump(content, poutfile)
 
 
+@capture_exceptions
 def pickle_loader(input_file):
     """Use the Pickle module to de-serialize an object.
 
@@ -356,7 +382,7 @@ def download_file(file_url, outfile, max_tries=3):
             if os.path.isfile(outfile) is True:
                 downloaded = True
         except Exception as e:
-            print(e)
+            logger.error(e)
             time.sleep(1)
         tries += 1
 
@@ -461,6 +487,7 @@ def read_tabular(input_file, delimiter='\t'):
     return lines
 
 
+@capture_exceptions
 def input_timeout(prompt, timeout=30):
     """Add timeout feature when requesting user input.
 
@@ -485,10 +512,8 @@ def input_timeout(prompt, timeout=30):
     pool = ThreadPool(processes=1)
     answer = pool.apply_async(input, args=[prompt])
 
-    try:
-        return answer.get(timeout=timeout)
-    except TimeoutError:
-        sys.exit('Timed out.')
+    return answer.get(timeout=timeout)
+
 
 
 def is_file_empty(file_path):
@@ -542,11 +567,18 @@ def create_short(schema_files, schema_dir):
     for file in schema_files:
         short_file = join_paths(short_path, [file_basename(file)])
         short_file = short_file.replace('.fasta', '_short.fasta')
-        shutil.copy(file, short_file)
+        copy_file(file, short_file)
 
     return True
 
 
+@capture_exceptions
+def copy_file(source, destination):
+    """Copy a file to a specified destination."""
+    shutil.copy(source, destination)
+
+
+@capture_exceptions
 def move_file(source, destination):
     """Move a file to specified destination."""
     shutil.move(source, destination)

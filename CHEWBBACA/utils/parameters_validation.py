@@ -16,12 +16,13 @@ import os
 import re
 import sys
 import csv
+import zlib
 import shutil
 import hashlib
+import logging
 import argparse
 import platform
 import subprocess
-import multiprocessing
 
 try:
     from utils import (constants as ct,
@@ -33,6 +34,9 @@ except ModuleNotFoundError:
                                  file_operations as fo,
                                  chewiens_requests as cr,
                                  fasta_operations as fao)
+
+
+logger = logging.getLogger('PV')
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -138,11 +142,13 @@ def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
         if schema_bsr >= min_value and schema_bsr <= max_value:
             valid = schema_bsr
         elif schema_bsr < min_value or schema_bsr > max_value:
-            sys.exit('\nBSR value is not contained in the '
-                     '[0.0, 1.0] interval.')
+            logger.error('BSR value is not contained in the '
+                         f'{[min_value, max_value]} interval.')
+            sys.exit(1)
     except Exception:
-        sys.exit('\nInvalid BSR value of {0}. BSR value must be contained'
-                 ' in the [0.0, 1.0] interval.'.format(arg))
+        logger.error(f'Invalid BSR value: {arg}. BSR value must be '
+                     f'contained in the {[min_value, max_value]} interval.')
+        sys.exit(1)
 
     return valid
 
@@ -177,11 +183,13 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
         if schema_ml >= min_value and schema_ml <= max_value:
             valid = schema_ml
         elif schema_ml < min_value or schema_ml > max_value:
-            sys.exit('\nInvalid minimum sequence length value. '
-                     'Must be equal or greater than 0.')
+            logger.error(f'Invalid minimum sequence length value: {arg}. '
+                         f'Must be equal or greater than {min_value}.')
+            sys.exit(1)
     except Exception:
-        sys.exit('\nInvalid minimum sequence length value. '
-                 'Value must be a positive integer.')
+        logger.error(f'Invalid minimum sequence length value: {arg}. '
+                     f'Must be an integer equal or greater than {min_value}.')
+        sys.exit(1)
 
     return valid
 
@@ -217,15 +225,18 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
         if schema_st >= min_value and schema_st <= max_value:
             valid = schema_st
         elif schema_st < min_value or schema_st > max_value:
-            sys.exit('\nInvalid size threshold value. '
-                     'Must be contained in the [0.0, 1.0] interval.')
+            logger.error(f'Invalid size threshold value: {arg}. Must be None '
+                         f'or be contained in the {[min_value, max_value]} '
+                         'interval.')
+            sys.exit(1)
     except Exception:
         if arg in [None, 'None']:
             valid = None
         else:
-            sys.exit('\nInvalid size threshold value used to '
-                     'create schema. Value must be None or a '
-                     'positive float in the [0.0, 1.0] interval.')
+            logger.error(f'Invalid size threshold value: {arg}. Must be None '
+                         f'or be contained in the {[min_value, max_value]} '
+                         'interval.')
+            sys.exit(1)
 
     return valid
 
@@ -267,12 +278,12 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
 
     if valid is False:
         # format available genetic codes into list
-        lines = ['\t{0}: {1}'.format(k, v) for k, v in genetic_codes.items()]
-        gc_table = '\n{0}\n'.format('\n'.join(lines))
-
-        sys.exit('\nInvalid genetic code value.\nValue must correspond to '
-                 'one of the accepted genetic codes\n\nAccepted genetic '
-                 'codes:\n{0}'.format(gc_table))
+        lines = ['{0}: {1}'.format(k, v) for k, v in genetic_codes.items()]
+        gc_table = '{0}\n'.format('\n'.join(lines))
+        logger.error(f'Invalid genetic code value: {arg}. Value must '
+                     'correspond to one of the accepted genetic codes. '
+                     f'Accepted genetic codes:\n{gc_table}')
+        sys.exit(1)
 
     return valid
 
@@ -534,27 +545,27 @@ def verify_cpu_usage(cpu_to_use):
         Value of CPU cores/threads that will be used after
         determining if the provided value was safe.
     """
-    total_cpu = multiprocessing.cpu_count()
-
+    # get number of logical CPU cores
+    total_cpu = os.cpu_count()
     cpu_to_use = int(cpu_to_use)
 
     # do not allow a value greater than the number of cores
     if cpu_to_use >= total_cpu:
-        print('Warning! You have provided a CPU core count value '
-              'that is equal to or exceeds the number of CPU '
-              'cores in your system!')
+        logger.warning(f'CPU core count value provided ({cpu_to_use}) is '
+                       'equal to or exceeds the number of available CPU '
+                       f'cores ({total_cpu}).')
         # define a value that is safe according to the number of
         # available cores/threads
         if total_cpu > 2:
             cpu_to_use = total_cpu - 2
         elif total_cpu == 2:
             cpu_to_use = 1
-        print('Resetting to: {0}'.format(cpu_to_use))
+        logger.warning(f'Resetting CPU core count to: {cpu_to_use}')
     elif cpu_to_use == (total_cpu - 1):
-        print('Warning! You have provided a CPU core count value '
-              'that is close to the maximum core count of your '
-              'machine ({0}/{1}). This may affect your system '
-              'responsiveness.'.format(cpu_to_use, total_cpu))
+        logger.warning(f'CPU core count value provided ({cpu_to_use}) is '
+                       'close to the number of available CPU cores '
+                       f'({total_cpu}). This may affect system '
+                       'responsiveness.')
 
     return cpu_to_use
 
@@ -627,10 +638,11 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
         version or if it does not match minimum requirements.
     """
     # search for BLAST in PATH
-    if not blast_path:
+    if blast_path == '':
         blastp_path = which(ct.BLASTP_ALIAS)
         if not blastp_path:
-            sys.exit('Could not find BLAST executables in PATH.')
+            logger.error('Could not find BLAST executables in PATH.')
+            sys.exit(1)
         else:
             blast_path = os.path.dirname(blastp_path)
     # validate user-provided path
@@ -638,16 +650,18 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
         blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
         executable = is_exe(blastp_path)
         if executable is False:
-            sys.exit('Provided path does not contain BLAST executables.')
+            logger.error(f'Could not find BLAST executables in {blast_path}')
+            sys.exit(1)
 
     # check BLAST version
     try:
         proc = subprocess.Popen([blastp_path, '-version'],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-    except:
-        sys.exit('Could not determine BLAST version.\n'
-                 'Please verify that BLAST is installed and added to PATH.')
+    except Exception as e:
+        logger.error('Could not determine BLAST version. Please verify '
+                     'that BLAST is installed and added to PATH.')
+        sys.exit(1)
 
     stdout, stderr = proc.communicate()
 
@@ -657,11 +671,17 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
 
     match = blast_version_pat.search(version_string)
     if match is None:
-        sys.exit('Could not determine BLAST version.')
+        logger.error('Could not determine BLAST version. Please verify '
+                     'that BLAST is installed and added to PATH.')
+        sys.exit(1)
 
-    version = {k: int(v) for k, v in match.groupdict().items()}
-    if version['MAJOR'] < major or (version['MAJOR'] >= major and version['MINOR'] < minor):
-        sys.exit('Please update BLAST to version >= {0}.{1}.0'.format(major, minor))
+    version = {k: v for k, v in match.groupdict().items()}
+    if int(version['MAJOR']) < major or (int(version['MAJOR']) >= major and int(version['MINOR']) < minor):
+        logger.error(f'Please update BLAST to version >= {major}.{minor}.0')
+        sys.exit(1)
+
+    version_string = ".".join(list(version.values()))
+    logger.info(f'BLAST version: {version_string}')
 
     return blast_path
 
@@ -689,15 +709,18 @@ def check_prodigal(prodigal_path):
         proc = subprocess.Popen([prodigal_path, '-v'],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-    except:
-        sys.exit('Could not determine Prodigal version '
-                 '({0} -v).\nPlease verify that Prodigal '
-                 'is installed and added to PATH.'.format(prodigal_path))
+    except Exception as e:
+        logger.error('Could not determine Prodigal version '
+                     f'({prodigal_path} -v). Please verify that Prodigal '
+                     'is installed and added to PATH.')
+        # automatically captures and logs traceback
+        logger.exception(e)
+        sys.exit(1)
 
     # prodigal version is captured in stderr
     stdout, stderr = proc.communicate()
 
-    return True
+    return stderr.decode().strip()
 
 
 def hash_ptf(ptf_path):
@@ -729,9 +752,9 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
         NoneType. Raises SystemExit if a provided value is not
         valid.
     """
-    prompt = ('It seems that your schema was created with chewBBACA '
-              '2.1.0 or lower.\nIt is highly recommended that you run '
-              'the PrepExternalSchema process to guarantee full '
+    prompt = ('It seems that your schema was created with an older '
+              'version or missing some files.\nIt is highly recommended '
+              'that you run the PrepExternalSchema process to guarantee full '
               'compatibility with the new chewBBACA version.\nIf you '
               'wish to continue, the AlleleCall process will convert '
               'the schema to v{0}, but will not determine if schema '
@@ -739,9 +762,9 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
               'to proceed?\n'.format(version))
     proceed = fo.input_timeout(prompt, ct.prompt_timeout)
     if proceed.lower() not in ['y', 'yes']:
-        sys.exit('Exited.')
+        logger.info(f'Input: {proceed}. Exited.')
+        sys.exit(1)
 
-    print('\n')
     # determine parameters default values to include in config file
     if ptf_path is None:
         prompt = ('Full path to the Prodigal training file:\n')
@@ -750,32 +773,36 @@ def prompt_arguments(ptf_path, blast_score_ratio, translation_table,
             ptf_path = None
         else:
             if os.path.isfile(ptf_path) is False:
-                sys.exit('Provided path is not a valid file.')
+                logger.error('Provided path does not exist.')
+                sys.exit(1)
     else:
         if os.path.isfile(ptf_path) is False:
-            sys.exit('Provided path for Prodigal training file is '
-                     'not a valid.')
+            logger.error('Provided path for Prodigal training file does '
+                         'not exist.')
+            sys.exit(1)
 
     if blast_score_ratio is None:
-        prompt = ('BLAST score ratio value:\n')
+        prompt = (f'BLAST score ratio value ([{ct.BSR_MIN}, '
+                  f'{ct.BSR_MAX}]):\n')
         blast_score_ratio = fo.input_timeout(prompt, ct.prompt_timeout)
 
     blast_score_ratio = bsr_type(blast_score_ratio)
 
     if translation_table is None:
-        prompt = ('Translation table value:\n')
+        table_ids = ','.join(map(str, list(ct.GENETIC_CODES.keys())))
+        prompt = (f'Translation table value ({{{table_ids}}}):\n')
         translation_table = fo.input_timeout(prompt, ct.prompt_timeout)
 
     translation_table = translation_table_type(translation_table)
 
     if minimum_length is None:
-        prompt = ('Minimum length value:\n')
+        prompt = (f'Minimum length value (>={ct.MSL_MIN}):\n')
         minimum_length = fo.input_timeout(prompt, ct.prompt_timeout)
 
     minimum_length = minimum_sequence_length_type(minimum_length)
 
     if size_threshold is None:
-        prompt = ('Size threshold value:\n')
+        prompt = (f'Size threshold value ([{ct.ST_MIN}, {ct.ST_MAX}]):\n')
         size_threshold = fo.input_timeout(prompt, ct.prompt_timeout)
 
     size_threshold = size_threshold_type(size_threshold)
@@ -790,11 +817,11 @@ def auto_arguments(ptf_path, blast_score_ratio, translation_table,
         selects default config values if the provided value
         is of type NoneType.
     """
-
     if ptf_path is not None:
         if os.path.isfile(ptf_path) is False:
-            sys.exit('Provided path to Prodigal training file '
-                     'is not valid.')
+            logger.error('Provided path to Prodigal training file '
+                         'does not exist.')
+            sys.exit(1)
     else:
         ptf_path = None
 
@@ -870,19 +897,16 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                 size_threshold)
 
     ptf_path, blast_score_ratio,\
-    translation_table, minimum_length, size_threshold = values
+        translation_table, minimum_length, size_threshold = values
 
     # copy training file to schema directory
     if ptf_path is not None:
-        print('\nAdding Prodigal training file to schema...')
-        shutil.copy(ptf_path, schema_directory)
-        print('Created {0}'.format(os.path.join(schema_directory,
-                                                os.path.basename(ptf_path))))
+        fo.copy_file(ptf_path, schema_directory)
+        logger.info(f'Copied {ptf_path} to {schema_directory}')
 
     # determine PTF hash
     ptf_hash = hash_ptf(ptf_path)
 
-    print('\nCreating file with schema configs...')
     # write schema config file
     schema_config = write_schema_config(blast_score_ratio, ptf_hash,
                                         translation_table, minimum_length,
@@ -893,14 +917,9 @@ def upgrade_legacy_schema(ptf_path, schema_directory, blast_score_ratio,
                                         ct.REPRESENTATIVE_FILTER_DEFAULT,
                                         ct.INTRA_CLUSTER_DEFAULT,
                                         schema_directory)
-    print('Created {0}'.format(os.path.join(schema_directory,
-                                            '.schema_config')))
 
-    print('\nCreating file with list of genes...')
     # create hidden file with genes/loci list
     genes_list_file = write_gene_list(schema_directory)
-    print('Created {0}\n'.format(os.path.join(schema_directory,
-                                              '.genes_list')))
 
     return [ptf_path, blast_score_ratio, translation_table,
             minimum_length, size_threshold]
@@ -932,35 +951,35 @@ def validate_ptf_path(ptf_path, schema_directory):
         the schema's directory.
         - If a path was provided and it is not valid.
     """
-
     if ptf_path is None:
         # deal with multiple training files
         schema_ptfs = [file
                        for file in os.listdir(schema_directory)
                        if file.endswith('.trn')]
         if len(schema_ptfs) > 1:
-            sys.exit('Found more than one Prodigal training '
-                     'file in schema directory.\nPlease maintain '
-                     'only the training file used in the schema '
-                     'creation process.')
+            logger.error('Found more than one Prodigal training '
+                         'file in the schema directory.\nPlease maintain '
+                         'only the training file used in the schema '
+                         'creation process.')
+            sys.exit(1)
         elif len(schema_ptfs) == 1:
             if schema_ptfs[0] is not None:
                 ptf_path = os.path.join(schema_directory, schema_ptfs[0])
             else:
-                print('There is no Prodigal training file in schema\'s '
-                      'directory.')
+                logger.warning('There is no Prodigal training file in schema '
+                               'directory.')
                 ptf_path = None
     else:
         if os.path.isfile(ptf_path) is False:
-            message = ('Cannot find specified Prodigal training file.'
-                       '\nPlease provide a valid training file.\n\nYou '
-                       'can create a training file for a species of '
-                       'interest with the following command:\n  prodigal '
-                       '-i <reference_genome> -t <training_file.trn> -p '
-                       'single\n\nIt is strongly advised to provide a '
-                       'high-quality and closed genome for the training '
-                       'process.')
-            sys.exit(message)
+            logger.error('Cannot find specified Prodigal training file.'
+                         '\nPlease provide a valid training file.\n\nYou '
+                         'can create a training file for a species of '
+                         'interest with the following command:\n  prodigal '
+                         '-i <reference_genome> -t <training_file.trn> -p '
+                         'single\n\nIt is strongly advised to provide a '
+                         'high-quality and closed genome for the training '
+                         'process.')
+            sys.exit(1)
 
     return ptf_path
 
@@ -997,29 +1016,28 @@ def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
         new training file to the list with all hashes for
         training files that have been used with the schema.
     """
-
     unmatch = False
     if ptf_hash not in schema_ptfs:
         ptf_num = len(schema_ptfs)
         if force_continue is False:
             if ptf_num == 1:
-                print('Prodigal training file is not the one '
-                      'used to create the schema.')
+                logger.warning('Prodigal training file is not the one '
+                               'used to create the schema.')
                 prompt = ('Using this training file might lead to '
                           'results not consistent with previous runs '
                           'and invalidate the schema for usage with '
-                          'the NS.\nContinue process?\n')
+                          'Chewie-NS.\nContinue?\n')
                 ptf_answer = fo.input_timeout(prompt, ct.prompt_timeout)
             if ptf_num > 1:
-                print('Prodigal training file is not any of the {0} '
-                      'used in previous runs.'.format(ptf_num))
+                logger.warning('Prodigal training file is not any of the '
+                               f'{ptf_num} used in previous runs.')
                 prompt = ('Continue?\n')
                 ptf_answer = fo.input_timeout(prompt, ct.prompt_timeout)
         else:
             ptf_answer = 'yes'
 
         if ptf_answer.lower() not in ['y', 'yes']:
-            sys.exit('Exited.')
+            sys.exit(1)
         else:
             unmatch = True
 
@@ -1027,8 +1045,7 @@ def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
 
 
 def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
-    """ Validates the path to the Prodigal training file and
-        its hash value.
+    """Validate the path to the Prodigal training file an its hash value.
 
     Parameters
     ----------
@@ -1060,7 +1077,6 @@ def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
         True if the training file does not match any of
         the training files previously used with the schema.
     """
-
     ptf_path = validate_ptf_path(ptf_path, schema_directory)
 
     # determine PTF checksum
@@ -1139,18 +1155,17 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
             run_params[k] = default_params[k]
 
     if len(unmatch_params) > 0:
-        print('Provided arguments values differ from arguments '
-              'values used for schema creation:\n')
         params_diffs = [[p, ':'.join(map(str, schema_params[p])),
                          str(unmatch_params[p])]
                         for p in unmatch_params]
         params_diffs_text = ['{:^20} {:^20} {:^10}'.format('Argument', 'Schema', 'Provided')]
         params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
-        print('\n'.join(params_diffs_text))
+        logger.warning('Provided parameter values differ from values used for '
+                       'schema creation:\n{"\n".join(params_diffs_text)}')
         if force_continue is False:
             prompt = ('\nContinuing might lead to results not '
                       'consistent with previous runs.\nProviding '
-                      'parameters values that differ from the ones '
+                      'parameter values that differ from the ones '
                       'used for schema creation will also invalidate '
                       'the schema for uploading and synchronization '
                       'with Chewie-NS.\nContinue? (yes/no)\n')
@@ -1159,7 +1174,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
             params_answer = 'yes'
 
         if params_answer.lower() not in ['y', 'yes']:
-            sys.exit('Exited.')
+            sys.exit(1)
         else:
             # append new arguments values to configs values
             for p in unmatch_params:
@@ -1183,8 +1198,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 
 
 def write_gene_list(schema_dir):
-    """ Creates list with gene files in a schema and
-        uses the pickle module to save the list to a file.
+    """Create file with list of loci in a schema.
 
     Parameters
     ----------
@@ -1198,20 +1212,21 @@ def write_gene_list(schema_dir):
     created and False otherwise. The second element
     is the path to the created file.
     """
+    loci_files = [file
+                  for file in os.listdir(schema_dir)
+                  if '.fasta' in file]
+    loci_list_file = fo.join_paths(schema_dir, ['.genes_list'])
+    fo.pickle_dumper(loci_files, loci_list_file)
+    logger.debug(f'Wrote list of loci to {loci_list_file}')
 
-    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = fo.join_paths(schema_dir, ['.genes_list'])
-    fo.pickle_dumper(schema_files, schema_list_file)
-
-    return [os.path.isfile(schema_list_file), schema_list_file]
+    return loci_list_file
 
 
 def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
                         minimum_sequence_length, chewie_version, size_threshold,
                         word_size, window_size, clustering_sim, representative_filter,
                         intra_filter, output_directory):
-    """ Writes chewBBACA's parameters values used to create
-        a schema to a file.
+    """Write argument values used to create a schema to a file.
 
     Parameters
     ----------
@@ -1261,7 +1276,6 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     created and False otherwise. The second element
     is the path to the created file.
     """
-
     size_threshold = None if size_threshold in [None, 'None'] else float(size_threshold)
 
     params = {}
@@ -1279,12 +1293,13 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
 
     config_file = os.path.join(output_directory, '.schema_config')
     fo.pickle_dumper(params, config_file)
+    logger.debug(f'Wrote schema config to {config_file}')
 
-    return [os.path.isfile(config_file), config_file]
+    return config_file
 
 
 def read_configs(schema_path, filename):
-    """ Reads file with schema config values.
+    """Read file with schema config values.
 
     Parameters
     ----------
@@ -1299,7 +1314,6 @@ def read_configs(schema_path, filename):
         Dictionary with config names as keys and config
         values as values.
     """
-
     config_file = os.path.join(schema_path, filename)
     if os.path.isfile(config_file):
         # Load configs dictionary
@@ -1346,10 +1360,11 @@ def check_input_type(input_path, output_file, parent_dir=None):
     if os.path.isfile(input_path):
         # check if it's not a FASTA file
         if fao.validate_fasta(input_path) is True:
-            sys.exit('Input file is a FASTA file. Please provide '
-                     'the path to the parent directory that contains '
-                     'the FASTA files or a file with the list of full '
-                     'paths to the FASTA files (one per line).')
+            logger.error('Input file is a FASTA file. Please provide '
+                         'the path to the parent directory that contains '
+                         'the FASTA files or a file with the list of full '
+                         'paths to the FASTA files (one per line).')
+            sys.exit(1)
 
         # read list of input files
         with open(input_path, 'r') as infile:
@@ -1373,10 +1388,12 @@ def check_input_type(input_path, output_file, parent_dir=None):
         missing = [file for file in lines
                    if os.path.exists(file) is False]
         if len(missing) > 0:
-            sys.exit('Could not find some of the files provided in '
-                     'the input list. Please verify that you\'ve '
-                     'provided the full paths to valid input '
-                     'files.\n{0}'.format('\n'.join(missing)))
+            missing_str = '\n'.join(missing)
+            logger.error('Could not find some of the files provided in '
+                         'the input list. Please verify that you\'ve '
+                         'provided the full paths to valid input '
+                         f'files. Files missing: \n{missing_str}')
+            sys.exit(1)
         # save file paths to output file
         else:
             with open(output_file, 'w') as outfile:
@@ -1401,18 +1418,72 @@ def check_input_type(input_path, output_file, parent_dir=None):
                 for file in fasta_files:
                     f.write(file + '\n')
         else:
-            sys.exit('\nCould not get input files. Please '
-                     'provide a directory with FASTA files '
-                     'or a file with the list of full paths '
-                     'to the FASTA files and ensure that '
-                     'filenames end with one of the '
-                     'following suffixes: {0}.'
-                     ''.format(ct.FASTA_SUFFIXES))
+            logger.error('Could not get input files. Please '
+                         'provide a directory with FASTA files '
+                         'or a file with the list of full paths '
+                         'to the FASTA files and ensure that '
+                         'filenames end with one of the '
+                         f'following suffixes: {ct.FASTA_SUFFIXES}.')
+            sys.exit(1)
     else:
-        sys.exit('\nInput argument is not a valid directory or '
-                 'file with a list of paths. Please provide a '
-                 'valid input, either a folder with FASTA files '
-                 'or a file with the list of full paths to FASTA '
-                 'files (one per line).')
+        logger.error('Input argument is not a valid directory or '
+                     'file with a list of paths. Please provide a '
+                     'valid input, either a folder with FASTA files '
+                     'or a file with the list of full paths to FASTA '
+                     'files (one per line).')
+        sys.exit(1)
 
     return output_file
+
+
+def check_hash_type(hash_function):
+    """Check if hash type is available in hashlib or zlib libraries.
+
+    Parameters
+    ----------
+    hash_function : str
+        String used to identify the hash function in hashlib or zlib.
+
+    Returns
+    -------
+    hash_function : str
+        String used to identify the hash function in hashlib or zlib.
+    """
+    # get hash function
+    in_hashlib = getattr(hashlib, hash_function, None)
+    if in_hashlib is None:
+        in_zlib = getattr(zlib, hash_function, None)
+        if in_zlib is None:
+            logger.error(f'{hash_function} hash function is not available in '
+                         'hashlib or zlib modules.')
+            sys.exit(1)
+
+    return hash_function
+
+
+def check_schema_directory(schema_path):
+    """Check if path to schema directory includes the necessary files.
+
+    Parameters
+    ----------
+    schema_path : str
+        Path to the schema directory.
+
+    Returns
+    -------
+    schema_path : str
+        Path to the schema directory.
+    """
+    try:
+        schema_files = os.listdir(schema_path)
+        # exit if there is no 'short' directory or if there are no FASTA files
+        if 'short' not in schema_files or len(fo.filter_files(schema_files, ['.fasta'])) == 0:
+            logger.error('Path provided as schema directory does not include '
+                         'all the necessary files. Please verify that you '
+                         'have passed the correct path to the schema.')
+            sys.exit(1)
+    except Exception as e:
+        logger.exception(e)
+        sys.exit(1)
+
+    return schema_path

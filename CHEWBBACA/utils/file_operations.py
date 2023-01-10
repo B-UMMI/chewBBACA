@@ -192,6 +192,7 @@ def create_directory(directory_path):
         return False
 
 
+@capture_exceptions
 def join_paths(parent_path, child_paths):
     """Create path by joining a parent directory and a list of child paths."""
     joined_paths = os.path.join(parent_path, *child_paths)
@@ -247,6 +248,7 @@ def delete_directory(directory_path, max_retries=5):
     return exists
 
 
+@capture_exceptions
 def read_lines(input_file, strip=True, num_lines=None):
     """Read lines in a file.
 
@@ -419,6 +421,7 @@ def concatenate_files(files, output_file, header=None):
     return output_file
 
 
+@capture_exceptions
 def write_to_file(text, output_file, write_mode, end_char):
     """Write a single string to a file.
 

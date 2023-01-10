@@ -13,6 +13,7 @@ Code documentation
 
 import os
 import sys
+import logging
 
 try:
     from utils import (constants as ct,
@@ -34,6 +35,9 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
+
+
+logger = logging.getLogger('CF')
 
 
 def predict_genes(fasta_files, ptf_path, translation_table,
@@ -229,9 +233,12 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 
                 repeated += (len(v)/2) - 1
 
+    logger.debug(f'Removed {repeated} duplicated records.')
+
     # save table with deduplicated records
     hash_table_file = fo.join_paths(temp_directory, [outfile_template.format('merged.hashtable')])
     fo.pickle_dumper(merged_results, hash_table_file)
+    logger.debug(f'Saved hash table with information about unique records to {hash_table_file}')
 
     # remove intermediate deduplication tables
     fo.remove_files(dedup_results)
@@ -250,6 +257,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     # get the representative record for each distinct sequence
     fao.get_sequences_by_id(cds_index, distinct_seqids,
                             distinct_seqs, 50000)
+    logger.debug(f'Created {distinct_seqs} with unique records.')
 
     fo.remove_files(dedup_files+[cds_file])
 
@@ -286,6 +294,7 @@ def exclude_small(fasta_file, minimum_length, variation=0):
     # determine small sequences and keep their seqids
     small_seqids = sm.determine_small(fasta_file, minimum_length, variation)
 
+    logger.debug(f'Identified {len(small_seqids)} sequences smaller than {minimum_length} nt.')
     ss_lines = ['{0}: smaller than {1} chars'.format(seqid, minimum_length)
                 for seqid in small_seqids]
 
@@ -433,6 +442,8 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                                                      sort_key=lambda x: len(x[1]),
                                                      reverse=True)}
 
+    logger.info(f'Received {len(sorted_seqs)} sequences to cluster.')
+
     if divide is not None:
         # divide sequences into sublists
         # do not divide based on number of available cores as it may
@@ -442,6 +453,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
     else:
         cluster_inputs = [sorted_seqs]
 
+    logger.info(f'Divided into {len(cluster_inputs)} groups.')
     common_args = [word_size, window_size, clustering_sim,
                    representatives, grow_clusters, kmer_offset,
                    position, seq_num_cluster,
@@ -485,10 +497,12 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
     # sort clusters
     clusters = {k: v for k, v in im.sort_iterable(clusters.items())}
+    logger.info(f'Clustered {len(sequences)} sequences into {len(clusters)} clusters')
 
     # write file with clustering results
     clusters_out = os.path.join(temp_directory, 'clusters.txt')
     sc.write_clusters(clusters, clusters_out)
+    logger.info(f'Wrote clusters to {clusters_out}')
 
     return clusters
 
@@ -538,6 +552,8 @@ def cluster_representative_filter(clusters, representative_filter,
     # get identifiers of excluded sequences
     # determine set because same seqids could be in several clusters
     excluded_seqids = set([e[0] for e in excluded_seqids])
+    logger.debug(f'Removed {len(excluded_seqids)} sequences from clusters based '
+                 'on high similarity with cluster representative.')
 
     # remove excluded seqids from clusters without high representative
     # similarity
@@ -547,19 +563,24 @@ def cluster_representative_filter(clusters, representative_filter,
     # write file with pruning results
     pruned_out = os.path.join(output_directory, 'clusters.txt')
     sc.write_clusters(pruned_clusters, pruned_out)
+    logger.info(f'Wrote pruned clusters to {pruned_out}')
 
     # identify singletons and exclude those clusters
     singletons = im.select_keys(pruned_clusters, 0)
 
     pruned_clusters = im.prune_dictionary(pruned_clusters, singletons)
+    logger.info(f'Identified {len(singletons)} singletons.')
 
     # determine number of sequences that still need to be evaluated
     # +1 to include representative
     clustered_sequences = sum([len(v)+1 for k, v in pruned_clusters.items()]) + len(singletons)
+    logger.info(f'Kept {clustered_sequences} sequences after filtering '
+                'based on similarity to cluster representative.')
 
     # write list of excluded seqids to file
     excluded_outfile = os.path.join(output_directory, 'excluded.txt')
     fo.write_lines(excluded_seqids, excluded_outfile)
+    logger.info(f'Wrote list of excluded sequences to {excluded_outfile}')
 
     return [pruned_clusters, excluded_seqids, singletons, clustered_sequences]
 
@@ -602,6 +623,8 @@ def cluster_intra_filter(clusters, sequences, word_size,
     """
     # identify clusters with more than 1 sequence
     intra_clusters = {k: v for k, v in clusters.items() if len(v) > 1}
+    logger.info(f'Identified {len(intra_clusters)} clusters with '
+                'more than 1 sequence.')
 
     excluded_seqids, excluded_sims = sc.intra_cluster_sim(intra_clusters,
                                                           sequences,
@@ -613,6 +636,8 @@ def cluster_intra_filter(clusters, sequences, word_size,
     # get identifiers of excluded sequences
     # determine set because same seqids could be in several clusters
     intra_excluded = set(intra_excluded)
+    logger.info(f'Identified {len(intra_excluded)} sequences for removal '
+                'based on highly similar to other clustered sequences')
 
     # remove excluded seqids from clusters without high intra-similarity
     pruned_clusters = {k: [e for e in v if e[0] not in intra_excluded]
@@ -621,9 +646,11 @@ def cluster_intra_filter(clusters, sequences, word_size,
     # write excluded to file
     intrasim_out = os.path.join(output_directory, 'excluded.txt')
     sc.write_clusters(excluded_sims, intrasim_out)
+    logger.info(f'Wrote list of excluded sequences to {intrasim_out}')
     # write clusters to file
     intrasim_out = os.path.join(output_directory, 'clusters.txt')
     sc.write_clusters(pruned_clusters, intrasim_out)
+    logger.info(f'Wrote clusters to {intrasim_out}')
 
     return [pruned_clusters, intra_excluded]
 

@@ -226,12 +226,19 @@ CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 # logfile basename
 LOGFILE_BASENAME = 'chewie.log'
 FILE_HANDLER_FORMAT = '[%(asctime)s][%(levelname)s][%(name)s][%(filename)s:%(funcName)s:%(lineno)s]: %(message)s'
+# ISO-8601 international standard
 FILE_HANLDER_DATEFMT = '%Y-%m-%dT%H:%M:%S'
 STDOUT_HANDLER_FORMAT = '[%(levelname)s]: %(message)s'
-# AlleleCall template
-LOGFILE_TEMPLATE = ('Started script at: {0}\n'
-                    'Finished script at: {1}\n'
-                    'Number of inputs: {2}\n'
-                    'Number of loci: {3}\n'
-                    'Used this number of CPU cores: {4}\n'
-                    'Used a BSR of: {5}\n')
+
+# parameter values strings to print and log
+PARAMETER_STRING = ['Prodigal training file: {}',
+                    'CPU cores: {}',
+                    'BLAST Score Ratio: {}',
+                    'Translation table: {}',
+                    'Minimum sequence length: {}',
+                    'Size threshold: {}',
+                    'Word size: {}',
+                    'Window size: {}',
+                    'Clustering similarity: {}',
+                    'Representative filter: {}',
+                    'Intra-cluster filter: {}']

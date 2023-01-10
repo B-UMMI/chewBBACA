@@ -14,6 +14,7 @@ Code documentation
 
 
 import os
+import logging
 import subprocess
 
 try:
@@ -26,6 +27,9 @@ except ModuleNotFoundError:
                                  file_operations as fo,
                                  fasta_operations as fao,
                                  iterables_manipulation as im)
+
+
+logger = logging.getLogger('GP')
 
 
 def extract_genome_cds(reading_frames, contigs, starting_id):
@@ -184,10 +188,16 @@ def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
     cds_data = [[identifier, k, v] for k, v in genome_info[0].items()]
     cds_lines = fao.fasta_lines(ct.FASTA_CDS_TEMPLATE, cds_data)
     fo.write_lines(cds_lines, cds_file, write_mode='a')
+    logger.debug(f'Wrote {len(cds_lines)/2} FASTA records '
+                 f'from {genome} to {cds_file}.')
 
     write_coordinates_tsv(genome_info[1], identifier, protein_table)
+    logger.debug(f'Wrote coordinates for {len(cds_lines)/2} CDSs '
+                 f'from {genome} to {protein_table}.')
     pickle_out = os.path.join(os.path.dirname(protein_table), identifier+'.cds_hash')
     write_coordinates_pickle(genome_info[1], contig_lengths, pickle_out)
+    logger.debug(f'Wrote coordinates for {len(cds_lines)/2} CDSs '
+                 f'from {genome} to {pickle_out}.')
 
     total_cds = len(genome_info[0])
 
@@ -235,6 +245,7 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
                                       ['{0}.cds_coordinates'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
                                    protein_table, cds_file)
+        logger.debug(f'Extracted {total} CDSs from {g}')
         batch_total += total
 
     return [protein_table, cds_file, batch_total]
@@ -285,15 +296,17 @@ def run_prodigal(input_file, translation_table, mode, ptf_path):
 
 def main(input_file, output_dir, ptf_path, translation_table, mode):
 
-    stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
-
     # this has to be changed to include the full file name!
     genome_basename = fo.file_basename(input_file, False)
+
+    logger.info(f'Predicting genes for {input_file}')
+    stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
     if len(stderr) > 0:
         stderr = [line.decode('utf-8').strip() for line in stderr]
         stderr = [line for line in stderr if line != '']
         error = ' '.join(stderr)
+        logger.error(f'Failed gene prediction for {input_file}\n{error}')
         return [input_file, error]
 
     # Parse output
@@ -311,6 +324,12 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
     # exclude contigs without coding sequences
     contigs_pos = {k: v[1:] for k, v in contigs_pos.items() if len(v) > 1}
 
+    # get identifiers of contigs that have no CDSs
+    empty_contigs = [k for k, v in contigs_pos.items() if len(v) == 0]
+    if len(empty_contigs) > 0:
+        logger.warning(f'{len(empty_contigs)} from {input_file} '
+                       'contained no CDSs.')
+
     # +/1 for sense, -/0 for antisense
     strand_trans = {'+': 1, '-': 0}
 
@@ -322,11 +341,15 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     total_contigs = {k: len(v) for k, v in contigs_pos.items()}
     total_genome = sum(total_contigs.values())
+    logger.info(f'Predicted {total_genome} genes for {input_file}')
 
     if total_genome > 0:
         # save positions in file
         filepath = os.path.join(output_dir, genome_basename + '.cds_coordinates')
         fo.pickle_dumper(contigs_pos, filepath)
+        logger.info(f'Saved gene coordinates to {filepath}')
+    else:
+        logger.warning(f'Could not predict any genes for {input_file}')
 
     status = [input_file, total_genome]
 

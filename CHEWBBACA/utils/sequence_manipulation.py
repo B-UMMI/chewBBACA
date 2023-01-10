@@ -12,6 +12,8 @@ Code documentation
 """
 
 
+import logging
+
 from Bio.Seq import Seq
 from collections import Counter
 
@@ -25,6 +27,9 @@ except ModuleNotFoundError:
                                  file_operations as fo,
                                  iterables_manipulation as im,
                                  fasta_operations as fao)
+
+
+logger = logging.getLogger('SM')
 
 
 def translate_sequence(dna_str, table_id):
@@ -490,6 +495,9 @@ def translate_coding_sequences(seqids, protein_file, sequences_file,
             fo.write_to_file(prot_lines, protein_file, 'a', '\n')
             prot_lines = []
 
+    logger.debug(f'Translated {total_seqs}/{total_seqs+len(invalid_alleles)} '
+                 f'sequences in {sequences_file}. Saved translated sequences to {protein_file}')
+
     return [invalid_alleles, total_seqs]
 
 
@@ -515,6 +523,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
         identifiers and genome identifiers as values
     """
     out_seqs = []
+    repeated = 0
     duplicates = {}
     exausted = False
     # limit of 10000 Fasta records in memory
@@ -534,6 +543,8 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
             if seq_hash not in duplicates:
                 recout = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
                 out_seqs.append(recout)
+            else:
+                repeated += 1
 
             # add CDS hash as key
             # add genome integer identifier and protein identifier to values list
@@ -551,6 +562,9 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
                 # reset list to avoid writing same records multiple times
                 out_seqs = []
+
+    logger.debug(f'Found {repeated} duplicated sequences in {sequences_file}')
+    logger.debug(f'Found {len(duplicates)} unique sequences in {sequences_file}')
 
     # save dictionary with genome integer identifiers per distinct sequence
     # to pickle and only return file path to avoid keeping all dicts from

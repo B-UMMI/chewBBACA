@@ -231,14 +231,28 @@ def create_schema():
     args.input_files = pv.check_input_type(args.input_files, genome_list)
 
     # add clustering parameters
-    args.word_size = ct.WORD_SIZE_DEFAULT
-    args.window_size = ct.WINDOW_SIZE_DEFAULT
-    args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
-    args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
     args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
     # run CreateSchema process
-    CreateSchema.main(**vars(args))
+    config = {'Schema name': args.schema_name,
+              'Minimum sequence length': args.minimum_length,
+              'Size threshold': args.size_threshold,
+              'Translation table': args.translation_table,
+              'BLAST Score Ratio': args.blast_score_ratio,
+              'Word size': ct.WORD_SIZE_DEFAULT,
+              'Window size': ct.WINDOW_SIZE_DEFAULT,
+              'Clustering similarity': ct.CLUSTERING_SIMILARITY_DEFAULT,
+              'Representative filter': ct.REPRESENTATIVE_FILTER_DEFAULT,
+              'Intra filter': ct.INTRA_CLUSTER_DEFAULT,
+              'Prodigal training file': args.ptf_path,
+              'CPU cores': args.cpu_cores,
+              'BLAST path': args.blast_path,
+              'CDS input': args.cds_input,
+              'Prodigal mode': args.prodigal_mode,
+              'NoCleanup': args.no_cleanup}
+
+    # CreateSchema.main(**vars(args))
+    CreateSchema.main(args.input_files, args.output_directory, config)
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
     # copy training file to schema directory
@@ -252,9 +266,12 @@ def create_schema():
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                            args.translation_table, ct.MSL_MIN,
                                            version, args.size_threshold,
-                                           args.word_size, args.window_size,
-                                           args.clustering_sim, args.representative_filter,
-                                           args.intra_filter, schema_dir)
+                                           ct.WORD_SIZE_DEFAULT,
+                                           ct.WINDOW_SIZE_DEFAULT,
+                                           ct.CLUSTERING_SIMILARITY_DEFAULT,
+                                           ct.REPRESENTATIVE_FILTER_DEFAULT,
+                                           ct.INTRA_CLUSTER_DEFAULT,
+                                           schema_dir)
 
     # create file with genes/loci list
     pv.write_gene_list(schema_dir)

@@ -472,8 +472,8 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         # Use subprocess to capture errors and warnings
         stderr = bw.run_blast(blast_path, blastdb_path, fasta_file,
-                              blast_output, 1, 1, ids_file,
-                              ignore=ct.IGNORE_RAISED)
+                              blast_output, 1, 1,
+                              ids_file, ignore=ct.IGNORE_RAISED)
 
         if len(stderr) > 0:
             raise ValueError('\n'.join(stderr))

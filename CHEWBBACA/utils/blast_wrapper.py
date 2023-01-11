@@ -108,7 +108,7 @@ def determine_blast_task(sequences, blast_type='blastp'):
 
 def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_hsps=1, threads=1, ids_file=None, blast_task=None,
-              max_targets=None, ignore=None):
+              max_targets=None, ignore=None, composition_stats=None):
     """Execute BLAST to align sequences against a BLAST database.
 
     Parameters
@@ -140,13 +140,16 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
         against.
     ignore : list or None
         List with BLAST warnings that should be ignored.
+    composition_stats : int
+        Specify the composition-based statistics method used
+        by BLAST.
 
     Returns
     -------
     stderr : list
         A list with the warnings and errors raised by BLAST.
     """
-    # do not retrieve hits with high probability of occuring by change (-evalue=0.001)
+    # do not retrieve hits with high probability of occuring by chance
     blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
                   '-out', blast_output, '-outfmt', ct.BLAST_DEFAULT_OUTFMT,
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
@@ -161,6 +164,8 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     # add maximum number of target sequences to align against
     if max_targets is not None:
         blast_args.extend(['-max_target_seqs', str(max_targets)])
+    if composition_stats is not None:
+        blast_args.extend(['-comp_based_stats', str(composition_stats)])
 
     blast_proc = subprocess.Popen(blast_args,
                                   stdout=subprocess.PIPE,

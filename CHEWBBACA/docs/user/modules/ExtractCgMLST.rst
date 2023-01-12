@@ -4,7 +4,7 @@ ExtractCgMLST - Determine the set of loci that constitute the core genome
 Requirements to define a core genome MLST (cgMLST) schema
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-cgMLST schemas are defined as the set of loci that are present in all  strains under analysis
+cgMLST schemas are defined as the set of loci that are present in all strains under analysis
 or, due to sequencing/assembly limitations, >95% of strains analyzed. In order to have a
 robust definition of a cgMLST schema for a given bacterial species, a set of representative
 strains of the diversity of a given species should be selected. Furthermore, since cgMLST
@@ -21,7 +21,7 @@ core genome, can be classified as being part of an accessory genome MLST (agMLST
 Determine the loci that constitute the cgMLST
 :::::::::::::::::::::::::::::::::::::::::::::
 
-Determine the set of loci that constitute the core genome based on a threshold.
+Determine the set of loci that constitute the core genome based on loci presence thresholds.
 
 Basic Usage
 -----------
@@ -41,8 +41,10 @@ Parameters
                            files.
 
     --t, --threshold       (Optional) Genes that constitute the core genome must be in a proportion
-                           of genomes that is at least equal to this value. (e.g 0.95 to get a
-                           matrix with the loci that are present in at  least 95% of the genomes)
+                           of genomes that is at least equal to this value. Users can provide multiple
+                           values (default: [0.95, 0.99, 1]).
+
+    --s, --step            (Optional) Number of genomes added to the cgMLST computation at each step
                            (default: 1).
 
     --r, --genes2remove    (Optional) Path to file with a list of genes/columns to remove from the
@@ -55,23 +57,35 @@ Parameters
                            removed based on the results from the TestGenomeQuality process)
                            (default: False).
 
-.. note::
-	The matrix with allelic profiles created by the *ExtractCgMLST* process can be imported
-	into `PHYLOViZ <https://online.phyloviz.net/index>`_ to visualize and explore typing results.
-
 Outputs
 -------
 
 The output folder contains 3 files:
 
  - ``Presence_Abscence.tsv`` - allele presence and absence matrix (1 or 0, respectively) for
-   all the loci found in the ``-i`` file (including those loci and genomes that were flagged
+   all the loci found in the ``-i`` file (excluding the loci and genomes that were flagged
    to be excluded).
- - ``cgMLST.tsv`` - matrix with the allelic profiles for the cgMLST (already excluding the list
-   of loci and list of genomes passed to the ``--r`` and ``--g`` parameters, respectively).
- - ``cgMLSTschema.txt`` - list of loci that constitute the cgMLST schema.
- - ``mdata_stats.tsv`` - total number and percentage of loci missing from each genome.
+- ``mdata_stats.tsv`` - total number and percentage of loci missing from each genome.
+ - ``cgMLST<threshold>.tsv`` - a file for each specified threshold that contains the matrix with
+   the allelic profiles for the cgMLST (already excluding the list of loci and list of genomes
+   passed to the ``--r`` and ``--g`` parameters, respectively).
+ - ``cgMLSTschema<threshold>.txt`` - a file for each specified threshold that contains the list of
+   loci that constitute the cgMLST schema.
+ - ``cgMLST.html`` - HTML file with a line plot for the number of loci in the cgMLST per threshold.
+   Also includes a black line with the number of loci present in each genome that is added to the
+   analysis.
+
+Example of the plot created by the ExtractCgMLST module based on the allelic profiles for 680
+Streptococcus agalactiae genomes:
+
+.. image:: https://user-images.githubusercontent.com/32398172/209168513-61b08178-52ac-4af6-ad8c-c21ea1d3bb7d.png
+   :width: 700px
+   :align: center
 
 .. important::
 	The ``cgMLSTschema.txt`` file can be passed to the ``--gl`` parameter of the *AlleleCall*
 	module to perform allele calling only for the loci in the cgMLST schema.
+
+.. note::
+	The matrix with allelic profiles created by the *ExtractCgMLST* process can be imported
+	into `PHYLOViZ <https://online.phyloviz.net/index>`_ to visualize and explore typing results.

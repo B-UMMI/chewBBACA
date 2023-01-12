@@ -62,24 +62,24 @@ Outputs
 
 The output folder contains 3 files:
 
- - ``Presence_Abscence.tsv`` - allele presence and absence matrix (1 or 0, respectively) for
-   all the loci found in the ``-i`` file (excluding the loci and genomes that were flagged
-   to be excluded).
+- ``Presence_Abscence.tsv`` - allele presence and absence matrix (1 or 0, respectively) for
+  all the loci found in the ``-i`` file (excluding the loci and genomes that were flagged
+  to be excluded).
 - ``mdata_stats.tsv`` - total number and percentage of loci missing from each genome.
- - ``cgMLST<threshold>.tsv`` - a file for each specified threshold that contains the matrix with
-   the allelic profiles for the cgMLST (already excluding the list of loci and list of genomes
-   passed to the ``--r`` and ``--g`` parameters, respectively).
- - ``cgMLSTschema<threshold>.txt`` - a file for each specified threshold that contains the list of
-   loci that constitute the cgMLST schema.
- - ``cgMLST.html`` - HTML file with a line plot for the number of loci in the cgMLST per threshold.
-   Also includes a black line with the number of loci present in each genome that is added to the
-   analysis.
+- ``cgMLST<threshold>.tsv`` - a file for each specified threshold that contains the matrix with
+  the allelic profiles for the cgMLST (already excluding the list of loci and list of genomes
+  passed to the ``--r`` and ``--g`` parameters, respectively).
+- ``cgMLSTschema<threshold>.txt`` - a file for each specified threshold that contains the list of
+  loci that constitute the cgMLST schema.
+- ``cgMLST.html`` - HTML file with a line plot for the number of loci in the cgMLST per threshold.
+  Also includes a black line with the number of loci present in each genome that is added to the
+  analysis.
 
 Example of the plot created by the ExtractCgMLST module based on the allelic profiles for 680
 Streptococcus agalactiae genomes:
 
 .. image:: https://user-images.githubusercontent.com/32398172/209168513-61b08178-52ac-4af6-ad8c-c21ea1d3bb7d.png
-   :width: 700px
+   :width: 900px
    :align: center
 
 .. important::

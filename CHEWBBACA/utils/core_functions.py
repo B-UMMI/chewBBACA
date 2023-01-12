@@ -777,9 +777,6 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     db_stderr = bw.make_blast_db(makeblastdb_path, integer_fasta,
                                  blast_db, db_type)
 
-    if len(db_stderr) > 0:
-        return db_stderr
-
     # split Fasta file to BLAST short sequences (<30aa) separately
     # only possible to have alleles <30aa with non-default schemas
     above_outfile, below_outfile = fao.split_seqlength(integer_fasta,
@@ -811,7 +808,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 
     # add common arguments to all sublists
     blast_inputs = [[blast_path, blast_db, file[0],
-                     blast_outputs[i], 1, 1, seqids_files[i], 'blastp', None, ct.IGNORE_RAISED, bw.run_blast]
+                     blast_outputs[i], 1, 1,
+                     seqids_files[i], 'blastp', None,
+                     ct.IGNORE_RAISED, None, bw.run_blast]
                     for i, file in enumerate(splitted_fastas)]
 
     # add file with short sequences
@@ -823,8 +822,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                                                         fo.file_basename(below_outfile[0], False))
         blast_outputs.append(below_blastout)
         blast_inputs.append([blast_path, blast_db, below_outfile[0],
-                             below_blastout, 1, 1, seqids_file,
-                             'blastp-short', None, ct.IGNORE_RAISED, bw.run_blast])
+                             below_blastout, 1, 1,
+                             seqids_file, 'blastp-short', None,
+                             ct.IGNORE_RAISED, None, bw.run_blast])
 
     blast_stderr = mo.map_async_parallelizer(blast_inputs,
                                              mo.function_helper,
@@ -849,5 +849,35 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         # add 3 to count stop codon
         dna_length = (int(line[3])*3)+3
         self_scores[ids_map[line[0]]] = (dna_length, float(line[6]))
+
+    # determine if we got the score for all representatives
+    if len(self_scores) < len(ids_map):
+        missing = [seqid
+                   for seqid in ids_map
+                   if seqid not in [line[0] for line in self_results]]
+        # index FASTA file
+        concat_reps_index = fao.index_fasta(integer_fasta)
+        for seqid in missing:
+            # get sequence
+            current_rep = concat_reps_index[seqid]
+            record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [current_rep.id, str(current_rep.seq)])
+            rep_file = fo.join_paths(output_directory, [f'{current_rep.id}_solo.fasta'])
+            fo.write_lines([record], rep_file)
+            # save file with ids
+            id_file = fo.join_paths(output_directory, [f'{current_rep.id}_ids.txt'])
+            fo.write_lines([current_rep.id], id_file)
+            rep_blastout = fo.join_paths(output_directory, [f'{current_rep.id}_blastout.tsv'])
+            # disable composition-based stats
+            bw.run_blast(blast_path, blast_db, rep_file,
+                         rep_blastout, 1, 1,
+                         id_file, 'blastp', None,
+                         ct.IGNORE_RAISED, 0)
+            rep_results = fo.read_tabular(rep_blastout)
+            if len(rep_results) > 0:
+                dna_length = (int(rep_results[0][3])*3)+3
+                self_scores[ids_map[rep_results[0][0]]] = (dna_length, float(rep_results[0][6]))
+            else:
+                print('Could not determine the self-alignment raw '
+                      f'score for {ids_map[rep_results[0][0]]}')
 
     return self_scores

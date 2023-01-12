@@ -212,7 +212,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 
         # BLASTp to determine annotations
         blast_inputs = [['blastp', proteome_blastdb, file, file+'_blastout.tsv',
-                         1, 1, None, None, proteome_matches, None, bw.run_blast]
+                         1, 1, None, None, proteome_matches, None, None, bw.run_blast]
                         for file in reps_protein_files]
 
         print('\nBLASTing representatives against proteomes...')

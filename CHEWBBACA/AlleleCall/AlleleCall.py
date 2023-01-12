@@ -1324,7 +1324,13 @@ def process_blast_results(blast_results, bsr_threshold, query_scores,
         query_id = r[0]
         target_id = r[4]
         raw_score = float(r[6])
-        bsr = cf.compute_bsr(raw_score, query_scores[query_id][1])
+        # might fail if it is not possible to get the query self-score
+        try:
+            bsr = cf.compute_bsr(raw_score, query_scores[query_id][1])
+        except Exception as e:
+            print('Could not get the self-score for the representative '
+                  f'allele {query_id}')
+            continue
         # only keep matches above BSR threshold
         if bsr >= bsr_threshold:
             # BLAST has 1-based positions
@@ -1816,7 +1822,7 @@ def select_representatives(representative_candidates, locus, fasta_file,
     # pass number of max targets per query to reduce execution time
     blastp_stderr = bw.run_blast(blastp_path, blast_db, fasta_file,
                                  blast_output, threads=threads,
-                                 ids_file=ids_file, max_targets=30)
+                                 ids_file=ids_file, max_targets=100)
 
     blast_results = fo.read_tabular(blast_output)
     # get self scores
@@ -2418,9 +2424,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                     [concat_rep_basename+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
-            blast_inputs.append([blastp_path, blast_db, file, outfile,
-                                 1, 1, remaining_seqids_file, 'blastp', 10,
-                                 ct.IGNORE_RAISED, bw.run_blast])
+            # max_targets set to None (BLAST defaults to 500)
+            blast_inputs.append([blastp_path, blast_db, file,
+                                 outfile, 1, 1,
+                                 remaining_seqids_file, 'blastp', None,
+                                 ct.IGNORE_RAISED, None, bw.run_blast])
 
         print('BLASTing loci representatives against unclassified proteins...', end='')
         # BLAST representatives against unclassified sequences
@@ -2742,6 +2750,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
                         new_id = k+'_'+r[-1]
                         results['self_scores'][new_id] = results['self_scores'][r[0]]
                         # delete old entries
+                        # does not delete entried from representative candidates that were converted to NIPH
                         if r[0] not in reps_to_del:
                             reps_to_del.add(r[0])
 

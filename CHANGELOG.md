@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0 - 2023-01-12
+
+- Updated the ExtractCgMLST module ([PR](https://github.com/B-UMMI/chewBBACA/pull/153)). It can now accept several loci presence threshold values and creates a HTML file with a line plot that displays the number of loci in the cgMLST per threshold value (default: compute for 0.95, 0.99 and 1 thresholds).
+- Removed the TestGenomeQuality module (superseded by the new functionalities implemented in the ExtractCgMLST module).
+- Bugfix for the determination of the BLASTp raw scores for the representative alleles ([PR](https://github.com/B-UMMI/chewBBACA/pull/156)).
+- Changed the valued passed to BLASTp `-max_target_seqs` parameter during representative determination from 20 to the default value used by BLASTp (500). This leads to a slight improvement in classification accuracy.
+
 ## 3.0.0 - 2022-12-14
 
 New implementation of the **AlleleCall** process. The new implementation was developed to reduce execution time, improve accuracy and provide more detailed results. It uses available computational resources more efficiently to allow for analyses with thousands of strains in a laptop. This new version is fully compatible with schemas created with previous versions.

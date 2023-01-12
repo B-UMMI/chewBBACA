@@ -13,7 +13,7 @@ Please start by going through the following steps:
 
 - Install chewBBACA v3.1.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
   on how to install chewBBACA v3.1.0.
-- Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7457513#.Y6BTwfenxhE>`_.
+- Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7529470#.Y8A2zfenxhE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
   the necessary data).
 

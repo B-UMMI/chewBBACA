@@ -43,7 +43,7 @@ Schema creation
 
 We will start by creating a wgMLST schema based on 32 *Streptococcus agalactiae* complete
 genomes (32 genomes with a level of assembly classified as complete genome or chromossome)
-available at NCBI. Uncompress the ``genomes/GBS_32_complete_genomes.zip`` file
+available at the NCBI. Uncompress the ``genomes/GBS_32_complete_genomes.zip`` file
 to create the folder ``genomes/complete_genomes``. To create the wgMLST schema, run the following command:  
 
 ::
@@ -60,7 +60,7 @@ Allele calling
 ::::::::::::::
 
 The next step is to perform allele calling with the wgMLST schema created in the previous step
-for the **32** complete genomes. The allele call step determines the allelic profiles of the
+for the 32 complete genomes. The allele call step determines the allelic profiles of the
 analyzed strains, identifying known and novel alleles in the analyzed genomes. Novel alleles
 are assigned an allele identifier and added to the schema. To perform allele call, run the
 following command:
@@ -69,7 +69,7 @@ following command:
 
 	chewBBACA.py AlleleCall -i genomes/complete_genomes/ -g tutorial_schema/schema_seed -o results32_wgMLST --cpu 6
 
-The allele call used the default BSR threshold of ``0.6`` and took 1m26s to complete (an average of ~2.7 seconds per genome). The allele call identified 14,704
+The allele call used the default BLAST Score Ratio (BSR) value of ``0.6`` and took 1m26s to complete (an average of ~2.7 seconds per genome). The allele call identified 14,704
 novel alleles and added those alleles to the schema, increasing the number of alleles in the
 schema from 3,127 to 17,831.
 
@@ -133,7 +133,7 @@ Allele call was performed on the *bona fide* *Streptococcus agalactiae* **680 ge
 
 ::
 
-	chewBBACA.py AlleleCall -i genomes/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/cgMLST_95/cgMLSTschema.txt -o results680_cgMLST --cpu 6
+	chewBBACA.py AlleleCall -i genomes/GBS_Aug2016/ -g tutorial_schema/schema_seed --gl results32_wgMLST/cgMLST/cgMLSTschema95.txt -o results680_cgMLST --cpu 6
 
 The process took 6m26s to complete (~0.57 seconds per genome). Paralog detection found no paralog loci.
 
@@ -184,13 +184,13 @@ We used the following command to recompute the cgMLST:
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --g expected_results/Evaluate genome quality/excluded_genomes.txt
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --g expected_results/Evaluate_genome_quality/excluded_genomes.txt
 
 The determined cgMLST at 95% includes 1,249 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
 
 Minimum Spanning Tree
 :::::::::::::::::::::
 
-You can upload the file ``cgMLST95_645/cgMLST.tsv`` and any of the associated metadata to `Phyloviz online <https://online.phyloviz.net>`_
+You can upload the file ``cgMLST_645/cgMLST95.tsv`` and any of the associated metadata to `Phyloviz online <https://online.phyloviz.net>`_
 to visualize a Minimum Spanning Tree and perform various dataset operations that allow you to explore and analyse the results generated
 during this tutorial.

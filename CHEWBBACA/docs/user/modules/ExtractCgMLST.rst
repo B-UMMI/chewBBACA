@@ -76,7 +76,7 @@ The output folder contains 3 files:
   analysis.
 
 Example of the plot created by the ExtractCgMLST module based on the allelic profiles for 680
-Streptococcus agalactiae genomes:
+*Streptococcus agalactiae* genomes:
 
 .. image:: https://user-images.githubusercontent.com/32398172/209168513-61b08178-52ac-4af6-ad8c-c21ea1d3bb7d.png
    :width: 900px

@@ -49,7 +49,7 @@ Parameters
 
     --r, --genes2remove    (Optional) Path to file with a list of genes/columns to remove from the
                            matrix (one gene identifier per line, e.g.: the list of genes listed in
-                           the ``paralogous_counts.tsv`` file created by the *AlleleCall* process)
+                           the "paralogous_counts.tsv" file created by the AlleleCall process)
                            (default: False).
 
     --g, --genomes2remove  (Optional) Path to file with a list of genomes/rows to remove from the
@@ -83,7 +83,7 @@ Streptococcus agalactiae genomes:
    :align: center
 
 .. important::
-	The ``cgMLSTschema.txt`` file can be passed to the ``--gl`` parameter of the *AlleleCall*
+	The ``cgMLSTschema<threshold>.txt`` file can be passed to the ``--gl`` parameter of the *AlleleCall*
 	module to perform allele calling only for the loci in the cgMLST schema.
 
 .. note::

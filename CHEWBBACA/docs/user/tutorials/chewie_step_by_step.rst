@@ -11,8 +11,8 @@ instructions and displaying the obtained outputs.
 
 Please start by going through the following steps:
 
-- Install chewBBACA v3.0.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
-  on how to install chewBBACA v3.0.0.
+- Install chewBBACA v3.1.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
+  on how to install chewBBACA v3.1.0.
 - Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7457513#.Y6BTwfenxhE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
   the necessary data).
@@ -97,16 +97,24 @@ cgMLST schema determination
 
 We can now determine the set of loci in the core genome based on the allele calling results.
 The set of loci in the core genome is determined based on a threshold of loci presence in the
-analysed genomes. We can run the *ExtraCgMLST* module to quickly determine the set of loci in
-the core genome at 95%. We selected that threshold value to account for loci that may not be
-identified due to sequencing coverage and assembly problems.
+analysed genomes. We can run the *ExtractCgMLST* module to determine the set of loci in
+the core genome for the loci presence thresholds of 95%, 99% and 100%.
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_alleles_NoParalogs.tsv -o results32_wgMLST/cgMLST_95 --t 0.95
+	chewBBACA.py ExtractCgMLST -i results32_wgMLST/results_alleles_NoParalogs.tsv -o results32_wgMLST/cgMLST
 
-The list with the 1,271 loci in the core genome at 95% is in the
-``results32_wgMLST/cgMLST_95/cgMLSTschema.txt`` file. This file can be passed
+The *ExtractCgMLST* module creates a HTML file (available at ``results32_wgMLST/cgMLST/cgMLST.html``) with
+an interactive line plot that displays the number of loci in the cgMLST per threshold value and the number
+of loci in each genome added to the analysis.
+
+.. image:: _static/images/cgMLST_tutorial.png
+   :width: 900px
+   :align: center
+
+We selected the threshold of 95% to account for loci that may not be identified due to sequencing
+coverage and assembly problems. The list with the 1,271 loci in the core genome at 95% is in the
+``results32_wgMLST/cgMLST/cgMLSTschema95.txt`` file. This file can be passed
 to the ``--gl`` parameter of the AlleleCall process to perform allele calling only for the set of
 genes that constitute the core genome.
 
@@ -138,14 +146,14 @@ of both analyses run the following command:
 
 ::
 
-	chewBBACA.py JoinProfiles -p results32_wgMLST/cgMLST_95/cgMLST.tsv results680_cgMLST/results_alleles.tsv -o cgMLST_712.tsv
+	chewBBACA.py JoinProfiles -p results32_wgMLST/cgMLST/cgMLST95.tsv results680_cgMLST/results_alleles.tsv -o cgMLST_712.tsv
 
-We also redetermined the cgMLST at 95% based on the allele calling results for this more diverse set of
+We also redetermined the cgMLST based on the allele calling results for this more diverse set of
 strains:
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_712 --t 0.95
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST_712
 
 The number of loci present in 95% of genomes based on the 712 assemblies is 1,195, a slight decrease
 from the number of loci present in 95% of the 32 genomes used for schema creation.
@@ -164,10 +172,10 @@ criteria to select high quality genome assemblies, that are the following:
 
 - Less than 150 contigs.
 - Genome size between 1,674,000 and 2,512,000 bases (defined according to the species genome size values provided by the NCBI on 16-12-2022 and available `here <https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/species_genome_size.txt.gz>`_).
-- Less than 1000 N bases.
+- Less than 1,000 N bases.
 - Less than 5% missing loci from the cgMLST (64 loci).
 
-We identified 65 genome assemblies that did not meet the minimum quality criteria and 2 genomes that NCBI excluded from RefSeq,
+We identified 65 genome assemblies that did not meet the minimum quality criteria and 2 genomes that the NCBI excluded from RefSeq,
 `GCA_000221325.2 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000221325.2>`_ and
 `GCA_000427055.1 <https://www.ncbi.nlm.nih.gov/assembly/GCA_000427055.1>`_, due to ``genome length too large`` and
 ``many frameshifted proteins``, respectively (the list of excluded genome assemblies is available at
@@ -176,9 +184,9 @@ We used the following command to recompute the cgMLST:
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --t 0.95 --g expected_results/Evaluate genome quality/excluded_genomes.txt
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --g expected_results/Evaluate genome quality/excluded_genomes.txt
 
-The determined cgMLST includes 1,249 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
+The determined cgMLST at 95% includes 1,249 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
 
 Minimum Spanning Tree
 :::::::::::::::::::::

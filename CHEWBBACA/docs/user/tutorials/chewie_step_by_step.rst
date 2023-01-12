@@ -108,7 +108,7 @@ The *ExtractCgMLST* module creates a HTML file (available at ``results32_wgMLST/
 an interactive line plot that displays the number of loci in the cgMLST per threshold value and the number
 of loci in each genome added to the analysis.
 
-.. image:: _static/images/cgMLST_tutorial.png
+.. image:: /_static/images/cgMLST_tutorial.png
    :width: 900px
    :align: center
 

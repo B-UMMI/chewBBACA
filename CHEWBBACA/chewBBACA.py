@@ -1116,7 +1116,7 @@ def find_uniprot():
 
     parser.add_argument('-t', '--protein-table', type=str,
                         required=False, dest='protein_table',
-                        help='Path to the "cds_info.tsv" file created by '
+                        help='Path to the "cds_coordinates.tsv" file created by '
                              'the CreateSchema process.')
 
     parser.add_argument('--bsr', type=float, required=False,

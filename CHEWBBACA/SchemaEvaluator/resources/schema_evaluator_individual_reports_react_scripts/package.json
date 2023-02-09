@@ -44,7 +44,7 @@
     "logojs-react": "^2.1.1",
     "mui-datatables": "^3.7.1",
     "node-fetch": "^2.6.1",
-    "node-sass": "^5.0.0",
+    "node-sass": "^7.0.0",
     "path": "^0.12.7",
     "phylocanvas": "^2.8.1",
     "phylocanvas-plugin-context-menu": "^3.11.0",

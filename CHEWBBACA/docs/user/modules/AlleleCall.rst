@@ -5,14 +5,14 @@ What is an allele?
 ::::::::::::::::::
 
 In Biology, an allele is a specific sequence variant that occurs at a given locus.
-However, given a DNA sequence, the assignment of a putative allele to a locus can be
-confounded by several factors:
+However, given a DNA sequence, the assignment of a putative allele to a locus is
+influenced by several factors:
 
 - Quality of the sequence assembly (influenced by several aspects, such as the sequencing
   method, the assembler used, etc);
-- If the alleles must correspond to coding sequences (CDSs);
-- Presence of possibly homologous loci (this situation can result in a wrong allele assignment
-  to a given locus given the difficulty in distinguishing closely related homologs).
+- If the alleles must correspond to coding sequences (CDSs) and open reading frames (ORFs);
+- Presence of possibly homologous loci (this situation can result in an allele assignment
+  to a possibly wrong locus given the difficulty in distinguishing closely related homologs).
 
 Therefore, in gene-by-gene methods, the definition of an allele is determined by the sequence
 similarity search method and all the parameters used to decide if an allele can be identified
@@ -71,7 +71,11 @@ The allele calling algorithm has the following main steps:
   for any locus (classification files are updated in each iteration).
 
 - Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
-  information stored in the classification files.
+  information stored in the classification files. If ``--no-inferred`` is passed, this step is bypassed and
+  no novel alleles are added to the database. This results in keeping a stable database to make allele calls
+  against. When in doubt about the quality of the genomes one is performing allele call on, this parameter
+  will prevent entering into the database alleles that may result from poor quality data rather than actual
+  alleles present in the bacterial population.
 
 Perform allele calling
 ::::::::::::::::::::::

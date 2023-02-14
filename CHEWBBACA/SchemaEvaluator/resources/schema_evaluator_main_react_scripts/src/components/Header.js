@@ -1,13 +1,7 @@
-import React from "react";
-import ReactMarkdown from "react-markdown";
-import gfm from "remark-gfm";
-import classes from "./Header.css";
+import AccordionMUI from './AccordionMUI';
 
-// Material-UI ExpansionPanel components
-import Accordion from "@material-ui/core/Accordion";
-import AccordionDetails from "@material-ui/core/AccordionDetails";
 
-export default function Header() {
+const Header = () => {
   const markdown = `
   # Schema Evaluator
 
@@ -31,16 +25,13 @@ export default function Header() {
 
   return (
     <div>
-      <Accordion defaultExpanded>
-        <AccordionDetails>
-          <div
-            className={classes.mainPaper}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <ReactMarkdown plugins={[gfm]} children={markdown} />
-          </div>
-        </AccordionDetails>
-      </Accordion>
+      <AccordionMUI 
+        summaryText='Report Description' 
+        detailsText={markdown} 
+        expanded={false} >
+      </AccordionMUI>
     </div>
   );
 }
+
+export default Header;

@@ -1,12 +1,15 @@
-import React from "react";
-import SchemaEvaluator from "./SchemaEvaluatorIndividual";
+import LocusPage from "../pages/LocusPage";
 
-export default function App() {
-  return (
-    <>
-      <div style={{ marginLeft: "5%", marginRight: "5%" }}>
-        <SchemaEvaluator />
-      </div>
-    </>
-  );
-}
+
+const App = () => {
+	return (
+		<>
+		  <div style={{ marginLeft: "5%", marginRight: "5%", marginTop: "2%", marginBottom: "2%" }}>
+				<LocusPage></LocusPage>
+				
+		  </div>
+		</>
+	)
+};
+
+export default App;

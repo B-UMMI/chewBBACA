@@ -15,7 +15,7 @@ module.exports = function(api) {
                       }
                     ],
 					// add to enable support for experimental 'jsx'
-					["@babel/preset-react"],
+					["@babel/preset-react", {"runtime": "automatic"}],
                   ];
   const plugins = [
 	  ["@babel/plugin-proposal-class-properties"]

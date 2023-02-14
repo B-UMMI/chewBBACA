@@ -8,7 +8,10 @@ module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "main_ind.js",
+    filename: "main.js",
+  },
+  resolve: {
+    fallback: { 'process/browser': require.resolve('process/browser'), }
   },
   module: {
     rules: [

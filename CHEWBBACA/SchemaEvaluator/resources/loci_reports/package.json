@@ -20,6 +20,7 @@
     "react-markdown": "^8.0.5",
     "react-plotly.js": "^2.6.0",
     "react-scripts": "5.0.1",
+    "react-scroll": "^1.8.9",
     "remark-gfm": "^3.0.1",
     "web-vitals": "^2.1.4"
   },

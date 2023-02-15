@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+//import Container from '@mui/material/Container';
 // MSAViewer
 //import MSAViewer from "react-msa-viewer";
 
 // Phylocanvas
-//import { PhylogeneticTree } from "../components/Phylocanvas";
+import PhylogeneticTree from "../components/PhylogeneticTree";
+
+import { Element } from 'react-scroll';
 
 
 function TabPanel(props) {
@@ -127,6 +130,9 @@ const LocusPage = () => {
 		}
 	};
 
+	const phyloData = data.phylo.phylo_data
+	console.log('LocusPage');
+
 	return (
 		<div style={{ marginTop: "40px"}}>
 			<div style={{ marginTop: "40px"}}>
@@ -174,6 +180,37 @@ const LocusPage = () => {
 								configOptions={configPanelB}
 							>
 							</PlotlyPlot>
+						</TabPanel>
+					</Paper>
+				</Box>
+			</div>
+			<div style={{ marginTop: "40px" }}>
+				<Box sx={{ width: "100%" }}>
+					<Paper elevation={3}>
+						<TabPanel>
+							<Element 
+								name="phyloTree" 
+								className="element" 
+								id="containerElement" style={{
+								position: 'relative',
+								height: '750px',
+								overflow: 'scroll',
+								marginBottom: '0px'
+							}}>
+								<div style={{ position: "relative", margin: "auto" }}>
+									<div id="demo" style={{ position: "absolute", margin: "auto"}}>
+										<PhylogeneticTree
+											source={phyloData}
+											treeWidth={600}
+											treeHeight={700}
+											showLabels
+											showLeafLabels
+											interactive
+										>
+										</PhylogeneticTree>
+									</div>
+								</div>
+							</Element>
 						</TabPanel>
 					</Paper>
 				</Box>

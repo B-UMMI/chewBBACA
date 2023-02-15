@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 // Phylocanvas imports
-import PhylocanvasGL, { TreeTypes } from "@phylocanvas/phylocanvas.gl";
+import PhylocanvasGL, { TreeTypes, plugins } from "@phylocanvas/phylocanvas.gl";
 
 
 const PhylogeneticTree = ({ source, treeWidth, treeHeight, showLabels, showLeafLabels, interactive }) => {
@@ -16,11 +16,12 @@ const PhylogeneticTree = ({ source, treeWidth, treeHeight, showLabels, showLeafL
 			 showLabels,
 			 showLeafLabels,
 			 interactive,
-			 padding: 10
-			}
+			 padding: 15,
+			// alignLabels: true
+			},
+			[plugins.scalebar,
+			 ]
 		)
-		// can I use this to destroy the tree before each rerender?
-		// return tree.destroy();
 	}, [])
 };
 

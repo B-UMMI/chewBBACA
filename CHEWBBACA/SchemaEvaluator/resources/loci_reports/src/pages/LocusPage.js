@@ -14,6 +14,15 @@ import PhylogeneticTree from "../components/PhylogeneticTree";
 
 import { Element } from 'react-scroll';
 
+// Material-UI ExpansionPanel components
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from '@mui/material/Typography'; 
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Divider from '@mui/material/Divider';
+
+
 
 function TabPanel(props) {
 	const { children, value, index, ...other } = props;
@@ -185,8 +194,16 @@ const LocusPage = () => {
 				</Box>
 			</div>
 			<div style={{ marginTop: "40px" }}>
-				<Box sx={{ width: "100%" }}>
-					<Paper elevation={3}>
+				<Accordion defaultExpanded>
+					<AccordionSummary
+						expandIcon={<ExpandMoreIcon />}
+						aria-controls="panella-content"
+						id="panella-header"
+					>
+						<Typography>Phylocanvas Tree</Typography>
+					</AccordionSummary>
+					<Divider />
+					<AccordionDetails >
 						<TabPanel>
 							<Element 
 								name="phyloTree" 
@@ -212,8 +229,8 @@ const LocusPage = () => {
 								</div>
 							</Element>
 						</TabPanel>
-					</Paper>
-				</Box>
+					</AccordionDetails>
+				</Accordion>
 			</div>
 		</div>
 	  );

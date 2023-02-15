@@ -165,9 +165,9 @@ def main(schema_directory, output_directory, annotations, translation_table,
     for locus in schema_files:
         allele_lengths = fao.sequence_lengths(locus)
         # sort based on sequence length
-        allele_lengths = {x[0]: x[1] 
+        allele_lengths = {x[0]: x[1]
                           for x in sorted(allele_lengths.items(),
-                                          key = lambda item: item[1])}
+                                          key=lambda item: item[1])}
         lengths = list(allele_lengths.values())
         seqids = list(allele_lengths.keys())
         allele_ids = [seqid.split('_')[-1] for seqid in seqids]
@@ -339,43 +339,55 @@ def main(schema_directory, output_directory, annotations, translation_table,
         locus_rows = [locus, total_alleles[i], notMultiple_values[i],
                       stopC_values[i], notStart_values[i], shorter_values[i],
                       size_ranges[i], median_values[i], mode_values[i]]
+        # translate alleles
+        _, protein_file, _ = fao.translate_fasta(schema_files[i],
+                                                 translation_dir,
+                                                 translation_table)
+
+        protein_sequences = {"sequences": []}
+        protein_records = fao.sequence_generator(protein_file)
+        for record in protein_records:
+            protein_sequences["sequences"].append({"name": (record.id).split('_')[-1],
+                                                   "sequence": str(record.seq)})
+
+        dna_sequences = {"sequences": []}
+        dna_records = fao.sequence_generator(schema_files[i])
+        for record in dna_records:
+            dna_sequences["sequences"].append({"name": (record.id).split('_')[-1],
+                                               "sequence": str(record.seq)})
 
         if light is False:
             if total_alleles[i] > 1:
-                # translate alleles
-                _, protein_file, _ = fao.translate_fasta(schema_files[i],
-                                                         translation_dir,
-                                                         translation_table)
                 alignment_file = call_mafft(protein_file)
                 # get MSA data
                 msa_data = {"sequences": []}
                 msa_records = fao.sequence_generator(alignment_file)
                 for record in msa_records:
-                    msa_data["sequences"].append({"name": (record.id).split('_')[-1], "sequence": str(record.seq)})
+                    msa_data["sequences"].append({"name":(record.id).split('_')[-1],
+                                                  "sequence": str(record.seq)})
 
                 # get Tree data
                 # get the phylocanvas data
                 tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
                 with open(tree_file, 'r') as phylo:
-                    phylo_data = phylo.read()
-                    
-                phylo_data = {"phylo_data": phylo_data}
+                    # read and remove newlines
+                    phylo_data = phylo.read().replace('\n', '')
 
-                # get sequences for Sequence Logo
-                with open(protein_file, 'r') as infile:
-                    protein_sequences = infile.read()
+                phylo_data = phylo_data.replace(f'_{locus}', '')
+
+                phylo_data = {"phylo_data": phylo_data}
             else:
                 msa_data = "undefined"
                 phylo_data = "undefined"
-                protein_sequences = "undefined"
 
         locus_data = {"summaryData": [{"columns": locus_columns},
                                       {"rows": [locus_rows]}],
-                       "lengths": allele_lengths,
-                       "ids": allele_ids,
-                       "msa": msa_data,
-                       "phylo": phylo_data,
-                       "logo": protein_sequences}
+                      "lengths": allele_lengths,
+                      "ids": allele_ids,
+                      "msa": msa_data,
+                      "phylo": phylo_data,
+                      "dna": dna_sequences,
+                      "protein": protein_sequences}
 
         locus_html = """<!DOCTYPE html>
         <html lang="en">

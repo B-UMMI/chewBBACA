@@ -22,6 +22,8 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Divider from '@mui/material/Divider';
 
+// import Roboto font
+// import '@fontsource/roboto/300.css';
 
 
 function TabPanel(props) {
@@ -139,8 +141,28 @@ const LocusPage = () => {
 		}
 	};
 
+	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data
 	console.log('LocusPage');
+
+	// get DNA sequences
+	const dnaSequences = data.dna.sequences
+	const dnaText = dnaSequences.map((seq) => {
+		const seqid = seq.name;
+		const sequence = seq.sequence;
+		const sequenceStr = `>${seqid}\n${sequence}\n`
+		return <Typography id={seqid} style={{fontSize: 12}}>{sequenceStr}</Typography>
+	})
+
+	// get Protein sequences
+	const proteinSequences = data.protein.sequences
+	const proteinText = proteinSequences.map((seq) => {
+		const seqid = seq.name;
+		const sequence = seq.sequence;
+		const sequenceStr = `>${seqid}\n${sequence}\n`
+		return <Typography id={seqid} style={{fontSize: 12}}>{sequenceStr}</Typography>
+	})
+
 
 	return (
 		<div style={{ marginTop: "40px"}}>
@@ -229,6 +251,32 @@ const LocusPage = () => {
 								</div>
 							</Element>
 						</TabPanel>
+					</AccordionDetails>
+				</Accordion>
+				<Accordion style={{ marginTop: "40px"}} defaultExpanded={false}>
+					<AccordionSummary
+						expandIcon={<ExpandMoreIcon />}
+						aria-controls="panella-content"
+						id="panella-header"
+					>
+						<Typography>DNA sequences</Typography>
+					</AccordionSummary>
+					<Divider />
+					<AccordionDetails style={{overflowWrap: 'break-word'}}>
+						{dnaText}
+					</AccordionDetails>
+				</Accordion>
+				<Accordion defaultExpanded={false}>
+					<AccordionSummary
+						expandIcon={<ExpandMoreIcon />}
+						aria-controls="panella-content"
+						id="panella-header"
+					>
+						<Typography>Protein sequences</Typography>
+					</AccordionSummary>
+					<Divider />
+					<AccordionDetails style={{overflowWrap: 'break-word'}}>
+						{proteinText}
 					</AccordionDetails>
 				</Accordion>
 			</div>

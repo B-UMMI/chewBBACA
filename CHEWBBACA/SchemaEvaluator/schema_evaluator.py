@@ -64,6 +64,11 @@ except ModuleNotFoundError:
         sequence_manipulation as sm,
         multiprocessing_operations as mo)
 
+import biotite.sequence.io.fasta as fasta
+import biotite.sequence.graphics as graphics
+import biotite.application.mafft as mafft
+import matplotlib.pyplot as plt
+
 
 schema_directory = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_schema/schema_seed'
 output_directory = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/schema_evaluation'
@@ -443,3 +448,39 @@ def call_mafft(genefile):
     except Exception as e:
         print(e)
         return False
+
+
+# Get the sequences from hit IDs
+test_fasta = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/schema_evaluation/temp/translated_loci/GCF-000007125-protein1_protein.fasta'
+fasta_file = fasta.FastaFile.read(test_fasta)
+hit_seqs2 = [fasta.get_sequences(fasta_file)]
+
+hit_seqids = list(hit_seqs2[0].keys())
+hit_sequences = list(hit_seqs2[0].values())
+
+# Perform a multiple sequence alignment using MUSCLE
+app = mafft.MafftApp(hit_sequences)
+app.start()
+app.join()
+alignment = app.get_alignment()
+# Print the MSA with hit IDs
+print("MSA results:")
+gapped_seqs = alignment.get_gapped_sequences()
+for i in range(len(gapped_seqs)):
+    print(hit_seqids[i], " "*3, gapped_seqs[i])
+
+# Visualize the first 200 columns of the alignment
+# Reorder alignments to reflect sequence distance
+
+fig = plt.figure(figsize=(8.0, 8.0))
+ax = fig.add_subplot(111)
+order = app.get_alignment_order()
+graphics.plot_alignment_type_based(
+    ax, alignment[:200, order.tolist()], labels=[hit_seqids[i] for i in order],
+    show_numbers=True, color_scheme="clustalx"
+)
+fig.tight_layout()
+
+out_msa = os.path.join(output_directory, 'test_msa.svg')
+fig.savefig(out_msa)
+

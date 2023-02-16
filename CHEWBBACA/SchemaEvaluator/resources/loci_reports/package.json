@@ -5,6 +5,8 @@
   "dependencies": {
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@fontsource/roboto": "^4.5.8",
+    "@monaco-editor/react": "^4.4.6",
     "@mui/icons-material": "^5.11.0",
     "@mui/material": "^5.11.8",
     "@phylocanvas/phylocanvas.gl": "^1.48.0",
@@ -21,6 +23,7 @@
     "react-plotly.js": "^2.6.0",
     "react-scripts": "5.0.1",
     "react-scroll": "^1.8.9",
+    "react-svg": "^16.1.1",
     "remark-gfm": "^3.0.1",
     "web-vitals": "^2.1.4"
   },

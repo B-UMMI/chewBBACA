@@ -286,7 +286,7 @@ const SchemaPage = () => {
 		0: {
 			customBodyRender: (value) => (
 				<a
-		  			href={`../html_files/${value}.html`}
+		  			href={`./loci_reports/${value}.html`}
 		  			target={"_blank"}
 		  			rel={"noopener noreferrer"}
 				>

@@ -25,6 +25,10 @@ import Divider from '@mui/material/Divider';
 // import Roboto font
 // import '@fontsource/roboto/300.css';
 
+// Monaco code editor (options example at https://monaco-react.surenatoyan.com/)
+import Editor from "@monaco-editor/react";
+
+import { ReactSVG } from 'react-svg'
 
 function TabPanel(props) {
 	const { children, value, index, ...other } = props;
@@ -56,6 +60,7 @@ function a11yProps(index) {
 
 
 const LocusPage = () => {
+
 	const [panel, setPanel] = useState(0);
 
 	const handleChange = (event, newValue) => {
@@ -151,8 +156,10 @@ const LocusPage = () => {
 		const seqid = seq.name;
 		const sequence = seq.sequence;
 		const sequenceStr = `>${seqid}\n${sequence}\n`
-		return <Typography id={seqid} style={{fontSize: 12}}>{sequenceStr}</Typography>
+		return sequenceStr
 	})
+
+	const joinedDNA = dnaText.join('');
 
 	// get Protein sequences
 	const proteinSequences = data.protein.sequences
@@ -160,9 +167,12 @@ const LocusPage = () => {
 		const seqid = seq.name;
 		const sequence = seq.sequence;
 		const sequenceStr = `>${seqid}\n${sequence}\n`
-		return <Typography id={seqid} style={{fontSize: 12}}>{sequenceStr}</Typography>
+		return sequenceStr
 	})
 
+	const joinedProtein = proteinText.join('');
+
+	const msaImage = data.msaImage;
 
 	return (
 		<div style={{ marginTop: "40px"}}>
@@ -236,49 +246,90 @@ const LocusPage = () => {
 								overflow: 'scroll',
 								marginBottom: '0px'
 							}}>
-								<div style={{ position: "relative", margin: "auto" }}>
-									<div id="demo" style={{ position: "absolute", margin: "auto"}}>
-										<PhylogeneticTree
-											source={phyloData}
-											treeWidth={600}
-											treeHeight={700}
-											showLabels
-											showLeafLabels
-											interactive
-										>
-										</PhylogeneticTree>
-									</div>
+								<div id="demo" style={{ margin: "auto" }}>
+									<PhylogeneticTree
+										source={phyloData}
+										treeWidth={600}
+										treeHeight={700}
+										showLabels
+										showLeafLabels
+										interactive
+									>
+									</PhylogeneticTree>
 								</div>
 							</Element>
 						</TabPanel>
 					</AccordionDetails>
 				</Accordion>
-				<Accordion style={{ marginTop: "40px"}} defaultExpanded={false}>
-					<AccordionSummary
-						expandIcon={<ExpandMoreIcon />}
-						aria-controls="panella-content"
-						id="panella-header"
-					>
-						<Typography>DNA sequences</Typography>
-					</AccordionSummary>
-					<Divider />
-					<AccordionDetails style={{overflowWrap: 'break-word'}}>
-						{dnaText}
-					</AccordionDetails>
-				</Accordion>
-				<Accordion defaultExpanded={false}>
-					<AccordionSummary
-						expandIcon={<ExpandMoreIcon />}
-						aria-controls="panella-content"
-						id="panella-header"
-					>
-						<Typography>Protein sequences</Typography>
-					</AccordionSummary>
-					<Divider />
-					<AccordionDetails style={{overflowWrap: 'break-word'}}>
-						{proteinText}
-					</AccordionDetails>
-				</Accordion>
+				<div style={{ marginTop: "40px"}}>
+					<Accordion defaultExpanded={false}>
+						<AccordionSummary
+							expandIcon={<ExpandMoreIcon />}
+							aria-controls="panella-content"
+							id="panella-header"
+						>
+							<Typography>DNA sequences</Typography>
+						</AccordionSummary>
+						<Divider />
+						<AccordionDetails 
+						style={{overflowWrap: 'break-word'}}
+						>
+							<Editor
+							height="40vh"
+							options={{"readOnly": true, "wordWrap": "on"}}
+							defaultValue={`${joinedDNA}`}
+							>
+							</Editor>
+						</AccordionDetails>
+					</Accordion>
+					<Accordion defaultExpanded={false}>
+						<AccordionSummary
+							expandIcon={<ExpandMoreIcon />}
+							aria-controls="panella-content"
+							id="panella-header"
+						>
+							<Typography>Protein sequences</Typography>
+						</AccordionSummary>
+						<Divider />
+						<AccordionDetails 
+						style={{overflowWrap: 'break-word'}}
+						>
+							<Editor
+								height="40vh"
+								options={{"readOnly": true, "wordWrap": "on"}}
+								defaultValue={`${joinedProtein}`}
+							>
+							</Editor>
+						</AccordionDetails>
+					</Accordion>
+				</div>
+				<div style={{ marginTop: "40px" }}>
+					<Accordion defaultExpanded={false}>
+						<AccordionSummary
+							expandIcon={<ExpandMoreIcon />}
+							aria-controls="panella-content"
+							id="panella-header"
+						>
+							<Typography>MSA</Typography>
+						</AccordionSummary>
+						<Divider />
+						<AccordionDetails >
+							<TabPanel>
+								<Element 
+									name="msaImage" 
+									className="element" 
+									id="containerElement" style={{
+									position: 'relative',
+									height: '750px',
+									overflow: 'scroll',
+									marginBottom: '0px'
+								}}>
+									<img width='2500px' src={msaImage} alt={locusName} style={{ display: 'flex', margin: 'auto' }} />
+								</Element>
+							</TabPanel>
+						</AccordionDetails>
+					</Accordion>
+				</div>
 			</div>
 		</div>
 	  );

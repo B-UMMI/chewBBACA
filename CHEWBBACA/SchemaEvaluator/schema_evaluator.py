@@ -67,6 +67,7 @@ except ModuleNotFoundError:
 import biotite.sequence.io.fasta as fasta
 import biotite.sequence.graphics as graphics
 import biotite.application.mafft as mafft
+import biotite.sequence as seq
 import matplotlib.pyplot as plt
 
 
@@ -330,8 +331,12 @@ def main(schema_directory, output_directory, annotations, translation_table,
     # create directory to store translated schema
     translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
     fo.create_directory(translation_dir)
+    # create folder to store loci HTML reports
     loci_htmls_dir = fo.join_paths(output_directory, ['loci_reports'])
     fo.create_directory(loci_htmls_dir)
+    # create folder to store images
+    images_dir = fo.join_paths(loci_htmls_dir, ['images'])
+    fo.create_directory(images_dir)
     loci_htmls = []
     locus_columns = ["Locus", "Number of Alleles", "Alleles not multiple of 3",
                      "Alleles w/ >1 stop codon", "Alleles wo/ Start/Stop codon",
@@ -363,34 +368,56 @@ def main(schema_directory, output_directory, annotations, translation_table,
 
         if light is False:
             if total_alleles[i] > 1:
-                alignment_file = call_mafft(protein_file)
-                # get MSA data
-                msa_data = {"sequences": []}
-                msa_records = fao.sequence_generator(alignment_file)
-                for record in msa_records:
-                    msa_data["sequences"].append({"name":(record.id).split('_')[-1],
-                                                  "sequence": str(record.seq)})
+                fasta_handler = fasta.FastaFile.read(protein_file)
+                locus_records = [fasta.get_sequences(fasta_handler)]
+
+                locus_seqids = list(locus_records[0].keys())
+                locus_proteins = list(locus_records[0].values())
+
+                # Perform a multiple sequence alignment using MAFFT
+                app = mafft.MafftApp(locus_proteins)
+                app.start()
+                app.join()
+                alignment = app.get_alignment()
+
+                # 200 positions per MSA row
+                # 0.14 inches per position + 0.14 per char in max allele ID
+                width = (200+total_alleles[i])*0.14
+                # 0.20 inches per sequence * number of blocks necessary to show longest sequence
+                height = (len(locus_seqids)*0.20)*(max([len(p) for p in locus_proteins])/200)
+                fig = plt.figure(figsize=(width, height))
+                ax = fig.add_subplot(111)
+                order = app.get_alignment_order()
+                allele_labels = [locus_seqids[i] for i in order]
+                graphics.plot_alignment_similarity_based(
+                    ax, alignment[:, order.tolist()], labels=[l.split('_')[-1] for l in allele_labels],
+                    show_numbers=True, symbols_per_line=200, show_line_position=True,
+                    color="#0570b0"
+                )
+                fig.tight_layout()
+
+                locus_msa_png = fo.join_paths(images_dir, [f'{locus}_msa.png'])
+                fig.savefig(locus_msa_png, bbox_inches='tight', format='png', dpi=300)
 
                 # get Tree data
                 # get the phylocanvas data
-                tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
-                with open(tree_file, 'r') as phylo:
-                    # read and remove newlines
-                    phylo_data = phylo.read().replace('\n', '')
+                tree_newick = app.get_guide_tree().to_newick()
+                for i, label in enumerate(allele_labels):
+                    tree_newick = tree_newick.replace(f'{i}:', f'{label}/:')
+                tree_newick = tree_newick.replace(f'{locus}_', '')
+                tree_newick = tree_newick.replace('/', '')
 
-                phylo_data = phylo_data.replace(f'_{locus}', '')
-
-                phylo_data = {"phylo_data": phylo_data}
+                phylo_data = {"phylo_data": tree_newick}
             else:
-                msa_data = "undefined"
                 phylo_data = "undefined"
 
         locus_data = {"summaryData": [{"columns": locus_columns},
                                       {"rows": [locus_rows]}],
                       "lengths": allele_lengths,
                       "ids": allele_ids,
-                      "msa": msa_data,
                       "phylo": phylo_data,
+                      # need to include '.' at start to work properly
+                      "msaSVG": f"./images/{locus}_msa.png",
                       "dna": dna_sequences,
                       "protein": protein_sequences}
 
@@ -414,73 +441,3 @@ def main(schema_directory, output_directory, annotations, translation_table,
         loci_htmls.append(locus_html_file)
 
     return [schema_html, loci_htmls]
-
-
-def call_mafft(genefile):
-    """Call MAFFT to generate an alignment.
-
-    Parameters
-    ----------
-    genefile : str
-        A string with the name/path for
-        the FASTA file.
-
-    Returns
-    -------
-    bool
-        True if sucessful, False otherwise.
-    """
-    try:
-        mafft_cline = MafftCommandline(
-            input=genefile,
-            adjustdirection=True,
-            treeout=True,
-            thread=1,
-            retree=1,
-            maxiterate=0,
-        )
-        stdout, stderr = mafft_cline()
-        path_to_save = genefile.replace(".fasta", "_aligned.fasta")
-        with open(path_to_save, "w") as handle:
-            handle.write(stdout)
-        return path_to_save
-
-    except Exception as e:
-        print(e)
-        return False
-
-
-# Get the sequences from hit IDs
-test_fasta = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/schema_evaluation/temp/translated_loci/GCF-000007125-protein1_protein.fasta'
-fasta_file = fasta.FastaFile.read(test_fasta)
-hit_seqs2 = [fasta.get_sequences(fasta_file)]
-
-hit_seqids = list(hit_seqs2[0].keys())
-hit_sequences = list(hit_seqs2[0].values())
-
-# Perform a multiple sequence alignment using MUSCLE
-app = mafft.MafftApp(hit_sequences)
-app.start()
-app.join()
-alignment = app.get_alignment()
-# Print the MSA with hit IDs
-print("MSA results:")
-gapped_seqs = alignment.get_gapped_sequences()
-for i in range(len(gapped_seqs)):
-    print(hit_seqids[i], " "*3, gapped_seqs[i])
-
-# Visualize the first 200 columns of the alignment
-# Reorder alignments to reflect sequence distance
-
-fig = plt.figure(figsize=(8.0, 8.0))
-ax = fig.add_subplot(111)
-order = app.get_alignment_order()
-graphics.plot_alignment_type_based(
-    ax, alignment[:200, order.tolist()], labels=[hit_seqids[i] for i in order],
-    show_numbers=True, color_scheme="clustalx"
-)
-fig.tight_layout()
-
-out_msa = os.path.join(output_directory, 'test_msa.svg')
-fig.savefig(out_msa)
-

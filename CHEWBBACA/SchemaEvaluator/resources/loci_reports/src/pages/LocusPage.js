@@ -1,13 +1,11 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-//import Container from '@mui/material/Container';
-// MSAViewer
-//import MSAViewer from "react-msa-viewer";
+import Resized from '../components/Resized';
 
 // Phylocanvas
 import PhylogeneticTree from "../components/PhylogeneticTree";
@@ -28,7 +26,6 @@ import Divider from '@mui/material/Divider';
 // Monaco code editor (options example at https://monaco-react.surenatoyan.com/)
 import Editor from "@monaco-editor/react";
 
-import { ReactSVG } from 'react-svg'
 
 function TabPanel(props) {
 	const { children, value, index, ...other } = props;
@@ -147,8 +144,10 @@ const LocusPage = () => {
 	};
 
 	// get data for Phylocanvas tree
-	const phyloData = data.phylo.phylo_data
-	console.log('LocusPage');
+	const phyloData = data.phylo.phylo_data;
+
+	// get data for MSA
+	//const msaData = data.msa.sequences;
 
 	// get DNA sequences
 	const dnaSequences = data.dna.sequences
@@ -172,11 +171,9 @@ const LocusPage = () => {
 
 	const joinedProtein = proteinText.join('');
 
-	const msaImage = data.msaImage;
-
 	return (
-		<div style={{ marginTop: "40px"}}>
-			<div style={{ marginTop: "40px"}}>
+		<div style={{ marginTop: "40px" }}>
+			<div style={{ marginTop: "40px" }}>
 				<DataTable 
 					tableData={summaryData} 
 					tableTitle="Summary Data" 
@@ -214,9 +211,9 @@ const LocusPage = () => {
 						<TabPanel value={panel} index={1}>
 							<PlotlyPlot 
 								plotData={plotDataPanelB}
-								plotTitle="Distribution of allele mode sizes"
-								xaxisTitle="Allele Mode Size"
-								yaxisTitle="Number of Loci"
+								plotTitle={locusName}
+								xaxisTitle="Allele ID"
+								yaxisTitle="Sequence Size (bp)"
 								layoutProps={layoutPanelB}
 								configOptions={configPanelB}
 							>
@@ -226,13 +223,13 @@ const LocusPage = () => {
 				</Box>
 			</div>
 			<div style={{ marginTop: "40px" }}>
-				<Accordion defaultExpanded>
+				<Accordion defaultExpanded={false}>
 					<AccordionSummary
 						expandIcon={<ExpandMoreIcon />}
 						aria-controls="panella-content"
 						id="panella-header"
 					>
-						<Typography>Phylocanvas Tree</Typography>
+						<Typography>Phylogenetic Tree</Typography>
 					</AccordionSummary>
 					<Divider />
 					<AccordionDetails >
@@ -261,75 +258,63 @@ const LocusPage = () => {
 						</TabPanel>
 					</AccordionDetails>
 				</Accordion>
-				<div style={{ marginTop: "40px"}}>
-					<Accordion defaultExpanded={false}>
+				<Accordion defaultExpanded={false}>
 						<AccordionSummary
 							expandIcon={<ExpandMoreIcon />}
 							aria-controls="panella-content"
 							id="panella-header"
 						>
-							<Typography>DNA sequences</Typography>
-						</AccordionSummary>
-						<Divider />
-						<AccordionDetails 
-						style={{overflowWrap: 'break-word'}}
-						>
-							<Editor
-							height="40vh"
-							options={{"readOnly": true, "wordWrap": "on"}}
-							defaultValue={`${joinedDNA}`}
-							>
-							</Editor>
-						</AccordionDetails>
-					</Accordion>
-					<Accordion defaultExpanded={false}>
-						<AccordionSummary
-							expandIcon={<ExpandMoreIcon />}
-							aria-controls="panella-content"
-							id="panella-header"
-						>
-							<Typography>Protein sequences</Typography>
-						</AccordionSummary>
-						<Divider />
-						<AccordionDetails 
-						style={{overflowWrap: 'break-word'}}
-						>
-							<Editor
-								height="40vh"
-								options={{"readOnly": true, "wordWrap": "on"}}
-								defaultValue={`${joinedProtein}`}
-							>
-							</Editor>
-						</AccordionDetails>
-					</Accordion>
-				</div>
-				<div style={{ marginTop: "40px" }}>
-					<Accordion defaultExpanded={false}>
-						<AccordionSummary
-							expandIcon={<ExpandMoreIcon />}
-							aria-controls="panella-content"
-							id="panella-header"
-						>
-							<Typography>MSA</Typography>
+							<Typography>Multiple Sequence Alignment</Typography>
 						</AccordionSummary>
 						<Divider />
 						<AccordionDetails >
 							<TabPanel>
-								<Element 
-									name="msaImage" 
-									className="element" 
-									id="containerElement" style={{
-									position: 'relative',
-									height: '750px',
-									overflow: 'scroll',
-									marginBottom: '0px'
-								}}>
-									<img width='2500px' src={msaImage} alt={locusName} style={{ display: 'flex', margin: 'auto' }} />
-								</Element>
+								<Resized></Resized>
 							</TabPanel>
 						</AccordionDetails>
-					</Accordion>
-				</div>
+				</Accordion>
+			</div>
+			<div style={{ marginTop: "40px"}}>
+				<Accordion defaultExpanded={false}>
+					<AccordionSummary
+						expandIcon={<ExpandMoreIcon />}
+						aria-controls="panella-content"
+						id="panella-header"
+					>
+						<Typography>DNA sequences</Typography>
+					</AccordionSummary>
+					<Divider />
+					<AccordionDetails 
+					style={{overflowWrap: 'break-word'}}
+					>
+						<Editor
+						height="40vh"
+						options={{"readOnly": true, "wordWrap": "on"}}
+						defaultValue={`${joinedDNA}`}
+						>
+						</Editor>
+					</AccordionDetails>
+				</Accordion>
+				<Accordion defaultExpanded={false}>
+					<AccordionSummary
+						expandIcon={<ExpandMoreIcon />}
+						aria-controls="panella-content"
+						id="panella-header"
+					>
+						<Typography>Protein sequences</Typography>
+					</AccordionSummary>
+					<Divider />
+					<AccordionDetails 
+					style={{overflowWrap: 'break-word'}}
+					>
+						<Editor
+							height="40vh"
+							options={{"readOnly": true, "wordWrap": "on"}}
+							defaultValue={`${joinedProtein}`}
+						>
+						</Editor>
+					</AccordionDetails>
+				</Accordion>
 			</div>
 		</div>
 	  );

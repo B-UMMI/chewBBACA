@@ -11,7 +11,10 @@ module.exports = {
     filename: "main.js",
   },
   resolve: {
-    fallback: { 'process/browser': require.resolve('process/browser'), }
+    fallback: { 'process/browser': require.resolve('process/browser'),
+                'buffer': require.resolve('buffer/') ,
+                'util': require.resolve('util/')
+              },
   },
   module: {
     rules: [

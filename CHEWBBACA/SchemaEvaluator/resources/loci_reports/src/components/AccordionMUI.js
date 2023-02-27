@@ -1,15 +1,14 @@
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-// Material-UI ExpansionPanel components
+// Material-UI components
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Divider from '@mui/material/Divider';
 
 
-const AccordionMUI = ({ summaryText, detailsText, expanded }) => {
-	return ( 
+const AccordionMUI = ({ summaryText, detailsData, expanded }) => {
+	return (
 		<Accordion defaultExpanded={expanded}>
 			<AccordionSummary
 				expandIcon={<ExpandMoreIcon />}
@@ -18,12 +17,10 @@ const AccordionMUI = ({ summaryText, detailsText, expanded }) => {
 			>
 				<Typography>{summaryText}</Typography>
 			</AccordionSummary>
+			<Divider />
 			<AccordionDetails >
-				<div
-					//className={classes.mainPaper}
-					style={{ width: "100%", height: "100%" }}
-				>
-					<ReactMarkdown remarkPlugins={[remarkGfm]} children={detailsText} />
+				<div style={{ width: "100%", height: "100%" }} >
+					{detailsData}
 				</div>
 			</AccordionDetails>
 		</Accordion>

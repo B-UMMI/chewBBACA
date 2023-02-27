@@ -1,69 +1,24 @@
-import { useState } from 'react';
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import Resized from '../components/Resized';
+import AccordionMUI from '../components/AccordionMUI';
+import TabsMUI from '../components/TabPanelMUI';
+import MSA from '../components/MSA';
+
+// Material-UI components
+import Box from '@mui/material/Box';
 
 // Phylocanvas
 import PhylogeneticTree from "../components/PhylogeneticTree";
 
+// 
 import { Element } from 'react-scroll';
-
-// Material-UI ExpansionPanel components
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Typography from '@mui/material/Typography'; 
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Divider from '@mui/material/Divider';
-
-// import Roboto font
-// import '@fontsource/roboto/300.css';
 
 // Monaco code editor (options example at https://monaco-react.surenatoyan.com/)
 import Editor from "@monaco-editor/react";
 
 
-function TabPanel(props) {
-	const { children, value, index, ...other } = props;
-  
-	return (
-	  <div
-		role="tabpanel"
-		hidden={value !== index}
-		id={`simple-tabpanel-${index}`}
-		aria-labelledby={`simple-tab-${index}`}
-		{...other}
-	  >
-		{value === index && (
-		  <Box sx={{ p: 3 }}>
-			{children}
-		  </Box>
-		)}
-	  </div>
-	);
-};
-
-
-function a11yProps(index) {
-	return {
-		id: `simple-tab-${index}`,
-		'aria-controls': `simple-tabpanel-${index}`,
-	};
-};
-
-
 const LocusPage = () => {
-
-	const [panel, setPanel] = useState(0);
-
-	const handleChange = (event, newValue) => {
-		// where is this value coming from?
-		setPanel(newValue);
-	};
 
 	// get pre-computed data
 	const data = window.preComputedDataInd;
@@ -79,7 +34,7 @@ const LocusPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "schema:summary.tsv",
+			filename: "schema_summary.tsv",
 			separator: "\t"
 		},
 		filter: false,
@@ -87,10 +42,17 @@ const LocusPage = () => {
 		viewColumns: true,
 		pagination: false,
 	};
+	// Component for Summary table
+	const summaryTable = <DataTable
+						  tableData={summaryData} 
+						  tableTitle="Summary Data" 
+						  tableOptions={summaryTableOptions}
+						 >
+						 </DataTable>
 
-	// data for Panel A
+	// data for Panel A (Sequence Size Distribution)
 	const xDataPanelA = data.lengths;
-	const yDataPanelA = data.lengths;
+	const yDataPanelA = data.ids;
 	const plotDataPanelA = [
 		{x: xDataPanelA,
 		 y: yDataPanelA,
@@ -115,8 +77,20 @@ const LocusPage = () => {
 			 scale: 1
 		}
 	};
+	// Component for Plotly Histogram with allele size distribution
+	const AlleleSizeHistogram = (
+		<PlotlyPlot
+		 plotData={plotDataPanelA}
+		 plotTitle={locusName}
+		 xaxisTitle="Sequence Size (bp)"
+		 yaxisTitle="Number of Alleles"
+		 layoutProps={layoutPanelA}
+		 configOptions={configPanelA}
+		>
+		</PlotlyPlot>
+	);
 
-	// data for Panel B
+	// data for Panel B (Allele Mode Size, )
 	const xDataPanelB = data.ids;
 	const yDataPanelB = xDataPanelA;
 	const plotDataPanelB = [
@@ -142,12 +116,64 @@ const LocusPage = () => {
 			 scale: 1
 		}
 	};
+	const AlleleSizeScatter = (
+		<PlotlyPlot 
+		 plotData={plotDataPanelB}
+		 plotTitle={locusName}
+		 xaxisTitle="Allele ID"
+		 yaxisTitle="Sequence Size (bp)"
+		 layoutProps={layoutPanelB}
+		 configOptions={configPanelB}
+		>
+		</PlotlyPlot>
+	);
+
+	const AlleleSizePanelTitles = ["Allele Size Distribution", "Allele Size"];
+	const AlleleSizePanelsData = [AlleleSizeHistogram, AlleleSizeScatter];
 
 	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data;
 
-	// get data for MSA
-	//const msaData = data.msa.sequences;
+	const PhylogeneticElement = (
+		<Box sx={{ p: 3 }}>
+			<Element 
+			 name="phyloTree" 
+			 className="element" 
+			 id="containerElement"
+			 style={{
+				 position: 'relative',
+				 height: '750px',
+				 overflow: 'scroll',
+				 marginBottom: '0px'
+				 }}
+			>
+				<div id="demo" style={{ margin: "auto" }}>
+					<PhylogeneticTree
+						source={phyloData}
+						treeWidth={600}
+						treeHeight={700}
+						showLabels
+						showLeafLabels
+						interactive
+					>
+					</PhylogeneticTree>
+				</div>
+			</Element>
+		</Box>
+	);
+
+	// create component for MSA
+	// pass MSA component constructor instead of instance
+	// this allows to get constructor and pass props in component that receives constructor
+	const MSAComponent = (
+		<Box sx={{ p: 3 }}>
+			<Resized
+				divID="MSA"
+				component={MSA}
+			>
+			</Resized>
+		</Box>
+	);
 
 	// get DNA sequences
 	const dnaSequences = data.dna.sequences
@@ -159,6 +185,15 @@ const LocusPage = () => {
 	})
 
 	const joinedDNA = dnaText.join('');
+	// create DNA Editor component
+	const DNAEditor = (
+		<Editor
+		 height="40vh"
+		 options={{"readOnly": true, "wordWrap": "on"}}
+		 defaultValue={`${joinedDNA}`}
+		>
+		</Editor>
+	);
 
 	// get Protein sequences
 	const proteinSequences = data.protein.sequences
@@ -170,151 +205,55 @@ const LocusPage = () => {
 	})
 
 	const joinedProtein = proteinText.join('');
+	// create DNA Editor component
+	const ProteinEditor = (
+		<Editor
+		 height="40vh"
+		 options={{"readOnly": true, "wordWrap": "on"}}
+		 defaultValue={`${joinedProtein}`}
+		>
+		</Editor>
+	);
 
 	return (
 		<div style={{ marginTop: "40px" }}>
 			<div style={{ marginTop: "40px" }}>
-				<DataTable 
-					tableData={summaryData} 
-					tableTitle="Summary Data" 
-					tableOptions={summaryTableOptions}
-				>
-				</DataTable>
+				{summaryTable}
 			</div>
 			<div style={{ marginTop: "40px"}}>
-				<Box sx={{ width: "100%" }}>
-					<Paper elevation={3}>
-						<Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-							<Tabs 
-								value={panel} 
-								onChange={handleChange} 
-								aria-label="basic tabs example" 
-								variant="scrollable"
-								scrollButtons={true}
-								allowScrollButtonsMobile
-							>
-								<Tab label="Total Alleles" wrapped {...a11yProps(0)} />
-								<Tab label="Allele Mode Size" wrapped {...a11yProps(1)} />
-							</Tabs>
-						</Box>
-						<TabPanel value={panel} index={0}>
-							<PlotlyPlot 
-								plotData={plotDataPanelA}
-								plotTitle={locusName}
-								xaxisTitle="Sequence Size (bp)"
-								yaxisTitle="Number of Alleles"
-								layoutProps={layoutPanelA}
-								configOptions={configPanelA}
-							>
-							</PlotlyPlot>
-						</TabPanel>
-						<TabPanel value={panel} index={1}>
-							<PlotlyPlot 
-								plotData={plotDataPanelB}
-								plotTitle={locusName}
-								xaxisTitle="Allele ID"
-								yaxisTitle="Sequence Size (bp)"
-								layoutProps={layoutPanelB}
-								configOptions={configPanelB}
-							>
-							</PlotlyPlot>
-						</TabPanel>
-					</Paper>
-				</Box>
+				<TabsMUI
+					ContentTitles={AlleleSizePanelTitles}
+					ContentData={AlleleSizePanelsData}
+				>
+				</TabsMUI>
 			</div>
 			<div style={{ marginTop: "40px" }}>
-				<Accordion defaultExpanded={false}>
-					<AccordionSummary
-						expandIcon={<ExpandMoreIcon />}
-						aria-controls="panella-content"
-						id="panella-header"
-					>
-						<Typography>Phylogenetic Tree</Typography>
-					</AccordionSummary>
-					<Divider />
-					<AccordionDetails >
-						<TabPanel>
-							<Element 
-								name="phyloTree" 
-								className="element" 
-								id="containerElement" style={{
-								position: 'relative',
-								height: '750px',
-								overflow: 'scroll',
-								marginBottom: '0px'
-							}}>
-								<div id="demo" style={{ margin: "auto" }}>
-									<PhylogeneticTree
-										source={phyloData}
-										treeWidth={600}
-										treeHeight={700}
-										showLabels
-										showLeafLabels
-										interactive
-									>
-									</PhylogeneticTree>
-								</div>
-							</Element>
-						</TabPanel>
-					</AccordionDetails>
-				</Accordion>
-				<Accordion defaultExpanded={false}>
-						<AccordionSummary
-							expandIcon={<ExpandMoreIcon />}
-							aria-controls="panella-content"
-							id="panella-header"
-						>
-							<Typography>Multiple Sequence Alignment</Typography>
-						</AccordionSummary>
-						<Divider />
-						<AccordionDetails >
-							<TabPanel>
-								<Resized></Resized>
-							</TabPanel>
-						</AccordionDetails>
-				</Accordion>
+				<AccordionMUI
+					summaryText="Phylogenetic Tree"
+					detailsData={PhylogeneticElement}
+					expanded={false}
+				>
+				</AccordionMUI>
+				<AccordionMUI
+					summaryText="Multiple Sequence Alignment"
+					detailsData={MSAComponent}
+					expanded={false}
+				>
+				</AccordionMUI>
 			</div>
 			<div style={{ marginTop: "40px"}}>
-				<Accordion defaultExpanded={false}>
-					<AccordionSummary
-						expandIcon={<ExpandMoreIcon />}
-						aria-controls="panella-content"
-						id="panella-header"
-					>
-						<Typography>DNA sequences</Typography>
-					</AccordionSummary>
-					<Divider />
-					<AccordionDetails 
-					style={{overflowWrap: 'break-word'}}
-					>
-						<Editor
-						height="40vh"
-						options={{"readOnly": true, "wordWrap": "on"}}
-						defaultValue={`${joinedDNA}`}
-						>
-						</Editor>
-					</AccordionDetails>
-				</Accordion>
-				<Accordion defaultExpanded={false}>
-					<AccordionSummary
-						expandIcon={<ExpandMoreIcon />}
-						aria-controls="panella-content"
-						id="panella-header"
-					>
-						<Typography>Protein sequences</Typography>
-					</AccordionSummary>
-					<Divider />
-					<AccordionDetails 
-					style={{overflowWrap: 'break-word'}}
-					>
-						<Editor
-							height="40vh"
-							options={{"readOnly": true, "wordWrap": "on"}}
-							defaultValue={`${joinedProtein}`}
-						>
-						</Editor>
-					</AccordionDetails>
-				</Accordion>
+				<AccordionMUI
+					summaryText="DNA sequences"
+					detailsData={DNAEditor}
+					expanded={false}
+				>
+				</AccordionMUI>
+				<AccordionMUI
+					summaryText="Protein sequences"
+					detailsData={ProteinEditor}
+					expanded={false}
+				>
+				</AccordionMUI>
 			</div>
 		</div>
 	  );

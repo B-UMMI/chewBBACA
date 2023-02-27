@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import MSA from '../components/MSA';
 
 
-const Resized = () => {
+const Resized = ({ divID, component }) => {
 	const [width, setWidth] = useState(0);
 	//const [height, setHeight] = useState(0);
 
@@ -11,20 +10,21 @@ const Resized = () => {
 			setWidth(event[0].contentBoxSize[0].inlineSize);
 			//setHeight(event[0].contentBoxSize[0].blockSize);
 		});
-		resizeObserver.observe(document.getElementById("MSA"));
+
+		resizeObserver.observe(document.getElementById(divID));
 
 		// using this removes the markers scrollbar in the MSA...
 		//return resizeObserver.unobserve(document.getElementById("MSA"))
 	});
 
-	console.log(width)
+	console.log(width, divID)
+
+	// get constructor of the component that will be displayed and automatically resized
+	const ComponentDisplay = component;
 
 	return (
-		<div id="MSA">
-			<MSA 
-				MSAwidth={width}
-			>
-			</MSA>
+		<div id={divID}>
+			<ComponentDisplay MSAwidth={width}></ComponentDisplay>
 		</div>
 	)
 };

@@ -227,3 +227,9 @@ HASH_TABLE_MAXIMUM_ALLELES = 200000
 UNIPROT_SPARQL_THREADS = 4
 
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
+
+# Column headers for the Summary Table in the Loci reports
+LOCUS_COLUMNS = ["Locus", "Number of Alleles", "Alleles not multiple of 3",
+                 "Alleles w/ >1 stop codon", "Alleles wo/ Start/Stop codon",
+                 "Alleles shorter than 201", "Size Range (bp)",
+                 "Alleles Median", "Alleles Mode"]

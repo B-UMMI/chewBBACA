@@ -313,13 +313,22 @@ const SchemaPage = () => {
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
 	};
+
+	// Select conditional formatting function to apply
+	// Only add href to loci names if the loci reports were generated
+	let LociAnnotationsFormatting = undefined;
+	if (data.lociReports === 1) {
+		LociAnnotationsFormatting = {...locusColumnFormatting, ...uniprotLinkColumnFormatting};
+	} else {
+		LociAnnotationsFormatting = {...uniprotLinkColumnFormatting};
+	}
 	// DataTable component to display loci annotations
 	const LociAnnotationsTable = (
 		<DataTable 
 		 tableData={annotationsData} 
 		 tableTitle="Loci Annotations" 
 		 tableOptions={annotationsTableOptions}
-		 tableConditionalFormatting={{...locusColumnFormatting, ...uniprotLinkColumnFormatting}}
+		 tableConditionalFormatting={LociAnnotationsFormatting}
 		>
 		</DataTable>
 	);
@@ -349,13 +358,20 @@ const SchemaPage = () => {
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
 	};
+
+	// Select conditional formatting function to apply
+	// Only add href to loci names if the loci reports were generated
+	let LociAnalysisFormatting = undefined;
+	if (data.lociReports === 1) {
+		LociAnalysisFormatting = {...locusColumnFormatting};
+	}
 	// DataTable component to display loci integrity analysis
 	const LociAnalysisTable = (
 		<DataTable 
 		 tableData={analysisData} 
 		 tableTitle="CDS Analysis" 
 		 tableOptions={analysisTableOptions}
-		 tableConditionalFormatting={{...locusColumnFormatting}}
+		 tableConditionalFormatting={LociAnalysisFormatting}
 		>
 		</DataTable>
 	);

@@ -6,7 +6,6 @@ const App = () => {
 		<>
 		  <div style={{ marginLeft: "5%", marginRight: "5%", marginTop: "2%", marginBottom: "2%" }}>
 				<LocusPage></LocusPage>
-				
 		  </div>
 		</>
 	)

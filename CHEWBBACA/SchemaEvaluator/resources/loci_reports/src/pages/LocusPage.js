@@ -2,7 +2,7 @@ import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
 import Resized from '../components/Resized';
 import AccordionMUI from '../components/AccordionMUI';
-import TabsMUI from '../components/TabPanelMUI';
+import TabPanelMUI from '../components/TabPanelMUI';
 import MSA from '../components/MSA';
 
 // Material-UI components
@@ -133,87 +133,137 @@ const LocusPage = () => {
 
 	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data;
+	let PhylogeneticElement = undefined;
+	if (phyloData.length > 0) {
+		PhylogeneticElement = (
+			<Box sx={{ p: 3 }}>
+				<Element 
+				 name="phyloTree" 
+				 className="element" 
+				 id="containerElement"
+				 style={{
+					 position: 'relative',
+					 height: '750px',
+					 overflow: 'scroll',
+					 marginBottom: '0px'
+					 }}
+				>
+					<div id="demo" style={{ margin: "auto" }}>
+						<PhylogeneticTree
+							source={phyloData}
+							treeWidth={600}
+							treeHeight={700}
+							showLabels
+							showLeafLabels
+							interactive
+						>
+						</PhylogeneticTree>
+					</div>
+				</Element>
+			</Box>
+		);
 
-	const PhylogeneticElement = (
-		<Box sx={{ p: 3 }}>
-			<Element 
-			 name="phyloTree" 
-			 className="element" 
-			 id="containerElement"
-			 style={{
-				 position: 'relative',
-				 height: '750px',
-				 overflow: 'scroll',
-				 marginBottom: '0px'
-				 }}
+		PhylogeneticElement = (
+			<AccordionMUI
+				summaryText="Phylogenetic Tree"
+				detailsData={PhylogeneticElement}
+				expanded={false}
 			>
-				<div id="demo" style={{ margin: "auto" }}>
-					<PhylogeneticTree
-						source={phyloData}
-						treeWidth={600}
-						treeHeight={700}
-						showLabels
-						showLeafLabels
-						interactive
-					>
-					</PhylogeneticTree>
-				</div>
-			</Element>
-		</Box>
-	);
+			</AccordionMUI>
+		);
+	}
+	
+
+
 
 	// create component for MSA
-	// pass MSA component constructor instead of instance
-	// this allows to get constructor and pass props in component that receives constructor
-	const MSAComponent = (
-		<Box sx={{ p: 3 }}>
-			<Resized
-				divID="MSA"
-				component={MSA}
+	let MSAComponent = undefined;
+	if (data.msa.sequences.length > 0) {
+		// pass MSA component constructor instead of instance
+		// this allows to get constructor and pass props in component that receives constructor
+		MSAComponent = (
+			<Box sx={{ p: 3 }}>
+				<Resized
+					divID="MSA"
+					component={MSA}
+				>
+				</Resized>
+			</Box>
+		);
+
+		MSAComponent = (
+			<AccordionMUI
+				summaryText="Multiple Sequence Alignment"
+				detailsData={MSAComponent}
+				expanded={false}
 			>
-			</Resized>
-		</Box>
-	);
+			</AccordionMUI>
+		);
+	}
+	
 
 	// get DNA sequences
 	const dnaSequences = data.dna.sequences
-	const dnaText = dnaSequences.map((seq) => {
-		const seqid = seq.name;
-		const sequence = seq.sequence;
-		const sequenceStr = `>${seqid}\n${sequence}\n`
-		return sequenceStr
-	})
+	let DNAEditor = undefined;
+	if (dnaSequences.length > 0) {
+		const dnaText = dnaSequences.map((seq) => {
+			const seqid = seq.name;
+			const sequence = seq.sequence;
+			const sequenceStr = `>${seqid}\n${sequence}\n`
+			return sequenceStr
+		})
+	
+		const joinedDNA = dnaText.join('');
+		// create DNA Editor component
+		DNAEditor = (
+			<Editor
+			 height="40vh"
+			 options={{"readOnly": true, "wordWrap": "on"}}
+			 defaultValue={`${joinedDNA}`}
+			>
+			</Editor>
+		);
 
-	const joinedDNA = dnaText.join('');
-	// create DNA Editor component
-	const DNAEditor = (
-		<Editor
-		 height="40vh"
-		 options={{"readOnly": true, "wordWrap": "on"}}
-		 defaultValue={`${joinedDNA}`}
-		>
-		</Editor>
-	);
+		DNAEditor = (
+			<AccordionMUI
+			 summaryText="DNA sequences"
+			 detailsData={DNAEditor}
+			 expanded={false}
+			>
+			</AccordionMUI>
+		);
+	}
 
 	// get Protein sequences
 	const proteinSequences = data.protein.sequences
-	const proteinText = proteinSequences.map((seq) => {
-		const seqid = seq.name;
-		const sequence = seq.sequence;
-		const sequenceStr = `>${seqid}\n${sequence}\n`
-		return sequenceStr
-	})
+	let ProteinEditor = undefined;
+	if (proteinSequences.length > 0) {
+		const proteinText = proteinSequences.map((seq) => {
+			const seqid = seq.name;
+			const sequence = seq.sequence;
+			const sequenceStr = `>${seqid}\n${sequence}\n`
+			return sequenceStr
+		})
+		const joinedProtein = proteinText.join('');
+		// create DNA Editor component
+		ProteinEditor = (
+			<Editor
+				height="40vh"
+				options={{"readOnly": true, "wordWrap": "on"}}
+				defaultValue={`${joinedProtein}`}
+			>
+			</Editor>
+		);
 
-	const joinedProtein = proteinText.join('');
-	// create DNA Editor component
-	const ProteinEditor = (
-		<Editor
-		 height="40vh"
-		 options={{"readOnly": true, "wordWrap": "on"}}
-		 defaultValue={`${joinedProtein}`}
-		>
-		</Editor>
-	);
+		ProteinEditor = (
+			<AccordionMUI
+			 summaryText="Protein sequences"
+			 detailsData={ProteinEditor}
+			 expanded={false}
+			>
+			</AccordionMUI>
+		);
+	}
 
 	return (
 		<div style={{ marginTop: "40px" }}>
@@ -221,39 +271,19 @@ const LocusPage = () => {
 				{summaryTable}
 			</div>
 			<div style={{ marginTop: "40px"}}>
-				<TabsMUI
+				<TabPanelMUI
 					ContentTitles={AlleleSizePanelTitles}
 					ContentData={AlleleSizePanelsData}
 				>
-				</TabsMUI>
+				</TabPanelMUI>
 			</div>
 			<div style={{ marginTop: "40px" }}>
-				<AccordionMUI
-					summaryText="Phylogenetic Tree"
-					detailsData={PhylogeneticElement}
-					expanded={false}
-				>
-				</AccordionMUI>
-				<AccordionMUI
-					summaryText="Multiple Sequence Alignment"
-					detailsData={MSAComponent}
-					expanded={false}
-				>
-				</AccordionMUI>
+				{PhylogeneticElement ? PhylogeneticElement : PhylogeneticElement}
+				{MSAComponent ? MSAComponent : MSAComponent}
 			</div>
 			<div style={{ marginTop: "40px"}}>
-				<AccordionMUI
-					summaryText="DNA sequences"
-					detailsData={DNAEditor}
-					expanded={false}
-				>
-				</AccordionMUI>
-				<AccordionMUI
-					summaryText="Protein sequences"
-					detailsData={ProteinEditor}
-					expanded={false}
-				>
-				</AccordionMUI>
+				{DNAEditor ? DNAEditor : DNAEditor}
+				{ProteinEditor ? ProteinEditor : ProteinEditor}
 			</div>
 		</div>
 	  );

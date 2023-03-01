@@ -552,17 +552,20 @@ def evaluate_schema():
     parser.add_argument('SchemaEvaluator', nargs='+',
                         help='Evaluates a set of loci.')
 
-    parser.add_argument('-i', '--input-files', type=str, required=True,
-                        dest='input_files',
-                        help='Path to the schema\'s directory or path to '
-                             'a file containing the paths to the FASTA '
-                             'files of the loci that will be evaluated, '
-                             'one per line.')
+    parser.add_argument('-g', '--schema-directory', type=str, required=True,
+                        dest='schema_directory',
+                        help='Path to the schema\'s directory.')
 
-    parser.add_argument('-o', '--output', type=str, required=True,
-                        dest='output_file',
+    parser.add_argument('-o', '--output-directory', type=str, required=True,
+                        dest='output_directory',
                         help='Path to the output directory where the report '
                              'HTML files will be generated.')
+
+    parser.add_argument('--gl', '--genes-list', type=str,
+                        required=False, default=False, dest='genes_list',
+                        help='Path to a file with the list of genes '
+                             'in the schema that the process should '
+                             'analyse (one per line).')
 
     parser.add_argument('-a', '--annotations', type=str, required=False,
                         dest='annotations',
@@ -602,154 +605,49 @@ def evaluate_schema():
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
 
-    parser.add_argument('--light', action='store_true', required=False,
-                        dest='light_mode',
-                        help='Skips the indepth analysis of the individual '
-                             'loci, including the MSA with MAFFT.')
+    parser.add_argument('--loci-reports', required=False,
+                        action='store_true', dest='loci_reports',
+                        help='If the process should create an individual '
+                             'report for each locus.')
 
-    parser.add_argument('--no-cleanup', action='store_true', required=False,
-                        dest='no_cleanup',
-                        help='If provided, intermediate files generated '
-                             'during process execution are not removed at '
-                             'the end.')
+    parser.add_argument('--light', action='store_true', required=False,
+                        dest='light',
+                        help='If determining loci reports, skips MSA '
+                             'computation with MAFFT and does not add '
+                             'the Phylogenetic Tree and MSA components.')
+
+    parser.add_argument('--add-sequences', required=False,
+                        action='store_true', dest='add_sequences',
+                        help='Adds Code Editor with the DNA and Protein '
+                             'sequences to loci reports. The Code Editor '
+                             'is in readonly mode (allows to search for '
+                             'and copy text).')
 
     args = parser.parse_args()
     del args.SchemaEvaluator
 
-    input_files = args.input_files
-    output_file = args.output_file
-    annotations = args.annotations
-    translation_table = args.translation_table
-    threshold = args.threshold
-    minimum_length = args.minimum_length
-    conserved = args.conserved
-    cpu_cores = args.cpu_cores
-    light_mode = args.light_mode
-    no_cleanup = args.no_cleanup
-
-    cpu_to_use = pv.verify_cpu_usage(cpu_cores)
-
     # check if input file path exists
-    if not os.path.exists(input_files):
+    if not os.path.exists(args.schema_directory):
         sys.exit("Input argument is not a valid directory. Exiting...")
 
-    # check if the schema was created with chewBBACA
-    config_file = os.path.join(input_files, ".schema_config")
-    if os.path.exists(config_file):
-        # get the schema configs
-        with open(config_file, "rb") as cf:
-            chewie_schema_configs = pickle.load(cf)
-        print("This schema was created with chewBBACA {0}.".format(
-            chewie_schema_configs["chewBBACA_version"][0]))
+    # create output directory
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        sys.exit('Output directory already exists. Please provide a path to '
+                 'a directory that will be created to store the results.')
 
-        # create pre-computed data
-        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files,
-            translation_table,
-            output_file,
-            annotations,
-            cpu_to_use,
-            minimum_length,
-            ct.SIZE_THRESHOLD_DEFAULT,
-            threshold,
-            conserved,
-            chewie_schema=True, 
-            show_progress=True)
+    loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
+    # user provided a list of genes to analyse
+    if args.genes_list is not False:
+        loci_list = pv.check_input_type(args.genes_list, loci_list,
+                                        args.schema_directory)
+    # working with the whole schema
     else:
-        # create pre-computed data
-        pre_computed_data_path = schema_evaluator.create_pre_computed_data(
-            input_files, 
-            translation_table, 
-            output_file,
-            annotations,
-            cpu_to_use, 
-            minimum_length,
-            ct.SIZE_THRESHOLD_DEFAULT,
-            threshold,
-            conserved,
-            show_progress=True)
+        loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
-    schema_evaluator_main_path = os.path.join(
-        output_file, "SchemaEvaluator_pre_computed_data"
-    )
+    args.genes_list = loci_list
 
-    schema_evaluator_html_files_path = os.path.join(
-        output_file, "html_files"
-    )
-
-    # Copy the main.js files to the respective directories
-
-    # Global main.js
-    script_path = os.path.dirname(os.path.abspath(__file__))
-    shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                             "resources", "main.js"), schema_evaluator_main_path)
-
-    # translate and run MAFFT
-    if not light_mode:
-
-        # Translate loci
-        if os.path.exists(config_file):
-            protein_file_path = schema_evaluator.create_protein_files(
-                input_files,
-                pre_computed_data_path,
-                cpu_to_use,
-                minimum_length,
-                ct.SIZE_THRESHOLD_DEFAULT,
-                translation_table,
-                chewie_schema=True,
-                show_progress=True)
-        else:
-            protein_file_path = schema_evaluator.create_protein_files(
-                input_files,
-                pre_computed_data_path,
-                cpu_to_use,
-                minimum_length,
-                ct.SIZE_THRESHOLD_DEFAULT,
-                translation_table,
-                show_progress=True)
-
-        # Run MAFFT
-        schema_evaluator.run_mafft(
-            protein_file_path, cpu_to_use, show_progress=True)
-
-        # Write HTML files
-        if os.path.exists(config_file):
-            schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path,
-                output_file, minimum_length, chewie_schema=True)
-        else:
-            schema_evaluator.write_individual_html(
-                input_files, pre_computed_data_path, protein_file_path,
-                output_file, minimum_length)
-
-        # html_files main.js
-        shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                                 "resources", "main_ind.js"),
-                    schema_evaluator_html_files_path)
-
-    # remove intermediate files created
-    # during the report generation
-    if not no_cleanup:
-        # Removes pre-computed data in json format.
-        json_files = [
-            os.path.join(schema_evaluator_main_path, file)
-            for file in os.listdir(schema_evaluator_main_path)
-            if ".json" in file
-        ]
-
-        for jf in json_files:
-            os.remove(jf)
-
-        if not light_mode:
-            # Removes translated loci and MAFFT outputs.
-            prot_files_dir = os.path.join(
-                schema_evaluator_main_path, "prot_files")
-
-            shutil.rmtree(prot_files_dir)
-
-    print('The report has been created. Please open the '
-          'schema_evaluator_report.html in the '
-          'SchemaEvaluator_pre_computed_data directory.')
+    schema_evaluator.main(**vars(args))
 
 
 @pdt.process_timer

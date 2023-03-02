@@ -222,14 +222,69 @@ LOCI_LIST = 'listGenes2Call.txt'
 
 LOCI_LIST_FILE = '.genes_list'
 
+# Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
 
 UNIPROT_SPARQL_THREADS = 4
 
+# Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 
+# HTML template to create Schema Report
+SCHEMA_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schema Evaluator - React Edition</title>
+</head>
+<body style="background-color: #f6f6f6">
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <script> preComputedData = {0} </script>
+    <script src="./schema_bundle.js"></script>
+</body>
+</html>
+""")
+
+# HTML template to create Loci Reports
+LOCUS_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Schema Evaluator - Individual Analysis</title>
+    </head>
+    <body style="background-color: #f6f6f6">
+        <noscript> You need to enable JavaScript to run this app. </noscript>
+        <div id="root"></div>
+        <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
+        <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
+        <script> preComputedDataInd = {0} </script>
+        <script src="./loci_bundle.js"></script>
+    </body>
+</html>
+""")
+
+# Column headers added to Summary Table when schema was created with chewBBACA
+SCHEMA_SUMMARY_TABLE_HEADERS_CHEWIE = ["chewBBACA version",
+                                       "BLAST Score Ratio"]
+
+SCHEMA_SUMMARY_TABLE_HEADERS = ["Loci", "Alleles", "Valid Alleles",
+                                "Invalid alleles", "Incomplete ORF",
+                                "Missing Start/Stop Codon",
+                                "In-frame Stop Codon", "Alleles < {0}nt"]
+
+# Column headers for the Loci Analysis Table in the Schema report
+LOCI_ANALYSIS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
+                         "Incomplete ORF", "Missing Start/Stop Codon",
+                         "In-frame Stop Codon", "Alleles < {0}nt"]
+
 # Column headers for the Summary Table in the Loci reports
-LOCUS_COLUMNS = ["Locus", "Number of Alleles", "Alleles not multiple of 3",
-                 "Alleles w/ >1 stop codon", "Alleles wo/ Start/Stop codon",
-                 "Alleles shorter than 201", "Size Range (bp)",
-                 "Alleles Median", "Alleles Mode"]
+LOCUS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
+                 "Incomplete ORF", "Missing Start/Stop Codon",
+                 "In-frame Stop Codon", "Alleles < {0}nt",
+                 "Size Range (bp)", "Length Median",
+                 "Length Mode"]

@@ -25,6 +25,9 @@ const SchemaPage = () => {
 		search: false,
 		viewColumns: true,
 		pagination: false,
+		draggableColumns: {
+			enabled: true
+		}
 	};
 	// Component for Summary table
 	const summaryTable = <DataTable
@@ -66,8 +69,8 @@ const SchemaPage = () => {
 	const TotalAllelesHistogram = (
 		<PlotlyPlot
 		 plotData={plotDataPanelA}
-		 plotTitle="Number of Loci with given Number of Alleles"
-		 xaxisTitle="Number of Different Alleles"
+		 plotTitle="Distribution of the number of alleles"
+		 xaxisTitle="Number of Alleles"
 		 yaxisTitle="Number of Loci"
 		 layoutProps={layoutPanelA}
 		 configOptions={configPanelA}
@@ -82,7 +85,7 @@ const SchemaPage = () => {
 		{x: xDataPanelB,
 		 y: yDataPanelB,
 		 type: "histogram",
-		 name: "Distribution of allele mode sizes per gene",
+		 name: "Allele Mode Size",
 		 marker: {
 			color: "#0570b0",
 			line: {
@@ -108,7 +111,7 @@ const SchemaPage = () => {
 	const AlleleModeHistogram = (
 		<PlotlyPlot
 		 plotData={plotDataPanelB}
-		 plotTitle="Distribution of allele mode sizes"
+		 plotTitle="Distribution of the allele mode size"
 		 xaxisTitle="Allele Mode Size"
 		 yaxisTitle="Number of Loci"
 		 layoutProps={layoutPanelB}
@@ -127,7 +130,7 @@ const SchemaPage = () => {
 		  x: xDataMinPanelC,
 		  y: xDataPanelA,
 		  type: "scatter",
-		  name: "Min",
+		  name: "Minimum",
 		  mode: "markers",
 		  marker: {
 			opacity: 0.7,
@@ -140,7 +143,7 @@ const SchemaPage = () => {
 		  x: xDataMaxPanelC,
 		  y: xDataPanelA,
 		  type: "scatter",
-		  name: "Max",
+		  name: "Maximum",
 		  mode: "markers",
 		  marker: {
 			opacity: 0.7,
@@ -165,11 +168,11 @@ const SchemaPage = () => {
 	];
 	const layoutPanelC = {
 		xaxis: {
-			zeroline: false,
+			zeroline: true,
 			showline: true
 		},
 		yaxis : {
-			zeroline: false,
+			zeroline: true,
 			showline: true
 		}
 	};
@@ -186,7 +189,7 @@ const SchemaPage = () => {
 	const LociStatsScatter = (
 		<PlotlyPlot
 		 plotData={plotDataPanelC}
-		 plotTitle="Locus Statistics"
+		 plotTitle="Locus Length Statistics"
 		 xaxisTitle="Allele size (bp)"
 		 yaxisTitle="Number of alleles"
 		 layoutProps={layoutPanelC}
@@ -240,7 +243,7 @@ const SchemaPage = () => {
 		 plotData={plotDataPanelD}
 		 plotTitle="Locus Size Variation"
 		 xaxisTitle="Loci"
-		 yaxisTitle="Allele size variation"
+		 yaxisTitle="Allele Size"
 		 layoutProps={layoutPanelD}
 		 configOptions={configPanelD}
 		>
@@ -312,6 +315,9 @@ const SchemaPage = () => {
 		rowsPerPage: 10,
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
+		draggableColumns: {
+			enabled: true
+		}
 	};
 
 	// Select conditional formatting function to apply
@@ -337,8 +343,9 @@ const SchemaPage = () => {
 	const analysisData = data.analysis;
 	const analysisTableOptions = {
 		responsive: "simple",
-		selectableRowsHeader: false,
 		selectableRows: "none",
+		selectableRowsHeader: false,
+		selectableRowsHideCheckboxes: true,
 		selectableRowsOnClick: false,
 		print: false,
 		download: true,
@@ -357,6 +364,9 @@ const SchemaPage = () => {
 		rowsPerPage: 10,
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
+		draggableColumns: {
+			enabled: true
+		},
 	};
 
 	// Select conditional formatting function to apply

@@ -3,19 +3,17 @@ import MUIDataTable from "mui-datatables";
 
 const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormatting }) => {
 
-	const columnData = (tableData[0].columns).map((column) => {
+	let columnData = (tableData[0].columns).map((column) => {
 		return ({ name: column,
 				  label: column,
 				  options: {
 					  filter: true,
 					  sort: true,
 					  display: true,
-					  setCellHeaderProps: (value) => {
-						  return {
-							  style: {fontWeight: "bold" }
-						  }
-					  },
-				  }
+					  setCellHeaderProps: value => ({ style: 
+						{ fontWeight: 'bold' }
+					  }), // not working since MUIv5
+				  },
 				})
 	});
 

@@ -18,6 +18,7 @@ import json
 import shutil
 import pickle
 import statistics
+from collections import Counter
 
 from Bio.Align.Applications import MafftCommandline
 
@@ -148,30 +149,37 @@ def compute_locus_statistics(locus, translation_table, length_threshold):
                allele_ids,
                conserved,
                [fo.file_basename(locus, False),
+                nr_alleles,
+                validCDS,
                 notMultiple,
                 notStart,
                 stopC,
-                shorter,
-                validCDS]
+                shorter]
                ]
 
     return results
 
 
-def locus_data(locus_file, locus_data, translation_dir, html_dir,
-               translation_table, light, add_sequences):
+def locus_report(locus_file, locus_data, translation_dir, html_dir,
+                 translation_table, minimum_length, light, add_sequences):
     """
     """
     locus = locus_data[0]
     allele_lengths = locus_data[11]
     allele_ids = locus_data[12]
 
+    # determine counts per distinct allele size
+    counts = list(Counter(allele_lengths).items())
+    sorted_counts = sorted(counts, key=lambda x: x[0])
+    counts_data = list(zip(*sorted_counts))
+
     locus_rows = [locus,
                   locus_data[1],
-                  locus_data[14][1],
-                  locus_data[14][3],
                   locus_data[14][2],
+                  locus_data[14][3],
                   locus_data[14][4],
+                  locus_data[14][5],
+                  locus_data[14][6],
                   locus_data[4],
                   locus_data[5],
                   locus_data[7]]
@@ -216,32 +224,20 @@ def locus_data(locus_file, locus_data, translation_dir, html_dir,
 
             phylo_data = {"phylo_data": phylo_data}
 
+    locus_columns = ct.LOCUS_COLUMNS
+    locus_columns[-4] = locus_columns[-4].format(minimum_length)
     # need to include '.' at start to work properly when referencing local files
-    locus_data = {"summaryData": [{"columns": ct.LOCUS_COLUMNS},
+    locus_data = {"summaryData": [{"columns": locus_columns},
                                   {"rows": [locus_rows]}],
                   "lengths": allele_lengths,
                   "ids": allele_ids,
+                  "counts": [list(counts_data[0]), list(counts_data[1])],
                   "phylo": phylo_data,
                   "msa": msa_data,
                   "dna": dna_sequences,
                   "protein": protein_sequences}
 
-    locus_html = """<!DOCTYPE html>
-    <html lang="en">
-        <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Schema Evaluator - Individual Analysis</title>
-        </head>
-        <body style="background-color: #f6f6f6">
-            <noscript> You need to enable JavaScript to run this app. </noscript>
-            <div id="root"></div>
-            <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
-            <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
-            <script> preComputedDataInd = {0} </script>
-            <script src="./loci_bundle.js"></script>
-        </body>
-    </html>""".format(json.dumps(locus_data))
+    locus_html = ct.LOCUS_REPORT_HTML.format(json.dumps(locus_data))
 
     locus_html_file = fo.join_paths(html_dir, [f'{locus}.html'])
     fo.write_to_file(locus_html, locus_html_file, 'w', '\n')
@@ -308,8 +304,8 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # group values for the same statistic
     data = list(zip(*results))
 
-    analysis_columns = ["Locus", "not Multiple 3", "no Start Codon",
-                        "inner Stop Codon", "Shorter than", "Valid CDSs"]
+    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS
+    analysis_columns[-1] = analysis_columns[-1].format(minimum_length)
 
     not_conserved_message = ('Locus size is considered not conserved if >1 '
                              f'allele are outside the mode +/- {threshold} '
@@ -329,26 +325,28 @@ def main(schema_directory, output_directory, genes_list, annotations,
         translation_table_config = chewie_config["translation_table"][0]
         minimum_length_config = chewie_config["minimum_locus_length"][0]
 
-        column_data.extend(["chewBBACA version", "BLAST Score Ratio"])
+        column_data.extend(ct.SCHEMA_SUMMARY_TABLE_HEADERS_CHEWIE)
         row_data.extend([chewie_config["chewBBACA_version"][0], chewie_config["bsr"][0]])
 
     # build the total data dictionary
-    column_data.extend(["Total loci", "Total alleles", "Total alleles mult3",
-                        "Total alleles stopC", "Total alleles notStart",
-                        "Total alleles shorter", "Total invalid alleles"])
+    column_data.extend(ct.SCHEMA_SUMMARY_TABLE_HEADERS)
+    column_data[-1] = column_data[-1].format(minimum_length)
 
-    notMultiple_sum = sum([l[1] for l in data[-1]])
-    stopC_sum = sum([l[3] for l in data[-1]])
-    notStart_sum = sum([l[2] for l in data[-1]])
-    shorter_sum = sum([l[4] for l in data[-1]])
+    notMultiple_sum = sum([l[3] for l in data[-1]])
+    stopC_sum = sum([l[5] for l in data[-1]])
+    notStart_sum = sum([l[4] for l in data[-1]])
+    shorter_sum = sum([l[6] for l in data[-1]])
+    invalid_sum = sum([notMultiple_sum, stopC_sum,
+                       notStart_sum, shorter_sum])
+    valid_sum = sum(data[1]) - invalid_sum
     row_data.extend([len(data[0]),
                      sum(data[1]),
+                     valid_sum,
+                     invalid_sum,
                      notMultiple_sum,
-                     stopC_sum,
                      notStart_sum,
-                     shorter_sum,
-                     sum([notMultiple_sum, stopC_sum,
-                          notStart_sum, shorter_sum])])
+                     stopC_sum,
+                     shorter_sum])
 
     schema_data = {"summaryData": [{"columns": column_data},
                                    {"rows": [row_data]}],
@@ -367,20 +365,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
                    "lociReports": 1 if loci_reports else 0}
 
     # Write HTML file
-    schema_html = """<!DOCTYPE html>
-    <html lang="en">
-        <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Schema Evaluator - React Edition</title>
-        </head>
-        <body style="background-color: #f6f6f6">
-            <noscript> You need to enable JavaScript to run this app. </noscript>
-            <div id="root"></div>
-            <script> preComputedData = {0} </script>
-            <script src="./schema_bundle.js"></script>
-        </body>
-    </html>""".format(json.dumps(schema_data))
+    schema_html = ct.SCHEMA_REPORT_HTML.format(json.dumps(schema_data))
 
     schema_html_file = fo.join_paths(output_directory, ['schema_report.html'])
     fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
@@ -395,10 +380,11 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
         inputs = [[schema_files[d[0]], d] for d in loci_data]
 
-        common_args = [translation_dir, html_dir, translation_table, light, add_sequences]
+        common_args = [translation_dir, html_dir, translation_table,
+                       minimum_length, light, add_sequences]
 
         # add common arguments to all sublists
-        inputs = im.multiprocessing_inputs(inputs, common_args, locus_data)
+        inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
 
         # compute statistics
         loci_htmls = mo.map_async_parallelizer(inputs,

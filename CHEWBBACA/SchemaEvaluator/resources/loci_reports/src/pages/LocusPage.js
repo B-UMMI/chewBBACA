@@ -51,12 +51,12 @@ const LocusPage = () => {
 						 </DataTable>
 
 	// data for Panel A (Sequence Size Distribution)
-	const xDataPanelA = data.lengths;
-	const yDataPanelA = data.ids;
+	const xDataPanelA = data.counts[0];
+	const yDataPanelA = data.counts[1];
 	const plotDataPanelA = [
 		{x: xDataPanelA,
 		 y: yDataPanelA,
-		 type: "histogram",
+		 type: "bar",
 		 name: locusName,
 		 marker: {
 			 color: "#0570b0",
@@ -71,14 +71,14 @@ const LocusPage = () => {
 	const configPanelA = {
 		toImageButtonOptions: 
 			{format: 'svg',
-			 filename: `${locusName}_AlleleSizes`,
+			 filename: `${locusName}_AlleleSizeCounts`,
 			 height: 500,
 			 width: 700,
 			 scale: 1
 		}
 	};
 	// Component for Plotly Histogram with allele size distribution
-	const AlleleSizeHistogram = (
+	const AlleleSizeBar = (
 		<PlotlyPlot
 		 plotData={plotDataPanelA}
 		 plotTitle={locusName}
@@ -90,14 +90,14 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
-	// data for Panel B (Allele Mode Size, )
+	// data for Panel B (Allele Size)
 	const xDataPanelB = data.ids;
-	const yDataPanelB = xDataPanelA;
+	const yDataPanelB = data.lengths;
 	const plotDataPanelB = [
 		{x: xDataPanelB,
 		 y: yDataPanelB,
 		 type: "scatter",
-		 name: "Distribution of allele mode sizes per gene",
+		 name: locusName,
 		 mode: "markers",
 		 marker: {
 			color: "#0570b0",
@@ -110,7 +110,7 @@ const LocusPage = () => {
 	const configPanelB = {
 		toImageButtonOptions: 
 			{format: 'svg',
-			 filename: 'AlleleModeSize',
+			 filename: `${locusName}_AlleleSizes`,
 			 height: 500,
 			 width: 700,
 			 scale: 1
@@ -128,8 +128,8 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
-	const AlleleSizePanelTitles = ["Allele Size Distribution", "Allele Size"];
-	const AlleleSizePanelsData = [AlleleSizeHistogram, AlleleSizeScatter];
+	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size"];
+	const AlleleSizePanelsData = [AlleleSizeBar, AlleleSizeScatter];
 
 	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data;
@@ -172,9 +172,6 @@ const LocusPage = () => {
 			</AccordionMUI>
 		);
 	}
-	
-
-
 
 	// create component for MSA
 	let MSAComponent = undefined;
@@ -200,7 +197,6 @@ const LocusPage = () => {
 			</AccordionMUI>
 		);
 	}
-	
 
 	// get DNA sequences
 	const dnaSequences = data.dna.sequences

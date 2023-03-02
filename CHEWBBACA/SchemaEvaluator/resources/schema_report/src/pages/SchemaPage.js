@@ -55,7 +55,19 @@ const SchemaPage = () => {
 		 }
 	    }
 	];
-	const layoutPanelA = {bargroupgap: 0.05};
+	const layoutPanelA = {
+		title: {
+			text: "Distribution of the number of alleles"
+		},
+		xaxis: {
+			title: { text: "Number of Alleles" },
+			showgrid: true,
+		},
+		yaxis: {
+			title: { text: "Number of Loci" },
+		},
+		bargroupgap: 0.05
+	};
 	const configPanelA = {
 		toImageButtonOptions: 
 			{format: 'svg',
@@ -69,9 +81,6 @@ const SchemaPage = () => {
 	const TotalAllelesHistogram = (
 		<PlotlyPlot
 		 plotData={plotDataPanelA}
-		 plotTitle="Distribution of the number of alleles"
-		 xaxisTitle="Number of Alleles"
-		 yaxisTitle="Number of Loci"
 		 layoutProps={layoutPanelA}
 		 configOptions={configPanelA}
 		>
@@ -96,6 +105,16 @@ const SchemaPage = () => {
 	    }
 	];
 	const layoutPanelB = {
+		title: {
+			text: "Distribution of the allele mode size"
+		},
+		xaxis: {
+			title: { text: "Allele Mode Size" },
+			showgrid: true,
+		},
+		yaxis: {
+			title: { text: "Number of Loci" },
+		},
 		bargroupgap: 0.05
 	};
 	const configPanelB = {
@@ -111,9 +130,6 @@ const SchemaPage = () => {
 	const AlleleModeHistogram = (
 		<PlotlyPlot
 		 plotData={plotDataPanelB}
-		 plotTitle="Distribution of the allele mode size"
-		 xaxisTitle="Allele Mode Size"
-		 yaxisTitle="Number of Loci"
 		 layoutProps={layoutPanelB}
 		 configOptions={configPanelB}
 		>
@@ -166,13 +182,20 @@ const SchemaPage = () => {
 		  text: yDataPanelB,
 		}
 	];
+
 	const layoutPanelC = {
+		title: {
+			text: "Locus Length Statistics"
+		},
 		xaxis: {
-			zeroline: true,
+			title: { text: "Allele size (bp)" },
+			showgrid: true,
+			zeroline: false,
 			showline: true
 		},
-		yaxis : {
-			zeroline: true,
+		yaxis: {
+			title: { text: "Number of alleles" },
+			zeroline: false,
 			showline: true
 		}
 	};
@@ -189,9 +212,6 @@ const SchemaPage = () => {
 	const LociStatsScatter = (
 		<PlotlyPlot
 		 plotData={plotDataPanelC}
-		 plotTitle="Locus Length Statistics"
-		 xaxisTitle="Allele size (bp)"
-		 yaxisTitle="Number of alleles"
 		 layoutProps={layoutPanelC}
 		 configOptions={configPanelC}
 		>
@@ -206,7 +226,7 @@ const SchemaPage = () => {
 		{
 		type: "box",
 		name: "Locus Size Variation",
-		x: Array(yDataPanelB.length).fill().map((element, index) => index),
+		x: data.loci,
 		q1: q1PanelD,
 		median: xDataMedianPanelC,
 		q3: q3PanelD,
@@ -216,18 +236,30 @@ const SchemaPage = () => {
 		marker: {color: "#0570b0"}
 	  }
 	];
+
 	const layoutPanelD = {
+		title: {
+			text: "Locus Size Variation"
+		},
 		xaxis: {
+			title: { text: "Loci" },
+			showgrid: true,
+			zeroline: false,
+			showline: true,
 			rangeslider: {
 				thickness: 0.15, 
 			},
 			showticklabels: false,
-			range: [0, 100],
-			title: {
-				standoff: 0
-			}
-		}
+			range: [0, 100]
+		},
+		yaxis: {
+			title: { text: "Allele Size" },
+			zeroline: false,
+			showline: true
+		},
+		hovermode: 'x unified'
 	};
+
 	const configPanelD = {
 		toImageButtonOptions: 
 			{format: 'svg',
@@ -241,9 +273,6 @@ const SchemaPage = () => {
 	const LociSizeBoxplots = (
 		<PlotlyPlot
 		 plotData={plotDataPanelD}
-		 plotTitle="Locus Size Variation"
-		 xaxisTitle="Loci"
-		 yaxisTitle="Allele Size"
 		 layoutProps={layoutPanelD}
 		 configOptions={configPanelD}
 		>

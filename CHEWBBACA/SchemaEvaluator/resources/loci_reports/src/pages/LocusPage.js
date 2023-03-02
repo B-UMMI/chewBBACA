@@ -67,7 +67,19 @@ const LocusPage = () => {
 		 }
 	    }
 	];
-	const layoutPanelA = {bargroupgap: 0.05};
+	const layoutPanelA = {
+		title: {
+            text: locusName,
+        },
+        xaxis: {
+        	title: { text: "Sequence Size (bp)" },
+        	showgrid: true,
+        },
+        yaxis: {
+        	title: { text: "Number of Alleles" },
+        },
+		bargroupgap: 0.05
+	};
 	const configPanelA = {
 		toImageButtonOptions: 
 			{format: 'svg',
@@ -81,9 +93,6 @@ const LocusPage = () => {
 	const AlleleSizeBar = (
 		<PlotlyPlot
 		 plotData={plotDataPanelA}
-		 plotTitle={locusName}
-		 xaxisTitle="Sequence Size (bp)"
-		 yaxisTitle="Number of Alleles"
 		 layoutProps={layoutPanelA}
 		 configOptions={configPanelA}
 		>
@@ -105,6 +114,16 @@ const LocusPage = () => {
 	    }
 	];
 	const layoutPanelB = {
+		title: {
+            text: locusName,
+        },
+        xaxis: {
+        	title: { text: "Allele ID" },
+        	showgrid: true,
+        },
+        yaxis: {
+        	title: { text: "Sequence Size (bp)" },
+        },
 		bargroupgap: 0.05
 	};
 	const configPanelB = {
@@ -119,9 +138,6 @@ const LocusPage = () => {
 	const AlleleSizeScatter = (
 		<PlotlyPlot 
 		 plotData={plotDataPanelB}
-		 plotTitle={locusName}
-		 xaxisTitle="Allele ID"
-		 yaxisTitle="Sequence Size (bp)"
 		 layoutProps={layoutPanelB}
 		 configOptions={configPanelB}
 		>

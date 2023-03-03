@@ -73,7 +73,7 @@ def call_mafft(genefile):
         return False
 
 
-def compute_locus_statistics(locus, translation_table, length_threshold):
+def compute_locus_statistics(locus, translation_table, minimum_length, size_threshold):
     """
     """
     allele_lengths = fao.sequence_lengths(locus)
@@ -113,19 +113,17 @@ def compute_locus_statistics(locus, translation_table, length_threshold):
         q3 = lengths[0]
 
     # Conserved alleles
-    # get ratio between number of alleles outside conserved threshold
-    alleles_within_threshold = 0
-    top_threshold = mode_length*(1+length_threshold)
-    bot_threshold = mode_length*(1-length_threshold)
+    alleles_below_threshold = 0
+    alleles_above_threshold = 0
+    top_threshold = mode_length*(1+size_threshold)
+    bot_threshold = mode_length*(1-size_threshold)
     for size in lengths:
-        if not size > top_threshold and not size < bot_threshold:
-            alleles_within_threshold += 1
+        if size < bot_threshold:
+            alleles_below_threshold += 1
+        elif size > top_threshold:
+            alleles_above_threshold += 1
 
-    ratio = alleles_within_threshold / nr_alleles
-
-    conserved = True if ratio >= 1 else False
-
-    translated = [sm.translate_dna(str(record.seq), translation_table, length_threshold)
+    translated = [sm.translate_dna(str(record.seq), translation_table, minimum_length)
                   for record in fao.sequence_generator(locus)]
 
     stopC = translated.count('Extra in frame stop codon found')
@@ -147,14 +145,15 @@ def compute_locus_statistics(locus, translation_table, length_threshold):
                q3,
                lengths,
                allele_ids,
-               conserved,
                [fo.file_basename(locus, False),
                 nr_alleles,
                 validCDS,
                 notMultiple,
                 notStart,
                 stopC,
-                shorter]
+                shorter,
+                alleles_below_threshold,
+                alleles_above_threshold]
                ]
 
     return results
@@ -175,14 +174,16 @@ def locus_report(locus_file, locus_data, translation_dir, html_dir,
 
     locus_rows = [locus,
                   locus_data[1],
-                  locus_data[14][2],
-                  locus_data[14][3],
-                  locus_data[14][4],
-                  locus_data[14][5],
-                  locus_data[14][6],
+                  locus_data[13][2],
+                  locus_data[13][3],
+                  locus_data[13][4],
+                  locus_data[13][5],
+                  locus_data[13][6],
                   locus_data[4],
                   locus_data[5],
-                  locus_data[7]]
+                  locus_data[7],
+                  locus_data[13][7],
+                  locus_data[13][8]]
 
     # translate alleles
     _, protein_file, _ = fao.translate_fasta(locus_file,
@@ -225,7 +226,7 @@ def locus_report(locus_file, locus_data, translation_dir, html_dir,
             phylo_data = {"phylo_data": phylo_data}
 
     locus_columns = ct.LOCUS_COLUMNS
-    locus_columns[-4] = locus_columns[-4].format(minimum_length)
+    locus_columns[-6] = locus_columns[-6].format(minimum_length)
     # need to include '.' at start to work properly when referencing local files
     locus_data = {"summaryData": [{"columns": locus_columns},
                                   {"rows": [locus_rows]}],
@@ -250,15 +251,14 @@ def locus_report(locus_file, locus_data, translation_dir, html_dir,
 # genes_list = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_loci.txt'
 # annotations = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_schema/schema_annotations/schema_seed_annotations.tsv'
 # translation_table = 11
-# threshold = 0.05
+# size_threshold = 0.05
 # minimum_length = 0
-# conserved = False
 # cpu_cores = 4
 # loci_reports = True
 # light = False
 # add_sequences = True
 def main(schema_directory, output_directory, genes_list, annotations,
-         translation_table, threshold, minimum_length, conserved,
+         translation_table, size_threshold, minimum_length,
          cpu_cores, loci_reports, light, add_sequences):
 
     # create directory to store intermediate files
@@ -282,15 +282,13 @@ def main(schema_directory, output_directory, genes_list, annotations,
     if minimum_length is None:
         minimum_length = chewie_config.get("minimum_locus_length", [0])[0]
 
-    if threshold is None:
-        threshold = chewie_config.get("size_threshold", [0])[0]
-
-    length_threshold = minimum_length - (minimum_length*threshold)
+    if size_threshold is None:
+        size_threshold = chewie_config.get("size_threshold", [0])[0]
 
     # Calculate the summary statistics and other information about each locus.
     inputs = im.divide_list_into_n_chunks(schema_files, len(schema_files))
 
-    common_args = [translation_table, length_threshold]
+    common_args = [translation_table, minimum_length, size_threshold]
 
     # add common arguments to all sublists
     inputs = im.multiprocessing_inputs(inputs, common_args, compute_locus_statistics)
@@ -305,12 +303,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     data = list(zip(*results))
 
     analysis_columns = ct.LOCI_ANALYSIS_COLUMNS
-    analysis_columns[-1] = analysis_columns[-1].format(minimum_length)
-
-    not_conserved_message = ('Locus size is considered not conserved if >1 '
-                             f'allele are outside the mode +/- {threshold} '
-                             'size. Loci with only 1 allele outside the '
-                             'threshold are considered conserved.')
+    analysis_columns[-3] = analysis_columns[-3].format(minimum_length)
 
     annotation_values = []
     if annotations is not None:
@@ -330,12 +323,14 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
     # build the total data dictionary
     column_data.extend(ct.SCHEMA_SUMMARY_TABLE_HEADERS)
-    column_data[-1] = column_data[-1].format(minimum_length)
+    column_data[-3] = column_data[-3].format(minimum_length)
 
     notMultiple_sum = sum([l[3] for l in data[-1]])
     stopC_sum = sum([l[5] for l in data[-1]])
     notStart_sum = sum([l[4] for l in data[-1]])
     shorter_sum = sum([l[6] for l in data[-1]])
+    below_sum = sum([l[7] for l in data[-1]])
+    above_sum = sum([l[8] for l in data[-1]])
     invalid_sum = sum([notMultiple_sum, stopC_sum,
                        notStart_sum, shorter_sum])
     valid_sum = sum(data[1]) - invalid_sum
@@ -346,7 +341,9 @@ def main(schema_directory, output_directory, genes_list, annotations,
                      notMultiple_sum,
                      notStart_sum,
                      stopC_sum,
-                     shorter_sum])
+                     shorter_sum,
+                     below_sum,
+                     above_sum])
 
     schema_data = {"summaryData": [{"columns": column_data},
                                    {"rows": [row_data]}],

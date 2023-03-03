@@ -275,16 +275,20 @@ SCHEMA_SUMMARY_TABLE_HEADERS_CHEWIE = ["chewBBACA version",
 SCHEMA_SUMMARY_TABLE_HEADERS = ["Loci", "Alleles", "Valid Alleles",
                                 "Invalid alleles", "Incomplete ORF",
                                 "Missing Start/Stop Codon",
-                                "In-frame Stop Codon", "Alleles < {0}nt"]
+                                "In-frame Stop Codon", "Alleles < {0}nt",
+                                "Alleles below threshold",
+                                "Alleles above threshold"]
 
 # Column headers for the Loci Analysis Table in the Schema report
 LOCI_ANALYSIS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
                          "Incomplete ORF", "Missing Start/Stop Codon",
-                         "In-frame Stop Codon", "Alleles < {0}nt"]
+                         "In-frame Stop Codon", "Alleles < {0}nt",
+                         "Alleles below threshold", "Alleles above threshold"]
 
 # Column headers for the Summary Table in the Loci reports
 LOCUS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
                  "Incomplete ORF", "Missing Start/Stop Codon",
                  "In-frame Stop Codon", "Alleles < {0}nt",
                  "Size Range (bp)", "Length Median",
-                 "Length Mode"]
+                 "Length Mode", "Alleles below threshold",
+                 "Alleles above threshold"]

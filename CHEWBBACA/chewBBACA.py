@@ -11,7 +11,6 @@ This is the main script of the chewBBACA suite.
 
 import os
 import sys
-import pickle
 import shutil
 import hashlib
 import argparse
@@ -578,24 +577,17 @@ def evaluate_schema():
                         help='Genetic code used to translate coding '
                              'sequences.')
 
-    parser.add_argument('--th', '--threshold', type=float, required=False,
-                        default=0.05, dest='threshold',
+    parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
+                        required=False, default=0.05, dest='size_threshold',
                         help='Allele size variation threshold. If an allele '
                              'has a size within the interval of the locus '
-                             'mode -/+ the threshold, it will be considered '
-                             'a conserved allele.')
+                             'mode -/+ the threshold.')
 
     parser.add_argument('--ml', '--minimum-length',
                         type=pv.minimum_sequence_length_type,
                         required=False, dest='minimum_length',
                         help='Minimum sequence length accepted for a '
                              'coding sequence to be included in the schema.')
-
-    parser.add_argument('--cons', '--conserved', action='store_true',
-                        required=False, dest='conserved',
-                        help='If all alleles must be within the threshold '
-                             'for the locus to be considered as having low '
-                             'length variability.')
 
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',

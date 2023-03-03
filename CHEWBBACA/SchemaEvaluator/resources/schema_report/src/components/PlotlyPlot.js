@@ -1,8 +1,8 @@
 import Plot from "react-plotly.js";
 
 
-const PlotlyPlot = ({ plotData, layoutProps, configOptions }) => {
-
+// use "...rest" notation to enable passing any number of custom event handlers
+const PlotlyPlot = ({ plotData, layoutProps, configOptions, ...rest }) => {
 	return (
 		<Plot
         data={plotData}
@@ -10,7 +10,8 @@ const PlotlyPlot = ({ plotData, layoutProps, configOptions }) => {
         config={configOptions}
         useResizeHandler={true}
         style={{ width: "100%", height: "100%" }}
-      />
+        {...rest}
+    />
 	)
 };
 

@@ -1,4 +1,3 @@
-import Header from './Header';
 import SchemaPage from "../pages/SchemaPage";
 // Import and define ThemeProvider at the root of the app
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -24,7 +23,6 @@ const App = () => {
 	return (
 		<>
 		  <div style={{ marginLeft: "5%", marginRight: "5%", marginTop: "2%", marginBottom: "2%" }}>
-				<Header></Header>
 				<ThemeProvider theme={theme}>
 					<SchemaPage>
 					</SchemaPage>

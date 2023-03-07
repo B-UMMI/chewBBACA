@@ -268,10 +268,6 @@ LOCUS_REPORT_HTML = ("""
 </html>
 """)
 
-# Column headers added to Summary Table when schema was created with chewBBACA
-SCHEMA_SUMMARY_TABLE_HEADERS_CHEWIE = ["chewBBACA version",
-                                       "BLAST Score Ratio"]
-
 SCHEMA_SUMMARY_TABLE_HEADERS = ["Loci", "Alleles", "Valid Alleles",
                                 "Invalid alleles", "Incomplete ORF",
                                 "Missing Start/Stop Codon",

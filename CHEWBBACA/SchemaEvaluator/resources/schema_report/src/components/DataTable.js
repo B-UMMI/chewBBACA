@@ -9,10 +9,8 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 				  options: {
 					  filter: true,
 					  sort: true,
+					  sortThirdClickReset: true,
 					  display: true,
-					  setCellHeaderProps: value => ({ style: 
-						{ fontWeight: 'bold' }
-					  }), // not working since MUIv5
 				  },
 				})
 	});
@@ -37,7 +35,7 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 	  );
 
 	return (
-		<div style={{ marginTop: "40px" }}>{total_data_table}</div>
+		<div>{total_data_table}</div>
 	)
 };
 

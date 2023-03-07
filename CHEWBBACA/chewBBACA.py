@@ -573,12 +573,13 @@ def evaluate_schema():
 
     parser.add_argument('--ta', '--translation-table',
                         type=pv.translation_table_type, required=False,
-                        default=11, dest='translation_table',
+                        dest='translation_table',
                         help='Genetic code used to translate coding '
                              'sequences.')
 
-    parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
-                        required=False, default=0.05, dest='size_threshold',
+    parser.add_argument('--st', '--size-threshold',
+                        type=pv.size_threshold_type,
+                        required=False, dest='size_threshold',
                         help='Allele size variation threshold. If an allele '
                              'has a size within the interval of the locus '
                              'mode -/+ the threshold.')

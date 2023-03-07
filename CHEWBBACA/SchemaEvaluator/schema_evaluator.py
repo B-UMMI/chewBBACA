@@ -153,7 +153,9 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
                 stopC,
                 shorter,
                 alleles_below_threshold,
-                alleles_above_threshold]
+                alleles_above_threshold],
+               bot_threshold,
+               top_threshold
                ]
 
     return results
@@ -228,17 +230,19 @@ def locus_report(locus_file, locus_data, translation_dir, html_dir,
     locus_columns = ct.LOCUS_COLUMNS
     locus_columns[-6] = locus_columns[-6].format(minimum_length)
     # need to include '.' at start to work properly when referencing local files
-    locus_data = {"summaryData": [{"columns": locus_columns},
-                                  {"rows": [locus_rows]}],
-                  "lengths": allele_lengths,
-                  "ids": allele_ids,
-                  "counts": [list(counts_data[0]), list(counts_data[1])],
-                  "phylo": phylo_data,
-                  "msa": msa_data,
-                  "dna": dna_sequences,
-                  "protein": protein_sequences}
+    locus_html_data = {"summaryData": [{"columns": locus_columns},
+                                       {"rows": [locus_rows]}],
+                       "lengths": allele_lengths,
+                       "ids": allele_ids,
+                       "counts": [list(counts_data[0]), list(counts_data[1])],
+                       "phylo": phylo_data,
+                       "msa": msa_data,
+                       "dna": dna_sequences,
+                       "protein": protein_sequences,
+                       "botThreshold": locus_data[14],
+                       "topThreshold": locus_data[15]}
 
-    locus_html = ct.LOCUS_REPORT_HTML.format(json.dumps(locus_data))
+    locus_html = ct.LOCUS_REPORT_HTML.format(json.dumps(locus_html_data))
 
     locus_html_file = fo.join_paths(html_dir, [f'{locus}.html'])
     fo.write_to_file(locus_html, locus_html_file, 'w', '\n')
@@ -271,19 +275,42 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
     # check if the schema was created with chewBBACA
     config_file = os.path.join(schema_directory, ".schema_config")
+    chewie_config = {}
+    creation_message = ('Did not find information about config values used '
+                        'to create the schema.')
     if os.path.exists(config_file):
         # get the schema configs
         with open(config_file, "rb") as cf:
             chewie_config = pickle.load(cf)
         print("The schema was created with chewBBACA {0}.".format(
               chewie_config["chewBBACA_version"][0]))
+        creation_message = ('Schema created with chewBBACA '
+                            f'v{chewie_config.get("chewBBACA_version")[0]}, '
+                            'BLAST Score Ratio of '
+                            f'{chewie_config.get("bsr")[0]}, '
+                            'minimum length of '
+                            f'{chewie_config.get("minimum_locus_length")[0]},'
+                            ' size threshold of '
+                            f'{chewie_config.get("size_threshold")[0]}, '
+                            'and translation table of '
+                            f'{chewie_config.get("translation_table")[0]}.')
 
-    # Check minimum length value
     if minimum_length is None:
-        minimum_length = chewie_config.get("minimum_locus_length", [0])[0]
+        minimum_length = chewie_config.get("minimum_locus_length",
+                                           [ct.MINIMUM_LENGTH_DEFAULT])[0]
 
     if size_threshold is None:
-        size_threshold = chewie_config.get("size_threshold", [0])[0]
+        size_threshold = chewie_config.get("size_threshold",
+                                           [ct.SIZE_THRESHOLD_DEFAULT])[0]
+
+    if translation_table is None:
+        translation_table = chewie_config.get("translation_table",
+                                              [ct.GENETIC_CODES_DEFAULT])[0]
+
+    evaluation_message = ('Schema evaluated with minimum length of '
+                          f'{minimum_length}, size threshold of '
+                          f'{size_threshold}, and translation table of '
+                          f'{translation_table}.')
 
     # Calculate the summary statistics and other information about each locus.
     inputs = im.divide_list_into_n_chunks(schema_files, len(schema_files))
@@ -311,39 +338,32 @@ def main(schema_directory, output_directory, genes_list, annotations,
         annotation_values.append(annotation_lines[0])
         annotation_values.append(annotation_lines[1:])
 
-    column_data = []
     row_data = []
-    # check if it is a chewBBACA schema
-    if len(chewie_config) > 0:
-        translation_table_config = chewie_config["translation_table"][0]
-        minimum_length_config = chewie_config["minimum_locus_length"][0]
 
-        column_data.extend(ct.SCHEMA_SUMMARY_TABLE_HEADERS_CHEWIE)
-        row_data.extend([chewie_config["chewBBACA_version"][0], chewie_config["bsr"][0]])
 
     # build the total data dictionary
-    column_data.extend(ct.SCHEMA_SUMMARY_TABLE_HEADERS)
+    column_data = ct.SCHEMA_SUMMARY_TABLE_HEADERS
     column_data[-3] = column_data[-3].format(minimum_length)
 
-    notMultiple_sum = sum([l[3] for l in data[-1]])
-    stopC_sum = sum([l[5] for l in data[-1]])
-    notStart_sum = sum([l[4] for l in data[-1]])
-    shorter_sum = sum([l[6] for l in data[-1]])
-    below_sum = sum([l[7] for l in data[-1]])
-    above_sum = sum([l[8] for l in data[-1]])
+    notMultiple_sum = sum([l[3] for l in data[13]])
+    stopC_sum = sum([l[5] for l in data[13]])
+    notStart_sum = sum([l[4] for l in data[13]])
+    shorter_sum = sum([l[6] for l in data[13]])
+    below_sum = sum([l[7] for l in data[13]])
+    above_sum = sum([l[8] for l in data[13]])
     invalid_sum = sum([notMultiple_sum, stopC_sum,
                        notStart_sum, shorter_sum])
     valid_sum = sum(data[1]) - invalid_sum
-    row_data.extend([len(data[0]),
-                     sum(data[1]),
-                     valid_sum,
-                     invalid_sum,
-                     notMultiple_sum,
-                     notStart_sum,
-                     stopC_sum,
-                     shorter_sum,
-                     below_sum,
-                     above_sum])
+    row_data = [len(data[0]),
+                sum(data[1]),
+                valid_sum,
+                invalid_sum,
+                notMultiple_sum,
+                notStart_sum,
+                stopC_sum,
+                shorter_sum,
+                below_sum,
+                above_sum]
 
     schema_data = {"summaryData": [{"columns": column_data},
                                    {"rows": [row_data]}],
@@ -358,8 +378,10 @@ def main(schema_directory, output_directory, genes_list, annotations,
                    "annotations": [{"columns": annotation_values[0]},
                                    {"rows": annotation_values[1]}],
                    "analysis": [{"columns": analysis_columns},
-                                {"rows": list(data[-1])}],
-                   "lociReports": 1 if loci_reports else 0}
+                                {"rows": list(data[13])}],
+                   "lociReports": 1 if loci_reports else 0,
+                   "evaluationConfig": evaluation_message,
+                   "creationConfig": creation_message}
 
     # Write HTML file
     schema_html = ct.SCHEMA_REPORT_HTML.format(json.dumps(schema_data))

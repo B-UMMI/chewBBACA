@@ -6,24 +6,26 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Divider from '@mui/material/Divider';
 
 const AccordionMUI = ({ summaryText, detailsText, expanded }) => {
-	return ( 
-		<Accordion defaultExpanded={expanded}>
-			<AccordionSummary
-				expandIcon={<ExpandMoreIcon />}
-				aria-controls="panella-content"
-				id="panella-header"
-			>
-				{summaryText}
-			</AccordionSummary>
-			<Divider></Divider>
-			<AccordionDetails >
-				<div
-					style={{ width: "100%", height: "100%" }}
+	return (
+		<div>
+			<Accordion defaultExpanded={expanded}>
+				<AccordionSummary
+					expandIcon={<ExpandMoreIcon />}
+					aria-controls="panella-content"
+					id="panella-header"
 				>
-					{detailsText}
-				</div>
-			</AccordionDetails>
-		</Accordion>
+					{summaryText}
+				</AccordionSummary>
+				<Divider></Divider>
+				<AccordionDetails >
+					<div
+						style={{ width: "100%", height: "100%" }}
+					>
+						{detailsText}
+					</div>
+				</AccordionDetails>
+			</Accordion>
+		</div>
 	)
 };
 

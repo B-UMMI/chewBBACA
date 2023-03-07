@@ -3,7 +3,9 @@ import PlotlyPlot from '../components/PlotlyPlot';
 import TabPanelMUI from '../components/TabPanelMUI';
 import AccordionMUI from '../components/AccordionMUI';
 
-import Typography from '@mui/material/Typography'; 
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 
 import React from 'react'
 import ReactMarkdown from 'react-markdown';
@@ -46,7 +48,11 @@ const SchemaPage = () => {
 		download: true,
 		downloadOptions: {
 			filename: "schema:summary.tsv",
-			separator: "\t"
+			separator: "\t",
+			filterOptions: {
+				useDisplayedColumnsOnly: true,
+				useDisplayedRowsOnly: true
+			}
 		},
 		filter: false,
 		search: false,
@@ -63,7 +69,6 @@ const SchemaPage = () => {
 						  tableOptions={summaryTableOptions}
 						 >
 						 </DataTable>
-
 
 	// data for Panel A (Total Alleles Distribution)
 	const xDataPanelA = data.total_alleles;
@@ -88,10 +93,18 @@ const SchemaPage = () => {
 		},
 		xaxis: {
 			title: { text: "Number of Alleles" },
-			showgrid: true,
+			showgrid: false,
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
 		},
 		yaxis: {
 			title: { text: "Number of Loci" },
+			showgrid: true,
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
+			//dtick: 100
 		},
 		bargroupgap: 0.05
 	};
@@ -137,10 +150,16 @@ const SchemaPage = () => {
 		},
 		xaxis: {
 			title: { text: "Allele Mode Size" },
-			showgrid: true,
+			showgrid: false,
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
 		},
 		yaxis: {
 			title: { text: "Number of Loci" },
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
 		},
 		bargroupgap: 0.05
 	};
@@ -228,12 +247,14 @@ const SchemaPage = () => {
 			title: { text: "Allele size (bp)" },
 			showgrid: true,
 			zeroline: false,
-			showline: true
+			showline: true,
+			ticks: "outside"
 		},
 		yaxis: {
 			title: { text: "Number of alleles" },
 			zeroline: false,
-			showline: true
+			showline: true,
+			ticks: "outside"
 		}
 	};
 	const configPanelC = {
@@ -246,13 +267,21 @@ const SchemaPage = () => {
 		}
 	};
 
+	let scatterClickHandler = undefined;
+	if (data.lociReports === 1) {
+		// Define handler to get data from click in scatter point
+		scatterClickHandler = (event) => {
+			return clickPlotPointHandler(event.points[0].text)
+		}
+	};
+
 	// Component for Plotly Scatter with loci statistics
 	const LociStatsScatter = (
 		<PlotlyPlot
 		 plotData={plotDataPanelC}
 		 layoutProps={layoutPanelC}
 		 configOptions={configPanelC}
-		 onClick={(e) => clickPlotPointHandler(e.points[0].text)} // Get locus ID associated to the point that was clicked
+		 onClick={scatterClickHandler} // Get locus ID associated to the point that was clicked
 		>
 		</PlotlyPlot>
 	);
@@ -282,7 +311,7 @@ const SchemaPage = () => {
 		},
 		xaxis: {
 			title: { text: "Loci" },
-			showgrid: true,
+			showgrid: false,
 			zeroline: false,
 			showline: true,
 			rangeslider: {
@@ -294,7 +323,8 @@ const SchemaPage = () => {
 		yaxis: {
 			title: { text: "Allele Size" },
 			zeroline: false,
-			showline: true
+			showline: true,
+			ticks: "outside"
 		},
 		hovermode: 'x unified'
 	};
@@ -308,13 +338,22 @@ const SchemaPage = () => {
 			 scale: 1
 		}
 	};
+
+	let boxplotClickHandler = undefined;
+	if (data.lociReports === 1) {
+		// Define handler to get data from click in boxplot
+		boxplotClickHandler = (event) => {
+			return clickPlotPointHandler(event.points[0].x)
+		}
+	};
+
 	// Component for Plotly Boxplots with loci allele size variation
 	const LociSizeBoxplots = (
 		<PlotlyPlot
 		 plotData={plotDataPanelD}
 		 layoutProps={layoutPanelD}
 		 configOptions={configPanelD}
-		 onClick={(e) => clickPlotPointHandler(e.points[0].x)} // Get locus ID associated to the point that was clicked
+		 onClick={boxplotClickHandler} // Get locus ID associated to the point that was clicked
 		>
 		</PlotlyPlot>
 	);
@@ -378,6 +417,7 @@ const SchemaPage = () => {
 			}
 		},
 		filter: true,
+		filterType: 'multiselect',
 		search: true,
 		viewColumns: true,
 		pagination: true,
@@ -427,6 +467,7 @@ const SchemaPage = () => {
 			}
 		},
 		filter: true,
+		filterType: 'multiselect',
 		search: true,
 		viewColumns: true,
 		pagination: true,
@@ -466,8 +507,10 @@ const SchemaPage = () => {
 		</Typography>
 	);
 
+	// Need to change the root component attribute to avoid error related with
+	// passing something to <p>
 	const HeaderDescription = (
-		<Typography>
+		<Typography component={'div'}> 
 			<ReactMarkdown 
 				children={markdown} 
 				remarkPlugins={[remarkGfm]}>
@@ -475,8 +518,41 @@ const SchemaPage = () => {
 		</Typography>
 	);
 
+	// Get message about config used for schema creation
+	const creationConfigMessage = data.creationConfig;
+	const creationAlert = (
+		<Alert severity="info" variant="outlined">
+			<Typography sx={{ fontSize: 14 }}>
+				{creationConfigMessage}
+			</Typography>
+		</Alert>
+	);
+
+	// Get message about config used for schema evaluation
+	const evaluationConfigMessage = data.evaluationConfig;
+	const evaluationAlert = (
+		<Alert severity="info" variant="outlined">
+			<Typography sx={{ fontSize: 14 }}>
+				{evaluationConfigMessage}
+			</Typography>
+		</Alert>
+	);
+
+	// Create Alert to tell users that the points/boxplots are clickable
+	// and link to the loci reports
+	let clickAlert = undefined;
+	if (data.lociReports === 1) {
+		clickAlert = (
+			<Alert severity="info" variant="outlined">
+				<Typography sx={{ fontSize: 14 }}>
+					{"In the Locus Statistics and Allele Size Variation plots, each point (locus) is clickable and will open a page with more details about it."}
+				</Typography>
+			</Alert>
+		)
+	};
+
 	return (
-		<div style={{ marginTop: "40px"}}>
+		<div style={{ marginTop: "10px", marginBottom: "10px"}}>
 			<div>
 				<AccordionMUI 
 					summaryText={HeaderSummary}
@@ -484,20 +560,29 @@ const SchemaPage = () => {
 					expanded={false} >
 				</AccordionMUI>
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
+				<div style={{ marginBottom: "10px" }}>
+					<Stack sx={{ width: '100%' }} spacing={0.5}>
+						{creationAlert}
+						{evaluationAlert}
+					</Stack>
+				</div>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
+				<div style={{ marginBottom: "10px" }}>
+					{clickAlert ? clickAlert : undefined}
+				</div>
 				<TabPanelMUI
 					ContentTitles={TabPanelTitles}
 					ContentData={TabPanelData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
 				{LociAnnotationsTable}
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
 				{LociAnalysisTable}
 			</div>
 		</div>

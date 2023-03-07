@@ -22,10 +22,10 @@ import { Typography } from '@mui/material';
 
 const LocusPage = () => {
 
-	// get pre-computed data
+	// Get pre-computed data
 	const data = window.preComputedDataInd;
 
-	// data for Summary Data table
+	// Data for Summary Data table
 	const summaryData = data.summaryData;
 	const locusName = summaryData[1].rows[0][0]
 	const summaryTableOptions = {
@@ -36,7 +36,7 @@ const LocusPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "schema_summary.tsv",
+			filename: "locus_summary.tsv",
 			separator: "\t"
 		},
 		filter: false,
@@ -47,8 +47,51 @@ const LocusPage = () => {
 	// Component for Summary table
 	const summaryTable = <DataTable
 						  tableData={summaryData} 
-						  tableTitle="Summary Data" 
+						  tableTitle="Locus Summary Data" 
 						  tableOptions={summaryTableOptions}
+						 >
+						 </DataTable>
+
+	// Data for Annotations Data table
+	const annotationsData = data.annotations;
+	const annotationsTableOptions = {
+		responsive: "simple",
+		selectableRowsHeader: false,
+		selectableRows: "none",
+		selectableRowsOnClick: false,
+		print: false,
+		download: true,
+		downloadOptions: {
+			filename: "locus_annotations.tsv",
+			separator: "\t"
+		},
+		filter: false,
+		search: false,
+		viewColumns: true,
+		pagination: false,
+	}
+
+	const uniprotLinkColumnFormatting = {
+		8: {
+			customBodyRender: (value) => (
+				<a 
+					href={value} 
+					target={"_blank"} 
+					rel={"noopener noreferrer"}
+				>
+				  {value}
+				</a>
+			  )
+		}
+	};
+	const LociAnnotationsFormatting = {...uniprotLinkColumnFormatting};
+
+	// Component for Annotations table
+	const annotationsTable = <DataTable
+						  tableData={annotationsData} 
+						  tableTitle="Locus Annotation Data" 
+						  tableOptions={annotationsTableOptions}
+						  tableConditionalFormatting={LociAnnotationsFormatting}
 						 >
 						 </DataTable>
 
@@ -473,6 +516,9 @@ const LocusPage = () => {
 		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
 			<div style={{ marginTop: "10px" }}>
 				{summaryTable}
+			</div>
+			<div style={{ marginTop: "30px" }}>
+				{annotationsTable}
 			</div>
 			<div style={{ marginTop: "30px"}}>
 				<TabPanelMUI

@@ -161,7 +161,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
     return results
 
 
-def locus_report(locus_file, locus_data, translation_dir, html_dir,
+def locus_report(locus_file, locus_data, annotation_columns,
+                 annotation_values, translation_dir, html_dir,
                  translation_table, minimum_length, light, add_sequences):
     """
     """
@@ -232,6 +233,8 @@ def locus_report(locus_file, locus_data, translation_dir, html_dir,
     # need to include '.' at start to work properly when referencing local files
     locus_html_data = {"summaryData": [{"columns": locus_columns},
                                        {"rows": [locus_rows]}],
+                       "annotations": [{"columns": annotation_columns},
+                                       {"rows": [annotation_values]}],
                        "lengths": allele_lengths,
                        "ids": allele_ids,
                        "counts": [list(counts_data[0]), list(counts_data[1])],
@@ -338,9 +341,6 @@ def main(schema_directory, output_directory, genes_list, annotations,
         annotation_values.append(annotation_lines[0])
         annotation_values.append(annotation_lines[1:])
 
-    row_data = []
-
-
     # build the total data dictionary
     column_data = ct.SCHEMA_SUMMARY_TABLE_HEADERS
     column_data[-3] = column_data[-3].format(minimum_length)
@@ -390,6 +390,9 @@ def main(schema_directory, output_directory, genes_list, annotations,
     fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
 
     if loci_reports is True:
+        # create mapping between locus ID and annotations
+        annotations_dict = {a[0]: a for a in annotation_values[1]}
+
         translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
         fo.create_directory(translation_dir)
         html_dir = fo.join_paths(output_directory, ['loci_reports'])
@@ -397,7 +400,9 @@ def main(schema_directory, output_directory, genes_list, annotations,
         schema_files = {fo.file_basename(file, False): file for file in schema_files}
         loci_data = results
 
-        inputs = [[schema_files[d[0]], d] for d in loci_data]
+        inputs = [[schema_files[d[0]], d,
+                   annotation_values[0],
+                   annotations_dict[d[0]]] for d in loci_data]
 
         common_args = [translation_dir, html_dir, translation_table,
                        minimum_length, light, add_sequences]

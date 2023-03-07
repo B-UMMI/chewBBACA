@@ -17,7 +17,7 @@ const Resized = ({ divID, component }) => {
 		//return resizeObserver.unobserve(document.getElementById("MSA"))
 	});
 
-	console.log(width, divID)
+	//console.log(width, divID)
 
 	// get constructor of the component that will be displayed and automatically resized
 	const ComponentDisplay = component;

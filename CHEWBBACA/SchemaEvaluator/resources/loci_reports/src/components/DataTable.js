@@ -3,19 +3,15 @@ import MUIDataTable from "mui-datatables";
 
 const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormatting }) => {
 
-	const columnData = (tableData[0].columns).map((column) => {
+	let columnData = (tableData[0].columns).map((column) => {
 		return ({ name: column,
 				  label: column,
 				  options: {
 					  filter: true,
 					  sort: true,
+					  sortThirdClickReset: true,
 					  display: true,
-					  setCellHeaderProps: (value) => {
-						  return {
-							  style: {fontWeight: "bold" }
-						  }
-					  },
-				  }
+				  },
 				})
 	});
 
@@ -39,7 +35,7 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 	  );
 
 	return (
-		<div style={{ marginTop: "40px" }}>{total_data_table}</div>
+		<div>{total_data_table}</div>
 	)
 };
 

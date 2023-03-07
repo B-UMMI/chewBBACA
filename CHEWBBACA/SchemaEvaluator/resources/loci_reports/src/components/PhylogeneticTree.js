@@ -5,7 +5,7 @@ import PhylocanvasGL, { TreeTypes, plugins } from "@phylocanvas/phylocanvas.gl";
 
 
 const PhylogeneticTree = ({ source, treeWidth, treeHeight, showLabels, showLeafLabels, interactive }) => {
-	console.log('Phylo');
+	//console.log('Phylo');
 
 	useEffect(() => {
 		const tree = new PhylocanvasGL(

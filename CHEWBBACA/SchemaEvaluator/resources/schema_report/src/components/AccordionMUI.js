@@ -18,9 +18,7 @@ const AccordionMUI = ({ summaryText, detailsText, expanded }) => {
 				</AccordionSummary>
 				<Divider></Divider>
 				<AccordionDetails >
-					<div
-						style={{ width: "100%", height: "100%" }}
-					>
+					<div style={{ width: "100%", height: "100%" }}>
 						{detailsText}
 					</div>
 				</AccordionDetails>

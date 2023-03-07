@@ -552,7 +552,7 @@ const SchemaPage = () => {
 	};
 
 	return (
-		<div style={{ marginTop: "10px", marginBottom: "10px"}}>
+		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
 			<div>
 				<AccordionMUI 
 					summaryText={HeaderSummary}

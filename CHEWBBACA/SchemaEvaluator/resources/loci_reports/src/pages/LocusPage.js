@@ -7,6 +7,7 @@ import MSA from '../components/MSA';
 
 // Material-UI components
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 
 // Phylocanvas
 import PhylogeneticTree from "../components/PhylogeneticTree";
@@ -16,6 +17,7 @@ import { Element } from 'react-scroll';
 
 // Monaco code editor (options example at https://monaco-react.surenatoyan.com/)
 import Editor from "@monaco-editor/react";
+import { Typography } from '@mui/material';
 
 
 const LocusPage = () => {
@@ -50,6 +52,10 @@ const LocusPage = () => {
 						 >
 						 </DataTable>
 
+	// Get bot and top thresholds to add shapes to plots
+	const botThreshold = data.botThreshold;
+	const topThreshold = data.topThreshold;
+
 	// data for Panel A (Sequence Size Distribution)
 	const xDataPanelA = data.counts[0];
 	const yDataPanelA = data.counts[1];
@@ -67,18 +73,86 @@ const LocusPage = () => {
 		 }
 	    }
 	];
+
+	// Determine minimum allele length to define plot range
+	const lengthMin = Math.min(...xDataPanelA);
+	let xaxisMin = lengthMin;
+	if (lengthMin > botThreshold) {
+		xaxisMin = botThreshold;
+	};
+
+	// Determine maximum allele length to define plot range
+	const lengthMax = Math.max(...xDataPanelA);
+	let xaxisMax = lengthMax;
+	if (lengthMax < topThreshold) {
+		xaxisMax = topThreshold;
+	};
+
 	const layoutPanelA = {
 		title: {
             text: locusName,
         },
         xaxis: {
         	title: { text: "Sequence Size (bp)" },
-        	showgrid: true,
+        	showgrid: false,
+			zeroline: false,
+			showline: true,
+			ticks: "outside",
+			range: [xaxisMin-20, xaxisMax+20]
         },
         yaxis: {
         	title: { text: "Number of Alleles" },
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
         },
-		bargroupgap: 0.05
+		bargroupgap: 0.05,
+		shapes: [
+            {
+              line: { color: "red", width: 1 },
+              type: "line",
+              x0: botThreshold,
+              x1: botThreshold,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              line: { color: "red", width: 1 },
+              type: "line",
+              x0: topThreshold,
+              x1: topThreshold,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: botThreshold,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: topThreshold,
+              x1: topThreshold+botThreshold,
+              xref: "x",
+              y0: 0,
+              y1: 1,
+              yref: "y domain",
+            },
+          ],
 	};
 	const configPanelA = {
 		toImageButtonOptions: 
@@ -120,11 +194,64 @@ const LocusPage = () => {
         xaxis: {
         	title: { text: "Allele ID" },
         	showgrid: true,
+			zeroline: false,
+			showline: true,
+			ticks: "outside"
         },
         yaxis: {
         	title: { text: "Sequence Size (bp)" },
+			zeroline: false,
+			showline: true,
+			ticks: "outside",
+			range: [xaxisMin-20, xaxisMax+20]
         },
-		bargroupgap: 0.05
+		bargroupgap: 0.05,
+		shapes: [
+            {
+              line: { color: "red", width: 1 },
+              type: "line",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: xaxisMin,
+              y1: xaxisMin,
+              yref: "y",
+            },
+            {
+              line: { color: "red", width: 1 },
+              type: "line",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: xaxisMax,
+              y1: xaxisMax,
+              yref: "y",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: 0,
+              y1: botThreshold,
+              yref: "y",
+            },
+            {
+              fillcolor: "red",
+              line: { width: 0 },
+              opacity: 0.1,
+              type: "rect",
+              x0: 0,
+              x1: 1,
+              xref: "x domain",
+              y0: topThreshold,
+              y1: topThreshold+botThreshold,
+              yref: "y",
+            },
+          ],
 	};
 	const configPanelB = {
 		toImageButtonOptions: 
@@ -151,7 +278,7 @@ const LocusPage = () => {
 	const phyloData = data.phylo.phylo_data;
 	let PhylogeneticElement = undefined;
 	if (phyloData.length > 0) {
-		PhylogeneticElement = (
+		const phylogeneticElementTree = (
 			<Box sx={{ p: 3 }}>
 				<Element 
 				 name="phyloTree" 
@@ -179,10 +306,21 @@ const LocusPage = () => {
 			</Box>
 		);
 
+		const phylogeneticElementTitle = (
+			<Typography sx={{ 
+				color: '#bb7944', 
+				fontSize: 20 
+				}}
+			>
+				Phylogenetic Tree
+			</Typography>
+
+		);
+
 		PhylogeneticElement = (
 			<AccordionMUI
-				summaryText="Phylogenetic Tree"
-				detailsData={PhylogeneticElement}
+				summaryText={phylogeneticElementTitle}
+				detailsData={phylogeneticElementTree}
 				expanded={false}
 			>
 			</AccordionMUI>
@@ -204,9 +342,20 @@ const LocusPage = () => {
 			</Box>
 		);
 
+		const MSAComponentTitle = (
+			<Typography sx={{ 
+				color: '#bb7944', 
+				fontSize: 20 
+				}}
+			>
+				Multiple Sequence Alignment
+			</Typography>
+
+		);
+
 		MSAComponent = (
 			<AccordionMUI
-				summaryText="Multiple Sequence Alignment"
+				summaryText={MSAComponentTitle}
 				detailsData={MSAComponent}
 				expanded={false}
 			>
@@ -224,7 +373,7 @@ const LocusPage = () => {
 			const sequenceStr = `>${seqid}\n${sequence}\n`
 			return sequenceStr
 		})
-	
+
 		const joinedDNA = dnaText.join('');
 		// create DNA Editor component
 		DNAEditor = (
@@ -236,9 +385,20 @@ const LocusPage = () => {
 			</Editor>
 		);
 
+		const DNAEditorTitle = (
+			<Typography sx={{ 
+				color: '#bb7944', 
+				fontSize: 20 
+				}}
+			>
+				DNA sequences
+			</Typography>
+
+		);
+
 		DNAEditor = (
 			<AccordionMUI
-			 summaryText="DNA sequences"
+			 summaryText={DNAEditorTitle}
 			 detailsData={DNAEditor}
 			 expanded={false}
 			>
@@ -267,9 +427,20 @@ const LocusPage = () => {
 			</Editor>
 		);
 
+		const ProteinEditorTitle = (
+			<Typography sx={{ 
+				color: '#bb7944', 
+				fontSize: 20 
+				}}
+			>
+				Protein sequences
+			</Typography>
+
+		);
+
 		ProteinEditor = (
 			<AccordionMUI
-			 summaryText="Protein sequences"
+			 summaryText={ProteinEditorTitle}
 			 detailsData={ProteinEditor}
 			 expanded={false}
 			>
@@ -277,23 +448,48 @@ const LocusPage = () => {
 		);
 	}
 
+	// Alert rendered when there is no Phylogenetic Tree and MSA
+	const alertPhyloMSA = (
+		<Alert variant="outlined" severity="warning">
+        	<Typography>
+              The NJ tree and MSA were not generated because this locus 
+			  does not have valid alleles or has only one valid allele or
+			  the --light parameter was provided.
+            </Typography>
+    	</Alert>
+	);
+
+	// Alert to explain leaf node labels
+	const alertLeafNodes = (
+		<Alert variant="outlined" severity="info">
+            <Typography>
+                Leaf labels correspond to the allele identifiers.
+				A tree might not be displayed if the distance between all alleles is 0.
+            </Typography>
+        </Alert>
+	);
+
 	return (
-		<div style={{ marginTop: "40px" }}>
-			<div style={{ marginTop: "40px" }}>
+		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
+			<div style={{ marginTop: "10px" }}>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
 				<TabPanelMUI
 					ContentTitles={AlleleSizePanelTitles}
 					ContentData={AlleleSizePanelsData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div style={{ marginTop: "40px" }}>
-				{PhylogeneticElement ? PhylogeneticElement : PhylogeneticElement}
-				{MSAComponent ? MSAComponent : MSAComponent}
+			<div style={{ marginTop: "30px" }}>
+				<div style={{ marginBottom: "10px" }}>
+					{PhylogeneticElement ? alertLeafNodes : undefined}
+					{PhylogeneticElement ? undefined : alertPhyloMSA}
+				</div>
+				{PhylogeneticElement}
+				{MSAComponent}
 			</div>
-			<div style={{ marginTop: "40px"}}>
+			<div style={{ marginTop: "30px"}}>
 				{DNAEditor ? DNAEditor : DNAEditor}
 				{ProteinEditor ? ProteinEditor : ProteinEditor}
 			</div>

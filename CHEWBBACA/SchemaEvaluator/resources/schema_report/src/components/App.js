@@ -1,7 +1,6 @@
 import SchemaPage from "../pages/SchemaPage";
 // Import and define ThemeProvider at the root of the app
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { textAlign } from "@mui/system";
 
 
 // Global style overrides have changed in MUI5

@@ -268,23 +268,30 @@ LOCUS_REPORT_HTML = ("""
 </html>
 """)
 
-SCHEMA_SUMMARY_TABLE_HEADERS = ["Loci", "Alleles", "Valid Alleles",
-                                "Invalid alleles", "Incomplete ORF",
-                                "Missing Start/Stop Codon",
-                                "In-frame Stop Codon", "Alleles < {0}nt",
-                                "Alleles below threshold",
-                                "Alleles above threshold"]
+
+# Do not use list of strings as constants if the strings include formatting
+# placeholders. Multiple references to the list of strings will have the same
+# id and altering the strings with format will not change the list id. In
+# multiprocessing it can reference the same list/id in different processess
+# and use the latest changes to a string in the list/id when those cahnges
+# might not refer to the current process (returning an incorrect value).
+
+# Table header for the Schema report summary data
+SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
+                                'alleles\tIncomplete ORF\tMissing Star'
+                                't/Stop Codon\tIn-frame Stop Codon\tAlleles '
+                                '< {0}bp\tAlleles below threshold\tAlleles '
+                                'above threshold')
 
 # Column headers for the Loci Analysis Table in the Schema report
-LOCI_ANALYSIS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
-                         "Incomplete ORF", "Missing Start/Stop Codon",
-                         "In-frame Stop Codon", "Alleles < {0}nt",
-                         "Alleles below threshold", "Alleles above threshold"]
+LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tIncomplete '
+                         'ORF\tMissing Start/Stop Codon\tIn-frame Stop '
+                         'Codon\tAlleles < {0}bp\tAlleles below '
+                         'threshold\tAlleles above threshold')
 
 # Column headers for the Summary Table in the Loci reports
-LOCUS_COLUMNS = ["Locus", "Total Alleles", "Valid Alleles",
-                 "Incomplete ORF", "Missing Start/Stop Codon",
-                 "In-frame Stop Codon", "Alleles < {0}nt",
-                 "Size Range (bp)", "Length Median",
-                 "Length Mode", "Alleles below threshold",
-                 "Alleles above threshold"]
+LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tIncomplete '
+                 'ORF\tMissing Start/Stop Codon\tIn-frame Stop '
+                 'Codon\tAlleles < {0}bp\tSize Range (bp)\tLength '
+                 'Median (bp)\tLength Mode (bp)\tAlleles below '
+                 'threshold ({1}bp)\tAlleles above threshold ({2}bp)')

@@ -14,6 +14,7 @@ Code documentation
 
 
 import os
+import math
 import json
 import shutil
 import pickle
@@ -115,21 +116,26 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
     # Conserved alleles
     alleles_below_threshold = 0
     alleles_above_threshold = 0
-    top_threshold = mode_length*(1+size_threshold)
-    bot_threshold = mode_length*(1-size_threshold)
+    top_threshold = math.floor(mode_length*(1+size_threshold))
+    bot_threshold = math.ceil(mode_length*(1-size_threshold))
     for size in lengths:
         if size < bot_threshold:
             alleles_below_threshold += 1
         elif size > top_threshold:
             alleles_above_threshold += 1
 
-    translated = [sm.translate_dna(str(record.seq), translation_table, minimum_length)
-                  for record in fao.sequence_generator(locus)]
+    translated = {(record.id).split('_')[-1]: sm.translate_dna(str(record.seq), translation_table, minimum_length)
+                  for record in fao.sequence_generator(locus)}
 
-    stopC = translated.count('Extra in frame stop codon found')
-    notStart = translated.count('is not a start codon')+translated.count('is not a stop codon')
-    notMultiple = translated.count('sequence length is not a multiple of 3')
-    shorter = translated.count('sequence shorter than')
+    exceptions = {k: v for k, v in translated.items() if type(v) == str}
+
+    exceptions_values = list(exceptions.values())
+    exceptions_lines = [[k, v] for k, v in exceptions.items()]
+
+    stopC = exceptions_values.count('Extra in frame stop codon found')
+    notStart = exceptions_values.count('is not a start codon')+exceptions_values.count('is not a stop codon')
+    notMultiple = exceptions_values.count('sequence length is not a multiple of 3')
+    shorter = exceptions_values.count('sequence shorter than')
     validCDS = nr_alleles - sum([stopC, notStart, notMultiple, shorter])
 
     results = [fo.file_basename(locus, False),
@@ -155,7 +161,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
                 alleles_below_threshold,
                 alleles_above_threshold],
                bot_threshold,
-               top_threshold
+               top_threshold,
+               exceptions_lines
                ]
 
     return results
@@ -228,8 +235,10 @@ def locus_report(locus_file, locus_data, annotation_columns,
 
             phylo_data = {"phylo_data": phylo_data}
 
-    locus_columns = ct.LOCUS_COLUMNS
-    locus_columns[-6] = locus_columns[-6].format(minimum_length)
+    locus_columns = ct.LOCUS_COLUMNS.format(minimum_length,
+                                            locus_data[14],
+                                            locus_data[15])
+    locus_columns = locus_columns.split('\t')
     # need to include '.' at start to work properly when referencing local files
     locus_html_data = {"summaryData": [{"columns": locus_columns},
                                        {"rows": [locus_rows]}],
@@ -243,9 +252,11 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "dna": dna_sequences,
                        "protein": protein_sequences,
                        "botThreshold": locus_data[14],
-                       "topThreshold": locus_data[15]}
+                       "topThreshold": locus_data[15],
+                       "invalidAlleles": locus_data[16]}
 
-    locus_html = ct.LOCUS_REPORT_HTML.format(json.dumps(locus_html_data))
+    locus_html = ct.LOCUS_REPORT_HTML
+    locus_html = locus_html.format(json.dumps(locus_html_data))
 
     locus_html_file = fo.join_paths(html_dir, [f'{locus}.html'])
     fo.write_to_file(locus_html, locus_html_file, 'w', '\n')
@@ -258,7 +269,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
 # genes_list = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_loci.txt'
 # annotations = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_schema/schema_annotations/schema_seed_annotations.tsv'
 # translation_table = 11
-# size_threshold = 0.05
+# size_threshold = 0.2
 # minimum_length = 0
 # cpu_cores = 4
 # loci_reports = True
@@ -295,8 +306,14 @@ def main(schema_directory, output_directory, genes_list, annotations,
                             f'{chewie_config.get("minimum_locus_length")[0]},'
                             ' size threshold of '
                             f'{chewie_config.get("size_threshold")[0]}, '
-                            'and translation table of '
+                            'and a translation table of '
                             f'{chewie_config.get("translation_table")[0]}.')
+        if chewie_config.get("prodigal_training_file")[0] is not None:
+            creation_message += (' A Prodigal training file was used for '
+                                 'gene prediction.')
+        else:
+            creation_message += (' No Prodigal training file used for gene '
+                                 'prediction.')
 
     if minimum_length is None:
         minimum_length = chewie_config.get("minimum_locus_length",
@@ -332,18 +349,18 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # group values for the same statistic
     data = list(zip(*results))
 
-    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS
-    analysis_columns[-3] = analysis_columns[-3].format(minimum_length)
+    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
+    analysis_columns = analysis_columns.split('\t')
 
-    annotation_values = []
+    annotation_values = [[], []]
     if annotations is not None:
         annotation_lines = fo.read_tabular(annotations)
-        annotation_values.append(annotation_lines[0])
-        annotation_values.append(annotation_lines[1:])
+        annotation_values[0].extend(annotation_lines[0])
+        annotation_values[1].extend(annotation_lines[1:])
 
     # build the total data dictionary
-    column_data = ct.SCHEMA_SUMMARY_TABLE_HEADERS
-    column_data[-3] = column_data[-3].format(minimum_length)
+    column_data = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(minimum_length)
+    column_data = column_data.split('\t')
 
     notMultiple_sum = sum([l[3] for l in data[13]])
     stopC_sum = sum([l[5] for l in data[13]])
@@ -384,14 +401,18 @@ def main(schema_directory, output_directory, genes_list, annotations,
                    "creationConfig": creation_message}
 
     # Write HTML file
-    schema_html = ct.SCHEMA_REPORT_HTML.format(json.dumps(schema_data))
+    schema_html = ct.SCHEMA_REPORT_HTML
+    schema_html = schema_html.format(json.dumps(schema_data))
 
     schema_html_file = fo.join_paths(output_directory, ['schema_report.html'])
     fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
 
     if loci_reports is True:
         # create mapping between locus ID and annotations
-        annotations_dict = {a[0]: a for a in annotation_values[1]}
+        if annotations is not None:
+            annotations_dict = {a[0]: a for a in annotation_values[1]}
+        else:
+            annotations_dict = {}
 
         translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
         fo.create_directory(translation_dir)
@@ -402,7 +423,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
         inputs = [[schema_files[d[0]], d,
                    annotation_values[0],
-                   annotations_dict[d[0]]] for d in loci_data]
+                   annotations_dict.get(d[0], [])] for d in loci_data]
 
         common_args = [translation_dir, html_dir, translation_table,
                        minimum_length, light, add_sequences]

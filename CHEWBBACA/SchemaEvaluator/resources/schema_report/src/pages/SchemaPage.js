@@ -438,15 +438,30 @@ const SchemaPage = () => {
 		LociAnnotationsFormatting = {...uniprotLinkColumnFormatting};
 	}
 	// DataTable component to display loci annotations
-	const LociAnnotationsTable = (
-		<DataTable 
-		 tableData={annotationsData} 
-		 tableTitle="Loci Annotations" 
-		 tableOptions={annotationsTableOptions}
-		 tableConditionalFormatting={LociAnnotationsFormatting}
-		>
-		</DataTable>
-	);
+	// Only define component if there is annotation data
+	let LociAnnotationsTable = undefined;
+	if (annotationsData[0].columns.length > 0) {
+		LociAnnotationsTable = (
+			<DataTable 
+			 tableData={annotationsData} 
+			 tableTitle="Loci Annotations" 
+			 tableOptions={annotationsTableOptions}
+			 tableConditionalFormatting={LociAnnotationsFormatting}
+			>
+			</DataTable>
+		);
+	}
+
+	let LociAnnotationsAlert = undefined;
+	if (LociAnnotationsTable === undefined) {
+		LociAnnotationsAlert = (
+			<Alert severity="info" variant="outlined">
+				<Typography sx={{ fontSize: 14 }}>
+					Loci annotations were not provided.
+				</Typography>
+			</Alert>
+		)
+	};
 
 	// data for CDS analysis
 	const analysisData = data.analysis;
@@ -545,7 +560,10 @@ const SchemaPage = () => {
 		clickAlert = (
 			<Alert severity="info" variant="outlined">
 				<Typography sx={{ fontSize: 14 }}>
-					{"In the Locus Statistics and Allele Size Variation plots, each point (locus) is clickable and will open a page with more details about it."}
+					In the Locus Statistics and Allele Size 
+					Variation plots, each point (locus) is 
+					clickable and will open a page with more 
+					details about it.
 				</Typography>
 			</Alert>
 		)
@@ -571,7 +589,7 @@ const SchemaPage = () => {
 			</div>
 			<div style={{ marginTop: "30px"}}>
 				<div style={{ marginBottom: "10px" }}>
-					{clickAlert ? clickAlert : undefined}
+					{clickAlert}
 				</div>
 				<TabPanelMUI
 					ContentTitles={TabPanelTitles}
@@ -580,6 +598,9 @@ const SchemaPage = () => {
 				</TabPanelMUI>
 			</div>
 			<div style={{ marginTop: "30px"}}>
+				<div style={{ marginBottom: "10px" }}>
+					{LociAnnotationsAlert}
+				</div>
 				{LociAnnotationsTable}
 			</div>
 			<div style={{ marginTop: "30px"}}>
@@ -589,4 +610,4 @@ const SchemaPage = () => {
 	  );
 };
 
-export default SchemaPage; 
+export default SchemaPage;

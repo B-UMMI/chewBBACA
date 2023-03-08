@@ -87,13 +87,27 @@ const LocusPage = () => {
 	const LociAnnotationsFormatting = {...uniprotLinkColumnFormatting};
 
 	// Component for Annotations table
-	const annotationsTable = <DataTable
+	let annotationsTable = undefined;
+	if (annotationsData[0].columns.length > 0) {
+		annotationsTable = <DataTable
 						  tableData={annotationsData} 
 						  tableTitle="Locus Annotation Data" 
 						  tableOptions={annotationsTableOptions}
 						  tableConditionalFormatting={LociAnnotationsFormatting}
 						 >
 						 </DataTable>
+	};
+
+	let LociAnnotationsAlert = undefined;
+	if (annotationsTable === undefined) {
+		LociAnnotationsAlert = (
+			<Alert severity="info" variant="outlined">
+				<Typography sx={{ fontSize: 14 }}>
+					Loci annotations were not provided.
+				</Typography>
+			</Alert>
+		)
+	};
 
 	// Get bot and top thresholds to add shapes to plots
 	const botThreshold = data.botThreshold;
@@ -256,8 +270,8 @@ const LocusPage = () => {
               x0: 0,
               x1: 1,
               xref: "x domain",
-              y0: xaxisMin,
-              y1: xaxisMin,
+              y0: botThreshold,
+              y1: botThreshold,
               yref: "y",
             },
             {
@@ -266,8 +280,8 @@ const LocusPage = () => {
               x0: 0,
               x1: 1,
               xref: "x domain",
-              y0: xaxisMax,
-              y1: xaxisMax,
+              y0: topThreshold,
+              y1: topThreshold,
               yref: "y",
             },
             {
@@ -491,6 +505,15 @@ const LocusPage = () => {
 		);
 	}
 
+	// Alert to explain red lines added for bot and top length thresholds
+	const lengthThresholdsAlert = (
+		<Alert severity="info" variant="outlined">
+			<Typography sx={{ fontSize: 14 }}>
+				The red lines represent the bottom and top allele length thresholds.
+			</Typography>
+		</Alert>
+	)
+
 	// Alert rendered when there is no Phylogenetic Tree and MSA
 	const alertPhyloMSA = (
 		<Alert variant="outlined" severity="warning">
@@ -518,9 +541,15 @@ const LocusPage = () => {
 				{summaryTable}
 			</div>
 			<div style={{ marginTop: "30px" }}>
+				<div style={{ marginBottom: "10px" }}>
+					{LociAnnotationsAlert}
+				</div>
 				{annotationsTable}
 			</div>
 			<div style={{ marginTop: "30px"}}>
+				<div style={{ marginBottom: "10px" }}>
+					{lengthThresholdsAlert}
+				</div>
 				<TabPanelMUI
 					ContentTitles={AlleleSizePanelTitles}
 					ContentData={AlleleSizePanelsData}
@@ -536,8 +565,8 @@ const LocusPage = () => {
 				{MSAComponent}
 			</div>
 			<div style={{ marginTop: "30px"}}>
-				{DNAEditor ? DNAEditor : DNAEditor}
-				{ProteinEditor ? ProteinEditor : ProteinEditor}
+				{DNAEditor}
+				{ProteinEditor}
 			</div>
 		</div>
 	  );

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.1 - 2023-03-09
+
+- Fixed issue in the ExtractCgMLST module. The cgMLST matrix only contained 1's and 0's because it was a subset of the presence-absence matrix. The module now uses the list of loci in the core genome to subset the masked matrix with the allele identifiers.
+
 ## 3.1.0 - 2023-01-12
 
 - Updated the ExtractCgMLST module ([PR](https://github.com/B-UMMI/chewBBACA/pull/153)). It can now accept several loci presence threshold values and creates a HTML file with a line plot that displays the number of loci in the cgMLST per threshold value (default: compute for 0.95, 0.99 and 1 thresholds).

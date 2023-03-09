@@ -21,12 +21,9 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-## 3.1.0 - 2023-01-12
+## 3.1.1 - 2023-03-09
 
-- Updated the ExtractCgMLST module. It can now accept several loci presence threshold values and creates a HTML file with a line plot that displays the number of loci in the cgMLST per threshold value (default: compute for 0.95, 0.99 and 1 thresholds).
-- Removed the TestGenomeQuality module (superseded by the new functionalities implemented in the ExtractCgMLST module).
-- Bugfix for the determination of the BLASTp raw scores for the representative alleles.
-- Changed the valued passed to BLASTp `-max_target_seqs` parameter during representative determination from 20 to the default value used by BLASTp (500). This leads to a slight improvement in classification accuracy.
+- Fixed issue in the ExtractCgMLST module. The cgMLST matrix only contained 1's and 0's because it was a subset of the presence-absence matrix. The module now uses the list of loci in the core genome to subset the masked matrix with the allele identifiers.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.
 

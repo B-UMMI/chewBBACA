@@ -1978,9 +1978,52 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
               'inputs.'.format(total_extracted, len(fasta_files)))
     # inputs are Fasta files with the predicted CDSs
     else:
+        # rename the CDSs in each file based on the input unique identifiers
+        print('\nRenaming coding sequences for {0} '
+              'input files...'.format(len(inputs_basenames)))
+        # create directory to store FASTA files with renamed CDSs
+        cds_path = fo.join_paths(temp_directory, ['cds_files'])
+        fo.create_directory(cds_path)
+
+        renaming_inputs = []
+        renamed_files = []
+        for k, v in inputs_basenames.items():
+            output_file = fo.join_paths(cds_path, [f'{v}.fasta'])
+            cds_prefix = f'{v}-protein'
+            renaming_inputs.append([k, output_file, 1, 50000,
+                                    cds_prefix, False, fao.integer_headers])
+            renamed_files.append(output_file)
+
+        # rename CDSs in files
+        renaming_results = mo.map_async_parallelizer(renaming_inputs,
+                                                     mo.function_helper,
+                                                     config['CPU cores'],
+                                                     show_progress=False)
+
+        # divide inputs into 15 sublists (equal to what's done
+        # when extracting CDSs predicted by Prodigal)
+        num_chunks = 15
+        concatenation_inputs = im.divide_list_into_n_chunks(renamed_files,
+                                                            num_chunks)
+        file_index = 1
+        cds_files = []
+        for group in concatenation_inputs:
+            output_file = fo.join_paths(cds_path,
+                                        ['coding_sequences_{0}.fasta'.format(file_index)])
+            fo.concatenate_files(group, output_file)
+            cds_files.append(output_file)
+            file_index += 1
+            # delete individual FASTA files to release disk space
+            fo.remove_files(group)
+
+        # no inputs failed gene prediction
         failed = []
-        cds_files = fasta_files
+        # cannot get CDS coordinates if skipping gene prediction
         cds_coordinates = {}
+
+        cds_count = sum(renaming_results)
+        print('Input files contain a total of {0} '
+              'coding sequences.'.format(cds_count))
 
     if len(failed) > 0:
         template_dict['invalid_inputs'] = failed

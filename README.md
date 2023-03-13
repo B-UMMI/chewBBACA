@@ -21,9 +21,9 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-## 3.1.1 - 2023-03-09
+## 3.1.2 - 2023-03-13
 
-- Fixed issue in the ExtractCgMLST module. The cgMLST matrix only contained 1's and 0's because it was a subset of the presence-absence matrix. The module now uses the list of loci in the core genome to subset the masked matrix with the allele identifiers.
+- Fixed issue related with sequence header format when FASTA files with coding sequences were provided to the CreateSchema and AlleleCall modules through the `--cds-input` parameter.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.
 

@@ -112,6 +112,10 @@ of loci in each genome added to the analysis.
    :width: 900px
    :align: center
 
+.. note::
+	The ExtractCgMLST module converts/masks all non-integer classifications in the profile matrix to ``0``
+	and removes all the ``INF-`` prefixes.
+
 We selected the threshold of 95% to account for loci that may not be identified due to sequencing
 coverage and assembly problems. The list with the 1,271 loci in the core genome at 95% is in the
 ``results32_wgMLST/cgMLST/cgMLSTschema95.txt`` file. This file can be passed
@@ -191,6 +195,11 @@ The determined cgMLST at 95% includes 1,249 loci, an additional 54 loci (~+4% of
 Minimum Spanning Tree
 :::::::::::::::::::::
 
-You can upload the file ``cgMLST_645/cgMLST95.tsv`` and any of the associated metadata to `Phyloviz online <https://online.phyloviz.net>`_
+You can upload the file ``cgMLST_645/cgMLST95.tsv`` and any of the associated metadata to `PHYLOViZ Online <https://online.phyloviz.net>`_
 to visualize a Minimum Spanning Tree and perform various dataset operations that allow you to explore and analyse the results generated
-during this tutorial.
+during this tutorial. PHYLOViZ Online considers all classifications when computing the distances between samples. This means that classifications
+such as ``ASM`` and ``LNF`` will be treated in the same way as valid allele identifiers. If you want to define that your profile matrix includes missing
+data that should not count for cgMLST analysis, you can upload the profile matrix created by the ExtractCgMLST module, which converts/masks
+all non-integer classifications to ``0`` and removes ``INF-`` prefixes, to `PHYLOViZ Online 2 <https://online2.phyloviz.net/index>`_,
+which allows users to specify that a profile matrix includes missing data. Please note that PHYLOViZ Online 2 is not in production phase,
+and you might run into some feature bugs.

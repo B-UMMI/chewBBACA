@@ -75,6 +75,10 @@ The output folder contains 3 files:
   Also includes a black line with the number of loci present in each genome that is added to the
   analysis.
 
+.. important::
+	The ExtractCgMLST module converts/masks all non-integer classifications in the profile matrix to ``0``
+	and removes all the ``INF-`` prefixes.
+
 Example of the plot created by the ExtractCgMLST module based on the allelic profiles for 680
 *Streptococcus agalactiae* genomes:
 

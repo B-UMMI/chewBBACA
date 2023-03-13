@@ -10,6 +10,16 @@ assemblies, genome assemblies with many frameshifted proteins, genome length too
 small). A set of high quality genome assemblies, ideally complete genomes, that capture the
 diversity of the species or lineage of interest should result in a good schema seed.
 
+Should I worry about file naming best practices for input files?
+................................................................
+Yes, definitely. Ideally, input FASTA files should have short names without any blank spaces or
+special characters (e.g.: `!@#?$^*()+`). It is also important to ensure that each input file has a
+unique basename prefix (everything before the first `.` in the basename). chewBBACA uses the
+basename prefix as an unique identifier during process execution and to label the final results.
+chewBBACA will warn you and exit if any files share the same basename prefix (e.g.: 
+`GCF_002209245.1_ASM220924v1_genomic.fna` and `GCF_002209245.2_ASM220924v2_genomic.fna`).
+chewBBACA accepts input files with the following file extensions: `.fasta`, `.fna`, `.ffn` and `.fa`.
+
 I ran all the steps and my cgMLST loci size is smaller than traditional MLST...does this even work?
 ...................................................................................................
 In order to have a robust definition of a cgMLST schema for a given bacterial species, a set
@@ -23,12 +33,11 @@ ubiquitous genes that are not present in some strains due to sequencing/assembly
 The quality of the genome assemblies is also an important factor that can impact profoundly
 the MLST schema definition (e.g.: genome assemblies with a high number of missing loci,
 contaminated genome assemblies, misclassified genome assemblies).
-The :doc:`TestGenomeQuality </user/modules/TestGenomeQuality>` process can be used to
-identify genome assemblies that are responsible for a considerable loss of loci. You can pass
-a list of genomes to remove to the :doc:`ExtractCgMLST </user/modules/ExtractCgMLST>` process to
-exclude those genomes from the analysis that determines the set of loci that constitute the
-core-genome. Identifying and removing low quality genome assemblies can significantly improve
-the determination of the core-genome.
+The results of the :doc:`ExtractCgMLST </user/modules/ExtractCgMLST>` module can help in
+identifying genome assemblies that are responsible for a considerable loss of loci. You can
+provide a file with the list of genome assemblies that you've identified as being of low quality
+to exclude them from the cgMLST analysis. Identifying and removing low quality genome assemblies
+can significantly improve the determination of the core-genome.
 
 Can I use a schema from an external source?
 ...........................................

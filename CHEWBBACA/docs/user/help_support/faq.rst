@@ -12,13 +12,14 @@ diversity of the species or lineage of interest should result in a good schema s
 
 Should I worry about file naming best practices for input files?
 ................................................................
-Yes, definitely. Ideally, input FASTA files should have short names without any blank spaces or
-special characters (e.g.: `!@#?$^*()+`). It is also important to ensure that each input file has a
-unique basename prefix (everything before the first `.` in the basename). chewBBACA uses the
-basename prefix as an unique identifier during process execution and to label the final results.
+Yes, definitely. Ideally, input FASTA files should have short names without blank spaces or
+special characters (e.g.: ``!@#?$^*()+``). It is also important to ensure each input file has a
+unique basename prefix (everything before the first ``.`` in the basename). chewBBACA uses the
+basename prefix as a unique identifier during process execution and to label the final results.
 chewBBACA will warn you and exit if any files share the same basename prefix (e.g.: 
-`GCF_002209245.1_ASM220924v1_genomic.fna` and `GCF_002209245.2_ASM220924v2_genomic.fna`).
-chewBBACA accepts input files with the following file extensions: `.fasta`, `.fna`, `.ffn` and `.fa`.
+``GCF_002209245.1_ASM220924v1_genomic.fna`` and ``GCF_002209245.2_ASM220924v2_genomic.fna``).
+chewBBACA accepts input files with the following file extensions: ``.fasta``, ``.fna``, ``.ffn``
+and ``.fa``.
 
 I ran all the steps and my cgMLST loci size is smaller than traditional MLST...does this even work?
 ...................................................................................................

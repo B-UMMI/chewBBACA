@@ -151,6 +151,14 @@ Parameters
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution
                                 are not removed at the end (default: False).
 
+.. important::
+  If you provide the ``--cds-input`` parameter, chewBBACA assumes that the input FASTA files contain
+  coding sequences and skips the gene prediction step with Prodigal. To avoid issues related with the
+  format of the sequence headers, chewBBACA renames the sequence headers based on the unique basename
+  prefix determined for each input file and on the order of the coding sequences (e.g.: coding sequences
+  inside a file named ``GCF_000007125.1_ASM712v1_cds_from_genomic.fna`` are renamed to
+  ``GCF_000007125-protein1``, ``GCF_000007125-protein2``, ..., ``GCF_000007125-proteinN``).
+
 Outputs
 -------
 

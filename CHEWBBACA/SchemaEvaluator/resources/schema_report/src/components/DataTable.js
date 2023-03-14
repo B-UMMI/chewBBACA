@@ -18,7 +18,11 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 	// add link to locus ID
 	if (tableConditionalFormatting) {
 		for (let [key, value] of Object.entries(tableConditionalFormatting)) {
-			columnData[key].options = {...columnData[key].options, ...value}
+			// Add formatting if the key matches a column name
+			if (tableData[0].columns.includes(key)) {
+				let columnIndex = tableData[0].columns.indexOf(key);
+				columnData[columnIndex].options = {...columnData[columnIndex].options, ...value}
+			}
 		}
 	};
 

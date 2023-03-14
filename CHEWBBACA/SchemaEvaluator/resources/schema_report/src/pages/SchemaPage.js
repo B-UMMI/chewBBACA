@@ -16,18 +16,36 @@ const SchemaPage = () => {
 	const markdown = `
   ## Schema Evaluator
   
-  Provides summary charts that allows users to explore:
-  - The diversity (number of alleles) at each locus (**Panel A**);
-  - The variation of allele mode sizes per locus (**Panel B**);
-  - Summary statistics (minimum allele size in blue, maximum allele size in orange and median allele size in green) for each locus (**Panel C**);
-  - The loci size distribution (**Panel D**);
-  - The presence of alleles that do not comply with the parameters used to define the schema (this is particularly relevant when evaluating schemas created by other algorithms and that are adapted for use with chewBBACA) (**Panel E**).
-  
-  Users are able to select an **individual locus** to be analysed, by clicking on:
-  - each **point (locus)** of the **Locus Statistics** and **Locus Size Variation charts**;
-  - the **locus name** on the **Locus** column of the **CDS Analysis** table, the **Loci with high variability** table or the **Loci with only 1 allele** table.
-  
-  By selecting a locus the following will be displayed:
+  The main report includes the following components:
+  - Summary Data
+	- Table with summary statistics for the schema.
+  - Loci statistics
+	- Tab Panel with four panels the users can alternate between.
+		- Total Alleles: histogram for the number of alleles for all loci.
+		- Allele Mode Size: histogram for the allele mode size (most frequent allele size) for all loci.
+		- Locus Statistics: total number of alleles and allele minimum, maximum and median size per locus.
+		- Allele Size Variation: boxplots for the allele size variation per locus.
+	
+		If you've provided the **--loci-reports** parameter to create the individual loci reports, the points in the Locus Statistics and the boxplots in the Allele Size Variation plots are clickable and will open the report for the corresponding locus.
+  - Loci Annotations
+	- Table that includes the annotations passed to the **--a** parameter.
+
+	Adds links to Uniprot pages if the file includes a column named "UniPort_URL" with UniProt URLs.  
+	If you've provided the **--loci-reports** parameter, the loci identifiers in the first column will link to the loci individual reports.
+  - CDS Analysis
+	- Table with the results of the CDS analysis for each locus.
+		- Total alleles: number of sequences in the locus FASTA file.
+		- Valid alleles: number of complete coding sequences.
+		- Incomplete ORF:
+		- Missing Start/Stop Codon:
+		- In-frame Stop Codon:
+		- Alleles < minLen:
+		- Alleles below threshold:
+		- Alleles above threshold:
+	
+		If you've provided the **--loci-reports** parameter, the loci identifiers in the first column will link to the loci individual reports.
+
+  The loci individual reports include the following components:
   - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;
   - a table with **summary statistics** of the alleles;
   - a **Neighbor Joining tree** based on the mafft alignment;
@@ -372,7 +390,7 @@ const SchemaPage = () => {
 	];
 
 	const locusColumnFormatting = { 
-		0: {
+		"Locus": {
 			customBodyRender: (value) => (
 				<a
 		  			href={`./loci_reports/${value}.html`}
@@ -386,16 +404,16 @@ const SchemaPage = () => {
 	};
 
 	const uniprotLinkColumnFormatting = {
-		8: {
+		"UniProt_URL": {
 			customBodyRender: (value) => (
 				<a 
 					href={value} 
 					target={"_blank"} 
 					rel={"noopener noreferrer"}
 				>
-				  {value}
+					{value}
 				</a>
-			  )
+			)
 		}
 	};
 

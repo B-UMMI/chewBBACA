@@ -335,6 +335,13 @@ const SchemaPage = () => {
 	  }
 	];
 
+	// Define xaxis maximum value to show
+	let xaxisMax = 100;
+	const totalLoci = summaryData[1].rows[0][0];
+	// Show all boxplots if total number of loci < 100
+	if (totalLoci <= xaxisMax) {
+		xaxisMax = totalLoci;
+	}
 	const layoutPanelD = {
 		title: {
 			text: "Locus Size Variation"
@@ -348,7 +355,7 @@ const SchemaPage = () => {
 				thickness: 0.15, 
 			},
 			showticklabels: false,
-			range: [0, 100]
+			range: [0, xaxisMax]
 		},
 		yaxis: {
 			title: { text: "Allele Size" },

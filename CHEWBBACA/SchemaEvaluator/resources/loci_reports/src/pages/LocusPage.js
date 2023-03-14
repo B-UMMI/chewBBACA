@@ -36,7 +36,7 @@ const LocusPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "locus_summary.tsv",
+			filename: `${locusName}_summary.tsv`,
 			separator: "\t"
 		},
 		filter: false,
@@ -52,6 +52,43 @@ const LocusPage = () => {
 						 >
 						 </DataTable>
 
+	// Data for exceptions table
+	const exceptionsData = data.invalidAlleles;
+	const exceptionsTableOptions = {
+		responsive: "simple",
+		selectableRowsHeader: false,
+		selectableRows: "none",
+		selectableRowsOnClick: false,
+		print: false,
+		download: true,
+		downloadOptions: {
+			filename: `${locusName}_invalidAlleles.tsv`,
+			separator: "\t",
+			filterOptions: {
+				useDisplayedColumnsOnly: true,
+				useDisplayedRowsOnly: true
+			}
+		},
+		filter: true,
+		filterType: 'multiselect',
+		search: true,
+		viewColumns: true,
+		pagination: true,
+		rowsPerPage: 10,
+		rowsPerPageOptions: [10, 20, 40, 80, 100],
+		jumpToPage: true,
+		draggableColumns: {
+			enabled: true
+		}
+	};
+	// Component for Summary table
+	const exceptionsTable = <DataTable
+						  tableData={exceptionsData} 
+						  tableTitle="Invalid Alleles" 
+						  tableOptions={exceptionsTableOptions}
+						 >
+						 </DataTable>
+
 	// Data for Annotations Data table
 	const annotationsData = data.annotations;
 	const annotationsTableOptions = {
@@ -62,7 +99,7 @@ const LocusPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "locus_annotations.tsv",
+			filename: `${locusName}_annotations.tsv`,
 			separator: "\t"
 		},
 		filter: false,
@@ -555,6 +592,9 @@ const LocusPage = () => {
 					ContentData={AlleleSizePanelsData}
 				>
 				</TabPanelMUI>
+			</div>
+			<div style={{ marginTop: "30px"}}>
+				{exceptionsTable}
 			</div>
 			<div style={{ marginTop: "30px" }}>
 				<div style={{ marginBottom: "10px" }}>

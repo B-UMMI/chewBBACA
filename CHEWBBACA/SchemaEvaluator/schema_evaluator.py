@@ -136,7 +136,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
     notStart = exceptions_values.count('is not a start codon')+exceptions_values.count('is not a stop codon')
     notMultiple = exceptions_values.count('sequence length is not a multiple of 3')
     shorter = exceptions_values.count('sequence shorter than')
-    validCDS = nr_alleles - sum([stopC, notStart, notMultiple, shorter])
+    validCDS = nr_alleles - len(exceptions)
 
     results = [fo.file_basename(locus, False),
                nr_alleles,
@@ -229,7 +229,9 @@ def locus_report(locus_file, locus_data, annotation_columns,
             with open(tree_file, 'r') as phylo:
                 phylo_data = phylo.read()
 
-            for i in range(1, locus_data[1]+1):
+            # Start by substituting greatest value to avoid substituting
+            # smaller values contained in greater values
+            for i in range(locus_data[1], 0, -1):
                 phylo_data = phylo_data.replace(f'{i}_{locus}_', '')
             phylo_data = phylo_data.replace('\n', '')
 
@@ -253,7 +255,9 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "protein": protein_sequences,
                        "botThreshold": locus_data[14],
                        "topThreshold": locus_data[15],
-                       "invalidAlleles": locus_data[16]}
+                       "invalidAlleles": [{"columns": ["Allele ID", "Exception"]},
+                                          {"rows": locus_data[16]}]
+                       }
 
     locus_html = ct.LOCUS_REPORT_HTML
     locus_html = locus_html.format(json.dumps(locus_html_data))

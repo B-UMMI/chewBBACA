@@ -470,9 +470,14 @@ def translate_fasta(input_fasta, output_directory, translation_table):
     """
     records = sequence_generator(input_fasta)
     translated_records = [[rec.id,
-                           str(sm.translate_dna(str(rec.seq),
-                                                translation_table, 0)[0][0])]
+                           sm.translate_dna(str(rec.seq), translation_table, 0)]
                           for rec in records]
+    # Only keep records that could be translated
+    translated_records = [[record[0], str(record[1][0][0])]
+                          for record in translated_records
+                          if type(record[1]) == list]
+    # Also need to get exceptions
+
     translated_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE,
                                    translated_records)
 

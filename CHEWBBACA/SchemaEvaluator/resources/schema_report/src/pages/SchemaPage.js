@@ -25,7 +25,7 @@ const SchemaPage = () => {
 		- Allele Mode Size: histogram for the allele mode size (most frequent allele size) for all loci.
 		- Locus Statistics: total number of alleles and allele minimum, maximum and median size per locus.
 		- Allele Size Variation: boxplots for the allele size variation per locus.
-	
+
 		If you've provided the **--loci-reports** parameter to create the individual loci reports, the points in the Locus Statistics and the boxplots in the Allele Size Variation plots are clickable and will open the report for the corresponding locus.
   - Loci Annotations
 	- Table that includes the annotations passed to the **--a** parameter.
@@ -46,10 +46,22 @@ const SchemaPage = () => {
 		If you've provided the **--loci-reports** parameter, the loci identifiers in the first column will link to the loci individual reports.
 
   The loci individual reports include the following components:
-  - 2 charts (histogram and scatterplot) containing an **analysis of the allele sizes**;
-  - a table with **summary statistics** of the alleles;
-  - a **Neighbor Joining tree** based on the mafft alignment;
-  - a **multiple sequence alignment** of the alleles produced by mafft.
+  - Locus Summary Data
+    - Table with summary statistics and CDS analysis for the locus.
+  - Locus Annotation Data
+    - Table that includes the annotations for the locus.
+  - Locus Size plots
+    - Tab Panel with two panels the users can alternate between.
+		- Allele Size Counts: histogram for the allele size values for the locus.
+		- Allele Size: scatter plot for the sequence size per allele.
+  - Phylogenetic Tree
+    - A tree drawn with Phylocanvas based on the Neighbor Joining tree created by MAFFT.
+  - Multiple Sequence Alignment
+    - Visualization of the MSA computed by MAFFT.
+  - DNA sequences
+    - Text Editor in read-only mode with the allele DNA sequences.
+  - Protein sequences
+    - Text Editor in read-only mode with the translated DNA sequences.
   `;
 
 	// get pre-computed data

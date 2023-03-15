@@ -81,13 +81,28 @@ const LocusPage = () => {
 			enabled: true
 		}
 	};
-	// Component for Summary table
-	const exceptionsTable = <DataTable
-						  tableData={exceptionsData} 
-						  tableTitle="Invalid Alleles" 
-						  tableOptions={exceptionsTableOptions}
-						 >
-						 </DataTable>
+	// Component for Exceptions table
+	let exceptionsTable = undefined;
+	if (exceptionsData[1].rows.length > 0) {
+		exceptionsTable = <DataTable
+						   tableData={exceptionsData} 
+						   tableTitle="Invalid Alleles" 
+						   tableOptions={exceptionsTableOptions}
+						  >
+						  </DataTable>
+	}
+
+	let ExceptionsAlert = undefined;
+	if (exceptionsTable === undefined) {
+		ExceptionsAlert = (
+			<Alert severity="warning">
+				<Typography sx={{ fontSize: 14 }}>
+					List of invalid alleles is not displayed because all
+					alleles are considered valid.
+				</Typography>
+			</Alert>
+		)
+	};
 
 	// Data for Annotations Data table
 	const annotationsData = data.annotations;
@@ -138,9 +153,11 @@ const LocusPage = () => {
 	let LociAnnotationsAlert = undefined;
 	if (annotationsTable === undefined) {
 		LociAnnotationsAlert = (
-			<Alert severity="info" variant="outlined">
+			<Alert severity="warning">
 				<Typography sx={{ fontSize: 14 }}>
-					Loci annotations were not provided.
+					The locus annotations are not displayed because the
+					user did not provide a file with annotations or there were
+					no annotations for this locus.
 				</Typography>
 			</Alert>
 		)
@@ -153,13 +170,22 @@ const LocusPage = () => {
 	// data for Panel A (Sequence Size Distribution)
 	const xDataPanelA = data.counts[0];
 	const yDataPanelA = data.counts[1];
+
+	// Get mode value and its index in the array of xvalues for the bar plot
+	const modeValue = summaryData[1].rows[0][9];
+	const modeIndex = xDataPanelA.indexOf(modeValue);
+
+	// Change color for mode bar
+	let colorArray = Array(xDataPanelA.length).fill("#0570b0");
+	colorArray[modeIndex] = "#41ab5d";
+
 	const plotDataPanelA = [
 		{x: xDataPanelA,
 		 y: yDataPanelA,
 		 type: "bar",
 		 name: locusName,
 		 marker: {
-			 color: "#0570b0",
+			 color: colorArray,
 			 line: {
 				 color: "#a6bddb",
 				 width: 1
@@ -201,6 +227,7 @@ const LocusPage = () => {
 			ticks: "outside"
         },
 		bargroupgap: 0.05,
+		hovermode: "x",
 		shapes: [
             {
               line: { color: "red", width: 1 },
@@ -263,6 +290,7 @@ const LocusPage = () => {
 		 plotData={plotDataPanelA}
 		 layoutProps={layoutPanelA}
 		 configOptions={configPanelA}
+		 key="AlleleSizeBar"
 		>
 		</PlotlyPlot>
 	);
@@ -361,18 +389,52 @@ const LocusPage = () => {
 		 plotData={plotDataPanelB}
 		 layoutProps={layoutPanelB}
 		 configOptions={configPanelB}
+		 key="AlleleSizeScatter"
 		>
 		</PlotlyPlot>
 	);
 
+	// Alert to explain red lines added for bot and top length thresholds
+	const lengthThresholdsAlert = (
+		<Alert severity="info" key="lengthThresholdsAlert">
+			<Typography sx={{ fontSize: 14 }}>
+				The red lines represent the bot and top allele length thresholds.
+				The bar corresponding to the length mode is colored in green.
+			</Typography>
+		</Alert>
+	)
+
 	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size"];
-	const AlleleSizePanelsData = [AlleleSizeBar, AlleleSizeScatter];
+	const AlleleSizePanelsData = [
+		[lengthThresholdsAlert, AlleleSizeBar],
+		[lengthThresholdsAlert, AlleleSizeScatter]];
+
+	const AlleleSizeTabs = (
+		<TabPanelMUI
+			ContentTitles={AlleleSizePanelTitles}
+			ContentData={AlleleSizePanelsData}
+		>
+		</TabPanelMUI>
+	);
 
 	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data;
-	let PhylogeneticElement = undefined;
+
+	// Define title for tree component
+	const phylogeneticElementTitle = (
+		<Typography sx={{ 
+			color: '#bb7944', 
+			fontSize: 20 
+			}}
+		>
+			Neighbor-Joining Tree
+		</Typography>
+
+	);
+
+	let phylogeneticElementTree = undefined;
 	if (phyloData.length > 0) {
-		const phylogeneticElementTree = (
+		phylogeneticElementTree = (
 			<Box sx={{ p: 3 }}>
 				<Element 
 				 name="phyloTree" 
@@ -399,34 +461,68 @@ const LocusPage = () => {
 				</Element>
 			</Box>
 		);
+	}
 
-		const phylogeneticElementTitle = (
-			<Typography sx={{ 
-				color: '#bb7944', 
-				fontSize: 20 
-				}}
-			>
-				Phylogenetic Tree
-			</Typography>
-
+	// Alert to explain leaf node labels
+	let alertLeafNodes = undefined;
+	if (phylogeneticElementTree !== undefined) {
+		alertLeafNodes = (
+			<Alert severity="info" key="alertLeafNodes">
+				<Typography sx={{ fontSize: 14 }}>
+					Leaves are labeled with the allele identifiers.
+					A tree might not be displayed if the distance between all alleles is 0.
+				</Typography>
+			</Alert>
 		);
+	}
 
+	// Alert rendered when there is no Phylogenetic Tree and MSA
+	let alertPhyloMSA = undefined;
+	if (phylogeneticElementTree === undefined) {
+		alertPhyloMSA = (
+			<Alert variant="outlined" severity="warning">
+				<Typography sx={{ fontSize: 14 }}>
+					The NJ tree and MSA components are not displayed because this locus 
+					does not have valid alleles or has only one valid allele or
+					the --light flag was provided.
+				</Typography>
+			</Alert>
+		);
+	}
+
+	// Create component to display tree
+	let PhylogeneticElement = undefined;
+	if (phylogeneticElementTree !== undefined) {
 		PhylogeneticElement = (
 			<AccordionMUI
 				summaryText={phylogeneticElementTitle}
 				detailsData={phylogeneticElementTree}
 				expanded={false}
+				alerts={[alertLeafNodes]}
 			>
 			</AccordionMUI>
 		);
 	}
 
-	// create component for MSA
-	let MSAComponent = undefined;
-	if (data.msa.sequences.length > 0) {
+	// get data for MSA
+	const msaData = data.msa.sequences;
+
+	// Define title for MSA component
+	const MSAComponentTitle = (
+		<Typography sx={{ 
+			color: '#bb7944', 
+			fontSize: 20 
+			}}
+		>
+			Multiple Sequence Alignment
+		</Typography>
+	);
+
+	let msaElement = undefined;
+	if (msaData.length > 0) {
 		// pass MSA component constructor instead of instance
 		// this allows to get constructor and pass props in component that receives constructor
-		MSAComponent = (
+		msaElement = (
 			<Box sx={{ p: 3 }}>
 				<Resized
 					divID="MSA"
@@ -435,23 +531,30 @@ const LocusPage = () => {
 				</Resized>
 			</Box>
 		);
+	}
 
-		const MSAComponentTitle = (
-			<Typography sx={{ 
-				color: '#bb7944', 
-				fontSize: 20 
-				}}
-			>
-				Multiple Sequence Alignment
-			</Typography>
-
+	// Alert for MSA
+	let alertMSA = undefined;
+	if (msaElement !== undefined) {
+		alertMSA = (
+			<Alert severity="info" key="alertMSA">
+				<Typography sx={{ fontSize: 14 }}>
+					Displaying the MSA for the {summaryData[1].rows[0][2]} alleles
+					that were considered valid.
+				</Typography>
+			</Alert>
 		);
+	}
 
+	// create component for MSA
+	let MSAComponent = undefined;
+	if (msaElement !== undefined) {
 		MSAComponent = (
 			<AccordionMUI
 				summaryText={MSAComponentTitle}
-				detailsData={MSAComponent}
+				detailsData={msaElement}
 				expanded={false}
+				alerts={[alertMSA]}
 			>
 			</AccordionMUI>
 		);
@@ -490,11 +593,21 @@ const LocusPage = () => {
 
 		);
 
+		const dnaEditorAlert = (
+			<Alert severity="info" key="dnaEditorAlert">
+				<Typography sx={{ fontSize: 14 }}>
+					Displaying the {summaryData[1].rows[0][1]} alleles
+					in the schema FASTA file.
+				</Typography>
+			</Alert>
+		)
+
 		DNAEditor = (
 			<AccordionMUI
 			 summaryText={DNAEditorTitle}
 			 detailsData={DNAEditor}
 			 expanded={false}
+			 alerts={[dnaEditorAlert]}
 			>
 			</AccordionMUI>
 		);
@@ -532,80 +645,53 @@ const LocusPage = () => {
 
 		);
 
+		const proteinEditorAlert = (
+			<Alert severity="info" key="proteinEditorAlert">
+				<Typography sx={{ fontSize: 14 }}>
+					Only displaying the {summaryData[1].rows[0][2]} alleles
+					that were considered valid.
+				</Typography>
+			</Alert>
+		)
+
 		ProteinEditor = (
 			<AccordionMUI
 			 summaryText={ProteinEditorTitle}
 			 detailsData={ProteinEditor}
 			 expanded={false}
+			 alerts={[proteinEditorAlert]}
 			>
 			</AccordionMUI>
 		);
 	}
-
-	// Alert to explain red lines added for bot and top length thresholds
-	const lengthThresholdsAlert = (
-		<Alert severity="info" variant="outlined">
-			<Typography sx={{ fontSize: 14 }}>
-				The red lines represent the bottom and top allele length thresholds.
-			</Typography>
-		</Alert>
-	)
-
-	// Alert rendered when there is no Phylogenetic Tree and MSA
-	const alertPhyloMSA = (
-		<Alert variant="outlined" severity="warning">
-        	<Typography>
-              The NJ tree and MSA were not generated because this locus 
-			  does not have valid alleles or has only one valid allele or
-			  the --light parameter was provided.
-            </Typography>
-    	</Alert>
-	);
-
-	// Alert to explain leaf node labels
-	const alertLeafNodes = (
-		<Alert variant="outlined" severity="info">
-            <Typography>
-                Leaf labels correspond to the allele identifiers.
-				A tree might not be displayed if the distance between all alleles is 0.
-            </Typography>
-        </Alert>
-	);
 
 	return (
 		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
 			<div style={{ marginTop: "10px" }}>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "30px" }}>
-				<div style={{ marginBottom: "10px" }}>
-					{LociAnnotationsAlert}
-				</div>
+			<div style={{ marginTop: "20px" }}>
+				{LociAnnotationsAlert}
 				{annotationsTable}
 			</div>
-			<div style={{ marginTop: "30px"}}>
-				<div style={{ marginBottom: "10px" }}>
-					{lengthThresholdsAlert}
-				</div>
-				<TabPanelMUI
-					ContentTitles={AlleleSizePanelTitles}
-					ContentData={AlleleSizePanelsData}
-				>
-				</TabPanelMUI>
+			<div style={{ marginTop: "20px"}}>
+				{AlleleSizeTabs}
 			</div>
-			<div style={{ marginTop: "30px"}}>
+			<div style={{ marginTop: "20px"}}>
+				{ExceptionsAlert}
 				{exceptionsTable}
 			</div>
-			<div style={{ marginTop: "30px" }}>
-				<div style={{ marginBottom: "10px" }}>
-					{PhylogeneticElement ? alertLeafNodes : undefined}
-					{PhylogeneticElement ? undefined : alertPhyloMSA}
-				</div>
+			<div style={{ marginTop: "20px" }}>
+				{alertPhyloMSA}
 				{PhylogeneticElement}
+			</div>
+			<div style={{ marginTop: "20px" }}>
 				{MSAComponent}
 			</div>
-			<div style={{ marginTop: "30px"}}>
+			<div style={{ marginTop: "20px"}}>
 				{DNAEditor}
+			</div>
+			<div style={{ marginTop: "20px"}}>
 				{ProteinEditor}
 			</div>
 		</div>

@@ -1,28 +1,40 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 // Phylocanvas imports
-import PhylocanvasGL, { TreeTypes, plugins } from "@phylocanvas/phylocanvas.gl";
+import PhylocanvasGL, { plugins } from "@phylocanvas/phylocanvas.gl";
 
 
-const PhylogeneticTree = ({ source, treeWidth, treeHeight, showLabels, showLeafLabels, interactive }) => {
-	//console.log('Phylo');
+const PhylogeneticTree = ({ treeSource, treeType, showLabels }) => {
+	const [phyloTree, setPhyloTree] = useState(undefined);
+
+	// Hook to check if tree is not undefined
+	// and destroy previous tree before rerendering
+	useEffect(() => {
+		if (phyloTree) {
+			phyloTree.destroy();
+		}
+	}, [treeSource, treeType, showLabels])
 
 	useEffect(() => {
-		const tree = new PhylocanvasGL(
-			document.querySelector("#demo"),
-			{type: TreeTypes.Square,
-			 size: { width: treeWidth, height: treeHeight },
-			 source: source,
-			 showLabels,
-			 showLeafLabels,
-			 interactive,
+		const treeView = document.querySelector("#phyloTree");
+		setPhyloTree(new PhylocanvasGL(
+			treeView,
+			{type: treeType,
+			 size: { width: 600, height: 700 },
+			 source: treeSource,
+			 showLabels: showLabels,
+			 showLeafLabels: true,
+			 interactive: true,
 			 padding: 15,
 			// alignLabels: true
 			},
-			[plugins.scalebar,
-			 ]
-		)
-	}, [])
+			[plugins.scalebar]
+		))
+	}, [treeSource, treeType, showLabels])
+
+	return (
+		<div id="phyloTree" style={{ margin: "auto" }}></div>
+	)
 };
 
 export default PhylogeneticTree;

@@ -3,7 +3,7 @@ import { useEffect } from "react";
 var msa = require("@jlab-contrib/msa");
 
 
-const MSA = ({ MSAwidth }) => {
+const MSA = ({ MSAwidth, colorScheme }) => {
 
 	useEffect(() => {
 		// how to get this outside useEffect for first render?
@@ -46,7 +46,7 @@ const MSA = ({ MSAwidth }) => {
 			labelLineHeight: "13px",
 			}
 		opts.colorscheme = {
-			scheme: "clustal"
+			scheme: colorScheme
 		}
 		opts.conf = {
 			// awesome but several options are broken
@@ -60,7 +60,7 @@ const MSA = ({ MSAwidth }) => {
 		// call render at the end to display the whole MSA
 		m.render();
 
-	}, [MSAwidth]);
+	}, [MSAwidth, colorScheme]);
 };
 
 

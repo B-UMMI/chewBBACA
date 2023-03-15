@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 
-const Resized = ({ divID, component }) => {
+const Resized = ({ divID, component, colorScheme }) => {
 	const [width, setWidth] = useState(0);
 	//const [height, setHeight] = useState(0);
 
@@ -24,7 +24,7 @@ const Resized = ({ divID, component }) => {
 
 	return (
 		<div id={divID}>
-			<ComponentDisplay MSAwidth={width}></ComponentDisplay>
+			<ComponentDisplay MSAwidth={width} colorScheme={colorScheme}></ComponentDisplay>
 		</div>
 	)
 };

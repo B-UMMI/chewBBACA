@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
 import Resized from '../components/Resized';
@@ -8,8 +10,15 @@ import MSA from '../components/MSA';
 // Material-UI components
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import Switch from '@mui/material/Switch';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 // Phylocanvas
+import { TreeTypes } from "@phylocanvas/phylocanvas.gl";
 import PhylogeneticTree from "../components/PhylogeneticTree";
 
 // 
@@ -420,6 +429,48 @@ const LocusPage = () => {
 	// get data for Phylocanvas tree
 	const phyloData = data.phylo.phylo_data;
 
+	const [treeSource, setTreeSource] = useState(phyloData);
+	const [treeType, setTreeType] = useState(TreeTypes.Circular);
+	const [showLabels, setShowLabels] = useState(true);
+
+	const handleTreeTypeSelect = (event) => {
+		setTreeType(event.target.value);
+	};
+
+	const handleTreeLabelsCheck = (event) => {
+		setShowLabels(event.target.checked);
+	};
+
+	const phyloTreeMenu = (
+		<div key="tree-options-menu" style={{display: 'flex', justifyContent: 'space-between'}}>
+			<Box key="tree-type-select-box">
+				<FormControl size="small">
+					<InputLabel id="tree-type-select">Tree Type</InputLabel>
+					<Select 
+						labelId="tree-type-select"
+						id="tree-type"
+						value={treeType}
+						label="Tree Type"
+						onChange={handleTreeTypeSelect}
+					>
+						<MenuItem value={TreeTypes.Circular}>Circular</MenuItem>
+						<MenuItem value={TreeTypes.Rectangular}>Rectangular</MenuItem>
+						<MenuItem value={TreeTypes.Diagonal}>Diagonal</MenuItem>
+						<MenuItem value={TreeTypes.Hierarchical}>Hierarchical</MenuItem>
+						<MenuItem value={TreeTypes.Radial}>Radial</MenuItem>
+					</Select>
+				</FormControl>
+			</Box>
+			<FormControlLabel 
+				key="tree-labels-form"
+				control={<Switch key="tree-labels-switch" defaultChecked size="medium" />} 
+				label="Leaf Labels" 
+				labelPlacement="top"
+				onChange={handleTreeLabelsCheck}
+			/>
+		</div>
+	);
+
 	// Define title for tree component
 	const phylogeneticElementTitle = (
 		<Typography sx={{ 
@@ -435,7 +486,7 @@ const LocusPage = () => {
 	let phylogeneticElementTree = undefined;
 	if (phyloData.length > 0) {
 		phylogeneticElementTree = (
-			<Box sx={{ p: 3 }}>
+			<Box key="tree-box" sx={{ p: 3 }}>
 				<Element 
 				 name="phyloTree" 
 				 className="element" 
@@ -447,17 +498,12 @@ const LocusPage = () => {
 					 marginBottom: '0px'
 					 }}
 				>
-					<div id="demo" style={{ margin: "auto" }}>
-						<PhylogeneticTree
-							source={phyloData}
-							treeWidth={600}
-							treeHeight={700}
-							showLabels
-							showLeafLabels
-							interactive
-						>
-						</PhylogeneticTree>
-					</div>
+					<PhylogeneticTree
+						treeSource={treeSource}
+						treeType={treeType}
+						showLabels={showLabels}
+					>
+					</PhylogeneticTree>
 				</Element>
 			</Box>
 		);
@@ -496,7 +542,7 @@ const LocusPage = () => {
 		PhylogeneticElement = (
 			<AccordionMUI
 				summaryText={phylogeneticElementTitle}
-				detailsData={phylogeneticElementTree}
+				detailsData={[phyloTreeMenu, phylogeneticElementTree]}
 				expanded={false}
 				alerts={[alertLeafNodes]}
 			>
@@ -506,6 +552,44 @@ const LocusPage = () => {
 
 	// get data for MSA
 	const msaData = data.msa.sequences;
+
+	const [colorScheme, setColorScheme] = useState("clustal");
+
+	const handleColorChange = (event) => {
+		setColorScheme(event.target.value)
+	};
+
+	const msaMenu = (
+		<div key="msa-options-menu" style={{display: 'flex', justifyContent: 'space-between'}}>
+			<Box key="msa-color-select-box">
+				<FormControl size="small">
+					<InputLabel id="msa-color-select">Color Scheme</InputLabel>
+					<Select 
+						labelId="msa-color-select"
+						id="msa-color"
+						value={colorScheme}
+						label="Color Scheme"
+						onChange={handleColorChange}
+					>
+						<MenuItem value={"buried_index"}>Buried</MenuItem>
+						<MenuItem value={"cinema"}>Cinema</MenuItem>
+						<MenuItem value={"clustal"}>Clustal</MenuItem>
+						<MenuItem value={"clustal2"}>Clustal2</MenuItem>
+						<MenuItem value={"helix_propensity"}>Helix propensity</MenuItem>
+						<MenuItem value={"hydro"}>Hydro</MenuItem>
+						<MenuItem value={"lesk"}>Lesk</MenuItem>
+						<MenuItem value={"mae"}>Mae</MenuItem>
+						<MenuItem value={"nucleotide"}>Nucleotide</MenuItem>
+						<MenuItem value={"purine_pyrimidine"}>Purine Pyrimidine</MenuItem>
+						<MenuItem value={"strand_propensity"}>Strand propensity</MenuItem>
+						<MenuItem value={"taylor"}>Taylor</MenuItem>
+						<MenuItem value={"turn_propensity"}></MenuItem>
+						<MenuItem value={"zappo"}>Zappo</MenuItem>
+					</Select>
+				</FormControl>
+			</Box>
+		</div>
+	);
 
 	// Define title for MSA component
 	const MSAComponentTitle = (
@@ -523,10 +607,11 @@ const LocusPage = () => {
 		// pass MSA component constructor instead of instance
 		// this allows to get constructor and pass props in component that receives constructor
 		msaElement = (
-			<Box sx={{ p: 3 }}>
+			<Box key="msa-element" sx={{ p: 3 }}>
 				<Resized
 					divID="MSA"
 					component={MSA}
+					colorScheme={colorScheme}
 				>
 				</Resized>
 			</Box>
@@ -537,7 +622,7 @@ const LocusPage = () => {
 	let alertMSA = undefined;
 	if (msaElement !== undefined) {
 		alertMSA = (
-			<Alert severity="info" key="alertMSA">
+			<Alert key="alertMSA" severity="info">
 				<Typography sx={{ fontSize: 14 }}>
 					Displaying the MSA for the {summaryData[1].rows[0][2]} alleles
 					that were considered valid.
@@ -552,7 +637,7 @@ const LocusPage = () => {
 		MSAComponent = (
 			<AccordionMUI
 				summaryText={MSAComponentTitle}
-				detailsData={msaElement}
+				detailsData={[msaMenu, msaElement]}
 				expanded={false}
 				alerts={[alertMSA]}
 			>

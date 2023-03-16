@@ -28,8 +28,37 @@ import { Element } from 'react-scroll';
 import Editor from "@monaco-editor/react";
 import { Typography } from '@mui/material';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 
 const LocusPage = () => {
+
+	const markdown = `
+  ### Locus Report
+
+  The locus report includes the following components:
+
+  - **Locus Summary Data**
+    - Locus identifier and totals for the **Allele Analysis** categories.
+  - **Locus Annotation Data**
+    - Annotations provided for the locus (added from the TSV file passed to the *--a* parameter).
+  - **Locus Size plots**
+    - Tab Panel with the following panels:
+		- Allele Size Counts: distribution of the allele size values for the locus.
+		- Allele Size: sequence size per allele.
+  - **Neighbor-Joining Tree**
+    - A tree drawn with Phylocanvas based on the Neighbor Joining tree created by MAFFT.
+  - **Multiple Sequence Alignment**
+    - Visualization of the MSA computed by MAFFT.
+  - **DNA sequences**
+    - Text Editor in read-only mode with the alleles in the FASTA file.
+  - **Protein sequences**
+    - Text Editor in read-only mode with the translated alleles that were considered valid based on the configuration values.
+
+  You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
+  If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
+  `;
 
 	// Get pre-computed data
 	const data = window.preComputedDataInd;
@@ -403,8 +432,8 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
-	// Alert to explain red lines added for bot and top length thresholds
-	const lengthThresholdsAlert = (
+	// Alerts to explain red lines added for bot and top length thresholds
+	const lengthThresholdsBarAlert = (
 		<Alert severity="info" key="lengthThresholdsAlert">
 			<Typography sx={{ fontSize: 14 }}>
 				The red lines represent the bot and top allele length thresholds.
@@ -413,10 +442,18 @@ const LocusPage = () => {
 		</Alert>
 	)
 
+	const lengthThresholdsScatterAlert = (
+		<Alert severity="info" key="lengthThresholdsAlert">
+			<Typography sx={{ fontSize: 14 }}>
+				The red lines represent the bot and top allele length thresholds.
+			</Typography>
+		</Alert>
+	)
+
 	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size"];
 	const AlleleSizePanelsData = [
-		[lengthThresholdsAlert, AlleleSizeBar],
-		[lengthThresholdsAlert, AlleleSizeScatter]];
+		[lengthThresholdsBarAlert, AlleleSizeBar],
+		[lengthThresholdsScatterAlert, AlleleSizeScatter]];
 
 	const AlleleSizeTabs = (
 		<TabPanelMUI
@@ -750,9 +787,35 @@ const LocusPage = () => {
 		);
 	}
 
+	const HeaderSummary = (
+		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+			Locus Report Description
+		</Typography>
+	);
+
+	// Need to change the root component attribute to avoid error related with
+	// passing something to <p>
+	const HeaderDescription = (
+		<Typography component={'div'} style={{ lineHeight: "18px" }} > 
+			<ReactMarkdown 
+				children={markdown} 
+				remarkPlugins={[remarkGfm]}
+			>
+			</ReactMarkdown>
+		</Typography>
+	);
+
 	return (
 		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
-			<div style={{ marginTop: "10px" }}>
+			<div>
+				<AccordionMUI 
+					summaryText={HeaderSummary}
+					detailsData={HeaderDescription} 
+					expanded={false}
+				>
+				</AccordionMUI>
+			</div>
+			<div style={{ marginTop: "20px" }}>
 				{summaryTable}
 			</div>
 			<div style={{ marginTop: "20px" }}>

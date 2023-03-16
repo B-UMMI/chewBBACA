@@ -3,65 +3,57 @@ import PlotlyPlot from '../components/PlotlyPlot';
 import TabPanelMUI from '../components/TabPanelMUI';
 import AccordionMUI from '../components/AccordionMUI';
 
-import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
 
 import React from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+
 const SchemaPage = () => {
 
 	const markdown = `
-  ## Schema Evaluator
-  
-  The main report includes the following components:
-  - Summary Data
-	- Table with summary statistics for the schema.
-  - Loci statistics
-	- Tab Panel with four panels the users can alternate between.
-		- Total Alleles: histogram for the number of alleles for all loci.
-		- Allele Mode Size: histogram for the allele mode size (most frequent allele size) for all loci.
+  ### Schema Report
+
+  The schema report includes the following components:
+
+  - **Schema Summary Data**
+	- Total number of loci and totals for the **Allele Analysis** categories.
+
+  - **Loci statistics**
+	- Tab Panel with the following panels:
+		- Total Alleles: distribution of the number of alleles for all loci.
+		- Allele Mode Size: distribution of the allele mode size (most frequent allele size) for all loci.
 		- Locus Statistics: total number of alleles and allele minimum, maximum and median size per locus.
-		- Allele Size Variation: boxplots for the allele size variation per locus.
+		- Allele Size Variation: boxplots for the allele size variation per locus.  
 
-		If you've provided the **--loci-reports** parameter to create the individual loci reports, the points in the Locus Statistics and the boxplots in the Allele Size Variation plots are clickable and will open the report for the corresponding locus.
-  - Loci Annotations
-	- Table that includes the annotations passed to the **--a** parameter.
+	If you've provided the *--loci-reports* parameter to create the individual loci reports, the points in
+	the "Locus Statistics" and the boxplots in the "Allele Size Variation" plots are clickable and will open
+	the report for the corresponding locus.
 
-	Adds links to Uniprot pages if the file includes a column named "UniPort_URL" with UniProt URLs.  
-	If you've provided the **--loci-reports** parameter, the loci identifiers in the first column will link to the loci individual reports.
-  - CDS Analysis
-	- Table with the results of the CDS analysis for each locus.
-		- Total alleles: number of sequences in the locus FASTA file.
-		- Valid alleles: number of complete coding sequences.
-		- Incomplete ORF:
-		- Missing Start/Stop Codon:
-		- In-frame Stop Codon:
-		- Alleles < minLen:
-		- Alleles below threshold:
-		- Alleles above threshold:
-	
-		If you've provided the **--loci-reports** parameter, the loci identifiers in the first column will link to the loci individual reports.
+  - **Loci Annotations**
+	- Annotations provided for each locus (added from the TSV file passed to the *--a* parameter).
 
-  The loci individual reports include the following components:
-  - Locus Summary Data
-    - Table with summary statistics and CDS analysis for the locus.
-  - Locus Annotation Data
-    - Table that includes the annotations for the locus.
-  - Locus Size plots
-    - Tab Panel with two panels the users can alternate between.
-		- Allele Size Counts: histogram for the allele size values for the locus.
-		- Allele Size: scatter plot for the sequence size per allele.
-  - Phylogenetic Tree
-    - A tree drawn with Phylocanvas based on the Neighbor Joining tree created by MAFFT.
-  - Multiple Sequence Alignment
-    - Visualization of the MSA computed by MAFFT.
-  - DNA sequences
-    - Text Editor in read-only mode with the allele DNA sequences.
-  - Protein sequences
-    - Text Editor in read-only mode with the translated DNA sequences.
+	If the TSV file provided to the *--a* parameter included a column named "UniProt_URL" with the URLs to the UniProt records that matched each locus, the column values will link to the pages of those records.  
+	If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
+  
+  - **Allele Analysis**
+	- Results of the allele analysis per locus. The results are organized into the following categories:
+		- Total alleles: number of alleles in the locus FASTA file.
+		- Valid alleles: number of alleles considered valid based on the configuration values.
+		- Incomplete ORF: number of alleles with a size value not multiple of 3.
+		- Missing Start/Stop Codon: number of alleles missing the start and/or stop codon.
+		- In-frame Stop Codon: number of alleles with in-frame stop codons.
+		- Alleles < minLen: number of alleles with smaller than the minimum sequence length defined in the configuration values.
+		- Alleles below threshold: number of alleles smaller than the allele length mode bot threshold.
+		- Alleles above threshold: number of alleles bigger than the allele length mode top threshold.
+
+	If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
+
+	You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
+	If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
   `;
 
 	// get pre-computed data
@@ -77,7 +69,7 @@ const SchemaPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "schema:summary.tsv",
+			filename: "schema_summary.tsv",
 			separator: "\t",
 			filterOptions: {
 				useDisplayedColumnsOnly: true,
@@ -95,7 +87,7 @@ const SchemaPage = () => {
 	// Component for Summary table
 	const summaryTable = <DataTable
 						  tableData={summaryData} 
-						  tableTitle="Summary Data" 
+						  tableTitle="Schema Summary Data" 
 						  tableOptions={summaryTableOptions}
 						 >
 						 </DataTable>
@@ -150,6 +142,7 @@ const SchemaPage = () => {
 	// Component for Plotly Histogram with total alleles distribution
 	const TotalAllelesHistogram = (
 		<PlotlyPlot
+		 key="TotalAllelesHistogram"
 		 plotData={plotDataPanelA}
 		 layoutProps={layoutPanelA}
 		 configOptions={configPanelA}
@@ -205,6 +198,7 @@ const SchemaPage = () => {
 	// Component for Plotly Histogram with allele mode size distribution
 	const AlleleModeHistogram = (
 		<PlotlyPlot
+		 key="AlleleModeHistogram"
 		 plotData={plotDataPanelB}
 		 layoutProps={layoutPanelB}
 		 configOptions={configPanelB}
@@ -308,6 +302,7 @@ const SchemaPage = () => {
 	// Component for Plotly Scatter with loci statistics
 	const LociStatsScatter = (
 		<PlotlyPlot
+		 key="LociStatsScatter"
 		 plotData={plotDataPanelC}
 		 layoutProps={layoutPanelC}
 		 configOptions={configPanelC}
@@ -387,6 +382,7 @@ const SchemaPage = () => {
 	// Component for Plotly Boxplots with loci allele size variation
 	const LociSizeBoxplots = (
 		<PlotlyPlot
+		 key="LociSizeBoxplots"
 		 plotData={plotDataPanelD}
 		 layoutProps={layoutPanelD}
 		 configOptions={configPanelD}
@@ -395,6 +391,29 @@ const SchemaPage = () => {
 		</PlotlyPlot>
 	);
 
+	// Create Alert to tell users that the points/boxplots are clickable
+	// and link to the loci reports
+	let scatterClickAlert = undefined;
+	let boxplotClickAlert = undefined;
+	if (data.lociReports === 1) {
+		scatterClickAlert = (
+			<Alert key="clickScatterAlert" severity="info">
+				<Typography sx={{ fontSize: 14 }}>
+					Each point (locus) is clickable and will
+					open a page with more details about it.
+				</Typography>
+			</Alert>
+		)
+		boxplotClickAlert = (
+			<Alert key="clickBoxplotAlert" severity="info">
+				<Typography sx={{ fontSize: 14 }}>
+					Each boxplot (locus) is clickable and will
+					open a page with more details about it.
+				</Typography>
+			</Alert>
+		)
+	};
+
 	const TabPanelTitles = [
 		"Total Alleles", 
 		"Allele Mode Size", 
@@ -402,10 +421,10 @@ const SchemaPage = () => {
 		"Allele Size Variation"
 	];
 	const TabPanelData = [
-		TotalAllelesHistogram,
-		AlleleModeHistogram,
-		LociStatsScatter,
-		LociSizeBoxplots
+		[TotalAllelesHistogram],
+		[AlleleModeHistogram],
+		[scatterClickAlert, LociStatsScatter],
+		[boxplotClickAlert, LociSizeBoxplots]
 	];
 
 	const locusColumnFormatting = { 
@@ -492,15 +511,16 @@ const SchemaPage = () => {
 	let LociAnnotationsAlert = undefined;
 	if (LociAnnotationsTable === undefined) {
 		LociAnnotationsAlert = (
-			<Alert severity="info" variant="outlined">
+			<Alert severity="warning">
 				<Typography sx={{ fontSize: 14 }}>
-					Loci annotations were not provided.
+					The loci annotations are not displayed because the
+					user did not provide a file with annotations.
 				</Typography>
 			</Alert>
 		)
 	};
 
-	// data for CDS analysis
+	// data for allele analysis
 	const analysisData = data.analysis;
 	const analysisTableOptions = {
 		responsive: "simple",
@@ -511,7 +531,7 @@ const SchemaPage = () => {
 		print: false,
 		download: true,
 		downloadOptions: {
-			filename: "cds_analysis.tsv",
+			filename: "allele_analysis.tsv",
 			separator: "\t",
 			filterOptions: {
 				useDisplayedColumnsOnly: true,
@@ -541,7 +561,7 @@ const SchemaPage = () => {
 	const LociAnalysisTable = (
 		<DataTable 
 		 tableData={analysisData} 
-		 tableTitle="CDS Analysis" 
+		 tableTitle="Allele Analysis" 
 		 tableOptions={analysisTableOptions}
 		 tableConditionalFormatting={LociAnalysisFormatting}
 		>
@@ -549,23 +569,19 @@ const SchemaPage = () => {
 	);
 
 	const HeaderSummary = (
-		<Typography 
-			sx={{ 
-				color: '#bb7944', 
-				fontSize: 20 
-			}}
-		>
-			{'Report Description'}
+		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+			Schema Report Description
 		</Typography>
 	);
 
 	// Need to change the root component attribute to avoid error related with
 	// passing something to <p>
 	const HeaderDescription = (
-		<Typography component={'div'}> 
+		<Typography component={'div'} style={{ lineHeight: "18px" }} > 
 			<ReactMarkdown 
 				children={markdown} 
-				remarkPlugins={[remarkGfm]}>
+				remarkPlugins={[remarkGfm]}
+			>
 			</ReactMarkdown>
 		</Typography>
 	);
@@ -573,7 +589,7 @@ const SchemaPage = () => {
 	// Get message about config used for schema creation
 	const creationConfigMessage = data.creationConfig;
 	const creationAlert = (
-		<Alert severity="info" variant="outlined">
+		<Alert severity="info">
 			<Typography sx={{ fontSize: 14 }}>
 				{creationConfigMessage}
 			</Typography>
@@ -583,64 +599,46 @@ const SchemaPage = () => {
 	// Get message about config used for schema evaluation
 	const evaluationConfigMessage = data.evaluationConfig;
 	const evaluationAlert = (
-		<Alert severity="info" variant="outlined">
+		<Alert severity="info">
 			<Typography sx={{ fontSize: 14 }}>
 				{evaluationConfigMessage}
 			</Typography>
 		</Alert>
 	);
 
-	// Create Alert to tell users that the points/boxplots are clickable
-	// and link to the loci reports
-	let clickAlert = undefined;
-	if (data.lociReports === 1) {
-		clickAlert = (
-			<Alert severity="info" variant="outlined">
-				<Typography sx={{ fontSize: 14 }}>
-					In the Locus Statistics and Allele Size 
-					Variation plots, each point (locus) is 
-					clickable and will open a page with more 
-					details about it.
-				</Typography>
-			</Alert>
-		)
-	};
-
 	return (
 		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
+			<div style={{ marginBottom: "5px" }}>
+				<Stack sx={{ width: '100%' }} spacing={0.5}>
+					{creationAlert}
+					{evaluationAlert}
+				</Stack>
+			</div>
 			<div>
 				<AccordionMUI 
 					summaryText={HeaderSummary}
-					detailsText={HeaderDescription} 
-					expanded={false} >
+					detailsData={HeaderDescription} 
+					expanded={false}
+				>
 				</AccordionMUI>
 			</div>
-			<div style={{ marginTop: "30px"}}>
-				<div style={{ marginBottom: "10px" }}>
-					<Stack sx={{ width: '100%' }} spacing={0.5}>
-						{creationAlert}
-						{evaluationAlert}
-					</Stack>
-				</div>
+			<div style={{ marginTop: "20px"}}>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "30px"}}>
-				<div style={{ marginBottom: "10px" }}>
-					{clickAlert}
-				</div>
+			<div style={{ marginTop: "20px"}}>
 				<TabPanelMUI
 					ContentTitles={TabPanelTitles}
 					ContentData={TabPanelData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div style={{ marginTop: "30px"}}>
+			<div style={{ marginTop: "20px"}}>
 				<div style={{ marginBottom: "10px" }}>
 					{LociAnnotationsAlert}
 				</div>
 				{LociAnnotationsTable}
 			</div>
-			<div style={{ marginTop: "30px"}}>
+			<div style={{ marginTop: "20px"}}>
 				{LociAnalysisTable}
 			</div>
 		</div>

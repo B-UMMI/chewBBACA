@@ -39,7 +39,9 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 	  );
 
 	return (
-		<div>{total_data_table}</div>
+		<div>
+			{total_data_table}
+		</div>
 	)
 };
 

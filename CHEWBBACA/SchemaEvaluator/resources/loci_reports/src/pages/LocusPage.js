@@ -10,15 +10,20 @@ import MSA from '../components/MSA';
 // Material-UI components
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
+import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import FileDownload from '@mui/icons-material/FileDownload';
 
 // Phylocanvas
-import { TreeTypes } from "@phylocanvas/phylocanvas.gl";
+import { TreeTypes, Shapes } from "@phylocanvas/phylocanvas.gl";
 import PhylogeneticTree from "../components/PhylogeneticTree";
 
 // 
@@ -469,6 +474,23 @@ const LocusPage = () => {
 	const [treeSource, setTreeSource] = useState(phyloData);
 	const [treeType, setTreeType] = useState(TreeTypes.Circular);
 	const [showLabels, setShowLabels] = useState(true);
+	const [showBranchLengths, setShowBranchLengths] = useState(false);
+	const [selectedIds, setSelectedIds] = useState([]);
+	const [treeNodeSize, setTreeNodeSize] = useState(16);
+	const [treeFontSize, setTreeFontSize] = useState(16);
+	const [treeNodeShape, setTreeNodeShape] = useState(Shapes.Circle);
+
+	const handleTreeNodeShape = (event) => {
+		setTreeNodeShape(event.target.value)
+	}
+
+	const handleTreeFontSize = (value) => {
+		setTreeFontSize(+value)
+	};
+
+	const handleTreeNodeSize = (value) => {
+		setTreeNodeSize(+value)
+	};
 
 	const handleTreeTypeSelect = (event) => {
 		setTreeType(event.target.value);
@@ -478,10 +500,103 @@ const LocusPage = () => {
 		setShowLabels(event.target.checked);
 	};
 
+	const handleBranchLabelsCheck = (event) => {
+		setShowBranchLengths(event.target.checked);
+	};
+
+	const handleChange = (event, newValue) => {
+		setSelectedIds(newValue);
+	};
+
+	// Piece of state to trigger tree download
+	const [download, setDownload] = useState(false);
+	const [downloadType, setDownloadType] = useState("SVG");
+
+	const handleClick = (event) => {
+		setDownload(!download);
+	}
+
+	const handleExport = (event) => {
+		setDownloadType(event.target.value);
+	};
+
+	const treeDownloadOptions = ["SVG", "Newick", "JSON"]
+	const treeDownloadMenuOptions = treeDownloadOptions.map((format) => {
+		return <MenuItem key={format} value={format}>{format}</MenuItem>
+	})
+
+	const treeDownloadMenu = (
+		<Box key="tree-export-select" sx={{ p: 1 }}>
+			<FormControl>
+				<InputLabel id="tree-export-select">File Format</InputLabel>
+				<Select 
+					labelId="tree-export-select"
+					id="tree-export"
+					value={downloadType}
+					label="Export format"
+					onChange={handleExport}
+					sx={{ height: 40, width: 110 }}
+				>
+					{treeDownloadMenuOptions}
+				</Select>
+			</FormControl>
+			<IconButton
+				onClick={handleClick}
+				sx={{
+					height: 40,
+					width: 30,
+					borderRadius: "4px",
+					color: "rgb(255, 255, 255)",
+					backgroundColor: "rgb(25, 118, 210)"
+				}}
+			>
+				<FileDownload></FileDownload>
+			</IconButton>
+		</Box>
+	);
+
+	// Component to select tree nodes
+	const validIDs = data.validIDs;
+
+	const treeIdsSelect = (
+		<Box key="select-tree-id" sx={{ p: 1 }}>
+			<Autocomplete
+				limitTags={3}
+				multiple
+				disablePortal
+				id="select-tree-id"
+				options={validIDs}
+				size="small"
+				sx={{ height: 40, width: 300 }}
+				renderInput={(params) => <TextField {...params} label="Select Ids" />}
+				onChange={handleChange}
+				clearOnEscape
+			/>
+		</Box>
+	);
+
+	const treeShapeOptions = Object.entries(TreeTypes).map((type) => {
+		return <MenuItem key={type[0]} value={type[1]}>{type[0]}</MenuItem>
+	})
+
+	const treeNodeShapeOptions = Object.entries(Shapes).map((shape) => {
+		return <MenuItem key={shape[0]} value={shape[1]}>{shape[0]}</MenuItem>
+	})
+
 	const phyloTreeMenu = (
-		<div key="tree-options-menu" style={{display: 'flex', justifyContent: 'space-between'}}>
-			<Box key="tree-type-select-box">
-				<FormControl size="small">
+		<Box
+			key="tree-options-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			<Box key="tree-type-select-box" sx={{ p: 1 }}>
+				<FormControl>
 					<InputLabel id="tree-type-select">Tree Type</InputLabel>
 					<Select 
 						labelId="tree-type-select"
@@ -489,23 +604,92 @@ const LocusPage = () => {
 						value={treeType}
 						label="Tree Type"
 						onChange={handleTreeTypeSelect}
+						sx={{ height: 40, width: 140 }}
 					>
-						<MenuItem value={TreeTypes.Circular}>Circular</MenuItem>
-						<MenuItem value={TreeTypes.Rectangular}>Rectangular</MenuItem>
-						<MenuItem value={TreeTypes.Diagonal}>Diagonal</MenuItem>
-						<MenuItem value={TreeTypes.Hierarchical}>Hierarchical</MenuItem>
-						<MenuItem value={TreeTypes.Radial}>Radial</MenuItem>
+						{treeShapeOptions}
 					</Select>
 				</FormControl>
 			</Box>
-			<FormControlLabel 
-				key="tree-labels-form"
-				control={<Switch key="tree-labels-switch" defaultChecked size="medium" />} 
-				label="Leaf Labels" 
-				labelPlacement="top"
-				onChange={handleTreeLabelsCheck}
-			/>
-		</div>
+			<Box key="tree-node-shape-select" sx={{ p: 1 }}>
+				<FormControl>
+					<InputLabel id="tree-node-shape">Node Shape</InputLabel>
+					<Select 
+						labelId="tree-node-shape"
+						id="node-shape"
+						value={treeNodeShape}
+						label="Node Shape"
+						onChange={handleTreeNodeShape}
+						sx={{ height: 40, width: 230 }}
+					>
+						{treeNodeShapeOptions}
+					</Select>
+				</FormControl>
+			</Box>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="node-size"
+					size="small"
+					sx={{ height: 40, width: 80 }}
+					label="Node Size"
+					variant="outlined"
+					defaultValue={treeNodeSize}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleTreeNodeSize(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="tree-font-size"
+					size="small"
+					sx={{ height: 40, width: 80 }}
+					label="Font Size"
+					variant="outlined"
+					defaultValue={treeFontSize}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleTreeFontSize(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			{treeIdsSelect}
+			{treeDownloadMenu}
+			<Box key="node-labels-form" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="node-labels-form"
+					control={<Switch key="node-labels-switch" defaultChecked size="medium" />} 
+					label="Node Labels" 
+					labelPlacement="start"
+					onChange={handleTreeLabelsCheck}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+			<Box key="branch-labels-form" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="branch-labels-form"
+					control={<Switch key="branch-labels-switch" size="medium" />} 
+					label="Branch Lengths" 
+					labelPlacement="start"
+					onChange={handleBranchLabelsCheck}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+		</Box>
 	);
 
 	// Define title for tree component
@@ -523,7 +707,7 @@ const LocusPage = () => {
 	let phylogeneticElementTree = undefined;
 	if (phyloData.length > 0) {
 		phylogeneticElementTree = (
-			<Box key="tree-box" sx={{ p: 3 }}>
+			<Box key="tree-box" sx={{ p: 1 }}>
 				<Element 
 				 name="phyloTree" 
 				 className="element" 
@@ -539,6 +723,13 @@ const LocusPage = () => {
 						treeSource={treeSource}
 						treeType={treeType}
 						showLabels={showLabels}
+						showBranchLengths={showBranchLengths}
+						selectedIds={selectedIds}
+						download={download}
+						downloadType={downloadType}
+						treeNodeSize={treeNodeSize}
+						fontSize={treeFontSize}
+						nodeShape={treeNodeShape}
 					>
 					</PhylogeneticTree>
 				</Element>
@@ -552,7 +743,7 @@ const LocusPage = () => {
 		alertLeafNodes = (
 			<Alert severity="info" key="alertLeafNodes">
 				<Typography sx={{ fontSize: 14 }}>
-					Leaves are labeled with the allele identifiers.
+					Nodes are labeled with the allele identifiers.
 					A tree might not be displayed if the distance between all alleles is 0.
 				</Typography>
 			</Alert>
@@ -590,16 +781,113 @@ const LocusPage = () => {
 	// get data for MSA
 	const msaData = data.msa.sequences;
 
-	const [colorScheme, setColorScheme] = useState("clustal");
+	const [colorScheme, setColorScheme] = useState("lesk");
 
 	const handleColorChange = (event) => {
 		setColorScheme(event.target.value)
 	};
 
+	const colorSchemes = [
+		["buried_index", "Buried"],
+		["cinema", "Cinema"],
+		["clustal", "Clustal"],
+		["clustal2", "Clustal2"],
+		["helix_propensity", "Helix propensity"],
+		["hydro", "Hydro"],
+		["lesk", "Lesk"],
+		["mae", "Mae"],
+		["nucleotide", "Nucleotide"],
+		["purine_pyrimidine", "Purine Pyrimidine"],
+		["strand_propensity", "Strand propensity"],
+		["taylor", "Taylor"],
+		["turn_propensity", "Turn propensity"],
+		["zappo", "Zappo"],
+	];
+
+	const colorSchemesOptions = colorSchemes.map((color) => {
+		return <MenuItem key={color[0]} value={color[0]}>{color[1]}</MenuItem>
+	})
+
+	const [msaExport, setMSAExport] = useState(false);
+	const handleMSAExport = (event) => {
+		setMSAExport(!msaExport)
+	};
+
+	const [downloadMSAType, setDownloadMSAType] = useState("Full");
+
+	const handleMSATypeExport = (event) => {
+		setDownloadMSAType(event.target.value);
+	};
+
+	const msaDownloadOptions = ["Full", "Selected", "Image"]
+	const msaDownloadMenuOptions = msaDownloadOptions.map((format) => {
+		return <MenuItem key={format} value={format}>{format}</MenuItem>
+	})
+
+	const [showConservation, setShowConservation] = useState(false);
+	const handleMSAConservation = (event) => {
+		setShowConservation(event.target.checked);
+	};
+
+	const [showSeqLogo, setShowSeqLogo] = useState(false);
+	const handleSeqLogo = (event) => {
+		setShowSeqLogo(event.target.checked);
+	};
+
+	const [msaPosition, setMSAPosition] = useState(undefined);
+	const handleMSAPosition = (value) => {
+		setMSAPosition(value-1)
+	};
+
+	const [searchMotif, setSearchMotif] = useState(undefined);
+	const handleSearchMotif = (value) => {
+		setSearchMotif(value)
+	};
+
+	const exportMSA = (
+		<Box key="msa-export-select" sx={{ p: 1 }}>
+			<FormControl>
+				<InputLabel id="msa-export-select">Export</InputLabel>
+				<Select 
+					labelId="msa-export-select"
+					id="msa-export"
+					value={downloadMSAType}
+					label="Export"
+					onChange={handleMSATypeExport}
+					sx={{ height: 40, width: 120 }}
+				>
+					{msaDownloadMenuOptions}
+				</Select>
+			</FormControl>
+			<IconButton
+				onClick={handleMSAExport}
+				sx={{
+					height: 40,
+					width: 30,
+					borderRadius: "4px",
+					color: "rgb(255, 255, 255)",
+					backgroundColor: "rgb(25, 118, 210)"
+				}}
+			>
+				<FileDownload></FileDownload>
+			</IconButton>
+		</Box>
+	);
+
 	const msaMenu = (
-		<div key="msa-options-menu" style={{display: 'flex', justifyContent: 'space-between'}}>
-			<Box key="msa-color-select-box">
-				<FormControl size="small">
+		<Box
+			key="tree-options-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			<Box key="msa-color-select-box" sx={{ p: 1 }}>
+				<FormControl>
 					<InputLabel id="msa-color-select">Color Scheme</InputLabel>
 					<Select 
 						labelId="msa-color-select"
@@ -607,25 +895,78 @@ const LocusPage = () => {
 						value={colorScheme}
 						label="Color Scheme"
 						onChange={handleColorChange}
+						sx={{ height: 40 , width: 190 }}
 					>
-						<MenuItem value={"buried_index"}>Buried</MenuItem>
-						<MenuItem value={"cinema"}>Cinema</MenuItem>
-						<MenuItem value={"clustal"}>Clustal</MenuItem>
-						<MenuItem value={"clustal2"}>Clustal2</MenuItem>
-						<MenuItem value={"helix_propensity"}>Helix propensity</MenuItem>
-						<MenuItem value={"hydro"}>Hydro</MenuItem>
-						<MenuItem value={"lesk"}>Lesk</MenuItem>
-						<MenuItem value={"mae"}>Mae</MenuItem>
-						<MenuItem value={"nucleotide"}>Nucleotide</MenuItem>
-						<MenuItem value={"purine_pyrimidine"}>Purine Pyrimidine</MenuItem>
-						<MenuItem value={"strand_propensity"}>Strand propensity</MenuItem>
-						<MenuItem value={"taylor"}>Taylor</MenuItem>
-						<MenuItem value={"turn_propensity"}></MenuItem>
-						<MenuItem value={"zappo"}>Zappo</MenuItem>
+						{colorSchemesOptions}
 					</Select>
 				</FormControl>
 			</Box>
-		</div>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="jump-to"
+					size="small"
+					sx={{ height: 40, width: 90 }}
+					label="Jump To"
+					variant="outlined"
+					defaultValue={msaPosition}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleMSAPosition(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="search-motif"
+					size="small"
+					sx={{ height: 40, width: 130 }}
+					label="Search Motif"
+					variant="outlined"
+					defaultValue={searchMotif}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleSearchMotif(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			<Box key="msa-export-all" sx={{ p: 1 }}>
+				{exportMSA}
+			</Box>
+			<Box key="msa-conserv-switch" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="msa-conserv-switch"
+					control={<Switch key="msa-conserv-switch" size="medium" />} 
+					label="Conservation"
+					labelPlacement="start"
+					onChange={handleMSAConservation}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+			<Box key="msa-seq-logo" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="msa-seq-logo"
+					control={<Switch key="msa-seq-logo" size="medium" />} 
+					label="Seq. Logo" 
+					labelPlacement="start"
+					onChange={handleSeqLogo}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+		</Box>
 	);
 
 	// Define title for MSA component
@@ -644,16 +985,23 @@ const LocusPage = () => {
 		// pass MSA component constructor instead of instance
 		// this allows to get constructor and pass props in component that receives constructor
 		msaElement = (
-			<Box key="msa-element" sx={{ p: 3 }}>
-				<Resized
-					divID="MSA"
-					component={MSA}
+			<Box key="msa-element">
+				<MSA
+					MSADAta={msaData}
 					colorScheme={colorScheme}
+					msaExport={msaExport}
+					downloadMSAType={downloadMSAType}
+					conservation={showConservation}
+					seqLogo={showSeqLogo}
+					msaPosition={msaPosition}
+					searchMotif={searchMotif}
 				>
-				</Resized>
+				</MSA>
 			</Box>
 		);
 	}
+
+	console.log(msaPosition)
 
 	// Alert for MSA
 	let alertMSA = undefined;
@@ -830,11 +1178,11 @@ const LocusPage = () => {
 				{exceptionsTable}
 			</div>
 			<div style={{ marginTop: "20px" }}>
-				{alertPhyloMSA}
-				{PhylogeneticElement}
+				{MSAComponent}
 			</div>
 			<div style={{ marginTop: "20px" }}>
-				{MSAComponent}
+				{alertPhyloMSA}
+				{PhylogeneticElement}
 			</div>
 			<div style={{ marginTop: "20px"}}>
 				{DNAEditor}
@@ -843,7 +1191,7 @@ const LocusPage = () => {
 				{ProteinEditor}
 			</div>
 		</div>
-	  );
+	);
 };
 
-export default LocusPage; 
+export default LocusPage;

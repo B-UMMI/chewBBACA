@@ -1,31 +1,36 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+//import { msa } from "@jlab-contrib/msa";
 
 var msa = require("@jlab-contrib/msa");
 
 
-const MSA = ({ MSAwidth, colorScheme }) => {
+const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, seqLogo, msaPosition, searchMotif }) => {
+	const [msaView, setMSAView] = useState(undefined);
+
+	const [msaRenderCount, setRenderCount] = useState(0);
+	const handleRenderCount = (event) => {
+		setRenderCount(msaRenderCount+1);
+	};
 
 	useEffect(() => {
-		// how to get this outside useEffect for first render?
-		const msaData = window.preComputedDataInd.msa.sequences;
 		// parsed array of the sequences
-		var opts = {};
+		let opts = {};
 		// set your custom properties
 		// @see: https://github.com/greenify/biojs-vis-msa/tree/master/src/g 
-		//opts.seqs = msa.utils.seqgen.getDummySequences(1000,300);
-		const sequences = msa.io.fasta.parse(msaData);
+		const sequences = msa.io.fasta.parse(MSADAta);
 		opts.seqs = sequences;
 		opts.el = document.getElementById("MSA");
 		opts.vis = {
-			conserv: false, 
+			conserv: conservation, 
 			overviewbox: false,
 			labels: true,
 			labelName: true,
 			labelId: false,
-			leftHeader: false
-			}
+			leftHeader: false,
+			seqlogo: seqLogo
+		}
 
-		const msaLength = (msaData.match(/>/g) || []).length;
+		const msaLength = (MSADAta.match(/>/g) || []).length;
 		let MSAHeight = 450;
 		if (msaLength < 30) {
 			MSAHeight = msaLength*15;
@@ -33,34 +38,85 @@ const MSA = ({ MSAwidth, colorScheme }) => {
 
 		opts.zoomer = {
 			// need to subtract labelNameLength or the first time it renders it will
-			alignmentWidth: MSAwidth-50,
+			//alignmentWidth: MSAwidth-50,
 			alignmentHeight: MSAHeight,
 			columnWidth: 15,
 			rowHeight: 15,
-			autoResize: false,
+			autoResize: true,
 			labelIdLength: 50,
 			labelNameLength: 50,
 			labelPartLength: 15,
 			labelCheckLength: 15,
 			labelFontsize: "13px",
 			labelLineHeight: "13px",
-			}
+			markerFontsize: "10px",
+		}
 		opts.colorscheme = {
 			scheme: colorScheme
 		}
 		opts.conf = {
 			// awesome but several options are broken
 			bootstrapMenu: false,
-			hasRef: false
+			hasRef: false,
+			alphabetSize: 20
 		}
 
 		// init msa
-		var m = new msa.msa(opts);
+		setMSAView(new msa.msa(opts));
+	}, []);
 
-		// call render at the end to display the whole MSA
-		m.render();
+	useEffect(() => {
+		if (msaView) {
+			msaView.g.colorscheme.set("scheme", colorScheme);
+			msaView.g.vis.set("conserv", conservation);
+			msaView.g.vis.set("seqlogo", seqLogo);
+		}
+	}, [colorScheme, conservation, seqLogo])
 
-	}, [MSAwidth, colorScheme]);
+	if (msaView) {
+		msaView.render();
+		// Redefine width in first render
+		if (msaRenderCount === 0) {
+			// get current alignment width
+			const currentWidth = msaView.g.zoomer.attributes.alignmentWidth
+			// Subtract 12% of current value to avoid overflow
+			msaView.g.zoomer.set("alignmentWidth", currentWidth*(1-0.12))
+			handleRenderCount()
+		}
+	}
+
+	useEffect(() => {
+		if (msaView) {
+			if (downloadMSAType === "Full") {
+				msa.utils.exporter.saveAsFile(msaView, "msa.fasta")
+			} else if (downloadMSAType === "Selected") {
+				msa.utils.exporter.saveSelection(msaView, "msaSelected.fasta")
+			} else if (downloadMSAType === "Image") {
+				msa.utils.exporter.saveAsImg(msaView, "msa.png")
+			}
+		}
+	}, [msaExport])
+
+	useEffect(() => {
+		if (msaView) {
+			if (msaPosition) {
+				msaView.g.zoomer.setLeftOffset(msaPosition);
+			}
+		}
+	}, [msaPosition])
+
+	useEffect(() => {
+		if (msaView) {
+			if (searchMotif) {
+				msaView.g.user.set("searchText", searchMotif);
+				msaView.g.selcol.reset();
+			}
+		}
+	}, [searchMotif])
+
+	return (
+		<div id="MSA"></div>
+	)
 };
 
 

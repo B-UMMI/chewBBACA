@@ -202,12 +202,13 @@ def locus_report(locus_file, locus_data, annotation_columns,
 
     dna_sequences = {"sequences": []}
     protein_sequences = {"sequences": []}
+    valid_ids = []
     if add_sequences is True:
         protein_records = fao.sequence_generator(protein_file)
         for record in protein_records:
             protein_sequences["sequences"].append({"name": (record.id).split('_')[-1],
                                                    "sequence": str(record.seq)})
-
+            valid_ids.append((record.id).split('_')[-1])
         dna_records = fao.sequence_generator(locus_file)
         for record in dna_records:
             dna_sequences["sequences"].append({"name": (record.id).split('_')[-1],
@@ -250,6 +251,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "ids": allele_ids,
                        "counts": [list(counts_data[0]), list(counts_data[1])],
                        "phylo": phylo_data,
+                       "validIDs": valid_ids,
                        "msa": msa_data,
                        "dna": dna_sequences,
                        "protein": protein_sequences,

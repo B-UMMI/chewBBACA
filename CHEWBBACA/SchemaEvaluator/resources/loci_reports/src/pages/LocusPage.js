@@ -2,15 +2,14 @@ import { useState } from 'react';
 
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
-import Resized from '../components/Resized';
 import AccordionMUI from '../components/AccordionMUI';
 import TabPanelMUI from '../components/TabPanelMUI';
 import MSA from '../components/MSA';
 
 // Material-UI components
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -67,6 +66,7 @@ const LocusPage = () => {
 
 	// Get pre-computed data
 	const data = window.preComputedDataInd;
+	const validIDs = data.validIDs;
 
 	// Data for Summary Data table
 	const summaryData = data.summaryData;
@@ -239,17 +239,23 @@ const LocusPage = () => {
 
 	// Determine minimum allele length to define plot range
 	const lengthMin = Math.min(...xDataPanelA);
-	let xaxisMin = lengthMin;
-	if (lengthMin > botThreshold) {
-		xaxisMin = botThreshold;
-	};
 
 	// Determine maximum allele length to define plot range
 	const lengthMax = Math.max(...xDataPanelA);
-	let xaxisMax = lengthMax;
-	if (lengthMax < topThreshold) {
-		xaxisMax = topThreshold;
+
+	const [showBarThreshold, setShowBarThreshold] = useState(false);
+	const [showScatterThreshold, setShowScatterThreshold] = useState(false);
+
+	const handleShowBarThreshold = (event) => {
+		setShowBarThreshold(event.target.checked)
 	};
+
+	const handleShowScatterThreshold = (event) => {
+		setShowScatterThreshold(event.target.checked)
+	};
+
+	let xaxisBarMin = showBarThreshold ? botThreshold-5 : lengthMin
+	let xaxisBarMax = showBarThreshold ? topThreshold+5 : lengthMax
 
 	const layoutPanelA = {
 		title: {
@@ -261,7 +267,7 @@ const LocusPage = () => {
 			zeroline: false,
 			showline: true,
 			ticks: "outside",
-			range: [xaxisMin-20, xaxisMax+20]
+			range: [xaxisBarMin-5, xaxisBarMax+5]
         },
         yaxis: {
         	title: { text: "Number of Alleles" },
@@ -338,6 +344,19 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
+	let xaxisScatterMin = showScatterThreshold ? botThreshold-5 : lengthMin
+	let xaxisScatterMax = showScatterThreshold ? topThreshold+5 : lengthMax
+
+	// Create array with point colors
+	let colors = []
+	for (const id of data.ids) {
+		if (validIDs.includes(id)) {
+			colors.push("#0570b0")
+		} else {
+			colors.push("#969696")
+		}
+	}
+
 	// data for Panel B (Allele Size)
 	const xDataPanelB = data.ids;
 	const yDataPanelB = data.lengths;
@@ -348,7 +367,7 @@ const LocusPage = () => {
 		 name: locusName,
 		 mode: "markers",
 		 marker: {
-			color: "#0570b0",
+			color: colors,
 		}
 	    }
 	];
@@ -368,7 +387,7 @@ const LocusPage = () => {
 			zeroline: false,
 			showline: true,
 			ticks: "outside",
-			range: [xaxisMin-20, xaxisMax+20]
+			range: [xaxisScatterMin-5, xaxisScatterMax+5]
         },
 		bargroupgap: 0.05,
 		shapes: [
@@ -455,10 +474,53 @@ const LocusPage = () => {
 		</Alert>
 	)
 
+	const validAlleleColorScatterAlert = (
+		<Alert severity="info" key="validAlleleColorAlert">
+			<Typography sx={{ fontSize: 14 }}>
+				Valid alleles are colored in blue and invalid alleles are colored in grey.
+			</Typography>
+		</Alert>
+	)
+
+	// Components to resize plots to show length thresholds
+	// Need to include checked prop or switch will change to disabled state when alternating tabs
+	const lengthThresholdCheckBar = (
+		<Box key="length-threshold-box-bar" sx={{ p: 1 }}>
+			<FormControlLabel 
+				key="length-threshold-form-bar"
+				control={<Switch key="length-threshold-switch-bar" checked={showBarThreshold} size="medium" />} 
+				label="Show Thresholds" 
+				labelPlacement="start"
+				onChange={handleShowBarThreshold}
+				sx={{ height: 40 }}
+			/>
+		</Box>
+	);
+
+	const lengthThresholdCheckScatter = (
+		<Box key="length-threshold-box-scatter" sx={{ p: 1 }}>
+			<FormControlLabel 
+				key="length-threshold-form-scatter"
+				control={<Switch key="length-threshold-switch-scatter" checked={showScatterThreshold} size="medium" />} 
+				label="Show Thresholds" 
+				labelPlacement="start"
+				onChange={handleShowScatterThreshold}
+				sx={{ height: 40 }}
+			/>
+		</Box>
+	);
+
+	const scatterAlerts = (
+		<Stack key="scatterStack" sx={{ width: '100%' }} spacing={0.5}>
+			{lengthThresholdsScatterAlert}
+			{validAlleleColorScatterAlert}
+		</Stack>
+	);
+
 	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size"];
 	const AlleleSizePanelsData = [
-		[lengthThresholdsBarAlert, AlleleSizeBar],
-		[lengthThresholdsScatterAlert, AlleleSizeScatter]];
+		[lengthThresholdsBarAlert, lengthThresholdCheckBar, AlleleSizeBar],
+		[scatterAlerts, lengthThresholdCheckScatter, AlleleSizeScatter]];
 
 	const AlleleSizeTabs = (
 		<TabPanelMUI
@@ -556,8 +618,6 @@ const LocusPage = () => {
 	);
 
 	// Component to select tree nodes
-	const validIDs = data.validIDs;
-
 	const treeIdsSelect = (
 		<Box key="select-tree-id" sx={{ p: 1 }}>
 			<Autocomplete
@@ -813,13 +873,12 @@ const LocusPage = () => {
 		setMSAExport(!msaExport)
 	};
 
-	const [downloadMSAType, setDownloadMSAType] = useState("Full");
-
+	const [downloadMSAType, setDownloadMSAType] = useState("Full MSA");
 	const handleMSATypeExport = (event) => {
 		setDownloadMSAType(event.target.value);
 	};
 
-	const msaDownloadOptions = ["Full", "Selected", "Image"]
+	const msaDownloadOptions = ["Full MSA", "Row Selection", "Image (PNG)"]
 	const msaDownloadMenuOptions = msaDownloadOptions.map((format) => {
 		return <MenuItem key={format} value={format}>{format}</MenuItem>
 	})
@@ -834,9 +893,15 @@ const LocusPage = () => {
 		setShowSeqLogo(event.target.checked);
 	};
 
-	const [msaPosition, setMSAPosition] = useState(undefined);
-	const handleMSAPosition = (value) => {
-		setMSAPosition(value-1)
+	// MSA component does not handle well simultaneous row and column selection
+	// const [msaRow, setMSARow] = useState(undefined);
+	// const handleMSARow = (value) => {
+	// 	setMSARow(value);
+	// };
+
+	const [msaColumn, setMSAColumn] = useState(undefined);
+	const handleMSAColumn = (value) => {
+		setMSAColumn(value-1)
 	};
 
 	const [searchMotif, setSearchMotif] = useState(undefined);
@@ -854,7 +919,7 @@ const LocusPage = () => {
 					value={downloadMSAType}
 					label="Export"
 					onChange={handleMSATypeExport}
-					sx={{ height: 40, width: 120 }}
+					sx={{ height: 40, width: 160 }}
 				>
 					{msaDownloadMenuOptions}
 				</Select>
@@ -901,6 +966,27 @@ const LocusPage = () => {
 					</Select>
 				</FormControl>
 			</Box>
+			{/* <Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="jump-to-row"
+					size="small"
+					sx={{ height: 40, width: 90 }}
+					label="Row"
+					variant="outlined"
+					defaultValue={msaRow}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleMSARow(e.target.value)
+						}
+					}}
+				/>
+			</Box> */}
 			<Box
 				component="form"
 				noValidate
@@ -908,16 +994,16 @@ const LocusPage = () => {
 				sx={{ p: 1 }}
 			>
 				<TextField
-					id="jump-to"
+					id="jump-to-col"
 					size="small"
 					sx={{ height: 40, width: 90 }}
-					label="Jump To"
+					label="Column"
 					variant="outlined"
-					defaultValue={msaPosition}
+					defaultValue={msaColumn}
 					onKeyPress={(e) => {
 						if (e.key === 'Enter') {
 							e.preventDefault();
-							handleMSAPosition(e.target.value)
+							handleMSAColumn(e.target.value)
 						}
 					}}
 				/>
@@ -993,15 +1079,14 @@ const LocusPage = () => {
 					downloadMSAType={downloadMSAType}
 					conservation={showConservation}
 					seqLogo={showSeqLogo}
-					msaPosition={msaPosition}
+					// msaRow={msaRow}
+					msaColumn={msaColumn}
 					searchMotif={searchMotif}
 				>
 				</MSA>
 			</Box>
 		);
 	}
-
-	console.log(msaPosition)
 
 	// Alert for MSA
 	let alertMSA = undefined;

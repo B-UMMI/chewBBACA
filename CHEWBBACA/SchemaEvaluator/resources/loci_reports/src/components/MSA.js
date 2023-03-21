@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-//import { msa } from "@jlab-contrib/msa";
 
 var msa = require("@jlab-contrib/msa");
 
 
-const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, seqLogo, msaPosition, searchMotif }) => {
+// For more info about features https://www.npmjs.com/package/@jlab-contrib/msa
+// Code examples to filter sequences https://github.com/jupyterlab-contrib/msa/blob/master/src/menu/views/FilterMenu.js
+const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, seqLogo, msaColumn, searchMotif }) => {
 	const [msaView, setMSAView] = useState(undefined);
 
 	const [msaRenderCount, setRenderCount] = useState(0);
@@ -70,6 +71,7 @@ const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, s
 			msaView.g.colorscheme.set("scheme", colorScheme);
 			msaView.g.vis.set("conserv", conservation);
 			msaView.g.vis.set("seqlogo", seqLogo);
+			console.log(msaView.g.selcol.where({type: "row"}))
 		}
 	}, [colorScheme, conservation, seqLogo])
 
@@ -87,11 +89,11 @@ const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, s
 
 	useEffect(() => {
 		if (msaView) {
-			if (downloadMSAType === "Full") {
+			if (downloadMSAType === "Full MSA") {
 				msa.utils.exporter.saveAsFile(msaView, "msa.fasta")
-			} else if (downloadMSAType === "Selected") {
+			} else if (downloadMSAType === "Row Selection") {
 				msa.utils.exporter.saveSelection(msaView, "msaSelected.fasta")
-			} else if (downloadMSAType === "Image") {
+			} else if (downloadMSAType === "Image (PNG)") {
 				msa.utils.exporter.saveAsImg(msaView, "msa.png")
 			}
 		}
@@ -99,11 +101,30 @@ const MSA = ({ MSADAta, colorScheme, msaExport, downloadMSAType, conservation, s
 
 	useEffect(() => {
 		if (msaView) {
-			if (msaPosition) {
-				msaView.g.zoomer.setLeftOffset(msaPosition);
+			if (msaColumn !== -1) {
+				msaView.g.zoomer.setLeftOffset(msaColumn);
 			}
 		}
-	}, [msaPosition])
+		// MSA component does not handle well simultaneous row and column selection
+		// 	if (msaRow) {
+		// 		// get sequence indices
+		// 		const records = (msaView.seqs._byId)
+		// 		let seqids = []
+		// 		for (const key in records) {
+		// 			seqids.push(records[key].attributes.name)
+		// 		}
+		// 		const seqidIndex = seqids.indexOf(msaRow);
+		// 		console.log(msaRow, seqidIndex)
+		// 		msaView.g.zoomer.setLeftOffset(msaColumn);
+		// 		if (seqidIndex) {
+		// 			msaView.g.zoomer.setTopOffset(seqidIndex);
+		// 			console.log("row")
+		// 		} else {
+		// 			console.log("No such seqid.")
+		// 		}
+		// 	}
+		// }
+	}, [msaColumn])
 
 	useEffect(() => {
 		if (msaView) {

@@ -47,13 +47,11 @@ def call_mafft(genefile):
     Parameters
     ----------
     genefile : str
-        A string with the name/path for
-        the FASTA file.
+        Path to a FASTA file with the sequences to align.
 
     Returns
     -------
-    bool
-        True if sucessful, False otherwise.
+    Path to the file with the computed MSA if successful, False otherwise.
     """
     try:
         mafft_cline = MafftCommandline(input=genefile,
@@ -132,11 +130,25 @@ def compute_locus_statistics(locus, translation_table, minimum_length, size_thre
     exceptions_values = list(exceptions.values())
     exceptions_lines = [[k, v] for k, v in exceptions.items()]
 
-    stopC = exceptions_values.count('Extra in frame stop codon found')
-    notStart = exceptions_values.count('is not a start codon')+exceptions_values.count('is not a stop codon')
-    notMultiple = exceptions_values.count('sequence length is not a multiple of 3')
-    shorter = exceptions_values.count('sequence shorter than')
+    stopC = sum([1 for exception in exceptions_values
+                 if 'Extra in frame stop codon found' in exception.split(',')[0]])
+    #stopC = exceptions_values.count('Extra in frame stop codon found')
+    notStart = sum([1 for exception in exceptions_values
+                    if 'is not a start codon' in exception.split(',')[0]])
+    notStart += sum([1 for exception in exceptions_values
+                    if 'is not a stop codon' in exception.split(',')[0]])
+    #notStart = exceptions_values.count('is not a start codon')+exceptions_values.count('is not a stop codon')
+    notMultiple = sum([1 for exception in exceptions_values
+                       if 'sequence length is not a multiple of 3' in exception.split(',')[0]])
+    #notMultiple = exceptions_values.count('sequence length is not a multiple of 3')
+    shorter = sum([1 for exception in exceptions_values
+                       if 'sequence shorter than' in exception.split(',')[0]])
+    #shorter = exceptions_values.count('sequence shorter than')
     validCDS = nr_alleles - len(exceptions)
+
+    # format exception strings for Exceptions Table Component in loci reports
+    ###
+    ###
 
     results = [fo.file_basename(locus, False),
                nr_alleles,
@@ -285,25 +297,26 @@ def main(schema_directory, output_directory, genes_list, annotations,
          translation_table, size_threshold, minimum_length,
          cpu_cores, loci_reports, light, add_sequences):
 
-    # create directory to store intermediate files
+    # Create directory to store intermediate files
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
     schema_files = fo.read_lines(genes_list)
-    # sort based on locus name
+    # Sort based on locus name
     schema_files = sorted(schema_files)
+    # Map basename to full path
+    loci_basenames = {fo.file_basename(file, False): file
+                      for file in schema_files}
 
     # check if the schema was created with chewBBACA
     config_file = os.path.join(schema_directory, ".schema_config")
-    chewie_config = {}
-    creation_message = ('Did not find information about config values used '
-                        'to create the schema.')
     if os.path.exists(config_file):
         # get the schema configs
         with open(config_file, "rb") as cf:
             chewie_config = pickle.load(cf)
         print("The schema was created with chewBBACA {0}.".format(
               chewie_config["chewBBACA_version"][0]))
+        # Message displayed in the Schema Creation Alert
         creation_message = ('Schema created with chewBBACA '
                             f'v{chewie_config.get("chewBBACA_version")[0]}, '
                             'BLAST Score Ratio of '
@@ -314,13 +327,21 @@ def main(schema_directory, output_directory, genes_list, annotations,
                             f'{chewie_config.get("size_threshold")[0]}, '
                             'and a translation table of '
                             f'{chewie_config.get("translation_table")[0]}.')
+        # check if schema has a Prodigal training file
         if chewie_config.get("prodigal_training_file")[0] is not None:
             creation_message += (' A Prodigal training file was used for '
                                  'gene prediction.')
         else:
             creation_message += (' No Prodigal training file used for gene '
                                  'prediction.')
+    else:
+        chewie_config = {}
+        # Message displayed in the Schema Creation Alert
+        creation_message = ('Did not find information about config values '
+                            'used to create the schema.')
 
+    # Use schema config values if user did not provide values
+    # Use default values defined in constants if there are no chewie config
     if minimum_length is None:
         minimum_length = chewie_config.get("minimum_locus_length",
                                            [ct.MINIMUM_LENGTH_DEFAULT])[0]
@@ -333,6 +354,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
         translation_table = chewie_config.get("translation_table",
                                               [ct.GENETIC_CODES_DEFAULT])[0]
 
+    # Message displayed in the Schema Evaluation Alert
     evaluation_message = ('Schema evaluated with minimum length of '
                           f'{minimum_length}, size threshold of '
                           f'{size_threshold}, and translation table of '
@@ -344,9 +366,12 @@ def main(schema_directory, output_directory, genes_list, annotations,
     common_args = [translation_table, minimum_length, size_threshold]
 
     # add common arguments to all sublists
-    inputs = im.multiprocessing_inputs(inputs, common_args, compute_locus_statistics)
+    inputs = im.multiprocessing_inputs(inputs,
+                                       common_args,
+                                       compute_locus_statistics)
 
-    # compute statistics
+    # compute loci statistics
+    print('Computing loci statistics...')
     results = mo.map_async_parallelizer(inputs,
                                         mo.function_helper,
                                         cpu_cores,
@@ -355,41 +380,60 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # group values for the same statistic
     data = list(zip(*results))
 
-    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
-    analysis_columns = analysis_columns.split('\t')
-
+    # Read loci annotations from TSV file
     annotation_values = [[], []]
     if annotations is not None:
         annotation_lines = fo.read_tabular(annotations)
+        # Add file columns
         annotation_values[0].extend(annotation_lines[0])
-        annotation_values[1].extend(annotation_lines[1:])
+        # Add sublists with lines
+        # Only keep lines for loci in the schema
+        loci_annotations = [line for line in annotation_lines[1:]
+                            if line[0] in loci_basenames]
+        annotation_values[1].extend(loci_annotations)
 
-    # build the total data dictionary
-    column_data = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(minimum_length)
-    column_data = column_data.split('\t')
+    print(f'\nProvided annotations for {len(annotation_values[1])} '
+          'loci in the schema.')
 
-    notMultiple_sum = sum([l[3] for l in data[13]])
-    stopC_sum = sum([l[5] for l in data[13]])
-    notStart_sum = sum([l[4] for l in data[13]])
-    shorter_sum = sum([l[6] for l in data[13]])
-    below_sum = sum([l[7] for l in data[13]])
-    above_sum = sum([l[8] for l in data[13]])
+    # Columns for the Summary Data Table in the Schema Report
+    summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(minimum_length)
+    summary_columns = summary_columns.split('\t')
+
+    # Get total number of alleles with a length value not multiple of 3
+    notMultiple_sum = sum([subdata[3] for subdata in data[13]])
+    # Get total number of alleles with an in-frame stop codon
+    stopC_sum = sum([subdata[5] for subdata in data[13]])
+    # Get total number of alleles with no start or stop codon
+    notStart_sum = sum([subdata[4] for subdata in data[13]])
+    # Get total number of alleles shorter than the minimum length value
+    shorter_sum = sum([subdata[6] for subdata in data[13]])
+    # Get total number of alleles below or above the sequence length thresholds
+    below_sum = sum([subdata[7] for subdata in data[13]])
+    above_sum = sum([subdata[8] for subdata in data[13]])
+    # Get total number of valid and invalid alleles
     invalid_sum = sum([notMultiple_sum, stopC_sum,
                        notStart_sum, shorter_sum])
     valid_sum = sum(data[1]) - invalid_sum
-    row_data = [len(data[0]),
-                sum(data[1]),
-                valid_sum,
-                invalid_sum,
-                notMultiple_sum,
-                notStart_sum,
-                stopC_sum,
-                shorter_sum,
-                below_sum,
-                above_sum]
+    # Create list with row values for Summary Data Table in the Schema Report
+    summary_rows = [len(data[0]),
+                    sum(data[1]),
+                    valid_sum,
+                    invalid_sum,
+                    notMultiple_sum,
+                    notStart_sum,
+                    stopC_sum,
+                    shorter_sum,
+                    below_sum,
+                    above_sum]
 
-    schema_data = {"summaryData": [{"columns": column_data},
-                                   {"rows": [row_data]}],
+    # Columns for the Alleles Analysis Table component
+    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
+    analysis_columns = analysis_columns.split('\t')
+    analysis_rows = list(data[13])
+
+    # Data in the Schema Report HTML
+    schema_data = {"summaryData": [{"columns": summary_columns},
+                                   {"rows": [summary_rows]}],
                    "loci": list(data[0]),
                    "total_alleles": list(data[1]),
                    "max": list(data[2]),
@@ -401,33 +445,36 @@ def main(schema_directory, output_directory, genes_list, annotations,
                    "annotations": [{"columns": annotation_values[0]},
                                    {"rows": annotation_values[1]}],
                    "analysis": [{"columns": analysis_columns},
-                                {"rows": list(data[13])}],
+                                {"rows": analysis_rows}],
                    "lociReports": 1 if loci_reports else 0,
                    "evaluationConfig": evaluation_message,
                    "creationConfig": creation_message}
 
-    # Write HTML file
+    # Write Schema Report HTML file
     schema_html = ct.SCHEMA_REPORT_HTML
     schema_html = schema_html.format(json.dumps(schema_data))
-
     schema_html_file = fo.join_paths(output_directory, ['schema_report.html'])
     fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
 
+    # Compute data for loci reports
     if loci_reports is True:
         # create mapping between locus ID and annotations
         if annotations is not None:
             annotations_dict = {a[0]: a for a in annotation_values[1]}
         else:
             annotations_dict = {}
-
+        
+        # Create temporary directory to store translated alleles
         translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
         fo.create_directory(translation_dir)
+        # Create directory to store loci HTML reports
         html_dir = fo.join_paths(output_directory, ['loci_reports'])
         fo.create_directory(html_dir)
-        schema_files = {fo.file_basename(file, False): file for file in schema_files}
+
+        # Previous data includes values per locus
         loci_data = results
 
-        inputs = [[schema_files[d[0]], d,
+        inputs = [[loci_basenames[d[0]], d,
                    annotation_values[0],
                    annotations_dict.get(d[0], [])] for d in loci_data]
 
@@ -437,7 +484,8 @@ def main(schema_directory, output_directory, genes_list, annotations,
         # add common arguments to all sublists
         inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
 
-        # compute statistics
+        # Create loci reports
+        print('Creating loci reports...')
         loci_htmls = mo.map_async_parallelizer(inputs,
                                                mo.function_helper,
                                                cpu_cores,
@@ -446,13 +494,25 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # Copy the JS bundle files to the respective directories
     # JS bundle used by schema report
     script_path = os.path.dirname(os.path.abspath(__file__))
-    shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                             "resources", "schema_bundle.js"),
-                output_directory)
+    # When chewBBACA is installed
+    try:
+        shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
+                                 'resources', 'schema_bundle.js'),
+                    output_directory)
+    # For development
+    except Exception as e:
+        shutil.copy(os.path.join(script_path, 'resources', 'schema_bundle.js'),
+                    output_directory)
+
     if loci_reports is True:
         # JS bundle used by loci reports
-        shutil.copy(os.path.join(script_path, "SchemaEvaluator",
-                                 "resources", "loci_bundle.js"),
-                    html_dir)
+        try:
+            shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
+                                     'resources', 'loci_bundle.js'),
+                        html_dir)
+        except Exception as e:
+            shutil.copy(os.path.join(script_path, 'resources', 'loci_bundle.js'),
+                        html_dir)
 
+    # Delete all temporary files
     fo.delete_directory(temp_directory)

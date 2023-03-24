@@ -716,8 +716,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
                    annotation_values[0],
                    annotations_dict.get(d[0], [])] for d in loci_data]
 
-        common_args = [translation_dir, html_dir, translation_table,
-                       minimum_length, light, add_sequences]
+        common_args = [html_dir, minimum_length, light, add_sequences]
 
         # add common arguments to all sublists
         inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
@@ -756,3 +755,5 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
     # Delete all temporary files
     fo.delete_directory(temp_directory)
+
+    print(f'\nResults available in {output_directory}.')

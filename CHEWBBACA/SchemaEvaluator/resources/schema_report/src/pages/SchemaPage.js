@@ -52,8 +52,19 @@ const SchemaPage = () => {
 
 	If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
 
-	You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
-	If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
+  This report was created with the [React](https://react.dev/) library and uses the following JavaScript packages:
+
+  - [Material UI](https://www.npmjs.com/package/@mui/material) for most of the components.
+  - [MUI-Datatables](https://www.npmjs.com/package/mui-datatables) for datatables components.
+  - [MSA Viewer](https://www.npmjs.com/package/@jlab-contrib/msa) for the Multiple Sequence Alignmnet.
+  - [Phylocanvas.gl](https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl) for the NJ Tree.
+  - [react-plotly.js](https://www.npmjs.com/package/react-plotly.js) for the charts.
+  - [react-scroll](https://www.npmjs.com/package/react-scroll) for animating vertical scrolling in the NJ Tree component.
+  - [Monaco Editor for React](https://www.npmjs.com/package/@monaco-editor/react) for the read-only code editor that displays the DNA and Protein sequences.
+  - [react-markdown](https://www.npmjs.com/package/react-markdown) and [remark-gfm](https://www.npmjs.com/package/remark-gfm) to render markdown.
+
+  You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
+  If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
   `;
 
 	// get pre-computed data

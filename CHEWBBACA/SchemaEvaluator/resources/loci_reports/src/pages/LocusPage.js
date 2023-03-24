@@ -14,6 +14,7 @@ import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
@@ -25,13 +26,13 @@ import FileDownload from '@mui/icons-material/FileDownload';
 import { TreeTypes, Shapes } from "@phylocanvas/phylocanvas.gl";
 import PhylogeneticTree from "../components/PhylogeneticTree";
 
-// 
+// Package for animating vertical scrolling in the NJ Tree component
 import { Element } from 'react-scroll';
 
 // Monaco code editor (options example at https://monaco-react.surenatoyan.com/)
-import Editor from "@monaco-editor/react";
-import { Typography } from '@mui/material';
+import Editor from "@monaco-editor/react"
 
+// Components to render markdown
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -52,13 +53,24 @@ const LocusPage = () => {
 		- Allele Size Counts: distribution of the allele size values for the locus.
 		- Allele Size: sequence size per allele.
   - **Neighbor-Joining Tree**
-    - A tree drawn with Phylocanvas based on the Neighbor Joining tree created by MAFFT.
+    - A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree created by MAFFT.
   - **Multiple Sequence Alignment**
     - Visualization of the MSA computed by MAFFT.
   - **DNA sequences**
     - Text Editor in read-only mode with the alleles in the FASTA file.
   - **Protein sequences**
     - Text Editor in read-only mode with the translated alleles that were considered valid based on the configuration values.
+
+  This report was created with the [React](https://react.dev/) library and uses the following JavaScript packages:
+
+  - [Material UI](https://www.npmjs.com/package/@mui/material) for most of the components.
+  - [MUI-Datatables](https://www.npmjs.com/package/mui-datatables) for datatables components.
+  - [MSA Viewer](https://www.npmjs.com/package/@jlab-contrib/msa) for the Multiple Sequence Alignmnet.
+  - [Phylocanvas.gl](https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl) for the NJ Tree.
+  - [react-plotly.js](https://www.npmjs.com/package/react-plotly.js) for the charts.
+  - [react-scroll](https://www.npmjs.com/package/react-scroll) for animating vertical scrolling in the NJ Tree component.
+  - [Monaco Editor for React](https://www.npmjs.com/package/@monaco-editor/react) for the read-only code editor that displays the DNA and Protein sequences.
+  - [react-markdown](https://www.npmjs.com/package/react-markdown) and [remark-gfm](https://www.npmjs.com/package/remark-gfm) to render markdown.
 
   You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
   If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
@@ -129,7 +141,7 @@ const LocusPage = () => {
 	if (exceptionsData[1].rows.length > 0) {
 		exceptionsTable = <DataTable
 						   tableData={exceptionsData} 
-						   tableTitle="Invalid Alleles" 
+						   tableTitle="Invalid Alleles and Size Outliers" 
 						   tableOptions={exceptionsTableOptions}
 						  >
 						  </DataTable>
@@ -215,7 +227,7 @@ const LocusPage = () => {
 	const yDataPanelA = data.counts[1];
 
 	// Get mode value and its index in the array of xvalues for the bar plot
-	const modeValue = summaryData[1].rows[0][9];
+	const modeValue = summaryData[1].rows[0][11];
 	const modeIndex = xDataPanelA.indexOf(modeValue);
 
 	// Change color for mode bar
@@ -810,6 +822,17 @@ const LocusPage = () => {
 		);
 	}
 
+	let alertTreeZoom = undefined;
+	if (phylogeneticElementTree !== undefined) {
+		alertTreeZoom = (
+			<Alert severity="info" key="alertTreeZoom">
+				Use the mouse wheel to Zoom In/Out. In the Hierarchical
+				and Rectangular Tree Types, holding the Ctrl key while
+				using the mouse wheel allows to resize the branches.
+			</Alert>
+		)
+	}
+
 	// Alert rendered when there is no Phylogenetic Tree and MSA
 	let alertPhyloMSA = undefined;
 	if (phylogeneticElementTree === undefined) {
@@ -832,7 +855,7 @@ const LocusPage = () => {
 				summaryText={phylogeneticElementTitle}
 				detailsData={[phyloTreeMenu, phylogeneticElementTree]}
 				expanded={false}
-				alerts={[alertLeafNodes]}
+				alerts={[alertLeafNodes, alertTreeZoom]}
 			>
 			</AccordionMUI>
 		);
@@ -1088,7 +1111,7 @@ const LocusPage = () => {
 		);
 	}
 
-	// Alert for MSA
+	// Alert for sequences MSA is displaying
 	let alertMSA = undefined;
 	if (msaElement !== undefined) {
 		alertMSA = (
@@ -1096,6 +1119,21 @@ const LocusPage = () => {
 				<Typography sx={{ fontSize: 14 }}>
 					Displaying the MSA for the {summaryData[1].rows[0][2]} alleles
 					that were considered valid.
+				</Typography>
+			</Alert>
+		);
+	}
+
+	// Alert about row and column selection
+	let alertMSASelection = undefined;
+	if (msaElement !== undefined) {
+		alertMSASelection = (
+			<Alert key="alertMSASelection" severity="info">
+				<Typography sx={{ fontSize: 14 }}>
+					Click on a row/column label to select a row/column.
+					Hold the Ctrl key for multiselection. The
+					"Row Selection" option exports the Full MSA if no rows
+					are selected.
 				</Typography>
 			</Alert>
 		);
@@ -1109,7 +1147,7 @@ const LocusPage = () => {
 				summaryText={MSAComponentTitle}
 				detailsData={[msaMenu, msaElement]}
 				expanded={false}
-				alerts={[alertMSA]}
+				alerts={[alertMSA, alertMSASelection]}
 			>
 			</AccordionMUI>
 		);

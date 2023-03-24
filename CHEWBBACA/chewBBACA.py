@@ -642,6 +642,8 @@ def evaluate_schema():
 
     schema_evaluator.main(**vars(args))
 
+    fo.remove_files([loci_list])
+
 
 @pdt.process_timer
 def extract_cgmlst():

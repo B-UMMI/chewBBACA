@@ -3,10 +3,13 @@
 """
 Purpose
 -------
-This module generates an interactive report that allows the user to explore
-the diversity (number of alleles) at each locus, the variation of allele
-sizes per locus and the presence of alleles that are not CDSs
-(when evaluating schemas called by other algorithms).
+This module generates an interactive HTML report for a schema with
+statistics about the allele size per locus and an analysis to
+identify alleles that are not complete coding sequences or that
+deviate from the allele mode size and minimum length. There is
+also the option to include loci annotations provided in a TSV
+file and to create a detailed HTML report for each locus that
+can include a protein MSA and a NJ Tree.
 
 Code documentation
 ------------------
@@ -41,6 +44,142 @@ except ModuleNotFoundError:
         multiprocessing_operations as mo)
 
 
+def compute_quartiles(values):
+    """Compute the q1, median and q3.
+
+    Parameters
+    ----------
+    values : list
+        List with integers and/or floats.
+
+    Returns
+    -------
+    A list with the q1, median and q3 computed
+    based on the input list.
+    """
+    median = round(statistics.median(values))
+    # q1 and q3
+    if len(values) > 1:
+        half = int(len(values) // 2)
+        q1 = statistics.median(values[:half])
+        q3 = statistics.median(values[-half:])
+    else:
+        q1 = values[0]
+        q3 = values[0]
+
+    return [q1, median, q3]
+
+
+def compute_mean(values, decimal_place=None):
+    """Compute the mean.
+
+    Parameters
+    ----------
+    values : list
+        List with integers and/or floats.
+    decimal_place : int
+        Rounding precision.
+
+    Returns
+    -------
+    mean : int or float
+        The mean computed based on the input list.
+    """
+    mean = round(sum(values) / len(values), decimal_place)
+
+    return mean
+
+
+def compute_sd(values):
+    """Compute the standard deviation.
+
+    Parameters
+    ----------
+    values : list
+        List with integers and/or floats.
+
+    Returns
+    -------
+    sd : float
+        The standard deviation computed based on the input list.
+    """
+    # standard deviation
+    if len(values) > 1:
+        sd = statistics.stdev(values)
+    else:
+        sd = 0.0
+
+    return sd
+
+
+def outside_threshold(values, threshold, limit):
+    """Determine if values are outside a threshold.
+
+    Parameters
+    ----------
+    values : list
+        List with integers and/or floats.
+    threshold : int or float
+        Threshold value.
+    limit : str
+        Check if the values are above ('top') or below
+        ('bot') the threshold.
+
+    Returns
+    -------
+    outside_indices : list
+        List with the indices of the values that were
+        outside the threshold.
+    """
+    outside_indices = []
+    for i, v in enumerate(values):
+        if limit == 'top':
+            if v > threshold:
+                outside_indices.append(i, v)
+        elif limit == 'bot':
+            if v < threshold:
+                outside_indices.append(i, v)
+
+    return outside_indices
+
+
+def count_translation_exception_categories(exceptions):
+    """Count the number of ocurrences for each translation exception.
+
+    Parameters
+    ----------
+    exceptions : list
+        List with the strings corresponding to the exceptions captured
+        during sequence translation.
+
+    Returns
+    -------
+    inframe_stop : int
+        Count for in-frame stop codons.
+    no_start : int
+        Count for sequences that do not start with a start codon.
+    no_stop : int
+        Count for sequences that do not end with a stop codon.
+    incomplete : int
+        Count for sequences with a length value that is not a
+        multiple of 3.
+    ambiguos : int
+        Count for sequences that include ambiguous bases.
+    """
+    inframe_stop = sum([1 for exc in exceptions
+                        if ct.TRANSLATION_EXCEPTIONS[0] in exc.split(',')[0]])
+    no_start = sum([1 for exc in exceptions
+                    if ct.TRANSLATION_EXCEPTIONS[1] in exc.split(',')[0]])
+    no_stop = sum([1 for exc in exceptions
+                   if ct.TRANSLATION_EXCEPTIONS[2] in exc.split(',')[0]])
+    incomplete = sum([1 for exc in exceptions
+                      if ct.TRANSLATION_EXCEPTIONS[3] in exc.split(',')[0]])
+    ambiguous = sum([1 for exc in exceptions
+                     if ct.TRANSLATION_EXCEPTIONS[4] in exc.split(',')[0]])
+
+    return [inframe_stop, no_start, no_stop, incomplete, ambiguous]
+
+
 def call_mafft(genefile):
     """Call MAFFT to generate an alignment.
 
@@ -72,118 +211,225 @@ def call_mafft(genefile):
         return False
 
 
-def compute_locus_statistics(locus, translation_table, minimum_length, size_threshold):
+def reformat_translation_exceptions(exceptions, allele_lengths):
+    """Reformat translation exceptions.
+
+    Parameters
+    ----------
+    exceptions : list
+        List with one sublist for each exception. Each sublist
+        includes an allele identifier and the exception string.
+    allele_lengths : dict
+        Dictionary mapping the allele identifier to the allele
+        sequence length.
+
+    Returns
+    -------
+    formatted_exceptions : dict
+        Dictionary mapping the allele identifiers to a list
+        with the allele identifier, the exception category of
+        the first exception that was captured and the list of
+        all exceptions captured for each allele.
     """
+    formatted_exceptions = {}
+    for exception in exceptions:
+        allele_id = exception[0]
+        sequence_length = allele_lengths[allele_id]
+        raw_exception = exception[1]
+        if raw_exception == 'sequence length is not a multiple of 3':
+            exception_category = 'Incomplete ORF'
+            exception_description = ('Sequence length is not a multiple '
+                                     f'of 3 ({sequence_length}bp);')
+        if raw_exception == 'ambiguous or invalid characters':
+            exception_category = 'Ambiguous Bases'
+            exception_description = ('Sequence contains ambiguous bases;')
+        if 'codon' in raw_exception:
+            # split exception string
+            split_exception = raw_exception.split(',')
+            clean_exceptions = []
+            for e in split_exception:
+                estr = e.replace('(', ':')
+                estr = estr.replace(')', ';')
+                estr = estr.replace('.', '')
+                clean_exceptions.append(estr)
+            if 'Extra' in clean_exceptions[0]:
+                exception_category = 'In-frame Stop Codon'
+            else:
+                exception_category = 'Missing Start/Stop Codon'
+            exception_description = ' '.join(clean_exceptions)
+
+        formatted_exceptions.setdefault(allele_id,
+                                        [allele_id,
+                                         exception_category]).append(exception_description)
+
+    return formatted_exceptions
+
+
+def compute_locus_statistics(locus, translation_table, minimum_length,
+                             size_threshold, translation_dir):
+    """Compute sequence length statistics for a locus.
+
+    Parameters
+    ----------
+    locus : str
+        Path to the locus FASTA file.
+    translation_table : int
+        Translation table to use for sequence translation.
+    minimum_length : int
+        Minimum sequence length value used to exclude sequences.
+    size_threshold : float
+        Sequence size variation threshold value used to compute bot
+        and top sequence length thresholds.
+    translation_dir : str
+        Path to the directory where the FASTA files with the
+        translated alleles will be saved to.
+
+    Returns
+    -------
+    results : list
+        A list with the length statistics and the sequence translation
+        exceptions captured for each sequence in the FASTA file.
     """
+    locus_id = fo.file_basename(locus, False)
     allele_lengths = fao.sequence_lengths(locus)
     # sort based on sequence length
-    allele_lengths = {x[0]: x[1]
+    allele_lengths = {x[0].split('_')[-1]: x[1]
                       for x in sorted(allele_lengths.items(),
                                       key=lambda item: item[1])}
     lengths = list(allele_lengths.values())
-    seqids = list(allele_lengths.keys())
-    allele_ids = [seqid.split('_')[-1] for seqid in seqids]
+    allele_ids = list(allele_lengths.keys())
 
     # number of alleles
     nr_alleles = len(lengths)
 
-    # minimum and maximum values
+    # Summary statistics
     max_length = max(lengths)
     min_length = min(lengths)
-
-    # Summary statistics
-    median_length = round(statistics.median(lengths))
-    mean_length = round(sum(lengths) / len(lengths))
+    size_range = f'{min_length}-{max_length}'
+    mean_length = compute_mean(lengths, 0)
+    locus_sd = compute_sd(lengths)
+    q1, median, q3 = compute_quartiles(lengths)
     mode_length = sm.determine_mode(lengths)[0]
 
-    # standard deviation
-    if nr_alleles > 1:
-        locus_sd = statistics.stdev(lengths)
-    else:
-        locus_sd = 0.0
-
-    # q1 and q3
-    if nr_alleles > 1:
-        half = int(nr_alleles // 2)
-        q1 = statistics.median(lengths[:half])
-        q3 = statistics.median(lengths[-half:])
-    else:
-        q1 = lengths[0]
-        q3 = lengths[0]
-
-    # Conserved alleles
-    alleles_below_threshold = 0
-    alleles_above_threshold = 0
+    # Get index of alleles above size threshold
     top_threshold = math.floor(mode_length*(1+size_threshold))
+    above_threshold = outside_threshold(lengths, top_threshold, 'top')
+    # Get ids based on indices
+    above_threshold = [(allele_ids[i[0]], i[1]) for i in above_threshold]
+    # Get index of alleles below size threshold
     bot_threshold = math.ceil(mode_length*(1-size_threshold))
-    for size in lengths:
-        if size < bot_threshold:
-            alleles_below_threshold += 1
-        elif size > top_threshold:
-            alleles_above_threshold += 1
+    below_threshold = outside_threshold(lengths, bot_threshold, 'bot')
+    # Get ids based on indices
+    below_threshold = [(allele_ids[i[0]], i[1]) for i in below_threshold]
 
-    translated = {(record.id).split('_')[-1]: sm.translate_dna(str(record.seq), translation_table, minimum_length)
-                  for record in fao.sequence_generator(locus)}
+    # Translate alleles and capture translation exceptions
+    _, protein_file, _, exceptions = fao.translate_fasta(locus,
+                                                         translation_dir,
+                                                         translation_table)
 
-    exceptions = {k: v for k, v in translated.items() if type(v) == str}
-
+    exceptions = {exc[0].split('_')[-1]: exc[1] for exc in exceptions}
     exceptions_values = list(exceptions.values())
     exceptions_lines = [[k, v] for k, v in exceptions.items()]
+    # Count number of ocurrences for each translation exception
+    exception_counts = count_translation_exception_categories(exceptions_values)
 
-    stopC = sum([1 for exception in exceptions_values
-                 if 'Extra in frame stop codon found' in exception.split(',')[0]])
-    #stopC = exceptions_values.count('Extra in frame stop codon found')
-    notStart = sum([1 for exception in exceptions_values
-                    if 'is not a start codon' in exception.split(',')[0]])
-    notStart += sum([1 for exception in exceptions_values
-                    if 'is not a stop codon' in exception.split(',')[0]])
-    #notStart = exceptions_values.count('is not a start codon')+exceptions_values.count('is not a stop codon')
-    notMultiple = sum([1 for exception in exceptions_values
-                       if 'sequence length is not a multiple of 3' in exception.split(',')[0]])
-    #notMultiple = exceptions_values.count('sequence length is not a multiple of 3')
-    shorter = sum([1 for exception in exceptions_values
-                       if 'sequence shorter than' in exception.split(',')[0]])
-    #shorter = exceptions_values.count('sequence shorter than')
-    validCDS = nr_alleles - len(exceptions)
+    # Do not count shorter alleles as invalid alleles
+    # Only count as invalid alleles that cannot be translated
+    invalidCDS = sum(exception_counts)
+    validCDS = nr_alleles - invalidCDS
+
+    # determine sequences shorter than minimum length
+    short_ids = [(allele_ids[i], v)
+                 for i, v in enumerate(lengths)
+                 if v < minimum_length]
 
     # format exception strings for Exceptions Table Component in loci reports
-    ###
-    ###
+    formatted_exceptions = reformat_translation_exceptions(exceptions_lines,
+                                                           allele_lengths)
 
-    results = [fo.file_basename(locus, False),
-               nr_alleles,
-               max_length,
-               min_length,
-               f'{min_length}-{max_length}',
-               median_length,
-               mean_length,
-               mode_length,
-               locus_sd,
-               q1,
-               q3,
-               lengths,
-               allele_ids,
-               [fo.file_basename(locus, False),
-                nr_alleles,
-                validCDS,
-                notMultiple,
-                notStart,
-                stopC,
-                shorter,
-                alleles_below_threshold,
-                alleles_above_threshold],
-               bot_threshold,
-               top_threshold,
-               exceptions_lines
-               ]
+    # Add info about short alleles
+    short_category = f'Alleles < {minimum_length}bp'
+    short_description = 'Sequence shorter than {0}bp ({1}bp);'
+    for i in short_ids:
+        if i[0] in formatted_exceptions:
+            formatted_exceptions[i[0]].append(short_description.format(minimum_length, i[1]))
+        else:
+            formatted_exceptions[i[0]] = [i[0],
+                                          short_category,
+                                          short_description.format(minimum_length, i[1])]
+
+    # Add info about alleles above threshold
+    above_category = 'Alleles above size threshold'
+    above_description = f'Sequence above size threshold ({0}bp)'
+    for i in above_threshold:
+        if i[0] in formatted_exceptions:
+            formatted_exceptions[i[0]].append(above_description.format(i[1]))
+        else:
+            formatted_exceptions[i[0]] = [i[0],
+                                          above_category,
+                                          above_description.format(i[1])]
+
+    # Add info about alleles below threshold
+    below_category = 'Alleles below size threshold'
+    below_description = f'Sequence below size threshold ({0}bp)'
+    for i in below_threshold:
+        if i[0] in formatted_exceptions:
+            formatted_exceptions[i[0]].append(below_description.format(i[1]))
+        else:
+            formatted_exceptions[i[0]] = [i[0],
+                                          below_category,
+                                          below_description.format(i[1])]
+
+    # Join exceptions per allele
+    formatted_exceptions = [[v[0], v[1], ' '.join(v[2:])]
+                            for k, v in formatted_exceptions.items()]
+
+    # Unpack exception counts
+    inframe_stop, no_start, no_stop, incomplete, ambiguous = exception_counts
+
+    results = [locus_id, nr_alleles, max_length, min_length,
+               size_range, median, mean_length, mode_length,
+               locus_sd, q1, q3, lengths, allele_ids,
+               [locus_id, nr_alleles, validCDS, invalidCDS, incomplete,
+                ambiguous, no_start+no_stop, inframe_stop, len(short_ids),
+                len(below_threshold), len(above_threshold)],
+               bot_threshold, top_threshold, formatted_exceptions,
+               protein_file]
 
     return results
 
 
 def locus_report(locus_file, locus_data, annotation_columns,
-                 annotation_values, translation_dir, html_dir,
-                 translation_table, minimum_length, light, add_sequences):
-    """
+                 annotation_values, html_dir, minimum_length,
+                 light, add_sequences):
+    """Create the HTML report for a locus.
+
+    Parameters
+    ----------
+    locus_file : str
+        Path to the locus FASTA file.
+    locus_data : list
+        List with the locus data returned by `compute_locus_statistics`.
+    annotation_columns : list
+        List with the column headers for the annotations table.
+    annotation_values : list
+        List with the locus annotations.
+    html_dir : str
+        Path to the directory where the loci HTML reports will
+        be saved to.
+    minimum_length : int
+        Minimum sequence length.
+    light : bool
+        True to compute and add the MSA and NJ to the report.
+        False otherwise.
+    add_sequences : bool
+        True to add the allele DNA sequences and the translated
+        allele sequences to the report.
+
+    Returns
+    -------
+    locus_html_file : str
+        Path to the locus report HTML file.
     """
     locus = locus_data[0]
     allele_lengths = locus_data[11]
@@ -201,22 +447,20 @@ def locus_report(locus_file, locus_data, annotation_columns,
                   locus_data[13][4],
                   locus_data[13][5],
                   locus_data[13][6],
+                  locus_data[13][7],
+                  locus_data[13][8],
                   locus_data[4],
                   locus_data[5],
                   locus_data[7],
-                  locus_data[13][7],
-                  locus_data[13][8]]
-
-    # translate alleles
-    _, protein_file, _ = fao.translate_fasta(locus_file,
-                                             translation_dir,
-                                             translation_table)
+                  locus_data[13][9],
+                  locus_data[13][10]]
 
     dna_sequences = {"sequences": []}
     protein_sequences = {"sequences": []}
     valid_ids = []
+    # Include DNA and Protein sequences if --add-sequences was provided
     if add_sequences is True:
-        protein_records = fao.sequence_generator(protein_file)
+        protein_records = fao.sequence_generator(locus_data[17])
         for record in protein_records:
             protein_sequences["sequences"].append({"name": (record.id).split('_')[-1],
                                                    "sequence": str(record.seq)})
@@ -226,21 +470,20 @@ def locus_report(locus_file, locus_data, annotation_columns,
             dna_sequences["sequences"].append({"name": (record.id).split('_')[-1],
                                                "sequence": str(record.seq)})
 
+    # Get data for MSA and NJ Tree if --light flag was not provided
     phylo_data = {"phylo_data": []}
     msa_data = {"sequences": []}
     if light is False:
         if locus_data[1] > 1:
-            alignment_file = call_mafft(protein_file)
+            alignment_file = call_mafft(locus_data[17])
             # get MSA data
-            with open(alignment_file, 'r') as infile:
-                alignmnet_text = infile.read()
-                msa_data['sequences'] = alignmnet_text.replace(f'{locus}_', '')
+            alignment_text = fo.read_file(alignment_file)
+            msa_data['sequences'] = alignment_text.replace(f'{locus}_', '')
 
             # get Tree data
             # get the phylocanvas data
             tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
-            with open(tree_file, 'r') as phylo:
-                phylo_data = phylo.read()
+            phylo_data = fo.read_file(tree_file)
 
             # Start by substituting greatest value to avoid substituting
             # smaller values contained in greater values
@@ -254,7 +497,8 @@ def locus_report(locus_file, locus_data, annotation_columns,
                                             locus_data[14],
                                             locus_data[15])
     locus_columns = locus_columns.split('\t')
-    # need to include '.' at start to work properly when referencing local files
+
+    # Gather data in dictionary to store in HTML
     locus_html_data = {"summaryData": [{"columns": locus_columns},
                                        {"rows": [locus_rows]}],
                        "annotations": [{"columns": annotation_columns},
@@ -269,10 +513,11 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "protein": protein_sequences,
                        "botThreshold": locus_data[14],
                        "topThreshold": locus_data[15],
-                       "invalidAlleles": [{"columns": ["Allele ID", "Exception"]},
+                       "invalidAlleles": [{"columns": ct.INVALID_ALLELES_COLUMNS},
                                           {"rows": locus_data[16]}]
                        }
 
+    # Add data to HTML string and save HTML string into file
     locus_html = ct.LOCUS_REPORT_HTML
     locus_html = locus_html.format(json.dumps(locus_html_data))
 
@@ -282,17 +527,6 @@ def locus_report(locus_file, locus_data, annotation_columns,
     return locus_html_file
 
 
-# schema_directory = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_schema/schema_seed'
-# output_directory = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/schema_evaluation'
-# genes_list = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_loci.txt'
-# annotations = '/home/rmamede/Desktop/Brucella_Mostafa/chewbbaca3/test_schema/schema_annotations/schema_seed_annotations.tsv'
-# translation_table = 11
-# size_threshold = 0.2
-# minimum_length = 0
-# cpu_cores = 4
-# loci_reports = True
-# light = False
-# add_sequences = True
 def main(schema_directory, output_directory, genes_list, annotations,
          translation_table, size_threshold, minimum_length,
          cpu_cores, loci_reports, light, add_sequences):
@@ -360,10 +594,15 @@ def main(schema_directory, output_directory, genes_list, annotations,
                           f'{size_threshold}, and translation table of '
                           f'{translation_table}.')
 
+    # Create temporary directory to store translated alleles
+    translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
+    fo.create_directory(translation_dir)
+
     # Calculate the summary statistics and other information about each locus.
     inputs = im.divide_list_into_n_chunks(schema_files, len(schema_files))
 
-    common_args = [translation_table, minimum_length, size_threshold]
+    common_args = [translation_table, minimum_length,
+                   size_threshold, translation_dir]
 
     # add common arguments to all sublists
     inputs = im.multiprocessing_inputs(inputs,
@@ -400,19 +639,20 @@ def main(schema_directory, output_directory, genes_list, annotations,
     summary_columns = summary_columns.split('\t')
 
     # Get total number of alleles with a length value not multiple of 3
-    notMultiple_sum = sum([subdata[3] for subdata in data[13]])
+    notMultiple_sum = sum([subdata[4] for subdata in data[13]])
     # Get total number of alleles with an in-frame stop codon
-    stopC_sum = sum([subdata[5] for subdata in data[13]])
+    stopC_sum = sum([subdata[7] for subdata in data[13]])
     # Get total number of alleles with no start or stop codon
-    notStart_sum = sum([subdata[4] for subdata in data[13]])
+    notStart_sum = sum([subdata[6] for subdata in data[13]])
     # Get total number of alleles shorter than the minimum length value
-    shorter_sum = sum([subdata[6] for subdata in data[13]])
+    shorter_sum = sum([subdata[8] for subdata in data[13]])
+    # Get totla number of alleles with ambiguous bases
+    ambiguous_sum = sum([subdata[5] for subdata in data[13]])
     # Get total number of alleles below or above the sequence length thresholds
-    below_sum = sum([subdata[7] for subdata in data[13]])
-    above_sum = sum([subdata[8] for subdata in data[13]])
+    below_sum = sum([subdata[9] for subdata in data[13]])
+    above_sum = sum([subdata[10] for subdata in data[13]])
     # Get total number of valid and invalid alleles
-    invalid_sum = sum([notMultiple_sum, stopC_sum,
-                       notStart_sum, shorter_sum])
+    invalid_sum = sum([subdata[3] for subdata in data[13]])
     valid_sum = sum(data[1]) - invalid_sum
     # Create list with row values for Summary Data Table in the Schema Report
     summary_rows = [len(data[0]),
@@ -420,13 +660,14 @@ def main(schema_directory, output_directory, genes_list, annotations,
                     valid_sum,
                     invalid_sum,
                     notMultiple_sum,
+                    ambiguous_sum,
                     notStart_sum,
                     stopC_sum,
                     shorter_sum,
                     below_sum,
                     above_sum]
 
-    # Columns for the Alleles Analysis Table component
+    # Columns for the Allele Analysis Table component
     analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
     analysis_columns = analysis_columns.split('\t')
     analysis_rows = list(data[13])
@@ -463,10 +704,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
             annotations_dict = {a[0]: a for a in annotation_values[1]}
         else:
             annotations_dict = {}
-        
-        # Create temporary directory to store translated alleles
-        translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
-        fo.create_directory(translation_dir)
+
         # Create directory to store loci HTML reports
         html_dir = fo.join_paths(output_directory, ['loci_reports'])
         fo.create_directory(html_dir)
@@ -485,6 +723,8 @@ def main(schema_directory, output_directory, genes_list, annotations,
         inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
 
         # Create loci reports
+        # Compute MSA and NJ tree if --light is not True
+        # Add DNA and Protein sequences if --add-sequences is provided
         print('Creating loci reports...')
         loci_htmls = mo.map_async_parallelizer(inputs,
                                                mo.function_helper,

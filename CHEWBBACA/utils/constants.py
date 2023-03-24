@@ -231,6 +231,7 @@ UNIPROT_SPARQL_THREADS = 4
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 
 # HTML template to create Schema Report
+# need to include '.' at start to work properly when referencing local files
 SCHEMA_REPORT_HTML = ("""
 <!DOCTYPE html>
 <html lang="en">
@@ -249,6 +250,7 @@ SCHEMA_REPORT_HTML = ("""
 """)
 
 # HTML template to create Loci Reports
+# need to include '.' at start to work properly when referencing local files
 LOCUS_REPORT_HTML = ("""
 <!DOCTYPE html>
 <html lang="en">
@@ -268,7 +270,6 @@ LOCUS_REPORT_HTML = ("""
 </html>
 """)
 
-
 # Do not use list of strings as constants if the strings include formatting
 # placeholders. Multiple references to the list of strings will have the same
 # id and altering the strings with format will not change the list id. In
@@ -278,20 +279,31 @@ LOCUS_REPORT_HTML = ("""
 
 # Table header for the Schema report summary data
 SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
-                                'alleles\tIncomplete ORF\tMissing Star'
-                                't/Stop Codon\tIn-frame Stop Codon\tAlleles '
-                                '< {0}bp\tAlleles below threshold\tAlleles '
-                                'above threshold')
+                                'alleles\tIncomplete ORF\tAmbiguous Bases\t'
+                                'Missing Start/Stop Codon\tIn-frame Stop '
+                                'Codon\tAlleles < {0}bp\tAlleles below '
+                                'threshold\tAlleles above threshold')
 
 # Column headers for the Loci Analysis Table in the Schema report
-LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tIncomplete '
-                         'ORF\tMissing Start/Stop Codon\tIn-frame Stop '
-                         'Codon\tAlleles < {0}bp\tAlleles below '
-                         'threshold\tAlleles above threshold')
+LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
+                         'Alleles\tIncomplete ORF\tAmbiguous Bases\tMissing '
+                         'Start/Stop Codon\tIn-frame Stop Codon\tAlleles '
+                         '< {0}bp\tAlleles below threshold\tAlleles above '
+                         'threshold')
 
 # Column headers for the Summary Table in the Loci reports
-LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tIncomplete '
-                 'ORF\tMissing Start/Stop Codon\tIn-frame Stop '
-                 'Codon\tAlleles < {0}bp\tSize Range (bp)\tLength '
-                 'Median (bp)\tLength Mode (bp)\tAlleles below '
+LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid Alleles\t'
+                 'Incomplete ORF\tAmbiguous Bases\tMissing Start/Stop '
+                 'Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tSize Range '
+                 '(bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below '
                  'threshold ({1}bp)\tAlleles above threshold ({2}bp)')
+
+# Column headers for Invalid Alleles table in the loci reports
+INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',
+                           'Exception Description']
+
+TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
+                          'is not a start codon',
+                          'is not a stop codon',
+                          'sequence length is not a multiple of 3',
+                          'ambiguous or invalid characters']

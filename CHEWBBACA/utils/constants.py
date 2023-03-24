@@ -286,17 +286,20 @@ SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
 
 # Column headers for the Loci Analysis Table in the Schema report
 LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
-                         'Alleles\tIncomplete ORF\tAmbiguous Bases\tMissing '
+                         'Alleles\tProportion of Validated Alleles\tIncomplete '
+                         'ORF\tAmbiguous Bases\tMissing '
                          'Start/Stop Codon\tIn-frame Stop Codon\tAlleles '
                          '< {0}bp\tAlleles below threshold\tAlleles above '
-                         'threshold')
+                         'threshold\tMissing Allele IDs')
 
 # Column headers for the Summary Table in the Loci reports
-LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid Alleles\t'
+LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
+                 'Alleles\tProportion of Validated Alleles\t'
                  'Incomplete ORF\tAmbiguous Bases\tMissing Start/Stop '
                  'Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tSize Range '
                  '(bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below '
-                 'threshold ({1}bp)\tAlleles above threshold ({2}bp)')
+                 'threshold ({1}bp)\tAlleles above threshold ({2}bp)\t'
+                 'Missing Allele IDs')
 
 # Column headers for Invalid Alleles table in the loci reports
 INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',

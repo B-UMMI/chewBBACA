@@ -135,10 +135,10 @@ def outside_threshold(values, threshold, limit):
     for i, v in enumerate(values):
         if limit == 'top':
             if v > threshold:
-                outside_indices.append(i, v)
+                outside_indices.append((i, v))
         elif limit == 'bot':
             if v < threshold:
-                outside_indices.append(i, v)
+                outside_indices.append((i, v))
 
     return outside_indices
 
@@ -234,7 +234,7 @@ def reformat_translation_exceptions(exceptions, allele_lengths):
     formatted_exceptions = {}
     for exception in exceptions:
         allele_id = exception[0]
-        sequence_length = allele_lengths[allele_id]
+        sequence_length = allele_lengths[int(allele_id)]
         raw_exception = exception[1]
         if raw_exception == 'sequence length is not a multiple of 3':
             exception_category = 'Incomplete ORF'
@@ -293,11 +293,14 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     locus_id = fo.file_basename(locus, False)
     allele_lengths = fao.sequence_lengths(locus)
     # sort based on sequence length
-    allele_lengths = {x[0].split('_')[-1]: x[1]
+    allele_lengths = {int(x[0].split('_')[-1]): x[1]
                       for x in sorted(allele_lengths.items(),
                                       key=lambda item: item[1])}
     lengths = list(allele_lengths.values())
     allele_ids = list(allele_lengths.keys())
+
+    # Determine missing allele ids
+    missing_ids = im.find_missing(allele_ids)
 
     # number of alleles
     nr_alleles = len(lengths)
@@ -337,6 +340,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     # Only count as invalid alleles that cannot be translated
     invalidCDS = sum(exception_counts)
     validCDS = nr_alleles - invalidCDS
+    validated_proportion = round(validCDS / nr_alleles, 2)
 
     # determine sequences shorter than minimum length
     short_ids = [(allele_ids[i], v)
@@ -390,11 +394,12 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     results = [locus_id, nr_alleles, max_length, min_length,
                size_range, median, mean_length, mode_length,
                locus_sd, q1, q3, lengths, allele_ids,
-               [locus_id, nr_alleles, validCDS, invalidCDS, incomplete,
-                ambiguous, no_start+no_stop, inframe_stop, len(short_ids),
-                len(below_threshold), len(above_threshold)],
+               [locus_id, nr_alleles, validCDS, invalidCDS,
+                validated_proportion, incomplete, ambiguous, no_start+no_stop,
+                inframe_stop, len(short_ids), len(below_threshold),
+                len(above_threshold), len(missing_ids)],
                bot_threshold, top_threshold, formatted_exceptions,
-               protein_file]
+               protein_file, missing_ids]
 
     return results
 
@@ -449,11 +454,13 @@ def locus_report(locus_file, locus_data, annotation_columns,
                   locus_data[13][6],
                   locus_data[13][7],
                   locus_data[13][8],
+                  locus_data[13][9],
                   locus_data[4],
                   locus_data[5],
                   locus_data[7],
-                  locus_data[13][9],
-                  locus_data[13][10]]
+                  locus_data[13][10],
+                  locus_data[13][11],
+                  locus_data[13][12]]
 
     dna_sequences = {"sequences": []}
     protein_sequences = {"sequences": []}
@@ -639,18 +646,18 @@ def main(schema_directory, output_directory, genes_list, annotations,
     summary_columns = summary_columns.split('\t')
 
     # Get total number of alleles with a length value not multiple of 3
-    notMultiple_sum = sum([subdata[4] for subdata in data[13]])
+    notMultiple_sum = sum([subdata[5] for subdata in data[13]])
     # Get total number of alleles with an in-frame stop codon
-    stopC_sum = sum([subdata[7] for subdata in data[13]])
+    stopC_sum = sum([subdata[8] for subdata in data[13]])
     # Get total number of alleles with no start or stop codon
-    notStart_sum = sum([subdata[6] for subdata in data[13]])
+    notStart_sum = sum([subdata[7] for subdata in data[13]])
     # Get total number of alleles shorter than the minimum length value
-    shorter_sum = sum([subdata[8] for subdata in data[13]])
+    shorter_sum = sum([subdata[9] for subdata in data[13]])
     # Get totla number of alleles with ambiguous bases
-    ambiguous_sum = sum([subdata[5] for subdata in data[13]])
+    ambiguous_sum = sum([subdata[6] for subdata in data[13]])
     # Get total number of alleles below or above the sequence length thresholds
-    below_sum = sum([subdata[9] for subdata in data[13]])
-    above_sum = sum([subdata[10] for subdata in data[13]])
+    below_sum = sum([subdata[10] for subdata in data[13]])
+    above_sum = sum([subdata[11] for subdata in data[13]])
     # Get total number of valid and invalid alleles
     invalid_sum = sum([subdata[3] for subdata in data[13]])
     valid_sum = sum(data[1]) - invalid_sum

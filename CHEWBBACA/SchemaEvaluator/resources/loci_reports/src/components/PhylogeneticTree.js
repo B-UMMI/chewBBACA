@@ -1,11 +1,262 @@
 import { useState, useEffect } from "react";
 
+// Import array with tree format download options
+import { treeDownloadOptions } from '../constants';
+
 // Phylocanvas imports
 import PhylocanvasGL, { plugins } from "@phylocanvas/phylocanvas.gl";
+import { TreeTypes, Shapes } from "@phylocanvas/phylocanvas.gl";
+
+// Package for animating vertical scrolling in the NJ Tree component
+import { Element } from 'react-scroll';
+
+import Box from '@mui/material/Box';
+import Switch from '@mui/material/Switch';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import InputLabel from '@mui/material/InputLabel';
+import IconButton from '@mui/material/IconButton';
+import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
+import FileDownload from '@mui/icons-material/FileDownload';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 
-const PhylogeneticTree = ({ treeSource, treeType, showLabels, showBranchLengths, selectedIds, download, downloadType, treeNodeSize, fontSize, nodeShape }) => {
+const PhylogeneticTree = ({ treeSource, validIDs }) => {
 	const [phyloTree, setPhyloTree] = useState(undefined);
+
+	// State used to control the type/shape of the NJ tree
+	const [treeType, setTreeType] = useState(TreeTypes.Circular);
+	// Event handler used to change NJ tree type
+	const handleTreeTypeSelect = (event) => {
+		setTreeType(event.target.value);
+	};
+
+	// State used to determine if NJ tree node labels should be displayed
+	const [showNodeLabels, setShowNodeLabels] = useState(true);
+	// Event handler used to change visibility of NJ tree node labels
+	const handleTreeNodeLabelsCheck = (event) => {
+		setShowNodeLabels(event.target.checked);
+	};
+
+	// State used to determine if NJ tree branch lenghts should be displayed
+	const [showBranchLengths, setShowBranchLengths] = useState(false);
+	// Event handler used to change visibility of NJ tree branch lengths
+	const handleBranchLabelsCheck = (event) => {
+		setShowBranchLengths(event.target.checked);
+	};
+
+	// State used to determine which NJ tree nodes should be highlighted
+	const [selectedIds, setSelectedIds] = useState([]);
+	// Event handler used to change NJ tree node selection
+	const handleTreeNodeSelectChange = (event, newValue) => {
+		setSelectedIds(newValue);
+	};
+
+	// State used to set NJ tree node size
+	const [treeNodeSize, setTreeNodeSize] = useState(16);
+	// Event handler used to change NJ tree node size
+	const handleTreeNodeSize = (value) => {
+		setTreeNodeSize(+value)
+	};
+
+	// State used to set NJ tree font size
+	const [treeFontSize, setTreeFontSize] = useState(16);
+	// Event handler used to change NJ tree font size
+	const handleTreeFontSize = (value) => {
+		setTreeFontSize(+value)
+	};
+
+	// State used to set NJ tree node shape
+	const [treeNodeShape, setTreeNodeShape] = useState(Shapes.Circle);
+	// Event handler used to change NJ tree node shape
+	const handleTreeNodeShape = (event) => {
+		setTreeNodeShape(event.target.value)
+	}
+
+	// Piece of state used to trigger tree download
+	const [download, setDownload] = useState(false);
+	// Event handler used to change download state and trigger download
+	const handleClick = (event) => {
+		setDownload(!download);
+	}
+
+	// Piece of state used to set download file format
+	const [downloadType, setDownloadType] = useState("SVG");
+	// Event handler used to change download file format
+	const handleExport = (event) => {
+		setDownloadType(event.target.value);
+	};
+
+	const treeDownloadMenuOptions = treeDownloadOptions.map((format) => {
+		return <MenuItem key={format} value={format}>{format}</MenuItem>
+	})
+
+	const treeShapeOptions = Object.entries(TreeTypes).map((type) => {
+		return <MenuItem key={type[0]} value={type[1]}>{type[0]}</MenuItem>
+	})
+
+	const treeNodeShapeOptions = Object.entries(Shapes).map((shape) => {
+		return <MenuItem key={shape[0]} value={shape[1]}>{shape[0]}</MenuItem>
+	})
+
+	const treeDownloadMenu = (
+		<Box key="tree-export-select" sx={{ p: 1 }}>
+			<FormControl>
+				<InputLabel id="tree-export-select">File Format</InputLabel>
+				<Select 
+					labelId="tree-export-select"
+					id="tree-export"
+					value={downloadType}
+					label="Export format"
+					onChange={handleExport}
+					sx={{ height: 40, width: 110 }}
+				>
+					{treeDownloadMenuOptions}
+				</Select>
+			</FormControl>
+			<IconButton
+				onClick={handleClick}
+				sx={{
+					height: 40,
+					width: 30,
+					borderRadius: "4px",
+					color: "rgb(255, 255, 255)",
+					backgroundColor: "rgb(25, 118, 210)"
+				}}
+			>
+				<FileDownload></FileDownload>
+			</IconButton>
+		</Box>
+	);
+
+	// Component to select tree nodes
+	const treeIdsSelect = (
+		<Box key="select-tree-id" sx={{ p: 1 }}>
+			<Autocomplete
+				limitTags={3}
+				multiple
+				disablePortal
+				id="select-tree-id"
+				options={validIDs}
+				size="small"
+				sx={{ height: 40, width: 300 }}
+				renderInput={(params) => <TextField {...params} label="Select Ids" />}
+				onChange={handleTreeNodeSelectChange}
+				clearOnEscape
+			/>
+		</Box>
+	);
+
+	const phyloTreeMenu = (
+		<Box
+			key="tree-options-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			<Box key="tree-type-select-box" sx={{ p: 1 }}>
+				<FormControl>
+					<InputLabel id="tree-type-select">Tree Type</InputLabel>
+					<Select 
+						labelId="tree-type-select"
+						id="tree-type"
+						value={treeType}
+						label="Tree Type"
+						onChange={handleTreeTypeSelect}
+						sx={{ height: 40, width: 140 }}
+					>
+						{treeShapeOptions}
+					</Select>
+				</FormControl>
+			</Box>
+			<Box key="tree-node-shape-select" sx={{ p: 1 }}>
+				<FormControl>
+					<InputLabel id="tree-node-shape">Node Shape</InputLabel>
+					<Select 
+						labelId="tree-node-shape"
+						id="node-shape"
+						value={treeNodeShape}
+						label="Node Shape"
+						onChange={handleTreeNodeShape}
+						sx={{ height: 40, width: 230 }}
+					>
+						{treeNodeShapeOptions}
+					</Select>
+				</FormControl>
+			</Box>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="node-size"
+					size="small"
+					sx={{ height: 40, width: 80 }}
+					label="Node Size"
+					variant="outlined"
+					defaultValue={treeNodeSize}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleTreeNodeSize(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			<Box
+				component="form"
+				noValidate
+				autoComplete="off"
+				sx={{ p: 1 }}
+			>
+				<TextField
+					id="tree-font-size"
+					size="small"
+					sx={{ height: 40, width: 80 }}
+					label="Font Size"
+					variant="outlined"
+					defaultValue={treeFontSize}
+					onKeyPress={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleTreeFontSize(e.target.value)
+						}
+					}}
+				/>
+			</Box>
+			{treeIdsSelect}
+			{treeDownloadMenu}
+			<Box key="node-labels-form" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="node-labels-form"
+					control={<Switch key="node-labels-switch" defaultChecked size="medium" />} 
+					label="Node Labels" 
+					labelPlacement="start"
+					onChange={handleTreeNodeLabelsCheck}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+			<Box key="branch-labels-form" sx={{ p: 1 }}>
+				<FormControlLabel 
+					key="branch-labels-form"
+					control={<Switch key="branch-labels-switch" size="medium" />} 
+					label="Branch Lengths" 
+					labelPlacement="start"
+					onChange={handleBranchLabelsCheck}
+					sx={{ height: 40 }}
+				/>
+			</Box>
+		</Box>
+	);
 
 	// Hook to check if tree is not undefined
 	// and destroy previous tree before rerendering
@@ -13,7 +264,7 @@ const PhylogeneticTree = ({ treeSource, treeType, showLabels, showBranchLengths,
 		if (phyloTree) {
 			phyloTree.destroy();
 		}
-	}, [treeSource, treeType, showLabels, showBranchLengths, selectedIds, treeNodeSize, fontSize, nodeShape])
+	}, [treeSource, treeType, showNodeLabels, showBranchLengths, selectedIds, treeNodeSize, treeFontSize, treeNodeShape])
 
 	useEffect(() => {
 		if (phyloTree) {
@@ -44,16 +295,16 @@ const PhylogeneticTree = ({ treeSource, treeType, showLabels, showBranchLengths,
 			 size: { width: 1440, height: 700 },
 			 source: treeSource,
 			 showLabels: true,
-			 showLeafLabels: showLabels,
+			 showLeafLabels: showNodeLabels,
 			 interactive: true,
 			 padding: 15,
 			 treeToCanvasRatio: 0.25,
 			 selectedIds: selectedIds,
 			 showBranchLengths: showBranchLengths,
 			 scaleLineAlpha: false,
-			 nodeShape: nodeShape,
+			 nodeShape: treeNodeShape,
 			 nodeSize: treeNodeSize,
-			 fontSize: fontSize,
+			 fontSize: treeFontSize,
 			 fontFamily: "monospace",
 			 collapsedIds: [],
 			 centre: [ 0.5, 0.5 ],
@@ -61,10 +312,25 @@ const PhylogeneticTree = ({ treeSource, treeType, showLabels, showBranchLengths,
 			},
 			[plugins.scalebar]
 		))
-	}, [treeSource, treeType, showLabels, showBranchLengths, selectedIds, treeNodeSize, fontSize, nodeShape])
+	}, [treeSource, treeType, showNodeLabels, showBranchLengths, selectedIds, treeNodeSize, treeFontSize, treeNodeShape])
 
 	return (
-		<div id="phyloTree" style={{ margin: "auto" }}></div>
+		<div>
+			{phyloTreeMenu}
+			<Element 
+				 name="phyloTree" 
+				 className="element" 
+				 id="containerElement"
+				 style={{
+					 position: 'relative',
+					 height: '750px',
+					 overflow: 'scroll',
+					 marginBottom: '0px'
+					 }}
+			>
+				<div id="phyloTree" style={{ margin: "auto" }}></div>
+			</Element>
+		</div>
 	)
 };
 

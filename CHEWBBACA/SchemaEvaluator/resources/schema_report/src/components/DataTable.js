@@ -15,12 +15,13 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 				})
 	});
 
-	// add link to locus ID
+	// add link to locus ID and columns with "_URL" in the name
 	if (tableConditionalFormatting) {
 		for (let [key, value] of Object.entries(tableConditionalFormatting)) {
-			// Add formatting if the key matches a column name
-			if (tableData[0].columns.includes(key)) {
-				let columnIndex = tableData[0].columns.indexOf(key);
+			// Add formatting to columns whose name contains the key
+			let matchedColumns = (tableData[0].columns).filter(e => e.includes(key));
+			for (let columnName of matchedColumns) {
+				let columnIndex = tableData[0].columns.indexOf(columnName);
 				columnData[columnIndex].options = {...columnData[columnIndex].options, ...value}
 			}
 		}

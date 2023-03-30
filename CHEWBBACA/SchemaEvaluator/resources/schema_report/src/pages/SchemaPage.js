@@ -407,7 +407,7 @@ const SchemaPage = () => {
 	};
 
 	const uniprotLinkColumnFormatting = {
-		"UniProt_URL": {
+		"_URL": {
 			customBodyRender: (value) => (
 				<a 
 					href={value} 

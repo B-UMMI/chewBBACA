@@ -296,6 +296,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     allele_lengths = {int(x[0].split('_')[-1]): x[1]
                       for x in sorted(allele_lengths.items(),
                                       key=lambda item: item[1])}
+
     lengths = list(allele_lengths.values())
     allele_ids = list(allele_lengths.keys())
 
@@ -340,7 +341,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     # Only count as invalid alleles that cannot be translated
     invalidCDS = sum(exception_counts)
     validCDS = nr_alleles - invalidCDS
-    validated_proportion = round(validCDS / nr_alleles, 2)
+    validated_proportion = round(validCDS / nr_alleles, 3)
 
     # determine sequences shorter than minimum length
     short_ids = [(allele_ids[i], v)

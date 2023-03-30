@@ -7,7 +7,7 @@ import Editor from "@monaco-editor/react"
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import './LocusPage.css';
+import classes from './LocusPage.css';
 
 // Material-UI components
 import Box from '@mui/material/Box';
@@ -309,7 +309,8 @@ const LocusPage = () => {
 	// Create array with point colors
 	let colors = []
 	for (const id of data.ids) {
-		if (validIDs.includes(id)) {
+		// Valid identifiers are strings
+		if (validIDs.includes(String(id))) {
 			colors.push("#0570b0")
 		} else {
 			colors.push("#969696")
@@ -639,35 +640,35 @@ const LocusPage = () => {
 	);
 
 	return (
-		<div className='main-div'>
+		<div className={classes.mainDiv}>
 			<div>
 				{HeaderComponent}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{summaryTable}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{annotationsTable ? undefined : alertMessagesComponents[1]}
 				{annotationsTable}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{AlleleSizeTabs}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{exceptionsTable ? undefined : alertMessagesComponents[0]}
 				{exceptionsTable}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{MSAComponent}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{phylogeneticElementTree ? undefined : alertMessagesComponents[7]}
 				{PhylogeneticElement}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{DNAEditor}
 			</div>
-			<div className='secondary-div'>
+			<div className={classes.secondaryDiv}>
 				{ProteinEditor}
 			</div>
 		</div>

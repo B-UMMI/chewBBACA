@@ -27,7 +27,7 @@ from CHEWBBACA import chewBBACA
                 "-o",
                 "schema_report",
             ],
-            "At least one file is empty",
+            "Could not get input files.",
         ),
         (
             [
@@ -38,7 +38,7 @@ from CHEWBBACA import chewBBACA
                 "-o",
                 "schema_report",
             ],
-            "At least one file is empty",
+            "Could not get input files.",
         ),
         (
             [
@@ -49,7 +49,7 @@ from CHEWBBACA import chewBBACA
                 "-o",
                 "schema_report",
             ],
-            "Input argument is not a valid directory",
+            "Input argument is not a valid directory. Exiting...",
         ),
     ],
 )
@@ -93,13 +93,9 @@ def test_schemaEvaluator_valid(test_args, expected):
         stdout, stderr = capture.reset()
 
     # check Schema Report HTML file
-    schema_report_html = [
-        os.path.join(test_args[5], "schema_report.html")
-    ]
+    schema_report_html = os.path.join(test_args[5], "schema_report.html")
 
-    expected_schema_file = [
-        os.path.join(expected, "schema_report.html")
-    ]
+    expected_schema_file = os.path.join(expected, "schema_report.html")
 
     schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=False)
     assert(schema_report_cmp) is True

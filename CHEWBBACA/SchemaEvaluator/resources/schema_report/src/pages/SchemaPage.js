@@ -1,84 +1,46 @@
+import React from 'react'
+
+import { headerMessage, alertMessages, globalTableOptions } from '../constants';
+
+import AlertMUI from '../components/AlertMUI';
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
 import TabPanelMUI from '../components/TabPanelMUI';
 import AccordionMUI from '../components/AccordionMUI';
 
 import Stack from '@mui/material/Stack';
-import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 
-import React from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 
 const SchemaPage = () => {
 
-	const markdown = `
-  ### Schema Report
-
-  The schema report includes the following components:
-
-  - **Schema Summary Data**
-	- Total number of loci and totals for the **Allele Analysis** categories.
-
-  - **Loci statistics**
-	- Tab Panel with the following panels:
-		- Total Alleles: distribution of the number of alleles for all loci.
-		- Allele Mode Size: distribution of the allele mode size (most frequent allele size) for all loci.
-		- Locus Statistics: total number of alleles and allele minimum, maximum and median size per locus.
-		- Allele Size Variation: boxplots for the allele size variation per locus.  
-
-	If you've provided the *--loci-reports* parameter to create the individual loci reports, the points in
-	the "Locus Statistics" and the boxplots in the "Allele Size Variation" plots are clickable and will open
-	the report for the corresponding locus.
-
-  - **Loci Annotations**
-	- Annotations provided for each locus (added from the TSV file passed to the *--a* parameter).
-
-	If the TSV file provided to the *--a* parameter included a column named "UniProt_URL" with the URLs to the UniProt records that matched each locus, the column values will link to the pages of those records.  
-	If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
-  
-  - **Allele Analysis**
-	- Results of the allele analysis per locus. The results are organized into the following categories:
-		- Total alleles: number of alleles in the locus FASTA file.
-		- Valid alleles: number of alleles considered valid based on the configuration values.
-		- Incomplete ORF: number of alleles with a size value not multiple of 3.
-		- Missing Start/Stop Codon: number of alleles missing the start and/or stop codon.
-		- In-frame Stop Codon: number of alleles with in-frame stop codons.
-		- Alleles < minLen: number of alleles with smaller than the minimum sequence length defined in the configuration values.
-		- Alleles below threshold: number of alleles smaller than the allele length mode bot threshold.
-		- Alleles above threshold: number of alleles bigger than the allele length mode top threshold.
-
-	If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
-
-  This report was created with the [React](https://react.dev/) library and uses the following JavaScript packages:
-
-  - [Material UI](https://www.npmjs.com/package/@mui/material) for most of the components.
-  - [MUI-Datatables](https://www.npmjs.com/package/mui-datatables) for datatables components.
-  - [MSA Viewer](https://www.npmjs.com/package/@jlab-contrib/msa) for the Multiple Sequence Alignmnet.
-  - [Phylocanvas.gl](https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl) for the NJ Tree.
-  - [react-plotly.js](https://www.npmjs.com/package/react-plotly.js) for the charts.
-  - [react-scroll](https://www.npmjs.com/package/react-scroll) for animating vertical scrolling in the NJ Tree component.
-  - [Monaco Editor for React](https://www.npmjs.com/package/@monaco-editor/react) for the read-only code editor that displays the DNA and Protein sequences.
-  - [react-markdown](https://www.npmjs.com/package/react-markdown) and [remark-gfm](https://www.npmjs.com/package/remark-gfm) to render markdown.
-
-  You can find more information in the SchemaEvaluator module [documentation](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html).  
-  If you have any feature requests or issues to report, please visit chewBBACA's [GitHub repository](https://github.com/B-UMMI/chewBBACA).
-  `;
-
 	// get pre-computed data
 	const data = window.preComputedData;
 
 	// data for Summary Data table
 	const summaryData = data.summaryData;
-	const summaryTableOptions = {
-		responsive: "simple",
-		selectableRowsHeader: false,
-		selectableRows: "none",
-		selectableRowsOnClick: false,
-		print: false,
-		download: true,
+
+	// Replace values in Alert Messages data
+	alertMessages.push([data.creationConfig, "info"]);
+	alertMessages.push([data.evaluationConfig, "info"]);
+	
+	// Create all Alert components
+	const alertMessagesComponents = alertMessages.map((alert, index) => {
+		return (
+			<AlertMUI
+				key={index}
+				severity={alert[1]}
+				fontSize={14}
+			>
+				{alert[0]}
+			</AlertMUI>
+		)
+	})
+
+	const summaryTableCustomOption = {
 		downloadOptions: {
 			filename: "schema_summary.tsv",
 			separator: "\t",
@@ -87,21 +49,25 @@ const SchemaPage = () => {
 				useDisplayedRowsOnly: true
 			}
 		},
-		filter: false,
-		search: false,
-		viewColumns: true,
 		pagination: false,
 		draggableColumns: {
 			enabled: true
 		}
+	}
+	const summaryTableOptions = {
+		...globalTableOptions,
+		...summaryTableCustomOption,
 	};
+
 	// Component for Summary table
-	const summaryTable = <DataTable
-						  tableData={summaryData} 
-						  tableTitle="Schema Summary Data" 
-						  tableOptions={summaryTableOptions}
-						 >
-						 </DataTable>
+	const summaryTable = (
+		<DataTable
+			tableData={summaryData} 
+			tableTitle="Schema Summary Data" 
+			tableOptions={summaryTableOptions}
+		>
+		</DataTable>
+	);
 
 	// data for Panel A (Total Alleles Distribution)
 	const xDataPanelA = data.total_alleles;
@@ -153,10 +119,10 @@ const SchemaPage = () => {
 	// Component for Plotly Histogram with total alleles distribution
 	const TotalAllelesHistogram = (
 		<PlotlyPlot
-		 key="TotalAllelesHistogram"
-		 plotData={plotDataPanelA}
-		 layoutProps={layoutPanelA}
-		 configOptions={configPanelA}
+			key="TotalAllelesHistogram"
+			plotData={plotDataPanelA}
+			layoutProps={layoutPanelA}
+			configOptions={configPanelA}
 		>
 		</PlotlyPlot>
 	);
@@ -209,10 +175,10 @@ const SchemaPage = () => {
 	// Component for Plotly Histogram with allele mode size distribution
 	const AlleleModeHistogram = (
 		<PlotlyPlot
-		 key="AlleleModeHistogram"
-		 plotData={plotDataPanelB}
-		 layoutProps={layoutPanelB}
-		 configOptions={configPanelB}
+			key="AlleleModeHistogram"
+			plotData={plotDataPanelB}
+			layoutProps={layoutPanelB}
+			configOptions={configPanelB}
 		>
 		</PlotlyPlot>
 	);
@@ -313,11 +279,11 @@ const SchemaPage = () => {
 	// Component for Plotly Scatter with loci statistics
 	const LociStatsScatter = (
 		<PlotlyPlot
-		 key="LociStatsScatter"
-		 plotData={plotDataPanelC}
-		 layoutProps={layoutPanelC}
-		 configOptions={configPanelC}
-		 onClick={scatterClickHandler} // Get locus ID associated to the point that was clicked
+			key="LociStatsScatter"
+			plotData={plotDataPanelC}
+			layoutProps={layoutPanelC}
+			configOptions={configPanelC}
+			onClick={scatterClickHandler} // Get locus ID associated to the point that was clicked
 		>
 		</PlotlyPlot>
 	);
@@ -393,11 +359,11 @@ const SchemaPage = () => {
 	// Component for Plotly Boxplots with loci allele size variation
 	const LociSizeBoxplots = (
 		<PlotlyPlot
-		 key="LociSizeBoxplots"
-		 plotData={plotDataPanelD}
-		 layoutProps={layoutPanelD}
-		 configOptions={configPanelD}
-		 onClick={boxplotClickHandler} // Get locus ID associated to the point that was clicked
+			key="LociSizeBoxplots"
+			plotData={plotDataPanelD}
+			layoutProps={layoutPanelD}
+			configOptions={configPanelD}
+			onClick={boxplotClickHandler} // Get locus ID associated to the point that was clicked
 		>
 		</PlotlyPlot>
 	);
@@ -407,22 +373,8 @@ const SchemaPage = () => {
 	let scatterClickAlert = undefined;
 	let boxplotClickAlert = undefined;
 	if (data.lociReports === 1) {
-		scatterClickAlert = (
-			<Alert key="clickScatterAlert" severity="info">
-				<Typography sx={{ fontSize: 14 }}>
-					Each point (locus) is clickable and will
-					open a page with more details about it.
-				</Typography>
-			</Alert>
-		)
-		boxplotClickAlert = (
-			<Alert key="clickBoxplotAlert" severity="info">
-				<Typography sx={{ fontSize: 14 }}>
-					Each boxplot (locus) is clickable and will
-					open a page with more details about it.
-				</Typography>
-			</Alert>
-		)
+		scatterClickAlert = alertMessagesComponents[0];
+		boxplotClickAlert = alertMessagesComponents[1];
 	};
 
 	const TabPanelTitles = [
@@ -468,13 +420,7 @@ const SchemaPage = () => {
 
 	// data for Annotations table
 	const annotationsData = data.annotations;
-	const annotationsTableOptions = {
-		responsive: "simple",
-		selectableRowsHeader: false,
-		selectableRows: "none",
-		selectableRowsOnClick: false,
-		print: false,
-		download: true,
+	const annotationsTableCustomOptions = {
 		downloadOptions: {
 			filename: "loci_annotations.tsv",
 			separator: "\t",
@@ -486,14 +432,16 @@ const SchemaPage = () => {
 		filter: true,
 		filterType: 'multiselect',
 		search: true,
-		viewColumns: true,
-		pagination: true,
 		rowsPerPage: 10,
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
 		draggableColumns: {
 			enabled: true
 		}
+	};
+	const annotationsTableOptions = {
+		...globalTableOptions,
+		...annotationsTableCustomOptions,
 	};
 
 	// Select conditional formatting function to apply
@@ -510,37 +458,21 @@ const SchemaPage = () => {
 	if (annotationsData[0].columns.length > 0) {
 		LociAnnotationsTable = (
 			<DataTable 
-			 tableData={annotationsData} 
-			 tableTitle="Loci Annotations" 
-			 tableOptions={annotationsTableOptions}
-			 tableConditionalFormatting={LociAnnotationsFormatting}
+				tableData={annotationsData} 
+				tableTitle="Loci Annotations" 
+				tableOptions={annotationsTableOptions}
+				tableConditionalFormatting={LociAnnotationsFormatting}
 			>
 			</DataTable>
 		);
 	}
 
-	let LociAnnotationsAlert = undefined;
-	if (LociAnnotationsTable === undefined) {
-		LociAnnotationsAlert = (
-			<Alert severity="warning">
-				<Typography sx={{ fontSize: 14 }}>
-					The loci annotations are not displayed because the
-					user did not provide a file with annotations.
-				</Typography>
-			</Alert>
-		)
-	};
+	let LociAnnotationsAlert = alertMessagesComponents[2];
 
 	// data for allele analysis
 	const analysisData = data.analysis;
-	const analysisTableOptions = {
-		responsive: "simple",
-		selectableRows: "none",
-		selectableRowsHeader: false,
+	const analysisTableCustomOptions = {
 		selectableRowsHideCheckboxes: true,
-		selectableRowsOnClick: false,
-		print: false,
-		download: true,
 		downloadOptions: {
 			filename: "allele_analysis.tsv",
 			separator: "\t",
@@ -553,7 +485,6 @@ const SchemaPage = () => {
 		filterType: 'multiselect',
 		search: true,
 		viewColumns: true,
-		pagination: true,
 		rowsPerPage: 10,
 		rowsPerPageOptions: [10, 20, 40, 80, 100],
 		jumpToPage: true,
@@ -561,6 +492,10 @@ const SchemaPage = () => {
 			enabled: true
 		},
 	};
+	const analysisTableOptions = {
+		...globalTableOptions,
+		...analysisTableCustomOptions,
+	}
 
 	// Select conditional formatting function to apply
 	// Only add href to loci names if the loci reports were generated
@@ -571,10 +506,10 @@ const SchemaPage = () => {
 	// DataTable component to display loci integrity analysis
 	const LociAnalysisTable = (
 		<DataTable 
-		 tableData={analysisData} 
-		 tableTitle="Allele Analysis" 
-		 tableOptions={analysisTableOptions}
-		 tableConditionalFormatting={LociAnalysisFormatting}
+			tableData={analysisData} 
+			tableTitle="Allele Analysis" 
+			tableOptions={analysisTableOptions}
+			tableConditionalFormatting={LociAnalysisFormatting}
 		>
 		</DataTable>
 	);
@@ -590,7 +525,7 @@ const SchemaPage = () => {
 	const HeaderDescription = (
 		<Typography component={'div'} style={{ lineHeight: "18px" }} > 
 			<ReactMarkdown 
-				children={markdown} 
+				children={headerMessage} 
 				remarkPlugins={[remarkGfm]}
 			>
 			</ReactMarkdown>
@@ -598,24 +533,11 @@ const SchemaPage = () => {
 	);
 
 	// Get message about config used for schema creation
-	const creationConfigMessage = data.creationConfig;
-	const creationAlert = (
-		<Alert severity="info">
-			<Typography sx={{ fontSize: 14 }}>
-				{creationConfigMessage}
-			</Typography>
-		</Alert>
-	);
+	const creationAlert = alertMessagesComponents[3];
+
 
 	// Get message about config used for schema evaluation
-	const evaluationConfigMessage = data.evaluationConfig;
-	const evaluationAlert = (
-		<Alert severity="info">
-			<Typography sx={{ fontSize: 14 }}>
-				{evaluationConfigMessage}
-			</Typography>
-		</Alert>
-	);
+	const evaluationAlert = alertMessagesComponents[4];
 
 	return (
 		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
@@ -645,7 +567,7 @@ const SchemaPage = () => {
 			</div>
 			<div style={{ marginTop: "20px"}}>
 				<div style={{ marginBottom: "10px" }}>
-					{LociAnnotationsAlert}
+					{LociAnnotationsTable ? undefined: LociAnnotationsAlert}
 				</div>
 				{LociAnnotationsTable}
 			</div>

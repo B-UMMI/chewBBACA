@@ -7,6 +7,8 @@ import Editor from "@monaco-editor/react"
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import './LocusPage.css';
+
 // Material-UI components
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -637,35 +639,35 @@ const LocusPage = () => {
 	);
 
 	return (
-		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
+		<div className='main-div'>
 			<div>
 				{HeaderComponent}
 			</div>
-			<div style={{ marginTop: "20px" }}>
+			<div className='secondary-div'>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "20px" }}>
+			<div className='secondary-div'>
 				{annotationsTable ? undefined : alertMessagesComponents[1]}
 				{annotationsTable}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{AlleleSizeTabs}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{exceptionsTable ? undefined : alertMessagesComponents[0]}
 				{exceptionsTable}
 			</div>
-			<div style={{ marginTop: "20px" }}>
+			<div className='secondary-div'>
 				{MSAComponent}
 			</div>
-			<div style={{ marginTop: "20px" }}>
+			<div className='secondary-div'>
 				{phylogeneticElementTree ? undefined : alertMessagesComponents[7]}
 				{PhylogeneticElement}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{DNAEditor}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{ProteinEditor}
 			</div>
 		</div>

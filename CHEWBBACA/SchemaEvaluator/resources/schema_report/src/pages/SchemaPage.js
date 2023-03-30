@@ -2,6 +2,8 @@ import React from 'react'
 
 import { headerMessage, alertMessages, globalTableOptions } from '../constants';
 
+import './SchemaPage.css';
+
 import AlertMUI from '../components/AlertMUI';
 import DataTable from '../components/DataTable';
 import PlotlyPlot from '../components/PlotlyPlot';
@@ -540,7 +542,7 @@ const SchemaPage = () => {
 	const evaluationAlert = alertMessagesComponents[4];
 
 	return (
-		<div style={{ marginTop: "10px", marginBottom: "10px" }}>
+		<div className='main-div'>
 			<div style={{ marginBottom: "5px" }}>
 				<Stack sx={{ width: '100%' }} spacing={0.5}>
 					{creationAlert}
@@ -555,23 +557,23 @@ const SchemaPage = () => {
 				>
 				</AccordionMUI>
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{summaryTable}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				<TabPanelMUI
 					ContentTitles={TabPanelTitles}
 					ContentData={TabPanelData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				<div style={{ marginBottom: "10px" }}>
 					{LociAnnotationsTable ? undefined: LociAnnotationsAlert}
 				</div>
 				{LociAnnotationsTable}
 			</div>
-			<div style={{ marginTop: "20px"}}>
+			<div className='secondary-div'>
 				{LociAnalysisTable}
 			</div>
 		</div>

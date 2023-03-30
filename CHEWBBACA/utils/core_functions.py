@@ -127,8 +127,7 @@ def extract_genes(fasta_files, prodigal_path, cpu_cores,
         Total number of coding sequences extracted from the
         input fasta files.
     """
-    # divide inputs into 15 sublists for ~7% process
-    # progress resolution
+    # divide inputs into 15 sublists for ~7% process progress resolution
     num_chunks = 15
     extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
 
@@ -682,7 +681,8 @@ def blast_clusters(clusters, sequences, output_directory,
     # length limitation in BLAST
     integer_clusters = fo.join_paths(output_directory,
                                      ['clustered_sequences_integer_headers.fasta'])
-    ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters)
+    ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters,
+                                   prefix='seq_')
 
     # create BLAST DB
     blast_db = fo.join_paths(output_directory,
@@ -769,7 +769,8 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     # change identifiers to shorten and avoid BLAST error
     # related with sequence header length
     integer_fasta = fasta_file.replace('.fasta', '_integer_headers.fasta')
-    ids_map = fao.integer_headers(fasta_file, integer_fasta, start=1, limit=5000)
+    ids_map = fao.integer_headers(fasta_file, integer_fasta,
+                                  start=1, limit=5000, prefix='seq_')
 
     blast_db = fo.join_paths(output_directory,
                              [fo.file_basename(integer_fasta, False)])

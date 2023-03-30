@@ -179,6 +179,14 @@ Parameters
 	By default, the *AlleleCall* module uses the Prodigal training file included in the schema's
 	directory and it is not necessary to pass a training file to the ``--ptf`` parameter.
 
+.. important::
+  If you provide the ``--cds-input`` parameter, chewBBACA assumes that the input FASTA files contain
+  coding sequences and skips the gene prediction step with Prodigal. To avoid issues related with the
+  format of the sequence headers, chewBBACA renames the sequence headers based on the unique basename
+  prefix determined for each input file and on the order of the coding sequences (e.g.: coding sequences
+  inside a file named ``GCF_000007125.1_ASM712v1_cds_from_genomic.fna`` are renamed to
+  ``GCF_000007125-protein1``, ``GCF_000007125-protein2``, ..., ``GCF_000007125-proteinN``).
+
 .. note::
 	If a text file with a list of gene identifiers, one per line, is passed to the ``--gl``
 	parameter, the process will only perform allele calling for the genes in that list.

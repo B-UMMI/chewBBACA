@@ -117,7 +117,8 @@ def write_records(records, output_file):
         fasta_out.write_file(records)
 
 
-def integer_headers(input_fasta, output_fasta, start=1, limit=50000):
+def integer_headers(input_fasta, output_fasta, start=1,
+                    limit=50000, prefix='', id_map=True):
     """Switch sequence headers in Fasta file by integer values.
 
     Parameters
@@ -131,6 +132,13 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=50000):
     limit : int
         Maximum number of FASTA records to keep in
         memory.
+    prefix : str
+        Prefix added to the sequence identifiers.
+    id_map : bool
+        If True, the function returns a dictionary
+        mapping the original sequence IDs to the
+        new sequence IDs. If False, returns the
+        number of sequences renamed.
 
     Returns
     -------
@@ -145,7 +153,8 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=50000):
     while exausted is False:
         record = next(seq_generator, None)
         if record is not None:
-            new_id = 'seq_{0}'.format(start)
+            # new_id = 'seq_{0}'.format(start)
+            new_id = '{0}{1}'.format(prefix, start)
             ids_map[new_id] = record.id
             sequence = str(record.seq)
             new_rec = fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
@@ -159,7 +168,10 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=50000):
             fo.write_lines(seqs, output_fasta, write_mode='a')
             seqs = []
 
-    return ids_map
+    if id_map is True:
+        return ids_map
+    else:
+        return len(ids_map)
 
 
 def fasta_str_record(record_template, record_data):

@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.2 - 2023-03-13
+
+- Fixed issue related with sequence header format when FASTA files with coding sequences (CDSs) were provided to the CreateSchema and AlleleCall modules through the `--cds-input` parameter. chewBBACA expected the sequence headers to have the same format used to save the CDSs extracted during the gene prediction step, `<genomeID>-protein<cdsID>`. This would lead to errors if the FASTA files with CDSs provided by users had a different sequence header format. To fix this issue, chewBBACA determines the unique genome identifier for each input/genome and renames the sequence headers to match the `<genomeID>-protein<cdsID>` format (e.g: given a file named `GCF_000007125.1_ASM712v1_cds_from_genomic.fna`, the unique genome identifier is `GCF_000007125`, and the sequence headers are renamed to `GCF_000007125-protein1`, `GCF_000007125-protein2`, ..., `GCF_000007125-proteinN`). FASTA files with renamed headers are stored in the temporary directory created by chewBBACA. The sequence headers are renamed sequentially, so the integer after `protein` indicates the order of the sequences in the original FASTA file
+
+## 3.1.1 - 2023-03-09
+
+- Fixed issue in the ExtractCgMLST module. The cgMLST matrix only contained 1's and 0's because it was a subset of the presence-absence matrix. The module now uses the list of loci in the core genome to subset the masked matrix with the allele identifiers.
+
 ## 3.1.0 - 2023-01-12
 
 - Updated the ExtractCgMLST module ([PR](https://github.com/B-UMMI/chewBBACA/pull/153)). It can now accept several loci presence threshold values and creates a HTML file with a line plot that displays the number of loci in the cgMLST per threshold value (default: compute for 0.95, 0.99 and 1 thresholds).

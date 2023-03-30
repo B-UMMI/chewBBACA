@@ -194,11 +194,10 @@ def compute_cgMLST(matrix, sorted_genomes, threshold, step):
                                               args=(pa_rows, threshold,))
         above = current_df.columns[is_above_threshold]
         cgMLST_size[pa_rows] = len(above)
-        pruned_df = current_df.loc[:, above]
         print('\r', 'Computed for...{0} genomes.'.format(i), end='')
 
-    # return last df with cgMLST for all genomes
-    return [pruned_df, cgMLST_size]
+    # return list of genes in cgMLST and cgMLST count per genome threshold
+    return [above, cgMLST_size]
 
 
 def presAbs(matrix, output_directory):
@@ -357,30 +356,30 @@ def main(input_file, output_directory, threshold, step,
     line_traces = []
     for i, t in enumerate(cgMLST_thresholds):
         print('Determining cgMLST for loci presence threshold of {0}...'.format(t))
-        gene_pruned, cgMLST_genes = compute_cgMLST(pa_matrix,
-                                                   sorted_genomes,
-                                                   t,
-                                                   step)
+        cgMLST_genes, cgMLST_counts = compute_cgMLST(pa_matrix,
+                                                     sorted_genomes,
+                                                     t,
+                                                     step)
 
-        retained = len(gene_pruned.columns)
+        retained = len(cgMLST_genes)
         print('\ncgMLST for loci presence threshold of {0} composed '
               'of {1}/{2} genes.'.format(t, retained, total_loci))
 
         # write cgMLST matrix
+        # get subset from masked matrix
+        cgMLST_matrix = masked_matrix[cgMLST_genes]
         cgmlst_path = os.path.join(output_directory, 'cgMLST{0}.tsv'.format(int(t*100)))
-        gene_pruned.to_csv(cgmlst_path, sep='\t')
+        cgMLST_matrix.to_csv(cgmlst_path, sep='\t')
         print('cgMLST profiles saved to {0}'.format(cgmlst_path))
 
         # write genes in cgMLST to file
         loci_path = os.path.join(output_directory, 'cgMLSTschema{0}.txt'.format(int(t*100)))
-        pd.Series(list(gene_pruned.columns.values)).to_csv(loci_path,
-                                                           index=False,
-                                                           header=False)
+        fo.write_lines(list(cgMLST_genes), loci_path)
         print('List of loci in the cgMLST saved to {0}'.format(loci_path))
 
         # create line trace
-        cgMLST_trace = go.Scattergl(x=list(cgMLST_genes.keys()),
-                                    y=list(cgMLST_genes.values()),
+        cgMLST_trace = go.Scattergl(x=list(cgMLST_counts.keys()),
+                                    y=list(cgMLST_counts.values()),
                                     mode='lines',
                                     name='cgMLST{0}'.format(int(t*100)),
                                     hovertemplate=('%{y}'))

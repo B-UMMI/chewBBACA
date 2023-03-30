@@ -495,10 +495,14 @@ def locus_report(locus_file, locus_data, annotation_columns,
 
             # Start by substituting greatest value to avoid substituting
             # smaller values contained in greater values
-            for i in range(locus_data[1], 0, -1):
-                phylo_data = phylo_data.replace(f'{i}_{locus}_', '')
-            phylo_data = phylo_data.replace('\n', '')
+            if locus in phylo_data:
+                for i in range(locus_data[1], 0, -1):
+                    phylo_data = phylo_data.replace(f'{i}_{locus}_', '')
+            else:
+                for i in range(locus_data[1], 0, -1):
+                    phylo_data = phylo_data.replace(f'{i}_', '')
 
+            phylo_data = phylo_data.replace('\n', '')
             phylo_data = {"phylo_data": phylo_data}
 
     locus_columns = ct.LOCUS_COLUMNS.format(minimum_length,

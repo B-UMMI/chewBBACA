@@ -78,7 +78,7 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
                 "-g",
                 "data/schemaEvaluatorData/test_schema",
                 "-o",
-                "./schemaEvaluatorData_results",
+                "schemaEvaluatorData_results",
                 "--loci-reports",
                 "--add-sequences",
             ],

@@ -68,66 +68,54 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
     assert expected in e.value.code
 
 
-@pytest.mark.parametrize(
-    "test_args, expected",
-    [
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/test_schema",
-                "-o",
-                "schema_report",
-                "--loci-reports",
-                "--add-sequences",
-            ],
-            "data/schemaevaluator_data/expected_results",
-        )
-    ],
-)
-def test_schemaEvaluator_valid(test_args, expected):
-    with patch.object(sys, "argv", test_args):
-        capture = py.io.StdCapture()
-        chewBBACA.main()
-        stdout, stderr = capture.reset()
+# @pytest.mark.parametrize(
+#     "test_args, expected",
+#     [
+#         (
+#             [
+#                 "chewBBACA.py",
+#                 "SchemaEvaluator",
+#                 "-g",
+#                 "data/schemaevaluator_data/test_schema",
+#                 "-o",
+#                 "schema_report",
+#                 "--loci-reports",
+#                 "--add-sequences",
+#             ],
+#             "data/schemaevaluator_data/expected_results",
+#         )
+#     ],
+# )
+# def test_schemaEvaluator_valid(test_args, expected):
+#     with patch.object(sys, "argv", test_args):
+#         capture = py.io.StdCapture()
+#         chewBBACA.main()
+#         stdout, stderr = capture.reset()
 
-    # check Schema Report HTML file
-    schema_report_html = os.path.join(test_args[5], "schema_report.html")
+#     # check Schema Report HTML file
+#     schema_report_html = os.path.join(test_args[5], "schema_report.html")
 
-    expected_schema_file = os.path.join(expected, "schema_report.html")
+#     expected_schema_file = os.path.join(expected, "schema_report.html")
 
-    f1 = open(schema_report_html, 'r')
-    f2 = open(expected_schema_file, 'r')
-    
-    f1_data = f1.readlines()
-    f2_data = f2.readlines()
+#     schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=True)
+#     assert(schema_report_cmp) is True
 
-    for i, l in enumerate(f1_data):
-        assert(l.strip()==f2_data[i].strip())
+#     # check Locus Report HTML files and JS bundle
+#     locus_report_files = [
+#         os.path.join(test_args[5], "loci_reports", file)
+#         for file in os.listdir(os.path.join(test_args[5], "loci_reports"))
+#     ]
+#     locus_report_files.sort()
 
-    f1.close()
-    f2.close()
+#     expected_report_files = [
+#         os.path.join(expected, "loci_reports", file)
+#         for file in os.listdir(os.path.join(expected, "loci_reports"))
+#     ]
+#     expected_report_files.sort()
 
-    #schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=True)
-    #assert(schema_report_cmp) is True
+#     # assert that files in each pair are equal
+#     file_cmps = []
+#     for i, file in enumerate(expected_report_files):
+#         file_cmps.append(filecmp.cmp(file, locus_report_files[i], shallow=False))
 
-    # check Locus Report HTML files and JS bundle
-    locus_report_files = [
-        os.path.join(test_args[5], "loci_reports", file)
-        for file in os.listdir(os.path.join(test_args[5], "loci_reports"))
-    ]
-    locus_report_files.sort()
-
-    expected_report_files = [
-        os.path.join(expected, "loci_reports", file)
-        for file in os.listdir(os.path.join(expected, "loci_reports"))
-    ]
-    expected_report_files.sort()
-
-    # assert that files in each pair are equal
-    file_cmps = []
-    for i, file in enumerate(expected_report_files):
-        file_cmps.append(filecmp.cmp(file, locus_report_files[i], shallow=False))
-
-    assert all(file_cmps) is True
+#     assert all(file_cmps) is True

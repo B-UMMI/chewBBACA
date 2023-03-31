@@ -82,7 +82,7 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
                 "--loci-reports",
                 "--add-sequences",
             ],
-            "data/schemaevaluator_data/expected_results",
+            0,
         )
     ],
 )
@@ -92,7 +92,7 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     # Check exit code
     assert e.type == SystemExit
-    assert e.value.code == 0
+    assert expected == e.value.code
 
 
 # Not working when comparing HTML files in GitHub Actions

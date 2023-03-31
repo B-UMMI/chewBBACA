@@ -103,7 +103,7 @@ def test_schemaEvaluator_valid(test_args, expected):
     f1_data = f1.readlines()
     f2_data = f2.readlines()
 
-    for i, l in f1_data:
+    for i, l in enumerate(f1_data):
         assert(l.strip()==f2_data[i].strip())
 
     f1.close()

@@ -97,8 +97,23 @@ def test_schemaEvaluator_valid(test_args, expected):
 
     expected_schema_file = os.path.join(expected, "schema_report.html")
 
-    schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=True)
-    assert(schema_report_cmp) is True
+    f1 = open(schema_report_html, 'r')
+    f2 = open(expected_schema_file, 'r')
+    
+    f1_data = f1.readlines()
+    f2_data = f2.readlines()
+
+    i = 0
+    for line1 in f1_data:
+        i += 1
+        for line2 in f2_data:
+            assert(line1.strip()==line2.strip())
+
+    f1.close()
+    f2.close()
+
+    #schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=True)
+    #assert(schema_report_cmp) is True
 
     # check Locus Report HTML files and JS bundle
     locus_report_files = [

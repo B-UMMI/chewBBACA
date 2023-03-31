@@ -337,6 +337,9 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     # Count number of ocurrences for each translation exception
     exception_counts = count_translation_exception_categories(exceptions_values)
 
+    # Determine list of valid allele ids
+    valid_ids = [str(i) for i in allele_ids if str(i) not in exceptions]
+
     # Do not count shorter alleles as invalid alleles
     # Only count as invalid alleles that cannot be translated
     invalidCDS = sum(exception_counts)
@@ -356,34 +359,34 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     short_category = f'Alleles < {minimum_length}bp'
     short_description = 'Sequence shorter than {0}bp ({1}bp);'
     for i in short_ids:
-        if i[0] in formatted_exceptions:
-            formatted_exceptions[i[0]].append(short_description.format(minimum_length, i[1]))
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(short_description.format(minimum_length, i[1]))
         else:
-            formatted_exceptions[i[0]] = [i[0],
-                                          short_category,
-                                          short_description.format(minimum_length, i[1])]
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               short_category,
+                                               short_description.format(minimum_length, i[1])]
 
     # Add info about alleles above threshold
     above_category = 'Alleles above size threshold'
     above_description = f'Sequence above size threshold ({0}bp)'
     for i in above_threshold:
-        if i[0] in formatted_exceptions:
-            formatted_exceptions[i[0]].append(above_description.format(i[1]))
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(above_description.format(i[1]))
         else:
-            formatted_exceptions[i[0]] = [i[0],
-                                          above_category,
-                                          above_description.format(i[1])]
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               above_category,
+                                               above_description.format(i[1])]
 
     # Add info about alleles below threshold
     below_category = 'Alleles below size threshold'
     below_description = f'Sequence below size threshold ({0}bp)'
     for i in below_threshold:
-        if i[0] in formatted_exceptions:
-            formatted_exceptions[i[0]].append(below_description.format(i[1]))
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(below_description.format(i[1]))
         else:
-            formatted_exceptions[i[0]] = [i[0],
-                                          below_category,
-                                          below_description.format(i[1])]
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               below_category,
+                                               below_description.format(i[1])]
 
     # Join exceptions per allele
     formatted_exceptions = [[v[0], v[1], ' '.join(v[2:])]
@@ -400,7 +403,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
                 inframe_stop, len(short_ids), len(below_threshold),
                 len(above_threshold), len(missing_ids)],
                bot_threshold, top_threshold, formatted_exceptions,
-               protein_file, missing_ids]
+               protein_file, missing_ids, valid_ids]
 
     return results
 
@@ -465,14 +468,12 @@ def locus_report(locus_file, locus_data, annotation_columns,
 
     dna_sequences = {"sequences": []}
     protein_sequences = {"sequences": []}
-    valid_ids = []
     # Include DNA and Protein sequences if --add-sequences was provided
     if add_sequences is True:
         protein_records = fao.sequence_generator(locus_data[17])
         for record in protein_records:
             protein_sequences["sequences"].append({"name": (record.id).split('_')[-1],
                                                    "sequence": str(record.seq)})
-            valid_ids.append((record.id).split('_')[-1])
         dna_records = fao.sequence_generator(locus_file)
         for record in dna_records:
             dna_sequences["sequences"].append({"name": (record.id).split('_')[-1],
@@ -519,7 +520,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "ids": allele_ids,
                        "counts": [list(counts_data[0]), list(counts_data[1])],
                        "phylo": phylo_data,
-                       "validIDs": valid_ids,
+                       "validIDs": locus_data[19],
                        "msa": msa_data,
                        "dna": dna_sequences,
                        "protein": protein_sequences,

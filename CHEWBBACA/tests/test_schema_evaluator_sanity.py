@@ -68,6 +68,36 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
     assert expected in e.value.code
 
 
+@pytest.mark.parametrize(
+    "test_args, expected",
+    [
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-g",
+                "data/schemaevaluator_data/test_schema",
+                "-o",
+                "schema_report",
+                "--loci-reports",
+                "--add-sequences",
+            ],
+            "data/schemaevaluator_data/expected_results",
+        )
+    ],
+)
+def test_schemaEvaluator_valid(test_args, expected):
+    with pytest.raises(SystemExit) as e:
+        chewBBACA.main()
+
+    # Check exit code
+    assert e.type == SystemExit
+    assert e.value.code == 0
+
+
+# Not working when comparing HTML files in GitHub Actions
+# Works locally
+
 # @pytest.mark.parametrize(
 #     "test_args, expected",
 #     [

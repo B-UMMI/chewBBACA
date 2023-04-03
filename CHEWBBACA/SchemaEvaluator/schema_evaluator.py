@@ -483,7 +483,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
     phylo_data = {"phylo_data": []}
     msa_data = {"sequences": []}
     if light is False:
-        if locus_data[1] > 1:
+        if locus_data[13][2] > 1:
             alignment_file = call_mafft(locus_data[17])
             # get MSA data
             alignment_text = fo.read_file(alignment_file)

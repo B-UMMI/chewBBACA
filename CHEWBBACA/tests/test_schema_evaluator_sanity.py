@@ -83,12 +83,43 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
                 "--add-sequences",
             ],
             0,
-        )
+        ),
+        (
+            [
+               "chewBBACA.py",
+                "SchemaEvaluator",
+                "-g",
+                "data/schemaevaluator_data/single_allele",
+                "-o",
+                "schema_report",
+                "--loci-reports",
+                "--add-sequences",
+            ],
+            0,
+        ),
+        (
+            [
+               "chewBBACA.py",
+                "SchemaEvaluator",
+                "-g",
+                "data/schemaevaluator_data/single_invalid_allele",
+                "-o",
+                "schema_report",
+                "--loci-reports",
+                "--add-sequences",
+            ],
+            0
+        ),
     ],
 )
 def test_schemaEvaluator_valid(test_args, expected):
     with pytest.raises(SystemExit) as e:
         chewBBACA.main()
+
+    try:
+        shutil.rmtree(test_args[5])
+    except Exception as e2:
+        pass
 
     # Check exit code
     assert e.type == SystemExit

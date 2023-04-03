@@ -368,7 +368,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 
     # Add info about alleles above threshold
     above_category = 'Alleles above size threshold'
-    above_description = f'Sequence above size threshold ({0}bp)'
+    above_description = 'Sequence above size threshold ({0}bp)'
     for i in above_threshold:
         if str(i[0]) in formatted_exceptions:
             formatted_exceptions[str(i[0])].append(above_description.format(i[1]))
@@ -379,7 +379,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 
     # Add info about alleles below threshold
     below_category = 'Alleles below size threshold'
-    below_description = f'Sequence below size threshold ({0}bp)'
+    below_description = 'Sequence below size threshold ({0}bp)'
     for i in below_threshold:
         if str(i[0]) in formatted_exceptions:
             formatted_exceptions[str(i[0])].append(below_description.format(i[1]))

@@ -265,6 +265,17 @@ def reformat_translation_exceptions(exceptions, allele_lengths):
     return formatted_exceptions
 
 
+def get_alleleID(allele_seqid):
+    """
+    """
+    if '_*' not in allele_seqid:
+        allele_id = int(allele_seqid.split('_')[-1])
+    else:
+        allele_id = int(allele_seqid.split('_*')[-1])
+
+    return allele_id
+
+
 def compute_locus_statistics(locus, translation_table, minimum_length,
                              size_threshold, translation_dir):
     """Compute sequence length statistics for a locus.
@@ -291,11 +302,15 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
         exceptions captured for each sequence in the FASTA file.
     """
     locus_id = fo.file_basename(locus, False)
-    allele_lengths = fao.sequence_lengths(locus)
+    sequence_lengths = fao.sequence_lengths(locus)
+    ns = True if any([True for k in sequence_lengths if '*' in k]) else False
     # sort based on sequence length
-    allele_lengths = {int(x[0].split('_')[-1]): x[1]
-                      for x in sorted(allele_lengths.items(),
-                                      key=lambda item: item[1])}
+    # Determine if any allele identifiers include "*"
+    # "*" is added to novel alleles in schemas downloaded from Chewie-NS
+    allele_lengths = {}
+    for x in sorted(sequence_lengths.items(), key=lambda item: item[1]):
+        allele_id = get_alleleID(x[0])
+        allele_lengths[allele_id] = x[1]
 
     lengths = list(allele_lengths.values())
     allele_ids = list(allele_lengths.keys())
@@ -330,8 +345,16 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     _, protein_file, _, exceptions = fao.translate_fasta(locus,
                                                          translation_dir,
                                                          translation_table)
+    # If some sequence headers include "*", reformat FASTA file to remove "*"
+    # Reformatting protein files uses less disk space than reformatting DNA
+    if ns is True:
+        records = fao.sequence_generator(protein_file)
+        records = [[(rec.id).replace('*', ''), str(rec.seq)] for rec in records]
+        output_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, records)
+        fo.remove_files([protein_file])
+        fo.write_lines(output_lines, protein_file)
 
-    exceptions = {exc[0].split('_')[-1]: exc[1] for exc in exceptions}
+    exceptions = {get_alleleID(exc[0]): exc[1] for exc in exceptions}
     exceptions_values = list(exceptions.values())
     exceptions_lines = [[k, v] for k, v in exceptions.items()]
     # Count number of ocurrences for each translation exception
@@ -472,11 +495,13 @@ def locus_report(locus_file, locus_data, annotation_columns,
     if add_sequences is True:
         protein_records = fao.sequence_generator(locus_data[17])
         for record in protein_records:
-            protein_sequences["sequences"].append({"name": (record.id).split('_')[-1],
+            allele_id = get_alleleID(record.id)
+            protein_sequences["sequences"].append({"name": allele_id,
                                                    "sequence": str(record.seq)})
         dna_records = fao.sequence_generator(locus_file)
         for record in dna_records:
-            dna_sequences["sequences"].append({"name": (record.id).split('_')[-1],
+            allele_id = get_alleleID(record.id)
+            dna_sequences["sequences"].append({"name": allele_id,
                                                "sequence": str(record.seq)})
 
     # Get data for MSA and NJ Tree if --light flag was not provided
@@ -487,7 +512,8 @@ def locus_report(locus_file, locus_data, annotation_columns,
             alignment_file = call_mafft(locus_data[17])
             # get MSA data
             alignment_text = fo.read_file(alignment_file)
-            msa_data['sequences'] = alignment_text.replace(f'{locus}_', '')
+            alignment_text = alignment_text.replace(f'{locus}_', '')
+            msa_data['sequences'] = alignment_text
 
             # get Tree data
             # get the phylocanvas data
@@ -561,11 +587,11 @@ def main(schema_directory, output_directory, genes_list, annotations,
         # get the schema configs
         with open(config_file, "rb") as cf:
             chewie_config = pickle.load(cf)
-        print("The schema was created with chewBBACA {0}.".format(
-              chewie_config["chewBBACA_version"][0]))
+        chewie_version = (chewie_config["chewBBACA_version"][0]).replace('chewBBACA ', '')
+        print("The schema was created with chewBBACA v{0}.".format(chewie_version))
         # Message displayed in the Schema Creation Alert
         creation_message = ('Schema created with chewBBACA '
-                            f'v{chewie_config.get("chewBBACA_version")[0]}, '
+                            f'v{chewie_version}, '
                             'BLAST Score Ratio of '
                             f'{chewie_config.get("bsr")[0]}, '
                             'minimum length of '

@@ -16,4 +16,4 @@ Important Notes
 - Make sure that your FASTA files are UNIX format. If they were created in Linux or MacOS
   systems they should be in the correct format, but if they were created in Windows systems,
   you should do a quick conversion using for example `dos2unix <https://waterlan.home.xs4all.nl/dos2unix.html>`_.
-- If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred`` option (see :doc:`Allele call <user/modules/AlleleCall>`)
+- If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred`` option (see :doc:`Allelecall <user/modules/AlleleCall>`)

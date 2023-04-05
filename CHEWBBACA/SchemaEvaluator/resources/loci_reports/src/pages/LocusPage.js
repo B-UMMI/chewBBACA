@@ -133,7 +133,7 @@ const LocusPage = () => {
 	}
 
 	const uniprotLinkColumnFormatting = {
-		"_URL": {
+		"URL": {
 			customBodyRender: (value) => (
 				<a 
 					href={value} 

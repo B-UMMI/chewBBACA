@@ -112,7 +112,7 @@ UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 MAX_QUERIES = 10
 
 # Authors, GitHub repository, documentation, tutorial and contacts
-authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
+authors = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
 repository = 'https://github.com/B-UMMI/chewBBACA'
 documentation = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
 contacts = 'imm-bioinfo@medicina.ulisboa.pt'

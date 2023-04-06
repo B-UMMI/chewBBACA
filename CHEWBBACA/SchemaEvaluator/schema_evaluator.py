@@ -303,7 +303,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     """
     locus_id = fo.file_basename(locus, False)
     sequence_lengths = fao.sequence_lengths(locus)
-    ns = True if any([True for k in sequence_lengths if '*' in k]) else False
+    ns_alleles = [get_alleleID(k) for k in sequence_lengths if '*' in k]
     # sort based on sequence length
     # Determine if any allele identifiers include "*"
     # "*" is added to novel alleles in schemas downloaded from Chewie-NS
@@ -347,12 +347,26 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
                                                          translation_table)
     # If some sequence headers include "*", reformat FASTA file to remove "*"
     # Reformatting protein files uses less disk space than reformatting DNA
-    if ns is True:
+    if len(ns_alleles) > 0:
         records = fao.sequence_generator(protein_file)
         records = [[(rec.id).replace('*', ''), str(rec.seq)] for rec in records]
         output_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, records)
         fo.remove_files([protein_file])
         fo.write_lines(output_lines, protein_file)
+
+    # Determine distinct proteins
+    translated_alleles = fao.import_sequences(protein_file)
+    distinct_proteins = sm.determine_duplicated_seqs(translated_alleles)
+    distinct_records = [[v[0], k]
+                        for k, v in distinct_proteins.items()]
+    distinct_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, distinct_records)
+    distinct_file = fo.join_paths(translation_dir, [f'{locus_id}_distinct.fasta'])
+    fo.write_lines(distinct_lines, distinct_file)
+    distinct_ids = [[get_alleleID(i) for i in v]
+                    for k, v in distinct_proteins.items()]
+    distinct_ids = [[v[0], v] for v in distinct_ids]
+    # Sort in order of decreasing length
+    distinct_ids = sorted(distinct_ids, key=lambda x: len(x[1]), reverse=True)
 
     exceptions = {get_alleleID(exc[0]): exc[1] for exc in exceptions}
     exceptions_values = list(exceptions.values())
@@ -426,7 +440,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
                 inframe_stop, len(short_ids), len(below_threshold),
                 len(above_threshold), len(missing_ids)],
                bot_threshold, top_threshold, formatted_exceptions,
-               protein_file, missing_ids, valid_ids]
+               protein_file, distinct_file, missing_ids, valid_ids,
+               ns_alleles, distinct_ids]
 
     return results
 
@@ -509,7 +524,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
     msa_data = {"sequences": []}
     if light is False:
         if locus_data[13][2] > 1:
-            alignment_file = call_mafft(locus_data[17])
+            alignment_file = call_mafft(locus_data[18])
             # get MSA data
             alignment_text = fo.read_file(alignment_file)
             alignment_text = alignment_text.replace(f'{locus}_', '')
@@ -546,14 +561,17 @@ def locus_report(locus_file, locus_data, annotation_columns,
                        "ids": allele_ids,
                        "counts": [list(counts_data[0]), list(counts_data[1])],
                        "phylo": phylo_data,
-                       "validIDs": locus_data[19],
+                       "validIDs": locus_data[20],
                        "msa": msa_data,
                        "dna": dna_sequences,
                        "protein": protein_sequences,
                        "botThreshold": locus_data[14],
                        "topThreshold": locus_data[15],
                        "invalidAlleles": [{"columns": ct.INVALID_ALLELES_COLUMNS},
-                                          {"rows": locus_data[16]}]
+                                          {"rows": locus_data[16]}],
+                       "nsAlleles": locus_data[21],
+                       "distinctAlleles": [{"columns": ct.DISTINCT_ALLELES_COLUMNS},
+                                           {"rows": locus_data[22]}],
                        }
 
     # Add data to HTML string and save HTML string into file
@@ -711,6 +729,15 @@ def main(schema_directory, output_directory, genes_list, annotations,
     analysis_columns = analysis_columns.split('\t')
     analysis_rows = list(data[13])
 
+    # Message displayed if schema was downloaded from Chewie-NS
+    ns_schema = []
+    ns_config = os.path.join(schema_directory, '.ns_config')
+    if os.path.exists(ns_config):
+        total_ns = sum([len(subdata) for subdata in data[21]])
+        ns_schema.append('This schema was downloaded from Chewie-NS and '
+                         f'contains {total_ns} alleles added since the last '
+                         'synchronization with the remote schema.')
+
     # Data in the Schema Report HTML
     schema_data = {"summaryData": [{"columns": summary_columns},
                                    {"rows": [summary_rows]}],
@@ -728,7 +755,8 @@ def main(schema_directory, output_directory, genes_list, annotations,
                                 {"rows": analysis_rows}],
                    "lociReports": 1 if loci_reports else 0,
                    "evaluationConfig": evaluation_message,
-                   "creationConfig": creation_message}
+                   "creationConfig": creation_message,
+                   "nsSchema": ns_schema}
 
     # Write Schema Report HTML file
     schema_html = ct.SCHEMA_REPORT_HTML

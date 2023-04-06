@@ -308,3 +308,5 @@ TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
                           'is not a stop codon',
                           'sequence length is not a multiple of 3',
                           'ambiguous or invalid characters']
+
+DISTINCT_ALLELES_COLUMNS = ['Representative', 'Count', 'List']

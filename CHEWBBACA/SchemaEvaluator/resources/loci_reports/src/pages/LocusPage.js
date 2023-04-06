@@ -416,6 +416,74 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
+
+	const dataPanelC = data.distinctAlleles[1].rows;
+	let xDataPanelC = [];
+	let yDataPanelC = [];
+	for (const d of dataPanelC) {
+		xDataPanelC.push(String(d[0]))
+		yDataPanelC.push(d[1].length)
+	}
+
+	const xDataTickvals = Array(xDataPanelC.length).fill().map((v,i)=>i)
+
+	const plotDataPanelC = [
+		{x: xDataTickvals,
+		 y: yDataPanelC,
+		 type: "bar",
+		 name: locusName,
+		 marker: {
+			 color: "#0570b0",
+			 line: {
+				 color: "#a6bddb",
+				 width: 1
+			 }
+		 }
+	    }
+	];
+
+	const layoutPanelC = {
+		title: {
+            text: locusName,
+        },
+        xaxis: {
+        	title: { text: "Protein Allele" },
+        	showgrid: false,
+			zeroline: false,
+			showline: true,
+			ticks: "outside",
+			ticktext: xDataPanelC,
+			tickvals: xDataTickvals,
+        },
+        yaxis: {
+        	title: { text: "Number of Distinct Alleles" },
+			zeroline: false,
+			showline: true,
+			ticks: "outside",
+        },
+		bargroupgap: 0.05,
+		hovermode: "x",
+	};
+	const configPanelC = {
+		toImageButtonOptions: 
+			{format: 'svg',
+			 filename: `${locusName}_DistinctAlleles`,
+			 height: 500,
+			 width: 700,
+			 scale: 1
+		}
+	};
+	// Component for Plotly Histogram with allele size distribution
+	const DistinctAllelesBar = (
+		<PlotlyPlot
+			key="DistinctAlleles"
+			plotData={plotDataPanelC}
+			layoutProps={layoutPanelC}
+			configOptions={configPanelC}
+		>
+		</PlotlyPlot>
+	);
+
 	// Components to resize plots to show length thresholds
 	// Need to include checked prop or switch will change to disabled state when alternating tabs
 	const lengthThresholdCheckBar = (
@@ -451,10 +519,12 @@ const LocusPage = () => {
 		</Stack>
 	);
 
-	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size"];
+	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size", "Alleles Per Protein"];
 	const AlleleSizePanelsData = [
 		[alertMessagesComponents[2], lengthThresholdCheckBar, AlleleSizeBar],
-		[scatterAlerts, lengthThresholdCheckScatter, AlleleSizeScatter]];
+		[scatterAlerts, lengthThresholdCheckScatter, AlleleSizeScatter],
+		[DistinctAllelesBar]
+	];
 
 	const AlleleSizeTabs = (
 		<TabPanelMUI
@@ -639,6 +709,50 @@ const LocusPage = () => {
 		</AccordionMUI>
 	);
 
+	// Data for distinct alleles table
+	const distinctData = data.distinctAlleles;
+	const distinctColumns = distinctData[0];
+	const distinctRowsData = distinctData[1].rows;
+	let distinctRows = {"rows": []}
+	for (const d of distinctRowsData) {
+		distinctRows.rows.push([d[0], d[1].length, d[1].join(', ')])
+	}
+
+	// Custom options for Exceptions Table
+	const distinctTableCustomOptions = {
+		downloadOptions: {
+			filename: `${locusName}_distinctAlleles.tsv`,
+			separator: "\t",
+			filterOptions: {
+				useDisplayedColumnsOnly: true,
+				useDisplayedRowsOnly: true
+			}
+		},
+		filter: true,
+		filterType: 'multiselect',
+		search: true,
+		rowsPerPage: 10,
+		rowsPerPageOptions: [10, 20, 40, 80, 100],
+		jumpToPage: true,
+		draggableColumns: {
+			enabled: true
+		},
+	}
+	const distinctTableOptions = {
+		...globalTableOptions,
+		...distinctTableCustomOptions,
+	};
+	// Component for distinct alleles table
+	const distinctTableData = [distinctColumns, distinctRows]
+	const distinctTable = (
+		<DataTable
+			tableData={distinctTableData} 
+			tableTitle="Distinct Protein Alleles" 
+			tableOptions={distinctTableOptions}
+		>
+		</DataTable>
+	)
+
 	return (
 		<div className={classes.mainDiv}>
 			<div>
@@ -653,6 +767,9 @@ const LocusPage = () => {
 			</div>
 			<div className={classes.secondaryDiv}>
 				{AlleleSizeTabs}
+			</div>
+			<div className={classes.secondaryDiv}>
+				{distinctTable}
 			</div>
 			<div className={classes.secondaryDiv}>
 				{exceptionsTable ? undefined : alertMessagesComponents[0]}

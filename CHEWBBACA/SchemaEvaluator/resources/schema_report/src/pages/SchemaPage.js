@@ -28,7 +28,10 @@ const SchemaPage = () => {
 	// Replace values in Alert Messages data
 	alertMessages.push([data.creationConfig, "info"]);
 	alertMessages.push([data.evaluationConfig, "info"]);
-	
+	if ((data.nsSchema.length)>0) {
+		alertMessages.push([data.nsSchema, "warning"])
+	}
+
 	// Create all Alert components
 	const alertMessagesComponents = alertMessages.map((alert, index) => {
 		return (
@@ -537,9 +540,14 @@ const SchemaPage = () => {
 	// Get message about config used for schema creation
 	const creationAlert = alertMessagesComponents[3];
 
-
 	// Get message about config used for schema evaluation
 	const evaluationAlert = alertMessagesComponents[4];
+
+	// Get Alert if 
+	let nsAlert = undefined;
+	if ((data.nsSchema.length)>0) {
+		nsAlert = alertMessagesComponents[5];
+	}
 
 	return (
 		<div className={classes.mainDiv}>
@@ -547,6 +555,7 @@ const SchemaPage = () => {
 				<Stack sx={{ width: '100%' }} spacing={0.5}>
 					{creationAlert}
 					{evaluationAlert}
+					{nsAlert}
 				</Stack>
 			</div>
 			<div>

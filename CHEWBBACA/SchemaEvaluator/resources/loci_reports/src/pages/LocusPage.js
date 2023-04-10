@@ -457,7 +457,7 @@ const LocusPage = () => {
         	showgrid: false,
 			zeroline: false,
 			showline: true,
-			ticks: "outside",
+			showticklabels: false,
 			ticktext: xDataPanelC,
 			tickvals: xDataTickvals,
         },

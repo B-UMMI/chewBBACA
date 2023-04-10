@@ -423,7 +423,6 @@ const LocusPage = () => {
 		</PlotlyPlot>
 	);
 
-
 	const dataPanelC = data.distinctAlleles[1].rows;
 	let xDataPanelC = [];
 	let yDataPanelC = [];
@@ -557,7 +556,7 @@ const LocusPage = () => {
 			<Box key="tree-box" sx={{ p: 1 }}>
 				<PhylogeneticTree
 					treeSource={phyloData}
-					validIDs={validIDs}
+					validIDs={xDataPanelC}
 				>
 				</PhylogeneticTree>
 			</Box>

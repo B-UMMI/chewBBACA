@@ -43,13 +43,15 @@ export let alertMessages = [
 	["The red lines represent the bot and top allele length thresholds. The bar corresponding to the length mode is colored in green.", "info"],
 	["The red lines represent the bot and top allele length thresholds.", "info"],
 	["Valid alleles are colored in blue and invalid alleles are colored in grey.", "info"],
+	["The protein allele identifiers were assigned based on the first allele in the schema FASTA file that encoded each distinct protein.", "info"],
 	["Nodes are labeled with the allele identifiers. A tree might not be displayed if the distance between all alleles is 0.", "info"],
 	["Use the mouse wheel to Zoom In/Out. In the Hierarchical and Rectangular Tree Types, holding the Ctrl key while using the mouse wheel allows to resize the branches.", "info"],
 	["The NJ tree and MSA components are not displayed because this locus does not have valid alleles or has only one valid allele or the --light flag was provided.", "warning"],
-	["Displaying the MSA for the %VALUE% alleles that were considered valid.", "info"],
+	["Displaying the MSA for the %VALUE% distinct proteins.", "info"],
 	["Click on a row/column label to select a row/column. Hold the Ctrl key for multiselection. The 'Row Selection' option exports the Full MSA if no rows are selected.", "info"],
-	["Displaying the %VALUE% alleles in the schema FASTA file.", "info"],
+	["Displaying the %VALUE% sequences in the schema FASTA file.", "info"],
 	["Only displaying the %VALUE% alleles that were considered valid.", "info"],
+	["This locus has %VALUE% alleles that have not been synchronized with the remote schema in Chewie-NS (%VALUE2%).", "warning"],
 ];
 
 export const msaColorSchemes = [

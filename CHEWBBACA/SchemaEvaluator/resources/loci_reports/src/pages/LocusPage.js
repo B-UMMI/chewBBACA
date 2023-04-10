@@ -40,9 +40,16 @@ const LocusPage = () => {
 	const locusName = summaryData[1].rows[0][0]
 
 	// Replace values in Alert Messages data
-	alertMessages[8][0] = alertMessages[8][0].replace("%VALUE%", summaryData[1].rows[0][2])
-	alertMessages[10][0] = alertMessages[10][0].replace("%VALUE%", summaryData[1].rows[0][1])
-	alertMessages[11][0] = alertMessages[11][0].replace("%VALUE%", summaryData[1].rows[0][2])
+	alertMessages[9][0] = alertMessages[9][0].replace("%VALUE%", data.distinctAlleles[1].rows.length)
+	alertMessages[11][0] = alertMessages[11][0].replace("%VALUE%", summaryData[1].rows[0][1])
+	alertMessages[12][0] = alertMessages[12][0].replace("%VALUE%", summaryData[1].rows[0][2])
+	// Create warning for loci that have novel alleles not submitted to Chewie-NS
+	alertMessages[13][0] = alertMessages[13][0].replace("%VALUE%", data.nsAlleles.length)
+	if (data.nsAlleles.length > 0) {
+		const nsIDs = data.nsAlleles.join(', ')
+		alertMessages[13][0] = alertMessages[13][0].replace("%VALUE2%", nsIDs)
+	}
+
 	// Create all Alert components
 	const alertMessagesComponents = alertMessages.map((alert, index) => {
 		return (
@@ -447,7 +454,7 @@ const LocusPage = () => {
             text: locusName,
         },
         xaxis: {
-        	title: { text: "Protein Allele" },
+        	title: { text: "Protein Allele ID" },
         	showgrid: false,
 			zeroline: false,
 			showline: true,
@@ -523,7 +530,7 @@ const LocusPage = () => {
 	const AlleleSizePanelsData = [
 		[alertMessagesComponents[2], lengthThresholdCheckBar, AlleleSizeBar],
 		[scatterAlerts, lengthThresholdCheckScatter, AlleleSizeScatter],
-		[DistinctAllelesBar]
+		[alertMessagesComponents[5], DistinctAllelesBar]
 	];
 
 	const AlleleSizeTabs = (
@@ -565,7 +572,7 @@ const LocusPage = () => {
 				summaryText={phylogeneticElementTitle}
 				detailsData={[phylogeneticElementTree]}
 				expanded={false}
-				alerts={[alertMessagesComponents[5], alertMessagesComponents[6]]}
+				alerts={[alertMessagesComponents[6], alertMessagesComponents[7]]}
 			>
 			</AccordionMUI>
 		);
@@ -603,7 +610,7 @@ const LocusPage = () => {
 				summaryText={MSAComponentTitle}
 				detailsData={[msaElement]}
 				expanded={false}
-				alerts={[alertMessagesComponents[8], alertMessagesComponents[9]]}
+				alerts={[alertMessagesComponents[9], alertMessagesComponents[10]]}
 			>
 			</AccordionMUI>
 		);
@@ -642,7 +649,7 @@ const LocusPage = () => {
 				summaryText={DNAEditorTitle}
 				detailsData={DNAEditor}
 				expanded={false}
-				alerts={[alertMessagesComponents[10]]}
+				alerts={[alertMessagesComponents[11]]}
 			>
 			</AccordionMUI>
 		);
@@ -680,7 +687,7 @@ const LocusPage = () => {
 				summaryText={ProteinEditorTitle}
 				detailsData={ProteinEditor}
 				expanded={false}
-				alerts={[alertMessagesComponents[11]]}
+				alerts={[alertMessagesComponents[12]]}
 			>
 			</AccordionMUI>
 		);
@@ -766,6 +773,7 @@ const LocusPage = () => {
 				{annotationsTable}
 			</div>
 			<div className={classes.secondaryDiv}>
+				{data.nsAlleles.length > 0 ? alertMessagesComponents[13] : undefined}
 				{AlleleSizeTabs}
 			</div>
 			<div className={classes.secondaryDiv}>
@@ -779,7 +787,7 @@ const LocusPage = () => {
 				{MSAComponent}
 			</div>
 			<div className={classes.secondaryDiv}>
-				{phylogeneticElementTree ? undefined : alertMessagesComponents[7]}
+				{phylogeneticElementTree ? undefined : alertMessagesComponents[8]}
 				{PhylogeneticElement}
 			</div>
 			<div className={classes.secondaryDiv}>

@@ -370,7 +370,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     distinct_ids = sorted(distinct_ids, key=lambda x: len(x[1]), reverse=True)
     distinct_ids = sorted(distinct_ids, key=lambda x: x[0])
 
-    exceptions = {get_alleleID(exc[0]): exc[1] for exc in exceptions}
+    exceptions = {str(get_alleleID(exc[0])): exc[1] for exc in exceptions}
     exceptions_values = list(exceptions.values())
     exceptions_lines = [[k, v] for k, v in exceptions.items()]
     # Count number of ocurrences for each translation exception

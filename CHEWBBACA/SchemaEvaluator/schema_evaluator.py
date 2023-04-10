@@ -304,6 +304,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     locus_id = fo.file_basename(locus, False)
     sequence_lengths = fao.sequence_lengths(locus)
     ns_alleles = [get_alleleID(k) for k in sequence_lengths if '*' in k]
+    ns_alleles = sorted(ns_alleles)
     # sort based on sequence length
     # Determine if any allele identifiers include "*"
     # "*" is added to novel alleles in schemas downloaded from Chewie-NS
@@ -367,6 +368,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     distinct_ids = [[v[0], v] for v in distinct_ids]
     # Sort in order of decreasing length
     distinct_ids = sorted(distinct_ids, key=lambda x: len(x[1]), reverse=True)
+    distinct_ids = sorted(distinct_ids, key=lambda x: x[0])
 
     exceptions = {get_alleleID(exc[0]): exc[1] for exc in exceptions}
     exceptions_values = list(exceptions.values())
@@ -436,9 +438,9 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
                size_range, median, mean_length, mode_length,
                locus_sd, q1, q3, lengths, allele_ids,
                [locus_id, nr_alleles, validCDS, invalidCDS,
-                validated_proportion, incomplete, ambiguous, no_start+no_stop,
-                inframe_stop, len(short_ids), len(below_threshold),
-                len(above_threshold), len(missing_ids)],
+                validated_proportion, len(distinct_ids), incomplete, ambiguous,
+                no_start+no_stop, inframe_stop, len(short_ids),
+                len(below_threshold), len(above_threshold), len(missing_ids)],
                bot_threshold, top_threshold, formatted_exceptions,
                protein_file, distinct_file, missing_ids, valid_ids,
                ns_alleles, distinct_ids]
@@ -497,12 +499,13 @@ def locus_report(locus_file, locus_data, annotation_columns,
                   locus_data[13][7],
                   locus_data[13][8],
                   locus_data[13][9],
+                  locus_data[13][10],
                   locus_data[4],
                   locus_data[5],
                   locus_data[7],
-                  locus_data[13][10],
                   locus_data[13][11],
-                  locus_data[13][12]]
+                  locus_data[13][12],
+                  locus_data[13][13]]
 
     dna_sequences = {"sequences": []}
     protein_sequences = {"sequences": []}

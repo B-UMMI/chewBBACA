@@ -284,7 +284,8 @@ SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
 
 # Column headers for the Loci Analysis Table in the Schema report
 LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
-                         'Alleles\tProportion of Validated Alleles\tIncomplete '
+                         'Alleles\tProportion of Validated Alleles\tDistinct '
+                         'Protein Alleles\tIncomplete '
                          'ORF\tAmbiguous Bases\tMissing '
                          'Start/Stop Codon\tIn-frame Stop Codon\tAlleles '
                          '< {0}bp\tAlleles below threshold\tAlleles above '
@@ -292,7 +293,8 @@ LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
 
 # Column headers for the Summary Table in the Loci reports
 LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
-                 'Alleles\tProportion of Validated Alleles\t'
+                 'Alleles\tProportion of Validated Alleles\tDistinct '
+                 'Protein Alleles\t'
                  'Incomplete ORF\tAmbiguous Bases\tMissing Start/Stop '
                  'Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tSize Range '
                  '(bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below '
@@ -309,4 +311,6 @@ TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
                           'sequence length is not a multiple of 3',
                           'ambiguous or invalid characters']
 
-DISTINCT_ALLELES_COLUMNS = ['Representative', 'Count', 'List']
+DISTINCT_ALLELES_COLUMNS = ['Protein Allele ID',
+                            'Count',
+                            'List of Distinct Alleles']

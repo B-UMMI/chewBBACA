@@ -699,18 +699,18 @@ def main(schema_directory, output_directory, genes_list, annotations,
     summary_columns = summary_columns.split('\t')
 
     # Get total number of alleles with a length value not multiple of 3
-    notMultiple_sum = sum([subdata[5] for subdata in data[13]])
+    notMultiple_sum = sum([subdata[6] for subdata in data[13]])
     # Get total number of alleles with an in-frame stop codon
-    stopC_sum = sum([subdata[8] for subdata in data[13]])
+    stopC_sum = sum([subdata[9] for subdata in data[13]])
     # Get total number of alleles with no start or stop codon
-    notStart_sum = sum([subdata[7] for subdata in data[13]])
+    notStart_sum = sum([subdata[8] for subdata in data[13]])
     # Get total number of alleles shorter than the minimum length value
-    shorter_sum = sum([subdata[9] for subdata in data[13]])
+    shorter_sum = sum([subdata[10] for subdata in data[13]])
     # Get totla number of alleles with ambiguous bases
-    ambiguous_sum = sum([subdata[6] for subdata in data[13]])
+    ambiguous_sum = sum([subdata[7] for subdata in data[13]])
     # Get total number of alleles below or above the sequence length thresholds
-    below_sum = sum([subdata[10] for subdata in data[13]])
-    above_sum = sum([subdata[11] for subdata in data[13]])
+    below_sum = sum([subdata[11] for subdata in data[13]])
+    above_sum = sum([subdata[12] for subdata in data[13]])
     # Get total number of valid and invalid alleles
     invalid_sum = sum([subdata[3] for subdata in data[13]])
     valid_sum = sum(data[1]) - invalid_sum

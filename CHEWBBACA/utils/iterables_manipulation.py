@@ -648,9 +648,9 @@ def find_missing(integer_list):
     missing_integers : list
         Sorted list of missing integers.
     """
-    first = integer_list[0]
-    last = integer_list[-1]
-    missing_integers = sorted(set(range(first, last + 1)).difference(integer_list))
+    first = min(integer_list)
+    last = max(integer_list)
+    missing_integers = sorted(set(range(first, last+1)).difference(integer_list))
 
     return missing_integers
 

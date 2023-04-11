@@ -477,20 +477,34 @@ def translate_fasta(input_fasta, output_directory, translation_table):
     protein_file : str
         Path to the FASTA file that contains the translated
         sequences.
-    Also returns the number of sequences that were translated
-    successfully.
+    translated : int
+        Number of sequences that were translated successfully.
+    invalid : list
+        List with one sublist for each sequence that could not
+        be translated. Each sublist includes a sequence identifier
+        and a exception message.
     """
     records = sequence_generator(input_fasta)
     translated_records = [[rec.id,
-                           str(sm.translate_dna(str(rec.seq),
-                                                translation_table, 0)[0][0])]
+                          sm.translate_dna(str(rec.seq), translation_table, 0)]
                           for rec in records]
-    translated_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE,
-                                   translated_records)
+
+    # Only keep records that could be translated
+    valid = [[record[0], str(record[1][0][0])]
+             for record in translated_records
+             if type(record[1]) == list]
+
+    # Also need to get exceptions for alleles that could not be translated
+    invalid = [[record[0], record[1]]
+               for record in translated_records
+               if type(record[1]) == str]
+
+    valid_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE, valid)
 
     basename = fo.file_basename(input_fasta, True).replace('.fasta', '_protein.fasta')
     protein_file = fo.join_paths(output_directory, [basename])
+    fo.write_lines(valid_lines, protein_file)
 
-    fo.write_lines(translated_lines, protein_file)
+    translated = len(valid_lines)
 
-    return [input_fasta, protein_file, len(translated_records)]
+    return [input_fasta, protein_file, translated, invalid]

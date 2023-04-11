@@ -3,60 +3,32 @@
 """
 Purpose
 -------
-This module generates an interactive report that allows the user to explore
-the diversity (number of alleles) at each locus, the variation of allele
-sizes per locus and the presence of alleles that are not CDSs
-(when evaluating schemas called by other algorithms).
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_files`` : Path to the folder containing the fasta files,
-  one fasta file per gene/locus (alternatively, a file with a list of paths
-  can be given).
-
-    - e.g.: ``/home/user/schemas/schema_dir``
-
-- ``-l``, ``output_directory`` : The directory where the output files will
-  be saved (will create the directory if it does not exist).
-
-    - e.g.: ``/home/user/schemaReport``
-
-- ``-ta``, ``translation_table`` : Genetic code to use for CDS
-  translation (default=11, for Bacteria and Archaea).
-
-    - e.g.: ``11``
-
-- ``--cpu``, ``cpu_cores`` : The number of CPU cores to use (default=1).
-
-    - e.g.: ``4``
-
-- ``--light``, ``light_mode`` : Skip clustal and mafft (default=False)
+This module generates an interactive HTML report for a schema with
+statistics about the allele size per locus and an analysis to
+identify alleles that are not complete coding sequences or that
+deviate from the allele mode size and minimum length. There is
+also the option to include loci annotations provided in a TSV
+file and to create a detailed HTML report for each locus that
+can include a protein MSA and a NJ Tree.
 
 Code documentation
 ------------------
 """
 
+
 import os
-import csv
-import sys
+import math
 import json
+import shutil
 import pickle
-import itertools
 import statistics
-import multiprocessing
-from operator import itemgetter
 from collections import Counter
 
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
 from Bio.Align.Applications import MafftCommandline
 
 try:
     from utils import (
+        constants as ct,
         file_operations as fo,
         fasta_operations as fao,
         sequence_manipulation as sm,
@@ -64,6 +36,7 @@ try:
         multiprocessing_operations as mo)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
+        constants as ct,
         file_operations as fo,
         fasta_operations as fao,
         sequence_manipulation as sm,
@@ -71,1034 +44,140 @@ except ModuleNotFoundError:
         multiprocessing_operations as mo)
 
 
-# Schema Evaluator Auxiliary Functions
-def gene_seqs_info_schema_evaluator(gene, threshold, conserved):
-    """Determine the number of alleles and the mean allele length per locus.
+def compute_quartiles(values):
+    """Compute the q1, median and q3.
 
     Parameters
     ----------
-    gene : string
-        A string with names/paths for FASTA files.
+    values : list
+        List with integers and/or floats.
 
     Returns
     -------
-    genes_info : list
-        A list with a sublist for each input
-        gene file. Each sublist contains a gene identifier, the
-        total number of alleles for that gene and the mean length
-        of allele sequences for that gene.
+    A list with the q1, median and q3 computed
+    based on the input list.
     """
-    seq_generator = SeqIO.parse(gene, "fasta")
-    alleles_lengths = [len(allele) for allele in seq_generator]
-    alleles_lengths.sort()
-
-    if len(alleles_lengths) == 0:
-        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
-
-    # number of alleles
-    nr_alleles = len(alleles_lengths)
-
-    # minimum and maximum values
-    max_length = max(alleles_lengths)
-    min_length = min(alleles_lengths)
-
-    # Summary statistics
-    median_length = round(statistics.median(alleles_lengths))
-    mean_length = round(sum(alleles_lengths) / len(alleles_lengths))
-    mode_length = Counter(alleles_lengths).most_common()[0][0]
-
-    # Conserved alleles
-    # get ratio between number of alleles outside conserved threshold
-    alleles_within_threshold = 0
-    for size in alleles_lengths:
-        if not float(size) > mode_length * (1 + threshold) and not float(
-            size
-        ) < mode_length * (1 - threshold):
-            alleles_within_threshold += 1
-
-    ratio = alleles_within_threshold / float(nr_alleles)
-
-    if not conserved and (
-        ratio >= 1 or len(alleles_lengths) - alleles_within_threshold < 2
-    ):
-        if nr_alleles == 1:
-            genes_info = {
-                "gene": gene,
-                "nr_alleles": nr_alleles,
-                "min_length": min_length,
-                "max_length": max_length,
-                "median_length": median_length,
-                "mean_length": mean_length,
-                "mode_length": mode_length,
-                "alleles_lengths": alleles_lengths,
-                "conserved": True,
-                "one_allele_only": True,
-            }
-        else:
-            genes_info = {
-                "gene": gene,
-                "nr_alleles": nr_alleles,
-                "min_length": min_length,
-                "max_length": max_length,
-                "median_length": median_length,
-                "mean_length": mean_length,
-                "mode_length": mode_length,
-                "alleles_lengths": alleles_lengths,
-                "conserved": True,
-                "one_allele_only": False,
-            }
-    elif conserved and ratio >= 1:
-        if nr_alleles == 1:
-            genes_info = {
-                "gene": gene,
-                "nr_alleles": nr_alleles,
-                "min_length": min_length,
-                "max_length": max_length,
-                "median_length": median_length,
-                "mean_length": mean_length,
-                "mode_length": mode_length,
-                "alleles_lengths": alleles_lengths,
-                "conserved": True,
-                "one_allele_only": True,
-            }
-        else:
-            genes_info = {
-                "gene": gene,
-                "nr_alleles": nr_alleles,
-                "min_length": min_length,
-                "max_length": max_length,
-                "median_length": median_length,
-                "mean_length": mean_length,
-                "mode_length": mode_length,
-                "alleles_lengths": alleles_lengths,
-                "conserved": True,
-                "one_allele_only": False,
-            }
+    median = round(statistics.median(values))
+    # q1 and q3
+    if len(values) > 1:
+        half = int(len(values) // 2)
+        q1 = statistics.median(values[:half])
+        q3 = statistics.median(values[-half:])
     else:
-        genes_info = {
-            "gene": gene,
-            "nr_alleles": nr_alleles,
-            "min_length": min_length,
-            "max_length": max_length,
-            "median_length": median_length,
-            "mean_length": mean_length,
-            "mode_length": mode_length,
-            "alleles_lengths": alleles_lengths,
-            "conserved": False,
-            "one_allele_only": False,
-        }
+        q1 = values[0]
+        q3 = values[0]
 
-    return genes_info
+    return [q1, median, q3]
 
 
-def gene_seqs_info_individual_schema_evaluator(gene):
-    """Determine the number of alleles and the mean allele length for a locus.
+def compute_mean(values, decimal_place=None):
+    """Compute the mean.
 
     Parameters
     ----------
-    gene : string
-        A string with names/paths for FASTA files.
+    values : list
+        List with integers and/or floats.
+    decimal_place : int
+        Rounding precision.
 
     Returns
     -------
-    genes_info : list
-        A list with a sublist for each input
-        gene file. Each sublist contains a gene identifier, the
-        total number of alleles for that gene and the mean length
-        of allele sequences for that gene.
+    mean : int or float
+        The mean computed based on the input list.
     """
-    seq_generator = SeqIO.parse(gene, "fasta")
+    mean = round(sum(values) / len(values), decimal_place)
 
-    # Allele IDs and lengths
-    allele_ids = []
-    alleles_lengths = []
-    for allele in seq_generator:
-        allele_ids.append(allele.id)
-        alleles_lengths.append(len(allele))
-
-    alleles_lengths.sort()
-
-    # number of alleles
-    nr_alleles = len(alleles_lengths)
-
-    # minimum and maximum values
-    max_length = max(alleles_lengths)
-    min_length = min(alleles_lengths)
-
-    # size range
-    size_range = "{0}-{1}".format(min_length, max_length)
-
-    # Summary statistics
-    median_length = round(statistics.median(alleles_lengths))
-    mode_length = Counter(alleles_lengths).most_common()[0][0]
-
-    genes_info = {
-        "gene": gene,
-        "nr_alleles": nr_alleles,
-        "size_range": size_range,
-        "median_length": median_length,
-        "allele_ids": allele_ids,
-        "alleles_lengths": alleles_lengths,
-        "mode_length": mode_length,
-    }
-
-    return genes_info
+    return mean
 
 
-def gene_seqs_info_boxplot(schema_dir):
-    """Determine boxplot statistics.
+def compute_sd(values):
+    """Compute the standard deviation.
 
     Parameters
     ----------
-    schema_dir : list
-        A list with names/paths for FASTA files.
+    values : list
+        List with integers and/or floats.
 
     Returns
     -------
-    json_to_file : dict
-        A dict with a subdict for each input
-        gene file. Each subdict contains information about each
-        gene such as, mode of the allele sizes, number of alleles
-        and summary statistics (min, max, median, mode and quartiles).
+    sd : float
+        The standard deviation computed based on the input list.
     """
-    schema_files = [
-        os.path.join(schema_dir, file)
-        for file in os.listdir(schema_dir)
-        if ".fasta" in file
-    ]
-
-    json_to_file = {"boxplot_data": []}
-
-    for g in schema_files:
-        seq_generator = SeqIO.parse(g, "fasta")
-        alleles_lengths = [len(allele) for allele in seq_generator]
-        alleles_lengths.sort()
-
-        # locus name
-        locus_name = os.path.split(g)[1]
-
-        # number of alleles
-        nr_alleles = len(alleles_lengths)
-
-        # minimum and maximum values
-        loci_max = max(alleles_lengths)
-        loci_min = min(alleles_lengths)
-
-        # standard deviation
-        if nr_alleles > 1:
-            locus_sd = statistics.stdev(alleles_lengths)
-        else:
-            locus_sd = 0.0
-
-        # median
-        median_length = round(statistics.median(alleles_lengths))
-
-        # mean
-        mean_length = round(sum(alleles_lengths) / nr_alleles)
-
-        # q1 and q3
-        if nr_alleles > 1:
-            half = int(nr_alleles // 2)
-            q1 = statistics.median(alleles_lengths[:half])
-            q3 = statistics.median(alleles_lengths[-half:])
-        else:
-            q1 = alleles_lengths[0]
-            q3 = alleles_lengths[0]
-
-        json_to_file["boxplot_data"].append(
-            {
-                "locus_name": locus_name,
-                "nr_alleles": nr_alleles,
-                "max": loci_max,
-                "min": loci_min,
-                "sd": locus_sd,
-                "median": median_length,
-                "mean": mean_length,
-                "q1": q1,
-                "q3": q3,
-            }
-        )
-
-    # Sort data by locus_name
-    for k in json_to_file:
-        json_to_file[k] = sorted(json_to_file[k], key=itemgetter("locus_name"))
-
-    return json_to_file
-
-
-# Functions that obtain the data for panel E
-def create_cds_df(schema_file, minimum_length, minimum_length_to_translate,
-                  translation_table):
-    """Detect alleles that aren't CDSs.
-
-    Parameters
-    ----------
-    schema_dir : list
-        A list with names/paths for FASTA files.
-    minimum_length: int
-        Minimum sequence length accepted in nt.
-    translation_table: int
-        The translation table to be used.
-
-    Returns
-    -------
-    res_sorted : dict
-        A dict obtained from a dataframe containing the
-        number of non-CDSs detected. It will be used to
-        populate a table in the report.
-    """
-    res = {"stats": []}
-
-    gene_res = {"Gene": os.path.split(schema_file)[1]}
-
-    gene_res["Number of alleles"] = fao.count_sequences(schema_file)
-
-    stopC = 0
-    notStart = 0
-    notMultiple = 0
-    shorter = 0
-    CDS = 0
-    allele_ids = []
-
-    for allele in SeqIO.parse(schema_file, "fasta"):
-
-        # FASTA headers examples: >allele_1 or >1_2
-        if "_" in allele.id:
-            allele_ids.append(int(allele.id.split("_")[-1]))
-        # FASTA header example: >1
-        else:
-            allele_ids.append(int(allele.id))
-
-        ola = sm.translate_dna(
-            str(allele.seq), translation_table, minimum_length_to_translate
-        )
-
-        if "sequence length is not a multiple of 3" in ola:
-            notMultiple += 1
-        elif "Extra in frame stop codon found" in ola:
-            stopC += 1
-        elif "is not a start codon" in ola:
-            notStart += 1
-        elif "is not a stop codon" in ola:
-            notStart += 1
-        elif "sequence shorter than" in ola:
-            shorter += 1
-        else:
-            CDS += 1
-
-    if len(im.find_missing(allele_ids)) > 0:
-        missing_allele_ids = im.find_missing(allele_ids)
+    # standard deviation
+    if len(values) > 1:
+        sd = statistics.stdev(values)
     else:
-        missing_allele_ids = ["None"]
+        sd = 0.0
 
-    gene_res["Alleles not multiple of 3"] = notMultiple
-    gene_res["Alleles w/ >1 stop codons"] = stopC
-    gene_res["Alleles wo/ Start/Stop Codon"] = notStart
-    gene_res["Alleles shorter than {0} nucleotides".format(minimum_length)] = shorter
-    gene_res["Total Invalid Alleles"] = notMultiple + stopC + notStart + shorter
-    gene_res["Missing Allele IDs"] = missing_allele_ids
-    gene_res["CDS"] = CDS
-
-    res["stats"].append(gene_res)
-
-    res_sorted = sorted(res["stats"], key=itemgetter("Number of alleles"))
-
-    return res_sorted
+    return sd
 
 
-def create_pre_computed_data(schema_dir, translation_table, output_path,
-                             annotations, cpu_to_use, minimum_length,
-                             size_threshold, threshold, conserved,
-                             chewie_schema=False, show_progress=False):
-    """Create a file with pre-computed data for the Plotly charts.
+def outside_threshold(values, threshold, limit):
+    """Determine if values are outside a threshold.
 
     Parameters
     ----------
-    schema_dir : list
-        A list with names/paths for FASTA files.
-    translation_table: int
-        The translation table to be used.
-    output_path : str
-        The directory where the output files will
-        be saved.
-    annotations : str
-        Path to the output file of the UniprotFinder
-        module
-    cpu_to_use: int
-        Number of CPU cores to use for multiprocessing.
-    minimum_length: int
-        Minimum sequence length accepted in nt.
-    size_threshold: int
-        CDS size variation threshold.
-    chewie_schema: bool
-        Identifies the schema as a chewBBACA created schema.
-    show_progress: bool
-        Shows a progress bar for multiprocessing.
+    values : list
+        List with integers and/or floats.
+    threshold : int or float
+        Threshold value.
+    limit : str
+        Check if the values are above ('top') or below
+        ('bot') the threshold.
 
     Returns
     -------
-    out_path : str
-        The directory where the output files will
-        be saved.
+    outside_indices : list
+        List with the indices of the values that were
+        outside the threshold.
     """
-    schema_files = [
-        os.path.join(schema_dir, file)
-        for file in os.listdir(schema_dir)
-        if ".fasta" in file
-    ]
-
-    if len(schema_files) < 1:
-        sys.exit("The schema directory is empty. Please check your path. Exiting...")
-
-    # Check if files are empty
-    empty_files_1 = [fo.is_file_empty(f) for f in schema_files]
-    empty_files_2 = [fo.is_file_empty_3(f) for f in schema_files]
-
-    if True in empty_files_1:
-        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
-    elif True in empty_files_2:
-        sys.exit("At least one file is empty or it doesn't exist. Exiting...")
-
-    out_path = os.path.join(output_path, "SchemaEvaluator_pre_computed_data")
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-
-    # Check minimum length value
-    if minimum_length is None:
-
-        minimum_length = 0
-        minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
-
-        if chewie_schema:
-            # read config file to get chewBBACA parameters
-            config_file = os.path.join(schema_dir, ".schema_config")
-            with open(config_file, "rb") as cf:
-                chewie_schema_configs = pickle.load(cf)
-
-            minimum_length = chewie_schema_configs["minimum_locus_length"][0]
-            minimum_length_to_translate = minimum_length - (
-                minimum_length * chewie_schema_configs["size_threshold"][0]
-            )
-
-    minimum_length_to_translate = minimum_length - (
-        minimum_length * size_threshold
-    )  # set the minimum length value for translation
-
-    if not os.listdir(out_path):
-        # Calculate the summary statistics and other information about each locus.
-        print("\nCalculating summary statistics...\n")
-
-        results = []
-
-        pool_main = multiprocessing.Pool(processes=cpu_to_use)
-
-        rawr_main = pool_main.starmap_async(
-            gene_seqs_info_schema_evaluator,
-            zip(schema_files, itertools.repeat(threshold), itertools.repeat(conserved)),
-            chunksize=1,
-            callback=results.extend,
-        )
-
-        if show_progress is True:
-            progress = 0
-            while progress != 100:
-                progress = mo.progress_bar(rawr_main._number_left, len(schema_files), progress)
-
-        rawr_main.wait()
-
-        # Calculate the summary statistics for each individual locus
-        print("\nCalculating individual summary statistics...\n")
-
-        results_individual = []
-
-        pool_ind = multiprocessing.Pool(processes=cpu_to_use)
-
-        rawr_ind = pool_ind.map_async(
-            gene_seqs_info_individual_schema_evaluator,
-            schema_files,
-            chunksize=1,
-            callback=results_individual.extend,
-        )
-
-        if show_progress is True:
-            progress = 0
-            while progress != 100:
-                progress = mo.progress_bar(rawr_ind._number_left, len(schema_files), progress)
-
-        rawr_ind.wait()
-
-        pre_computed_data = {
-            "mode": [],
-            "total_alleles": [],
-            "scatter_data": [],
-        }
-
-        pre_computed_data_individual = {}
-
-        # Get data for each locus
-        for res_ind in results_individual:
-
-            pre_computed_data_individual[os.path.split(res_ind["gene"])[1]] = {
-                "nr_alleles": res_ind["nr_alleles"],
-                "size_range": res_ind["size_range"],
-                "alleles_median": res_ind["median_length"],
-                "locus_ids": res_ind["allele_ids"],
-                "allele_sizes": res_ind["alleles_lengths"],
-                "alleles_mode": res_ind["mode_length"],
-            }
-
-        # Get the data for panels A-C.
-
-        total_number_of_loci = 0
-        total_number_of_alleles = 0
-        not_conserved = []
-        one_allele_only = []
-
-        for res in results:
-
-            total_number_of_loci += 1
-
-            total_number_of_alleles += res["nr_alleles"]
-
-            # Get the mode for each locus.
-            pre_computed_data["mode"].append(
-                {
-                    "locus_name": os.path.split(res["gene"])[1],
-                    "alleles_mode": res["mode_length"],
-                }
-            )
-
-            # Get the number of alleles for each locus.
-            pre_computed_data["total_alleles"].append(
-                {
-                    "locus_name": os.path.split(res["gene"])[1],
-                    "nr_alleles": res["nr_alleles"],
-                }
-            )
-
-            # Get summary statistics (min, max, mean, mode and median) for each locus.
-            pre_computed_data["scatter_data"].append(
-                {
-                    "locus_name": os.path.split(res["gene"])[1],
-                    "locus_id": os.path.split(res["gene"])[1],
-                    "nr_alleles": res["nr_alleles"],
-                    "alleles_mean": res["mean_length"],
-                    "alleles_median": res["median_length"],
-                    "alleles_min": res["min_length"],
-                    "alleles_max": res["max_length"],
-                    "alleles_mode": res["mode_length"],
-                }
-            )
-
-            # get the not conserved loci
-            if not res["conserved"]:
-                not_conserved.append({"gene": os.path.split(res["gene"])[1]})
-
-            # get loci with only 1 allele
-            if res["one_allele_only"]:
-                one_allele_only.append({"gene": os.path.split(res["gene"])[1]})
-
-        if len(not_conserved) == 0:
-            not_conserved = "undefined"
-
-        if len(one_allele_only) == 0:
-            one_allele_only = "undefined"
-
-        not_conserved_message = '"Locus size is considered not conserved if >1 allele are outside the mode +/- {0} size. Loci with only 1 allele outside the threshold are considered conserved."'.format(
-            threshold
-        )
-
-        # sort pre_computed_data by locus_name
-        for k in pre_computed_data:
-            pre_computed_data[k] = sorted(
-                pre_computed_data[k], key=itemgetter("locus_name")
-            )
-
-        # Get data for panel D
-        print("\nGenerating data to populate a boxplot...\n")
-        boxplot_data = gene_seqs_info_boxplot(schema_dir)
-
-        # Get data for panel E
-        print("\nAnalysing CDSs...\n")
-
-        pool_cds = multiprocessing.Pool(processes=cpu_to_use)
-
-        cds_multi = []
-
-        rawr_cds = pool_cds.starmap_async(
-            create_cds_df,
-            zip(
-                schema_files,
-                itertools.repeat(minimum_length),
-                itertools.repeat(minimum_length_to_translate),
-                itertools.repeat(translation_table),
-            ),
-            chunksize=1,
-            callback=cds_multi.extend,
-        )
-
-        if show_progress is True:
-            progress = 0
-            while progress != 100:
-                progress = mo.progress_bar(rawr_cds._number_left, len(schema_files), progress)
-
-        rawr_cds.wait()
-
-        # flatten the CDS data output list
-        flat_multi_out = im.flatten_list(cds_multi)
-
-        # sort data for the CDS table
-        data_ind = sorted(
-            flat_multi_out,
-            key=itemgetter(
-                "Alleles not multiple of 3",
-                "Alleles w/ >1 stop codons",
-                "Alleles wo/ Start/Stop Codon",
-            ),
-            reverse=True,
-        )
-
-        # sort data for CDS scatterplot
-        hist_data_sort = sorted(flat_multi_out, key=itemgetter("Number of alleles"))
-
-        # get total invalid alleles
-        total_invalid_alleles = 0
-
-        for k in data_ind:
-            total_invalid_alleles += (
-                k["Alleles not multiple of 3"]
-                + k["Alleles w/ >1 stop codons"]
-                + k["Alleles wo/ Start/Stop Codon"]
-                + k["Alleles shorter than {0} nucleotides".format(minimum_length)]
-            )
-
-        # calculate total invalid alleles per class
-        total_alleles_mult3 = sum(k1["Alleles not multiple of 3"] for k1 in data_ind)
-        total_alleles_stopC = sum(k2["Alleles w/ >1 stop codons"] for k2 in data_ind)
-        total_alleles_notStart = sum(
-            k3["Alleles wo/ Start/Stop Codon"] for k3 in data_ind
-        )
-        total_alleles_shorter = sum(
-            k3["Alleles shorter than {0} nucleotides".format(minimum_length)]
-            for k3 in data_ind
-        )
-
-        # organize data for CDS scatterplot
-        hist_data = {}
-
-        hist_data["genes"] = [g["Gene"] for g in hist_data_sort]
-        hist_data["total_alleles"] = [
-            float(na["Number of alleles"]) for na in hist_data_sort
-        ]
-        hist_data["mult3"] = [
-            float(mult3["Alleles not multiple of 3"]) for mult3 in hist_data_sort
-        ]
-        hist_data["stopC"] = [
-            float(stopC["Alleles w/ >1 stop codons"]) for stopC in hist_data_sort
-        ]
-        hist_data["notStart"] = [
-            float(notStart["Alleles wo/ Start/Stop Codon"])
-            for notStart in hist_data_sort
-        ]
-        hist_data["shorter"] = [
-            float(s["Alleles shorter than {0} nucleotides".format(minimum_length)])
-            for s in hist_data_sort
-        ]
-        hist_data["CDS_Alleles"] = [float(cds["CDS"]) for cds in hist_data_sort]
-
-        # check if the user provided annotations
-        annotations_data = {}
-        if annotations is None:
-            uniprot_finder_missing_keys = [
-                "genome",
-                "contig",
-                "start",
-                "stop",
-                "coding_strand",
-                "name",
-                "url",
-                "proteome_id",
-                "proteome_product",
-                "proteome_gene_name",
-                "proteome_species",
-                "proteome_bsr",
-            ]
-            for d in data_ind:
-                d.update(dict.fromkeys(uniprot_finder_missing_keys, "Not provided"))
-
-        else:
-            with open(annotations, "r") as a:
-                annotations_reader = csv.DictReader(a, delimiter="\t", restval="-")
-                for row in annotations_reader:
-                    if len(row.keys()) == 14:
-                        annotations_data["{0}.fasta".format(row["Locus"])] = [
-                                row["Genome"],
-                                row["Contig"],
-                                row["Start"],
-                                row["Stop"],
-                                row["Protein_ID"],
-                                row["Coding_Strand"],
-                                row["Uniprot_Name"],
-                                row["UniProt_URL"],
-                                row["Proteome_ID"],
-                                row["Proteome_Product"],
-                                row["Proteome_Gene_Name"],
-                                row["Proteome_Species"],
-                                row["Proteome_BSR"]
-                            ]
-                    else:
-                        annotations_data["{0}.fasta".format(row["Locus"])] = [
-                                row["Genome"],
-                                row["Contig"],
-                                row["Start"],
-                                row["Stop"],
-                                row["Protein_ID"],
-                                row["Coding_Strand"],
-                                row["Uniprot_Name"],
-                                row["UniProt_URL"],
-                                "Not Provided",
-                                "Not Provided",
-                                "Not Provided",
-                                "Not Provided",
-                                "Not Provided"
-                            ]
-
-            for d in data_ind:
-                try:
-                    d["Gene"] in annotations_data
-                    d.update(
-                        {
-                            "genome": annotations_data[d["Gene"]][0],
-                            "contig": annotations_data[d["Gene"]][1],
-                            "start": annotations_data[d["Gene"]][2],
-                            "stop": annotations_data[d["Gene"]][3],
-                            "coding_strand": "sense"
-                            if annotations_data[d["Gene"]][5] == "1"
-                            else "antisense",
-                            "name": annotations_data[d["Gene"]][6],
-                            "url": annotations_data[d["Gene"]][7],
-                            "proteome_id": annotations_data[d["Gene"]][8],
-                            "proteome_product": annotations_data[d["Gene"]][9],
-                            "proteome_gene_name": annotations_data[d["Gene"]][10],
-                            "proteome_species": annotations_data[d["Gene"]][11],
-                            "proteome_bsr": annotations_data[d["Gene"]][12],
-                        }
-                    )
-                except KeyError:
-                    uniprot_finder_missing_keys = [
-                        "genome",
-                        "contig",
-                        "start",
-                        "stop",
-                        "coding_strand",
-                        "name",
-                        "url",
-                        "proteome_id",
-                        "proteome_product",
-                        "proteome_gene_name",
-                        "proteome_species",
-                        "proteome_bsr",
-                    ]
-                    d.update(dict.fromkeys(uniprot_finder_missing_keys, "-"))
-
-        # check if it is a chewBBACA schema
-        if chewie_schema:
-            # read config file to get chewBBACA parameters
-            config_file = os.path.join(schema_dir, ".schema_config")
-            with open(config_file, "rb") as cf:
-                chewie_schema_configs = pickle.load(cf)
-
-            translation_table_config = chewie_schema_configs["translation_table"][0]
-            minimum_length_config = chewie_schema_configs["minimum_locus_length"][0]
-
-            # build the total data dictionary
-            total_data = [
-                {
-                    "chewBBACA_version": chewie_schema_configs["chewBBACA_version"][0],
-                    "bsr": chewie_schema_configs["bsr"][0],
-                    "total_loci": total_number_of_loci,
-                    "total_alleles": total_number_of_alleles,
-                    "total_alleles_mult3": total_alleles_mult3,
-                    "total_alleles_stopC": total_alleles_stopC,
-                    "total_alleles_notStart": total_alleles_notStart,
-                    "total_alleles_shorter": total_alleles_shorter,
-                    "total_invalid_alleles": total_invalid_alleles,
-                }
-            ]
-
-            # check if config parameters are the same as the user input
-            if (
-                minimum_length_config == minimum_length
-                and translation_table_config == translation_table
-            ):
-                message = '"Schema created and evaluated with minimum length of {0} and translation table {1}."'.format(
-                    minimum_length, translation_table
-                )
-            else:
-                message = '"Schema created with minimum length of {0} and translation table {1} and evaluated with minimum length of {2} and translation table {3}."'.format(
-                    minimum_length_config,
-                    translation_table_config,
-                    minimum_length,
-                    translation_table,
-                )
-        else:
-            # build the total data dictionary
-            total_data = [
-                {
-                    "total_loci": total_number_of_loci,
-                    "total_alleles": total_number_of_alleles,
-                    "total_alleles_mult3": total_alleles_mult3,
-                    "total_alleles_stopC": total_alleles_stopC,
-                    "total_alleles_notStart": total_alleles_notStart,
-                    "total_alleles_shorter": total_alleles_shorter,
-                    "total_invalid_alleles": total_invalid_alleles,
-                }
-            ]
-            message = '"Schema evaluated with minimum length of {0} and translation table {1}."'.format(
-                minimum_length, translation_table
-            )
-
-        # Write HTML file
-        print("\nWriting main report HTML file...\n")
-        html_template_global = """
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Schema Evaluator - React Edition</title>
-            </head>
-            <body style="background-color: #f6f6f6">
-                <noscript> You need to enable JavaScript to run this app. </noscript>
-                <div id="root"></div>
-                <script> const _preComputedData = {0} </script>
-                <script> const _preComputedDataInd = {1} </script>
-                <script> const _preComputedDataBoxplot = {2} </script>
-                <script> const _cdsDf = {3} </script>
-                <script> const _cdsScatter = {4} </script>
-                <script> const _totalData = {5} </script>
-                <script> const _notConserved = {6} </script>
-                <script> const _oneAlleleOnly = {7} </script>
-                <script> const _message = {8} </script>
-                <script> const _notConservedMessage = {9} </script>
-                <script src="./main.js"></script>
-            </body>
-        </html>
-        """.format(
-            json.dumps(pre_computed_data),
-            json.dumps(pre_computed_data_individual, sort_keys=True),
-            json.dumps(boxplot_data),
-            json.dumps(data_ind, sort_keys=True),
-            json.dumps(hist_data, sort_keys=True),
-            json.dumps(total_data),
-            json.dumps(not_conserved),
-            json.dumps(one_allele_only),
-            message,
-            not_conserved_message,
-        )
-
-        html_file_path = os.path.join(out_path, "schema_evaluator_report.html")
-
-        with open(html_file_path, "w") as html_fh:
-            html_fh.write(html_template_global)
-
-        # Write the file to the pre_computed_data directory.
-        pre_computed_data_path = os.path.join(out_path, "pre_computed_data.json")
-        with open(pre_computed_data_path, "w") as out:
-            json.dump(pre_computed_data, out)
-
-        # Write the locus individual file to the pre_computed_data directory.
-        pre_computed_data_ind_path = os.path.join(
-            out_path, "pre_computed_data_ind.json"
-        )
-        with open(pre_computed_data_ind_path, "w") as out_ind:
-            json.dump(pre_computed_data_individual, out_ind, sort_keys=True)
-
-        # Write the boxplot pre_computed_data
-        pre_computed_data_boxplot_path = os.path.join(
-            out_path, "pre_computed_data_boxplot.json"
-        )
-        with open(pre_computed_data_boxplot_path, "w") as box_outfile:
-            json.dump(boxplot_data, box_outfile)
-
-        # Write the CDS Analysis (Panel E) data files
-        cds_df_path = os.path.join(out_path, "cds_df.json")
-
-        cds_scatter_path = os.path.join(out_path, "cds_scatter.json")
-
-        with open(cds_df_path, "w") as cds_df_json:
-            json.dump(data_ind, cds_df_json)
-
-        with open(cds_scatter_path, "w") as cds_scatter_json:
-            json.dump(hist_data, cds_scatter_json)
-
-        return out_path
-    else:
-        print("Files have already been created. Moving on to the report...\n")
-        return out_path
-
-
-def make_protein_record(nuc_record, record_id):
-    """Return a new SeqRecord with the translated sequence (default table).
+    outside_indices = []
+    for i, v in enumerate(values):
+        if limit == 'top':
+            if v > threshold:
+                outside_indices.append((i, v))
+        elif limit == 'bot':
+            if v < threshold:
+                outside_indices.append((i, v))
+
+    return outside_indices
+
+
+def count_translation_exception_categories(exceptions):
+    """Count the number of ocurrences for each translation exception.
 
     Parameters
     ----------
-    nuc_record : str
-        Protein sequence.
-    record_id: str
-        Record identifier.
+    exceptions : list
+        List with the strings corresponding to the exceptions captured
+        during sequence translation.
 
     Returns
     -------
-    SeqRecord
-        A SeqRecord object with the
-        translated record.
-
+    inframe_stop : int
+        Count for in-frame stop codons.
+    no_start : int
+        Count for sequences that do not start with a start codon.
+    no_stop : int
+        Count for sequences that do not end with a stop codon.
+    incomplete : int
+        Count for sequences with a length value that is not a
+        multiple of 3.
+    ambiguos : int
+        Count for sequences that include ambiguous bases.
     """
-    return SeqRecord(seq=nuc_record, id=record_id, description="")
+    inframe_stop = sum([1 for exc in exceptions
+                        if ct.TRANSLATION_EXCEPTIONS[0] in exc.split(',')[0]])
+    no_start = sum([1 for exc in exceptions
+                    if ct.TRANSLATION_EXCEPTIONS[1] in exc.split(',')[0]])
+    no_stop = sum([1 for exc in exceptions
+                   if ct.TRANSLATION_EXCEPTIONS[2] in exc.split(',')[0]])
+    incomplete = sum([1 for exc in exceptions
+                      if ct.TRANSLATION_EXCEPTIONS[3] in exc.split(',')[0]])
+    ambiguous = sum([1 for exc in exceptions
+                     if ct.TRANSLATION_EXCEPTIONS[4] in exc.split(',')[0]])
 
-
-def create_protein_files(schema_dir, output_path, cpu_to_use,
-                         minimum_length, size_threshold, translation_table,
-                         chewie_schema=False, show_progress=False):
-    """Generate FASTA files with the protein sequence of the schema loci.
-
-    Parameters
-    ----------
-    schema_dir : list
-        A list with names/paths for FASTA files.
-    output_path : str
-        The directory where the output files will
-        be saved.
-    cpu_to_use: int
-        Number of CPU cores to use for
-        multiprocessing.
-    minimum_length: int
-        Minimum sequence length accepted in nt.
-    translation_table: int
-        The translation table to be used.
-    chewie_schema: bool
-        Identifies the schema as a chewBBACA created schema.
-    show_progress: bool
-        Shows a progress bar for multiprocessing.
-
-    Returns
-    -------
-    out_path : str
-        The directory where the output files will
-        be saved.
-    """
-    out_path = os.path.join(output_path, "prot_files")
-    exception_path = os.path.join(out_path, "exceptions")
-
-    if not os.path.exists(out_path):
-        os.mkdir(out_path)
-
-    if not os.path.exists(exception_path):
-        os.mkdir(exception_path)
-
-    schema_files = [
-        os.path.join(schema_dir, file)
-        for file in os.listdir(schema_dir)
-        if ".fasta" in file
-    ]
-
-    # Check minimum length value
-    if minimum_length is None:
-
-        minimum_length = 0
-        minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
-
-        if chewie_schema:
-            # read config file to get chewBBACA parameters
-            config_file = os.path.join(schema_dir, ".schema_config")
-            with open(config_file, "rb") as cf:
-                chewie_schema_configs = pickle.load(cf)
-
-            minimum_length = chewie_schema_configs["minimum_locus_length"][0]
-            minimum_length_to_translate = minimum_length - (
-                minimum_length * chewie_schema_configs["size_threshold"][0]
-            )
-
-    # set the minimum length value for translation
-    minimum_length_to_translate = minimum_length - (minimum_length * size_threshold)
-
-    print("\nTranslating....\n")
-
-    pool_prot = multiprocessing.Pool(processes=cpu_to_use)
-
-    rawr_prot = pool_prot.starmap_async(
-        generate_protein_files,
-        zip(
-            schema_files,
-            itertools.repeat(output_path),
-            itertools.repeat(minimum_length_to_translate),
-            itertools.repeat(translation_table),
-        ),
-        chunksize=1,
-    )
-
-    if show_progress is True:
-        progress = 0
-        while progress != 100:
-            progress = mo.progress_bar(rawr_prot._number_left, len(schema_files), progress)
-
-    rawr_prot.wait()
-
-    return out_path
-
-
-def generate_protein_files(fasta, output_path, minimum_length, translation_table):
-    """Generate FASTA files with the protein sequence of the schema loci.
-
-    Parameters
-    ----------
-    schema_dir : list
-        A list with names/paths for FASTA files.
-    output_path : str
-        The directory where the output files will
-        be saved.
-    minimum_length: int
-        Minimum sequence length accepted in nt.
-    translation_table: int
-        The translation table to be used.
-
-    Returns
-    -------
-    None
-    """
-    out_path = os.path.join(output_path, "prot_files")
-    exception_path = os.path.join(out_path, "exceptions")
-
-    file_name_split = os.path.split(fasta)[1]
-    prot_file_name = file_name_split.replace(".fasta", "_prot.fasta")
-    exc_file_name = file_name_split.replace(".fasta", "_exceptions.json")
-
-    out_file = os.path.join(out_path, prot_file_name)
-    exc_file = os.path.join(exception_path, exc_file_name)
-
-    # to be SeqRecord list
-    proteins = []
-    exceptions = []
-
-    for allele in SeqIO.parse(fasta, "fasta"):
-        prot = sm.translate_dna(str(allele.seq), translation_table, minimum_length)
-
-        if isinstance(prot, list):
-            tets = make_protein_record(prot[0][0], allele.id.split("_")[-1])
-            proteins.append(tets)
-        elif isinstance(prot, str):
-            if "sense" in prot:
-                prot2 = prot.split(",")[0]
-            else:
-                prot2 = prot
-            exc = {"allele": allele.id, "exception": prot2}
-            exceptions.append(exc)
-
-    SeqIO.write(proteins, out_file, "fasta")
-
-    with open(exc_file, "w") as ef:
-        json.dump(exceptions, ef)
+    return [inframe_stop, no_start, no_stop, incomplete, ambiguous]
 
 
 def call_mafft(genefile):
@@ -1107,231 +186,644 @@ def call_mafft(genefile):
     Parameters
     ----------
     genefile : str
-        A string with the name/path for
-        the FASTA file.
+        Path to a FASTA file with the sequences to align.
 
     Returns
     -------
-    bool
-        True if sucessful, False otherwise.
+    Path to the file with the computed MSA if successful, False otherwise.
     """
     try:
-        mafft_cline = MafftCommandline(
-            input=genefile,
-            adjustdirection=True,
-            treeout=True,
-            thread=1,
-            retree=1,
-            maxiterate=0,
-        )
+        mafft_cline = MafftCommandline(input=genefile,
+                                       adjustdirection=True,
+                                       treeout=True,
+                                       thread=1,
+                                       retree=1,
+                                       maxiterate=0,
+                                       )
         stdout, stderr = mafft_cline()
-        path_to_save = genefile.replace("_prot.fasta", "_aligned.fasta")
+        path_to_save = genefile.replace(".fasta", "_aligned.fasta")
         with open(path_to_save, "w") as handle:
             handle.write(stdout)
-        return True
 
+        return path_to_save
     except Exception as e:
         print(e)
         return False
 
 
-def run_mafft(protein_file_path, cpu_to_use, show_progress=False):
-    """Run MAFFT with multprocessing and save the output.
+def reformat_translation_exceptions(exceptions, allele_lengths):
+    """Reformat translation exceptions.
 
     Parameters
     ----------
-    protein_file_path : str
-        a string with the name/path for
-        the protein FASTA file.
-    cpu_to_use : int
-        the number of cpu to use for
-        multiprocessing.
-    show_progress : bool
-        If a progress bar should be
-        displayed.
+    exceptions : list
+        List with one sublist for each exception. Each sublist
+        includes an allele identifier and the exception string.
+    allele_lengths : dict
+        Dictionary mapping the allele identifier to the allele
+        sequence length.
 
     Returns
     -------
-    None.
+    formatted_exceptions : dict
+        Dictionary mapping the allele identifiers to a list
+        with the allele identifier, the exception category of
+        the first exception that was captured and the list of
+        all exceptions captured for each allele.
     """
-    print("\nRunning MAFFT...\n")
+    formatted_exceptions = {}
+    for exception in exceptions:
+        allele_id = exception[0]
+        sequence_length = allele_lengths[int(allele_id)]
+        raw_exception = exception[1]
+        if raw_exception == 'sequence length is not a multiple of 3':
+            exception_category = 'Incomplete ORF'
+            exception_description = ('Sequence length is not a multiple '
+                                     f'of 3 ({sequence_length}bp);')
+        if raw_exception == 'ambiguous or invalid characters':
+            exception_category = 'Ambiguous Bases'
+            exception_description = ('Sequence contains ambiguous bases;')
+        if 'codon' in raw_exception:
+            # split exception string
+            split_exception = raw_exception.split(',')
+            clean_exceptions = []
+            for e in split_exception:
+                estr = e.replace('(', ':')
+                estr = estr.replace(')', ';')
+                estr = estr.replace('.', '')
+                clean_exceptions.append(estr)
+            if 'Extra' in clean_exceptions[0]:
+                exception_category = 'In-frame Stop Codon'
+            else:
+                exception_category = 'Missing Start/Stop Codon'
+            exception_description = ' '.join(clean_exceptions)
 
-    protein_files = [
-        os.path.join(protein_file_path, file)
-        for file in os.listdir(protein_file_path)
-        if "_prot.fasta" in file
-    ]
+        formatted_exceptions.setdefault(allele_id,
+                                        [allele_id,
+                                         exception_category]).append(exception_description)
 
-    pool = multiprocessing.Pool(cpu_to_use)
-
-    rawr = pool.map_async(call_mafft, protein_files, chunksize=1)
-
-    if show_progress is True:
-        progress = 0
-        while progress != 100:
-            progress = mo.progress_bar(rawr._number_left, len(protein_files), progress)
-
-    rawr.wait()
+    return formatted_exceptions
 
 
-def write_individual_html(input_files, pre_computed_data_path,
-                          protein_file_path, output_path, minimum_length,
-                          chewie_schema=False):
-    """Write HTML files for each locus.
+def get_alleleID(allele_seqid):
+    """
+    """
+    if '_*' not in allele_seqid:
+        allele_id = int(allele_seqid.split('_')[-1])
+    else:
+        allele_id = int(allele_seqid.split('_*')[-1])
+
+    return allele_id
+
+
+def compute_locus_statistics(locus, translation_table, minimum_length,
+                             size_threshold, translation_dir):
+    """Compute sequence length statistics for a locus.
 
     Parameters
     ----------
-    input_files : str
-        a string with the name/path for
-        the schema files.
-    pre_computed_data_path : str
-        a string with the name/path for
-        the pre-computed data files.
-    protein_file_path : str
-        a string with the name/path for
-        the protein FASTA file.
-    output_path : str
-        the directory where the output
-        files will be saved.
-    minimum_length: int
-        minimum sequence length accepted in nt.
-    chewie_schema: bool
-        identifies the schema as a chewBBACA created schema.
+    locus : str
+        Path to the locus FASTA file.
+    translation_table : int
+        Translation table to use for sequence translation.
+    minimum_length : int
+        Minimum sequence length value used to exclude sequences.
+    size_threshold : float
+        Sequence size variation threshold value used to compute bot
+        and top sequence length thresholds.
+    translation_dir : str
+        Path to the directory where the FASTA files with the
+        translated alleles will be saved to.
 
     Returns
     -------
-    None.
+    results : list
+        A list with the length statistics and the sequence translation
+        exceptions captured for each sequence in the FASTA file.
     """
-    print("\nWriting individual report HTML files...\n")
+    locus_id = fo.file_basename(locus, False)
+    sequence_lengths = fao.sequence_lengths(locus)
+    ns_alleles = [get_alleleID(k) for k in sequence_lengths if '*' in k]
+    ns_alleles = sorted(ns_alleles)
+    # sort based on sequence length
+    # Determine if any allele identifiers include "*"
+    # "*" is added to novel alleles in schemas downloaded from Chewie-NS
+    allele_lengths = {}
+    for x in sorted(sequence_lengths.items(), key=lambda item: item[1]):
+        allele_id = get_alleleID(x[0])
+        allele_lengths[allele_id] = x[1]
 
-    out_path = os.path.join(output_path, "html_files")
+    lengths = list(allele_lengths.values())
+    allele_ids = list(allele_lengths.keys())
 
-    if not os.path.exists(out_path):
-        os.mkdir(out_path)
+    # Determine missing allele ids
+    missing_ids = im.find_missing(allele_ids)
 
-    schema_files = [
-        os.path.splitext(f)[0] for f in os.listdir(input_files) if ".fasta" in f
-    ]
+    # number of alleles
+    nr_alleles = len(lengths)
 
-    pre_computed_data_file = os.path.join(
-        pre_computed_data_path, "pre_computed_data_ind.json"
-    )
+    # Summary statistics
+    max_length = max(lengths)
+    min_length = min(lengths)
+    size_range = f'{min_length}-{max_length}'
+    mean_length = compute_mean(lengths, 0)
+    locus_sd = compute_sd(lengths)
+    q1, median, q3 = compute_quartiles(lengths)
+    mode_length = sm.determine_mode(lengths)[0]
 
-    cds_df_path = os.path.join(
-        output_path, "SchemaEvaluator_pre_computed_data", "cds_df.json"
-    )
+    # Get index of alleles above size threshold
+    top_threshold = math.floor(mode_length*(1+size_threshold))
+    above_threshold = outside_threshold(lengths, top_threshold, 'top')
+    # Get ids based on indices
+    above_threshold = [(allele_ids[i[0]], i[1]) for i in above_threshold]
+    # Get index of alleles below size threshold
+    bot_threshold = math.ceil(mode_length*(1-size_threshold))
+    below_threshold = outside_threshold(lengths, bot_threshold, 'bot')
+    # Get ids based on indices
+    below_threshold = [(allele_ids[i[0]], i[1]) for i in below_threshold]
 
-    exceptions_path = os.path.join(
-        output_path, "SchemaEvaluator_pre_computed_data", "prot_files", "exceptions"
-    )
+    # Translate alleles and capture translation exceptions
+    _, protein_file, _, exceptions = fao.translate_fasta(locus,
+                                                         translation_dir,
+                                                         translation_table)
+    # If some sequence headers include "*", reformat FASTA file to remove "*"
+    # Reformatting protein files uses less disk space than reformatting DNA
+    if len(ns_alleles) > 0:
+        records = fao.sequence_generator(protein_file)
+        records = [[(rec.id).replace('*', ''), str(rec.seq)] for rec in records]
+        output_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, records)
+        fo.remove_files([protein_file])
+        fo.write_lines(output_lines, protein_file)
 
-    # Read the pre_computed data file
-    with open(pre_computed_data_file, "r") as pre_comp_file:
-        pre_computed_data_individual = json.load(pre_comp_file)
+    # Determine distinct proteins
+    translated_alleles = fao.import_sequences(protein_file)
+    distinct_proteins = sm.determine_duplicated_seqs(translated_alleles)
+    distinct_records = [[v[0], k]
+                        for k, v in distinct_proteins.items()]
+    distinct_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, distinct_records)
+    distinct_file = fo.join_paths(translation_dir, [f'{locus_id}_distinct.fasta'])
+    fo.write_lines(distinct_lines, distinct_file)
+    distinct_ids = [[get_alleleID(i) for i in v]
+                    for k, v in distinct_proteins.items()]
+    distinct_ids = [[v[0], v] for v in distinct_ids]
+    # Sort in order of decreasing length
+    distinct_ids = sorted(distinct_ids, key=lambda x: len(x[1]), reverse=True)
+    distinct_ids = sorted(distinct_ids, key=lambda x: x[0])
 
-    with open(cds_df_path, "r") as cds_file:
-        cds_json_data = json.load(cds_file)
+    exceptions = {str(get_alleleID(exc[0])): exc[1] for exc in exceptions}
+    exceptions_values = list(exceptions.values())
+    exceptions_lines = [[k, v] for k, v in exceptions.items()]
+    # Count number of ocurrences for each translation exception
+    exception_counts = count_translation_exception_categories(exceptions_values)
 
-    for sf in schema_files:
+    # Determine list of valid allele ids
+    valid_ids = [str(i) for i in allele_ids if str(i) not in exceptions]
 
-        sf_fasta = "{0}.fasta".format(sf)
+    # Do not count shorter alleles as invalid alleles
+    # Only count as invalid alleles that cannot be translated
+    invalidCDS = sum(exception_counts)
+    validCDS = nr_alleles - invalidCDS
+    validated_proportion = round(validCDS / nr_alleles, 3)
 
-        # Get the precomputed data for tables and plots
-        pre_computed_data_individual_sf = {
-            "locus_name": str(sf),
-            "data": pre_computed_data_individual[sf_fasta],
-        }
+    # determine sequences shorter than minimum length
+    short_ids = [(allele_ids[i], v)
+                 for i, v in enumerate(lengths)
+                 if v < minimum_length]
 
-        # Get CDS data for table
-        cds_ind_data = [e for e in cds_json_data if sf_fasta == e["Gene"]][0]
+    # format exception strings for Exceptions Table Component in loci reports
+    formatted_exceptions = reformat_translation_exceptions(exceptions_lines,
+                                                           allele_lengths)
 
-        # Read the exceptions file
-        exceptions_filename_path = os.path.join(
-            exceptions_path, "{0}_exceptions.json".format(sf)
-        )
-        with open(exceptions_filename_path, "r") as ef:
-            exc_data = json.load(ef)
-
-        # path to the protein files
-        prot_file_path = os.path.join(protein_file_path, "{0}_aligned.fasta".format(sf))
-
-        # get the msa data
-        msa_data = {"sequences": []}
-
-        msa_seq_gen = SeqIO.parse(prot_file_path, "fasta")
-
-        allele_ids = [allele.id for allele in msa_seq_gen]
-
-        if len(allele_ids) > 1:
-            for allele in SeqIO.parse(prot_file_path, "fasta"):
-                msa_data["sequences"].append(
-                    {"name": allele.id, "sequence": str(allele.seq)}
-                )
+    # Add info about short alleles
+    short_category = f'Alleles < {minimum_length}bp'
+    short_description = 'Sequence shorter than {0}bp ({1}bp);'
+    for i in short_ids:
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(short_description.format(minimum_length, i[1]))
         else:
-            msa_data = "undefined"
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               short_category,
+                                               short_description.format(minimum_length, i[1])]
 
-        # get the fasta for the sequence logo
-        if os.path.exists(prot_file_path):
-            with open(prot_file_path, "r") as fas:
-                fasta_file_content = fas.read()
+    # Add info about alleles above threshold
+    above_category = 'Alleles above size threshold'
+    above_description = 'Sequence above size threshold ({0}bp)'
+    for i in above_threshold:
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(above_description.format(i[1]))
         else:
-            fasta_file_content = "undefined"
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               above_category,
+                                               above_description.format(i[1])]
 
-        # get the phylocanvas data
-        phylo_file_path = os.path.join(
-            protein_file_path, "{0}_prot.fasta.tree".format(sf)
-        )
-        if os.path.exists(phylo_file_path):
-            with open(phylo_file_path, "r") as phylo:
-                phylo_data = phylo.read()
-
-            phylo_data_json = {"phylo_data": phylo_data}
+    # Add info about alleles below threshold
+    below_category = 'Alleles below size threshold'
+    below_description = 'Sequence below size threshold ({0}bp)'
+    for i in below_threshold:
+        if str(i[0]) in formatted_exceptions:
+            formatted_exceptions[str(i[0])].append(below_description.format(i[1]))
         else:
-            phylo_data_json = "undefined"
+            formatted_exceptions[str(i[0])] = [str(i[0]),
+                                               below_category,
+                                               below_description.format(i[1])]
 
-        if minimum_length is None:
+    # Join exceptions per allele
+    formatted_exceptions = [[v[0], v[1], ' '.join(v[2:])]
+                            for k, v in formatted_exceptions.items()]
 
-            minimum_length = 0
-            if chewie_schema:
-                # read config file to get chewBBACA parameters
-                config_file = os.path.join(input_files, ".schema_config")
-                with open(config_file, "rb") as cf:
-                    chewie_schema_configs = pickle.load(cf)
+    # Unpack exception counts
+    inframe_stop, no_start, no_stop, incomplete, ambiguous = exception_counts
 
-                minimum_length = chewie_schema_configs["minimum_locus_length"][0]
+    results = [locus_id, nr_alleles, max_length, min_length,
+               size_range, median, mean_length, mode_length,
+               locus_sd, q1, q3, lengths, allele_ids,
+               [locus_id, nr_alleles, validCDS, invalidCDS,
+                validated_proportion, len(distinct_ids), incomplete, ambiguous,
+                no_start+no_stop, inframe_stop, len(short_ids),
+                len(below_threshold), len(above_threshold), len(missing_ids)],
+               bot_threshold, top_threshold, formatted_exceptions,
+               protein_file, distinct_file, missing_ids, valid_ids,
+               ns_alleles, distinct_ids]
 
-        html_template_individual = """
-            <!DOCTYPE html>
-            <html lang="en">
-                <head>
-                    <meta charset="UTF-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                    <title>Schema Evaluator - Individual Analysis</title>
-                </head>
-                <body style="background-color: #f6f6f6">
-                    <noscript> You need to enable JavaScript to run this app. </noscript>
-                    <div id="root"></div>
-                    <script> const _preComputedDataInd = {0} </script>
-                    <script> const _exceptions = {1} </script>
-                    <script> const _cdsDf = {2} </script>
-                    <script> const _msaData = {3} </script>
-                    <script> const _phyloData = {4} </script>
-                    <script> const _minLen = {5} </script>
-                    <script> const _fasta = `{6}` </script>
-                    <script src="./main_ind.js"></script>
-                </body>
-            </html>
-            """.format(
-            json.dumps(pre_computed_data_individual_sf, sort_keys=True),
-            json.dumps(exc_data, sort_keys=True),
-            json.dumps(cds_ind_data, sort_keys=True),
-            json.dumps(msa_data, sort_keys=True),
-            json.dumps(phylo_data_json, sort_keys=True),
-            json.dumps(int(minimum_length), sort_keys=True),
-            fasta_file_content,
-        )
+    return results
 
-        html_file_path = os.path.join(out_path, "{0}_individual_report.html".format(sf))
 
-        with open(html_file_path, "w") as html_fh:
-            html_fh.write(html_template_individual)
+def locus_report(locus_file, locus_data, annotation_columns,
+                 annotation_values, html_dir, minimum_length,
+                 light, add_sequences):
+    """Create the HTML report for a locus.
+
+    Parameters
+    ----------
+    locus_file : str
+        Path to the locus FASTA file.
+    locus_data : list
+        List with the locus data returned by `compute_locus_statistics`.
+    annotation_columns : list
+        List with the column headers for the annotations table.
+    annotation_values : list
+        List with the locus annotations.
+    html_dir : str
+        Path to the directory where the loci HTML reports will
+        be saved to.
+    minimum_length : int
+        Minimum sequence length.
+    light : bool
+        True to compute and add the MSA and NJ to the report.
+        False otherwise.
+    add_sequences : bool
+        True to add the allele DNA sequences and the translated
+        allele sequences to the report.
+
+    Returns
+    -------
+    locus_html_file : str
+        Path to the locus report HTML file.
+    """
+    locus = locus_data[0]
+    allele_lengths = locus_data[11]
+    allele_ids = locus_data[12]
+
+    # determine counts per distinct allele size
+    counts = list(Counter(allele_lengths).items())
+    sorted_counts = sorted(counts, key=lambda x: x[0])
+    counts_data = list(zip(*sorted_counts))
+
+    locus_rows = [locus,
+                  locus_data[1],
+                  locus_data[13][2],
+                  locus_data[13][3],
+                  locus_data[13][4],
+                  locus_data[13][5],
+                  locus_data[13][6],
+                  locus_data[13][7],
+                  locus_data[13][8],
+                  locus_data[13][9],
+                  locus_data[13][10],
+                  locus_data[4],
+                  locus_data[5],
+                  locus_data[7],
+                  locus_data[13][11],
+                  locus_data[13][12],
+                  locus_data[13][13]]
+
+    dna_sequences = {"sequences": []}
+    protein_sequences = {"sequences": []}
+    # Include DNA and Protein sequences if --add-sequences was provided
+    if add_sequences is True:
+        protein_records = fao.sequence_generator(locus_data[17])
+        for record in protein_records:
+            allele_id = get_alleleID(record.id)
+            protein_sequences["sequences"].append({"name": allele_id,
+                                                   "sequence": str(record.seq)})
+        dna_records = fao.sequence_generator(locus_file)
+        for record in dna_records:
+            allele_id = get_alleleID(record.id)
+            dna_sequences["sequences"].append({"name": allele_id,
+                                               "sequence": str(record.seq)})
+
+    # Get data for MSA and NJ Tree if --light flag was not provided
+    phylo_data = {"phylo_data": []}
+    msa_data = {"sequences": []}
+    if light is False:
+        if locus_data[13][2] > 1 and locus_data[13][5] > 1:
+            alignment_file = call_mafft(locus_data[18])
+            # get MSA data
+            alignment_text = fo.read_file(alignment_file)
+            alignment_text = alignment_text.replace(f'{locus}_', '')
+            msa_data['sequences'] = alignment_text
+
+            # get Tree data
+            # get the phylocanvas data
+            tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
+            phylo_data = fo.read_file(tree_file)
+
+            # Start by substituting greatest value to avoid substituting
+            # smaller values contained in greater values
+            if locus in phylo_data:
+                for i in range(locus_data[1], 0, -1):
+                    phylo_data = phylo_data.replace(f'{i}_{locus}_', '')
+            else:
+                for i in range(locus_data[1], 0, -1):
+                    phylo_data = phylo_data.replace(f'{i}_', '')
+
+            phylo_data = phylo_data.replace('\n', '')
+            phylo_data = {"phylo_data": phylo_data}
+
+    locus_columns = ct.LOCUS_COLUMNS.format(minimum_length,
+                                            locus_data[14],
+                                            locus_data[15])
+    locus_columns = locus_columns.split('\t')
+
+    # Gather data in dictionary to store in HTML
+    locus_html_data = {"summaryData": [{"columns": locus_columns},
+                                       {"rows": [locus_rows]}],
+                       "annotations": [{"columns": annotation_columns},
+                                       {"rows": [annotation_values]}],
+                       "lengths": allele_lengths,
+                       "ids": allele_ids,
+                       "counts": [list(counts_data[0]), list(counts_data[1])],
+                       "phylo": phylo_data,
+                       "validIDs": locus_data[20],
+                       "msa": msa_data,
+                       "dna": dna_sequences,
+                       "protein": protein_sequences,
+                       "botThreshold": locus_data[14],
+                       "topThreshold": locus_data[15],
+                       "invalidAlleles": [{"columns": ct.INVALID_ALLELES_COLUMNS},
+                                          {"rows": locus_data[16]}],
+                       "nsAlleles": locus_data[21],
+                       "distinctAlleles": [{"columns": ct.DISTINCT_ALLELES_COLUMNS},
+                                           {"rows": locus_data[22]}],
+                       }
+
+    # Add data to HTML string and save HTML string into file
+    locus_html = ct.LOCUS_REPORT_HTML
+    locus_html = locus_html.format(json.dumps(locus_html_data))
+
+    locus_html_file = fo.join_paths(html_dir, [f'{locus}.html'])
+    fo.write_to_file(locus_html, locus_html_file, 'w', '\n')
+
+    return locus_html_file
+
+
+def main(schema_directory, output_directory, genes_list, annotations,
+         translation_table, size_threshold, minimum_length,
+         cpu_cores, loci_reports, light, add_sequences):
+
+    # Create directory to store intermediate files
+    temp_directory = fo.join_paths(output_directory, ['temp'])
+    fo.create_directory(temp_directory)
+
+    schema_files = fo.read_lines(genes_list)
+    # Sort based on locus name
+    schema_files = sorted(schema_files)
+    # Map basename to full path
+    loci_basenames = {fo.file_basename(file, False): file
+                      for file in schema_files}
+
+    # check if the schema was created with chewBBACA
+    config_file = os.path.join(schema_directory, ".schema_config")
+    if os.path.exists(config_file):
+        # get the schema configs
+        with open(config_file, "rb") as cf:
+            chewie_config = pickle.load(cf)
+        chewie_version = (chewie_config["chewBBACA_version"][0]).replace('chewBBACA ', '')
+        print("The schema was created with chewBBACA v{0}.".format(chewie_version))
+        # Message displayed in the Schema Creation Alert
+        creation_message = ('Schema created with chewBBACA '
+                            f'v{chewie_version}, '
+                            'BLAST Score Ratio of '
+                            f'{chewie_config.get("bsr")[0]}, '
+                            'minimum length of '
+                            f'{chewie_config.get("minimum_locus_length")[0]},'
+                            ' size threshold of '
+                            f'{chewie_config.get("size_threshold")[0]}, '
+                            'and a translation table of '
+                            f'{chewie_config.get("translation_table")[0]}.')
+        # check if schema has a Prodigal training file
+        if chewie_config.get("prodigal_training_file")[0] is not None:
+            creation_message += (' A Prodigal training file was used for '
+                                 'gene prediction.')
+        else:
+            creation_message += (' No Prodigal training file used for gene '
+                                 'prediction.')
+    else:
+        chewie_config = {}
+        # Message displayed in the Schema Creation Alert
+        creation_message = ('Did not find information about config values '
+                            'used to create the schema.')
+
+    # Use schema config values if user did not provide values
+    # Use default values defined in constants if there are no chewie config
+    if minimum_length is None:
+        minimum_length = chewie_config.get("minimum_locus_length",
+                                           [ct.MINIMUM_LENGTH_DEFAULT])[0]
+
+    if size_threshold is None:
+        size_threshold = chewie_config.get("size_threshold",
+                                           [ct.SIZE_THRESHOLD_DEFAULT])[0]
+
+    if translation_table is None:
+        translation_table = chewie_config.get("translation_table",
+                                              [ct.GENETIC_CODES_DEFAULT])[0]
+
+    # Message displayed in the Schema Evaluation Alert
+    evaluation_message = ('Schema evaluated with minimum length of '
+                          f'{minimum_length}, size threshold of '
+                          f'{size_threshold}, and translation table of '
+                          f'{translation_table}.')
+
+    # Create temporary directory to store translated alleles
+    translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
+    fo.create_directory(translation_dir)
+
+    # Calculate the summary statistics and other information about each locus.
+    inputs = im.divide_list_into_n_chunks(schema_files, len(schema_files))
+
+    common_args = [translation_table, minimum_length,
+                   size_threshold, translation_dir]
+
+    # add common arguments to all sublists
+    inputs = im.multiprocessing_inputs(inputs,
+                                       common_args,
+                                       compute_locus_statistics)
+
+    # compute loci statistics
+    print('Computing loci statistics...')
+    results = mo.map_async_parallelizer(inputs,
+                                        mo.function_helper,
+                                        cpu_cores,
+                                        show_progress=True)
+
+    # group values for the same statistic
+    data = list(zip(*results))
+
+    # Read loci annotations from TSV file
+    annotation_values = [[], []]
+    if annotations is not None:
+        annotation_lines = fo.read_tabular(annotations)
+        # Add file columns
+        annotation_values[0].extend(annotation_lines[0])
+        # Add sublists with lines
+        # Only keep lines for loci in the schema
+        loci_annotations = [line for line in annotation_lines[1:]
+                            if line[0] in loci_basenames]
+        annotation_values[1].extend(loci_annotations)
+
+    print(f'\nProvided annotations for {len(annotation_values[1])} '
+          'loci in the schema.')
+
+    # Columns for the Summary Data Table in the Schema Report
+    summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(minimum_length)
+    summary_columns = summary_columns.split('\t')
+
+    # Get total number of alleles with a length value not multiple of 3
+    notMultiple_sum = sum([subdata[6] for subdata in data[13]])
+    # Get total number of alleles with an in-frame stop codon
+    stopC_sum = sum([subdata[9] for subdata in data[13]])
+    # Get total number of alleles with no start or stop codon
+    notStart_sum = sum([subdata[8] for subdata in data[13]])
+    # Get total number of alleles shorter than the minimum length value
+    shorter_sum = sum([subdata[10] for subdata in data[13]])
+    # Get totla number of alleles with ambiguous bases
+    ambiguous_sum = sum([subdata[7] for subdata in data[13]])
+    # Get total number of alleles below or above the sequence length thresholds
+    below_sum = sum([subdata[11] for subdata in data[13]])
+    above_sum = sum([subdata[12] for subdata in data[13]])
+    # Get total number of valid and invalid alleles
+    invalid_sum = sum([subdata[3] for subdata in data[13]])
+    valid_sum = sum(data[1]) - invalid_sum
+    # Create list with row values for Summary Data Table in the Schema Report
+    summary_rows = [len(data[0]),
+                    sum(data[1]),
+                    valid_sum,
+                    invalid_sum,
+                    notMultiple_sum,
+                    ambiguous_sum,
+                    notStart_sum,
+                    stopC_sum,
+                    shorter_sum,
+                    below_sum,
+                    above_sum]
+
+    # Columns for the Allele Analysis Table component
+    analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
+    analysis_columns = analysis_columns.split('\t')
+    analysis_rows = list(data[13])
+
+    # Message displayed if schema was downloaded from Chewie-NS
+    ns_schema = []
+    ns_config = os.path.join(schema_directory, '.ns_config')
+    if os.path.exists(ns_config):
+        total_ns = sum([len(subdata) for subdata in data[21]])
+        ns_schema.append('This schema was downloaded from Chewie-NS and '
+                         f'contains {total_ns} alleles added since the last '
+                         'synchronization with the remote schema.')
+
+    # Data in the Schema Report HTML
+    schema_data = {"summaryData": [{"columns": summary_columns},
+                                   {"rows": [summary_rows]}],
+                   "loci": list(data[0]),
+                   "total_alleles": list(data[1]),
+                   "max": list(data[2]),
+                   "min": list(data[3]),
+                   "median": list(data[5]),
+                   "mode": list(data[7]),
+                   "q1": list(data[9]),
+                   "q3": list(data[10]),
+                   "annotations": [{"columns": annotation_values[0]},
+                                   {"rows": annotation_values[1]}],
+                   "analysis": [{"columns": analysis_columns},
+                                {"rows": analysis_rows}],
+                   "lociReports": 1 if loci_reports else 0,
+                   "evaluationConfig": evaluation_message,
+                   "creationConfig": creation_message,
+                   "nsSchema": ns_schema}
+
+    # Write Schema Report HTML file
+    schema_html = ct.SCHEMA_REPORT_HTML
+    schema_html = schema_html.format(json.dumps(schema_data))
+    schema_html_file = fo.join_paths(output_directory, ['schema_report.html'])
+    fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
+
+    # Compute data for loci reports
+    if loci_reports is True:
+        # create mapping between locus ID and annotations
+        if annotations is not None:
+            annotations_dict = {a[0]: a for a in annotation_values[1]}
+        else:
+            annotations_dict = {}
+
+        # Create directory to store loci HTML reports
+        html_dir = fo.join_paths(output_directory, ['loci_reports'])
+        fo.create_directory(html_dir)
+
+        # Previous data includes values per locus
+        loci_data = results
+
+        inputs = [[loci_basenames[d[0]], d,
+                   annotation_values[0],
+                   annotations_dict.get(d[0], [])] for d in loci_data]
+
+        common_args = [html_dir, minimum_length, light, add_sequences]
+
+        # add common arguments to all sublists
+        inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
+
+        # Create loci reports
+        # Compute MSA and NJ tree if --light is not True
+        # Add DNA and Protein sequences if --add-sequences is provided
+        print('Creating loci reports...')
+        loci_htmls = mo.map_async_parallelizer(inputs,
+                                               mo.function_helper,
+                                               cpu_cores,
+                                               show_progress=True)
+
+    # Copy the JS bundle files to the respective directories
+    # JS bundle used by schema report
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # When chewBBACA is installed
+    try:
+        shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
+                                 'resources', 'schema_bundle.js'),
+                    output_directory)
+    # For development
+    except Exception as e:
+        shutil.copy(os.path.join(script_path, 'resources', 'schema_bundle.js'),
+                    output_directory)
+
+    if loci_reports is True:
+        # JS bundle used by loci reports
+        try:
+            shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
+                                     'resources', 'loci_bundle.js'),
+                        html_dir)
+        except Exception as e:
+            shutil.copy(os.path.join(script_path, 'resources', 'loci_bundle.js'),
+                        html_dir)
+
+    # Delete all temporary files
+    fo.delete_directory(temp_directory)
+
+    print(f'\nResults available in {output_directory}.')

@@ -11,7 +11,7 @@ setup(
               'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder', 'CHEWBBACA.ExtractCgMLST'],
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification.',
-  author = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede',
+  author = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez',
   author_email = 'imm-bioinfo@medicina.ulisboa.pt',
   url = 'https://github.com/B-UMMI/chewBBACA', 
   keywords = ['cgMLST', 'bacterial typing', 'nomenclature server'],

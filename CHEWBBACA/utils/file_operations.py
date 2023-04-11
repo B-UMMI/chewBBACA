@@ -223,6 +223,25 @@ def delete_directory(directory_path, max_retries=5):
     return exists
 
 
+def read_file(input_file):
+    """Read a text file.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the file to read.
+
+    Returns
+    -------
+    file_content : str
+        Single string with the file content.
+    """
+    with open(input_file, 'r') as infile:
+        file_content = infile.read()
+
+    return file_content
+
+
 def read_lines(input_file, strip=True, num_lines=None):
     """Read lines in a file.
 

@@ -112,7 +112,7 @@ UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
 MAX_QUERIES = 10
 
 # Authors, GitHub repository, documentation, tutorial and contacts
-authors = 'Mickael Silva, Pedro Cerqueira, Rafael Mamede'
+authors = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
 repository = 'https://github.com/B-UMMI/chewBBACA'
 documentation = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
 contacts = 'imm-bioinfo@medicina.ulisboa.pt'
@@ -147,9 +147,7 @@ CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
 MIN_PYTHON = [(3, 6, 0), '3.6.0']
 
 # FTP to get UniProt's reference proteomes
-UNIPROT_PROTEOMES_FTP = ('ftp://ftp.uniprot.org/pub/databases/'
-                         'uniprot/current_release/knowledgebase/'
-                         'reference_proteomes/')
+UNIPROT_PROTEOMES_FTP = ('https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/')
 
 # list of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
@@ -222,8 +220,97 @@ LOCI_LIST = 'listGenes2Call.txt'
 
 LOCI_LIST_FILE = '.genes_list'
 
+# Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
 
 UNIPROT_SPARQL_THREADS = 4
 
+# Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
+
+# HTML template to create Schema Report
+# need to include '.' at start to work properly when referencing local files
+SCHEMA_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schema Evaluator - React Edition</title>
+</head>
+<body style="background-color: #f6f6f6">
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <script> preComputedData = {0} </script>
+    <script src="./schema_bundle.js"></script>
+</body>
+</html>
+""")
+
+# HTML template to create Loci Reports
+# need to include '.' at start to work properly when referencing local files
+LOCUS_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Schema Evaluator - Individual Analysis</title>
+    </head>
+    <body style="background-color: #f6f6f6">
+        <noscript> You need to enable JavaScript to run this app. </noscript>
+        <div id="root"></div>
+        <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
+        <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
+        <script> preComputedDataInd = {0} </script>
+        <script src="./loci_bundle.js"></script>
+    </body>
+</html>
+""")
+
+# Do not use list of strings as constants if the strings include formatting
+# placeholders. Multiple references to the list of strings will have the same
+# id and altering the strings with format will not change the list id. In
+# multiprocessing it can reference the same list/id in different processess
+# and use the latest changes to a string in the list/id when those cahnges
+# might not refer to the current process (returning an incorrect value).
+
+# Table header for the Schema report summary data
+SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
+                                'alleles\tIncomplete ORF\tAmbiguous Bases\t'
+                                'Missing Start/Stop Codon\tIn-frame Stop '
+                                'Codon\tAlleles < {0}bp\tAlleles below '
+                                'threshold\tAlleles above threshold')
+
+# Column headers for the Loci Analysis Table in the Schema report
+LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
+                         'Alleles\tProportion of Validated Alleles\tDistinct '
+                         'Protein Alleles\tIncomplete '
+                         'ORF\tAmbiguous Bases\tMissing '
+                         'Start/Stop Codon\tIn-frame Stop Codon\tAlleles '
+                         '< {0}bp\tAlleles below threshold\tAlleles above '
+                         'threshold\tMissing Allele IDs')
+
+# Column headers for the Summary Table in the Loci reports
+LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
+                 'Alleles\tProportion of Validated Alleles\tDistinct '
+                 'Protein Alleles\t'
+                 'Incomplete ORF\tAmbiguous Bases\tMissing Start/Stop '
+                 'Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tSize Range '
+                 '(bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below '
+                 'threshold ({1}bp)\tAlleles above threshold ({2}bp)\t'
+                 'Missing Allele IDs')
+
+# Column headers for Invalid Alleles table in the loci reports
+INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',
+                           'Exception Description']
+
+TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
+                          'is not a start codon',
+                          'is not a stop codon',
+                          'sequence length is not a multiple of 3',
+                          'ambiguous or invalid characters']
+
+DISTINCT_ALLELES_COLUMNS = ['Protein Allele ID',
+                            'Count',
+                            'List of Distinct Alleles']

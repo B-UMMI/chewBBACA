@@ -192,7 +192,7 @@ const LocusPage = () => {
 	const yDataPanelA = data.counts[1];
 
 	// Get mode value and its index in the array of xvalues for the bar plot
-	const modeValue = summaryData[1].rows[0][12];
+	const modeValue = summaryData[1].rows[0][13];
 	const modeIndex = xDataPanelA.indexOf(modeValue);
 
 	// Change color for mode bar

@@ -52,6 +52,8 @@ export let alertMessages = [
 	["Displaying the %VALUE% sequences in the schema FASTA file.", "info"],
 	["Only displaying the %VALUE% alleles that were considered valid.", "info"],
 	["This locus has %VALUE% alleles that have not been synchronized with the remote schema in Chewie-NS (%VALUE2%).", "warning"],
+	["The Bar chart is not displayed because this locus does not have valid alleles.", "warning"],
+	["The table for the distinct protein alleles is not displayed because this locus does not have valid alleles.", "warning"],
 ];
 
 export const msaColorSchemes = [

@@ -525,11 +525,18 @@ const LocusPage = () => {
 		</Stack>
 	);
 
+	let panelCData = []
+	if (data.distinctAlleles[1].rows.length > 0) {
+		panelCData = [alertMessagesComponents[5], DistinctAllelesBar]
+	} else {
+		panelCData = [alertMessagesComponents[14]]
+	}
+
 	const AlleleSizePanelTitles = ["Allele Size Counts", "Allele Size", "Alleles Per Protein"];
 	const AlleleSizePanelsData = [
 		[alertMessagesComponents[2], lengthThresholdCheckBar, AlleleSizeBar],
 		[scatterAlerts, lengthThresholdCheckScatter, AlleleSizeScatter],
-		[alertMessagesComponents[5], DistinctAllelesBar]
+		panelCData
 	];
 
 	const AlleleSizeTabs = (
@@ -776,7 +783,7 @@ const LocusPage = () => {
 				{AlleleSizeTabs}
 			</div>
 			<div className={classes.secondaryDiv}>
-				{distinctTable}
+				{distinctRowsData.length > 0 ? distinctTable: alertMessagesComponents[15]}
 			</div>
 			<div className={classes.secondaryDiv}>
 				{exceptionsTable ? undefined : alertMessagesComponents[0]}

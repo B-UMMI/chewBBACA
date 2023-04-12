@@ -1200,7 +1200,7 @@ def write_gene_list(schema_dir):
     is the path to the created file.
     """
     # Loci FASTA files must end with '.fasta' extension
-    schema_files = fo.listdir_fullpath(schema_dir)
+    schema_files = os.listdir(schema_dir)
     loci_files = fo.filter_by_extension(schema_files, ['.fasta'])
     output_file = fo.join_paths(schema_dir, ['.genes_list'])
     fo.pickle_dumper(loci_files, output_file)

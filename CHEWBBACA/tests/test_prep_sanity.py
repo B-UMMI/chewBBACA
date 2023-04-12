@@ -85,11 +85,17 @@ def test_prep_invalid_input(test_args, expected):
 
 @pytest.mark.parametrize(
         'test_args, expected',
-        [(['chewBBACA.py', 'PrepExternalSchema',
-           '-i', 'data/prep_data/valid_input',
-           '-o', 'preped_schema'],
-          'data/prep_data/expected_results')
-         ])
+        [
+            (['chewBBACA.py', 'PrepExternalSchema',
+              '-i', 'data/prep_data/valid_input',
+              '-o', 'preped_schema'],
+             'data/prep_data/expected_results_valid'),
+            (['chewBBACA.py', 'PrepExternalSchema',
+              '-i', 'data/prep_data/file_extensions',
+              '-o', 'preped_schema'],
+             'data/prep_data/expected_results_extension'),
+        ]
+)
 def test_prep_valid_input(test_args, expected):
     with patch.object(sys, 'argv', test_args):
         capture = py.io.StdCapture()
@@ -128,3 +134,9 @@ def test_prep_valid_input(test_args, expected):
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
+
+    # Delete output directory before next test
+    try:
+        shutil.rmtree(test_args[5])
+    except Exception as e2:
+        pass

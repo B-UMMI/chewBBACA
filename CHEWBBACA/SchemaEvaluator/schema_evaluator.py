@@ -619,7 +619,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
                             f'{chewie_config.get("minimum_locus_length")[0]},'
                             ' size threshold of '
                             f'{chewie_config.get("size_threshold")[0]}, '
-                            'and a translation table of '
+                            'and translation table '
                             f'{chewie_config.get("translation_table")[0]}.')
         # check if schema has a Prodigal training file
         if chewie_config.get("prodigal_training_file")[0] is not None:
@@ -651,7 +651,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # Message displayed in the Schema Evaluation Alert
     evaluation_message = ('Schema evaluated with minimum length of '
                           f'{minimum_length}, size threshold of '
-                          f'{size_threshold}, and translation table of '
+                          f'{size_threshold}, and translation table '
                           f'{translation_table}.')
 
     # Create temporary directory to store translated alleles

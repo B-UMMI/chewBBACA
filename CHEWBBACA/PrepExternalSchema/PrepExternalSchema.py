@@ -63,6 +63,7 @@ Code documentation
 """
 
 import os
+import sys
 import shutil
 import argparse
 import itertools
@@ -224,9 +225,9 @@ def select_candidate(candidates, proteins, seqids,
     return [representatives, final_representatives]
 
 
-def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
+def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
                table_id, size_threshold, blastp_path, makeblastdb_path):
-    """Adapts a set of genes/loci from an external schema.
+    """Adapts a set of loci from an external schema.
 
     Adapts an external schema for usage with chewBBACA. Removes invalid
     alleles and selects representative alleles to include in the "short"
@@ -250,8 +251,8 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
     invalid_alleles : list
         List with the identifiers of the alleles that were
         determined to be invalid.
-    invalid_genes : list
-        List with the identifiers of the genes that had no
+    invalid_loci : list
+        List with the identifiers of the loci that had no
         valid alleles.
     summary_stats : list of list
         List with one sublist per processed locus. Each
@@ -265,48 +266,40 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
 
     The function writes the schema files .
     """
-    # divide input list into variables
     summary_stats = []
-    invalid_genes = []
+    invalid_loci = []
     invalid_alleles = []
-    for gene in genes:
-
+    for locus in loci:
         representatives = []
         final_representatives = []
 
-        # get gene basename and identifier
-        gene_basename = os.path.basename(gene)
-        gene_id = gene_basename.split('.fasta')[0]
+        # Get locus identifier (does not include extension)
+        locus_id = fo.file_basename(locus, file_extension=False)
 
-        # create paths to gene files in new schema
-        gene_file = fo.join_paths(schema_path, [gene_basename])
+        # Create paths to gene files in new schema
+        locus_file = fo.join_paths(schema_path, [f'{locus_id}.fasta'])
+        locus_short_file = fo.join_paths(schema_short_path,
+                                         [f'{locus_id}_short.fasta'])
 
-        gene_short_file = fo.join_paths(schema_short_path,
-                                        [gene_basename.replace('.fasta', '_short.fasta')])
+        # Create path to temp working directory for current gene
+        locus_temp_dir = fo.join_paths(schema_path, [f'{locus_id}_temp'])
+        # Create temp directory for the current gene
+        fo.create_directory(locus_temp_dir)
 
-        # create path to temp working directory for current gene
-        gene_temp_dir = fo.join_paths(schema_path,
-                                      ['{0}{1}'.format(gene_id, '_temp')])
+        # Dictionaries mapping gene identifiers to DNA and Protein sequences
+        locus_seqs, prot_seqs, locus_invalid, seqids_map, total_sequences = \
+            sm.get_seqs_dicts(locus, locus_id, table_id, min_len, size_threshold)
+        invalid_alleles.extend(locus_invalid)
 
-        # create temp directory for the current gene
-        fo.create_directory(gene_temp_dir)
-
-        # dictionaries mapping gene identifiers to DNA sequences
-        # and Protein sequences
-        gene_seqs, prot_seqs, gene_invalid, seqids_map, total_sequences = \
-            sm.get_seqs_dicts(gene, gene_id, table_id, min_len, size_threshold)
-        invalid_alleles.extend(gene_invalid)
-
-        # if locus has no valid CDS sequences,
-        # continue to next locus
+        # Continue to next locus if there are no valid CDSs for current locus
         if len(prot_seqs) == 0:
-            shutil.rmtree(gene_temp_dir)
-            invalid_genes.append(gene_id)
-            summary_stats.append([gene_id, str(total_sequences), '0', '0'])
+            shutil.rmtree(locus_temp_dir)
+            invalid_loci.append(locus_id)
+            summary_stats.append([locus_id, str(total_sequences), '0', '0'])
             continue
 
-        if len(gene_seqs) > 1:
-            # identify DNA sequences that code for same protein
+        if len(locus_seqs) > 1:
+            # Identify DNA sequences that code for same protein
             equal_prots = sm.determine_duplicated_seqs(prot_seqs)
 
             # get only one identifier per protein
@@ -318,14 +311,14 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
             final_representatives.append(longest)
 
             # create FASTA file with distinct protein sequences
-            protein_file = fo.join_paths(gene_temp_dir,
-                                         ['{0}_protein.fasta'.format(gene_id)])
+            protein_file = fo.join_paths(locus_temp_dir,
+                                         [f'{locus_id}_protein.fasta'])
             protein_data = [[i, prot_seqs[i]] for i in ids_to_blast]
             protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, protein_data)
             fo.write_lines(protein_lines, protein_file)
 
             # create blastdb with all distinct proteins
-            blastp_db = os.path.join(gene_temp_dir, gene_id)
+            blastp_db = os.path.join(locus_temp_dir, locus_id)
             bw.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
 
             # determine appropriate blastp task (proteins < 30aa need blastp-short)
@@ -334,57 +327,55 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
             # cycles to BLAST representatives against non-representatives until
             # all non-representatives have a representative
             while len(set(ids_to_blast) - set(representatives)) != 0:
-
                 # create FASTA file with representative sequences
-                rep_file = fo.join_paths(gene_temp_dir,
-                                         ['{0}_rep_protein.fasta'.format(gene_id)])
+                rep_file = fo.join_paths(locus_temp_dir,
+                                         [f'{locus_id}_rep_protein.fasta'])
                 rep_protein_data = [[r, prot_seqs[r]] for r in representatives]
                 rep_protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, rep_protein_data)
                 fo.write_lines(rep_protein_lines, rep_file)
 
                 # create file with seqids to BLAST against
                 ids_str = im.join_list([str(i) for i in ids_to_blast], '\n')
-                ids_file = fo.join_paths(gene_temp_dir,
-                                         ['{0}_ids.txt'.format(gene_id)])
+                ids_file = fo.join_paths(locus_temp_dir,
+                                         [f'{locus_id}_ids.txt'])
                 fo.write_to_file(ids_str, ids_file, 'w', '')
 
                 # BLAST representatives against non-represented
-                blast_output = fo.join_paths(gene_temp_dir,
-                                             ['{0}_blast_out.tsv'.format(gene_id)])
-                # set max_target_seqs to huge number because BLAST only
+                blast_output = fo.join_paths(locus_temp_dir,
+                                             [f'{locus_id}_blast_out.tsv'])
+                # Set 'max_target_seqs' to huge number because BLAST only
                 # returns 500 hits by default
-
                 blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
                                             blast_output, 1, 1, ids_file,
-                                            blastp_task, 100000, ignore=ct.IGNORE_RAISED)
+                                            blastp_task, 100000,
+                                            ignore=ct.IGNORE_RAISED)
                 if len(blast_stderr) > 0:
                     raise ValueError(blast_stderr)
 
-                # import BLAST results
+                # Import BLAST results
                 blast_results = fo.read_tabular(blast_output)
 
-                # get self-score for representatives
+                # Get self-score for representatives
                 rep_self_scores = {res[0]: res[-1] for res in blast_results
                                    if res[0] == res[4]}
 
-                # divide results into high, low and hot BSR values
+                # Divide results into high, low and hot BSR values
                 hitting_high, hitting_low, hotspots, high_reps, low_reps, hot_reps = \
                     bsr_categorizer(blast_results, representatives,
                                     rep_self_scores, bsr, bsr+0.1)
 
                 excluded_reps = []
-
-                # remove high BSR hits that have representative
+                # Remove high BSR hits that have representative
                 hitting_high = set(hitting_high)
                 ids_to_blast = [i for i in ids_to_blast if i not in hitting_high]
 
-                # remove representatives that led to high BSR with subjects that were removed
+                # Remove representatives that led to high BSR with subjects that were removed
                 prunned_high_reps = {k: [r for r in v if r in ids_to_blast] for k, v in high_reps.items()}
                 reps_to_remove = [k for k, v in prunned_high_reps.items() if len(v) == 0]
 
                 excluded_reps.extend(reps_to_remove)
 
-                # determine smallest set of representatives that allow to get all cycle candidates
+                # Determine smallest set of representatives that allow to get all cycle candidates
                 excluded = []
                 hotspot_reps = set(im.flatten_list(list(hot_reps.values())))
                 for rep, hits in hot_reps.items():
@@ -420,31 +411,34 @@ def adapt_loci(genes, schema_path, schema_short_path, bsr, min_len,
         else:
             final_representatives = list(prot_seqs.keys())
 
-        # write schema file with all alleles
-        gene_data = [[k, v] for k, v in gene_seqs.items()]
-        gene_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_data)
-        fo.write_lines(gene_lines, gene_file)
+        # Write schema file with all alleles
+        locus_data = [[k, v] for k, v in locus_seqs.items()]
+        locus_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, locus_data)
+        fo.write_lines(locus_lines, locus_file)
 
-        # get total number of valid sequences
-        valid_sequences = len(gene_lines)
+        # Get total number of valid sequences
+        valid_sequences = len(locus_lines)
 
-        # write schema file with representatives
-        final_representatives = [seqids_map[rep] for rep in final_representatives]
-        gene_rep_data = [[r, gene_seqs[r]] for r in final_representatives]
-        gene_rep_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, gene_rep_data)
-        fo.write_lines(gene_rep_lines, gene_short_file)
+        # Write schema file with representatives
+        final_representatives = [seqids_map[rep]
+                                 for rep in final_representatives]
+        locus_rep_data = [[r, locus_seqs[r]]
+                          for r in final_representatives]
+        locus_rep_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE,
+                                          locus_rep_data)
+        fo.write_lines(locus_rep_lines, locus_short_file)
 
         # get number of representatives
-        representatives_number = len(gene_rep_lines)
+        representatives_number = len(locus_rep_lines)
 
-        summary_stats.append([gene_id,
+        summary_stats.append([locus_id,
                               str(total_sequences),
                               str(valid_sequences),
                               str(representatives_number)])
 
-        shutil.rmtree(gene_temp_dir)
+        shutil.rmtree(locus_temp_dir)
 
-    return [invalid_alleles, invalid_genes, summary_stats]
+    return [invalid_alleles, invalid_loci, summary_stats]
 
 
 def main(input_files, output_directory, cpu_cores, blast_score_ratio,
@@ -466,54 +460,55 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
 
     # create output directories
     # check if they exist first
-    fo.create_directory(schema_path)
+    schema_path_exists = fo.create_directory(schema_path)
+    if schema_path_exists is False:
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
     fo.create_directory(schema_short_path)
 
     # list schema gene files
-    genes_file = pv.check_input_type(input_files,
-                                     fo.join_paths(output_directory, [ct.LOCI_LIST]))
+    loci_list = fo.join_paths(output_directory, [ct.LOCI_LIST])
+    loci_list = pv.check_input_type(input_files, loci_list)
 
     # import list of schema files
-    with open(genes_file, 'r') as gf:
-        genes_list = [line.rstrip('\n') for line in gf]
-    os.remove(genes_file)
+    genes_list = fo.read_lines(loci_list, strip=True)
+    os.remove(loci_list)
 
-    print('Number of genes to adapt: {0}\n'.format(len(genes_list)))
+    print('Number of loci to adapt: {0}\n'.format(len(genes_list)))
 
     print('Determining the total number of alleles and '
           'allele mean length per gene...\n'.format())
 
-    # count number of sequences and mean length per gene
-    genes_info = []
-    genes_pools = multiprocessing.Pool(processes=cpu_cores)
-    gp = genes_pools.map_async(fao.fasta_stats, genes_list,
-                               callback=genes_info.extend)
+    # count number of sequences and mean length per locus
+    loci_info = []
+    loci_pools = multiprocessing.Pool(processes=cpu_cores)
+    gp = loci_pools.map_async(fao.fasta_stats, genes_list,
+                               callback=loci_info.extend)
     gp.wait()
 
     # split files according to number of sequences and sequence mean length
     # in each file to pass even groups of sequences to all cores
     # divide into 100 input sets to get 1% progress resolution
-    even_genes_groups = mo.distribute_loci(genes_info, 100, 'seqcount')
+    even_loci_groups = mo.distribute_loci(loci_info, 100, 'seqcount')
     # with few inputs, some sublists might be empty
-    even_genes_groups = [i for i in even_genes_groups if len(i) > 0]
+    even_loci_groups = [i for i in even_loci_groups if len(i) > 0]
     # add common arguments
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-    even_genes_groups = [[i, schema_path, schema_short_path,
+    even_loci_groups = [[i, schema_path, schema_short_path,
                           blast_score_ratio, minimum_length,
                           translation_table, size_threshold,
                           blastp_path, makeblastdb_path,
-                          adapt_loci] for i in even_genes_groups]
+                          adapt_loci] for i in even_loci_groups]
 
-    print('Adapting {0} genes...\n'.format(len(genes_list)))
+    print('Adapting {0} loci...\n'.format(len(genes_list)))
 
-    invalid_data = mo.map_async_parallelizer(even_genes_groups,
+    invalid_data = mo.map_async_parallelizer(even_loci_groups,
                                              mo.function_helper,
                                              cpu_cores,
                                              show_progress=True)
 
     # define paths and write files with list of invalid
-    # alleles and invalid genes
+    # alleles and invalid loci
     output_schema_basename = os.path.basename(output_directory.rstrip('/'))
     schema_parent_directory = os.path.dirname(schema_path)
 
@@ -521,39 +516,31 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     invalid_alleles = [sub[0] for sub in invalid_data]
     invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
     invalid_alleles_file = os.path.join(schema_parent_directory,
-                                        '{0}_{1}'.format(output_schema_basename, 'invalid_alleles.txt'))
+                                        f'{output_schema_basename}_invalid_alleles.txt')
+    invalid_alleles = [f'{allele[0]}: {allele[1]}' for allele in invalid_alleles]
+    fo.write_lines(invalid_alleles, invalid_alleles_file)
 
-    with open(invalid_alleles_file, 'w') as inv:
-        lines = ['{0}: {1}\n'.format(allele[0], allele[1]) for allele in invalid_alleles]
-        inv.writelines(lines)
-
-    # write file with identifiers of genes that had no valid alleles
-    invalid_genes = [sub[1] for sub in invalid_data]
-    invalid_genes = list(itertools.chain.from_iterable(invalid_genes))
-    invalid_genes_file = os.path.join(schema_parent_directory,
-                                      '{0}_{1}'.format(output_schema_basename, 'invalid_genes.txt'))
-
-    with open(invalid_genes_file, 'w') as inv:
-        invalid_geqids = '\n'.join(invalid_genes)
-        inv.write(invalid_geqids)
+    # Write file with identifiers of loci that had no valid alleles
+    invalid_loci = [sub[1] for sub in invalid_data]
+    invalid_loci = list(itertools.chain.from_iterable(invalid_loci))
+    invalid_loci_file = os.path.join(schema_parent_directory,
+                                      '{0}_{1}'.format(output_schema_basename, 'invalid_loci.txt'))
+    fo.write_lines(invalid_loci, invalid_loci_file)
 
     stats_lines = [sub[2] for sub in invalid_data]
     stats_lines = list(itertools.chain.from_iterable(stats_lines))
     stats_lines = ['\t'.join(line) for line in stats_lines]
-    stats_genes_file = '{0}/{1}_{2}'.format(schema_parent_directory,
-                                            output_schema_basename,
-                                            'summary_stats.tsv')
+    stats_loci_file = '{0}/{1}_{2}'.format(schema_parent_directory,
+                                           output_schema_basename,
+                                           'summary_stats.tsv')
+    stats_lines = [ct.PREPEXTERNAL_SUMMARY_STATS_HEADER] + stats_lines
+    fo.write_lines(stats_lines, stats_loci_file)
 
-    with open(stats_genes_file, 'w') as stats:
-        summary_stats_text = '\n'.join(stats_lines)
-        stats.write('Gene\tTotal_alleles\tValid_alleles\tNumber_representatives\n')
-        stats.write(summary_stats_text)
+    print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')
+    print('Number of invalid alleles: {len(invalid_alleles)}')
 
-    print('\n\nNumber of invalid genes: {0}'.format(len(invalid_genes)))
-    print('Number of invalid alleles: {0}'.format(len(invalid_alleles)))
-
-    print('\nSuccessfully adapted {0}/{1} genes present in the '
-          'input schema.'.format(len(genes_list)-len(invalid_genes),
+    print('\nSuccessfully adapted {0}/{1} loci present in the '
+          'input schema.'.format(len(genes_list)-len(invalid_loci),
                                  len(genes_list)))
 
 
@@ -616,5 +603,4 @@ def parse_arguments():
 if __name__ == '__main__':
 
     args = parse_arguments()
-
     main(**vars(args))

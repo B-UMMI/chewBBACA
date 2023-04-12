@@ -85,7 +85,7 @@ GENETIC_CODES = {1: 'Standard',
 GENETIC_CODES_DEFAULT = 11
 
 # valid FASTA file extensions
-FASTA_SUFFIXES = ['.fasta', '.fna', '.ffn', '.fa']
+FASTA_EXTENSIONS = ['.fasta', '.fna', '.ffn', '.fa', '.fas']
 
 # Chewie-NS related constants
 HEADERS_GET_ = {'Authorization': None,
@@ -223,6 +223,10 @@ LOCI_LIST_FILE = '.genes_list'
 # Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
 
+# File header for file with summary statistics created by PrepExternalSchema
+PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'
+                                     'Number_representatives')
+
 UNIPROT_SPARQL_THREADS = 4
 
 # Default loci presence thresholds used to compute the cgMLST
@@ -314,3 +318,43 @@ TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
 DISTINCT_ALLELES_COLUMNS = ['Protein Allele ID',
                             'Count',
                             'List of Distinct Alleles']
+
+# Exception messages
+
+# Input file is a FASTA file but chewBBACA expects a file with a list of
+# file paths
+FASTA_INPUT_EXCEPTION = ('Input file is a FASTA file. Please provide '
+                         'the path to the parent directory that contains '
+                         'the FASTA files or a file with the list of full '
+                         'paths to the FASTA files (one per line).')
+
+# Some of the file paths provided do not exist
+MISSING_INPUTS_EXCEPTION = ('Could not find some of the files provided in '
+                            'the input list. Please verify that you\'ve '
+                            'provided the full paths to valid input '
+                            'files.\n{0}')
+
+# Input directory does not contain FASTA files
+MISSING_FASTAS_EXCEPTION = ('Could not get input files. Please provide '
+                            'a directory with FASTA files or a file with '
+                            'the list of full paths to the FASTA files '
+                            'and ensure that filenames end with one of '
+                            f'the following extensions: {FASTA_EXTENSIONS}.')
+
+# Input path is neither a file nor a directory
+INVALID_INPUT_PATH = ('Input argument is not a valid directory or '
+                      'file with a list of paths to FASTA files. Please '
+                      'provide a valid input, either a folder with FASTA '
+                      'files or a file with the list of full paths to FASTA '
+                      'files (one per line and ending with one of the '
+                      f'following file extensions: {FASTA_EXTENSIONS}).')
+
+# Invalid path to schema
+SCHEMA_INVALID_PATH = ('Provided path does not include all the necessary '
+                       'schema files. Please verify that you have passed '
+                       'the correct path to the schema.')
+
+# Output directory exists
+OUTPUT_DIRECTORY_EXISTS = ('Output directory already exists. Please '
+                           'provide a path to a directory that will be '
+                           'created to store the results.')

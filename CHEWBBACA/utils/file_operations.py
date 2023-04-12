@@ -23,6 +23,7 @@ import gzip
 import shutil
 import pickle
 import zipfile
+import pathlib
 import urllib.request
 from itertools import islice
 from multiprocessing import TimeoutError
@@ -38,7 +39,7 @@ except ModuleNotFoundError:
                                  iterables_manipulation as im)
 
 
-def file_basename(file_path, file_extension=True, delimiter='.'):
+def file_basename(file_path, file_extension=True):
     """Extract file basename from a path.
 
     Parameters
@@ -48,9 +49,6 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
     file_extension : bool
         Specify if the basename should include the file
         extension.
-    delimiter : str
-        Delimiter used to split the basename to exclude
-        the file extension.
 
     Returns
     -------
@@ -60,7 +58,8 @@ def file_basename(file_path, file_extension=True, delimiter='.'):
     basename = os.path.basename(file_path)
 
     if file_extension is False:
-        basename = basename.split(delimiter)[0]
+        # Remove suffix after last '.'
+        basename = str((pathlib.Path(basename)).with_suffix(''))
 
     return basename
 
@@ -131,7 +130,7 @@ def hash_file(file, hash_object, buffer_size=65536):
     return hash_str
 
 
-def filter_files(files, suffixes, reverse=False):
+def filter_by_substring(files, suffixes, reverse=False):
     """Filter files names based on a list of suffixes.
 
     Parameters
@@ -151,7 +150,34 @@ def filter_files(files, suffixes, reverse=False):
         List with files that passed filtering.
     """
     filtered = [file for file in files
-                if any([True for suffix in suffixes if suffix in file])]
+                if any([suffix in file for suffix in suffixes])]
+
+    if reverse is True:
+        filtered = list(set(files)-set(filtered))
+
+    return filtered
+
+
+def filter_by_extension(files, extensions, reverse=False):
+    """Filter files based on file extension.
+
+    Parameters
+    ----------
+    files : list
+        A list with filenames or file paths.
+    extensions : list
+        List with file extensions.
+    reverse : bool
+        False to select files that end with any of the extensions.
+        True to select files that do not end with any of the extensions.
+
+    Returns
+    -------
+    filtered : list
+        List with files that passed filtering.
+    """
+    filtered = [file for file in files
+                if any([file.endswith(ext) for ext in extensions])]
 
     if reverse is True:
         filtered = list(set(files)-set(filtered))
@@ -191,11 +217,11 @@ def listdir_fullpath(directory_path, substring_filter=False):
         List containing the full path for every selected
         file in the input directory.
     """
-    file_list = [os.path.join(directory_path, f)
-                 for f in os.listdir(directory_path)]
+    file_list = [os.path.join(directory_path, file)
+                 for file in os.listdir(directory_path)]
 
     if substring_filter is not False:
-        file_list = filter_files(file_list, [substring_filter])
+        file_list = filter_by_substring(file_list, [substring_filter])
 
     return file_list
 

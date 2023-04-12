@@ -89,7 +89,10 @@ def create_schema():
                                                  'set of FASTA files with genome '
                                                  'assemblies or coding sequences.',
                                      usage=msg(),
-                                     formatter_class=ModifiedHelpFormatter)
+                                     formatter_class=ModifiedHelpFormatter,
+                                     epilog='It is strongly advised to provide a training file to '
+                                            'create a schema. Module documentation available at '
+                                            'https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html')
 
     parser.add_argument('CreateSchema', nargs='+',
                         help='')
@@ -193,8 +196,7 @@ def create_schema():
     # create output directory
     created = fo.create_directory(args.output_directory)
     if created is False:
-        sys.exit('Output directory already exists. Please provide a path to '
-                 'a directory that will be created to store the results.')
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
@@ -272,7 +274,8 @@ def allele_call():
                                      formatter_class=ModifiedHelpFormatter,
                                      epilog='It is strongly advised to perform allele calling '
                                             'with the default schema parameters to ensure '
-                                            'more consistent results.')
+                                            'more consistent results. Module documentation available at '
+                                            'https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCall.html')
 
     parser.add_argument('AlleleCall', nargs='+', help='')
 
@@ -435,10 +438,9 @@ def allele_call():
     # create one with provided arguments
     if os.path.isfile(config_file) is False:
         schema_files = os.listdir(args.schema_directory)
-        # exit if there is no 'short' directory or if there are no FASTA files
-        if 'short' not in schema_files or len(fo.filter_files(schema_files, ['.fasta'])) == 0:
-            sys.exit('Provided path does not include all the necessary schema files. '
-                     'Please verify that you have passed the correct path to the schema.')
+        # Exit if there is no 'short' directory or if there are no FASTA files
+        if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])) == 0:
+            sys.exit(ct.SCHEMA_INVALID_PATH)
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,
                                             args.minimum_length, version,
@@ -448,7 +450,7 @@ def allele_call():
             args.size_threshold = upgraded
     else:
         schema_params = fo.pickle_loader(config_file)
-        # chek if user provided different values
+        # Chek if user provided different values
         run_params = pv.solve_conflicting_arguments(schema_params, args.ptf_path,
                                                     args.blast_score_ratio, args.translation_table,
                                                     args.minimum_length, args.size_threshold,
@@ -459,10 +461,10 @@ def allele_call():
         args.minimum_length = run_params['minimum_locus_length']
         args.size_threshold = run_params['size_threshold']
 
-    # create output directory
+    # Create output directory
     created = fo.create_directory(args.output_directory)
-    # output directory exists
-    # create a subdirectory to store intermediate files and results
+    # Output directory exists
+    # Create a subdirectory to store intermediate files and results
     if created is False:
         current_time = pdt.get_datetime()
         current_time_str = pdt.datetime_str(current_time,
@@ -619,22 +621,21 @@ def evaluate_schema():
     args = parser.parse_args()
     del args.SchemaEvaluator
 
-    # check if input file path exists
+    # Check if input file path exists
     if not os.path.exists(args.schema_directory):
-        sys.exit("Input argument is not a valid directory. Exiting...")
+        sys.exit('Input argument is not a valid directory. Exiting...')
 
-    # create output directory
+    # Create output directory
     created = fo.create_directory(args.output_directory)
     if created is False:
-        sys.exit('Output directory already exists. Please provide a path to '
-                 'a directory that will be created to store the results.')
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
-    # user provided a list of genes to analyse
+    # User provided a loci subset to analyse
     if args.genes_list is not False:
         loci_list = pv.check_input_type(args.genes_list, loci_list,
                                         args.schema_directory)
-    # working with the whole schema
+    # Working with the whole schema
     else:
         loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
@@ -642,6 +643,7 @@ def evaluate_schema():
 
     schema_evaluator.main(**vars(args))
 
+    # Delete file with list of loci that were evaluated
     fo.remove_files([loci_list])
 
 

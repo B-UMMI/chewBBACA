@@ -373,19 +373,19 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
     """
     sequences = fao.import_sequences(fasta_path)
 
-    # translate sequences
+    # Translate sequences
     translated_seqs = {k: translate_dna(v, table_id, min_len)
                        for k, v in sequences.items()}
 
-    # add locus identifier to headers
-    # some headers might only have the allele identifier
+    # Add locus identifier to headers
+    # Some headers might only have the allele identifier
     seqids = list(translated_seqs.keys())
     new_seqids = {}
     for i in seqids:
         new_id = '{0}_{1}'.format(gene_id, i.split('_')[-1])
         new_seqids[i] = new_id
 
-    # switch ids
+    # Switch sequence ids
     sequences = {new_seqids[k]: v
                  for k, v in translated_seqs.items()}
 

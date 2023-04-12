@@ -2660,10 +2660,11 @@ def main(input_file, loci_list, schema_directory, output_directory,
          no_inferred, output_unclassified, output_missing,
          no_cleanup, hash_profiles, ns, config):
 
+    # Print config parameters
     for k, v in config.items():
         print('{0}: {1}'.format(k, v))
 
-    # create directory to store intermediate files
+    # Create directory to store intermediate files
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
@@ -2679,13 +2680,13 @@ def main(input_file, loci_list, schema_directory, output_directory,
     loci_to_call = fo.read_lines(loci_list)
     print('Number of loci: {0}'.format(len(loci_to_call)))
 
-    # get list of schema loci
+    # Get list of loci in the schema
     schema_loci = fo.pickle_loader(fo.join_paths(schema_directory,
                                                  [ct.LOCI_LIST_FILE]))
     schema_loci_fullpath = [fo.join_paths(schema_directory, [file])
                             for file in schema_loci]
 
-    # get size mode for all loci
+    # Get size mode for all loci
     loci_modes_file = fo.join_paths(schema_directory, ['loci_modes'])
     if os.path.isfile(loci_modes_file) is True:
         loci_modes = fo.pickle_loader(loci_modes_file)
@@ -2694,7 +2695,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
         loci_modes = loci_mode_file(schema_loci_fullpath, loci_modes_file)
         print('done.')
 
-    # check if schema contains folder with pre-computed hash tables
+    # Check if schema contains folder with pre-computed hash tables
     pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
     if os.path.isdir(pre_computed_dir) is False:
         print('\nCreating pre-computed hash tables...', end='')
@@ -2707,7 +2708,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                 config['CPU cores'])
         print('done.')
 
-    # get index for loci to call
+    # Get index for loci to call
     loci_to_call = {file: schema_loci_fullpath.index(file)
                     for file in loci_to_call}
 

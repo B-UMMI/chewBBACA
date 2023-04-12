@@ -108,7 +108,20 @@ def test_schemaEvaluator_invalid_input(test_args, expected):
                 "--loci-reports",
                 "--add-sequences",
             ],
-            0
+            0,
+        ),
+        (
+            [
+                "chewBBACA.py",
+                "SchemaEvaluator",
+                "-g",
+                "data/schemaevaluator_data/several_invalid_alleles",
+                "-o",
+                "schema_report",
+                "--loci-reports",
+                "--add-sequences",  
+            ],
+            0,
         ),
     ],
 )

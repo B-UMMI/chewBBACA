@@ -74,38 +74,39 @@ def test_allelecall_valid(test_args, expected):
            '-i', 'data/prep_data/empty_dir',
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'AlleleCall',
            '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'AlleleCall',
            '-i', 'data/createschema_data/zero_bytes_pair',
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'AlleleCall',
            '-i', 'this/path/aint/real',
            '-g', 'data/allelecall_data/sagalactiae_schema',
            '-o', 'allelecall_results'],
-          '\nInput argument is not a valid directory or '
-          'file with a list of paths. Please provide a '
+          'Input argument is not a valid directory or '
+          'file with a list of paths to FASTA files. Please provide a '
           'valid input, either a folder with FASTA files '
           'or a file with the list of full paths to FASTA '
-          'files (one per line).')
+          'files (one per line and ending with one of the '
+          'following file extensions: [\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\']).')
         ])
 def test_invalid_input(test_args, expected):
 

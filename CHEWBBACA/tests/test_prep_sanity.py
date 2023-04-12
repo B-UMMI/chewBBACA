@@ -33,35 +33,36 @@ def pickle_loader(pickle_in):
         [(['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/empty_dir',
            '-o', 'adapted_schema'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/empty_files',
            '-o', 'adapted_schema'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'data/prep_data/zero_bytes_pair',
            '-o', 'adapted_schema'],
-         '\nCould not get input files. Please provide a directory'
+         'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
          'paths to the FASTA files and ensure that filenames end '
-         'with one of the following suffixes: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+         'with one of the following extensions: '
+         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
            '-i', 'this/path/aint/real',
            '-o', 'adapted_schema'],
-          '\nInput argument is not a valid directory or '
-          'file with a list of paths. Please provide a '
+          'Input argument is not a valid directory or '
+          'file with a list of paths to FASTA files. Please provide a '
           'valid input, either a folder with FASTA files '
           'or a file with the list of full paths to FASTA '
-          'files (one per line).')
+          'files (one per line and ending with one of the '
+          'following file extensions: [\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\']).')
          ])
 def test_prep_invalid_input(test_args, expected):
 

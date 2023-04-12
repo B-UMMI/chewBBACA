@@ -787,32 +787,32 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     if above_outfile is not None:
         # divide FASTA file into groups of 100 sequences to reduce
         # execution time for large sequence sets
-        splitted_fastas = fao.split_seqcount(above_outfile[0], output_directory, 100)
+        split_fastas = fao.split_seqcount(above_outfile[0], output_directory, 100)
 
         # create TXT with list of sequence identifiers
         seqids_files = []
-        for f in splitted_fastas:
+        for f in split_fastas:
             seqids = list(f[1])
             seqids_file = fo.join_paths(output_directory, [fo.file_basename(f[0], False)])
             fo.write_lines(seqids, seqids_file)
             seqids_files.append(seqids_file)
     # this should not happen or be very rare, but just in case
     else:
-        splitted_fastas = []
+        split_fastas = []
 
     # create directory to store results from final BLASTp
     final_blastp_dir = fo.join_paths(output_directory, ['BLAST_results'])
     fo.create_directory(final_blastp_dir)
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
                                                     fo.file_basename(file[0], False))
-                     for file in splitted_fastas]
+                     for file in split_fastas]
 
     # add common arguments to all sublists
     blast_inputs = [[blast_path, blast_db, file[0],
                      blast_outputs[i], 1, 1,
                      seqids_files[i], 'blastp', None,
                      ct.IGNORE_RAISED, None, bw.run_blast]
-                    for i, file in enumerate(splitted_fastas)]
+                    for i, file in enumerate(split_fastas)]
 
     # add file with short sequences
     if below_outfile is not None:

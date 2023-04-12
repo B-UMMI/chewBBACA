@@ -229,8 +229,8 @@ def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
 
     batch_total = 0
     for g in genomes:
-        # determine Prodigal ORF file path for current genome
-        identifier = fo.file_basename(g, False)
+        # Determine Prodigal ORF file path for current genome
+        identifier = fo.split_joiner(fo.file_basename(g, False), [0], '.')
         orf_file_path = fo.join_paths(prodigal_path,
                                       ['{0}.cds_coordinates'.format(identifier)])
         total = save_extracted_cds(g, identifier, orf_file_path,
@@ -287,8 +287,8 @@ def main(input_file, output_dir, ptf_path, translation_table, mode):
 
     stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
 
-    # this has to be changed to include the full file name!
-    genome_basename = fo.file_basename(input_file, False)
+    # Get genome unique identifier
+    genome_basename = fo.split_joiner(fo.file_basename(input_file, False), [0], '.')
 
     if len(stderr) > 0:
         stderr = [line.decode('utf-8').strip() for line in stderr]

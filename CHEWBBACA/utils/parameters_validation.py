@@ -27,12 +27,14 @@ try:
     from utils import (constants as ct,
                        file_operations as fo,
                        chewiens_requests as cr,
-                       fasta_operations as fao)
+                       fasta_operations as fao,
+                       iterables_manipulation as im)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  chewiens_requests as cr,
-                                 fasta_operations as fao)
+                                 fasta_operations as fao,
+                                 iterables_manipulation as im)
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -1183,27 +1185,27 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 
 
 def write_gene_list(schema_dir):
-    """ Creates list with gene files in a schema and
-        uses the pickle module to save the list to a file.
+    """Save list of loci in a schema to the '.genes_list' file.
 
     Parameters
     ----------
     schema_dir : str
-        Path to the directory with schema files.
+        Path to the schema directory.
 
     Returns
     -------
     A list with two elements. A boolean value that
     is True if the file with the list of genes was
-    created and False otherwise. The second element
+    created, False otherwise. The second element
     is the path to the created file.
     """
+    # Loci FASTA files must end with '.fasta' extension
+    schema_files = fo.listdir_fullpath(schema_dir)
+    loci_files = fo.filter_by_extension(schema_files, ['.fasta'])
+    output_file = fo.join_paths(schema_dir, ['.genes_list'])
+    fo.pickle_dumper(loci_files, output_file)
 
-    schema_files = [file for file in os.listdir(schema_dir) if '.fasta' in file]
-    schema_list_file = fo.join_paths(schema_dir, ['.genes_list'])
-    fo.pickle_dumper(schema_files, schema_list_file)
-
-    return [os.path.isfile(schema_list_file), schema_list_file]
+    return [os.path.isfile(output_file), output_file]
 
 
 def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
@@ -1311,10 +1313,10 @@ def read_configs(schema_path, filename):
 
 
 def check_input_type(input_path, output_file, parent_dir=None):
-    """ Checks if the input path is for a file or for a
-        directory. If the path is for a directory, the
-        function creates a file with the list of paths
-        to FASTA files in the directory.
+    """Check the input path is a file or a directory.
+
+    If the path is for a directory, the function creates a file
+    with the list of paths to FASTA files in the directory.
 
     Parameters
     ----------
@@ -1341,53 +1343,52 @@ def check_input_type(input_path, output_file, parent_dir=None):
         - If input path is not a valid path for a file or
           for a directory.
     """
-
-    # check if input argument is a file or a directory
+    # Check if input path is a file or a directory
     if os.path.isfile(input_path):
-        # check if it's not a FASTA file
+        # Check if it is a FASTA file
         if fao.validate_fasta(input_path) is True:
-            sys.exit('Input file is a FASTA file. Please provide '
-                     'the path to the parent directory that contains '
-                     'the FASTA files or a file with the list of full '
-                     'paths to the FASTA files (one per line).')
+            sys.exit(ct.FASTA_INPUT_EXCEPTION)
 
-        # read list of input files
-        with open(input_path, 'r') as infile:
-            lines = list(csv.reader(infile))
-            lines = [f[0] for f in lines]
+        # Read list of input files
+        files = [line[0] for line in fo.read_tabular(input_path)]
 
         # list of input genes must have full paths
         if parent_dir is not None:
             # add parent directory path if necessary
-            lines = [os.path.join(parent_dir, f)
-                     if parent_dir not in f
-                     else f
-                     for f in lines]
-            # add FASTA extension if it's missing
-            lines = [file+'.fasta'
-                     if file.endswith('.fasta') is False
+            files = [os.path.join(parent_dir, file)
+                     if parent_dir not in file
                      else file
-                     for file in lines]
+                     for file in files]
 
-        # check that all files exist
-        missing = [file for file in lines
+        # Need to verify if files end with any of the accepted file
+        # extensions, not only '.fasta'
+        fasta_files = []
+        for file in files:
+            if any([file.endswith(s) for s in ct.FASTA_EXTENSIONS]) is True:
+                fasta_files.append(file)
+            else:
+                # Add extensions to try to get file
+                for s in ct.FASTA_EXTENSIONS:
+                    putative_file = f'{file}{s}'
+                    if os.path.exists(putative_file):
+                        fasta_files.append(putative_file)
+                        break
+
+        # Check that all files exist
+        missing = [file for file in fasta_files
                    if os.path.exists(file) is False]
         if len(missing) > 0:
-            sys.exit('Could not find some of the files provided in '
-                     'the input list. Please verify that you\'ve '
-                     'provided the full paths to valid input '
-                     'files.\n{0}'.format('\n'.join(missing)))
-        # save file paths to output file
+            sys.exit(ct.MISSING_INPUTS_EXCEPTION.format(im.join_list(missing, '\n')))
+        # Save file paths to output file
         else:
-            with open(output_file, 'w') as outfile:
-                outfile.write('\n'.join(lines))
-
+            fo.write_lines(fasta_files, output_file)
     elif os.path.isdir(input_path):
-        # we need to get only files with FASTA extension
-        files = os.listdir(input_path)
-        files = fo.filter_files(files, ct.FASTA_SUFFIXES)
-        # get absolute paths
-        files = [os.path.join(input_path, file) for file in files]
+        # List absolute paths
+        files = fo.listdir_fullpath(input_path)
+
+        # Filter based on file extension
+        files = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
+
         # filter any directories that might end with FASTA extension
         files = [file for file in files if os.path.isdir(file) is False]
 
@@ -1396,23 +1397,11 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
         # if there are FASTA files
         if len(fasta_files) > 0:
-            # store full paths to FASTA files
-            with open(output_file, 'w') as f:
-                for file in fasta_files:
-                    f.write(file + '\n')
+            # Save file paths to output file
+            fo.write_lines(fasta_files, output_file)
         else:
-            sys.exit('\nCould not get input files. Please '
-                     'provide a directory with FASTA files '
-                     'or a file with the list of full paths '
-                     'to the FASTA files and ensure that '
-                     'filenames end with one of the '
-                     'following suffixes: {0}.'
-                     ''.format(ct.FASTA_SUFFIXES))
+            sys.exit(ct.MISSING_FASTAS_EXCEPTION)
     else:
-        sys.exit('\nInput argument is not a valid directory or '
-                 'file with a list of paths. Please provide a '
-                 'valid input, either a folder with FASTA files '
-                 'or a file with the list of full paths to FASTA '
-                 'files (one per line).')
+        sys.exit(ct.INVALID_INPUT_PATH)
 
     return output_file

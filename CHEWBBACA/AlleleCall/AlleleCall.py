@@ -1901,12 +1901,14 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         self-alignment BLASTp raw score, dictionary with information
         about new representatives for each locus).
     """
-    # get dictionary template to store variables to return
+    # Get dictionary template to store variables to return
     template_dict = ct.ALLELECALL_DICT
 
-    # map full paths to basename
+    # Map full paths to unique identifier (prefix before first '.')
     inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
+    inputs_basenames = {k: fo.split_joiner(v, [0], '.')
+                        for k, v in inputs_basenames.items()}
 
     # map input identifiers to integers
     # use the mapped integers to refer to each input
@@ -2215,7 +2217,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     print('\nTranslating schema\'s representative alleles...', end='')
     rep_dir = fo.join_paths(schema_directory, ['short'])
     rep_list = fo.listdir_fullpath(rep_dir, '.fasta')
-    # filter to get only files in list of loci
+    # Filter to get only files in list of loci
     rep_basenames = {file: fo.file_basename(file, False).replace('_short', '') for file in rep_list}
     rep_list = [k for k, v in rep_basenames.items() if v in loci_basenames.values()]
 

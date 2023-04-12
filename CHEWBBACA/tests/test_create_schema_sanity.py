@@ -90,20 +90,20 @@ def test_createschema_valid(test_args, expected):
        '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      '\nCould not get input files. Please provide a directory'
+      'Could not get input files. Please provide a directory'
       ' with FASTA files or a file with the list of full '
       'paths to the FASTA files and ensure that filenames end '
-      'with one of the following suffixes: '
-      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+      'with one of the following extensions: '
+      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
      (['chewBBACA.py', 'CreateSchema',
          '-i', 'data/createschema_data/zero_bytes_pair',
          '-o', 'createschema_results',
          '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      '\nCould not get input files. Please provide a directory'
+      'Could not get input files. Please provide a directory'
       ' with FASTA files or a file with the list of full '
       'paths to the FASTA files and ensure that filenames end '
-      'with one of the following suffixes: '
-      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\'].'),
+      'with one of the following extensions: '
+      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
      (['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/mock_schema_dir',
        '-o', 'createschema_results',

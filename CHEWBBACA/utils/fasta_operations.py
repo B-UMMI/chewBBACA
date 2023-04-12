@@ -354,14 +354,14 @@ def split_seqcount(fasta_path, output_directory, max_seqs):
 
     Returns
     -------
-    splitted_files : list
+    split_files : list
         List with paths to the new files that were
         created by splitting the input FASTA file.
     """
     file_count = 1
     exhausted = False
     current_recs = []
-    splitted_files = []
+    split_files = []
     record_generator = sequence_generator(fasta_path)
     while exhausted is False:
         record = next(record_generator, None)
@@ -375,12 +375,12 @@ def split_seqcount(fasta_path, output_directory, max_seqs):
                 file_path = fo.join_paths(output_directory,
                                           ['seqcount{0}.fasta'.format(file_count)])
                 seqids = (rec.id for rec in current_recs)
-                splitted_files.append([file_path, seqids])
+                split_files.append([file_path, seqids])
                 write_records(current_recs, file_path)
                 current_recs = []
                 file_count += 1
 
-    return splitted_files
+    return split_files
 
 
 def split_seqlength(fasta_path, output_directory, length_cutoff):
@@ -501,7 +501,7 @@ def translate_fasta(input_fasta, output_directory, translation_table):
 
     valid_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE, valid)
 
-    basename = fo.file_basename(input_fasta, True).replace('.fasta', '_protein.fasta')
+    basename = fo.file_basename(input_fasta, False) + '_protein.fasta'
     protein_file = fo.join_paths(output_directory, [basename])
     fo.write_lines(valid_lines, protein_file)
 

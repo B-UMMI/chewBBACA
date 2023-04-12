@@ -64,6 +64,17 @@ def file_basename(file_path, file_extension=True):
     return basename
 
 
+def split_joiner(string, indices, delimiter):
+    """
+    """
+    split_string = string.split(delimiter)
+    joined_string = delimiter.join([split_string[i] for i in indices])
+
+    return joined_string
+
+
+## Need to improve this!!!
+
 def get_locus_id(locus_path):
     """Extract the locus identifier from a path.
 
@@ -585,8 +596,8 @@ def create_short(schema_files, schema_dir):
     create_directory(short_path)
 
     for file in schema_files:
-        short_file = join_paths(short_path, [file_basename(file)])
-        short_file = short_file.replace('.fasta', '_short.fasta')
+        locus_id = file_basename(file, False)
+        short_file = join_paths(short_path, [f'{locus_id}_short.fasta'])
         shutil.copy(file, short_file)
 
     return True

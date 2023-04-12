@@ -182,9 +182,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        representative_filter, intra_filter, cpu_cores, blast_path,
                        prodigal_mode, cds_input):
     """Create a schema seed based on a set of input FASTA files."""
-    # map full paths to basename
+    # Map full paths to unique identifier (prefix before first '.')
     inputs_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
+    inputs_basenames = {k: fo.split_joiner(v, [0], '.')
+                        for k, v in inputs_basenames.items()}
 
     # map input identifiers to integers
     # use the mapped integers to refer to each input

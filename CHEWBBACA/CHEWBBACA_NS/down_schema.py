@@ -18,49 +18,6 @@ does not provide it, is to download the compressed version that is available
 and run the SyncSchema process to retrieve the alleles that were added to the
 schema after the compression date.
 
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-sp``, ``species_id`` : The integer identifier or name of the species
-  that the schema will be associated to in the Chewie-NS.
-
-    - e.g.: ``1`` or ``'Yersinia pestis'``
-
-- ``-sc``, ``schema_id`` : The schema identifier in the Chewie-NS.
-
-    - e.g.: ``1``
-
-- ``-o``, ``download_folder`` : Path to the parent directory of the folder
-  that will store the downloaded schema. The process will create a folder
-  with the schema's name inside the directory specified through this argument.
-
-    - e.g.: ``/home/user/chewie_schemas``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores that will be used to
-  construct the schema if the process downloads FASTA files instead of
-  the compressed version.
-
-    - e.g.: ``4``
-
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature
-  Server. The default value, "main", will establish a connection to
-  "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
-  and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). Users may also
-  provide the IP address to other Chewie-NS instances.
-
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (local host)
-
-- ``--d``, ``date`` : Download schema with structure it had at
-  specified date. Must be in the format "Y-m-dTH:M:S" or "Y-m-dTH:M:S.f".
-
-    - e.g.: ``2020-03-27T11:38:00`` or ``2020-03-27T11:38:01.100``
-
-- ``--latest`` : If the compressed version that is available is not the
-  latest, downloads all loci and constructs schema locally.
-
 Code documentation
 ------------------
 """
@@ -70,7 +27,6 @@ import os
 import sys
 import shutil
 import requests
-import argparse
 import concurrent.futures
 from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
@@ -549,27 +505,36 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         # use PrepExternalSchema main to determine representatives
         genus, epithet = species_name.split(' ')
         schema_name = '{0}{1}_{2}'.format(genus[0].lower(), epithet, schema_name)
-        schema_path = os.path.join(download_folder, schema_name)
+        schema_path = fo.join_paths(download_folder, [schema_name])
+        schema_path_short = fo.join_paths(schema_path, ['short'])
+        # Create output directories
+        schema_path_exists = fo.create_directory(schema_path)
+        if schema_path_exists is False:
+            sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+        fo.create_directory(schema_path_short)
 
-        # determine representatives and create schema
-        PrepExternalSchema.main(download_folder,
-                                schema_path,
+        loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
+        loci_list = pv.check_input_type(download_folder, loci_list)
+
+        # Determine representatives and create schema
+        # Do not apply minimum length and size threshold values
+        PrepExternalSchema.main(loci_list,
+                                [schema_path, schema_path_short],
                                 cpu_cores,
                                 float(schema_params_dict['bsr']),
-                                int(schema_params_dict['minimum_locus_length']),
+                                0,
                                 int(schema_params_dict['translation_table']),
-                                ptf_file,
                                 None,
                                 blast_path)
 
-        # copy Prodigal training file to schema directory
+        # Copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)
         os.remove(ptf_file)
 
-        # remove FASTA files with sequences from the NS
+        # Remove FASTA files with sequences from the NS
         fo.remove_files(ns_files)
 
-        # write hidden schema config file
+        # Write hidden schema config file
         del(schema_params_dict['Schema_lock'])
         schema_config = pv.write_schema_config(schema_params_dict['bsr'],
                                                ptf_hash,
@@ -584,7 +549,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
                                                schema_params_dict['intraCluster_filter'],
                                                schema_path)
 
-        # create ns_config file
+        # Create ns_config file
         ns_config = os.path.join(schema_path, '.ns_config')
         download_info = [schema_date, schema_uri]
         if not os.path.exists(ns_config):
@@ -592,70 +557,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
 
         genes_list_file = pv.write_gene_list(schema_path)
 
+        # Delete file with list of loci to adapt
+        os.remove(loci_list)
+
     print('Schema is now available at: {0}'.format(schema_path))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-sp', type=str, required=True,
-                        dest='species_id',
-                        help='The integer identifier or name of the '
-                             'species that the schema is associated '
-                             'to in the Chewie-NS.')
-
-    parser.add_argument('-sc', type=str, required=True,
-                        dest='schema_id',
-                        help='The schema identifier in the Chewie-NS.')
-
-    parser.add_argument('-o', type=str, required=True,
-                        dest='download_folder',
-                        help='Path to the parent directory of the '
-                             'folder that will store the downloaded schema.')
-
-    parser.add_argument('--cpu', type=int, required=False,
-                        dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used to construct the schema '
-                             'if the process downloads FASTA '
-                             'files instead of a compressed version.')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        dest='nomenclature_server',
-                        default='main',
-                        help='The base URL for the Nomenclature Server. '
-                             'The default value, "main", will establish a '
-                             'connection to "https://chewbbaca.online/", '
-                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
-                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--d', type=str, required=False,
-                        default=None,
-                        dest='date',
-                        help='Download schema with structure it had at '
-                             'specified date. Must be in the format '
-                             '"Y-m-dTH:M:S" or "Y-m-dTH:M:S.f".')
-
-    parser.add_argument('--latest', required=False,
-                        action='store_true', dest='latest',
-                        help='If the compressed version that is available '
-                             'is not the latest, downloads all loci and '
-                             'constructs schema locally.')
-
-    parser.add_argument('--b', type=pv.check_blast, required=False,
-                        default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

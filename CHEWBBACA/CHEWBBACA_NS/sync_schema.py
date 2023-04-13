@@ -956,7 +956,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                 fo.remove_files(alleles_files)
                 fo.remove_files(zipped_files)
 
-    # change pickled files to FASTA files
+    # Change pickled files to FASTA files
     for locus, pick in pickled_loci.items():
         rearranged = pickle_to_fasta(locus, pick, temp_dir, results,
                                      rearranged)
@@ -971,8 +971,8 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     #     update_hash_tables(rearranged, loci_files, loci_to_call,
     #                        schema_params['translation_table'][0],
     #                        pre_computed_dir)
-    # delete pre-computed directory
-    # future versions will change the pre-computed hash tables
+    # Delete pre-computed directory
+    # Future versions will change the pre-computed hash tables
     pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
     if os.path.isdir(pre_computed_dir):
         fo.delete_directory(pre_computed_dir)
@@ -987,11 +987,13 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     #         print('Could not find local SQLite database to upload profiles.\n')
 
     # Re-determine the representative sequences
+    schema_short_directory = fo.join_paths(schema_directory, ['short'])
     if attributed > 0 or count > 0:
-        PrepExternalSchema.main(temp_dir, schema_directory,
+        loci_list = fo.join_paths(schema_directory, [ct.LOCI_LIST])
+        loci_list = pv.check_input_type(temp_dir, loci_list)
+        PrepExternalSchema.main(loci_list, [schema_directory, schema_short_directory],
                                 cpu_cores, float(schema_params['bsr'][0]),
-                                int(schema_params['minimum_locus_length'][0]),
-                                11, '', None, blast_path)
+                                0, 11, None, blast_path)
 
         # delete invalid alleles and genes files
         parent_dir = os.path.dirname(schema_directory)
@@ -1012,6 +1014,9 @@ def main(schema_directory, cpu_cores, nomenclature_server,
         # update NS config file with latest server time
         ns_configs = fo.join_paths(schema_directory, ['.ns_config'])
         fo.pickle_dumper([server_time, schema_uri], ns_configs)
+
+        # Delete file with list of loci to adapt
+        os.remove(loci_list)
 
     print('Received {0} new alleles for {1} loci and sent '
           '{2} for {3} loci. '.format(count, len(pickled_loci),

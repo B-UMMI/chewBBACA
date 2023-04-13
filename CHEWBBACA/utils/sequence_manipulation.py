@@ -407,7 +407,7 @@ def get_seqs_dicts(fasta_path, gene_id, table_id, min_len, size_threshold):
         seqid += 1
 
     if size_threshold is not None and len(prot_seqs) > 0:
-        # remove alleles based on length mode and size threshold
+        # Remove alleles based on length mode and size threshold
         modes, alm, asm, alleles_lengths = mode_filter(dna_seqs, size_threshold)
         excluded = set(asm + alm)
 

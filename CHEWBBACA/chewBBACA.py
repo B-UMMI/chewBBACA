@@ -893,9 +893,11 @@ def prep_schema():
     parser.add_argument('--l', '--minimum-length',
                         type=pv.minimum_sequence_length_type, required=False,
                         default=ct.MSL_MIN, dest='minimum_length',
-                        help='Minimum sequence length accepted. Sequences with'
-                             ' a length value smaller than the value passed '
-                             'to this argument will be discarded.')
+                        help='Minimum sequence length value stored in the '
+                             'schema config file. The schema adaptation '
+                             'process will only discard sequences smaller '
+                             'than the minimum length value if the '
+                             '--size-filter parameter is provided.')
 
     parser.add_argument('--t', '--translation-table',
                         type=pv.translation_table_type, required=False,
@@ -905,18 +907,22 @@ def prep_schema():
     parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
                         required=False, default=ct.SIZE_THRESHOLD_DEFAULT,
                         dest='size_threshold',
-                        help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent when compared to the selected '
-                             'representatives will not be included in the '
-                             'final schema.')
+                        help='Allele size variation threshold value stored in '
+                             'the schema config file. The schema adaptation '
+                             'process will only discard sequences below or '
+                             'above the size theshold value if the '
+                             '--size-filter parameter is provided (at the '
+                             'default value of 0.2, alleles with size '
+                             'variation +-20 percent when compared to the '
+                             'selected representatives will not be included '
+                             'in the final schema.')
 
-    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage, 
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',
                         help='Number of CPU cores/threads that will be '
                              'used to run the process '
                              '(will be redefined to a lower value '
-                             'if it is equal to or exceeds the total'
+                             'if it is equal to or exceeds the total '
                              'number of available CPU cores/threads).')
 
     parser.add_argument('--b', '--blast-path', type=pv.check_blast,
@@ -924,34 +930,80 @@ def prep_schema():
                         help='Path to the directory that contains the '
                              'BLAST executables.')
 
+    parser.add_argument('--size-filter', action='store_true',
+                        required=False, dest='size_filter',
+                        help='Apply the minimum length and size threshold'
+                             ' values during schema adaptation.')
+
     args = parser.parse_args()
     del args.PrepExternalSchema
 
-    # check if ptf exists
+    # Check if ptf exists
     if args.ptf_path is not None:
         ptf_exists = os.path.isfile(args.ptf_path)
         if ptf_exists is False:
             sys.exit('Invalid path for Prodigal training file.')
 
-    PrepExternalSchema.main(**vars(args))
+    # Define output paths
+    schema_path = os.path.abspath(args.output_directory)
+    schema_short_path = fo.join_paths(schema_path, ['short'])
+    output_dirs = [schema_path, schema_short_path]
 
-    # copy training file to schema directory
+    # Create output directories
+    schema_path_exists = fo.create_directory(schema_path)
+    if schema_path_exists is False:
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+    fo.create_directory(schema_short_path)
+
+    loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
+    args.input_files = pv.check_input_type(args.input_files, loci_list)
+
+    print(f'Number of cores: {args.cpu_cores}')
+    print(f'BLAST Score Ratio: {args.blast_score_ratio}')
+    print(f'Translation table: {args.translation_table}')
+
+    # Only apply minimum length and size threshold during schema
+    # adaptation if --size-filter parameter is True
+    if args.size_filter:
+        adaptation_st = args.size_threshold
+        adaptation_ml = args.minimum_length
+    else:
+        adaptation_st = None
+        adaptation_ml = 0
+
+    print(f'Using a minimum length value of {adaptation_ml} for schema '
+          f'adaptation and {args.minimum_length} to store in the schema '
+          'config file.')
+    print(f'Using a size threshold value of {adaptation_st} for schema '
+          f'adaptation and {args.size_threshold} to store in the schema '
+          'config file.')
+
+    PrepExternalSchema.main(args.input_files, output_dirs,
+                            args.cpu_cores, args.blast_score_ratio,
+                            adaptation_ml, args.translation_table,
+                            adaptation_st, args.blast_path)
+
+    # Copy training file to schema directory
     ptf_hash = None
     if args.ptf_path is not None:
-        shutil.copy(args.ptf_path, args.output_directory)
-        # determine PTF checksum
+        shutil.copy(args.ptf_path, schema_path)
+        # Determine PTF checksum
         ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
+        print('Copied Prodigal training file to schema directory.')
 
-    # write schema config file
+    # Write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                            args.translation_table, args.minimum_length,
                                            version, args.size_threshold, ct.WORD_SIZE_DEFAULT,
                                            ct.WINDOW_SIZE_DEFAULT, ct.CLUSTERING_SIMILARITY_DEFAULT,
                                            ct.REPRESENTATIVE_FILTER_DEFAULT, ct.INTRA_CLUSTER_DEFAULT,
-                                           args.output_directory)
+                                           schema_path)
 
-    # create hidden file with genes/loci list
-    genes_list_file = pv.write_gene_list(args.output_directory)
+    # Create hidden file with list of loci
+    genes_list_file = pv.write_gene_list(schema_path)
+
+    # Delete file with list of loci to adapt
+    os.remove(loci_list)
 
 
 @pdt.process_timer

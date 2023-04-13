@@ -8,64 +8,14 @@ alleles present in those schemas can be used with chewBBACA. During the
 process, alleles that do not correspond to a complete CDS or that cannot be
 translated are discarded from the final schema. One or more alleles of each
 gene/locus will be chosen as representatives and included in the 'short'
-directory.
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_files`` : Path to the folder containing the fasta files,
-  one fasta file per gene/locus (alternatively, a file with a list of paths
-  can be given).
-
-    - e.g.: ``/home/user/chewie_schemas/schema_dir``
-
-- ``-o``, ``output_directory`` : The directory where the output files will
-  be saved (will create the directory if it does not exist).
-
-    - e.g.: ``/home/user/adapted_schema``
-
-- ``ptf``, ``ptf_path`` : Path to the Prodigal training file that will
-  be associated with the adapted schema.
-
-    - e.g.: ``/home/user/training_files/training_file``
-
-- ``--cpu``, ``cpu_cores`` : The number of CPU cores to use (default=1).
-
-    - e.g.: ``4``
-
-- ``--bsr``, ``blast_score_ratio`` : The BLAST Score Ratio value that
-  will be used to adapt the external schema (default=0.6).
-
-    - e.g.: ``0.6``
-
-- ``--l``, ``minimum_length`` : Minimum sequence length accepted.
-  Sequences with a length value smaller than the value passed to this
-  argument will be discarded (default=0).
-
-    - e.g.: ``201``
-
-- ``--t``, ``translation_table`` : Genetic code to use for CDS
-  translation (default=11, for Bacteria and Archaea).
-
-    - e.g.: ``11``
-
-- ``--st``, ``size_threshold`` : CDS size variation threshold. At the
-  default value of 0.2, alleles with size variation +-20 percent when
-  compared to the representative will not be included in the final schema.
-
-    - e.g.: ``0.2``
+directory of the adapted schema.
 
 Code documentation
 ------------------
 """
 
 import os
-import sys
 import shutil
-import argparse
 import itertools
 import multiprocessing
 
@@ -75,7 +25,6 @@ try:
                        file_operations as fo,
                        fasta_operations as fao,
                        sequence_manipulation as sm,
-                       parameters_validation as pv,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except ModuleNotFoundError:
@@ -84,7 +33,6 @@ except ModuleNotFoundError:
                                  file_operations as fo,
                                  fasta_operations as fao,
                                  sequence_manipulation as sm,
-                                 parameters_validation as pv,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
 
@@ -403,11 +351,10 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
                                                                           representatives,
                                                                           final_representatives)
 
-                # remove files created for current gene iteration
+                # Remove files created for current gene iteration
                 os.remove(rep_file)
                 os.remove(blast_output)
                 os.remove(ids_file)
-
         else:
             final_representatives = list(prot_seqs.keys())
 
@@ -441,48 +388,23 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
     return [invalid_alleles, invalid_loci, summary_stats]
 
 
-def main(input_files, output_directory, cpu_cores, blast_score_ratio,
-         minimum_length, translation_table, ptf_path, size_threshold,
-         blast_path):
+def main(input_files, output_directories, cpu_cores, blast_score_ratio,
+         minimum_length, translation_table, size_threshold, blast_path):
 
-    print('Adapting schema in the following '
-          'directory:\n{0}'.format(os.path.abspath(input_files)))
-    print('Prodigal training file:\n{0}'.format(ptf_path))
-    print('Number of cores: {0}'.format(cpu_cores))
-    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
-    print('Translation table: {0}'.format(translation_table))
-    print('Minimum accepted sequence length: {0}'.format(minimum_length))
-    print('Size threshold: {0}'.format(size_threshold))
+    schema_path, schema_short_path = output_directories
 
-    # define output paths
-    schema_path = os.path.abspath(output_directory)
-    schema_short_path = fo.join_paths(schema_path, ['short'])
-
-    # create output directories
-    # check if they exist first
-    schema_path_exists = fo.create_directory(schema_path)
-    if schema_path_exists is False:
-        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
-    fo.create_directory(schema_short_path)
-
-    # list schema gene files
-    loci_list = fo.join_paths(output_directory, [ct.LOCI_LIST])
-    loci_list = pv.check_input_type(input_files, loci_list)
-
-    # import list of schema files
-    genes_list = fo.read_lines(loci_list, strip=True)
-    os.remove(loci_list)
+    # Import list of loci to adapt
+    genes_list = fo.read_lines(input_files, strip=True)
 
     print('Number of loci to adapt: {0}\n'.format(len(genes_list)))
-
     print('Determining the total number of alleles and '
           'allele mean length per gene...\n'.format())
 
-    # count number of sequences and mean length per locus
+    # Count number of sequences and mean length per locus
     loci_info = []
     loci_pools = multiprocessing.Pool(processes=cpu_cores)
     gp = loci_pools.map_async(fao.fasta_stats, genes_list,
-                               callback=loci_info.extend)
+                              callback=loci_info.extend)
     gp.wait()
 
     # split files according to number of sequences and sequence mean length
@@ -495,112 +417,47 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
     even_loci_groups = [[i, schema_path, schema_short_path,
-                          blast_score_ratio, minimum_length,
-                          translation_table, size_threshold,
-                          blastp_path, makeblastdb_path,
-                          adapt_loci] for i in even_loci_groups]
+                         blast_score_ratio, minimum_length,
+                         translation_table, size_threshold,
+                         blastp_path, makeblastdb_path,
+                         adapt_loci] for i in even_loci_groups]
 
     print('Adapting {0} loci...\n'.format(len(genes_list)))
-
     invalid_data = mo.map_async_parallelizer(even_loci_groups,
                                              mo.function_helper,
                                              cpu_cores,
                                              show_progress=True)
 
-    # define paths and write files with list of invalid
-    # alleles and invalid loci
-    output_schema_basename = os.path.basename(output_directory.rstrip('/'))
-    schema_parent_directory = os.path.dirname(schema_path)
+    # Write files with list of invalid alleles and invalid loci
+    schema_basename = fo.file_basename(schema_path.rstrip('/'))
+    parent_directory = os.path.dirname(schema_path)
 
     # write file with alleles that were determined to be invalid
     invalid_alleles = [sub[0] for sub in invalid_data]
     invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
-    invalid_alleles_file = os.path.join(schema_parent_directory,
-                                        f'{output_schema_basename}_invalid_alleles.txt')
+    invalid_alleles_file = os.path.join(parent_directory,
+                                        f'{schema_basename}_invalid_alleles.txt')
     invalid_alleles = [f'{allele[0]}: {allele[1]}' for allele in invalid_alleles]
     fo.write_lines(invalid_alleles, invalid_alleles_file)
 
     # Write file with identifiers of loci that had no valid alleles
     invalid_loci = [sub[1] for sub in invalid_data]
     invalid_loci = list(itertools.chain.from_iterable(invalid_loci))
-    invalid_loci_file = os.path.join(schema_parent_directory,
-                                      '{0}_{1}'.format(output_schema_basename, 'invalid_loci.txt'))
+    invalid_loci_file = os.path.join(parent_directory,
+                                      '{0}_{1}'.format(schema_basename, 'invalid_loci.txt'))
     fo.write_lines(invalid_loci, invalid_loci_file)
 
     stats_lines = [sub[2] for sub in invalid_data]
     stats_lines = list(itertools.chain.from_iterable(stats_lines))
     stats_lines = ['\t'.join(line) for line in stats_lines]
-    stats_loci_file = '{0}/{1}_{2}'.format(schema_parent_directory,
-                                           output_schema_basename,
+    stats_loci_file = '{0}/{1}_{2}'.format(parent_directory,
+                                           schema_basename,
                                            'summary_stats.tsv')
     stats_lines = [ct.PREPEXTERNAL_SUMMARY_STATS_HEADER] + stats_lines
     fo.write_lines(stats_lines, stats_loci_file)
 
     print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')
     print(f'Number of invalid alleles: {len(invalid_alleles)}')
-
     print('\nSuccessfully adapted {0}/{1} loci present in the '
           'input schema.'.format(len(genes_list)-len(invalid_loci),
                                  len(genes_list)))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', type=str, required=True, dest='input_files',
-                        help='Path to the folder containing the fasta files, '
-                             'one fasta file per gene/locus (alternatively, '
-                             'a file with a list of paths can be given).')
-
-    parser.add_argument('-o', type=str, required=True, dest='output_directory',
-                        help='The directory where the output files will be '
-                             'saved (will create the directory if it does not '
-                             'exist).')
-
-    parser.add_argument('--ptf', type=str, required=False,
-                        default=False, dest='ptf_path',
-                        help='Path to the Prodigal training file that '
-                             'will be associated with the adapted schema.')
-
-    parser.add_argument('--cpu', type=int, required=False, default=1,
-                        dest='cpu_cores',
-                        help='The number of CPU cores to use (default=1).')
-
-    parser.add_argument('--bsr', type=float, required=False, default=0.6,
-                        dest='blast_score_ratio',
-                        help='The BLAST Score Ratio value that will be '
-                             'used to adapt the external schema (default=0.6).')
-
-    parser.add_argument('--l', type=int, required=False, default=0,
-                        dest='minimum_length',
-                        help='Minimum sequence length accepted. Sequences with'
-                        ' a length value smaller than the value passed to this'
-                        ' argument will be discarded (default=0).')
-
-    parser.add_argument('--t', type=int, required=False, default=11,
-                        dest='translation_table',
-                        help='Genetic code to use for CDS translation.'
-                        ' (default=11, for Bacteria and Archaea)')
-
-    parser.add_argument('--st', type=float, required=True,
-                        default=0.2, dest='size_threshold',
-                        help='CDS size variation threshold. At the default '
-                             'value of 0.2, alleles with size variation '
-                             '+-20 percent when compared to the representative '
-                             'will not be included in the final schema.')
-
-    parser.add_argument('--b', type=pv.check_blast, required=False,
-                        default='', dest='blast_path',
-                        help='Path to the BLAST executables.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == '__main__':
-
-    args = parse_arguments()
-    main(**vars(args))

@@ -537,7 +537,7 @@ def main(input_files, output_directory, cpu_cores, blast_score_ratio,
     fo.write_lines(stats_lines, stats_loci_file)
 
     print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')
-    print('Number of invalid alleles: {len(invalid_alleles)}')
+    print(f'Number of invalid alleles: {len(invalid_alleles)}')
 
     print('\nSuccessfully adapted {0}/{1} loci present in the '
           'input schema.'.format(len(genes_list)-len(invalid_loci),

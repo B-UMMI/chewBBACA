@@ -18,6 +18,10 @@ Important Notes
   you should do a quick conversion using for example `dos2unix <https://waterlan.home.xs4all.nl/dos2unix.html>`_.
 - If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred``
   option (see :doc:`Allele call </user/modules/AlleleCall>`)
+- Input files should have short names without blank spaces or special characters. It is also important to ensure each input file has
+  a unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq/Should I worry about file naming best practices for input files?>` section.
 
 .. important::
-	Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions.
+	Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions. You can suggest questions and answers
+  to add to the FAQ section by opening an `issue <https://github.com/B-UMMI/chewBBACA/issues>`_ on GitHub or sending an e-mail to
+  imm-bioinfo@medicina.ulisboa.pt.

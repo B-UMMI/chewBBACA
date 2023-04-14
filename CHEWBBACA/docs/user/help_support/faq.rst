@@ -18,8 +18,8 @@ unique basename prefix (everything before the first ``.`` in the basename). chew
 basename prefix as a unique identifier during process execution and to label the final results.
 chewBBACA will warn you and exit if any files share the same basename prefix (e.g.: 
 ``GCF_002209245.1_ASM220924v1_genomic.fna`` and ``GCF_002209245.2_ASM220924v2_genomic.fna``).
-chewBBACA accepts input files with the following file extensions: ``.fasta``, ``.fna``, ``.ffn``
-and ``.fa``.
+chewBBACA accepts input files with the following file extensions: ``.fasta``, ``.fna``, ``.ffn``,
+``.fa`` and ``.fas``.
 
 I ran all the steps and my cgMLST loci size is smaller than traditional MLST...does this even work?
 ...................................................................................................
@@ -47,7 +47,10 @@ of external schemas so that it is possible to use those schemas with chewBBACA. 
 schema may be a set of sequences from any number of genes that have been selected for a particular
 study or it may be a schema that has already been defined and is available for download from
 some well known databases, such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_,
-`BIGSdb <https://pubmlst.org/>`_ and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
+`BIGSdb <https://pubmlst.org/>`_, `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>_` and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
+You can also download schemas compatible with chewBBACA from `Chewie-NS <https://chewbbaca.online/>_`.
+Chewie-NS allows chewBBACA users to download and update cg/wgMLST schemas, allowing the easy sharing of
+results, while ensuring the reproducibility and consistency of these steps.
 
 Which species already have a training file?
 ...........................................

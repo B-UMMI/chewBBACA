@@ -82,8 +82,9 @@ Perform allele calling
 
 Having defined a cgMLST or wgMLST schema, we can proceed to use it to call alleles on target
 genomes. chewBBACA's *Allele Calling* algorithm can also use schemas and alleles from existing
-databases such as `PubMLST <https://pubmlst.org/>`_, `EnteroBase <https://enterobase.warwick.ac.uk/>`_
-or `RIDOM(tm) cgMLST schemas <http://www.cgmlst.org/ncs>`_. External schemas can be adapted for
+databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://pubmlst.org/>`_,
+`BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>_`, `Enterobase <http://enterobase.warwick.ac.uk/>`_ and
+`Chewie-NS <https://chewbbaca.online/>_`. External schemas can be adapted for
 usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module.
 
 .. important::

@@ -47,8 +47,8 @@ of external schemas so that it is possible to use those schemas with chewBBACA. 
 schema may be a set of sequences from any number of genes that have been selected for a particular
 study or it may be a schema that has already been defined and is available for download from
 some well known databases, such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_,
-`BIGSdb <https://pubmlst.org/>`_, `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>_` and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
-You can also download schemas compatible with chewBBACA from `Chewie-NS <https://chewbbaca.online/>_`.
+`BIGSdb <https://pubmlst.org/>`_, `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_ and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
+You can also download schemas compatible with chewBBACA from `Chewie-NS <https://chewbbaca.online/>`_.
 Chewie-NS allows chewBBACA users to download and update cg/wgMLST schemas, allowing the easy sharing of
 results, while ensuring the reproducibility and consistency of these steps.
 

@@ -19,7 +19,7 @@ Important Notes
 - If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred``
   option (see :doc:`Allele call </user/modules/AlleleCall>`)
 - Input files should have short names without blank spaces or special characters. It is also important to ensure each input file has
-  a unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq/Should I worry about file naming best practices for input files?>` section.
+  a unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq>` section.
 
 .. important::
   Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions. You can suggest questions and answers

@@ -88,8 +88,8 @@ databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://
 usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module.
 
 .. important::
-	Although the use of a training file is optional, it is highly recommended to ensure consistent
-	results.
+  Although the use of a training file is optional, it is highly recommended to ensure consistent
+  results.
 
 Basic Usage
 -----------

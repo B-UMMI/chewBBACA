@@ -22,6 +22,5 @@ Important Notes
   a unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq/Should I worry about file naming best practices for input files?>` section.
 
 .. important::
-	Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions. You can suggest questions and answers
-  to add to the FAQ section by opening an `issue <https://github.com/B-UMMI/chewBBACA/issues>`_ on GitHub or sending an e-mail to
-  imm-bioinfo@medicina.ulisboa.pt.
+  Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions. You can suggest questions and answers
+  to add to the FAQ section by opening an `issue <https://github.com/B-UMMI/chewBBACA/issues>`_ on GitHub or sending an e-mail to imm-bioinfo@medicina.ulisboa.pt.

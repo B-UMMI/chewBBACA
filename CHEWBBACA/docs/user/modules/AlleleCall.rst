@@ -93,7 +93,7 @@ usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExt
   multiple processes/users accessing the same schema, please use the ``--no-inferred`` parameter. By providing
   this parameter, chewBBACA will still identify novel alleles but will not update the schema files with the
   information about those novel alleles. **The schema will most likely become corrupted and unusable if you attempt
-  to run multiple processes with the same schema without providing the ``--no-inferred`` parameter.**
+  to run multiple processes with the same schema without providing the** ``--no-inferred`` **parameter.**
 
 .. important::
   Although the use of a training file is optional, it is highly recommended to ensure consistent

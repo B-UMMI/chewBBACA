@@ -87,18 +87,14 @@ databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://
 `Chewie-NS <https://chewbbaca.online/>`_. External schemas can be adapted for
 usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module.
 
-.. important::
+.. warning::
   If you installed chewBBACA v3 and want to use a schema created with chewBBACA v2, please use the
   :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module to convert the schema to a format
   fully compatible with chewBBACA v3.
 
-.. important::
-  In its default mode, mode 4, the AlleleCall module updates the schema with the novel alleles inferred during the allele
-  calling. This is incompatible with concurrent access. If you run chewBBACA in an environment with
-  multiple processes/users accessing the same schema, please use the ``--no-inferred`` parameter. By providing
-  this parameter, chewBBACA will still identify novel alleles but will not update the schema files with the
-  information about those novel alleles. **The schema will most likely become corrupted and unusable if you attempt
-  to run multiple concurrent processes with the same schema without providing the** ``--no-inferred`` **parameter.**
+.. warning::
+  If you want to run chewBBACA in an environment with multiple processes/users accessing the same schema,
+  please read the section about concurrent allele calling at the end of this page.
 
 .. important::
   Although the use of a training file is optional, it is highly recommended to ensure consistent
@@ -401,3 +397,23 @@ Example for the ``SAMD00008628`` genome:
 - If the ``--hash-profiles`` parameter is provided, the process will use the provided hash
   algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted
   by the hash of the DNA sequence).
+
+Concurrent allele calling
+:::::::::::::::::::::::::
+
+In its default mode, mode 4, and in the execution modes 2 and 3, the AlleleCall module updates the schema with the
+novel alleles inferred during the allele calling. This is incompatible with concurrent access to the same schema.
+If you run chewBBACA in an environment with multiple processes/users accessing the same schema, please use the
+``--no-inferred`` parameter. By providing this parameter, chewBBACA will still identify novel alleles but will not
+update the schema files with the information about those novel alleles. When you create a new schema, adapt an external
+schema or download a schema from Chewie-NS, you must perform a single allele calling before using the schema for
+concurrent allele calling. You can use a single genome assembly; it's only essential to generate the pre-computed data
+that chewBBACA uses to speed up the allele calling. After that, multiple users can concurrently perform allele calling
+based on the same schema if they pass the ``--no-inferred`` parameter. chewBBACA will still identify novel alleles and
+include them in the final results, but those alleles will not be added to the schema, and the pre-computed files will
+not be updated. If you ever want to add new alleles to the schema, you'll have to perform allele calling without the
+``--no-inferred`` parameter and ensure that there's only one process working with the schema while it is updated.
+
+.. warning::
+	The schema will most likely become corrupted and unusable if you attempt to run multiple concurrent processes
+	with the same schema without providing the ``--no-inferred`` parameter.

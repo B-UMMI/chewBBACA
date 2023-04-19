@@ -88,12 +88,12 @@ databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://
 usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module.
 
 .. important::
-  In its default mode, mode 4, chewBBACA updates the schema with the novel alleles inferred during the allele
+  In its default mode, mode 4, the AlleleCall module updates the schema with the novel alleles inferred during the allele
   calling. This is incompatible with concurrent access. If you run chewBBACA in an environment with
   multiple processes/users accessing the same schema, please use the ``--no-inferred`` parameter. By providing
   this parameter, chewBBACA will still identify novel alleles but will not update the schema files with the
   information about those novel alleles. **The schema will most likely become corrupted and unusable if you attempt
-  to run multiple processes with the same schema without providing the** ``--no-inferred`` **parameter.**
+  to run multiple concurrent processes with the same schema without providing the** ``--no-inferred`` **parameter.**
 
 .. important::
   Although the use of a training file is optional, it is highly recommended to ensure consistent

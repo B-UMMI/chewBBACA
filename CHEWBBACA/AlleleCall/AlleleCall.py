@@ -1082,39 +1082,40 @@ def assign_allele_ids(locus_files, ns, repeated):
         lists with SHA-256 hashes and allele integer identifiers
         for each novel allele.
     """
-    # assign allele identifiers
+    # Dictionary to store new allele identifiers
     novel_alleles = {}
-    # import allele calling results and sort to get INF first
+    # Import allele calling results and sort to get INF first
     locus_results = fo.pickle_loader(locus_files[1])
-    # sort by input order
+    # Sort by input order
     sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
 
-    # only keep INF and EXC classifications
+    # Only keep INF and EXC classifications
     sorted_results = [r for r in sorted_results
                       if r[1][0] in ['EXC', 'INF']]
 
-    # sort to get INF classifications first
+    # Sort to get INF classifications first
     sorted_results = sorted(sorted_results, key=lambda x: x[1][0] == 'INF',
                             reverse=True)
 
+    # Assign allele identifiers if there are novel alleles
     if len(sorted_results) > 0:
-        # import locus records
+        # Import locus records in the schema
         records = fao.import_sequences(locus_files[0])
-        # determine hash for all locus alleles
+        # Determine hash for all locus alleles
         matched_alleles = {im.hash_sequence(v): k.split('_')[-1]
                            for k, v in records.items()}
-        # get greatest allele integer identifier
+        # Get greatest allele integer identifier
         max_alleleid = max([int(rec.replace('*', '').split('_')[-1])
                             for rec in records])
 
         for k in sorted_results:
             genome_id = k[0]
             current_results = k[1]
-            # get match that was EXC or INF
+            # Get match that was EXC or INF
             current_match = [c for c in current_results[1:]
                              if c[3] in ['EXC', 'INF']][0]
             cds_hash = current_match[2]
-            # do not add to schema CDSs that matched several loci
+            # Do not add to schema CDSs that matched several loci
             if cds_hash not in repeated:
                 if cds_hash in matched_alleles:
                     locus_results[genome_id].append(matched_alleles[cds_hash])
@@ -1137,11 +1138,11 @@ def assign_allele_ids(locus_files, ns, repeated):
                     # classified as EXC and need to be added as new alleles and converted to INF
                     if current_results[0] == 'EXC':
                         locus_results[genome_id][0] = 'INF'
-            # classify as PAMA when a CDS matches multiple loci
+            # Classify as PAMA when a CDS matches multiple loci
             else:
                 locus_results[genome_id][0] = ct.ALLELECALL_CLASSIFICATIONS[9]
 
-        # save updated results
+        # Save updated results
         fo.pickle_dumper(locus_results, locus_files[1])
 
     return novel_alleles
@@ -2720,12 +2721,12 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     print('\n== Wrapping up ==\n')
 
-    # adjust missing locus classification based on mode
+    # Adjust missing locus classification based on mode
     classification_labels = ct.ALLELECALL_CLASSIFICATIONS
     if config['Mode'] != 4:
         classification_labels[-1] = ct.PROBABLE_LNF
 
-    # sort for order similar to v2.0
+    # Sort for order similar to v2.0
     results['classification_files'] = dict(sorted(results['classification_files'].items()))
 
     # list files with CDSs coordinates
@@ -2745,14 +2746,14 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                      classification_labels)
     print('done.')
 
-    # determine paralogous loci and write RepeatedLoci.txt file
+    # Determine paralogous loci and write RepeatedLoci.txt file
     print('Writing paralogous_loci.tsv and paralogous_counts.tsv...', end='')
     total_paralogous = identify_paralogous(repeated, output_directory)
     print('done.')
     print('Detected number of paralogous loci: '
           '{0}'.format(total_paralogous))
 
-    # assign allele identifiers to novel alleles
+    # Assign allele identifiers to novel alleles
     assignment_inputs = list(results['classification_files'].items())
     assignment_inputs = [[g, ns, set(list(repeated.keys())), assign_allele_ids]
                          for g in assignment_inputs]
@@ -2766,7 +2767,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     updated_files = {}
     if config['Mode'] != 1:
-        # get seqids that match hashes
+        # Get seqids that match hashes
         for k, v in novel_alleles.items():
             for r in v:
                 rep_seqid = im.polyline_decoding(results['dna_hashtable'][r[0]])[0:2]
@@ -2775,7 +2776,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
         reps_info = {}
         if config['Mode'] == 4:
-            # get info for new representative alleles that must be added to files in the short directory
+            # Get info for new representative alleles that must be added to files in the short directory
             for k, v in novel_alleles.items():
                 locus_id = fo.get_locus_id(k)
                 if locus_id is None:
@@ -2784,53 +2785,53 @@ def main(input_file, loci_list, schema_directory, output_directory,
                 if current_results is not None:
                     for e in current_results:
                         allele_id = [line[1] for line in v if line[0] == e[1]]
-                        # we might have representatives that were converted to NIPH but still appear in the list
+                        # We might have representatives that were converted to NIPH but still appear in the list
                         if len(allele_id) > 0:
                             reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
 
             if no_inferred is False:
-                # update self_scores
+                # Update self_scores
                 reps_to_del = set()
                 for k, v in reps_info.items():
                     for r in v:
                         new_id = k+'_'+r[-1]
                         results['self_scores'][new_id] = results['self_scores'][r[0]]
-                        # delete old entries
-                        # does not delete entried from representative candidates that were converted to NIPH
+                        # Delete old entries
+                        # Does not delete entried from representative candidates that were converted to NIPH
                         if r[0] not in reps_to_del:
                             reps_to_del.add(r[0])
 
                 for r in reps_to_del:
                     del results['self_scores'][r]
 
-                # save updated self-scores
+                # Save updated self-scores
                 self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
                 fo.pickle_dumper(results['self_scores'], self_score_file)
 
         if len(novel_alleles) > 0:
-            # create Fasta files with novel alleles
+            # Create Fasta files with novel alleles
             novel_directory = fo.join_paths(temp_directory, ['novel_alleles'])
             novel_rep_directory = fo.join_paths(novel_directory, ['short'])
             fo.create_directory(novel_rep_directory)
             added = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_directory)
             updated_files = added[2]
             if no_inferred is False:
-                # add inferred alleles to schema
+                # Add inferred alleles to schema
                 added2 = add_inferred_alleles(added[2])
-                # recompute mode for loci with novel alleles
+                # Recompute mode for loci with novel alleles
                 for file in novel_alleles:
                     alleles_sizes = list(fao.sequence_lengths(file).values())
-                    # select first value in list if there are several values with same frequency
+                    # Select first value in list if there are several values with same frequency
                     loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
                 fo.pickle_dumper(loci_modes, loci_modes_file)
 
-                # add novel alleles hashes to pre-computed hash tables
+                # Add novel alleles hashes to pre-computed hash tables
                 total_hashes = update_hash_tables(added[2], loci_to_call,
                                    config['Translation table'], pre_computed_dir)
 
     end_time = pdt.get_datetime()
 
-    # create output files
+    # Create output files
     print('Writing logging_info.txt...', end='')
     write_logfile(start_time,
                   end_time,
@@ -2887,7 +2888,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
         print('done.')
 
     if hash_profiles is not None:
-        # create TSV file with hashed profiles
+        # Create TSV file with hashed profiles
         print('Writing file with hashed profiles...', end='')
         ph.main(profiles_table, schema_directory, output_directory,
                 hash_profiles, 4, 1000, updated_files,
@@ -2904,14 +2905,14 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if config['Mode'] != 1:
         fo.move_file(results['invalid_alleles'], output_directory)
 
-    # write Prodigal stderr for inputs that failed gene prediction
+    # Write Prodigal stderr for inputs that failed gene prediction
     if results['invalid_inputs'] is not None:
         failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
         lines = ['{0}\t{1}'.format(line[0], line[1])
                  for line in results['invalid_inputs']]
         fo.write_lines(lines, failed_file)
 
-    # count total for each classification type
+    # Count total for each classification type
     global_counts, total_cds = count_classifications(results['classification_files'].values(),
                                                      classification_labels)
 

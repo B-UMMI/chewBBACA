@@ -88,6 +88,11 @@ databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://
 usage with chewBBACA through the :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module.
 
 .. important::
+  If you installed chewBBACA v3 and want to use a schema created with chewBBACA v2, please use the
+  :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module to convert the schema to a format
+  fully compatible with chewBBACA v3.
+
+.. important::
   In its default mode, mode 4, the AlleleCall module updates the schema with the novel alleles inferred during the allele
   calling. This is incompatible with concurrent access. If you run chewBBACA in an environment with
   multiple processes/users accessing the same schema, please use the ``--no-inferred`` parameter. By providing
@@ -158,7 +163,9 @@ Parameters
                                 gene prediction with Prodigal (default: False).
 
     --no-inferred               (Optional) If provided, the process will not add the sequences of inferred alleles
-                                to the schema (default: False).
+                                (INF) to the schema. Allelic profiles will still include the allele identifiers
+                                attributed to the inferred alleles. Use this parameter if the schema is being
+                                accessed by multiple processes/users simultaneously (default: False).
 
     --output-unclassified       (Optional) Create a Fasta file with unclassified coding sequences (default: False).
 
@@ -182,7 +189,8 @@ Parameters
     --mode                      (Optional) Execution mode (1: only exact matches at DNA level; 2: exact matches
                                 at DNA and Protein level; 3: exact matches and minimizer-based clustering to find
                                 similar alleles based on BSR+0.1; 4: runs the full process to find exact matches
-                                and similar matches based on BSR value) (default: 4).
+                                and similar matches based on BSR value, including the determination of new
+                                representative alleles to add to the schema) (default: 4).
 
 .. important::
 	By default, the *AlleleCall* module uses the Prodigal training file included in the schema's

@@ -16,6 +16,9 @@ Important Notes
 - Make sure that your FASTA files are UNIX format. If they were created in Linux or MacOS
   systems they should be in the correct format, but if they were created in Windows systems,
   you should do a quick conversion using for example `dos2unix <https://waterlan.home.xs4all.nl/dos2unix.html>`_.
+- If you installed chewBBACA v3 and want to use a schema created with chewBBACA v2, please use the
+  :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module to convert the schema to a format
+  fully compatible with chewBBACA v3.
 - If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred``
   option (see :doc:`Allele call </user/modules/AlleleCall>`)
 - Input files should have short names without blank spaces or special characters. It is also important to ensure each input file has

@@ -371,7 +371,9 @@ def allele_call():
                              'the sequences of inferred alleles (INF) to the '
                              'schema. Allelic profiles will still include '
                              'the allele identifiers attributed to the '
-                             'inferred alleles.')
+                             'inferred alleles. Use this parameter if the '
+                             'schema is being accessed by multiple '
+                             'processes/users simultaneously.')
 
     parser.add_argument('--output-unclassified', required=False,
                         action='store_true', dest='output_unclassified',

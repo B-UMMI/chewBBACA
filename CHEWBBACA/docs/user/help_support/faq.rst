@@ -42,7 +42,7 @@ can significantly improve the determination of the core-genome.
 
 Can I use a schema from an external source?
 ...........................................
-Yes. The :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` process enables the adaptation
+Yes. The :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module enables the adaptation
 of external schemas so that it is possible to use those schemas with chewBBACA. An external
 schema may be a set of sequences from any number of genes that have been selected for a particular
 study or it may be a schema that has already been defined and is available for download from
@@ -51,6 +51,13 @@ some well known databases, such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_,
 You can also download schemas compatible with chewBBACA from `Chewie-NS <https://chewbbaca.online/>`_.
 Chewie-NS allows chewBBACA users to download and update cg/wgMLST schemas, allowing the easy sharing of
 results, while ensuring the reproducibility and consistency of these steps.
+
+Are the schemas created with chewBBACA v2 compatible with chewBBACA v3?
+.......................................................................
+To use a schema created with chewBBACA v2 in chewBBACA v3, you need to use the
+:doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module to convert the schema to a format
+fully compatible with chewBBACA v3. The adaptation process removes the files terminating in ``bsr.txt``
+from the ``short`` directory and reformats the sequence headers.
 
 Which species already have a training file?
 ...........................................

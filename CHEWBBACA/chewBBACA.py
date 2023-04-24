@@ -538,9 +538,8 @@ def evaluate_schema():
 
     def msg(name=None):
         # simple command to evaluate schema or set of loci
-        simple_cmd = ('chewBBACA.py SchemaEvaluator -i <input_files> '
-                      '-l <output_file> '
-                      '--cpu <cpu_cores>')
+        simple_cmd = ('chewBBACA.py SchemaEvaluator -g <schema_directory> '
+                      '-o <output_directory> --cpu <cpu_cores> --loci-reports')
 
         usage_msg = (
             '\nEvaluate schema with default parameters:\n  {0}\n'.format(simple_cmd))

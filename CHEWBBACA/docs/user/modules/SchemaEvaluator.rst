@@ -6,46 +6,51 @@ of selected loci. Provide information about problematic alleles per locus and in
 for each locus with a plot with allele size, a Neighbor Joining tree based on a multiple sequence
 alignment (MSA) and a visualization of the MSA.
 
-.. note::
-	See an example `here <https://saureus-report.herokuapp.com/>`_.
-
 Basic Usage
 :::::::::::
 
 ::
 
-	chewBBACA.py SchemaEvaluator -i /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
+	chewBBACA.py SchemaEvaluator -g /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4 --loci-reports
 
 Parameters
 ::::::::::
 
 ::
 
-    -i, --input-files         (Required) Path to the schema's directory or path to a file containing
-                              the paths to the FASTA files of the loci that will be evaluated, one per
-                              line.
+	-g, --schema-directory      (Required) Path to the schema's directory (default: None).
 
-    -o, --output              (Required) Path to the output directory where the report HTML files will
-                              be generated.
+	-o, --output-directory      (Required) Path to the output directory where the report HTML
+                                files will be generated (default: None).
 
-    -a, --annotations         (Optional) Path to the TSV table created by the UniprotFinder process.
-		
-    --ta, --translation-table (Optional) Genetic code used to translate coding sequences (default:
-                              11 (https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1)).
+	--gl, --genes-list          (Optional) Path to a file with the list of genes in the schema
+                                that the process should analyse (one per line) (default: False).
 
-    --th, --threshold         (Optional) Allele size variation threshold. If an allele has a size
-                              within the interval of the locus mode -/+ the threshold, it will be
-                              considered a conserved allele (default: 0.05).
+	-a, --annotations           (Optional) Path to the TSV file created by the UniprotFinder module (
+		                        default: None).
 
-    --ml, --minimum-length    (Optional) Minimum sequence length accepted for a coding sequence to
-                              be included in the schema.
+	--ta, --translation-table   (Optional) Genetic code used to translate coding sequences (default: None).
 
-    --cpu                     (Optional) Number of CPU cores to use to run the process (default: 1).
+	--st, --size-threshold      (Optional) Allele size variation threshold. If an allele has a size
+                                within the interval of the locus mode -/+ the threshold (default: None).
 
-    --light                   (Optional) Skips the indepth analysis of the individual schema loci,
-                              including MAFFT (default: False).
+	--ml, --minimum-length      (Optional) Minimum sequence length accepted for a coding sequence to
+                                be included in the schema (default: None).
 
-    --no-cleanup              (Optional) Does not remove intermediate files after report generation.
+	--cpu, --cpu-cores          (Optional) Number of CPU cores/threads that will be used to run the
+                                process (will be redefined to a lower value if it is equal to or
+                                exceeds the totalnumber of available CPU cores/threads) (default: 1).
+
+	--loci-reports              (Optional) If the process should create an individual report for each
+                                locus (default: False).
+
+	--light                     (Optional) If determining loci reports, skips MSA computation with
+                                MAFFT and does not add the Phylogenetic Tree and MSA components
+								(default: False).
+
+	--add-sequences             (Optional) Adds Code Editor with the DNA and Protein sequences to
+                                loci reports. The Code Editor is in readonly mode (allows to search
+								for and copy text) (default: False).
 
 Outputs
 :::::::

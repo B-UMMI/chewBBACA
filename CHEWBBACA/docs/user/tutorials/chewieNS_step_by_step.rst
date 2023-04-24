@@ -280,82 +280,122 @@ the following command:
       chewBBACA - AlleleCall
     ==========================
 
+    Minimum sequence length: 201
+    Size threshold: 0.2
+    Translation table: 11
+    BLAST Score Ratio: 0.6
+    Word size: 5
+    Window size: 5
+    Clustering similarity: 0.2
     Prodigal training file: Streptococcus_agalactiae.trn
-    Number of CPU cores: 1
+    CPU cores: 1
+    BLAST path: /home/user/.conda/envs/env/bin
+    CDS input: False
+    Prodigal mode: single
+    Mode: 4
+    Number of inputs: 12
+    Number of loci: 10
 
-    Checking dependencies...
-    Blast installation...True
-    Prodigal installation...True
-    Blast version meets minimum requirements (>=2.5.0).
+    Determining sequence length mode for all loci...done.
 
-    Checking if genome files exist...
-    Checking if gene files exist...
+    Creating pre-computed hash tables...done.
 
-    Starting Prodigal at: ...
-    done prodigal run on:GCA_000012705.1_ASM1270v1_genomic.fna
-    done prodigal run on:GCA_000007265.1_ASM726v1_genomic.fna
-    done prodigal run on:GCA_000302475.2_ASM30247v2_genomic.fna
-    done prodigal run on:GCA_000196055.1_ASM19605v1_genomic.fna
-    done prodigal run on:GCA_000299135.1_ASM29913v1_genomic.fna
-    done prodigal run on:GCA_000427035.1_09mas018883_genomic.fna
-    done prodigal run on:GCA_000427055.1_ILRI112_genomic.fna
-    done prodigal run on:GCA_000427075.1_ILRI005_genomic.fna
-    done prodigal run on:GCA_000599965.1_ASM59996v1_genomic.fna
-    done prodigal run on:GCA_000689235.1_GBCO_p1_genomic.fna
-    done prodigal run on:GCA_000730255.1_ASM73025v1_genomic.fna
-    done prodigal run on:GCA_000730215.2_ASM73021v2_genomic.fna
-    Finishing Prodigal at: ...
+    == CDS prediction ==
 
-    Checking if Prodigal created all the necessary files...
-    All files were created.
+    Predicting CDS for 12 inputs...
+    [====================] 100%
 
-    Translating genomes...
-    Creating Blast databases for all genomes...
+    == CDS extraction ==
 
-    Starting Allele Calling at: ...
-    Processing tut-00000002.fasta. Start ... Locus 9 of 10. Done 90%.
-    Finished Allele Calling at: ...
+    Extracting predicted CDS for 12 inputs...
+    [====================] 100%
+    Extracted a total of 24282 CDS from 12 inputs.
 
-    Wrapping up the results...
-    ##################################################
-    12 genomes used for 10 loci
+    == CDS deduplication ==
 
-    Used a BSR of: 0.6
+    Identifying distinct CDS...identified 14751 distinct CDS.
 
-    17 exact matches found out of 120
+    == CDS exact matches ==
 
-    14.17 percent of exact matches
-    ##################################################
+    Searching for DNA exact matches...found 2 exact matches (matching 2 distinct alleles).
+    Unclassified CDS: 14749
 
-    Writing output files...
+    == CDS translation ==
 
-    ------------------------------------------------------------------------------------------
-    Genome                                      EXC    INF    LNF   PLOT   NIPH    ALM    ASM 
-    ------------------------------------------------------------------------------------------
-    GCA_000007265.1_ASM726v1_genomic.fna         1      5      4      0      0      0      0  
-    GCA_000012705.1_ASM1270v1_genomic.fna        1      4      5      0      0      0      0  
-    GCA_000196055.1_ASM19605v1_genomic.fna       1      5      4      0      0      0      0  
-    GCA_000299135.1_ASM29913v1_genomic.fna       4      1      4      0      0      0      1  
-    GCA_000302475.2_ASM30247v2_genomic.fna       0      5      5      0      0      0      0  
-    GCA_000427035.1_09mas018883_genomic.fna      2      3      5      0      0      0      0  
-    GCA_000427055.1_ILRI112_genomic.fna          1      4      4      0      0      0      1  
-    GCA_000427075.1_ILRI005_genomic.fna          1      5      4      0      0      0      0  
-    GCA_000599965.1_ASM59996v1_genomic.fna       0      5      5      0      0      0      0  
-    GCA_000689235.1_GBCO_p1_genomic.fna          0      5      5      0      0      0      0  
-    GCA_000730215.2_ASM73021v2_genomic.fna       3      3      4      0      0      0      0  
-    GCA_000730255.1_ASM73025v1_genomic.fna       3      2      4      0      0      0      1  
-    ------------------------------------------------------------------------------------------
+    Translating 14749 CDS...
+    [====================] 100%
+    Identified 428 CDS that could not be translated.
+    Information about untranslatable and small sequences stored in subset1_results/temp/invalid_cds.txt
+    Unclassified CDS: 14321
 
-    Checking the existence of paralog genes...
-    Detected number of paralog loci: 0
+    == Protein deduplication ==
 
-    Creating SQLite database to store profiles...done.
-    Inserted 10 loci into database.
+    Identifying distinct proteins...identified 11319 distinct proteins.
 
-    Sending allelic profiles to SQLite database...done.
-    Inserted 12 profiles (12 total, 12 total unique).
+    == Protein exact matches ==
 
-The ``AlleleCall`` process will print a table with the summary of the results to the standard
+    Searching for Protein exact matches...found 1 exact matches (2 distinct CDS, 2 total CDS).
+    Unclassified proteins: 11318
+
+    == Clustering ==
+
+    Translating schema's representative alleles...done.
+    Determining BLASTp raw score for each representative...done.
+    Creating minimizer index for representative alleles...done.
+    Created index with 2400 distinct minimizers for 10 loci.
+    Clustering proteins...
+    [====================] 100%
+    Clustered 11318 proteins into 7 clusters.
+    Clusters to BLAST: 7
+    [====================] 100%
+    Classifying clustered proteins...
+    [====================] 100%
+    Classified 40 distinct proteins.
+    Unclassified proteins: 11278
+
+    == Representative determination ==
+
+    Iteration 1
+    ===========
+    Loci: 10
+    BLASTing loci representatives against unclassified proteins...done.
+    Loci with high-scoring matches: 1
+    Classifying proteins...classified 3 proteins.
+    Selecting representatives for next iteration...selected 1 representatives.
+    Unclassified proteins: 11275
+
+    Iteration 2
+    ===========
+    Loci: 1
+    BLASTing loci representatives against unclassified proteins...done.
+    Loci with high-scoring matches: 1
+    Classifying proteins...classified 1 proteins.
+    Unclassified proteins: 11274
+
+    == Wrapping up ==
+
+    Writing results_contigsInfo.tsv...done.
+    Writing paralogous_loci.tsv and paralogous_counts.tsv...done.
+    Detected number of paralogous loci: 0
+    Writing logging_info.txt...done.
+    Writing results_alleles.tsv...done.
+    Writing results_statistics.tsv...done.
+    Writing loci_summary_stats.tsv...done.
+    Classified a total of 67 CDSs.
+    INF: 47
+    EXC: 17
+    ASM: 3
+    PLOT3: 0
+    PLOT5: 0
+    LOTSC: 0
+    NIPH: 0
+    NIPHEM: 0
+    ALM: 0
+    PAMA: 0
+    Added 47 novel alleles to schema.
+    Added 1 representative alleles to schema.
+
+The ``AlleleCall`` process will print the total number of classified CDSs per classification category to the standard
 output. You can see a  :doc:`detailed description </user/modules/AlleleCall>` 
 of each category but for the purpose of this tutorial, the ``INF`` cases are the most relevant. The alleles
 that received this classification correspond to new alleles that have been inferred during the 
@@ -430,32 +470,18 @@ downloaded from).
         Sent data for alleles of 7/7 loci.
         Inserted 47 alleles.
     The Chewie-NS inserted 47 new alleles and detected 0 repeated alleles.
-
-    Updating local allele identifiers...
-    Updated 12 profiles.
-
-    Adapting schema in the following directory:
-    sagalactiae_ns/temp
-    Prodigal training file:
-
-    Number of cores: 1
-    BLAST Score Ratio: 0.6
-    Translation table: 11
-    Minimum accepted sequence length: 201
-    Size threshold: None
-    Number of genes to adapt: 7
+    Number of loci to adapt: 7
 
     Determining the total number of alleles and allele mean length per gene...
 
-    Adapting 7 genes...
+    Adapting 7 loci...
 
     [==========] 100%
 
-    Number of invalid genes: 0
+    Number of invalid loci: 0
     Number of invalid alleles: 0
 
-    Successfully adapted 7/7 genes present in the external schema.
-
+    Successfully adapted 7/7 loci present in the input schema.
     Received 0 new alleles for 7 loci and sent 47 for 7 loci. 
 
 Since the schema has not been modified since the upload date, the synchronization process 
@@ -532,28 +558,18 @@ A sample command would be:
     Downloaded and wrote FASTA files for 10/10 loci
     Failed download for 0 loci.
 
-    Adapting schema in the following directory:
-    sagalactiae_snapshot
-    Prodigal training file:
-    sagalactiae_snapshot/Streptococcus_agalactiae.trn
-    Number of cores: 1
-    BLAST Score Ratio: 0.6
-    Translation table: 11
-    Minimum accepted sequence length: 201
-    Size threshold: None
-    Number of genes to adapt: 10
+    Number of loci to adapt: 10
 
     Determining the total number of alleles and allele mean length per gene...
 
-    Adapting 10 genes...
+    Adapting 10 loci...
 
     [==========] 100%
 
-    Number of invalid genes: 0
+    Number of invalid loci: 0
     Number of invalid alleles: 0
 
-    Successfully adapted 10/10 genes present in the external schema.
-
+    Successfully adapted 10/10 loci present in the input schema.
     Schema is now available at: sagalactiae_snapshot/sagalactiae_tut
 
 This will download all FASTA files for all loci in the schema and construct the schema locally.
@@ -575,22 +591,19 @@ match.
 
     ...
 
-    ------------------------------------------------------------------------------------------
-    Genome                                      EXC    INF    LNF   PLOT   NIPH    ALM    ASM 
-    ------------------------------------------------------------------------------------------
-    GCA_000782855.1_ASM78285v1_genomic.fna       0      6      4      0      0      0      0  
-    GCA_000831105.1_ASM83110v1_genomic.fna       1      6      3      0      0      0      0  
-    GCA_000831125.1_ASM83112v1_genomic.fna       4      3      3      0      0      0      0  
-    GCA_000831145.1_ASM83114v1_genomic.fna       5      2      3      0      0      0      0  
-    GCA_001026925.1_ASM102692v1_genomic.fna      0      6      3      0      0      0      1  
-    GCA_001190865.1_ASM119086v1_genomic.fna      0      5      5      0      0      0      0  
-    GCA_001190885.1_ASM119088v1_genomic.fna      1      5      4      0      0      0      0  
-    GCA_001266635.1_ASM126663v1_genomic.fna      1      5      4      0      0      0      0  
-    GCA_001275545.2_ASM127554v2_genomic.fna      3      3      4      0      0      0      0  
-    GCA_001448985.1_ASM144898v1_genomic.fna      5      2      3      0      0      0      0  
-    GCA_001655175.1_ASM165517v1_genomic.fna      0      5      5      0      0      0      0  
-    GCA_001683515.1_ASM168351v1_genomic.fna      5      1      4      0      0      0      0  
-    ------------------------------------------------------------------------------------------
+    Classified a total of 75 CDSs.
+    INF: 49
+    EXC: 25
+    ASM: 1
+    PLOT3: 0
+    PLOT5: 0
+    LOTSC: 0
+    NIPH: 0
+    NIPHEM: 0
+    ALM: 0
+    PAMA: 0
+    Added 49 novel alleles to schema.
+    Added 1 representative alleles to schema.
 
     ...
 

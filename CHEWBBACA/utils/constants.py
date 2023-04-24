@@ -164,6 +164,7 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
 # basename for files created by AlleleCall
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
+NOVEL_BASENAME = 'novel_alleles.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
 LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
 CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'

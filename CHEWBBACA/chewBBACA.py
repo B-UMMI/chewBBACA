@@ -386,6 +386,11 @@ def allele_call():
                              'classified as NIPH, NIPHEM, ASM, ALM, PLOT3, '
                              'PLOT5 and LOTSC.')
 
+    parser.add_argument('--output-novel', required=False,
+                        action='store_true', dest='output_novel',
+                        help='Create Fasta file with the novel alleles '
+                             'inferred during the allele calling.')
+
     parser.add_argument('--no-cleanup', required=False,
                         action='store_true', dest='no_cleanup',
                         help='If provided, intermediate files generated '
@@ -517,7 +522,8 @@ def allele_call():
     AlleleCall.main(genome_list, loci_list, args.schema_directory,
                     args.output_directory, args.no_inferred,
                     args.output_unclassified, args.output_missing,
-                    args.no_cleanup, args.hash_profiles, args.ns, config)
+                    args.output_novel, args.no_cleanup, args.hash_profiles,
+                    args.ns, config)
 
     # if args.store_profiles is True:
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)

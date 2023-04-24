@@ -1238,9 +1238,9 @@ def add_inferred_alleles(inferred_alleles):
         if locus_id is None:
             locus_id = fo.file_basename(locus, False)
 
-        # get novel alleles
+        # Read novel alleles
         novel_alleles = fo.read_lines(files[0])
-        # append novel alleles to locus FASTA file
+        # Append novel alleles to locus FASTA file
         fo.write_lines(novel_alleles, locus, write_mode='a')
         added.append(len(novel_alleles)//2)
 
@@ -2660,7 +2660,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
 
 def main(input_file, loci_list, schema_directory, output_directory,
-         no_inferred, output_unclassified, output_missing,
+         no_inferred, output_unclassified, output_missing, output_novel,
          no_cleanup, hash_profiles, ns, config):
 
     # Print config parameters
@@ -2863,9 +2863,9 @@ def main(input_file, loci_list, schema_directory, output_directory,
                        classification_labels)
     print('done.')
 
+    # create FASTA file with the distinct CDSs that were not classified
     if output_unclassified is True:
         print('Writing FASTA file with unclassified CDSs...', end='')
-        # create Fasta file with the distinct CDSs that were not classified
         create_unclassified_fasta(results['dna_fasta'],
                                   results['protein_fasta'],
                                   results['unclassified_ids'],
@@ -2874,8 +2874,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                   results['basename_map'])
         print('done.')
 
+    # Create FASTA file with CDS that were classified as ASM, ALM, ...
     if output_missing is True:
-        # Create Fasta file with CDS that were classified as ASM, ALM, ...
         print('Writing FASTA file with CDSs classified as ASM, ALM, NIPH, '
               'NIPHEM, PAMA, PLOT3, PLOT5 and LOTSC...', end='')
         create_missing_fasta(results['classification_files'],
@@ -2885,6 +2885,15 @@ def main(input_file, loci_list, schema_directory, output_directory,
                              output_directory,
                              coordinates_files,
                              classification_labels)
+        print('done.')
+
+    # Create FASTA file with novel alleles
+    if len(novel_alleles) > 0 and output_novel is True:
+        print('Writing FASTA file with novel alleles...', end='')
+        novel_fasta = fo.join_paths(output_directory, [ct.NOVEL_BASENAME])
+        novel_files = [v[0] for v in updated_files.values()]
+        # Concatenate all FASTA files with inferred alleles
+        fo.concatenate_files(novel_files, novel_fasta)
         print('done.')
 
     if hash_profiles is not None:

@@ -18,39 +18,39 @@ Parameters
 
 ::
 
-	-g, --schema-directory      (Required) Path to the schema's directory (default: None).
+    -g, --schema-directory      (Required) Path to the schema's directory (default: None).
 
-	-o, --output-directory      (Required) Path to the output directory where the report HTML
+    -o, --output-directory      (Required) Path to the output directory where the report HTML
                                 files will be generated (default: None).
 
-	--gl, --genes-list          (Optional) Path to a file with the list of genes in the schema
+    --gl, --genes-list          (Optional) Path to a file with the list of genes in the schema
                                 that the process should analyse (one per line) (default: False).
 
-	-a, --annotations           (Optional) Path to the TSV file created by the UniprotFinder module (
+    -a, --annotations           (Optional) Path to the TSV file created by the UniprotFinder module (
                                 default: None).
 
-	--ta, --translation-table   (Optional) Genetic code used to translate coding sequences (default: None).
+    --ta, --translation-table   (Optional) Genetic code used to translate coding sequences (default: None).
 
-	--st, --size-threshold      (Optional) Allele size variation threshold. If an allele has a size
-                                within the interval of the locus mode -/+ the threshold (default: None).
+    --st, --size-threshold      (Optional) Allele size variation threshold. If an allele has a size
+                                 within the interval of the locus mode -/+ the threshold (default: None).
 
-	--ml, --minimum-length      (Optional) Minimum sequence length accepted for a coding sequence to
+    --ml, --minimum-length      (Optional) Minimum sequence length accepted for a coding sequence to
                                 be included in the schema (default: None).
 
-	--cpu, --cpu-cores          (Optional) Number of CPU cores/threads that will be used to run the
+    --cpu, --cpu-cores          (Optional) Number of CPU cores/threads that will be used to run the
                                 process (will be redefined to a lower value if it is equal to or
                                 exceeds the totalnumber of available CPU cores/threads) (default: 1).
 
-	--loci-reports              (Optional) If the process should create an individual report for each
+    --loci-reports              (Optional) If the process should create an individual report for each
                                 locus (default: False).
 
-	--light                     (Optional) If determining loci reports, skips MSA computation with
+    --light                     (Optional) If determining loci reports, skips MSA computation with
                                 MAFFT and does not add the Phylogenetic Tree and MSA components
-								(default: False).
+                                (default: False).
 
-	--add-sequences             (Optional) Adds Code Editor with the DNA and Protein sequences to
+    --add-sequences             (Optional) Adds Code Editor with the DNA and Protein sequences to
                                 loci reports. The Code Editor is in readonly mode (allows to search
-								for and copy text) (default: False).
+                                for and copy text) (default: False).
 
 Outputs
 :::::::

@@ -1,5 +1,7 @@
-SchemaEvaluator - Build a html report to better navigate/visualize your schema
-==============================================================================
+SchemaEvaluator - Build an interactive report for schema evaluation
+===================================================================
+
+
 
 Evaluate the number of alelles and allele size variation for the loci in a schema or for a set
 of selected loci. Provide information about problematic alleles per locus and individual pages
@@ -167,7 +169,7 @@ Loci annotations
 If a TSV file with loci annotations is provided, the fourth component of the schema report is a table
 with the list of annotations provided.
 
-.. image:: /_static/images/schema_report_loci_annotations.png
+.. image:: /_static/images/schema_report_annotations.png
    :width: 1400px
    :align: center
 
@@ -183,7 +185,7 @@ o fIDs of alleles that are missing in the initial list of each locus.
 	FASTA files to have the locus identifier followed by the allele integer identifier
 	(e.g.: >lmo_1) or simply the allele integer identifier (e.g.: >1).
 
-.. image:: /_static/images/schema_report_loci_annotations.png
+.. image:: /_static/images/schema_report_allele_analysis.png
    :width: 1400px
    :align: center
 
@@ -225,14 +227,14 @@ The second component is a table with summary statistics about the locus such as:
 - Total no. of alleles above the locus sequence size threshold.
 - Number of missing allele IDs.
 
-.. image:: /_static/images/schema_report_summary.png
+.. image:: /_static/images/loci_reports_summary.png
    :width: 1400px
    :align: center
 
 Locus Annotation Data
 .....................
 
-.. image:: /_static/images/schema_report_annotations.png
+.. image:: /_static/images/loci_reports_annotations.png
    :width: 1400px
    :align: center
 

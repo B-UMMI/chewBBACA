@@ -91,15 +91,15 @@ Outputs
 
 .. note::
 	You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
-	Running the SchemaEvaluator module with its default parameters will only generate the Schema
+	Running the SchemaEvaluator module with its default parameter values will only generate the Schema
 	Report.
 
-.. important::
+.. warning::
 	The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
 	not move or delete any of the files in the output folder. If you want to share the report files,
 	simply compress the output folder.
 
-Schema report components
+Schema Report Components
 ------------------------
 
 The first component gives a small introduction that details the type of information contained in
@@ -192,7 +192,7 @@ o fIDs of alleles that are missing in the initial list of each locus.
 	Panel D or on the name of the locus on the Allele Analysis table will open a new page containing
 	a detailed report about the selected locus.
 
-Locus report components
+Locus Report Components
 -----------------------
 
 The first component gives a small introduction that details the type of information contained in

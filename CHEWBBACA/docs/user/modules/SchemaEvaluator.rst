@@ -27,7 +27,7 @@ Parameters
                                 that the process should analyse (one per line) (default: False).
 
 	-a, --annotations           (Optional) Path to the TSV file created by the UniprotFinder module (
-		                        default: None).
+                                default: None).
 
 	--ta, --translation-table   (Optional) Genetic code used to translate coding sequences (default: None).
 

@@ -55,163 +55,209 @@ Parameters
 Outputs
 :::::::
 
-- A main report HTML file that contains information about the schema.
-- Various HTML files containing a detailed report about each locus.
+::
+
+	OutputFolderName
+	├── loci_reports
+	│   ├── locus1.html
+	│   ├── ...
+	│   ├── locusN.html
+	│   └── loci_bundle.js
+	├── schema_report.html
+	└── schema_bundle.js
+
+- A HTML report, ``schema_report.html``, that contains the following components:
+	- A table with schema summary data;
+	- A Tab Panel with charts for the distribution of the number of alleles and allele size per locus;
+	- A table with the results of the allele analysis per locus
+	- If a TSV file with annotations is provided to the ``--annotations`` parameter, the schema report
+	  will also include a table with the provided annotations.
+
+- A HTML report per locus that contains the following components:
+	- A table with summary data about the locus;
+	- A Tab Panel with charts with data about allele size and protein diversity.
+	- A table with the total number and list of alleles that encode each distinct protein.
+	- A table with the list of alleles that are not complete coding sequences and/or that are
+	  considered size outliers based on the minimum length and size threshold values used for
+	  schema evaluation.
+	- A MSA component with the alignment for the distinct proteins.
+	- A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree created by MAFFT.
+	- If the ``--add-sequences`` parameter is provided, the locus report will also include a
+	  code editor with the allele DNA sequences and a code editor with the distinct protein
+	  sequences.
+
+- Two JS bundles. The is used by the schema report, and the, located inside the loci_reports
+  folder is used by the loci reports.
 
 .. note::
-	If the ``--no-cleanup`` flag is used, then the following intermediate files will not be removed:
+	You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
+	Running the SchemaEvaluator module with its default parameters will only generate the Schema
+	Report.
 
-		- The pre-computed data in JSON format contain the data necessary to generate the plots and
-		  tables.
+.. important::
+	The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
+	not move or delete any of the files in the output folder. If you want to share the report files,
+	simply compress the output folder.
 
-		- The output files from MAFFT: multiple sequence alignments in FASTA format and the
-		  Neighbour-Joining tree in Newick format.
-
-		- Various JSON files containing exceptions encountered during the analysis such as: short
-		  sequences, invalid start/stop codons and sequence lengths not being a multiple of 3.
-
-Main report components
-----------------------
+Schema report components
+------------------------
 
 The first component gives a small introduction that details the type of information contained in
-the main and individual locus reports.
+the schema report.
 
-.. image:: https://user-images.githubusercontent.com/33930141/116111815-e87da200-a6ae-11eb-95d4-ee4a74a71e96.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_description.png
+   :width: 1400px
+   :align: center
 
-Schema Summary Statistics
-.........................
+Schema Summary Data
+...................
 
-The second component displays summary statistics about the schema such as:
+The second component is a table with summary statistics about the schema such as:
 
-- chewBBACA version used to create it.
-- BLAST Score Ratio (BSR) used to create it.
-- Total no. of Loci.
-- Total no. of Alleles.
-- Total no. of Alleles not multiple of 3.
-- Total no. of Alleles w/ >1 stop codons.
-- Total no. of Alleles wo/ Start/Stop Codon.
-- Total no. of Alleles shorter than ``--ml``, the minimum sequence length (in no. of nucleotides).
+- Total no. of loci in the schema/evaluated.
+- Total no. of alleles.
+- Total no. of valid alleles.
+- Total no. of invalid alleles.
+- Total no. of incomplete alleles (sequence size not multiple of 3).
+- Total number of alleles that contain ambiguous bases.
+- Total no. of alleles missing the Start and/or Stop codons.
+- Total no. of alleles with in-frame stop codons.
+- Total no. of alleles shorter than ``--ml``, the minimum sequence length (in no. of nucleotides).
+- Total no. of alleles below the locus sequence size threshold.
+- Total no. of alleles above the locus sequence size threshold.
 
-.. image:: https://user-images.githubusercontent.com/33930141/116112126-30042e00-a6af-11eb-9647-bba82ce433eb.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_summary.png
+   :width: 1400px
+   :align: center
 
-Loci with high variability
-..........................
-
-This analysis calculates the mode size per locus and using that value -/+ a threshold
-(0.05 default) considers an allele "conserved" if it falls within the sequence length interval.
-The user is given the choice of threshold and the choice to consider if a locus is classified
-as having "high length variability" if 1 allele is outside the threshold (default) or to be
-less stringent and classify a locus as having "high length variability" if >1 of the alleles
-is outside the threshold.
-
-.. image:: https://user-images.githubusercontent.com/33930141/116112200-414d3a80-a6af-11eb-83a5-bbaa37ca0c87.png
-	:width: 1400px
-	:align: center
-
-Loci with only one allele
-.........................
-
-The module detects loci that have a single allele, allowing the users to quickly identify possible
-problematic loci.
-
-.. image:: https://user-images.githubusercontent.com/33930141/116112246-4ad6a280-a6af-11eb-92e8-9087d0d3d2ef.png
-	:width: 1400px
-	:align: center
-
-In both tables, clicking on the locus name will open the individual report HTML for that locus.
-
-Loci shorter than the minimum sequence length threshold
-.......................................................
-
-This table displays the loci that are shorter than the value passed to the ``--ml`` parameter.
-
-.. image:: https://user-images.githubusercontent.com/33930141/116112665-abfe7600-a6af-11eb-81a6-2c930f7afbb2.png
-	:width: 1400px
-	:align: center
-
-Schema Evaluation
-.................
+Loci Statistics
+...............
 
 The third component contains 4 panels with summary charts displaying relevant information about
 the schema. The panel is presented in the same way as in Chewie-NS.
 
 - Panel A displays the distribution of loci by number of alleles.
 
-.. image:: https://user-images.githubusercontent.com/33930141/102388113-37148480-3fc9-11eb-9dc4-963837eb8663.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_panelA.png
+   :width: 1400px
+   :align: center
 
 - Panel B displays the distribution of loci by allele mode size.
 
-.. image:: https://user-images.githubusercontent.com/33930141/105173595-294aa580-5b19-11eb-8b40-69223e760084.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_panelB.png
+   :width: 1400px
+   :align: center
 
 - Panel C contains a representation of summary statistics (minimum allele size in blue, maximum
   allele size in orange and median size in green).
 
-.. image:: https://user-images.githubusercontent.com/33930141/102388587-e0f41100-3fc9-11eb-840a-09ed0437839e.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_panelC.png
+   :width: 1400px
+   :align: center
 
 - Panel D displays box plots of locus size distribution.
 
-.. image:: https://user-images.githubusercontent.com/33930141/102388782-20baf880-3fca-11eb-9e88-1dba1b73dab1.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_panelD.png
+   :width: 1400px
+   :align: center
 
-Loci Analysis
-.............
+Loci annotations
+................
 
-The final component of the report presents a stacked bar chart and a table. In this component the
-alleles of each locus are checked for their integrity as CDSs. The table includes the
-*Uniprot Annotation*, the product name found through UniProt's SPARQL endpoint, and the
-*Proteome Product*, the product name attributed based on high similarity to proteins included
-in UniProt's reference proteomes. In addition, the *Missing Allele IDs* column presents the IDs
-of alleles that are missing in the initial list of each locus and the *Total Invalid Alleles*
-and *Valid Alleles* columns present the sum of invalid alleles and the total no. of valid alleles,
-respectively.
+If a TSV file with loci annotations is provided, the fourth component of the schema report is a table
+with the list of annotations provided.
 
-The stacked bar chart presents, per locus, and sorted by the total number of alleles, the number
-of alleles per locus. The alleles are divided into 5 classes:
+.. image:: /_static/images/schema_report_loci_annotations.png
+   :width: 1400px
+   :align: center
 
-	a) more than one stop codon (green);
-	b) allele length not a multiple of 3 (orange);
-	c) missing start or stop codon (red);
-	d) alleles shorter than the ``--ml`` minimum length (purple);
-	e) the number of alleles which are valid CDSs (blue).
+Allele Analysis
+...............
+
+The final component of the report presents a table. In this component the alleles of each locus are
+checked for their integrity as CDSs. In addition, the *Missing Allele IDs* column presents the number
+o fIDs of alleles that are missing in the initial list of each locus.
 
 .. note::
 	In order to identify the *Missing Allele IDs*, the module expects the headers of the input
 	FASTA files to have the locus identifier followed by the allele integer identifier
 	(e.g.: >lmo_1) or simply the allele integer identifier (e.g.: >1).
 
-.. image:: https://user-images.githubusercontent.com/33930141/116113169-27f8be00-a6b0-11eb-99a4-a03e8e8fedc7.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/schema_report_loci_annotations.png
+   :width: 1400px
+   :align: center
 
-.. image:: https://user-images.githubusercontent.com/33930141/105173895-9b22ef00-5b19-11eb-9013-9db6835d2704.png
-	:width: 1400px
-	:align: center
+.. note::
+	If the ``--loci-reports`` parameter was provided, clicking on a point (locus) on Panel C or
+	Panel D or on the name of the locus on the Allele Analysis table will open a new page containing
+	a detailed report about the selected locus.
 
-Individual Report Components
-----------------------------
+Locus report components
+-----------------------
 
-Clicking on a point (locus) on Panel C or Panel D or on the name of the locus on the Loci
-Analysis table will open a new page containing a detailed report about the selected locus.
+The first component gives a small introduction that details the type of information contained in
+the locus report.
 
-Locus Individual Analysis
-.........................
+.. image:: /_static/images/loci_reports_description.png
+   :width: 1400px
+   :align: center
 
-The first component presents a panel with 2 charts:
+Locus Summary Data
+..................
+
+The second component is a table with summary statistics about the locus such as:
+
+- Locus identifier.
+- Total no. of alleles.
+- Total no. of valid alleles.
+- Total no. of invalid alleles.
+- Proportion of validated alleles.
+- Distinct protein alleles.
+- Total no. of incomplete alleles (sequence size not multiple of 3).
+- Total number of alleles that contain ambiguous bases.
+- Total no. of alleles missing the Start and/or Stop codons.
+- Total no. of alleles with in-frame stop codons.
+- Total no. of alleles shorter than ``--ml``, the minimum sequence length (in no. of nucleotides).
+- Allele length range.
+- Allele length median.
+- Allele length mode.
+- Total no. of alleles below the locus sequence size threshold.
+- Total no. of alleles above the locus sequence size threshold.
+- Number of missing allele IDs.
+
+.. image:: /_static/images/schema_report_summary.png
+   :width: 1400px
+   :align: center
+
+Locus Annotation Data
+.....................
+
+.. image:: /_static/images/schema_report_annotations.png
+   :width: 1400px
+   :align: center
+
+Locus Size Plots
+................
+
+The next component presents a panel with 3 charts:
 
 - A histogram summarizing the size distribution of the alleles (frequency of binned sizes).
 
-- A scatter plot representing the actual sizes of each allele ordered by allele number.
+.. image:: /_static/images/loci_reports_allele_size_counts.png
+   :width: 1400px
+   :align: center
+
+- A scatter plot representing the size of each allele ordered by allele number.
+
+.. image:: /_static/images/loci_reports_allele_size.png
+   :width: 1400px
+   :align: center
+
+- A bar chart with the number of distinct alleles that encode each distinct protein.
+
+.. image:: /_static/images/loci_reports_protein_alleles.png
+   :width: 1400px
+   :align: center
 
 .. note::
 	The red line represents the minimum sequence value, ``--ml``, minus a size variation threshold
@@ -219,72 +265,56 @@ The first component presents a panel with 2 charts:
 	Alleles shorter than this value are below the size variation threshold. The yellow area
 	represents the values that are within the size threshold.
 
-.. image:: https://user-images.githubusercontent.com/33930141/116114802-9d18c300-a6b1-11eb-90d5-5b86a721b095.png
-	:width: 1400px
-	:align: center
+Distinct Protein Alleles
+........................
 
-.. image:: https://user-images.githubusercontent.com/33930141/116114827-a3a73a80-a6b1-11eb-8a69-d9f53ef8aa19.png
-	:width: 1400px
-	:align: center
+The fith component presents a table with the list of distinct protein alleles and the list of
+distinct alleles that encode for each protein alleles.
 
-Locus Information
-.................
+.. image:: /_static/images/loci_reports_protein_table.png
+   :width: 1400px
+   :align: center
 
-The second component presents a table containing the CDS analysis of the selected locus. It also
-presents 4 new columns, in comparison with the table in the *Loci Analysis* of the main report,
-with information on the:
+Invalid Alleles and Size Outliers
+.................................
 
-- Number of alleles.
-- Size Range, in nucleotides (nt).
-- Allele median size (nt).
-- Allele mode size (nt).
+The sixth component presents a table with the list of alleles that are invalid and/or that are
+size outliers based on the minimum length and size threshold values.
 
-.. image:: https://user-images.githubusercontent.com/33930141/105175131-6b74e680-5b1b-11eb-845f-5121c91cf5be.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/loci_reports_invalid_alleles.png
+   :width: 1400px
+   :align: center
 
-Exceptions
-..........
+Multiple Sequence Alignment
+...........................
 
-The third component displays a table containing the list of alleles that are considered exceptions
-based on the parameters used to evaluate the schema.
+The seventh component of the locus report presents the multiple sequence alignment produced by
+`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_.
 
-.. image:: https://user-images.githubusercontent.com/33930141/105175517-f524b400-5b1b-11eb-9554-e2094d4c1639.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/loci_reports_msa.png
+   :width: 1400px
+   :align: center
 
-NJ Tree
-.......
+Neighbor-Joining Tree
+.....................
 
-The fourth component displays a Neighbor Joining tree built by ClustalW2 based on the
+The next component displays a Neighbor-Joining tree based on the
 `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ alignment. The tree visualization
-is produced using `Phylocanvas <http://phylocanvas.org/>`_.
+is produced using `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_.
 
-.. image:: https://user-images.githubusercontent.com/33930141/105175900-6c5a4800-5b1c-11eb-98c3-f8e4beb15d6b.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/loci_reports_nj.png
+   :width: 1400px
+   :align: center
 
-Sequence Logo
-.............
+DNA sequences and Protein sequences
+...................................
 
-The fifth component displays a sequence logo obtained from the multiple sequence alignment
-produced by `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_.
+If the ``--add-sequences`` parameter was provided, the report will include two Monaco Code Editor components.
 
-The *Change mode to frequency/information_content* button allows users to change how letter
-heights are computed.
+.. image:: /_static/images/loci_reports_dna_editor.png
+   :width: 1400px
+   :align: center
 
-.. image:: https://user-images.githubusercontent.com/33930141/116115456-51b2e480-a6b2-11eb-88ad-747d542f9e98.png
-	:width: 1400px
-	:align: center
-
-Multiple Sequence Analysis
-..........................
-
-The final component of the individual report presents the multiple sequence alignment produced by
-`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_. In order to visualize a different region of
-the alignment, hover over the alignment until the hand cursor appears and then drag the alignment
-to check the remaining rows and columns.
-
-.. image:: https://user-images.githubusercontent.com/33930141/105175977-885de980-5b1c-11eb-86ad-b68b13f09cb0.png
-	:width: 1400px
-	:align: center
+.. image:: /_static/images/loci_reports_protein_editor.png
+   :width: 1400px
+   :align: center

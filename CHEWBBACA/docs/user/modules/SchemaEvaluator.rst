@@ -337,9 +337,9 @@ the valid alleles.
 Neighbor-Joining Tree
 .....................
 
-The eigth component displays the guide tree created by `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_
-alignment. The tree visualization is produced using `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_.
-
+The eighth component displays the guide tree created by `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_.
+The tree visualization is produced using `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_.
+The tree nodes are labeled with the identifiers attributed to the distinct proteins.
 
 .. image:: /_static/images/loci_reports_nj.png
    :width: 1400px
@@ -348,7 +348,10 @@ alignment. The tree visualization is produced using `Phylocanvas.gl <https://www
 DNA sequences and Protein sequences
 ...................................
 
-If the ``--add-sequences`` parameter was provided, the report will include two Monaco Code Editor components.
+If the ``--add-sequences`` parameter was provided, the report will include two Monaco Code Editor components to display
+sequences in FASTA format. The ``DNA sequences`` component displays all the alleles included in the locus FASTA file.
+The ``Protein sequences`` component displays the protein sequences for all alleles that were considered valid. The
+code editor is in readonly mode and it is not possible to edit the contents.
 
 .. image:: /_static/images/loci_reports_dna_editor.png
    :width: 1400px

@@ -26,8 +26,8 @@ settings and a set of functions to visualize and validate allele variation in th
 - New version of the SchemaEvaluator module. The updated version fixes several issues related with outdated dependencies that were leading to errors in the previous version. The new version also includes new features and components. Read the [docs page](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html) to know more about the latest version of the SchemaEvaluator module.
 - Updated the link to the UniProt FTP used by the UniprotFinder module. 
 - Added the `.fas` file extension to the list of file extensions accepted by chewBBACA. chewBBACA accepts genome assemblies and external schemas with FASTA files that use any of the following file extensions: `.fasta`, `.fna`, `.ffn`, `.fa` and `.fas`. The FASTA files created by chewBBACA use the `.fasta` extension.
-- Fixed issue in the PrepExternalSchema where it would only detect FASTA files if they ended with the `.fasta` extension.
-- Added the `--size-filter` parameter to the PrepExternalSchema module to define if the adaptation process should filter alleles based on the minimum length and size threshold values.
+- Fixed issue in the PrepExternalSchema module where it would only detect FASTA files if they ended with the `.fasta` extension.
+- Added the `--size-filter` parameter to the PrepExternalSchema module to define if the adaptation process should filter out alleles based on the minimum length and size threshold values.
 - Added the `--output-novel` parameter to the AlleleCall module. If this parameter is used, the AlleleCall module creates a FASTA file with the novel alleles inferred during the allele calling. This file is created even if the `--no-inferred` parameter is used and the novel alleles are not added to the schema.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.

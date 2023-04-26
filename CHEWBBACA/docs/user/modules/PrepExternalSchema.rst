@@ -119,7 +119,7 @@ Outputs
 	represent the gene sequence diversity. Nevertheless, some genes will have a high number
 	of representatives. This is more common for small genes, where a small number of
 	differences has a big impact on the alignment score, for genes with repetitive or low
-	complexity regions that are masked by BLAST and lead to lower alignment scores between
+	complexity regions that might be masked by BLAST and lead to lower alignment scores between
 	highly similar sequences, and for genes that have inversions, deletions or insertions
 	that can lead to several High-scoring Segment Pairs (HSPs), none of which have a score
 	sufficiently high to identify both sequences as belonging to the same gene.

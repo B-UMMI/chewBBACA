@@ -187,7 +187,8 @@ Loci annotations
 ................
 
 If a TSV file with loci annotations is provided, the fourth component of the schema report is a table
-with the list of annotations provided.
+with the list of annotations. Otherwise, it will display a warning informing that no annotations
+were provided.
 
 .. image:: /_static/images/schema_report_annotations.png
    :width: 1400px
@@ -203,7 +204,7 @@ that the values in that column are URLs and creates links to the web pages.
 
 You can use the :doc:`UniprotFinder </user/modules/UniprotFinder>` module to annotate the loci in a schema
 created with chewBBACA. If you want to annotate an external schema, you can adapt it with the
-:doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` followed by annotation with the
+:doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module followed by annotation with the
 :doc:`UniprotFinder </user/modules/UniprotFinder>` module.
 
 Allele Analysis
@@ -241,25 +242,12 @@ the locus report.
 Locus Summary Data
 ..................
 
-The second component is a table with summary statistics about the locus, such as:
+The second component is a table that includes the values for the locus presented in the ``Allele Analysis``
+table and also includes the additional values:
 
-- Locus identifier.
-- Total no. of alleles.
-- Total no. of valid alleles.
-- Total no. of invalid alleles.
-- Proportion of validated alleles.
-- Distinct protein alleles.
-- Total no. of incomplete alleles (sequence size not multiple of 3).
-- Total number of alleles that contain ambiguous bases.
-- Total no. of alleles missing the Start and/or Stop codons.
-- Total no. of alleles with in-frame stop codons.
-- Total no. of alleles shorter than ``--ml``, the minimum sequence length (in no. of nucleotides).
-- Allele length range.
-- Allele length median.
-- Allele length mode.
-- Total no. of alleles below the locus sequence size threshold.
-- Total no. of alleles above the locus sequence size threshold.
-- Number of missing allele IDs.
+- **Size Range (bp)**: the allele size range (minimum-maximum).
+- **Length Median (bp)**: the allele median size.
+- **Length Mode (bp)**: the allele mode size.
 
 .. image:: /_static/images/loci_reports_summary.png
    :width: 1400px
@@ -268,6 +256,9 @@ The second component is a table with summary statistics about the locus, such as
 Locus Annotation Data
 .....................
 
+The third component is a table with the annotations provided for the locus. An alert will be displayed if there
+are no annotations for the locus.
+
 .. image:: /_static/images/loci_reports_annotations.png
    :width: 1400px
    :align: center
@@ -275,37 +266,46 @@ Locus Annotation Data
 Locus Size Plots
 ................
 
-The next component presents a panel with 3 charts:
+The fourth component contains 3 panels with charts displaying relevant information about the distribution
+of allele sizes, the sequence size per allele and the diversity of distinct proteins.
 
-- A histogram summarizing the size distribution of the alleles (frequency of binned sizes).
+- Panel A, ``Allele Size Counts``, display a histogram summarizing the size distribution of the alleles (frequency
+  of binned sizes).
 
 .. image:: /_static/images/loci_reports_allele_size_counts.png
    :width: 1400px
    :align: center
 
-- A scatter plot representing the size of each allele ordered by allele number.
+.. note::
+	The bar corresponding to the allele size mode is colored in green.
+
+- Panel B, ``Allele Size``, displays a scatter chart representing the size of each allele ordered by allele identifier.
 
 .. image:: /_static/images/loci_reports_allele_size.png
    :width: 1400px
    :align: center
 
-- A bar chart with the number of distinct alleles that encode each distinct protein.
+.. note::
+	The points corresponding to valid alleles are colored in blue and points for invalid alleles are colored in grey.
+
+- Panel C, ``Alleles Per Protein``, displays a bar chart with the number of distinct alleles that encode each
+  distinct protein.
 
 .. image:: /_static/images/loci_reports_protein_alleles.png
    :width: 1400px
    :align: center
 
 .. note::
-	The red line represents the minimum sequence value, ``--ml``, minus a size variation threshold
-	of 20% (the default value for the size variation threshold used by the AlleleCall module).
-	Alleles shorter than this value are below the size variation threshold. The yellow area
-	represents the values that are within the size threshold.
+   In Panels A and B, the ``Show Thresholds`` switch can be toggled to adjust the axes limits to show the
+   bot and top allele size thresholds (with the default parameter values, the thresholds are defined based
+   on a -/+20% size variation from the allele size mode).
 
 Distinct Protein Alleles
 ........................
 
 The fith component presents a table with the list of distinct protein alleles and the list of
-distinct alleles that encode for each protein alleles.
+distinct alleles that encode for each protein allele. The identifiers of the protein alleles
+are selected based on the first distinct allele that encodes for the protein.
 
 .. image:: /_static/images/loci_reports_protein_table.png
    :width: 1400px
@@ -314,8 +314,10 @@ distinct alleles that encode for each protein alleles.
 Invalid Alleles and Size Outliers
 .................................
 
-The sixth component presents a table with the list of alleles that are invalid and/or that are
-size outliers based on the minimum length and size threshold values.
+The sixth component presents a table with the list of alleles that are invalid and/or that are considered size
+outliers based on the minimum length and size threshold values used for schema evaluation. The ``Exception Category``
+is defined based on the first exception captured for each allele. The list of all exceptions captured for each allele
+is displayed in the ``Exception Description`` column.
 
 .. image:: /_static/images/loci_reports_invalid_alleles.png
    :width: 1400px
@@ -324,8 +326,9 @@ size outliers based on the minimum length and size threshold values.
 Multiple Sequence Alignment
 ...........................
 
-The seventh component of the locus report presents the multiple sequence alignment produced by
-`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_.
+The seventh component of the locus report presents the protein multiple sequence alignment (MSA) produced by
+`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_. The MSA only includes the distinct proteins encoded by
+the valid alleles.
 
 .. image:: /_static/images/loci_reports_msa.png
    :width: 1400px
@@ -334,9 +337,9 @@ The seventh component of the locus report presents the multiple sequence alignme
 Neighbor-Joining Tree
 .....................
 
-The next component displays a Neighbor-Joining tree based on the
-`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ alignment. The tree visualization
-is produced using `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_.
+The eigth component displays the guide tree created by `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_
+alignment. The tree visualization is produced using `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_.
+
 
 .. image:: /_static/images/loci_reports_nj.png
    :width: 1400px

@@ -70,26 +70,26 @@ Outputs
 
 - A HTML report, ``schema_report.html``, that contains the following components:
 
-   - A table with summary data about the schema.
-	- A tab panel with charts for the distribution of the number of alleles and allele size per locus.
-   - If a TSV file with annotations is provided to the ``--annotations`` parameter, the schema report
-     will also include a table with the provided annotations. Otherwise, it will display a warning informing that
-     no annotations were provided.
-	- A table with the results of the allele integrity and diversity analysis per locus.
+  - A table with summary data about the schema.
+  - A tab panel with charts for the distribution of the number of alleles and allele size per locus.
+  - If a TSV file with annotations is provided to the ``--annotations`` parameter, the schema report
+    will also include a table with the provided annotations. Otherwise, it will display a warning informing that
+    no annotations were provided.
+  - A table with the results of the allele integrity and diversity analysis per locus.
 
 - A HTML report per locus that contains the following components:
 
-   - A table with summary data about the locus.
-	- A tab panel with charts for the locus allele diversity.
-	- A table with the total number and list of alleles that encode each distinct protein.
-	- A table with the list of alleles that are not complete coding sequences and/or that are
-     considered size outliers based on the minimum length and size threshold values used for
-     schema evaluation.
-	- A MSA component with the alignment for the distinct proteins.
-	- A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree created by MAFFT.
-	- If the ``--add-sequences`` parameter is provided, the locus report will also include a
-     code editor with the allele DNA sequences and a code editor with the distinct protein
-     sequences.
+  - A table with summary data about the locus.
+  - A tab panel with charts for the locus allele diversity.
+  - A table with the total number and list of alleles that encode each distinct protein.
+  - A table with the list of alleles that are not complete coding sequences and/or that are
+    considered size outliers based on the minimum length and size threshold values used for
+    schema evaluation.
+  - A MSA component with the alignment for the distinct proteins.
+  - A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree created by MAFFT.
+  - If the ``--add-sequences`` parameter is provided, the locus report will also include a
+    code editor with the allele DNA sequences and a code editor with the distinct protein
+    sequences.
 
 - Two JavaScript bundle files. The ``schema_bundle.js`` is used by the schema report, and the ``loci_bundle.js``,
   located inside the ``loci_reports`` folder is used by the loci reports.

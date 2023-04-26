@@ -88,13 +88,13 @@ Outputs
     considered size outliers based on the minimum length and size threshold values used for
     schema evaluation.
   - A MSA component with the alignment for the distinct proteins.
-  - A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree created by MAFFT.
+  - A tree drawn with Phylocanvas based on the guide tree created by MAFFT.
   - If the ``--add-sequences`` parameter is provided, the locus report will also include a
     code editor with the allele DNA sequences and a code editor with the distinct protein
     sequences.
 
-- Two JavaScript bundle files. The ``schema_bundle.js`` is used by the schema report, and the ``loci_bundle.js``,
-  located inside the ``loci_reports`` folder, is used by the loci reports.
+- Two JavaScript bundle files. The ``schema_bundle.js`` file is used by the schema report, and the
+  ``loci_bundle.js`` file, located inside the ``loci_reports`` folder, is used by the loci reports.
 
 .. note::
   You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
@@ -106,6 +106,11 @@ Outputs
   not move or delete any of the files in the output folder. If you want to share the report, simply
   compress the output folder and share the compressed archive. The receiver can simply uncompress
   the archive and open the HTML files in a browser to visualize the report.
+
+.. note::
+  Several report components only display the allele integer identifiers (the integer after the ``_`` in the
+  sequence headers, e.g.: ``17`` is the allele integer identifier in ``YPO1106_17``). This integer value
+  is enough to identify each allele and also simplifies data display because it is short.
 
 Schema Report Components
 ------------------------
@@ -129,7 +134,7 @@ The second component is a table with summary statistics about the schema, such a
   - **Loci**: Total number of loci that were evaluated.
   - **Alleles**: Total number of alleles.
   - **Valid Alleles**: Total number of valid alleles. An allele is considered valid if its sequence size is a multiple
-    of 3, if it has a single start and stop codon and if it contains no ambiguous bases.
+    of 3, if it has a single start and stop codon, if has no in-frame stop codons, and if it contains no ambiguous bases.
   - **Invalid Alleles**: Total number of invalid alleles. The value in this column is the sum of the values in the ``Incomplete ORF``,
     ``Ambiguous Bases``, ``Missing Start/Stop Codon`` and ``In-frame Stop Codon`` columns.
   - **Incomplete ORF**: Total number of incomplete alleles (sequence size not multiple of 3).
@@ -220,7 +225,7 @@ diversity analysis per locus. The table includes values per locus for most colum
   - **Missing Allele IDs**: the number of allele identifiers that are missing, assuming that allele identifiers
     in the FASTA file should be sequential.
 
-.. note::
+.. important::
 	In order to identify the *Missing Allele IDs*, the module expects the headers of the input
 	FASTA files to have the locus identifier followed by the allele integer identifier
 	(e.g.: >lmo_1) or simply the allele integer identifier (e.g.: >1).
@@ -243,7 +248,7 @@ Locus Summary Data
 ..................
 
 The second component is a table that includes the values for the locus presented in the ``Allele Analysis``
-table and also includes the additional values:
+table of the schema report and also includes the following additional values:
 
 - **Size Range (bp)**: the allele size range (minimum-maximum).
 - **Length Median (bp)**: the allele median size.
@@ -286,7 +291,7 @@ of allele sizes, the sequence size per allele and the diversity of distinct prot
    :align: center
 
 .. note::
-	The points corresponding to valid alleles are colored in blue and points for invalid alleles are colored in grey.
+	The points corresponding to valid and invalid alleles are colored in blue and grey, respectively.
 
 - Panel C, ``Alleles Per Protein``, displays a bar chart with the number of distinct alleles that encode each
   distinct protein.
@@ -303,7 +308,7 @@ of allele sizes, the sequence size per allele and the diversity of distinct prot
 Distinct Protein Alleles
 ........................
 
-The fith component presents a table with the list of distinct protein alleles and the list of
+The fifth component presents a table with the list of distinct protein alleles and the list of
 distinct alleles that encode for each protein allele. The identifiers of the protein alleles
 are selected based on the first distinct allele that encodes for the protein.
 
@@ -351,7 +356,7 @@ DNA sequences and Protein sequences
 If the ``--add-sequences`` parameter was provided, the report will include two Monaco Code Editor components to display
 sequences in FASTA format. The ``DNA sequences`` component displays all the alleles included in the locus FASTA file.
 The ``Protein sequences`` component displays the protein sequences for all alleles that were considered valid. The
-code editor is in readonly mode and it is not possible to edit the contents.
+code editor is in readonly mode (possible to copy and search but not to edit the contents).
 
 .. image:: /_static/images/loci_reports_dna_editor.png
    :width: 1400px

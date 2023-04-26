@@ -8,6 +8,7 @@ been defined and is available for download from some well known databases, such 
 
 - `Ridom cgMLST <http://www.cgmlst.org/ncs>`_.
 - `BIGSdb <https://pubmlst.org/>`_.
+- `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_
 - `Enterobase <http://enterobase.warwick.ac.uk/>`_.
 
 External schemas are defined with specific parameters that might differ from the parameters and

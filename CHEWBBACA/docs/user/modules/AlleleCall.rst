@@ -105,7 +105,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaName -o /path/to/OutputFolderName --cpu 4
+	chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaDirectory -o /path/to/OutputFolderName --cpu 4
 
 Parameters
 ----------
@@ -115,7 +115,9 @@ Parameters
     -i, --input-files           (Required) Path to the directory with the genome FASTA files or to a file with
                                 a list of paths to the FASTA files, one per line.
 
-    -g, --schema-directory      (Required) Path to the schema directory with the loci FASTA files.  
+    -g, --schema-directory      (Required) Path to the schema directory. The schema directory contains the loci
+                                FASTA files and a folder named "short" that contains the FASTA files with the
+                                loci representative alleles.
 
     -o, --output-directory      (Required) Output directory where the allele calling results will be stored
                                 (will create a subdirectory named "results_\<TIMESTAMP\>" if the path passed

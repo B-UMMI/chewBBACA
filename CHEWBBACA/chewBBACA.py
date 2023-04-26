@@ -287,8 +287,11 @@ def allele_call():
 
     parser.add_argument('-g', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
-                        help='Path to the schema directory with the'
-                             ' loci FASTA files.')
+                        help='Path to the schema directory. The schema '
+                             'directory contains the loci FASTA files and '
+                             'a folder named "short" that contains the '
+                             'FASTA files with the loci representative '
+                             'alleles.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.2.0 - 2023-04-27
+
+- New version of the SchemaEvaluator module. The updated version fixes several issues related with outdated dependencies that were leading to errors in the previous version. The new version also includes new features and components. Read the [docs page](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html) to know more about the latest version of the SchemaEvaluator module.
+- Updated the link to the UniProt FTP used by the UniprotFinder module.
+- Added the `.fas` file extension to the list of file extensions accepted by chewBBACA. chewBBACA accepts genome assemblies and external schemas with FASTA files that use any of the following file extensions: `.fasta`, `.fna`, `.ffn`, `.fa` and `.fas`. The FASTA files created by chewBBACA use the `.fasta` extension.
+- Fixed issue in the PrepExternalSchema module where it would only detect FASTA files if they ended with the `.fasta` extension.
+- Added the `--size-filter` parameter to the PrepExternalSchema module to define if the adaptation process should filter alleles based on the minimum length and size threshold values.
+- Added the `--output-novel` parameter to the AlleleCall module. If this parameter is used, the AlleleCall module creates a FASTA file with the novel alleles inferred during the allele calling. This file is created even if the `--no-inferred` parameter is used and the novel alleles are not added to the schema.
+
 ## 3.1.2 - 2023-03-13
 
 - Fixed issue related with sequence header format when FASTA files with coding sequences (CDSs) were provided to the CreateSchema and AlleleCall modules through the `--cds-input` parameter. chewBBACA expected the sequence headers to have the same format used to save the CDSs extracted during the gene prediction step, `<genomeID>-protein<cdsID>`. This would lead to errors if the FASTA files with CDSs provided by users had a different sequence header format. To fix this issue, chewBBACA determines the unique genome identifier for each input/genome and renames the sequence headers to match the `<genomeID>-protein<cdsID>` format (e.g: given a file named `GCF_000007125.1_ASM712v1_cds_from_genomic.fna`, the unique genome identifier is `GCF_000007125`, and the sequence headers are renamed to `GCF_000007125-protein1`, `GCF_000007125-protein2`, ..., `GCF_000007125-proteinN`). FASTA files with renamed headers are stored in the temporary directory created by chewBBACA. The sequence headers are renamed sequentially, so the integer after `protein` indicates the order of the sequences in the original FASTA file

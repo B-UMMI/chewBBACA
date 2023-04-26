@@ -126,21 +126,21 @@ Schema Summary Data
 
 The second component is a table with summary statistics about the schema, such as:
 
-  - Total number of loci that were evaluated.
-  - Total number of alleles.
-  - Total number of valid alleles. An allele is considered valid if its sequence size is a multiple
+  - **Loci**: Total number of loci that were evaluated.
+  - **Alleles**: Total number of alleles.
+  - **Valid Alleles**: Total number of valid alleles. An allele is considered valid if its sequence size is a multiple
     of 3, if it has a single start and stop codon and if it contains no ambiguous bases.
-  - Total number of invalid alleles. The value in this column is the sum of the values in the ``Incomplete ORF``,
+  - **Invalid Alleles**: Total number of invalid alleles. The value in this column is the sum of the values in the ``Incomplete ORF``,
     ``Ambiguous Bases``, ``Missing Start/Stop Codon`` and ``In-frame Stop Codon`` columns.
-  - Total number of incomplete alleles (sequence size not multiple of 3).
-  - Total number of alleles that contain ambiguous bases (non-ACTG characters).
-  - Total number of alleles missing the Start and/or Stop codons.
-  - Total number of alleles with in-frame stop codons.
-  - Total number of alleles shorter than ``--ml``, the minimum sequence length value used
+  - **Incomplete ORF**: Total number of incomplete alleles (sequence size not multiple of 3).
+  - **Ambiguous Bases**: Total number of alleles that contain ambiguous bases (non-ACTG characters).
+  - **Missing Start/Stop Codon**: Total number of alleles missing the Start and/or Stop codons.
+  - **In-frame Stop Codon**: Total number of alleles with in-frame stop codons.
+  - **Alleles <bp**: Total number of alleles shorter than ``--ml``, the minimum sequence length value used
     for schema evaluation (in number of nucleotides).
-  - Total number of alleles below the locus sequence size bot threshold. This threshold identifies
+  - **Alleles below threshold**: Total number of alleles below the locus sequence size bot threshold. This threshold identifies
     alleles with a sequence size that is -20% of the allele size mode.
-  - Total number of alleles above the locus sequence size top threshold. This threshold identifies
+  - **Alleles above threshold**: Total number of alleles above the locus sequence size top threshold. This threshold identifies
     alleles with a sequence size that is +20% of the allele size mode.
 
 .. image:: /_static/images/schema_report_summary.png
@@ -153,26 +153,27 @@ Loci Statistics
 The third component contains 4 panels with charts displaying relevant information about
 the distribution of the number of alleles and allele size variation per evaluated locus.
 
-- Panel A displays the distribution of loci by number of alleles.
+- Panel A, ``Total Alleles``, displays the distribution of loci by number of alleles.
 
 .. image:: /_static/images/schema_report_panelA.png
    :width: 1400px
    :align: center
 
-- Panel B displays the distribution of loci by allele mode size.
+- Panel B, ``Allele Mode Size``, displays the distribution of loci by allele mode size.
 
 .. image:: /_static/images/schema_report_panelB.png
    :width: 1400px
    :align: center
 
-- Panel C displays a scatter chart with points for the minimum allele size (blue), maximum allele
+- Panel C, ``Locus Statistics``, displays a scatter chart with points for the minimum allele size (blue), maximum allele
   size (orange) and median allele size (green) per locus.
 
 .. image:: /_static/images/schema_report_panelC.png
    :width: 1400px
    :align: center
 
-- Panel D displays box plots for the locus size distribution.
+- Panel D, ``Allele Size Variation``, displays box plots for the locus size distribution. The range slider
+  beneath the xaxis line can be used to redefine the boxplots that are visible in the plot area.
 
 .. image:: /_static/images/schema_report_panelD.png
    :width: 1400px
@@ -180,7 +181,7 @@ the distribution of the number of alleles and allele size variation per evaluate
 
 .. note::
   If you have provided the ``--loci-reports`` parameter, the points in Panel C and the
-  boxplots in Panel D are clickable an will open the page about the selected locus.
+  boxplots in Panel D are clickable and will open the detailed report of the selected locus.
 
 Loci annotations
 ................
@@ -209,9 +210,14 @@ Allele Analysis
 ...............
 
 The final component of the schema report presents a table with the results of the allele integrity and
-diversity analysis per locus. The alleles of each locus are checked for their integrity as CDSs. In addition,
-the *Missing Allele IDs* column presents the number o fIDs of alleles that are missing in the initial list of
-each locus.
+diversity analysis per locus. The table includes values per locus for most column categories in the
+``Schema Summary Data`` table. It also includes the following additional columns:
+
+  - **Proportion of Validated Alleles**: the proportion of the total alleles in the locus FASTA file that
+    were considered valid.
+  - **Distinct Protein Alleles**: the number of distinct protein alleles encoded by all alleles.
+  - **Missing Allele IDs**: the number of allele identifiers that are missing, assuming that allele identifiers
+    in the FASTA file should be sequential.
 
 .. note::
 	In order to identify the *Missing Allele IDs*, the module expects the headers of the input
@@ -221,11 +227,6 @@ each locus.
 .. image:: /_static/images/schema_report_allele_analysis.png
    :width: 1400px
    :align: center
-
-.. note::
-	If the ``--loci-reports`` parameter was provided, clicking on a point (locus) on Panel C or
-	Panel D or on the name of the locus on the Allele Analysis table will open a new page containing
-	a detailed report about the selected locus.
 
 Locus Report Components
 -----------------------
@@ -240,7 +241,7 @@ the locus report.
 Locus Summary Data
 ..................
 
-The second component is a table with summary statistics about the locus such as:
+The second component is a table with summary statistics about the locus, such as:
 
 - Locus identifier.
 - Total no. of alleles.

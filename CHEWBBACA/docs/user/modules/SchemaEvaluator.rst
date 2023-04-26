@@ -95,15 +95,15 @@ Outputs
   located inside the ``loci_reports`` folder is used by the loci reports.
 
 .. note::
-	You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
-	Running the SchemaEvaluator module with its default parameter values will only generate the Schema
-   Report.
+  You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
+  Running the SchemaEvaluator module with its default parameter values will only generate the Schema
+  Report.
 
 .. warning::
-	The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
-	not move or delete any of the files in the output folder. If you want to share the report files,
-	simply compress the output folder and share the compressed archive. The receiver can simply uncompress
-   the archive and open the HTML files in a browser to visualize the report.
+  The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
+  not move or delete any of the files in the output folder. If you want to share the report files,
+  simply compress the output folder and share the compressed archive. The receiver can simply uncompress
+  the archive and open the HTML files in a browser to visualize the report.
 
 Schema Report Components
 ------------------------

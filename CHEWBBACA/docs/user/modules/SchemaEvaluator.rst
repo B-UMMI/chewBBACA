@@ -4,7 +4,7 @@ SchemaEvaluator - Build an interactive report for schema evaluation
 The SchemaEvaluator module allows users to generate an interactive HTML report to better explore
 the structure and evaluate typing schemas. The report includes data tables and charts with detailed
 information about the allele size variation and integrity for each locus in the schema. The module
-can be used to analyse schemas create with chewBBACA and external schemas from platforms such as
+can be used to analyse schemas created with chewBBACA and external schemas from platforms such as
 `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://pubmlst.org/>`_,
 `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_ and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
 
@@ -69,7 +69,8 @@ Outputs
 	└── schema_bundle.js
 
 - A HTML report, ``schema_report.html``, that contains the following components:
-	- A table with summary data about the schema;
+
+   - A table with summary data about the schema;
 	- A tab panel with charts for the distribution of the number of alleles and allele size per locus;
    - If a TSV file with annotations is provided to the ``--annotations`` parameter, the schema report
 	  will also include a table with the provided annotations. Otherwise, it will display a warning informing that
@@ -77,7 +78,8 @@ Outputs
 	- A table with the results of the allele integrity and diversity analysis per locus.
 
 - A HTML report per locus that contains the following components:
-	- A table with summary data about the locus;
+
+   - A table with summary data about the locus;
 	- A tab panel with charts for the locus allele diversity;
 	- A table with the total number and list of alleles that encode each distinct protein;
 	- A table with the list of alleles that are not complete coding sequences and/or that are

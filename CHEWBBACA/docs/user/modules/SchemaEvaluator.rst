@@ -3,7 +3,7 @@ SchemaEvaluator - Build an interactive report for schema evaluation
 
 The SchemaEvaluator module allows users to generate an interactive HTML report to better explore
 the structure and evaluate typing schemas. The report includes data tables and charts with detailed
-information about the allele size variation and integrity for each locus in the schema. The module
+information about the allele size variation and allele integrity for each locus in the schema. The module
 can be used to analyse schemas created with chewBBACA and external schemas from platforms such as
 `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://pubmlst.org/>`_,
 `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_ and `Enterobase <http://enterobase.warwick.ac.uk/>`_.
@@ -80,6 +80,8 @@ Outputs
 - A HTML report per locus that contains the following components:
 
   - A table with summary data about the locus.
+  - A table with the locus annotations, if the user provided annotations for the locus. Otherwise, it will
+    display a warning informing that no annotations were provided.
   - A tab panel with charts for the locus allele diversity.
   - A table with the total number and list of alleles that encode each distinct protein.
   - A table with the list of alleles that are not complete coding sequences and/or that are
@@ -92,7 +94,7 @@ Outputs
     sequences.
 
 - Two JavaScript bundle files. The ``schema_bundle.js`` is used by the schema report, and the ``loci_bundle.js``,
-  located inside the ``loci_reports`` folder is used by the loci reports.
+  located inside the ``loci_reports`` folder, is used by the loci reports.
 
 .. note::
   You need to provide the ``--loci-reports`` parameter if you want a detailed report per locus.
@@ -126,23 +128,20 @@ The second component is a table with summary statistics about the schema, such a
 
   - Total number of loci that were evaluated.
   - Total number of alleles.
-  - Total number of valid alleles.
-    - An allele is considered valid if its sequence size is a multiple of 3, if it
-      has a single start and stop codon and if it contains no ambiguous bases.
-  - Total number of invalid alleles.
-    - The value in this column is the sum of the values in the ``Incomplete ORF``,
-      ``Ambiguous Bases``, ``Missing Start/Stop Codon`` and ``In-frame Stop Codon``
-      columns.
+  - Total number of valid alleles. An allele is considered valid if its sequence size is a multiple
+    of 3, if it has a single start and stop codon and if it contains no ambiguous bases.
+  - Total number of invalid alleles. The value in this column is the sum of the values in the ``Incomplete ORF``,
+    ``Ambiguous Bases``, ``Missing Start/Stop Codon`` and ``In-frame Stop Codon`` columns.
   - Total number of incomplete alleles (sequence size not multiple of 3).
   - Total number of alleles that contain ambiguous bases (non-ACTG characters).
   - Total number of alleles missing the Start and/or Stop codons.
   - Total number of alleles with in-frame stop codons.
   - Total number of alleles shorter than ``--ml``, the minimum sequence length value used
     for schema evaluation (in number of nucleotides).
-  - Total number of alleles below the locus sequence size bot threshold.
-    - This threshold identifies alleles with a sequence size that is -20% of the allele size mode.
-  - Total number of alleles above the locus sequence size top threshold.
-    - This threshold identifies alleles with a sequence size that is +20% of the allele size mode.
+  - Total number of alleles below the locus sequence size bot threshold. This threshold identifies
+    alleles with a sequence size that is -20% of the allele size mode.
+  - Total number of alleles above the locus sequence size top threshold. This threshold identifies
+    alleles with a sequence size that is +20% of the allele size mode.
 
 .. image:: /_static/images/schema_report_summary.png
    :width: 1400px

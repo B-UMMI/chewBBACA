@@ -8,7 +8,7 @@ been defined and is available for download from some well known databases, such 
 
 - `Ridom cgMLST <http://www.cgmlst.org/ncs>`_.
 - `BIGSdb <https://pubmlst.org/>`_.
-- `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_
+- `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_.
 - `Enterobase <http://enterobase.warwick.ac.uk/>`_.
 
 External schemas are defined with specific parameters that might differ from the parameters and
@@ -100,6 +100,9 @@ Parameters
                                chewBBACA cannot find the BLASTp and makeblastdb executables or if
                                you want to use anoter BLAST installation that is not the one added
                                to the PATH (default: assumes BLAST executables were added to PATH).
+
+    --size-filter              (Optional) Apply the minimum length and size threshold values to
+                               filter out alleles during schema adaptation (default: False).
 
 Outputs
 -------

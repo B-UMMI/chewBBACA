@@ -170,6 +170,10 @@ Parameters
     --output-missing            (Optional) Create a Fasta file with coding sequences classified as NIPH, NIPHEM,
                                 ASM, ALM, PLOT3, PLOT5 and LOTSC (default: False).
 
+    --output-novel              (Optional) Create Fasta file with the novel alleles inferred during the allele
+                                calling. The sequence headers include the locus and allele identifiers attributed
+                                by chewBBACA based on the allele calling results (default: False).
+
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution are
                                 not removed at the end (default: False).
 

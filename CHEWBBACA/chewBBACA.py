@@ -392,7 +392,10 @@ def allele_call():
     parser.add_argument('--output-novel', required=False,
                         action='store_true', dest='output_novel',
                         help='Create Fasta file with the novel alleles '
-                             'inferred during the allele calling.')
+                             'inferred during the allele calling. The '
+                             'sequence headers include the locus and allele '
+                             'identifiers attributed by chewBBACA based '
+                             'on the allele calling results')
 
     parser.add_argument('--no-cleanup', required=False,
                         action='store_true', dest='no_cleanup',
@@ -943,7 +946,8 @@ def prep_schema():
     parser.add_argument('--size-filter', action='store_true',
                         required=False, dest='size_filter',
                         help='Apply the minimum length and size threshold'
-                             ' values during schema adaptation.')
+                             ' values to filter out alleles during schema '
+                             'adaptation.')
 
     args = parser.parse_args()
     del args.PrepExternalSchema

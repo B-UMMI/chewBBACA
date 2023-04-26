@@ -101,36 +101,48 @@ Outputs
 
 .. warning::
   The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
-  not move or delete any of the files in the output folder. If you want to share the report files,
-  simply compress the output folder and share the compressed archive. The receiver can simply uncompress
+  not move or delete any of the files in the output folder. If you want to share the report, simply
+  compress the output folder and share the compressed archive. The receiver can simply uncompress
   the archive and open the HTML files in a browser to visualize the report.
 
 Schema Report Components
 ------------------------
 
 The first component gives a small introduction that details the type of information contained in
-the schema report.
+each component of the schema report.
 
 .. image:: /_static/images/schema_report_description.png
    :width: 1400px
    :align: center
 
+The two alerts on top of the expandable component provide information about the parameter values
+used to create and evaluate the schema, respectively. The SchemaEvaluator can only determine the
+parameter values used for schema creation if the schema was created with chewBBACA.
+
 Schema Summary Data
 ...................
 
-The second component is a table with summary statistics about the schema such as:
+The second component is a table with summary statistics about the schema, such as:
 
-- Total no. of loci in the schema/evaluated.
-- Total no. of alleles.
-- Total no. of valid alleles.
-- Total no. of invalid alleles.
-- Total no. of incomplete alleles (sequence size not multiple of 3).
-- Total number of alleles that contain ambiguous bases.
-- Total no. of alleles missing the Start and/or Stop codons.
-- Total no. of alleles with in-frame stop codons.
-- Total no. of alleles shorter than ``--ml``, the minimum sequence length (in no. of nucleotides).
-- Total no. of alleles below the locus sequence size threshold.
-- Total no. of alleles above the locus sequence size threshold.
+  - Total number of loci that were evaluated.
+  - Total number of alleles.
+  - Total number of valid alleles.
+    - An allele is considered valid if its sequence size is a multiple of 3, if it
+      has a single start and stop codon and if it contains no ambiguous bases.
+  - Total number of invalid alleles.
+    - The value in this column is the sum of the values in the ``Incomplete ORF``,
+      ``Ambiguous Bases``, ``Missing Start/Stop Codon`` and ``In-frame Stop Codon``
+      columns.
+  - Total number of incomplete alleles (sequence size not multiple of 3).
+  - Total number of alleles that contain ambiguous bases (non-ACTG characters).
+  - Total number of alleles missing the Start and/or Stop codons.
+  - Total number of alleles with in-frame stop codons.
+  - Total number of alleles shorter than ``--ml``, the minimum sequence length value used
+    for schema evaluation (in number of nucleotides).
+  - Total number of alleles below the locus sequence size bot threshold.
+    - This threshold identifies alleles with a sequence size that is -20% of the allele size mode.
+  - Total number of alleles above the locus sequence size top threshold.
+    - This threshold identifies alleles with a sequence size that is +20% of the allele size mode.
 
 .. image:: /_static/images/schema_report_summary.png
    :width: 1400px
@@ -139,8 +151,8 @@ The second component is a table with summary statistics about the schema such as
 Loci Statistics
 ...............
 
-The third component contains 4 panels with summary charts displaying relevant information about
-the schema. The panel is presented in the same way as in Chewie-NS.
+The third component contains 4 panels with charts displaying relevant information about
+the distribution of the number of alleles and allele size variation per evaluated locus.
 
 - Panel A displays the distribution of loci by number of alleles.
 
@@ -154,18 +166,22 @@ the schema. The panel is presented in the same way as in Chewie-NS.
    :width: 1400px
    :align: center
 
-- Panel C contains a representation of summary statistics (minimum allele size in blue, maximum
-  allele size in orange and median size in green).
+- Panel C displays a scatter chart with points for the minimum allele size (blue), maximum allele
+  size (orange) and median allele size (green) per locus.
 
 .. image:: /_static/images/schema_report_panelC.png
    :width: 1400px
    :align: center
 
-- Panel D displays box plots of locus size distribution.
+- Panel D displays box plots for the locus size distribution.
 
 .. image:: /_static/images/schema_report_panelD.png
    :width: 1400px
    :align: center
+
+.. note::
+  If you have provided the ``--loci-reports`` parameter, the points in Panel C and the
+  boxplots in Panel D are clickable an will open the page about the selected locus.
 
 Loci annotations
 ................
@@ -177,12 +193,26 @@ with the list of annotations provided.
    :width: 1400px
    :align: center
 
+If you have provided the ``--loci-reports`` parameter, the loci identifiers in the first column will
+link to the loci report pages. If a column name includes ``URL``, the SchemaEvaluator module assumes
+that the values in that column are URLs and creates links to the web pages.
+
+.. important::
+  The first column in the TSV file with annotations must be named ``Locus`` and contain the identifiers
+  of the loci (the basename of the locus FASTA file without the ``.fasta`` extension).
+
+You can use the :doc:`UniprotFinder </user/modules/UniprotFinder>` module to annotate the loci in a schema
+created with chewBBACA. If you want to annotate an external schema, you can adapt it with the
+:doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` followed by annotation with the
+:doc:`UniprotFinder </user/modules/UniprotFinder>` module.
+
 Allele Analysis
 ...............
 
-The final component of the report presents a table. In this component the alleles of each locus are
-checked for their integrity as CDSs. In addition, the *Missing Allele IDs* column presents the number
-o fIDs of alleles that are missing in the initial list of each locus.
+The final component of the schema report presents a table with the results of the allele integrity and
+diversity analysis per locus. The alleles of each locus are checked for their integrity as CDSs. In addition,
+the *Missing Allele IDs* column presents the number o fIDs of alleles that are missing in the initial list of
+each locus.
 
 .. note::
 	In order to identify the *Missing Allele IDs*, the module expects the headers of the input

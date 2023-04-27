@@ -319,7 +319,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     # Determine missing allele ids
     missing_ids = im.find_missing(allele_ids)
 
-    # number of alleles
+    # Get total number of alleles
     nr_alleles = len(lengths)
 
     # Summary statistics
@@ -358,7 +358,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     # Determine distinct proteins
     translated_alleles = fao.import_sequences(protein_file)
     distinct_proteins = sm.determine_duplicated_seqs(translated_alleles)
-    distinct_records = [[v[0], k]
+    distinct_records = [[(v[0]).split('_')[-1], k]
                         for k, v in distinct_proteins.items()]
     distinct_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, distinct_records)
     distinct_file = fo.join_paths(translation_dir, [f'{locus_id}_distinct.fasta'])
@@ -528,24 +528,19 @@ def locus_report(locus_file, locus_data, annotation_columns,
     if light is False:
         if locus_data[13][2] > 1 and locus_data[13][5] > 1:
             alignment_file = call_mafft(locus_data[18])
-            # get MSA data
+            # Get MSA data
             alignment_text = fo.read_file(alignment_file)
-            alignment_text = alignment_text.replace(f'{locus}_', '')
             msa_data['sequences'] = alignment_text
 
-            # get Tree data
-            # get the phylocanvas data
+            # Get Tree data
+            # Get the phylocanvas data
             tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
             phylo_data = fo.read_file(tree_file)
 
             # Start by substituting greatest value to avoid substituting
             # smaller values contained in greater values
-            if locus in phylo_data:
-                for i in range(locus_data[1], 0, -1):
-                    phylo_data = phylo_data.replace(f'{i}_{locus}_', '')
-            else:
-                for i in range(locus_data[1], 0, -1):
-                    phylo_data = phylo_data.replace(f'{i}_', '')
+            for i in range(locus_data[1], 0, -1):
+                phylo_data = phylo_data.replace(f'{i}_', '')
 
             phylo_data = phylo_data.replace('\n', '')
             phylo_data = {"phylo_data": phylo_data}
@@ -602,7 +597,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     loci_basenames = {fo.file_basename(file, False): file
                       for file in schema_files}
 
-    # check if the schema was created with chewBBACA
+    # Check if the schema was created with chewBBACA
     config_file = os.path.join(schema_directory, ".schema_config")
     if os.path.exists(config_file):
         # get the schema configs
@@ -664,7 +659,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     common_args = [translation_table, minimum_length,
                    size_threshold, translation_dir]
 
-    # add common arguments to all sublists
+    # Add common arguments to all sublists
     inputs = im.multiprocessing_inputs(inputs,
                                        common_args,
                                        compute_locus_statistics)

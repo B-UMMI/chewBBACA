@@ -8,14 +8,19 @@ Install the latest released version using `conda <https://anaconda.org/bioconda/
 
 ::
 
-	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.1.2"
+	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.2.0"
 
 If you're having issues installing chewBBACA through conda, we recommend that you install
 `mamba <https://mamba.readthedocs.io/en/latest/index.html>`_ and run the following command:
 
 ::
 
-	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.1.2"
+	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.2.0"
+
+.. important::
+	We strongly recommend that users install and use BLAST 2.9.0+. Please open an
+	`issue <https://github.com/B-UMMI/chewBBACA/issues>`_ if you find any problems with any
+	of the dependencies.
 
 Pip
 ...
@@ -45,7 +50,7 @@ Python dependencies
 Other dependencies
 ..................
 
-* `BLAST >=2.9.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_
+* `BLAST >=2.9.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_ (we recommend using BLAST 2.9.0+)
 * `Prodigal >=2.6.3 <https://github.com/hyattpd/prodigal/releases/>`_
 * `MAFFT >=7.505 <https://mafft.cbrc.jp/alignment/software/>`_ (for schema evaluation only)
 

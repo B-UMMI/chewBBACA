@@ -20,6 +20,7 @@ try:
     from AlleleCall import AlleleCall
     from CreateSchema import CreateSchema
     from SchemaEvaluator import schema_evaluator
+    from AllelecallReport import AlleleCallReport
     from PrepExternalSchema import PrepExternalSchema
     from UniprotFinder import uniprot_find
     from ExtractCgMLST import Extract_cgAlleles
@@ -40,6 +41,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.AlleleCall import AlleleCall
     from CHEWBBACA.CreateSchema import CreateSchema
     from CHEWBBACA.SchemaEvaluator import schema_evaluator
+    from CHEWBBACA.AllelecallReport import AlleleCallReport
     from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
     from CHEWBBACA.UniprotFinder import uniprot_find
     from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
@@ -658,6 +660,71 @@ def evaluate_schema():
 
     # Delete file with list of loci that were evaluated
     fo.remove_files([loci_list])
+
+
+@pdt.process_timer
+def evaluate_results():
+
+    def msg(name=None):
+        # simple command to analyse allele calling results
+        simple_cmd = ('chewBBACA.py AlleleCallReport -i <results_folder> '
+                      '-o <output_directory> --cpu <cpu_cores>')
+
+        usage_msg = (
+            '\nAnalyse allele calling results with default parameters:\n  {0}\n'.format(simple_cmd))
+
+        return usage_msg
+
+    parser = argparse.ArgumentParser(prog='AlleleCallReport',
+                                     description='',
+                                     usage=msg(),
+                                     formatter_class=ModifiedHelpFormatter)
+
+    parser.add_argument('AlleleCallReport', nargs='+',
+                        help='Evaluates allele calling results.')
+
+    parser.add_argument('-i', '--input-files', type=str, required=True,
+                        dest='input_files',
+                        help='Path to the directory that contains the allele '
+                        'calling results.')
+
+    parser.add_argument('-o', '--output-directory', type=str, required=True,
+                        dest='output_directory',
+                        help='Path to the output directory where the report '
+                             'HTML files will be generated.')
+
+    parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+                        required=False, default=1, dest='cpu_cores',
+                        help='Number of CPU cores/threads that will be '
+                             'used to run the process '
+                             '(will be redefined to a lower value '
+                             'if it is equal to or exceeds the total'
+                             'number of available CPU cores/threads).')
+
+    # parser.add_argument('--loci-reports', required=False,
+    #                     action='store_true', dest='loci_reports',
+    #                     help='If the process should create an individual '
+    #                          'report for each locus.')
+
+    # parser.add_argument('--light', action='store_true', required=False,
+    #                     dest='light',
+    #                     help='If determining loci reports, skips MSA '
+    #                          'computation with MAFFT and does not add '
+    #                          'the Phylogenetic Tree and MSA components.')
+
+    args = parser.parse_args()
+    del args.AlleleCallReport
+
+    # Check if input file path exists
+    if not os.path.exists(args.input_files):
+        sys.exit('Input argument is not a valid directory. Exiting...')
+
+    # Create output directory
+    created = fo.create_directory(args.output_directory)
+    if created is False:
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+
+    AlleleCallReport.main(**vars(args))
 
 
 @pdt.process_timer

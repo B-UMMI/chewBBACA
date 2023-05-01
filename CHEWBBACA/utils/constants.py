@@ -273,6 +273,25 @@ LOCUS_REPORT_HTML = ("""
 </html>
 """)
 
+# HTML template to create main AlleleCall report
+ALLELECALL_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AlleleCall Report - React Edition</title>
+</head>
+<body style="background-color: #f6f6f6">
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <script> preComputedData = {0} </script>
+    <script src="./main_bundle.js"></script>
+</body>
+</html>
+""")
+
+
 # Do not use list of strings as constants if the strings include formatting
 # placeholders. Multiple references to the list of strings will have the same
 # id and altering the strings with format will not change the list id. In

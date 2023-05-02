@@ -670,6 +670,79 @@ const ReportPage = () => {
 		[lociStatsGrid],
 	];
 
+	// Component for Presence Absence Heatmap
+	const paRows = data.presence_absence;
+
+	const colorscaleValue = [
+		[0, '#f7f7f7'],
+		[1, '#053061']  
+	];
+
+	const paData = [
+		{
+			z: paRows,
+			x: lociIDs,
+			y: sampleIDs,
+			type: 'heatmap',
+			showscale: false,
+			colorscale: colorscaleValue,
+		}
+	];
+
+	//const heatmapHeight = sampleIDs.length * 10
+
+	const paLayout = {
+		title: {
+			text: ''
+		},
+		xaxis: {
+			title: { text: "Loci" },
+			ticks: '',
+			showticklabels: false,
+			showticks: false,
+		},
+		yaxis: {
+			title: { text: "Sample" },
+			ticks: '',
+			showticklabels: false,
+			showticks: false,
+		},
+		height: 700,
+	}
+
+	const paConfig = {
+		toImageButtonOptions: 
+			{format: 'svg',
+			 filename: 'pa',
+			 height: 700,
+			 scale: 1
+		}
+	};
+
+	const paHeatmap = (
+		<PlotlyPlot
+			key="paHeatmap"
+			plotData={paData}
+			layoutProps={paLayout}
+			configOptions={paConfig}
+		>
+		</PlotlyPlot>
+	);
+
+	const paTitle = (
+		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+			Presence-Absence Heatmap
+		</Typography>
+	);
+
+	const paComponent = (
+		<AccordionMUI
+			summaryText={paTitle}
+			detailsData={[paHeatmap]}
+			expanded={false}
+		>
+		</AccordionMUI>
+	);
 
 	return (
 		<div className={classes.mainDiv}>
@@ -692,6 +765,9 @@ const ReportPage = () => {
 			</div>
 			<div className={classes.secondaryDiv}>
 				{LociAnnotationsTable}
+			</div>
+			<div className={classes.secondaryDiv}>
+				{paComponent}
 			</div>
 		</div>
 	  );

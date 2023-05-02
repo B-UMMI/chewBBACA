@@ -16,6 +16,7 @@ import json
 import shutil
 import pickle
 import statistics
+import pandas as pd
 from collections import Counter
 
 import pandas as pd
@@ -29,6 +30,7 @@ try:
         sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo)
+    from ExtractCgMLST import Extract_cgAlleles
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         constants as ct,
@@ -37,6 +39,7 @@ except ModuleNotFoundError:
         sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo)
+    from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
 
 
 def _count_generator(reader):
@@ -57,11 +60,76 @@ def count_lines(file):
     return count
 
 
+# locus = loci_ids[0]
+# schema_directory = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/schema_seed'
+# allelic_profiles = allelic_profiles_file
+# output_directory = fasta_dir
+def compute_locus_statistics(locus, schema_directory, allelic_profiles, output_directory):
+    """
+    """
+    # Read locus column
+    df = pd.read_csv(allelic_profiles, usecols=['FILE', locus], delimiter='\t', dtype=str)
+    locus_column = df[locus].tolist()
+    sample_ids = df['FILE'].tolist()
+
+    # Read locus FASTA file
+    locus_fasta = fo.join_paths(schema_directory, [f'{locus}.fasta'])
+    alleles = fao.import_sequences(locus_fasta)
+    alleles = {k.split('_')[-1]: v for k, v in alleles.items()}
+
+    sequences = []
+    for i, allele in enumerate(locus_column):
+        clean_class = allele.split('INF-')[-1]
+        if clean_class in alleles:
+            current_sample = sample_ids[i]
+            seq = alleles[clean_class]
+            record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [current_sample, seq])
+            sequences.append(record)
+
+    fasta_file = fo.join_paths(output_directory, [f'{locus}.fasta'])
+    fo.write_lines(sequences, fasta_file)
+
+    return fasta_file
+
+
+def call_mafft(genefile):
+    """Call MAFFT to generate an alignment.
+
+    Parameters
+    ----------
+    genefile : str
+        Path to a FASTA file with the sequences to align.
+
+    Returns
+    -------
+    Path to the file with the computed MSA if successful, False otherwise.
+    """
+    try:
+        mafft_cline = MafftCommandline(input=genefile,
+                                       adjustdirection=True,
+                                       treeout=True,
+                                       thread=1,
+                                       retree=1,
+                                       maxiterate=0,
+                                       )
+        stdout, stderr = mafft_cline()
+        path_to_save = genefile.replace(".fasta", "_aligned.fasta")
+        with open(path_to_save, "w") as handle:
+            handle.write(stdout)
+
+        return path_to_save
+    except Exception as e:
+        print(e)
+        return False
+
+
 input_files = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_results'
 schema_directory = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/schema_seed'
 output_directory = '/home/rmamede/Desktop/AlleleCallReport_test'
 cpu_cores = 6
 annotations = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/spneumo_annotations/schema_seed_annotations.tsv'
+loci_reports = True
+translation_table = 11
 def main(input_files, schema_directory, output_directory, annotations,
          cpu_cores):
 
@@ -101,6 +169,9 @@ def main(input_files, schema_directory, output_directory, annotations,
 
 ### Sample Stats
 
+    cds_coordinates_dir = fo.join_paths(temp_directory, ['coordinates'])
+    fo.create_directory(cds_coordinates_dir)
+
     sample_stats = {}
     cds_coordinates_file = fo.join_paths(input_files, ['cds_coordinates.tsv'])
     with open(cds_coordinates_file, 'r') as infile:
@@ -114,7 +185,7 @@ def main(input_files, schema_directory, output_directory, annotations,
                 if current_line[0] == sample_lines[0][0]:
                     sample_lines.append(current_line)
                 else:
-                    sample_file = fo.join_paths(temp_directory, [f'{sample_lines[0][0]}'])
+                    sample_file = fo.join_paths(cds_coordinates_dir, [f'{sample_lines[0][0]}'])
                     sample_outlines = [im.join_list(line, '\t') for line in sample_lines]
                     fo.write_lines(sample_outlines, sample_file)
                     sample_lines = [current_line]
@@ -124,7 +195,7 @@ def main(input_files, schema_directory, output_directory, annotations,
             if current_line[1] not in sample_stats[current_line[0]][0]:
                 sample_stats[current_line[0]][0].append(current_line[1])
         
-        sample_file = fo.join_paths(temp_directory, [f'{sample_lines[0][0]}'])
+        sample_file = fo.join_paths(cds_coordinates_dir, [f'{sample_lines[0][0]}'])
         sample_outlines = [im.join_list(line, '\t') for line in sample_lines]
         fo.write_lines(sample_outlines, sample_file)
 
@@ -204,6 +275,21 @@ def main(input_files, schema_directory, output_directory, annotations,
     summary_rows = [total_samples, total_loci, total_cds, loci_sums[-1]]
     summary_rows.extend(loci_sums[:-1])
 
+    # TSV file with allelic profiles
+    allelic_profiles_file = fo.join_paths(input_files, ['results_alleles.tsv'])
+
+### Presence absence matrix
+    # import matrix with allelic profiles
+    matrix = pd.read_csv(allelic_profiles_file, header=0, index_col=0,
+                         sep='\t', low_memory=False)
+
+    # mask missing data
+    masked_matrix = matrix.apply(im.replace_chars)
+
+    # build presence/absence matrix
+    pa_matrix, pa_outfile = Extract_cgAlleles.presAbs(masked_matrix, temp_directory)
+    pa_lines = pa_matrix.values.tolist()
+
     report_data = {"summaryData": [{"columns": summary_columns},
                                    {"rows": [summary_rows]}],
                    "sample_ids": sample_ids,
@@ -216,6 +302,7 @@ def main(input_files, schema_directory, output_directory, annotations,
                                   {"rows": loci_stats}],
                    "annotations": [{"columns": annotation_values[0]},
                                    {"rows": annotation_values[1]}],
+                   "presence_absence": pa_lines,
                    }
 
     # Write Schema Report HTML file
@@ -225,7 +312,62 @@ def main(input_files, schema_directory, output_directory, annotations,
     fo.write_to_file(report_html, report_html_file, 'w', '\n')
 
     # Create loci reports
-    # if loci_reports:
+    if loci_reports:
+        # Get allele identifiers for samples and create FASTA files
+        # Create temporary directory to store FASTA files
+        fasta_dir = fo.join_paths(temp_directory, ['fasta_files'])
+        fo.create_directory(fasta_dir)
+
+        inputs = im.divide_list_into_n_chunks(loci_ids, len(loci_ids))
+
+        common_args = [schema_directory, allelic_profiles_file, fasta_dir]
+
+        # Add common arguments to all sublists
+        inputs = im.multiprocessing_inputs(inputs,
+                                           common_args,
+                                           compute_locus_statistics)
+
+        # compute loci statistics
+        print('Computing loci statistics...')
+        results = mo.map_async_parallelizer(inputs,
+                                            mo.function_helper,
+                                            cpu_cores,
+                                            show_progress=True)
+
+        # Translate FASTA files
+        translation_inputs = im.divide_list_into_n_chunks(results, len(results))
+
+        common_args = [fasta_dir, translation_table]
+
+        # Add common arguments to all sublists
+        inputs = im.multiprocessing_inputs(translation_inputs,
+                                           common_args,
+                                           fao.translate_fasta)
+
+        results = mo.map_async_parallelizer(inputs,
+                                            mo.function_helper,
+                                            cpu_cores,
+                                            show_progress=True)
+
+        protein_files = [r[1] for r in results]
+
+        # Align sequences with MAFFT
+        alignmnet_inputs = im.divide_list_into_n_chunks(protein_files, len(protein_files))
+        common_args = []
+
+        # Add common arguments to all sublists
+        inputs = im.multiprocessing_inputs(alignmnet_inputs,
+                                           common_args,
+                                           call_mafft)
+
+        results = mo.map_async_parallelizer(inputs,
+                                            mo.function_helper,
+                                            cpu_cores,
+                                            show_progress=True)
+        
+        # Determine core genome at 100%
+        # Concatenate alignment files from core
+        
 
     # Create sample reports
     # if sample_reports:

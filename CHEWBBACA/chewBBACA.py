@@ -688,10 +688,19 @@ def evaluate_results():
                         help='Path to the directory that contains the allele '
                         'calling results.')
 
+    parser.add_argument('-g', '--schema-directory', type=str, required=True,
+                        dest='schema_directory',
+                        help='Path to the schema directory.')
+
     parser.add_argument('-o', '--output-directory', type=str, required=True,
                         dest='output_directory',
                         help='Path to the output directory where the report '
                              'HTML files will be generated.')
+
+    parser.add_argument('-a', '--annotations', type=str, required=False,
+                        dest='annotations',
+                        help='Path to the TSV file created by the '
+                             'UniprotFinder module.')
 
     parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
                         required=False, default=1, dest='cpu_cores',

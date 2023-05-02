@@ -10,7 +10,6 @@ Code documentation
 """ 
 
 
-
 import os
 import math
 import json
@@ -59,9 +58,12 @@ def count_lines(file):
 
 
 input_files = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_results'
+schema_directory = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/schema_seed'
 output_directory = '/home/rmamede/Desktop/AlleleCallReport_test'
 cpu_cores = 6
-def main(input_files, output_directory, cpu_cores):
+annotations = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/spneumo_annotations/schema_seed_annotations.tsv'
+def main(input_files, schema_directory, output_directory, annotations,
+         cpu_cores):
 
     # Create temp directory
     temp_directory = fo.join_paths(output_directory, ['temp'])
@@ -132,22 +134,24 @@ def main(input_files, output_directory, cpu_cores):
         sample_line = sample_counts.iloc[i]
         valid = sum(sample_line[1:3])
         invalid = sum(sample_line[3:11])
+        total_cds = sample_stats[sample][1]
         classified_loci = valid + invalid
-        classified_proportion = round(classified_loci/total_loci, 3)
+        classified_proportion = round(classified_loci/total_cds, 3)
+        classified_proportion_schema = round(classified_loci/total_loci, 3)
         sample_stats[sample].append(int(classified_loci))
         sample_stats[sample].append(float(classified_proportion))
+        sample_stats[sample].append(float(classified_proportion_schema))
         sample_stats[sample].append(int(valid))
         sample_stats[sample].append(int(invalid))
 
     sample_stats_columns = ['Sample', 'Total Contigs', 'Total CDSs',
-                            'Classified Loci', 'Proportion Classified Loci',
+                            'Classified Loci', 'Proportion of Classified CDSs',
+                            'Proportion of Classified Loci',
                             'Valid Classes', 'Invalid Classes']
     
     sample_stats_rows = []
     for k, v in sample_stats.items():
         sample_stats_rows.append([k, len(v[0]), *v[1:]])
-
-#############
 
 ### Loci Stats
 
@@ -165,7 +169,23 @@ def main(input_files, output_directory, cpu_cores):
     loci_stats_columns = ['Locus', 'Total CDSs', 'Valid Classes',
                           'Invalid Classes', 'Proportion Samples']
 
-#############
+### Loci Annotations
+
+    # Read loci annotations from TSV file
+    annotation_values = [[], []]
+    if annotations is not None:
+        annotation_lines = fo.read_tabular(annotations)
+        # Add file columns
+        annotation_values[0].extend(annotation_lines[0])
+        # Add sublists with lines
+        # Only keep lines for loci in the schema
+        loci_annotations = [line for line in annotation_lines[1:]
+                            if line[0] in loci_ids]
+        annotation_values[1].extend(loci_annotations)
+
+
+
+
 
     # Add total CDSs, total classified CDSs, total per class to summary table
     # Count number of CDSs
@@ -194,6 +214,8 @@ def main(input_files, output_directory, cpu_cores):
                                     {"rows": sample_stats_rows}],
                    "loci_stats": [{"columns": loci_stats_columns},
                                   {"rows": loci_stats}],
+                   "annotations": [{"columns": annotation_values[0]},
+                                   {"rows": annotation_values[1]}],
                    }
 
     # Write Schema Report HTML file
@@ -208,5 +230,5 @@ def main(input_files, output_directory, cpu_cores):
     # Create sample reports
     # if sample_reports:
 
-# Add proportion of classified loci absed on total CDSs extracted from sample and proportion based on total loci in schema
-# Add info about valid (EXC+INF) and invalid (PLOT3+PLOT5+NIPH+NIPHEM+ASM+ALM)
+
+# Add info alert about valid (EXC+INF) and invalid (PLOT3+PLOT5+NIPH+NIPHEM+ASM+ALM)

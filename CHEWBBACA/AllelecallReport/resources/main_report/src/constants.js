@@ -55,8 +55,6 @@ If you have any feature requests or issues to report, please visit chewBBACA's [
 
 export let alertMessages = [
 	["Each point (locus) is clickable and will open a page with more details about it.", "info"],
-	["Each boxplot (locus) is clickable and will open a page with more details about it.", "info"],
-	["The loci annotations are not displayed because the user did not provide a file with annotations.", "warning"],
 ];
 
 export const globalTableOptions = {

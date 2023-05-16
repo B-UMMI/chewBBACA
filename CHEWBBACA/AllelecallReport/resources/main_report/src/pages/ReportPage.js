@@ -8,6 +8,7 @@ import classes from './ReportPage.css';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Unstable_Grid2';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import AlertMUI from '../components/AlertMUI';
 import DataTable from '../components/DataTable';
@@ -16,7 +17,9 @@ import TabPanelMUI from '../components/TabPanelMUI';
 import AccordionMUI from '../components/AccordionMUI';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import Stack from '@mui/material/Stack';
@@ -24,6 +27,13 @@ import Typography from '@mui/material/Typography';
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import PhylogeneticTree from "../components/PhylogeneticTree";
+
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 
 
 const ReportPage = () => {
@@ -87,7 +97,8 @@ const ReportPage = () => {
 		jumpToPage: true,
 		draggableColumns: {
 			enabled: true
-		}
+		},
+		elevation: 0
 	};
 	const sampleTableOptions = {
 		...globalTableOptions,
@@ -124,7 +135,8 @@ const ReportPage = () => {
 		jumpToPage: true,
 		draggableColumns: {
 			enabled: true
-		}
+		},
+		elevation: 0
 	};
 	const lociTableOptions = {
 		...globalTableOptions,
@@ -298,8 +310,8 @@ const ReportPage = () => {
 	})
 
 	const sampleStatsMenu = (
-		<Box sx={{ minWidth: 120 }}>
-			<FormControl fullWidth>
+		<Box sx={{ minWidth: 120, marginTop: "20px" }}>
+			<FormControl fullWidth size='small'>
 				<InputLabel id="sample-menu">Select Stat</InputLabel>
 				<Select
 					labelId="sample-select"
@@ -395,8 +407,8 @@ const ReportPage = () => {
 	})
 
 	const lociStatsMenu = (
-		<Box sx={{ minWidth: 120 }}>
-			<FormControl fullWidth>
+		<Box sx={{ minWidth: 120, marginTop: "20px" }}>
+			<FormControl fullWidth size='small'>
 				<InputLabel id="loci-menu">Select Stat</InputLabel>
 				<Select
 					labelId="loci-select"
@@ -419,20 +431,31 @@ const ReportPage = () => {
 		'#e08214', '#8073ac', '#542788', '#fee090',
 		'#fdb462', '#80b1d3', '#878787'];
 
-	// data for sample classification counts stacked barplots
+	// Data for sample classification counts stacked barplots
 	const sampleIDs = data.sample_ids;
 	const sampleClassCounts = data.sample_data;
 
-	const [sampleBarMin, setSampleBarMin] = useState(0);
-	const [sampleBarMax, setSampleBarMax] = useState(sampleIDs.length > barStep ? barStep : sampleIDs.length);
+	const [sampleBarIndex, setSampleBarIndex] = useState(0);
+
+	let sampleBarMin = 0;
+	let sampleBarMax = sampleIDs.length > barStep ? barStep : sampleIDs.length;
+	// Define array with barplot ranges
+	// Define number of ranges
+	const maxRanges = Math.ceil(sampleIDs.length / barStep);
+	let barplotRanges = [];
+	for (let i = 0; i < maxRanges; i++) {
+		barplotRanges.push([sampleBarMin, sampleBarMax])
+		sampleBarMin = Math.min(sampleBarMin+barStep, sampleIDs.length-barStep);
+		sampleBarMax = Math.min(sampleBarMax+barStep, sampleIDs.length)
+	}
 
 	const sampleSliderMax = Math.min(sampleIDs.length, barStep/2);
 
 	let sampleTraces = [];
 	for (let i = 0; i < classes.length; i++) {
 		let classTrace = {
-			x: sampleIDs.slice(sampleBarMin, sampleBarMax),
-			y: sampleClassCounts[i].slice(sampleBarMin, sampleBarMax),
+			x: sampleIDs.slice(barplotRanges[sampleBarIndex][0], barplotRanges[sampleBarIndex][1]),
+			y: sampleClassCounts[i].slice(barplotRanges[sampleBarIndex][0], barplotRanges[sampleBarIndex][1]),
 			type: 'bar',
 			name: classes[i],
 			marker: {
@@ -444,7 +467,7 @@ const ReportPage = () => {
 
 	const sampleTracesLayout = {
 		title: {
-			text: "Class Counts Per Sample"
+			text: ""
 		},
 		xaxis: {
 			title: { text: "Sample" },
@@ -470,7 +493,11 @@ const ReportPage = () => {
 		bargroupgap: 0,
 		barmode: 'stack',
 		hovermode: 'x unified',
+		margin: {
+			t: 15
+		}
 	};
+
 	const sampleTracesConfig = {
 		toImageButtonOptions: 
 			{format: 'svg',
@@ -480,6 +507,7 @@ const ReportPage = () => {
 			 scale: 1
 		}
 	};
+
 	// Component for Plotly Histogram with total alleles distribution
 	const sampleCountsStackedBar = (
 		<PlotlyPlot
@@ -492,48 +520,79 @@ const ReportPage = () => {
 	);
 
 	const handleSampleBarButtonClick = (event) => {
-		if (event.target.id === 'previous') {
-			setSampleBarMin(Math.max(sampleBarMin-barStep, 0))
-			setSampleBarMax(Math.max(sampleBarMax-barStep, 0+barStep))
-		} else if (event.target.id === 'next') {
-			setSampleBarMax(Math.min(sampleBarMax+barStep, sampleIDs.length))
-			setSampleBarMin(Math.min(sampleBarMin+barStep, sampleIDs.length-barStep))
+		if (event.target.id === 'minus') {
+			setSampleBarIndex(Math.max(sampleBarIndex-1, 0))
+		} else if (event.target.id === 'plus') {
+			setSampleBarIndex(Math.min(sampleBarIndex+1, maxRanges-1))
+		}
+	}
+
+	const handleSampleBarFast = (event) => {
+		if (event.target.id === 'toStart') {
+			setSampleBarIndex(0)
+		} else if (event.target.id === 'toEnd') {
+			setSampleBarIndex(maxRanges-1)
 		}
 	}
 
 	// ButtonGroup component to select sample range
 	const sampleButtonGroup = (
-		<Box
-			key="sample-counts-menu"
-			sx={{
-				display: 'flex',
-				flexDirection: 'row',
-				flexWrap: 'wrap',
-				justifyContent: 'right',
-				alignItems: 'right',
-			}}
-		>
-			<ButtonGroup variant="contained" aria-label="outlined primary button group">
-				<Button id="previous" onClick={handleSampleBarButtonClick}>Previous {barStep}</Button>
-				<Button id="next" onClick={handleSampleBarButtonClick}>Next {barStep}</Button>
-			</ButtonGroup>
+		<Box display="flex" alignItems="center" justifyContent="center">
+			<IconButton onClick={handleSampleBarFast}>
+				<KeyboardDoubleArrowLeftIcon id="toStart" />
+			</IconButton>
+			<IconButton onClick={handleSampleBarButtonClick}>
+				<KeyboardArrowLeftIcon id="minus" />
+			</IconButton>
+			<TextField
+				id="range"
+				size="small"
+				InputProps={{ readOnly: true }}
+				sx={{ width: 120, textAlign: "center" }}
+				label={`${barplotRanges[sampleBarIndex][0]}-${barplotRanges[sampleBarIndex][1]}`}
+				disabled
+				InputLabelProps={{
+					style: {
+					  width: '100%',
+					  color: 'black'
+					}
+				}}
+			>
+			</TextField>
+			<IconButton onClick={handleSampleBarButtonClick}>
+				<KeyboardArrowRightIcon id="plus" />
+			</IconButton>
+			<IconButton onClick={handleSampleBarFast}>
+				<KeyboardDoubleArrowRightIcon id="toEnd" />
+			</IconButton>
 		</Box>
 	)
 
-	// data for sample classification counts stacked barplots
+	// data for loci classification counts stacked barplots
 	const lociIDs = data.loci_ids;
 	const lociClassCounts = data.loci_data;
 
-	const [lociBarMin, setLociBarMin] = useState(0);
-	const [lociBarMax, setLociBarMax] = useState(lociIDs.length > barStep ? barStep : lociIDs.length);
+	const [lociBarIndex, setLociBarIndex] = useState(0);
+
+	let lociBarMin = 0;
+	let lociBarMax = lociIDs.length > barStep ? barStep : lociIDs.length;
+	// Define array with barplot ranges
+	// Define number of ranges
+	const lociMaxRanges = Math.ceil(lociIDs.length / barStep);
+	let lociBarplotRanges = [];
+	for (let i = 0; i < lociMaxRanges; i++) {
+		lociBarplotRanges.push([lociBarMin, lociBarMax])
+		lociBarMin = Math.min(lociBarMin+barStep, (lociIDs.length)-barStep);
+		lociBarMax = Math.min(lociBarMax+barStep, lociIDs.length)
+	}
 
 	const lociSliderMax = Math.min(lociIDs.length, barStep/2);
 
 	let lociTraces = [];
 	for (let i = 0; i < classes.length; i++) {
 		let classTrace = {
-			x: lociIDs.slice(lociBarMin, lociBarMax),
-			y: lociClassCounts[i].slice(lociBarMin, lociBarMax),
+			x: lociIDs.slice(lociBarplotRanges[lociBarIndex][0], lociBarplotRanges[lociBarIndex][1]),
+			y: lociClassCounts[i].slice(lociBarplotRanges[lociBarIndex][0], lociBarplotRanges[lociBarIndex][1]),
 			type: 'bar',
 			name: classes[i],
 			marker: {
@@ -545,10 +604,10 @@ const ReportPage = () => {
 
 	const lociTracesLayout = {
 		title: {
-			text: "Class Counts Per Locus"
+			text: ""
 		},
 		xaxis: {
-			title: { text: "Sample" },
+			title: { text: "Locus" },
 			showgrid: false,
 			zeroline: false,
 			showline: true,
@@ -571,7 +630,11 @@ const ReportPage = () => {
 		bargroupgap: 0,
 		barmode: 'stack',
 		hovermode: 'x unified',
+		margin: {
+			t:15
+		}
 	};
+
 	const lociTracesConfig = {
 		toImageButtonOptions: 
 			{format: 'svg',
@@ -593,31 +656,51 @@ const ReportPage = () => {
 	);
 
 	const handleLociBarButtonClick = (event) => {
-		if (event.target.id === 'previous') {
-			setLociBarMin(Math.max(lociBarMin-barStep, 0))
-			setLociBarMax(Math.max(lociBarMax-barStep, 0+barStep))
-		} else if (event.target.id === 'next') {
-			setLociBarMax(Math.min(lociBarMax+barStep, lociIDs.length))
-			setLociBarMin(Math.min(lociBarMin+barStep, lociIDs.length-barStep))
+		if (event.target.id === 'minus') {
+			setLociBarIndex(Math.max(lociBarIndex-1, 0))
+		} else if (event.target.id === 'plus') {
+			setLociBarIndex(Math.min(lociBarIndex+1, lociMaxRanges-1))
+		}
+	}
+
+	const handleLociBarFast = (event) => {
+		if (event.target.id === 'toStart') {
+			setLociBarIndex(0)
+		} else if (event.target.id === 'toEnd') {
+			setLociBarIndex(lociMaxRanges-1)
 		}
 	}
 
 	// ButtonGroup component to select loci range
 	const lociButtonGroup = (
-		<Box
-			key="loci-counts-menu"
-			sx={{
-				display: 'flex',
-				flexDirection: 'row',
-				flexWrap: 'wrap',
-				justifyContent: 'right',
-				alignItems: 'right',
-			}}
-		>
-			<ButtonGroup variant="contained" aria-label="outlined primary button group">
-				<Button id="previous" onClick={handleLociBarButtonClick}>Previous {barStep}</Button>
-				<Button id="next" onClick={handleLociBarButtonClick}>Next {barStep}</Button>
-			</ButtonGroup>
+		<Box display="flex" alignItems="center" justifyContent="center">
+			<IconButton onClick={handleLociBarFast}>
+				<KeyboardDoubleArrowLeftIcon id="toStart"/>
+			</IconButton>
+			<IconButton onClick={handleLociBarButtonClick}>
+				<KeyboardArrowLeftIcon id="minus" />
+			</IconButton>
+			<TextField
+				id="range"
+				size="small"
+				InputProps={{ readOnly: true }}
+				sx={{ width: 120, textAlign: "center" }}
+				label={`${lociBarplotRanges[lociBarIndex][0]}-${lociBarplotRanges[lociBarIndex][1]}`}
+				disabled
+				InputLabelProps={{
+					style: {
+					  width: '100%',
+					  color: 'black'
+					}
+				}}
+			>
+			</TextField>
+			<IconButton onClick={handleLociBarButtonClick}>
+				<KeyboardArrowRightIcon id="plus" />
+			</IconButton>
+			<IconButton onClick={handleLociBarFast}>
+				<KeyboardDoubleArrowRightIcon id="toEnd" />
+			</IconButton>
 		</Box>
 	)
 
@@ -633,31 +716,23 @@ const ReportPage = () => {
 
 	// Grid components
 	const sampleStatsGrid = (
-		<Box sx={{ flexGrow: 1 }}>
-			<Grid container spacing={2}>
-				<Grid xs={7}>
-					{sampleTable}
-				</Grid>
-				<Grid xs={5}>
-					{sampleStatsMenu}
-					{sampleHistogram}
-				</Grid>
-			</Grid>
-		</Box>
+		<div>
+			{sampleTable}
+			<div>
+				{sampleStatsMenu}
+				{sampleHistogram}
+			</div>
+		</div>
 	)
 
 	const lociStatsGrid = (
-		<Box sx={{ flexGrow: 1 }}>
-			<Grid container spacing={2}>
-				<Grid xs={7}>
-					{lociTable}
-				</Grid>
-				<Grid xs={5}>
-					{lociStatsMenu}
-					{lociHistogram}
-				</Grid>
-			</Grid>
-		</Box>
+		<div>
+			{lociTable}
+			<div>
+				{lociStatsMenu}
+				{lociHistogram}
+			</div>
+		</div>
 	)
 
 	// Tab Panel for Sample and Loci stats
@@ -675,7 +750,7 @@ const ReportPage = () => {
 
 	const colorscaleValue = [
 		[0, '#f7f7f7'],
-		[1, '#053061']  
+		[1, '#053061']
 	];
 
 	const paData = [
@@ -686,17 +761,20 @@ const ReportPage = () => {
 			type: 'heatmap',
 			showscale: false,
 			colorscale: colorscaleValue,
+			xgap: 0.05,
+			ygap: 0.05,
+			// Necessary to force binary colorscale when values are all the same
+			zmax: 1,
+			zmin: 0
 		}
 	];
-
-	//const heatmapHeight = sampleIDs.length * 10
 
 	const paLayout = {
 		title: {
 			text: ''
 		},
 		xaxis: {
-			title: { text: "Loci" },
+			title: { text: "Locus" },
 			ticks: '',
 			showticklabels: false,
 			showticks: false,
@@ -708,6 +786,10 @@ const ReportPage = () => {
 			showticks: false,
 		},
 		height: 700,
+		margin: {
+			t: 20,
+			r: 20
+		},
 	}
 
 	const paConfig = {
@@ -729,45 +811,492 @@ const ReportPage = () => {
 		</PlotlyPlot>
 	);
 
+	// Component to show a heatmap for a single sample
+	const [selectedSample, setSelectedSample] = useState(undefined);
+
+	const handleSampleSelect = (event, value) => {
+		setSelectedSample(value)
+	}
+
+	let paSampleHeatmap = undefined;
+	if (sampleIDs.includes(selectedSample)) {
+		let selectedSampleIndex = sampleIDs.indexOf(selectedSample)
+		let paSampleData = [
+			{
+				z: [paRows[selectedSampleIndex]],
+				x: lociIDs,
+				y: [sampleIDs[selectedSampleIndex]],
+				type: 'heatmap',
+				showscale: false,
+				colorscale: colorscaleValue,
+				xgap: 0.05,
+				ygap: 0.05,
+				// Necessary to force binary colorscale when values are all the same
+				zmax: 1,
+				zmin: 0
+			}
+		];
+
+		const paSampleLayout = {
+			title: {
+				text: ''
+			},
+			xaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			yaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			height: 80,
+			margin: {
+				t: 20,
+				b: 0,
+				r: 20
+			}
+		}
+
+		const paSampleConfig = {
+			toImageButtonOptions: 
+				{format: 'svg',
+				filename: 'paSingle',
+				height: 80,
+				scale: 1
+			},
+			displayModeBar: false
+		};
+
+		paSampleHeatmap = (
+			<PlotlyPlot
+				key="paSampleHeatmap"
+				plotData={paSampleData}
+				layoutProps={paSampleLayout}
+				configOptions={paSampleConfig}
+			>
+			</PlotlyPlot>
+		);
+	}
+
+	// Create Menu to select single sample
+	const sampleSelectMenu = (
+		<Autocomplete
+			disablePortal
+			id="sample-select"
+			options={sampleIDs}
+			sx={{ width: 300 }}
+			size='small'
+			renderInput={(params) => <TextField {...params} label="Select Sample" />}
+			onInputChange={handleSampleSelect}
+		/>
+	)
+
+	const [selectedLocus, setSelectedLocus] = useState(undefined);
+
+	const handleLocusSelect = (event, value) => {
+		setSelectedLocus(value)
+	}
+
+	let paLocusHeatmap = undefined;
+	if (lociIDs.includes(selectedLocus)) {
+		let selectedLocusIndex = lociIDs.indexOf(selectedLocus)
+
+		// Get locus values for all samples
+		let locusData = []
+		for (let item of paRows) {
+			locusData.push([item[selectedLocusIndex]])
+		}
+
+		let paLocusData = [
+			{
+				z: locusData,
+				x: [lociIDs[selectedLocusIndex]],
+				y: sampleIDs,
+				type: 'heatmap',
+				showscale: false,
+				colorscale: colorscaleValue,
+				xgap: 0.05,
+				ygap: 0.05,
+				// Necessary to force binary colorscale when values are all the same
+				zmax: 1,
+				zmin: 0
+			}
+		];
+
+		const paLocusLayout = {
+			title: {
+				text: ''
+			},
+			xaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			yaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			height: 700,
+			width: 80,
+			margin: {
+				t: 20,
+				l: 0,
+				r: 20
+			}
+		}
+
+		const paLocusConfig = {
+			toImageButtonOptions: 
+				{format: 'svg',
+				filename: 'paSingle',
+				height: 700,
+				scale: 1
+			},
+			displayModeBar: false
+		};
+
+		paLocusHeatmap = (
+			<PlotlyPlot
+				key="paLocusHeatmap"
+				plotData={paLocusData}
+				layoutProps={paLocusLayout}
+				configOptions={paLocusConfig}
+			>
+			</PlotlyPlot>
+		);
+	}
+
+	// Create Menu to select single locus
+	const locusSelectMenu = (
+		<Autocomplete
+			disablePortal
+			id="locus-select"
+			options={lociIDs}
+			sx={{ width: 300 }}
+			size='small'
+			renderInput={(params) => <TextField {...params} label="Select Locus" />}
+			onInputChange={handleLocusSelect}
+		/>
+	)
+
 	const paTitle = (
 		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
 			Presence-Absence Heatmap
 		</Typography>
 	);
 
+	// Menu component
+	const paMenu = (
+		<Box
+			key="pa-options-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			{sampleSelectMenu}
+			{locusSelectMenu}
+		</Box>
+	);
+
+	const paHeatmaps = (
+		<Grid
+			key="h-heatmaps"
+			container
+			spacing={0.5}
+		>
+			<Grid xs={11}>
+				{paSampleHeatmap}
+			</Grid>
+			<Grid xs={1}>
+			</Grid>
+			<Grid xs={11}>
+				{paHeatmap}
+			</Grid>
+			<Grid xs={1}>
+				{paLocusHeatmap}
+			</Grid>
+		</Grid>
+	);
+
 	const paComponent = (
 		<AccordionMUI
 			summaryText={paTitle}
-			detailsData={[paHeatmap]}
+			detailsData={[paMenu, paHeatmaps]}
 			expanded={false}
 		>
 		</AccordionMUI>
 	);
 
+	// Component for Distance Matrix Heatmap
+	const dmRows = data.distance_matrix;
+
+	const dmData = [
+		{
+			z: dmRows,
+			x: sampleIDs,
+			y: sampleIDs,
+			type: 'heatmap',
+			showscale: true,
+			colorscale: 'Viridis',
+			xgap: 0.05,
+			ygap: 0.05
+		}
+	];
+
+	const dmLayout = {
+		title: {
+			text: ''
+		},
+		xaxis: {
+			title: { text: "Sample" },
+			ticks: '',
+			showticklabels: false,
+			showticks: false,
+		},
+		yaxis: {
+			title: { text: "Sample" },
+			ticks: '',
+			showticklabels: false,
+			showticks: false,
+		},
+		height: 700,
+		margin: {
+			t: 20,
+		}
+	}
+
+	const dmConfig = {
+		toImageButtonOptions: 
+			{format: 'svg',
+			 filename: 'pa',
+			 height: 700,
+			 scale: 1
+		}
+	};
+
+	const dmHeatmap = (
+		<PlotlyPlot
+			key="dmHeatmap"
+			plotData={dmData}
+			layoutProps={dmLayout}
+			configOptions={dmConfig}
+		>
+		</PlotlyPlot>
+	);
+
+	// Component to show a heatmap for a single sample
+	const [selectedDmSample, setSelectedDmSample] = useState(undefined);
+
+	const handleDmSampleSelect = (event, value) => {
+		setSelectedDmSample(value)
+	}
+
+	let dmSampleHeatmap = undefined;
+	if (sampleIDs.includes(selectedDmSample)) {
+		let selectedDmSampleIndex = sampleIDs.indexOf(selectedDmSample)
+		let dmSampleData = [
+			{
+				z: [dmRows[selectedDmSampleIndex]],
+				x: sampleIDs,
+				y: [sampleIDs[selectedDmSampleIndex]],
+				type: 'heatmap',
+				showscale: false,
+				colorscale: 'Viridis',
+				xgap: 0.05,
+				ygap: 0.05,
+			}
+		];
+
+		const dmSampleLayout = {
+			title: {
+				text: ''
+			},
+			xaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			yaxis: {
+				title: { text: '' },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			height: 80,
+			margin: {
+				t: 20,
+				b: 0,
+			}
+		}
+
+		const dmSampleConfig = {
+			toImageButtonOptions: 
+				{format: 'svg',
+				filename: 'dmSingle',
+				height: 80,
+				scale: 1
+			},
+			displayModeBar: false
+		};
+
+		dmSampleHeatmap = (
+			<PlotlyPlot
+				key="dmSampleHeatmap"
+				plotData={dmSampleData}
+				layoutProps={dmSampleLayout}
+				configOptions={dmSampleConfig}
+			>
+			</PlotlyPlot>
+		);
+	}
+
+	// Create Menu to select single sample
+	const sampleDmSelectMenu = (
+		<Autocomplete
+			disablePortal
+			id="sample-select"
+			options={sampleIDs}
+			sx={{ width: 300 }}
+			size='small'
+			renderInput={(params) => <TextField {...params} label="Select Sample" />}
+			onInputChange={handleDmSampleSelect}
+		/>
+	)
+
+	// Menu component
+	const dmMenu = (
+		<Box
+			key="dm-options-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			{sampleDmSelectMenu}
+		</Box>
+	);
+
+	const dmHeatmaps = (
+		<Grid
+			key="h-heatmaps"
+			container
+			spacing={0.5}
+		>
+			<Grid xs={12}>
+				{dmSampleHeatmap}
+			</Grid>
+			<Grid xs={12}>
+				{dmHeatmap}
+			</Grid>
+
+		</Grid>
+	);
+
+	const dmTitle = (
+		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+			Distance Matrix Heatmap
+		</Typography>
+	);
+
+	const dmComponent = (
+		<AccordionMUI
+			summaryText={dmTitle}
+			detailsData={[dmMenu, dmHeatmaps]}
+			expanded={false}
+		>
+		</AccordionMUI>
+	);
+
+	// get data for Phylocanvas tree
+	const phyloData = data.cgMLST_tree;
+
+	// Define title for tree component
+	const phylogeneticElementTitle = (
+		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+			Core-genome Neighbor-Joining Tree
+		</Typography>
+	);
+
+	let phylogeneticElementTree = undefined;
+	if (phyloData.length > 0) {
+		phylogeneticElementTree = (
+			<Box key="tree-box" sx={{ p: 1 }}>
+				<PhylogeneticTree
+					treeSource={phyloData}
+					validIDs={sampleIDs}
+				>
+				</PhylogeneticTree>
+			</Box>
+		)
+	};
+
+	// Create component to display tree
+	let PhylogeneticElement = undefined;
+	if (phylogeneticElementTree !== undefined) {
+		PhylogeneticElement = (
+			<AccordionMUI
+				summaryText={phylogeneticElementTitle}
+				detailsData={[phylogeneticElementTree]}
+				expanded={false}
+			>
+			</AccordionMUI>
+		);
+	}
+
 	return (
 		<div className={classes.mainDiv}>
-			<div className={classes.secondaryDiv}>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
 				{summaryTable}
 			</div>
-			<div className={classes.secondaryDiv}>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
 				<TabPanelMUI
 					ContentTitles={TabPanelTitles}
 					ContentData={TabPanelData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div className={classes.secondaryDiv}>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
 				<TabPanelMUI
 					ContentTitles={StatsTabPanelTitles}
 					ContentData={StatsTabPanelData}
 				>
 				</TabPanelMUI>
 			</div>
-			<div className={classes.secondaryDiv}>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
 				{LociAnnotationsTable}
 			</div>
-			<div className={classes.secondaryDiv}>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
 				{paComponent}
+			</div>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
+				{dmComponent}
+			</div>
+			{/* <div className={classes.secondaryDiv}> */}
+			<div style={{marginTop: "20px"}}>
+				{PhylogeneticElement}
 			</div>
 		</div>
 	  );

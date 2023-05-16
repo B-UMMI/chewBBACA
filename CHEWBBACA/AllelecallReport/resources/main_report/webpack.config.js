@@ -8,10 +8,13 @@ module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "schema_bundle.js",
+    filename: "loci_bundle.js",
   },
   resolve: {
-    fallback: { 'process/browser': require.resolve('process/browser'), }
+    fallback: { 'process/browser': require.resolve('process/browser'),
+                'buffer': require.resolve('buffer/') ,
+                'util': require.resolve('util/')
+              },
   },
   module: {
     rules: [

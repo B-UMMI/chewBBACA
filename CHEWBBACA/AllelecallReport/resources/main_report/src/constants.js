@@ -57,6 +57,8 @@ export let alertMessages = [
 	["Each point (locus) is clickable and will open a page with more details about it.", "info"],
 ];
 
+export const treeDownloadOptions = ["SVG", "Newick", "JSON"];
+
 export const globalTableOptions = {
 	responsive: "simple",
 	selectableRowsHeader: false,

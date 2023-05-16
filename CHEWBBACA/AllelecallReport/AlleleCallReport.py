@@ -15,6 +15,7 @@ import math
 import json
 import shutil
 import pickle
+import subprocess
 import statistics
 import pandas as pd
 from collections import Counter
@@ -29,7 +30,8 @@ try:
         fasta_operations as fao,
         sequence_manipulation as sm,
         iterables_manipulation as im,
-        multiprocessing_operations as mo)
+        multiprocessing_operations as mo,
+        distance_matrix as dm)
     from ExtractCgMLST import Extract_cgAlleles
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
@@ -38,7 +40,8 @@ except ModuleNotFoundError:
         fasta_operations as fao,
         sequence_manipulation as sm,
         iterables_manipulation as im,
-        multiprocessing_operations as mo)
+        multiprocessing_operations as mo,
+        distance_matrix as dm)
     from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
 
 
@@ -123,11 +126,26 @@ def call_mafft(genefile):
         return False
 
 
-input_files = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_results'
-schema_directory = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/schema_seed'
-output_directory = '/home/rmamede/Desktop/AlleleCallReport_test'
+def run_fasttree(alignment_file, tree_file):
+    """
+    """
+    proc = subprocess.Popen(['FastTree', '-fastest', '-nosupport',
+                             '-noml', '-out', tree_file, alignment_file],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+
+    # Read the stdout from FastTree
+    stdout = proc.stdout.readlines()
+    stderr = proc.stderr.readlines()
+
+    return [stdout, stderr]
+
+
+input_files = '/home/rmamede/Desktop/CAML_2023/presentation/lynskey_results'
+schema_directory = '/home/rmamede/Desktop/CAML_2023/presentation/spyogenes_schema_chewieNS'
+output_directory = '/home/rmamede/Desktop/CAML_2023/presentation/AlleleCallReport_test'
 cpu_cores = 6
-annotations = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/spneumo_annotations/schema_seed_annotations.tsv'
+annotations = '/home/rmamede/Desktop/CAML_2023/presentation/spyogenes_annotations/annotations.tsv'
 loci_reports = True
 translation_table = 11
 def main(input_files, schema_directory, output_directory, annotations,
@@ -141,6 +159,8 @@ def main(input_files, schema_directory, output_directory, annotations,
     sample_statistics_file = fo.join_paths(input_files,
                                            ['results_statistics.tsv'])
     sample_counts = pd.read_csv(sample_statistics_file, delimiter='\t')
+    # Sort based on decreasing number of EXC
+    sample_counts = sample_counts.sort_values(by=['EXC'], ascending=False)
 
     # Get total number of samples
     total_samples = len(sample_counts)
@@ -156,6 +176,8 @@ def main(input_files, schema_directory, output_directory, annotations,
     loci_statistics_file = fo.join_paths(input_files,
                                     ['loci_summary_stats.tsv'])
     loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
+    # Sort based on decreasing number of EXC
+    loci_counts = loci_counts.sort_values(by=['EXC'], ascending=False)
 
     # Get total number of loci
     total_loci = len(loci_counts)
@@ -206,19 +228,20 @@ def main(input_files, schema_directory, output_directory, annotations,
         valid = sum(sample_line[1:3])
         invalid = sum(sample_line[3:11])
         total_cds = sample_stats[sample][1]
-        classified_loci = valid + invalid
-        classified_proportion = round(classified_loci/total_cds, 3)
-        classified_proportion_schema = round(classified_loci/total_loci, 3)
-        sample_stats[sample].append(int(classified_loci))
+        identified_loci = valid + invalid
+        ## Can I get the exact number of classified CDSs? I think this only counts 1 CDS per NIPH, NIPHEM, ...
+        classified_proportion = round(identified_loci/total_cds, 3)
+        identified_proportion = round(identified_loci/total_loci, 3)
         sample_stats[sample].append(float(classified_proportion))
-        sample_stats[sample].append(float(classified_proportion_schema))
+        sample_stats[sample].append(int(identified_loci))
+        sample_stats[sample].append(float(identified_proportion))
         sample_stats[sample].append(int(valid))
         sample_stats[sample].append(int(invalid))
 
     sample_stats_columns = ['Sample', 'Total Contigs', 'Total CDSs',
-                            'Classified Loci', 'Proportion of Classified CDSs',
-                            'Proportion of Classified Loci',
-                            'Valid Classes', 'Invalid Classes']
+                            'Proportion of Classified CDSs', 'Identified Loci',
+                            'Proportion of Identified Loci',
+                            'Valid Classifications', 'Invalid Classifications']
     
     sample_stats_rows = []
     for k, v in sample_stats.items():
@@ -236,6 +259,9 @@ def main(input_files, schema_directory, output_directory, annotations,
         sample_proportion = round(valid/total_samples, 3)
         loci_stats.append([locus_id, int(total_cds), int(valid),
                            int(invalid), float(sample_proportion)])
+
+    # Sort loci based on decreasing sample presence
+    loci_stats = sorted(loci_stats, key=lambda x: x[4], reverse=True)
 
     loci_stats_columns = ['Locus', 'Total CDSs', 'Valid Classes',
                           'Invalid Classes', 'Proportion Samples']
@@ -267,10 +293,10 @@ def main(input_files, schema_directory, output_directory, annotations,
     loci_sums = loci_counts[loci_counts.columns[1:]].sum(axis=0)
     loci_sums = loci_sums.tolist()
 
-    summary_columns = ('Total Samples\tTotal Loci\tTotal CDSs\tTotal '
-                       'Classified\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
-                       'NIPHEM\tALM\tASM\tPAMA\tLNF')
-    summary_columns = summary_columns.split('\t')
+    summary_columns = ['Total Samples', 'Total Loci', 'Total CDSs',
+                       'Total CDSs Classified', 'EXC', 'INF',
+                       'PLOT3', 'PLOT5', 'LOTSC', 'NIPH',
+                       'NIPHEM', 'ALM', 'ASM', 'PAMA', 'LNF']
 
     summary_rows = [total_samples, total_loci, total_cds, loci_sums[-1]]
     summary_rows.extend(loci_sums[:-1])
@@ -288,28 +314,10 @@ def main(input_files, schema_directory, output_directory, annotations,
 
     # build presence/absence matrix
     pa_matrix, pa_outfile = Extract_cgAlleles.presAbs(masked_matrix, temp_directory)
-    pa_lines = pa_matrix.values.tolist()
 
-    report_data = {"summaryData": [{"columns": summary_columns},
-                                   {"rows": [summary_rows]}],
-                   "sample_ids": sample_ids,
-                   "sample_data": sample_data,
-                   "loci_ids": loci_ids,
-                   "loci_data": loci_data,
-                   "sample_stats": [{"columns": sample_stats_columns},
-                                    {"rows": sample_stats_rows}],
-                   "loci_stats": [{"columns": loci_stats_columns},
-                                  {"rows": loci_stats}],
-                   "annotations": [{"columns": annotation_values[0]},
-                                   {"rows": annotation_values[1]}],
-                   "presence_absence": pa_lines,
-                   }
+    # Distance matrix
 
-    # Write Schema Report HTML file
-    report_html = ct.ALLELECALL_REPORT_HTML
-    report_html = report_html.format(json.dumps(report_data))
-    report_html_file = fo.join_paths(output_directory, ['main_report.html'])
-    fo.write_to_file(report_html, report_html_file, 'w', '\n')
+
 
     # Create loci reports
     if loci_reports:
@@ -364,13 +372,91 @@ def main(input_files, schema_directory, output_directory, annotations,
                                             mo.function_helper,
                                             cpu_cores,
                                             show_progress=True)
-        
+        mafft_files = [file for file in results if file is not False]
+
         # Determine core genome at 100%
+        cgMLST_genes, cgMLST_counts = Extract_cgAlleles.compute_cgMLST(pa_matrix,
+                                                                       sample_ids,
+                                                                       1,
+                                                                       len(sample_ids))
+
         # Concatenate alignment files from core
+        cgMLST_genes = cgMLST_genes.tolist()
+        cgMLST_alignment_files = {locus: fo.join_paths(fasta_dir, [f'{locus}_protein_aligned.fasta'])
+                                  for locus in cgMLST_genes}
+        sample_alignment_files = []
+        # Not dealing well with '*' in allele ids
+        for sample in sample_ids:
+            print(sample)
+            alignment = ''
+            for locus, file in cgMLST_alignment_files.items():
+                # Open alignmnet file
+                current_file = file
+                seqs = fao.import_sequences(current_file)
+                try:
+                    alignment += seqs[sample]
+                except Exception as e:
+                    print(f'Could not get {sample} allele for locus {locus}.')
+            # Save cgMLST alignmnet for sample
+            sample_cgMLST_alignment = fo.join_paths(fasta_dir, [f'{sample}_cgMLST_alignment.fasta'])
+            align_record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [sample, alignment])
+            fo.write_lines([align_record], sample_cgMLST_alignment)
+            sample_alignment_files.append(sample_cgMLST_alignment)
+
+        # Concatenate all cgMLST alignmnet records
+        full_alignment = fo.join_paths(fasta_dir, ['cgMLST_alignment.fasta'])
+        fo.concatenate_files(sample_alignment_files, full_alignment)
         
+        # Compute NJ tree with FastTree
+        out_tree = fo.join_paths(fasta_dir, ['cgMLST.tree'])
+        run_fasttree(full_alignment, out_tree)
 
     # Create sample reports
     # if sample_reports:
+
+    tree_data = fo.read_file(out_tree)        
+
+    # Sort Presence-Absence matrix based on decreasing loci presence
+    sorted_loci = [x[0] for x in loci_stats]
+    pa_matrix = pa_matrix[sorted_loci]
+    pa_lines = pa_matrix.values.tolist()
+
+    # Compute distance matrix
+    dm_output_dir = fo.join_paths(temp_directory, ['distance_matrix'])
+    dm.main(allelic_profiles_file, dm_output_dir, cpu_cores, True)
+
+    # Import distance matrix and sort
+    dm_file = '/home/rmamede/Desktop/CAML_2023/presentation/AlleleCallReport_test/temp/distance_matrix/results_alleles_allelic_differences_symmetric.tsv'
+    distance_m = matrix = pd.read_csv(dm_file, header=0, index_col=0,
+                                      sep='\t', low_memory=False)
+    # Sort based on M1UK first
+    lynskey_ids = fo.read_lines('/home/rmamede/Desktop/CAML_2023/presentation/lynskey_sorted.txt')
+    distance_m = distance_m[lynskey_ids]
+    distance_m = distance_m.reindex(lynskey_ids)
+    dm_lines = distance_m.values.tolist()
+
+    report_data = {"summaryData": [{"columns": summary_columns},
+                                   {"rows": [summary_rows]}],
+                   "sample_ids": sample_ids,
+                   "sample_data": sample_data,
+                   "loci_ids": loci_ids,
+                   "loci_data": loci_data,
+                   "sample_stats": [{"columns": sample_stats_columns},
+                                    {"rows": sample_stats_rows}],
+                   "loci_stats": [{"columns": loci_stats_columns},
+                                  {"rows": loci_stats}],
+                   "annotations": [{"columns": annotation_values[0]},
+                                   {"rows": annotation_values[1]}],
+                   "presence_absence": pa_lines,
+                   "distance_matrix": dm_lines,
+                   "cgMLST_tree": tree_data,
+                   }
+
+    # Write Schema Report HTML file
+    report_html = ct.ALLELECALL_REPORT_HTML
+    report_html = report_html.format(json.dumps(report_data))
+    report_html_file = fo.join_paths(output_directory, ['main_report.html'])
+    fo.write_to_file(report_html, report_html_file, 'w', '\n')        
 
 
 # Add info alert about valid (EXC+INF) and invalid (PLOT3+PLOT5+NIPH+NIPHEM+ASM+ALM)

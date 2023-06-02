@@ -15,7 +15,6 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 				})
 	});
 
-	// add link to locus ID
 	if (tableConditionalFormatting) {
 		for (let [key, value] of Object.entries(tableConditionalFormatting)) {
 			// Add formatting to columns whose name contains the key
@@ -40,7 +39,9 @@ const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormat
 	  );
 
 	return (
-		<div>{total_data_table}</div>
+		<div>
+			{total_data_table}
+		</div>
 	)
 };
 

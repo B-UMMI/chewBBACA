@@ -8,7 +8,7 @@ module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "loci_bundle.js",
+    filename: "report_bundle.js",
   },
   resolve: {
     fallback: { 'process/browser': require.resolve('process/browser'),

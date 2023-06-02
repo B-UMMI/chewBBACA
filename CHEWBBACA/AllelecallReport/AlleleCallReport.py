@@ -141,11 +141,11 @@ def run_fasttree(alignment_file, tree_file):
     return [stdout, stderr]
 
 
-input_files = '/home/rmamede/Desktop/CAML_2023/presentation/lynskey_results'
-schema_directory = '/home/rmamede/Desktop/CAML_2023/presentation/spyogenes_schema_chewieNS'
-output_directory = '/home/rmamede/Desktop/CAML_2023/presentation/AlleleCallReport_test'
+input_files = '/home/rmamede/Desktop/AlleleCallReport_test/lynskey_results'
+schema_directory = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_schema_chewieNS'
+output_directory = '/home/rmamede/Desktop/AlleleCallReport_test/AlleleCallReport_test'
 cpu_cores = 6
-annotations = '/home/rmamede/Desktop/CAML_2023/presentation/spyogenes_annotations/annotations.tsv'
+annotations = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_annotations/annotations.tsv'
 loci_reports = True
 translation_table = 11
 def main(input_files, schema_directory, output_directory, annotations,

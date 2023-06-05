@@ -17,15 +17,15 @@ import argparse
 
 try:
     from __init__ import __version__
-    from AlleleCall import AlleleCall
-    from CreateSchema import CreateSchema
-    from SchemaEvaluator import schema_evaluator
-    from AllelecallReport import AlleleCallReport
-    from PrepExternalSchema import PrepExternalSchema
-    from UniprotFinder import uniprot_find
-    from ExtractCgMLST import Extract_cgAlleles
-    from utils import (profile_joiner,
-                       RemoveGenes,
+    from AlleleCall import allele_call
+    from CreateSchema import create_schema
+    from SchemaEvaluator import evaluate_schema
+    from AlleleCallReport import evaluate_calls
+    from PrepExternalSchema import adapt_schema
+    from UniprotFinder import annotate_schema
+    from ExtractCgMLST import determine_cgmlst
+    from utils import (join_profiles,
+                       remove_genes,
                        profiles_sqlitedb as ps,
                        process_datetime as pdt,
                        constants as ct,
@@ -34,19 +34,19 @@ try:
 
     from utils.parameters_validation import ModifiedHelpFormatter
 
-    from CHEWBBACA_NS import (down_schema, load_schema,
-                              sync_schema, stats_requests)
+    from CHEWBBACA_NS import (download_schema, upload_schema,
+                              synchronize_schema, stats_requests)
 except ModuleNotFoundError:
     from CHEWBBACA import __version__
-    from CHEWBBACA.AlleleCall import AlleleCall
-    from CHEWBBACA.CreateSchema import CreateSchema
-    from CHEWBBACA.SchemaEvaluator import schema_evaluator
-    from CHEWBBACA.AllelecallReport import AlleleCallReport
-    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
-    from CHEWBBACA.UniprotFinder import uniprot_find
-    from CHEWBBACA.ExtractCgMLST import Extract_cgAlleles
-    from CHEWBBACA.utils import (profile_joiner,
-                                 RemoveGenes,
+    from CHEWBBACA.AlleleCall import allele_call
+    from CHEWBBACA.CreateSchema import create_schema
+    from CHEWBBACA.SchemaEvaluator import evaluate_schema
+    from CHEWBBACA.AlleleCallReport import evaluate_calls
+    from CHEWBBACA.PrepExternalSchema import adapt_schema
+    from CHEWBBACA.UniprotFinder import annotate_schema
+    from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+    from CHEWBBACA.utils import (join_profiles,
+                                 remove_genes,
                                  profiles_sqlitedb as ps,
                                  process_datetime as pdt,
                                  constants as ct,
@@ -55,15 +55,15 @@ except ModuleNotFoundError:
 
     from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
-    from CHEWBBACA.CHEWBBACA_NS import (down_schema, load_schema,
-                                        sync_schema, stats_requests)
+    from CHEWBBACA.CHEWBBACA_NS import (download_schema, upload_schema,
+                                        synchronize_schema, stats_requests)
 
 
 version = __version__
 
 
 @pdt.process_timer
-def create_schema():
+def run_create_schema():
 
     def msg(name=None):
         # simple command to create schema from genomes
@@ -211,7 +211,7 @@ def create_schema():
     args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
     # run CreateSchema process
-    CreateSchema.main(**vars(args))
+    create_schema.main(**vars(args))
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
     # copy training file to schema directory
@@ -238,7 +238,7 @@ def create_schema():
 
 
 @pdt.process_timer
-def allele_call():
+def run_allele_call():
 
     def msg(name=None):
         # simple command to perform AlleleCall with schema default parameters
@@ -527,7 +527,7 @@ def allele_call():
               'Prodigal mode': args.prodigal_mode,
               'Mode': args.mode}
 
-    AlleleCall.main(genome_list, loci_list, args.schema_directory,
+    allele_call.main(genome_list, loci_list, args.schema_directory,
                     args.output_directory, args.no_inferred,
                     args.output_unclassified, args.output_missing,
                     args.output_novel, args.no_cleanup, args.hash_profiles,
@@ -542,7 +542,7 @@ def allele_call():
 
 
 @pdt.process_timer
-def evaluate_schema():
+def run_evaluate_schema():
 
     def msg(name=None):
         # simple command to evaluate schema or set of loci
@@ -656,19 +656,19 @@ def evaluate_schema():
 
     args.genes_list = loci_list
 
-    schema_evaluator.main(**vars(args))
+    evaluate_schema.main(**vars(args))
 
     # Delete file with list of loci that were evaluated
     fo.remove_files([loci_list])
 
 
 @pdt.process_timer
-def evaluate_results():
+def run_evaluate_calls():
 
     def msg(name=None):
         # simple command to analyse allele calling results
-        simple_cmd = ('chewBBACA.py AlleleCallReport -i <results_folder> '
-                      '-o <output_directory> --cpu <cpu_cores>')
+        simple_cmd = ('chewBBACA.py AlleleCallReport -i <input_files> '
+                      '-g <schema_directory> -o <output_directory> --cpu <cpu_cores>')
 
         usage_msg = (
             '\nAnalyse allele calling results with default parameters:\n  {0}\n'.format(simple_cmd))
@@ -733,11 +733,11 @@ def evaluate_results():
     if created is False:
         sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 
-    AlleleCallReport.main(**vars(args))
+    allelecall_evaluator.main(**vars(args))
 
 
 @pdt.process_timer
-def extract_cgmlst():
+def run_determine_cgmlst():
 
     def msg(name=None):
         # simple command to determine loci that constitute cgMLST
@@ -811,11 +811,11 @@ def extract_cgmlst():
     args = parser.parse_args()
     del args.ExtractCgMLST
 
-    Extract_cgAlleles.main(**vars(args))
+    determine_cgmlst.main(**vars(args))
 
 
 @pdt.process_timer
-def remove_genes():
+def run_remove_genes():
 
     def msg(name=None):
 
@@ -861,11 +861,11 @@ def remove_genes():
     args = parser.parse_args()
     del args.RemoveGenes
 
-    RemoveGenes.main(**vars(args))
+    remove_genes.main(**vars(args))
 
 
 @pdt.process_timer
-def join_profiles():
+def run_join_profiles():
 
     def msg(name=None):
 
@@ -909,7 +909,7 @@ def join_profiles():
 
 
 @pdt.process_timer
-def prep_schema():
+def run_adapt_schema():
 
     def msg(name=None):
 
@@ -1068,7 +1068,7 @@ def prep_schema():
           f'adaptation and {args.size_threshold} to store in the schema '
           'config file.')
 
-    PrepExternalSchema.main(args.input_files, output_dirs,
+    adapt_external_schema.main(args.input_files, output_dirs,
                             args.cpu_cores, args.blast_score_ratio,
                             adaptation_ml, args.translation_table,
                             adaptation_st, args.blast_path)
@@ -1097,7 +1097,7 @@ def prep_schema():
 
 
 @pdt.process_timer
-def find_uniprot():
+def run_annotate_schema():
 
     def msg(name=None):
 
@@ -1205,11 +1205,11 @@ def find_uniprot():
     args = parser.parse_args()
     del args.UniprotFinder
 
-    uniprot_find.main(**vars(args))
+    annotate_schema.main(**vars(args))
 
 
 @pdt.process_timer
-def download_schema():
+def run_download_schema():
 
     def msg(name=None):
         # simple command to download a schema from the NS
@@ -1294,11 +1294,11 @@ def download_schema():
     args = parser.parse_args()
     del args.DownloadSchema
 
-    down_schema.main(**vars(args))
+    download_schema.main(**vars(args))
 
 
 @pdt.process_timer
-def upload_schema():
+def run_upload_schema():
 
     def msg(name=None):
         # simple command to load a schema to the NS
@@ -1402,11 +1402,11 @@ def upload_schema():
     args = parser.parse_args()
     del args.LoadSchema
 
-    load_schema.main(**vars(args))
+    upload_schema.main(**vars(args))
 
 
 @pdt.process_timer
-def synchronize_schema():
+def run_synchronize_schema():
 
     def msg(name=None):
         # simple command to synchronize a schema with its NS version
@@ -1491,7 +1491,7 @@ def synchronize_schema():
 
 
 @pdt.process_timer
-def ns_stats():
+def run_stats_requests():
 
     def msg(name=None):
         # simple command to list species and totals
@@ -1559,40 +1559,40 @@ def main():
 
     functions_info = {'CreateSchema': ['Create a gene-by-gene schema based on '
                                        'a set of genome assemblies or coding sequences.',
-                                       create_schema],
+                                       run_create_schema],
                       'AlleleCall': ['Determine the allelic profiles of a set of '
                                      'bacterial genomes based on a schema.',
-                                     allele_call],
-                      'SchemaEvaluator': ['Tool that builds an html output '
-                                          'to better navigate/visualize '
-                                          'your schema.',
-                                          evaluate_schema],
+                                     run_allele_call],
+                      'SchemaEvaluator': ['Build an interactive report for schema evaluation.',
+                                          run_evaluate_schema],
+                      'AlleleCallReport': ['Build an interactive report for allele calling results evaluation.',
+                                           run_evaluate_calls],
                       'ExtractCgMLST': ['Determines the set of '
                                         'loci that constitute the '
                                         'core genome based on loci '
                                         'presence thresholds.',
-                                        extract_cgmlst],
+                                        run_determine_cgmlst],
                       'RemoveGenes': ['Remove a list of loci from '
                                       'your allele call output.',
-                                      remove_genes],
+                                      run_remove_genes],
                       'PrepExternalSchema': ['Adapt an external schema to be '
                                              'used with chewBBACA.',
-                                             prep_schema],
+                                             run_adapt_schema],
                       'JoinProfiles': ['Join allele calling results from '
                                        'different runs.',
-                                       join_profiles],
+                                       run_join_profiles],
                       'UniprotFinder': ['Retrieve annotations for loci in a schema.',
-                                        find_uniprot],
+                                        run_annotate_schema],
                       'DownloadSchema': ['Download a schema from Chewie-NS.',
-                                         download_schema],
+                                         run_download_schema],
                       'LoadSchema': ['Upload a schema to Chewie-NS.',
-                                     upload_schema],
+                                     run_upload_schema],
                       'SyncSchema': ['Synchronize a schema with its remote version '
                                      'in Chewie-NS.',
-                                     synchronize_schema],
+                                     run_synchronize_schema],
                       'NSStats': ['Retrieve basic information about the species '
                                   'and schemas in Chewie-NS.',
-                                  ns_stats]}
+                                  run_stats_requests]}
 
     matches = ["--v", "-v", "-version", "--version"]
     if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):

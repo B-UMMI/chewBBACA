@@ -3,24 +3,23 @@
 """
 Purpose
 -------
-
+This module generates an interactive HTML report for a schema with
+statistics about the allele size per locus and an analysis to
+identify alleles that are not complete coding sequences or that
+deviate from the allele mode size and minimum length. There is
+also the option to include loci annotations provided in a TSV
+file and to create a detailed HTML report for each locus that
+can include a protein MSA and a NJ Tree.
 
 Code documentation
 ------------------
 """ 
 
 
-import os
-import math
 import json
-import shutil
-import pickle
 import subprocess
-import statistics
 import pandas as pd
-from collections import Counter
 
-import pandas as pd
 from Bio.Align.Applications import MafftCommandline
 
 try:

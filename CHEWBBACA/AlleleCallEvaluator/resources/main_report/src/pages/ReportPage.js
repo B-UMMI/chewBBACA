@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react';
 
-import { headerMessage, alertMessages, globalTableOptions } from '../constants';
+import { headerMessage, alertMessages, globalTableOptions, sampleTableHiddenColumns, lociTableHiddenColumns } from '../constants';
 
 import classes from './ReportPage.css';
 
@@ -110,6 +110,7 @@ const ReportPage = () => {
 			tableData={sampleStats} 
 			tableTitle="Sample Stats" 
 			tableOptions={sampleTableOptions}
+			hiddenColumns={sampleTableHiddenColumns}
 		>
 		</DataTable>
 	);
@@ -148,6 +149,7 @@ const ReportPage = () => {
 			tableData={lociStats} 
 			tableTitle="Loci Stats" 
 			tableOptions={lociTableOptions}
+			hiddenColumns={lociTableHiddenColumns}
 		>
 		</DataTable>
 	);
@@ -674,11 +676,11 @@ const ReportPage = () => {
 	// ButtonGroup component to select loci range
 	const lociButtonGroup = (
 		<Box display="flex" alignItems="center" justifyContent="center">
-			<IconButton onClick={handleLociBarFast}>
-				<KeyboardDoubleArrowLeftIcon id="toStart"/>
+			<IconButton onClick={handleLociBarFast} size="small">
+				<KeyboardDoubleArrowLeftIcon id="toStart" fontSize="large"/>
 			</IconButton>
-			<IconButton onClick={handleLociBarButtonClick}>
-				<KeyboardArrowLeftIcon id="minus" />
+			<IconButton onClick={handleLociBarButtonClick} size="small">
+				<KeyboardArrowLeftIcon id="minus" fontSize="large"/>
 			</IconButton>
 			<TextField
 				id="range"
@@ -695,11 +697,11 @@ const ReportPage = () => {
 				}}
 			>
 			</TextField>
-			<IconButton onClick={handleLociBarButtonClick}>
-				<KeyboardArrowRightIcon id="plus" />
+			<IconButton onClick={handleLociBarButtonClick} size="small">
+				<KeyboardArrowRightIcon id="plus" fontSize="large"/>
 			</IconButton>
-			<IconButton onClick={handleLociBarFast}>
-				<KeyboardDoubleArrowRightIcon id="toEnd" />
+			<IconButton onClick={handleLociBarFast} size="small">
+				<KeyboardDoubleArrowRightIcon id="toEnd" fontSize="large"/>
 			</IconButton>
 		</Box>
 	)
@@ -884,15 +886,17 @@ const ReportPage = () => {
 
 	// Create Menu to select single sample
 	const sampleSelectMenu = (
-		<Autocomplete
-			disablePortal
-			id="sample-select"
-			options={sampleIDs}
-			sx={{ width: 300 }}
-			size='small'
-			renderInput={(params) => <TextField {...params} label="Select Sample" />}
-			onInputChange={handleSampleSelect}
-		/>
+		<Box key="select-sample" sx={{ p: 1 }}>
+			<Autocomplete
+				disablePortal
+				id="sample-select"
+				options={sampleIDs}
+				sx={{ width: 300 }}
+				size='small'
+				renderInput={(params) => <TextField {...params} label="Select Sample" />}
+				onInputChange={handleSampleSelect}
+			/>
+		</Box>
 	)
 
 	const [selectedLocus, setSelectedLocus] = useState(undefined);
@@ -975,15 +979,17 @@ const ReportPage = () => {
 
 	// Create Menu to select single locus
 	const locusSelectMenu = (
-		<Autocomplete
-			disablePortal
-			id="locus-select"
-			options={lociIDs}
-			sx={{ width: 300 }}
-			size='small'
-			renderInput={(params) => <TextField {...params} label="Select Locus" />}
-			onInputChange={handleLocusSelect}
-		/>
+		<Box key="select-locus" sx={{ p: 1 }}>
+			<Autocomplete
+				disablePortal
+				id="locus-select"
+				options={lociIDs}
+				sx={{ width: 300 }}
+				size='small'
+				renderInput={(params) => <TextField {...params} label="Select Locus" />}
+				onInputChange={handleLocusSelect}
+			/>
+		</Box>
 	)
 
 	const paTitle = (
@@ -1002,7 +1008,8 @@ const ReportPage = () => {
 				flexWrap: 'wrap',
 				justifyContent: 'center',
 				alignItems: 'center',
-				alignContent: 'space-around'
+				alignContent: 'space-around',
+				p: 1
 			}}
 		>
 			{sampleSelectMenu}
@@ -1176,7 +1183,7 @@ const ReportPage = () => {
 		/>
 	)
 
-	// Menu component
+	// Upper Menu component
 	const dmMenu = (
 		<Box
 			key="dm-options-menu"
@@ -1190,6 +1197,128 @@ const ReportPage = () => {
 			}}
 		>
 			{sampleDmSelectMenu}
+		</Box>
+	);
+
+	// Bottom Menu component to find closest strains
+	const [sampleDistanceSelect, setSampleDistanceSelect] = useState(undefined);
+	const [closestSamples, setClosestSamples] = useState(undefined);
+	// Event handler used to change sample to compute distances
+	const handleSampleDistanceSelect = (event, value) => {
+		setSampleDistanceSelect(value)
+	};
+
+	// Component to select sample
+	const sampleClosestStrains = (
+		<Autocomplete
+			disablePortal
+			id="sample-distance-select"
+			options={sampleIDs}
+			sx={{ width: 300 }}
+			size='small'
+			renderInput={(params) => <TextField {...params} label="Select Sample" />}
+			onInputChange={handleSampleDistanceSelect}
+		/>
+	)
+
+	// Component to select distance threshold
+	// State used to set distance threshold value
+	const [distanceValue, setDistanceValue] = useState(10);
+	// Event handler used to change distance threshold value
+	const handleDistanceValue = (value) => {
+		setDistanceValue(+value)
+	};
+
+	const sampleDistanceValue = (
+		<TextField
+			id="distance-value"
+			size="small"
+			sx={{ height: 40, width: 80 }}
+			label="Distance"
+			variant="outlined"
+			defaultValue={distanceValue}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					handleDistanceValue(e.target.value)
+				}
+			}}
+		/>
+	)
+
+	// Find closest samples
+	let selectedSamples = [{'columns': ['Sample', 'Distance']}, {'rows': []}];
+	if (sampleIDs.includes(sampleDistanceSelect)) {
+		// Find closest strains based on distance threshold
+		const sampleIndex = sampleIDs.indexOf(sampleDistanceSelect)
+		let sampleRow = dmRows[sampleIndex]
+		for (let i = 0; i < sampleIDs.length; i++) {
+			if (sampleIDs[i] != sampleDistanceSelect) {
+				if (sampleRow[i] <= distanceValue) {
+					selectedSamples[1].rows.push([sampleIDs[i], sampleRow[i]])
+				}
+			}
+		}
+	}
+
+	console.log(selectedSamples)
+
+	let distanceTable = undefined;
+	if (sampleDistanceSelect) {
+		const distanceTableCustomOptions = {
+			downloadOptions: {
+				filename: "closest_samples.tsv",
+				separator: "\t",
+				filterOptions: {
+					useDisplayedColumnsOnly: true,
+					useDisplayedRowsOnly: true
+				}
+			},
+			filter: true,
+			filterType: 'multiselect',
+			search: true,
+			rowsPerPage: 10,
+			rowsPerPageOptions: [10, 20, 40, 80, 100],
+			jumpToPage: true,
+			draggableColumns: {
+				enabled: true
+			},
+			elevation: 0
+		};
+		const distanceTableOptions = {
+			...globalTableOptions,
+			...distanceTableCustomOptions,
+		};
+	
+		// Component for Distance table
+		distanceTable = (
+			<DataTable
+				tableData={selectedSamples} 
+				tableTitle="Closest Samples" 
+				tableOptions={distanceTableOptions}
+			>
+			</DataTable>
+		);
+	}
+
+	const dmBottomMenu = (
+		<Box
+			key="dm-bottom-menu"
+			sx={{
+				display: 'flex',
+				flexDirection: 'row',
+				flexWrap: 'wrap',
+				justifyContent: 'center',
+				alignItems: 'center',
+				alignContent: 'space-around'
+			}}
+		>
+			<Box key="dm-sample" sx={{ p: 1 }}>
+				{sampleClosestStrains}
+			</Box>
+			<Box key="dm-distance" sx={{ p: 1 }}>
+				{sampleDistanceValue}
+			</Box>
 		</Box>
 	);
 
@@ -1218,7 +1347,7 @@ const ReportPage = () => {
 	const dmComponent = (
 		<AccordionMUI
 			summaryText={dmTitle}
-			detailsData={[dmMenu, dmHeatmaps]}
+			detailsData={[dmMenu, dmHeatmaps, dmBottomMenu, distanceTable]}
 			expanded={false}
 		>
 		</AccordionMUI>

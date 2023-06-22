@@ -223,7 +223,7 @@ const PhylogeneticTree = ({ treeSource, validIDs }) => {
 					label="Node Size"
 					variant="outlined"
 					defaultValue={treeNodeSize}
-					onKeyPress={(e) => {
+					onKeyDown={(e) => {
 						if (e.key === 'Enter') {
 							e.preventDefault();
 							handleTreeNodeSize(e.target.value)

@@ -148,3 +148,7 @@ export const globalTableOptions = {
 	viewColumns: true,
 	pagination: true,
 };
+
+export const sampleTableHiddenColumns = ["EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"];
+
+export const lociTableHiddenColumns = ["EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"];

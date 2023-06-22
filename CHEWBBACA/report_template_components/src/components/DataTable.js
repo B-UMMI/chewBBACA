@@ -1,16 +1,20 @@
 import MUIDataTable from "mui-datatables";
 
 
-const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormatting }) => {
+const DataTable = ({ tableData, tableTitle, tableOptions, tableConditionalFormatting, hiddenColumns }) => {
 
 	let columnData = (tableData[0].columns).map((column) => {
+		let displayColumn = true;
+		if (hiddenColumns) {
+			displayColumn = hiddenColumns.includes(column) ? false : true
+		}
 		return ({ name: column,
 				  label: column,
 				  options: {
 					  filter: true,
 					  sort: true,
 					  sortThirdClickReset: true,
-					  display: true,
+					  display: displayColumn,
 				  },
 				})
 	});

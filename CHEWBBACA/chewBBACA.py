@@ -710,16 +710,22 @@ def run_evaluate_calls():
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads).')
 
-    # parser.add_argument('--loci-reports', required=False,
-    #                     action='store_true', dest='loci_reports',
-    #                     help='If the process should create an individual '
-    #                          'report for each locus.')
+    parser.add_argument('--light', action='store_true', required=False,
+                        dest='light',
+                        help='Do not compute presence-absence matrix, '
+                             'distance matrix and the NJ cgMLST tree.')
 
-    # parser.add_argument('--light', action='store_true', required=False,
-    #                     dest='light',
-    #                     help='If determining loci reports, skips MSA '
-    #                          'computation with MAFFT and does not add '
-    #                          'the Phylogenetic Tree and MSA components.')
+    parser.add_argument('--no-pa', action='store_true', required=False,
+                        dest='no_pa',
+                        help='Do not compute the presence-absence matrix.')
+
+    parser.add_argument('--no-dm', action='store_true', required=False,
+                        dest='no_dm',
+                        help='Do not compute the distance matrix.')
+
+    parser.add_argument('--no-tree', action='store_true', required=False,
+                        dest='no_tree',
+                        help='Do not compute the NJ cgMLST tree.')
 
     args = parser.parse_args()
     del args.AlleleCallReport
@@ -733,7 +739,7 @@ def run_evaluate_calls():
     if created is False:
         sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 
-    allelecall_evaluator.main(**vars(args))
+    evaluate_calls.main(**vars(args))
 
 
 @pdt.process_timer

@@ -19,36 +19,24 @@ Code documentation
 
 import os
 import csv
-import time
 import math
 import shutil
-import pickle
+
 import random
-import argparse
-import traceback
 from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
 
-# these modules must be in the same directory
-#import mask_matrix as mm
-
 try:
     from utils import (
-        constants as ct,
         file_operations as fo,
-        fasta_operations as fao,
-        sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo,
         mask_matrix as mm)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
-        constants as ct,
         file_operations as fo,
-        fasta_operations as fao,
-        sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo,
         mask_matrix as mm)
@@ -529,15 +517,17 @@ def main(input_matrix, output_directory, cpu_cores, symmetric):
 
     if symmetric is True:
         # add 1 to include header
-        symmetric_allelic_differences = symmetrify_matrix(output_pairwise,
-                                                          len(genome_ids)+1,
-                                                          tmp_directory)
-        symmetric_shared_loci = symmetrify_matrix(output_p,
-                                                  len(genome_ids)+1,
-                                                  tmp_directory)
+        output_pairwise = symmetrify_matrix(output_pairwise,
+                                            len(genome_ids)+1,
+                                            tmp_directory)
+        output_p = symmetrify_matrix(output_p,
+                                     len(genome_ids)+1,
+                                     tmp_directory)
 
     print('done.')
     print('Results available in {0}'.format(output_directory))
 
     # delete folder with intermediate pickles
     shutil.rmtree(tmp_directory)
+
+    return [output_pairwise]

@@ -20,7 +20,7 @@ try:
     from AlleleCall import allele_call
     from CreateSchema import create_schema
     from SchemaEvaluator import evaluate_schema
-    from AlleleCallReport import evaluate_calls
+    from AlleleCallEvaluator import evaluate_calls
     from PrepExternalSchema import adapt_schema
     from UniprotFinder import annotate_schema
     from ExtractCgMLST import determine_cgmlst
@@ -41,7 +41,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.AlleleCall import allele_call
     from CHEWBBACA.CreateSchema import create_schema
     from CHEWBBACA.SchemaEvaluator import evaluate_schema
-    from CHEWBBACA.AlleleCallReport import evaluate_calls
+    from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
     from CHEWBBACA.PrepExternalSchema import adapt_schema
     from CHEWBBACA.UniprotFinder import annotate_schema
     from CHEWBBACA.ExtractCgMLST import determine_cgmlst
@@ -667,20 +667,20 @@ def run_evaluate_calls():
 
     def msg(name=None):
         # simple command to analyse allele calling results
-        simple_cmd = ('chewBBACA.py AlleleCallReport -i <input_files> '
-                      '-g <schema_directory> -o <output_directory> --cpu <cpu_cores>')
+        simple_cmd = ('chewBBACA.py AlleleCallEvaluator -i <input_files> '
+                      '-g <schema_directory> -o <output_directory>')
 
         usage_msg = (
             '\nAnalyse allele calling results with default parameters:\n  {0}\n'.format(simple_cmd))
 
         return usage_msg
 
-    parser = argparse.ArgumentParser(prog='AlleleCallReport',
+    parser = argparse.ArgumentParser(prog='AlleleCallEvaluator',
                                      description='',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('AlleleCallReport', nargs='+',
+    parser.add_argument('AlleleCallEvaluator', nargs='+',
                         help='Evaluates allele calling results.')
 
     parser.add_argument('-i', '--input-files', type=str, required=True,
@@ -727,8 +727,13 @@ def run_evaluate_calls():
                         dest='no_tree',
                         help='Do not compute the NJ cgMLST tree.')
 
+    parser.add_argument('--cg-alignment', action='store_true', required=False,
+                        dest='cg_alignment',
+                        help='Compute the cgMLST alignment, even if the '
+                             '`--no-tree` parameter is True.')
+
     args = parser.parse_args()
-    del args.AlleleCallReport
+    del args.AlleleCallEvaluator
 
     # Check if input file path exists
     if not os.path.exists(args.input_files):
@@ -1571,8 +1576,8 @@ def main():
                                      run_allele_call],
                       'SchemaEvaluator': ['Build an interactive report for schema evaluation.',
                                           run_evaluate_schema],
-                      'AlleleCallReport': ['Build an interactive report for allele calling results evaluation.',
-                                           run_evaluate_calls],
+                      'AlleleCallEvaluator': ['Build an interactive report for allele calling results evaluation.',
+                                              run_evaluate_calls],
                       'ExtractCgMLST': ['Determines the set of '
                                         'loci that constitute the '
                                         'core genome based on loci '

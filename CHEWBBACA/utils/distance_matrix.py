@@ -453,7 +453,7 @@ def symmetrify_matrix(input_matrix, matrix_size, tmp_directory):
     return symmetric_output
 
 
-def main(input_matrix, output_directory, cpu_cores, symmetric):
+def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
 
     # create output directory if it does not exist
     if os.path.isdir(output_directory) is False:
@@ -468,14 +468,16 @@ def main(input_matrix, output_directory, cpu_cores, symmetric):
     # classifications
     classes = ['ALM', 'ASM', 'LNF', 'NIPH',
                'NIPHEM', 'PLOT3', 'PLOT5', 'LOTSC']
-    masking_dict = {c: '0' for c in classes}
+    masking_dict = {c: '0' for c in classes}    
 
-    print('Masking matrix before determining pairwise distances...', end='')
     output_masked = os.path.join(output_directory,
                                  '{0}_masked.tsv'.format(input_basename))
-    total_masked = mm.mask_matrix(input_matrix, masking_dict, output_masked)
-    # mask matrix
-    print('masked matrix available at {0}'.format(output_masked))
+    if masked is False:
+        print('Masking matrix before determining pairwise distances...', end='')
+        total_masked = mm.mask_matrix(input_matrix, masking_dict, output_masked)
+        print('masked matrix available at {0}'.format(output_masked))
+    else:
+        fo.copy_file(input_matrix, output_masked)
 
     # create temp directory to store pairwise distances per genome
     tmp_directory = os.path.join(output_directory, 'tmp')
@@ -525,7 +527,6 @@ def main(input_matrix, output_directory, cpu_cores, symmetric):
                                      tmp_directory)
 
     print('done.')
-    print('Results available in {0}'.format(output_directory))
 
     # delete folder with intermediate pickles
     shutil.rmtree(tmp_directory)

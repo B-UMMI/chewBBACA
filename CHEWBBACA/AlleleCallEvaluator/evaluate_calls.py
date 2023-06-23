@@ -3,56 +3,171 @@
 """
 Purpose
 -------
-This module generates an interactive HTML report for a schema with
-statistics about the allele size per locus and an analysis to
-identify alleles that are not complete coding sequences or that
-deviate from the allele mode size and minimum length. There is
-also the option to include loci annotations provided in a TSV
-file and to create a detailed HTML report for each locus that
-can include a protein MSA and a NJ Tree.
+This module generates an interactive HTML report for the allele calling
+results.The report provides summary statistics to evaluate results per
+sample and per locus (with the possibility to provide a TSV file with
+loci annotations to include on a table). The report includes components
+to display a heatmap representing the Loci Presence-Absence matrix, a
+heatmap representing the Distance matrix based on allelic differences
+and a NJ tree based on the cgMLST alignment.
 
 Code documentation
 ------------------
 """
 
 
+import os
 import json
-import subprocess
 import pandas as pd
-
-from Bio.Align.Applications import MafftCommandline
 
 try:
     from utils import (
         constants as ct,
         file_operations as fo,
         fasta_operations as fao,
-        sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo,
-        distance_matrix as dm)
+        distance_matrix as dm,
+        mafft_wrapper as mw,
+        fasttree_wrapper as fw)
     from ExtractCgMLST import determine_cgmlst
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         constants as ct,
         file_operations as fo,
         fasta_operations as fao,
-        sequence_manipulation as sm,
         iterables_manipulation as im,
         multiprocessing_operations as mo,
-        distance_matrix as dm)
+        distance_matrix as dm,
+        mafft_wrapper as mw,
+        fasttree_wrapper as fw)
     from CHEWBBACA.ExtractCgMLST import determine_cgmlst
 
 
-# locus = loci_ids[0]
-# schema_directory = '/home/rmamede/Desktop/test_chewbbaca320/spneumo_schema/schema_seed'
-# allelic_profiles = allelic_profiles_file
-# output_directory = fasta_dir
-def create_locus_fasta(locus, schema_directory, allelic_profiles, output_directory):
+def compute_sample_stats(sample_ids, total_loci, coordinates_file,
+                         sample_counts):
+    """Compute sample statistics to include in the report.
+
+    Parameters
+    ----------
+    sample_ids : list
+        List of sample unique identifiers.
+    total_loci : list
+        List of loci unique identifiers.
+    coordinates_file : str
+        Path to the TSV file with CDS coordinates data created by
+        the AlleleCall module.
+    sample_counts : pandas.core.frame.DataFrame
+        Dataframe with the data from the 'results_statistics.tsv' file
+        created by the AlleleCall module.
+
+    Returns
+    -------
+    sample_stats : dict
+        Dictionary with sample unique identifiers as keys and a list
+        with the computed statistics as values (number of contigs,
+        number of CDSs, list of contig identifiers, proportion of
+        CDSs classified, number of identified loci, proportion of
+        identified loci, valid classifications, invalid classifications
+        and the count for each classification type).
     """
+    sample_stats = {sid: [0, 0, []] for sid in sample_ids}
+    # Get number of contigs, CDSs and list of contig ids per sample
+    with open(coordinates_file, 'r') as infile:
+        # Skip header line
+        header = infile.__next__()
+        for line in infile:
+            current_line = line.strip().split('\t')
+            if current_line[1] not in sample_stats[current_line[0]][2]:
+                sample_stats[current_line[0]][2].append(current_line[1])
+                sample_stats[current_line[0]][0] += 1
+            sample_stats[current_line[0]][1] += 1
+
+    # Get class counts per sample
+    for i, sample in enumerate(sample_stats):
+        sample_line = sample_counts.iloc[i].tolist()
+        # Compute stats
+        # EXC + INF
+        valid = sum(sample_line[1:3])
+        # PLOT3 + PLOT5 + LOTSC + NIPH + NIPHEM + ALM + ASM + PAMALNF"
+        invalid = sum(sample_line[3:11])
+        total_cds = sample_stats[sample][1]
+        # Only counts 1 CDS per NIPH/NIPHEM
+        identified_loci = valid + invalid
+        classified_cds_proportion = round(identified_loci/total_cds, 3)
+        identified_loci_proportion = round(identified_loci/total_loci, 3)
+        # Add computed values to sample stats
+        sample_stats[sample].append(float(classified_cds_proportion))
+        sample_stats[sample].append(int(identified_loci))
+        sample_stats[sample].append(float(identified_loci_proportion))
+        sample_stats[sample].append(int(valid))
+        sample_stats[sample].append(int(invalid))
+        # Add class counts
+        sample_stats[sample].extend(list(map(int, sample_line[1:])))
+
+    return sample_stats
+
+
+def compute_loci_stats(total_samples, loci_counts):
+    """Compute loci statistics to include in the report.
+
+    Parameters
+    ----------
+    total_samples : list
+        Total number of samples.
+    loci_counts: pandas.core.frame.DataFrame
+        Dataframe with the data from the 'loci_summary_stats.tsv' file
+        created by the AlleleCall module.
+
+    Returns
+    -------
+    loci_stats : list
+        List with one sublist per locus. Each sublist includes a
+        locus unique identifier, the total number of CDSs classified
+        for that locus, the number of valid classifications, the
+        number of invalid classifications, the proportion of samples
+        the locus was found in and the count for each classification type.
+    """
+    loci_stats = []
+    for i in range(len(loci_counts)):
+        locus_line = loci_counts.iloc[i]
+        locus_id = locus_line['Locus']
+        total_cds = int(locus_line['Total_CDS'])
+        valid = sum(locus_line[1:3])
+        invalid = sum(locus_line[3:11])
+        sample_proportion = round(valid/total_samples, 3)
+        loci_stats.append([locus_id, int(total_cds), int(valid),
+                           int(invalid), float(sample_proportion),
+                           *list(map(int, locus_line[1:12]))])
+
+    return loci_stats
+
+
+def profile_column_to_fasta(locus, schema_directory, allelic_profiles,
+                            output_directory):
+    """Create a FASTA file with the locus alleles identified in the dataset.
+
+    Parameters
+    ----------
+    locus : str
+        The locus identifier.
+    schema_directory : str
+        Path to the schema directory.
+    allelic_profiles : str
+        Path to the 'results_alleles.tsv' file create by the AlleleCall
+        module.
+    output_directory : str
+        Path to the output directory.
+
+    Returns
+    -------
+    fasta_file : str
+        Path to the FASTA file that contains the allele sequences
+        identified for each sample.
     """
     # Read locus column
-    df = pd.read_csv(allelic_profiles, usecols=['FILE', locus], delimiter='\t', dtype=str)
+    df = pd.read_csv(allelic_profiles, usecols=['FILE', locus],
+                     delimiter='\t', dtype=str)
     locus_column = df[locus].tolist()
     sample_ids = df['FILE'].tolist()
 
@@ -67,7 +182,8 @@ def create_locus_fasta(locus, schema_directory, allelic_profiles, output_directo
         if clean_class in alleles:
             current_sample = sample_ids[i]
             seq = alleles[clean_class]
-            record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [current_sample, seq])
+            record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+                                          [f'{locus}_{current_sample}', seq])
             sequences.append(record)
 
     fasta_file = fo.join_paths(output_directory, [f'{locus}.fasta'])
@@ -76,61 +192,53 @@ def create_locus_fasta(locus, schema_directory, allelic_profiles, output_directo
     return fasta_file
 
 
-def call_mafft(genefile):
-    """Call MAFFT to generate an alignment.
+def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
+    """Concatenate the aligned sequences for a sample.
 
     Parameters
     ----------
-    genefile : str
-        Path to a FASTA file with the sequences to align.
-
-    Returns
-    -------
-    Path to the file with the computed MSA if successful, False otherwise.
+    sample : str
+        Sample identifier.
+    loci : list
+        Loci identifiers.
+    fasta_index : Bio.File._IndexedSeqFileDict
+        Indexed FASTA file to get sequences from.
+    output_directory : str
+        Path to the output directory.
     """
-    try:
-        mafft_cline = MafftCommandline(input=genefile,
-                                       adjustdirection=True,
-                                       treeout=True,
-                                       thread=1,
-                                       retree=1,
-                                       maxiterate=0,
-                                       )
-        stdout, stderr = mafft_cline()
-        path_to_save = genefile.replace(".fasta", "_aligned.fasta")
-        with open(path_to_save, "w") as handle:
-            handle.write(stdout)
+    alignment = ''
+    for locus in loci:
+        # Sequence headers include locus and sample IDs joined by '_'
+        seqid = f'{locus}_{sample}'
+        # Get aligned sequence from index
+        try:
+            alignment += str(fasta_index[seqid].seq)
+        except Exception as e:
+            print(f'Could not get {sample} allele for locus {locus}.')
+    # Save alignment for sample
+    alignment_outfile = fo.join_paths(output_directory,
+                                      [f'{sample}_cgMLST_alignment.fasta'])
+    alignment_record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+                                            [sample, alignment])
+    fo.write_lines([alignment_record], alignment_outfile)
 
-        return path_to_save
-    except Exception as e:
-        print(e)
-        return False
-
-
-def run_fasttree(alignment_file, tree_file):
-    """
-    """
-    proc = subprocess.Popen(['FastTree', '-fastest', '-nosupport',
-                             '-noml', '-out', tree_file, alignment_file],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-
-    # Read the stdout from FastTree
-    stdout = proc.stdout.readlines()
-    stderr = proc.stderr.readlines()
-
-    return [stdout, stderr]
+    return alignment_outfile
 
 
-input_files = '/home/rmamede/Desktop/AlleleCallReport_test/lynskey_results'
-schema_directory = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_schema_chewieNS'
-output_directory = '/home/rmamede/Desktop/AlleleCallReport_test/AlleleCallReport_test'
-cpu_cores = 6
-annotations = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_annotations/annotations.tsv'
-loci_reports = True
-translation_table = 11
+# input_files = '/home/rmamede/Desktop/AlleleCallReport_test/lynskey_results'
+# schema_directory = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_schema_chewieNS'
+# output_directory = '/home/rmamede/Desktop/AlleleCallReport_test/AlleleCallReport_test'
+# cpu_cores = 6
+# annotations = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_annotations/annotations.tsv'
+# loci_reports = True
+# translation_table = 11
+# light = False
+# no_pa = False
+# no_dm = False
+# no_tree = False
+# cg_alignment = True
 def main(input_files, schema_directory, output_directory, annotations,
-         cpu_cores, light, no_pa, no_dm, no_tree):
+         cpu_cores, light, no_pa, no_dm, no_tree, cg_alignment):
 
     # Create temp directory
     temp_directory = fo.join_paths(output_directory, ['temp'])
@@ -140,102 +248,70 @@ def main(input_files, schema_directory, output_directory, annotations,
     sample_statistics_file = fo.join_paths(input_files,
                                            ['results_statistics.tsv'])
     sample_counts = pd.read_csv(sample_statistics_file, delimiter='\t')
+
     # Sort based on decreasing number of EXC
     sample_counts = sample_counts.sort_values(by=['EXC'], ascending=False)
 
-    # Get total number of samples
-    total_samples = len(sample_counts)
     # Get sample identifiers
     sample_ids = sample_counts['FILE'].tolist()
+    # Get total number of samples
+    total_samples = len(sample_ids)
+    print(f'Number of samples: {total_samples}')
 
-    # Data for stacked bar plot with class counts per sample
+    # Data for stacked Bar chart with class counts per sample
     sample_data = []
     for c in ct.ALLELECALL_CLASSIFICATIONS:
         sample_data.append(sample_counts[c].tolist())
 
     # Read "loci_summary_stats.tsv" to get class counts per locus
     loci_statistics_file = fo.join_paths(input_files,
-                                    ['loci_summary_stats.tsv'])
+                                         ['loci_summary_stats.tsv'])
     loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
     # Sort based on decreasing number of EXC
     loci_counts = loci_counts.sort_values(by=['EXC'], ascending=False)
 
-    # Get total number of loci
-    total_loci = len(loci_counts)
     # Get loci identifiers
     loci_ids = loci_counts['Locus'].tolist()
+    # Get total number of loci
+    total_loci = len(loci_ids)
+    print(f'Number of loci: {total_loci}')
 
-    # Data for stacked bar plot with class counts per locus
+    # Data for stacked Bar chart with class counts per locus
     loci_data = []
     for c in ct.ALLELECALL_CLASSIFICATIONS:
         loci_data.append(loci_counts[c].tolist())
 
     # Compute data for Sample Stats table
-    cds_coordinates_dir = fo.join_paths(temp_directory, ['coordinates'])
-    fo.create_directory(cds_coordinates_dir)
-
-    sample_stats = {sid: [0, 0, []] for sid in sample_ids}
+    # Need to read file with CDS coordinates to get number of contigs and
+    # CDSs per sample (future development will use coordinates for synteny
+    # analysis)
+    print('Computing sample statistics...', end='')
     cds_coordinates_file = fo.join_paths(input_files, ['cds_coordinates.tsv'])
-    with open(cds_coordinates_file, 'r') as infile:
-        # Skip header line
-        header = infile.__next__()
-        for line in infile:
-            current_line = line.strip().split('\t')
-            if current_line[1] not in sample_stats[current_line[0]][2]:
-                sample_stats[current_line[0]][2].append(current_line[1])
-                sample_stats[current_line[0]][0] += 1
-            sample_stats[current_line[0]][1] += 1
+    sample_stats = compute_sample_stats(sample_ids, total_loci,
+                                        cds_coordinates_file, sample_counts)
 
-    # Get classification sum per sample
-    dataset_total_cds = 0
-    for i, sample in enumerate(sample_stats):
-        sample_line = sample_counts.iloc[i].tolist()
-        # Only counts 1 CDS per NIPH/NIPHEM
-        valid = sum(sample_line[1:3])
-        invalid = sum(sample_line[3:11])
-        total_cds = sample_stats[sample][1]
-        dataset_total_cds += sample_stats[sample][1]
-        identified_loci = valid + invalid
-        classified_proportion = round(identified_loci/total_cds, 3)
-        identified_proportion = round(identified_loci/total_loci, 3)
-        sample_stats[sample].append(float(classified_proportion))
-        sample_stats[sample].append(int(identified_loci))
-        sample_stats[sample].append(float(identified_proportion))
-        sample_stats[sample].append(int(valid))
-        sample_stats[sample].append(int(invalid))
-        sample_stats[sample].extend(list(map(int, sample_line[1:])))
+    total_cds = sum([v[1] for k, v in sample_stats.items()])
 
-    sample_stats_columns = ['Sample', 'Total Contigs', 'Total CDSs',
-                            'Proportion of Classified CDSs', 'Identified Loci',
-                            'Proportion of Identified Loci',
-                            'Valid Classifications', 'Invalid Classifications',
-                            ] + sample_counts.columns.tolist()[1:]
+    sample_stats_columns = ct.SAMPLE_STATS_COLUMNS + \
+        sample_counts.columns.tolist()[1:]
 
+    # Create list to store in HTML
     sample_stats_rows = []
     for k, v in sample_stats.items():
         sample_stats_rows.append([k, v[0], v[1], *v[3:]])
+    print('done.')
 
     # Compute data for the Loci Stats table
-    loci_stats = []
-    for i in range(len(loci_counts)):
-        locus_line = loci_counts.iloc[i]
-        locus_id = locus_line['Locus']
-        total_cds = int(locus_line['Total_CDS'])
-        valid = sum(locus_line[1:3])
-        invalid = sum(locus_line[3:11])
-        sample_proportion = round(valid/total_samples, 3)
-        loci_stats.append([locus_id, int(total_cds), int(valid),
-                           int(invalid), float(sample_proportion),
-                           *list(map(int, locus_line[1:12]))])
-
-    # Sort loci based on decreasing sample presence
+    print('Computing loci statistics...', end='')
+    loci_stats = compute_loci_stats(total_samples, loci_counts)
+    # Sort loci stats based on decreasing sample presence
     loci_stats = sorted(loci_stats, key=lambda x: x[4], reverse=True)
 
-    loci_stats_columns = ['Locus', 'Total CDSs', 'Valid Classes',
-                          'Invalid Classes', 'Proportion Samples',
-                          ] + loci_counts.columns.tolist()[1:-1]
+    loci_stats_columns = ct.LOCI_STATS_COLUMNS + \
+        loci_counts.columns.tolist()[1:-1]
+    print('done.')
 
-    # Add Loci annotations
+    # Read loci annotations from TSV file
     annotation_values = [[], []]
     if annotations is not None:
         annotation_lines = fo.read_tabular(annotations)
@@ -247,131 +323,148 @@ def main(input_files, schema_directory, output_directory, annotations,
                             if line[0] in loci_ids]
         annotation_values[1].extend(loci_annotations)
 
+    print(f'Provided annotations for {len(annotation_values[1])} '
+          'loci in the schema.')
+
     # Data for Summary Table
     # Count total number of classified CDSs per class
     loci_sums = loci_counts[loci_counts.columns[1:]].sum(axis=0)
     loci_sums = loci_sums.tolist()
-
-    summary_columns = ['Total Samples', 'Total Loci', 'Total CDSs',
-                       'Total CDSs Classified', 'EXC', 'INF',
-                       'PLOT3', 'PLOT5', 'LOTSC', 'NIPH',
-                       'NIPHEM', 'ALM', 'ASM', 'PAMA', 'LNF']
-
-    summary_rows = [total_samples, total_loci, dataset_total_cds,
+    summary_columns = ct.SUMMARY_STATS_COLUMNS
+    summary_rows = [total_samples, total_loci, total_cds,
                     loci_sums[-1], *loci_sums[:-1]]
 
-    # Define path to TSV file that contains allelic profiles
-    allelic_profiles_file = fo.join_paths(input_files, ['results_alleles.tsv'])
-    # Import matrix with allelic profiles
-    profiles_matrix = pd.read_csv(allelic_profiles_file, header=0, index_col=0,
-                                  sep='\t', low_memory=False)
+    if light is False:
+        print('Reading profile matrix...', end='')
+        # Define path to TSV file that contains allelic profiles
+        allelic_profiles_file = fo.join_paths(input_files, ['results_alleles.tsv'])
+        # Import matrix with allelic profiles
+        profiles_matrix = pd.read_csv(allelic_profiles_file, header=0, index_col=0,
+                                      sep='\t', low_memory=False)
+        print('done.')
+        # Mask missing data
+        print('Masking profile matrix...', end='')
+        masked_profiles = profiles_matrix.apply(im.replace_chars)
+        print('done.')
+        # Compute Presence-Absence matrix
+        print('Computing Presence-Absence matrix...', end='')
+        pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
+                                                         output_directory)
+        print('done.')
 
-    # Mask missing data
-    masked_profiles = profiles_matrix.apply(im.replace_chars)
+        pa_lines = []
+        if no_pa is False:
+            # Sort Presence-Absence matrix based on decreasing loci presence
+            sorted_loci = [x[0] for x in loci_stats]
+            pa_matrix = pa_matrix[sorted_loci]
+            pa_lines = pa_matrix.values.tolist()
 
-    # Compute Presence-Absence matrix
-    pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles, temp_directory)
-    # Sort Presence-Absence matrix based on decreasing loci presence
-    sorted_loci = [x[0] for x in loci_stats]
-    pa_matrix = pa_matrix[sorted_loci]
-    pa_lines = pa_matrix.values.tolist()
+        # Compute the cgMLST at 100%
+        print('Determining cgMLST loci...')
+        cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
+                                                          1, len(sample_ids))
+        cgMLST_genes = cgMLST_genes.tolist()
+        print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
 
-    # Compute distance matrix
-    dm_output_dir = fo.join_paths(temp_directory, ['distance_matrix'])
-    dm_file = dm.main(allelic_profiles_file, dm_output_dir, cpu_cores, True)
-    # Import distance matrix
-    distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
-                             sep='\t', low_memory=False)
-    dm_lines = distance_m.values.tolist()
+        dm_lines = []
+        if no_dm is False:
+            # Compute distance matrix
+            dm_file = dm.main(allelic_profiles_file, output_directory,
+                              cpu_cores, True, True)
+            # Import distance matrix
+            distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
+                                     sep='\t', low_memory=False)
+            dm_lines = distance_m.values.tolist()
 
-    # Create FASTA files with alleles identified in samples
-    # Create temporary directory to store FASTA files
-    fasta_dir = fo.join_paths(temp_directory, ['fasta_files'])
-    fo.create_directory(fasta_dir)
+        # Only using the loci in the cgMLST
+        # Might have to change if we need to work with all loci in the future
+        if no_tree is False or cg_alignment is True:
+            # Create FASTA files with alleles identified in samples
+            # Create temporary directory to store FASTA files
+            print('Creating FASTA files with identified alleles...')
+            fasta_dir = fo.join_paths(temp_directory, ['fasta_files'])
+            fo.create_directory(fasta_dir)
 
-    inputs = im.divide_list_into_n_chunks(loci_ids, len(loci_ids))
+            inputs = im.divide_list_into_n_chunks(cgMLST_genes, len(cgMLST_genes))
 
-    common_args = [schema_directory, allelic_profiles_file, fasta_dir]
+            common_args = [schema_directory, allelic_profiles_file, fasta_dir]
 
-    # Add common arguments to all sublists
-    inputs = im.multiprocessing_inputs(inputs,
-                                       common_args,
-                                       create_locus_fasta)
+            # Add common arguments to all sublists
+            inputs = im.multiprocessing_inputs(inputs,
+                                               common_args,
+                                               profile_column_to_fasta)
 
-    # Create FASTA files with identified alleles
-    print('Creating FASTA files with identified alleles...')
-    results = mo.map_async_parallelizer(inputs,
-                                        mo.function_helper,
-                                        cpu_cores,
-                                        show_progress=True)
+            # Create FASTA files with identified alleles
+            results = mo.map_async_parallelizer(inputs,
+                                                mo.function_helper,
+                                                cpu_cores,
+                                                show_progress=True)
 
-    # Translate FASTA files
-    translation_inputs = im.divide_list_into_n_chunks(results, len(results))
-    common_args = [fasta_dir, translation_table]
-    # Add common arguments to all sublists
-    inputs = im.multiprocessing_inputs(translation_inputs,
-                                       common_args,
-                                       fao.translate_fasta)
-    results = mo.map_async_parallelizer(inputs,
-                                        mo.function_helper,
-                                        cpu_cores,
-                                        show_progress=True)
+            # Translate FASTA files
+            print('\nTranslating FASTA files...')
+            translation_inputs = im.divide_list_into_n_chunks(results, len(results))
+            common_args = [fasta_dir, ct.GENETIC_CODES_DEFAULT]
+            # Add common arguments to all sublists
+            inputs = im.multiprocessing_inputs(translation_inputs,
+                                               common_args,
+                                               fao.translate_fasta)
+            results = mo.map_async_parallelizer(inputs,
+                                                mo.function_helper,
+                                                cpu_cores,
+                                                show_progress=True)
 
-    protein_files = [r[1] for r in results]
+            protein_files = [r[1] for r in results]
 
-    # Align sequences with MAFFT
-    alignmnet_inputs = im.divide_list_into_n_chunks(protein_files, len(protein_files))
-    common_args = []
+            # Align sequences with MAFFT
+            print('\nDetermining the MSA for each locus...')
+            alignment_dir = fo.join_paths(temp_directory, ['alignment_files'])
+            fo.create_directory(alignment_dir)
+            alignmnet_inputs = im.divide_list_into_n_chunks(protein_files,
+                                                            len(protein_files))
+            common_args = [alignment_dir]
 
-    # Add common arguments to all sublists
-    inputs = im.multiprocessing_inputs(alignmnet_inputs,
-                                       common_args,
-                                       call_mafft)
+            # Add common arguments to all sublists
+            inputs = im.multiprocessing_inputs(alignmnet_inputs,
+                                               common_args,
+                                               mw.call_mafft)
 
-    results = mo.map_async_parallelizer(inputs,
-                                        mo.function_helper,
-                                        cpu_cores,
-                                        show_progress=True)
-    mafft_files = {fo.file_basename(file, False).split('_protein_aligned')[0]: file
-                   for file in results if file is not False}
+            results = mo.map_async_parallelizer(inputs,
+                                                mo.function_helper,
+                                                cpu_cores,
+                                                show_progress=True)
+            mafft_files = {fo.file_basename(file, False).split('_protein_aligned')[0]: file
+                           for file in results if file is not False}
 
-    # Determine core genome at 100%
-    cgMLST_genes, cgMLST_counts = determine_cgmlst.compute_cgMLST(pa_matrix,
-                                                                  sample_ids,
-                                                                  1,
-                                                                  len(sample_ids))
-    cgMLST_genes = cgMLST_genes.tolist()
+            print('\nCreating file with the full cgMLST alignment...', end='')
+            # Concatenate all alignment files and index with BioPython
+            concat_aln = fo.join_paths(alignment_dir, ['cgMLST_concat.fasta'])
+            fo.concatenate_files(mafft_files.values(), concat_aln)
+            # Index file
+            concat_index = fao.index_fasta(concat_aln)
+            sample_alignment_files = []
+            # Not dealing well with '*' in allele ids
+            for sample in sample_ids:
+                alignment_file = concatenate_loci_alignments(sample,
+                                                             cgMLST_genes,
+                                                             concat_index,
+                                                             fasta_dir)
+                sample_alignment_files.append(alignment_file)
 
-    ### Concatenate all alignment files and index with BioPython to get sequences faster?
+            # Concatenate all cgMLST alignmnet records
+            full_alignment = fo.join_paths(output_directory,
+                                           ['cgMLST_alignment.fasta'])
+            fo.concatenate_files(sample_alignment_files, full_alignment)
+            print('done.')
 
-    # Concatenate alignment files from core
-    sample_alignment_files = []
-    # Not dealing well with '*' in allele ids
-    for sample in sample_ids:
-        print(sample)
-        alignment = ''
-        for locus in cgMLST_genes:
-            # Open alignmnet file
-            current_file = mafft_files[locus]
-            seqs = fao.import_sequences(current_file)
-            try:
-                alignment += seqs[sample]
-            except Exception as e:
-                print(f'Could not get {sample} allele for locus {locus}.')
-        # Save cgMLST alignmnet for sample
-        cgMLST_alignment_outfile = fo.join_paths(fasta_dir, [f'{sample}_cgMLST_alignment.fasta'])
-        align_record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [sample, alignment])
-        fo.write_lines([align_record], cgMLST_alignment_outfile)
-        sample_alignment_files.append(cgMLST_alignment_outfile)
-
-    # Concatenate all cgMLST alignmnet records
-    full_alignment = fo.join_paths(fasta_dir, ['cgMLST_alignment.fasta'])
-    fo.concatenate_files(sample_alignment_files, full_alignment)
-
-    # Compute NJ tree with FastTree
-    out_tree = fo.join_paths(fasta_dir, ['cgMLST.tree'])
-    run_fasttree(full_alignment, out_tree)
-    tree_data = fo.read_file(out_tree)
+            phylo_data = {"phylo_data": []}
+            if no_tree is False:
+                print('Computing the NJ tree based on the cgMLST alignment...', end='')
+                # Compute NJ tree with FastTree
+                out_tree = fo.join_paths(alignment_dir, ['cgMLST.tree'])
+                fw.call_fasttree(full_alignment, out_tree)
+                phylo_data = fo.read_file(out_tree)
+                phylo_data = {"phylo_data": phylo_data}
+                print('done.')
 
     report_data = {"summaryData": [{"columns": summary_columns},
                                    {"rows": [summary_rows]}],
@@ -387,7 +480,7 @@ def main(input_files, schema_directory, output_directory, annotations,
                                    {"rows": annotation_values[1]}],
                    "presence_absence": pa_lines,
                    "distance_matrix": dm_lines,
-                   "cgMLST_tree": tree_data,
+                   "cgMLST_tree": phylo_data,
                    }
 
     # Write report HTML file
@@ -395,3 +488,17 @@ def main(input_files, schema_directory, output_directory, annotations,
     report_html = report_html.format(json.dumps(report_data))
     report_html_file = fo.join_paths(output_directory, ['main_report.html'])
     fo.write_to_file(report_html, report_html_file, 'w', '\n')
+
+    # Copy JS bundle to output directory
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    try:
+        fo.copy_file(fo.join_paths(script_path, ['AlleleCallEvaluator', 'resources', 'main_bundle.js']),
+                     output_directory)
+    except Exception as e:
+        fo.copy_file(fo.join_paths(script_path, ['resources', 'main_bundle.js']),
+                     output_directory)
+
+    # Delete all temporary files
+    fo.delete_directory(temp_directory)
+
+    print(f'\nResults available in {output_directory}.')

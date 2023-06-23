@@ -24,11 +24,10 @@ import pickle
 import statistics
 from collections import Counter
 
-from Bio.Align.Applications import MafftCommandline
-
 try:
     from utils import (
         constants as ct,
+        mafft_wrapper as mw,
         file_operations as fo,
         fasta_operations as fao,
         sequence_manipulation as sm,
@@ -37,6 +36,7 @@ try:
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         constants as ct,
+        mafft_wrapper as mw,
         file_operations as fo,
         fasta_operations as fao,
         sequence_manipulation as sm,
@@ -178,37 +178,6 @@ def count_translation_exception_categories(exceptions):
                      if ct.TRANSLATION_EXCEPTIONS[4] in exc.split(',')[0]])
 
     return [inframe_stop, no_start, no_stop, incomplete, ambiguous]
-
-
-def call_mafft(genefile):
-    """Call MAFFT to generate an alignment.
-
-    Parameters
-    ----------
-    genefile : str
-        Path to a FASTA file with the sequences to align.
-
-    Returns
-    -------
-    Path to the file with the computed MSA if successful, False otherwise.
-    """
-    try:
-        mafft_cline = MafftCommandline(input=genefile,
-                                       adjustdirection=True,
-                                       treeout=True,
-                                       thread=1,
-                                       retree=1,
-                                       maxiterate=0,
-                                       )
-        stdout, stderr = mafft_cline()
-        path_to_save = genefile.replace(".fasta", "_aligned.fasta")
-        with open(path_to_save, "w") as handle:
-            handle.write(stdout)
-
-        return path_to_save
-    except Exception as e:
-        print(e)
-        return False
 
 
 def reformat_translation_exceptions(exceptions, allele_lengths):
@@ -527,7 +496,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
     msa_data = {"sequences": []}
     if light is False:
         if locus_data[13][2] > 1 and locus_data[13][5] > 1:
-            alignment_file = call_mafft(locus_data[18])
+            alignment_file = mw.call_mafft(locus_data[18])
             # Get MSA data
             alignment_text = fo.read_file(alignment_file)
             msa_data['sequences'] = alignment_text

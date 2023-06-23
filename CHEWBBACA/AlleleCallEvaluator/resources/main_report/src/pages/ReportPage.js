@@ -1354,7 +1354,7 @@ const ReportPage = () => {
 	);
 
 	// get data for Phylocanvas tree
-	const phyloData = data.cgMLST_tree;
+	const phyloData = data.cgMLST_tree.phylo_data;
 
 	// Define title for tree component
 	const phylogeneticElementTitle = (

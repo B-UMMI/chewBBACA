@@ -30,7 +30,7 @@ from urllib3.exceptions import InsecureRequestWarning
 from Bio import SeqIO
 
 try:
-    from PrepExternalSchema import PrepExternalSchema
+    from PrepExternalSchema import adapt_schema
     from utils import (constants as ct,
                        file_operations as fo,
                        chewiens_requests as cr,
@@ -38,7 +38,7 @@ try:
                        parameters_validation as pv,
                        iterables_manipulation as im)
 except ModuleNotFoundError:
-    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.PrepExternalSchema import adapt_schema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  chewiens_requests as cr,

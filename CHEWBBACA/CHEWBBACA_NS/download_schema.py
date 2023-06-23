@@ -32,14 +32,14 @@ from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from PrepExternalSchema import PrepExternalSchema
+    from PrepExternalSchema import adapt_schema
     from utils import (constants as ct,
                        file_operations as fo,
                        process_datetime as pd,
                        chewiens_requests as cr,
                        parameters_validation as pv)
 except ModuleNotFoundError:
-    from CHEWBBACA.PrepExternalSchema import PrepExternalSchema
+    from CHEWBBACA.PrepExternalSchema import adapt_schema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
                                  process_datetime as pd,

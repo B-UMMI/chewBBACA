@@ -16,7 +16,7 @@ setup(
   author_email = 'imm-bioinfo@medicina.ulisboa.pt',
   url = 'https://github.com/B-UMMI/chewBBACA', 
   keywords = ['cgMLST', 'bacterial typing', 'nomenclature server'],
-  install_requires = ['numpy>=1.23.4', 'scipy~=1.10.1', 'biopython>=1.78',
+  install_requires = ['numpy~=1.24.3', 'scipy~=1.10.1', 'biopython>=1.78',
                       'plotly>=5.8.0', 'SPARQLWrapper>=2.0.0', 'pandas>=1.5.1',
                       'requests>=2.27.1'],
   python_requires = '>=3.7',

@@ -4,7 +4,7 @@
 Purpose
 -------
 This module generates an interactive HTML report for the allele calling
-results.The report provides summary statistics to evaluate results per
+results. The report provides summary statistics to evaluate results per
 sample and per locus (with the possibility to provide a TSV file with
 loci annotations to include on a table). The report includes components
 to display a heatmap representing the Loci Presence-Absence matrix, a
@@ -225,18 +225,6 @@ def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
     return alignment_outfile
 
 
-# input_files = '/home/rmamede/Desktop/AlleleCallReport_test/lynskey_results'
-# schema_directory = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_schema_chewieNS'
-# output_directory = '/home/rmamede/Desktop/AlleleCallReport_test/AlleleCallReport_test'
-# cpu_cores = 6
-# annotations = '/home/rmamede/Desktop/AlleleCallReport_test/spyogenes_annotations/annotations.tsv'
-# loci_reports = True
-# translation_table = 11
-# light = False
-# no_pa = False
-# no_dm = False
-# no_tree = False
-# cg_alignment = True
 def main(input_files, schema_directory, output_directory, annotations,
          cpu_cores, light, no_pa, no_dm, no_tree, cg_alignment):
 
@@ -491,11 +479,22 @@ def main(input_files, schema_directory, output_directory, annotations,
 
     # Copy JS bundle to output directory
     script_path = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_path)
     try:
-        fo.copy_file(fo.join_paths(script_path, ['AlleleCallEvaluator', 'resources', 'main_bundle.js']),
+        fo.copy_file(fo.join_paths(script_path,
+                                   ['report_template_components',
+                                    'src',
+                                    'bundles',
+                                    'AlleleCallEvaluator',
+                                    'report_bundle.js']),
                      output_directory)
     except Exception as e:
-        fo.copy_file(fo.join_paths(script_path, ['resources', 'main_bundle.js']),
+        fo.copy_file(fo.join_paths(parent_dir,
+                                   ['report_template_components',
+                                    'src',
+                                    'bundles',
+                                    'AlleleCallEvaluator',
+                                    'report_bundle.js']),
                      output_directory)
 
     # Delete all temporary files

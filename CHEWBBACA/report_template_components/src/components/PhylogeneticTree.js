@@ -345,7 +345,7 @@ const PhylogeneticTree = ({ treeSource, validIDs }) => {
 					 height: '750px',
 					 overflow: 'scroll',
 					 marginBottom: '0px'
-					 }}
+				 }}
 			>
 				<div id="phyloTree" style={{ margin: "auto" }}></div>
 			</Element>

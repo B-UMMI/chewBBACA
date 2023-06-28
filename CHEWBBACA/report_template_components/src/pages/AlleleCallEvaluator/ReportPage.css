@@ -1,0 +1,8 @@
+:local(.mainDiv) {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+:local(.secondaryDiv) {
+	margin-top: 20px;
+}

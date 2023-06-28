@@ -26,7 +26,7 @@ try:
     from ExtractCgMLST import determine_cgmlst
     from utils import (join_profiles,
                        remove_genes,
-                       profiles_sqlitedb as ps,
+                       # profiles_sqlitedb as ps,
                        process_datetime as pdt,
                        constants as ct,
                        parameters_validation as pv,
@@ -47,7 +47,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.ExtractCgMLST import determine_cgmlst
     from CHEWBBACA.utils import (join_profiles,
                                  remove_genes,
-                                 profiles_sqlitedb as ps,
+                                 # profiles_sqlitedb as ps,
                                  process_datetime as pdt,
                                  constants as ct,
                                  parameters_validation as pv,
@@ -64,6 +64,7 @@ version = __version__
 
 @pdt.process_timer
 def run_create_schema():
+    """Run the CreateSchema module to create a schema seed."""
 
     def msg(name=None):
         # simple command to create schema from genomes
@@ -239,6 +240,7 @@ def run_create_schema():
 
 @pdt.process_timer
 def run_allele_call():
+    """Run the AlleleCall module to perform allele calling."""
 
     def msg(name=None):
         # simple command to perform AlleleCall with schema default parameters
@@ -528,10 +530,10 @@ def run_allele_call():
               'Mode': args.mode}
 
     allele_call.main(genome_list, loci_list, args.schema_directory,
-                    args.output_directory, args.no_inferred,
-                    args.output_unclassified, args.output_missing,
-                    args.output_novel, args.no_cleanup, args.hash_profiles,
-                    args.ns, config)
+                     args.output_directory, args.no_inferred,
+                     args.output_unclassified, args.output_missing,
+                     args.output_novel, args.no_cleanup, args.hash_profiles,
+                     args.ns, config)
 
     # if args.store_profiles is True:
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
@@ -543,6 +545,7 @@ def run_allele_call():
 
 @pdt.process_timer
 def run_evaluate_schema():
+    """Run the SchemaEvaluator module to evaluate a typing schema."""
 
     def msg(name=None):
         # simple command to evaluate schema or set of loci
@@ -664,6 +667,7 @@ def run_evaluate_schema():
 
 @pdt.process_timer
 def run_evaluate_calls():
+    """Run the AlleleCallEvaluator module to evaluate allele calling results."""
 
     def msg(name=None):
         # simple command to analyse allele calling results
@@ -749,6 +753,7 @@ def run_evaluate_calls():
 
 @pdt.process_timer
 def run_determine_cgmlst():
+    """Run the ExtractCgMLST module to determine the core-genome."""
 
     def msg(name=None):
         # simple command to determine loci that constitute cgMLST
@@ -827,6 +832,7 @@ def run_determine_cgmlst():
 
 @pdt.process_timer
 def run_remove_genes():
+    """Run the RemoveGenes module to remove loci from allele calling results."""
 
     def msg(name=None):
 
@@ -877,6 +883,7 @@ def run_remove_genes():
 
 @pdt.process_timer
 def run_join_profiles():
+    """Run the JoinProfiles module to join allele calling results."""
 
     def msg(name=None):
 
@@ -916,11 +923,12 @@ def run_join_profiles():
     args = parser.parse_args()
     del args.JoinProfiles
 
-    profile_joiner.main(**vars(args))
+    join_profiles.main(**vars(args))
 
 
 @pdt.process_timer
 def run_adapt_schema():
+    """Run the PrepExternalSchema module to adapt a typing schema."""
 
     def msg(name=None):
 
@@ -1079,10 +1087,10 @@ def run_adapt_schema():
           f'adaptation and {args.size_threshold} to store in the schema '
           'config file.')
 
-    adapt_external_schema.main(args.input_files, output_dirs,
-                            args.cpu_cores, args.blast_score_ratio,
-                            adaptation_ml, args.translation_table,
-                            adaptation_st, args.blast_path)
+    adapt_schema.main(args.input_files, output_dirs,
+                      args.cpu_cores, args.blast_score_ratio,
+                      adaptation_ml, args.translation_table,
+                      adaptation_st, args.blast_path)
 
     # Copy training file to schema directory
     ptf_hash = None
@@ -1109,6 +1117,7 @@ def run_adapt_schema():
 
 @pdt.process_timer
 def run_annotate_schema():
+    """Run the UniprotFinder module to annotate loci in a schema."""
 
     def msg(name=None):
 
@@ -1221,6 +1230,7 @@ def run_annotate_schema():
 
 @pdt.process_timer
 def run_download_schema():
+    """Run the DownloadSchema module to download a schema from Chewie-NS."""
 
     def msg(name=None):
         # simple command to download a schema from the NS
@@ -1310,6 +1320,7 @@ def run_download_schema():
 
 @pdt.process_timer
 def run_upload_schema():
+    """Run the LoadSchema module to upload a schema to Chewie-NS."""
 
     def msg(name=None):
         # simple command to load a schema to the NS
@@ -1418,6 +1429,7 @@ def run_upload_schema():
 
 @pdt.process_timer
 def run_synchronize_schema():
+    """Run the SyncSchema module to synchronize a local schema with the remote version in Chewie-NS."""
 
     def msg(name=None):
         # simple command to synchronize a schema with its NS version
@@ -1498,11 +1510,12 @@ def run_synchronize_schema():
     args = parser.parse_args()
     del args.SyncSchema
 
-    sync_schema.main(**vars(args))
+    synchronize_schema.main(**vars(args))
 
 
 @pdt.process_timer
 def run_stats_requests():
+    """Run the NSStats module to get information about schemas in Chewie-NS."""
 
     def msg(name=None):
         # simple command to list species and totals

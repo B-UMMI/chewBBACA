@@ -247,7 +247,7 @@ SCHEMA_REPORT_HTML = ("""
     <noscript> You need to enable JavaScript to run this app. </noscript>
     <div id="root"></div>
     <script> preComputedData = {0} </script>
-    <script src="./schema_bundle.js"></script>
+    <script src="./report_bundle.js"></script>
 </body>
 </html>
 """)
@@ -268,7 +268,7 @@ LOCUS_REPORT_HTML = ("""
         <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
         <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
         <script> preComputedDataInd = {0} </script>
-        <script src="./loci_bundle.js"></script>
+        <script src="./report_bundle.js"></script>
     </body>
 </html>
 """)
@@ -286,7 +286,7 @@ ALLELECALL_REPORT_HTML = ("""
     <noscript> You need to enable JavaScript to run this app. </noscript>
     <div id="root"></div>
     <script> preComputedData = {0} </script>
-    <script src="./main_bundle.js"></script>
+    <script src="./report_bundle.js"></script>
 </body>
 </html>
 """)

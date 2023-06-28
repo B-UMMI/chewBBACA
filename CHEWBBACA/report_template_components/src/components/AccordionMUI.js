@@ -19,7 +19,7 @@ const AccordionMUI = ({ summaryText, detailsData, expanded, alerts }) => {
 					{summaryText}
 				</AccordionSummary>
 				<Divider></Divider>
-				<AccordionDetails >
+				<AccordionDetails>
 					<Stack sx={{ width: "100%", marginTop: "10px", marginBottom: "20px" }} spacing={1}>
 						{alerts}
 					</Stack>

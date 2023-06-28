@@ -59,7 +59,6 @@ const TabPanelMUI = ({ ContentTitles, ContentData }) => {
 		)
 	});
 
-
 	return (
 		<Box sx={{ width: "100%" }}>
 			<Paper elevation={3}>

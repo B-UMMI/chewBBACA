@@ -496,7 +496,8 @@ def locus_report(locus_file, locus_data, annotation_columns,
     msa_data = {"sequences": []}
     if light is False:
         if locus_data[13][2] > 1 and locus_data[13][5] > 1:
-            alignment_file = mw.call_mafft(locus_data[18])
+            output_directory = os.path.dirname(locus_data[18])
+            alignment_file = mw.call_mafft(locus_data[18], output_directory)
             # Get MSA data
             alignment_text = fo.read_file(alignment_file)
             msa_data['sequences'] = alignment_text
@@ -767,24 +768,46 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # Copy the JS bundle files to the respective directories
     # JS bundle used by schema report
     script_path = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_path)
     # When chewBBACA is installed
     try:
-        shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
-                                 'resources', 'schema_bundle.js'),
+        shutil.copy(fo.join_paths(script_path,
+                                  ['report_template_components',
+                                   'src',
+                                   'bundles',
+                                   'SchemaEvaluator',
+                                   'schema_report',
+                                   'report_bundle.js']),
                     output_directory)
     # For development
     except Exception as e:
-        shutil.copy(os.path.join(script_path, 'resources', 'schema_bundle.js'),
+        shutil.copy(fo.join_paths(parent_dir,
+                                  ['report_template_components',
+                                   'src',
+                                   'bundles',
+                                   'SchemaEvaluator',
+                                   'schema_report',
+                                   'report_bundle.js']),
                     output_directory)
-
     if loci_reports is True:
         # JS bundle used by loci reports
         try:
-            shutil.copy(os.path.join(script_path, 'SchemaEvaluator',
-                                     'resources', 'loci_bundle.js'),
+            shutil.copy(fo.join_paths(script_path,
+                                      ['report_template_components',
+                                       'src',
+                                       'bundles',
+                                       'SchemaEvaluator',
+                                       'loci_reports',
+                                       'report_bundle.js']),
                         html_dir)
         except Exception as e:
-            shutil.copy(os.path.join(script_path, 'resources', 'loci_bundle.js'),
+            shutil.copy(fo.join_paths(parent_dir,
+                                      ['report_template_components',
+                                       'src',
+                                       'bundles',
+                                       'SchemaEvaluator',
+                                       'loci_reports',
+                                       'report_bundle.js']),
                         html_dir)
 
     # Delete all temporary files

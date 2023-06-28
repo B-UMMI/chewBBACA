@@ -1,8 +1,8 @@
 import React from 'react'
 
-import { headerMessage, alertMessages, globalTableOptions } from '../constants';
+import { schemaReportHeaderMessage, schemaReportAlertMessages, globalTableOptions } from '../constants';
 
-import classes from './SchemaPage.css';
+import classes from './ReportPage.css';
 
 import AlertMUI from '../components/AlertMUI';
 import DataTable from '../components/DataTable';
@@ -26,14 +26,14 @@ const SchemaPage = () => {
 	const summaryData = data.summaryData;
 
 	// Replace values in Alert Messages data
-	alertMessages.push([data.creationConfig, "info"]);
-	alertMessages.push([data.evaluationConfig, "info"]);
+	schemaReportAlertMessages.push([data.creationConfig, "info"]);
+	schemaReportAlertMessages.push([data.evaluationConfig, "info"]);
 	if ((data.nsSchema.length)>0) {
-		alertMessages.push([data.nsSchema, "warning"])
+		schemaReportAlertMessages.push([data.nsSchema, "warning"])
 	}
 
 	// Create all Alert components
-	const alertMessagesComponents = alertMessages.map((alert, index) => {
+	const alertMessagesComponents = schemaReportAlertMessages.map((alert, index) => {
 		return (
 			<AlertMUI
 				key={index}
@@ -530,7 +530,7 @@ const SchemaPage = () => {
 	const HeaderDescription = (
 		<Typography component={'div'} style={{ lineHeight: "18px" }} > 
 			<ReactMarkdown 
-				children={headerMessage} 
+				children={schemaReportHeaderMessage} 
 				remarkPlugins={[remarkGfm]}
 			>
 			</ReactMarkdown>

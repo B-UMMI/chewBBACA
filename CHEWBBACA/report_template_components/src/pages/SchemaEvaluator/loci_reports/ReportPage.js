@@ -7,7 +7,7 @@ import Editor from "@monaco-editor/react"
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import classes from './LocusPage.css';
+import classes from './ReportPage.css';
 
 // Material-UI components
 import Box from '@mui/material/Box';
@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 // Import Header Markdown text and array with alert messages
-import { headerMessage, alertMessages, globalTableOptions } from '../constants';
+import { locusReportHeaderMessage, locusReportAlertMessages, globalTableOptions } from '../constants';
 
 // Custom components
 import DataTable from '../components/DataTable';
@@ -40,18 +40,18 @@ const LocusPage = () => {
 	const locusName = summaryData[1].rows[0][0]
 
 	// Replace values in Alert Messages data
-	alertMessages[9][0] = alertMessages[9][0].replace("%VALUE%", data.distinctAlleles[1].rows.length)
-	alertMessages[11][0] = alertMessages[11][0].replace("%VALUE%", summaryData[1].rows[0][1])
-	alertMessages[12][0] = alertMessages[12][0].replace("%VALUE%", summaryData[1].rows[0][2])
+	locusReportAlertMessages[9][0] = locusReportAlertMessages[9][0].replace("%VALUE%", data.distinctAlleles[1].rows.length)
+	locusReportAlertMessages[11][0] = locusReportAlertMessages[11][0].replace("%VALUE%", summaryData[1].rows[0][1])
+	locusReportAlertMessages[12][0] = locusReportAlertMessages[12][0].replace("%VALUE%", summaryData[1].rows[0][2])
 	// Create warning for loci that have novel alleles not submitted to Chewie-NS
-	alertMessages[13][0] = alertMessages[13][0].replace("%VALUE%", data.nsAlleles.length)
+	locusReportAlertMessages[13][0] = locusReportAlertMessages[13][0].replace("%VALUE%", data.nsAlleles.length)
 	if (data.nsAlleles.length > 0) {
 		const nsIDs = data.nsAlleles.join(', ')
-		alertMessages[13][0] = alertMessages[13][0].replace("%VALUE2%", nsIDs)
+		locusReportAlertMessages[13][0] = locusReportAlertMessages[13][0].replace("%VALUE2%", nsIDs)
 	}
 
 	// Create all Alert components
-	const alertMessagesComponents = alertMessages.map((alert, index) => {
+	const alertMessagesComponents = locusReportAlertMessages.map((alert, index) => {
 		return (
 			<AlertMUI
 				key={index}
@@ -709,7 +709,7 @@ const LocusPage = () => {
 	// passing something to <p>
 	const HeaderDescription = (
 		<Typography component={'div'} style={{ lineHeight: "18px" }} > 
-			<ReactMarkdown children={headerMessage} remarkPlugins={[remarkGfm]} />
+			<ReactMarkdown children={locusReportHeaderMessage} remarkPlugins={[remarkGfm]} />
 		</Typography>
 	);
 

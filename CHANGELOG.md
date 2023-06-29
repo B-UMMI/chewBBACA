@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0 - 2023-06-29
+
+- Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility to provide a TSV file with loci annotations to include on a table). The report includes components to display a heatmap representing the Loci Presence-Absence matrix, a heatmap representing the Distance Matrix based on allelic differences and a Neighbor-Joining tree based on the core genome MLST alignment.
+
 ## 3.2.0 - 2023-04-27
 
 - New version of the SchemaEvaluator module. The updated version fixes several issues related with outdated dependencies that were leading to errors in the previous version. The new version also includes new features and components. Read the [docs page](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html) to know more about the latest version of the SchemaEvaluator module.

@@ -62,7 +62,13 @@ def test_createschema_valid(test_args, expected):
 
     # compare configs
     assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
-    assert pickle_loader(schemas_configs[0]) == pickle_loader(schemas_configs[1])
+    # Read config values
+    # Ignore chewBBACA version value
+    configs1 = pickle_loader(schemas_configs[0])
+    del configs1['chewBBACA_version']
+    configs2 = pickle_loader(schemas_configs[1])
+    del configs2['chewBBACA_version']
+    assert configs1 == configs2
 
     files = output_files + expected_files
     basename_dict = {}

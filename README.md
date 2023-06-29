@@ -25,7 +25,7 @@ settings and a set of functions to visualize and validate allele variation in th
 
 - Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling
 results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility
-to provide a TSV file with loci annotations to include on a table). The report consists of components to display a
+to provide a TSV file with loci annotations to include on a table). The report includes components to display a
 heatmap representing the Loci Presence-Absence matrix, a heatmap representing the Distance Matrix based on allelic
 differences and a Neighbor-Joining tree based on the core genome MLST alignment.
 

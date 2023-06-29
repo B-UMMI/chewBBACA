@@ -326,11 +326,11 @@ def main(input_files, schema_directory, output_directory, annotations,
     dm_lines = []
     phylo_data = {"phylo_data": []}
     if light is False:
-        # Define path to TSV file that contains allelic profiles
-        allelic_profiles_file = fo.join_paths(input_files,
-                                              ['results_alleles.tsv'])
-
-        if no_pa is False or no_tree is False or cg_alignment is True:
+        if False in [no_pa, no_dm, no_tree] or cg_alignment is True:
+            # Define path to TSV file that contains allelic profiles
+            allelic_profiles_file = fo.join_paths(input_files,
+                                                  ['results_alleles.tsv'])
+    
             # Import matrix with allelic profiles
             print('Reading profile matrix...', end='')
             profiles_matrix = pd.read_csv(allelic_profiles_file,
@@ -340,27 +340,30 @@ def main(input_files, schema_directory, output_directory, annotations,
             # Mask missing data
             print('Masking profile matrix...', end='')
             masked_profiles = profiles_matrix.apply(im.replace_chars)
+            output_masked = os.path.join(output_directory, 'masked.tsv')
+            masked_profiles.to_csv(output_masked, sep='\t')
             print('done.')
-            # Compute Presence-Absence matrix
-            print('Computing Presence-Absence matrix...', end='')
-            pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
-                                                             output_directory)
-            print('done.')
+            if no_pa is False or no_tree is False or cg_alignment is True:
+                # Compute Presence-Absence matrix
+                print('Computing Presence-Absence matrix...', end='')
+                pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
+                                                                 output_directory)
+                print('done.')
+    
+            if no_pa is False:
+                # Sort Presence-Absence matrix based on decreasing loci presence
+                sorted_loci = [x[0] for x in loci_stats]
+                pa_matrix = pa_matrix[sorted_loci]
+                pa_lines = pa_matrix.values.tolist()
 
-        if no_pa is False:
-            # Sort Presence-Absence matrix based on decreasing loci presence
-            sorted_loci = [x[0] for x in loci_stats]
-            pa_matrix = pa_matrix[sorted_loci]
-            pa_lines = pa_matrix.values.tolist()
-
-        if no_dm is False:
-            # Compute distance matrix
-            dm_file = dm.main(allelic_profiles_file, output_directory,
-                              cpu_cores, True, True)
-            # Import distance matrix
-            distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
-                                     sep='\t', low_memory=False)
-            dm_lines = distance_m.values.tolist()
+            if no_dm is False:
+                # Compute distance matrix
+                dm_file = dm.main(output_masked, output_directory,
+                                  cpu_cores, True, True)
+                # Import distance matrix
+                distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
+                                         sep='\t', low_memory=False)
+                dm_lines = distance_m.values.tolist()
 
         # Only using the loci in the cgMLST
         # Might have to change if we need to work with all loci in the future

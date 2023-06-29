@@ -23,7 +23,6 @@ import math
 import shutil
 
 import random
-from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -32,14 +31,12 @@ try:
     from utils import (
         file_operations as fo,
         iterables_manipulation as im,
-        multiprocessing_operations as mo,
-        mask_matrix as mm)
+        multiprocessing_operations as mo)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
         file_operations as fo,
         iterables_manipulation as im,
-        multiprocessing_operations as mo,
-        mask_matrix as mm)
+        multiprocessing_operations as mo)
 
 
 def tsv_to_nparray(input_file, array_dtype='int32'):
@@ -122,7 +119,7 @@ def compute_distances(indexes, np_matrix, genome_ids, tmp_directory):
         # values different than 0 correspond to shared loci
         multiplied = current_row * permutation_rows
         # count number of shared loci, non-zero values
-        pairwise_shared_loci = np.count_nonzero(multiplied, axis=-1)
+        # pairwise_shared_loci = np.count_nonzero(multiplied, axis=-1)
 
         # subtraction will lead to values different than 0 for loci that have different alleles
         # multiplying ensures that we only keep results for shared loci and not for
@@ -130,78 +127,11 @@ def compute_distances(indexes, np_matrix, genome_ids, tmp_directory):
         pairwise_allelic_differences = np.count_nonzero(multiplied * (current_row - permutation_rows), axis=-1)
 
         output_file = os.path.join(tmp_directory, current_genome)
-        fo.pickle_dumper([pairwise_shared_loci, pairwise_allelic_differences], output_file)
+        # fo.pickle_dumper([pairwise_shared_loci, pairwise_allelic_differences], output_file)
+        fo.pickle_dumper([pairwise_allelic_differences], output_file)
         output_files[current_genome] = output_file
 
     return output_files
-
-
-def join_iterable(iterable, delimiter='\t'):
-    """Join the elements of an iterable.
-
-    Parameters
-    ----------
-    iterable : iter
-        Iterable with elements to join (e.g.: list, set, dict).
-    delimiter : str, optional
-        String used to join all elements. The default is '\t'.
-
-    Returns
-    -------
-    joined : str
-        A string with all elements joined by the delimiter.
-    """
-    joined = delimiter.join(iterable)
-
-    return joined
-
-
-def write_text(text, output_file, mode='w'):
-    """Write a string to a file.
-
-    Parameters
-    ----------
-    text : str
-        String to write to file.
-    output_file : str
-        Path to output file.
-    mode : str, optional
-        Write mode. The default is 'w'.
-
-    Returns
-    -------
-    None.
-    """
-    # write matrix to output file
-    with open(output_file, mode) as outfile:
-        outfile.write(text+'\n')
-
-
-def write_lines(lines, output_file, mode='w'):
-    """Write a matrix to a file.
-
-    Parameters
-    ----------
-    lines : list
-        List of sublists where each sublist corresponds
-        to one row with any number of elements.
-    output_file : str
-        Path to the output file to which the lines will
-        be written.
-    mode : str, optional
-        Write mode. The default is 'w'.
-
-    Returns
-    -------
-    Writes matrix rows (each sublist of the input list is
-    a row) to the output file.
-    """
-    # join matrix lines into chunk of text
-    concat_lines = [join_iterable(line, '\t')
-                    for line in lines]
-    lines_text = join_iterable(concat_lines, '\n')
-
-    write_text(lines_text, output_file, mode)
 
 
 def get_sample_ids(input_file, delimiter='\t'):
@@ -227,30 +157,9 @@ def get_sample_ids(input_file, delimiter='\t'):
     return sample_ids
 
 
-def merge_dictionaries(dictionaries):
-    """Merge several dictionaries.
-
-    Parameters
-    ----------
-    dictionaries : list
-        List with several dictionaries to merge.
-
-    Returns
-    -------
-    merged : dict
-        A dictionary that is the result of merging
-        all input dictionaries. Common keys will
-        be overwritten.
-    """
-    merged = {}
-    for d in dictionaries:
-        merged = {**merged, **d}
-
-    return merged
-
-
-def write_matrices(pickled_results, genome_ids, output_pairwise,
-                   output_p, col_ids):
+# def write_matrices(pickled_results, genome_ids, output_pairwise,
+#                    output_p, col_ids):
+def write_matrices(pickled_results, genome_ids, output_pairwise, col_ids):
     """Write above diagonal matrices with allelic differences and shared loci.
 
     Parameters
@@ -274,7 +183,7 @@ def write_matrices(pickled_results, genome_ids, output_pairwise,
     -------
     None.
     """
-    sl_lines = [col_ids]
+    # sl_lines = [col_ids]
     ad_lines = [col_ids]
     limit = 300
     for g in genome_ids:
@@ -282,55 +191,27 @@ def write_matrices(pickled_results, genome_ids, output_pairwise,
         # load data
         data = fo.pickle_loader(current_file)
 
-        shared_loci = list(data[0])
-        shared_loci = list(map(str, shared_loci))
-        allele_diffs = list(data[1])
+        # shared_loci = list(data[0])
+        # shared_loci = list(map(str, shared_loci))
+        allele_diffs = list(data[0])
         allele_diffs = list(map(str, allele_diffs))
 
         padding = [''] * (len(genome_ids)-len(allele_diffs))
 
-        sl_line = [g] + padding + shared_loci
-        sl_lines.append(sl_line)
+        # sl_line = [g] + padding + shared_loci
+        # sl_lines.append(sl_line)
         ad_line = [g] + padding + allele_diffs
         ad_lines.append(ad_line)
 
-        if len(sl_lines) >= limit or g == genome_ids[-1]:
-            write_lines(ad_lines, output_pairwise, mode='a')
+        # if len(sl_lines) >= limit or g == genome_ids[-1]:
+        if len(ad_lines) >= limit or g == genome_ids[-1]:
+            ad_lines = [im.join_list(line, '\t') for line in ad_lines]
+            fo.write_lines(ad_lines, output_pairwise, joiner='\n', write_mode='a')
             ad_lines = []
-            write_lines(sl_lines, output_p, mode='a')
-            sl_lines = []
+            # write_lines(sl_lines, output_p, mode='a')
+            # sl_lines = []
 
     return True
-
-
-def concatenate_files(files, output_file, header=None):
-    """Concatenate the contents of a set of files.
-
-    Parameters
-    ----------
-    files : list
-        List with the paths to the files to concatenate.
-    output_file : str
-        Path to the output file that will store the
-        concatenation of input files.
-    header : str or NoneType
-        Specify a header that should be written as the
-        first line in the output file.
-
-    Returns
-    -------
-    output_file : str
-        Path to the output file that was created with
-        the concatenation of input files.
-    """
-    with open(output_file, 'w') as of:
-        if header is not None:
-            of.write(header)
-        for f in files:
-            with open(f, 'r') as fd:
-                shutil.copyfileobj(fd, of)
-
-    return output_file
 
 
 def transpose_matrix(input_file, output_directory):
@@ -375,7 +256,7 @@ def transpose_matrix(input_file, output_directory):
 
     # concatenate all files with transposed lines
     output_transpose = input_file.replace('.tsv', '_transpose.tsv')
-    concatenate_files(transpose_files, output_transpose)
+    fo.concatenate_files(transpose_files, output_transpose)
 
     return output_transpose
 
@@ -416,7 +297,8 @@ def merge_triangular_matrices(upper_matrix, lower_matrix, output_file, matrix_si
             merged_lines.append(merged_line)
 
             if len(merged_lines) >= 200 or i == (matrix_size-1):
-                write_lines(merged_lines, output_file, mode='a')
+                merged_lines = [im.join_list(line, '\t') for line in merged_lines]
+                fo.write_lines(merged_lines, output_file, joiner='\n', write_mode='a')
                 merged_lines = []
 
 
@@ -464,23 +346,20 @@ def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
     # remove extension that is after last '.'
     input_basename = '.'.join(input_basename.split('.')[0:-1])
 
-    # define '0' as masking characters for all non-numeric
-    # classifications
-    classes = ['ALM', 'ASM', 'LNF', 'NIPH',
-               'NIPHEM', 'PLOT3', 'PLOT5', 'LOTSC']
-    masking_dict = {c: '0' for c in classes}    
-
-    output_masked = os.path.join(output_directory,
-                                 '{0}_masked.tsv'.format(input_basename))
+    output_masked = os.path.join(output_directory, 'masked_profiles.tsv')
     if masked is False:
-        print('Masking matrix before determining pairwise distances...', end='')
-        total_masked = mm.mask_matrix(input_matrix, masking_dict, output_masked)
+        print('Masking profile matrix...', end='')
+        profiles_matrix = pd.read_csv(input_matrix,
+                                      header=0, index_col=0,
+                                      sep='\t', low_memory=False)
+        masked_profiles = profiles_matrix.apply(im.replace_chars)
+        masked_profiles.to_csv(output_masked, sep='\t')
         print('masked matrix available at {0}'.format(output_masked))
     else:
-        fo.copy_file(input_matrix, output_masked)
+        output_masked = input_matrix
 
     # create temp directory to store pairwise distances per genome
-    tmp_directory = os.path.join(output_directory, 'tmp')
+    tmp_directory = os.path.join(output_directory, 'temp', 'pairwise_distances')
     if os.path.isdir(tmp_directory) is False:
         os.mkdir(tmp_directory)
 
@@ -495,7 +374,8 @@ def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
     # divide inputs into 20 lists for 5% progress resolution
     parallel_inputs = im.divide_list_into_n_chunks(rows_indexes, 20)
 
-    common_args = [[l, np_matrix, genome_ids, tmp_directory, compute_distances] for l in parallel_inputs]
+    common_args = [[l, np_matrix, genome_ids, tmp_directory, compute_distances]
+                   for l in parallel_inputs]
 
     # increasing cpu cores can greatly increase memory usage
     print('Computing pairwise distances...')
@@ -504,31 +384,28 @@ def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
                                         cpu_cores,
                                         show_progress=True)
 
-    merged = merge_dictionaries(results)
+    merged = im.merge_dictionaries(results)
 
     print('\nCreating distance matrix...', end='')
     # create files with headers
     col_ids = ['FILE'] + genome_ids
-    output_pairwise = os.path.join(output_directory,
-                                   '{0}_allelic_differences.tsv'.format(input_basename))
-    output_p = os.path.join(output_directory,
-                            '{0}_shared_loci.tsv'.format(input_basename))
+    output_pairwise = os.path.join(output_directory, 'allelic_differences.tsv')
+    # output_p = os.path.join(output_directory,
+    #                         '{0}_shared_loci.tsv'.format(input_basename))
 
-    # import arrays per genome and save to matrix file
-    results = write_matrices(merged, genome_ids, output_pairwise, output_p, col_ids)
+    # Import arrays per genome and save to matrix file
+    # results = write_matrices(merged, genome_ids, output_pairwise, output_p, col_ids)
+    results = write_matrices(merged, genome_ids, output_pairwise, col_ids)
 
     if symmetric is True:
         # add 1 to include header
         output_pairwise = symmetrify_matrix(output_pairwise,
                                             len(genome_ids)+1,
                                             tmp_directory)
-        output_p = symmetrify_matrix(output_p,
-                                     len(genome_ids)+1,
-                                     tmp_directory)
+        # output_p = symmetrify_matrix(output_p,
+        #                              len(genome_ids)+1,
+        #                              tmp_directory)
 
     print('done.')
-
-    # delete folder with intermediate pickles
-    shutil.rmtree(tmp_directory)
 
     return [output_pairwise]

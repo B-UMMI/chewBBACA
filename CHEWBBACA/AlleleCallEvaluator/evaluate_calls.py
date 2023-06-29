@@ -322,6 +322,9 @@ def main(input_files, schema_directory, output_directory, annotations,
     summary_rows = [total_samples, total_loci, total_cds,
                     loci_sums[-1], *loci_sums[:-1]]
 
+    pa_lines = []
+    dm_lines = []
+    phylo_data = {"phylo_data": []}
     if light is False:
         print('Reading profile matrix...', end='')
         # Define path to TSV file that contains allelic profiles
@@ -340,7 +343,6 @@ def main(input_files, schema_directory, output_directory, annotations,
                                                          output_directory)
         print('done.')
 
-        pa_lines = []
         if no_pa is False:
             # Sort Presence-Absence matrix based on decreasing loci presence
             sorted_loci = [x[0] for x in loci_stats]
@@ -354,7 +356,6 @@ def main(input_files, schema_directory, output_directory, annotations,
         cgMLST_genes = cgMLST_genes.tolist()
         print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
 
-        dm_lines = []
         if no_dm is False:
             # Compute distance matrix
             dm_file = dm.main(allelic_profiles_file, output_directory,
@@ -444,7 +445,6 @@ def main(input_files, schema_directory, output_directory, annotations,
             fo.concatenate_files(sample_alignment_files, full_alignment)
             print('done.')
 
-            phylo_data = {"phylo_data": []}
             if no_tree is False:
                 print('Computing the NJ tree based on the cgMLST alignment...', end='')
                 # Compute NJ tree with FastTree

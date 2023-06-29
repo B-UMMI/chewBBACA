@@ -842,63 +842,66 @@ const ReportPage = () => {
 		[1, '#053061']
 	];
 
-	const paData = [
-		{
-			z: paRows,
-			x: lociIDs,
-			y: sampleIDs,
-			type: 'heatmap',
-			showscale: false,
-			colorscale: colorscaleValue,
-			xgap: 0.05,
-			ygap: 0.05,
-			// Necessary to force binary colorscale when values are all the same
-			zmax: 1,
-			zmin: 0
-		}
-	];
+	let paHeatmap = undefined;
+	if (paRows.length > 0) {
+		const paData = [
+			{
+				z: paRows,
+				x: lociIDs,
+				y: sampleIDs,
+				type: 'heatmap',
+				showscale: false,
+				colorscale: colorscaleValue,
+				xgap: 0.05,
+				ygap: 0.05,
+				// Necessary to force binary colorscale when values are all the same
+				zmax: 1,
+				zmin: 0
+			}
+		];
 
-	const paLayout = {
-		title: {
-			text: ''
-		},
-		xaxis: {
-			title: { text: "Locus" },
-			ticks: '',
-			showticklabels: false,
-			showticks: false,
-		},
-		yaxis: {
-			title: { text: "Sample" },
-			ticks: '',
-			showticklabels: false,
-			showticks: false,
-		},
-		height: 700,
-		margin: {
-			t: 20,
-			r: 20
-		},
+		const paLayout = {
+			title: {
+				text: ''
+			},
+			xaxis: {
+				title: { text: "Locus" },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			yaxis: {
+				title: { text: "Sample" },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			height: 700,
+			margin: {
+				t: 20,
+				r: 20
+			},
+		}
+
+		const paConfig = {
+			toImageButtonOptions: 
+				{format: 'svg',
+				filename: 'presence_absence',
+				height: 700,
+				scale: 1
+			}
+		};
+
+		paHeatmap = (
+			<PlotlyPlot
+				key="paHeatmap"
+				plotData={paData}
+				layoutProps={paLayout}
+				configOptions={paConfig}
+			>
+			</PlotlyPlot>
+		);
 	}
-
-	const paConfig = {
-		toImageButtonOptions: 
-			{format: 'svg',
-			 filename: 'presence_absence',
-			 height: 700,
-			 scale: 1
-		}
-	};
-
-	const paHeatmap = (
-		<PlotlyPlot
-			key="paHeatmap"
-			plotData={paData}
-			layoutProps={paLayout}
-			configOptions={paConfig}
-		>
-		</PlotlyPlot>
-	);
 
 	// Component to show the Presence-Absence heatmap for a single sample
 	const [selectedSample, setSelectedSample] = useState(undefined);
@@ -908,7 +911,7 @@ const ReportPage = () => {
 	}
 
 	let paSampleHeatmap = undefined;
-	if (sampleIDs.includes(selectedSample)) {
+	if (paRows.length > 0 && sampleIDs.includes(selectedSample)) {
 		let selectedSampleIndex = sampleIDs.indexOf(selectedSample)
 		let paSampleData = [
 			{
@@ -972,19 +975,22 @@ const ReportPage = () => {
 	}
 
 	// Create Menu to select single sample
-	const sampleSelectMenu = (
-		<Box key="select-sample" sx={{ p: 1 }}>
-			<Autocomplete
-				disablePortal
-				id="sample-select"
-				options={sampleIDs}
-				sx={{ width: 300 }}
-				size='small'
-				renderInput={(params) => <TextField {...params} label="Select Sample" />}
-				onInputChange={handleSampleSelect}
-			/>
-		</Box>
-	)
+	let sampleSelectMenu = undefined;
+	if (paRows.length > 0) {
+		sampleSelectMenu = (
+			<Box key="select-sample" sx={{ p: 1 }}>
+				<Autocomplete
+					disablePortal
+					id="sample-select"
+					options={sampleIDs}
+					sx={{ width: 300 }}
+					size='small'
+					renderInput={(params) => <TextField {...params} label="Select Sample" />}
+					onInputChange={handleSampleSelect}
+				/>
+			</Box>
+		)
+	}
 
 	// Create component to display heatmap for a single locus
 	const [selectedLocus, setSelectedLocus] = useState(undefined);
@@ -994,7 +1000,7 @@ const ReportPage = () => {
 	}
 
 	let paLocusHeatmap = undefined;
-	if (lociIDs.includes(selectedLocus)) {
+	if (paRows.length > 0 && lociIDs.includes(selectedLocus)) {
 		let selectedLocusIndex = lociIDs.indexOf(selectedLocus)
 
 		// Get locus values for all samples
@@ -1066,130 +1072,139 @@ const ReportPage = () => {
 	}
 
 	// Create Menu to select single locus
-	const locusSelectMenu = (
-		<Box key="select-locus" sx={{ p: 1 }}>
-			<Autocomplete
-				disablePortal
-				id="locus-select"
-				options={lociIDs}
-				sx={{ width: 300 }}
-				size='small'
-				renderInput={(params) => <TextField {...params} label="Select Locus" />}
-				onInputChange={handleLocusSelect}
-			/>
-		</Box>
-	)
+	let locusSelectMenu = undefined;
+	if (paRows.length > 0) {
+		locusSelectMenu = (
+			<Box key="select-locus" sx={{ p: 1 }}>
+				<Autocomplete
+					disablePortal
+					id="locus-select"
+					options={lociIDs}
+					sx={{ width: 300 }}
+					size='small'
+					renderInput={(params) => <TextField {...params} label="Select Locus" />}
+					onInputChange={handleLocusSelect}
+				/>
+			</Box>
+		)
+	}
 
-	const paTitle = (
-		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
-			Loci Presence-Absence
-		</Typography>
-	);
+	let paComponent = undefined;
+	if (paRows.length > 0) {
+		const paTitle = (
+			<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+				Loci Presence-Absence
+			</Typography>
+		);
 
-	// Menu component
-	const paMenu = (
-		<Box
-			key="pa-options-menu"
-			sx={{
-				display: 'flex',
-				flexDirection: 'row',
-				flexWrap: 'wrap',
-				justifyContent: 'center',
-				alignItems: 'center',
-				alignContent: 'space-around',
-			}}
-		>
-			{sampleSelectMenu}
-			{locusSelectMenu}
-		</Box>
-	);
+		// Menu component
+		const paMenu = (
+			<Box
+				key="pa-options-menu"
+				sx={{
+					display: 'flex',
+					flexDirection: 'row',
+					flexWrap: 'wrap',
+					justifyContent: 'center',
+					alignItems: 'center',
+					alignContent: 'space-around',
+				}}
+			>
+				{sampleSelectMenu}
+				{locusSelectMenu}
+			</Box>
+		);
 
-	const paHeatmaps = (
-		<Grid
-			key="pa-heatmaps"
-			container
-			spacing={0}
-		>
-			<Grid key="sample-heatmap" xs={11}>
-				{paSampleHeatmap}
+		const paHeatmaps = (
+			<Grid
+				key="pa-heatmaps"
+				container
+				spacing={0}
+			>
+				<Grid key="sample-heatmap" xs={11}>
+					{paSampleHeatmap}
+				</Grid>
+				<Grid key="sample-fill" xs={1}>
+				</Grid>
+				<Grid key="main-heatmap" xs={11}>
+					{paHeatmap}
+				</Grid>
+				<Grid key="locus-heatmap" xs={1}>
+					{paLocusHeatmap}
+				</Grid>
 			</Grid>
-			<Grid key="sample-fill" xs={1}>
-			</Grid>
-			<Grid key="main-heatmap" xs={11}>
-				{paHeatmap}
-			</Grid>
-			<Grid key="locus-heatmap" xs={1}>
-				{paLocusHeatmap}
-			</Grid>
-		</Grid>
-	);
+		);
 
-	const paComponent = (
-		<AccordionMUI
-			summaryText={paTitle}
-			detailsData={[paMenu, paHeatmaps]}
-			expanded={false}
-			alerts={[alertMessagesComponents[3]]}
-		>
-		</AccordionMUI>
-	);
+		const paComponent = (
+			<AccordionMUI
+				summaryText={paTitle}
+				detailsData={[paMenu, paHeatmaps]}
+				expanded={false}
+				alerts={[alertMessagesComponents[3]]}
+			>
+			</AccordionMUI>
+		);
+	}
 
 	// Create component to display Distance Matrix Heatmap
 	const dmRows = data.distance_matrix;
 
-	const dmData = [
-		{
-			z: dmRows,
-			x: sampleIDs,
-			y: sampleIDs,
-			type: 'heatmap',
-			showscale: true,
-			colorscale: 'Viridis',
-			xgap: 0.05,
-			ygap: 0.05
-		}
-	];
+	let dmHeatmap = undefined;
+	if (dmRows.length > 0) {
+		const dmData = [
+			{
+				z: dmRows,
+				x: sampleIDs,
+				y: sampleIDs,
+				type: 'heatmap',
+				showscale: true,
+				colorscale: 'Viridis',
+				xgap: 0.05,
+				ygap: 0.05
+			}
+		];
 
-	const dmLayout = {
-		title: {
-			text: ''
-		},
-		xaxis: {
-			title: { text: "Sample" },
-			ticks: '',
-			showticklabels: false,
-			showticks: false,
-		},
-		yaxis: {
-			title: { text: "Sample" },
-			ticks: '',
-			showticklabels: false,
-			showticks: false,
-		},
-		height: 700,
-		margin: {
-			t: 20,
+		const dmLayout = {
+			title: {
+				text: ''
+			},
+			xaxis: {
+				title: { text: "Sample" },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			yaxis: {
+				title: { text: "Sample" },
+				ticks: '',
+				showticklabels: false,
+				showticks: false,
+			},
+			height: 700,
+			margin: {
+				t: 20,
+			}
 		}
+
+		const dmConfig = {
+			toImageButtonOptions: 
+				{format: 'svg',
+				filename: 'distance_matrix',
+				height: 700,
+				scale: 1
+			}
+		};
+
+		dmHeatmap = (
+			<PlotlyPlot
+				key="dmHeatmap"
+				plotData={dmData}
+				layoutProps={dmLayout}
+				configOptions={dmConfig}
+			>
+			</PlotlyPlot>
+		);
 	}
-
-	const dmConfig = {
-		toImageButtonOptions: 
-			{format: 'svg',
-			 filename: 'distance_matrix',
-			 height: 700,
-			 scale: 1
-		}
-	};
-
-	const dmHeatmap = (
-		<PlotlyPlot
-			key="dmHeatmap"
-			plotData={dmData}
-			layoutProps={dmLayout}
-			configOptions={dmConfig}
-		>
-		</PlotlyPlot>
-	);
 
 	// Component to show a heatmap for a single sample
 	const [selectedDmSample, setSelectedDmSample] = useState(undefined);
@@ -1199,7 +1214,7 @@ const ReportPage = () => {
 	}
 
 	let dmSampleHeatmap = undefined;
-	if (sampleIDs.includes(selectedDmSample)) {
+	if (dmRows.length > 0 && sampleIDs.includes(selectedDmSample)) {
 		let selectedDmSampleIndex = sampleIDs.indexOf(selectedDmSample)
 		let dmSampleData = [
 			{
@@ -1259,35 +1274,38 @@ const ReportPage = () => {
 	}
 
 	// Create Menu to select single sample
-	const sampleDmSelectMenu = (
-		<Autocomplete
-			key="dm-sample-menu"
-			disablePortal
-			id="sample-select"
-			options={sampleIDs}
-			sx={{ width: 300 }}
-			size='small'
-			renderInput={(params) => <TextField {...params} label="Select Sample" />}
-			onInputChange={handleDmSampleSelect}
-		/>
-	)
+	let dmMenu = undefined;
+	if (dmRows.length > 0) {
+		const sampleDmSelectMenu = (
+			<Autocomplete
+				key="dm-sample-menu"
+				disablePortal
+				id="sample-select"
+				options={sampleIDs}
+				sx={{ width: 300 }}
+				size='small'
+				renderInput={(params) => <TextField {...params} label="Select Sample" />}
+				onInputChange={handleDmSampleSelect}
+			/>
+		)
 
-	// Upper Menu component
-	const dmMenu = (
-		<Box
-			key="dm-options-menu"
-			sx={{
-				display: 'flex',
-				flexDirection: 'row',
-				flexWrap: 'wrap',
-				justifyContent: 'center',
-				alignItems: 'center',
-				alignContent: 'space-around'
-			}}
-		>
-			{sampleDmSelectMenu}
-		</Box>
-	);
+		// Upper Menu component
+		dmMenu = (
+			<Box
+				key="dm-options-menu"
+				sx={{
+					display: 'flex',
+					flexDirection: 'row',
+					flexWrap: 'wrap',
+					justifyContent: 'center',
+					alignItems: 'center',
+					alignContent: 'space-around'
+				}}
+			>
+				{sampleDmSelectMenu}
+			</Box>
+		);
+	}
 
 	// Bottom Menu component to find closest strains
 	const [sampleDistanceSelect, setSampleDistanceSelect] = useState(undefined);
@@ -1297,19 +1315,6 @@ const ReportPage = () => {
 		setSampleDistanceSelect(value)
 	};
 
-	// Component to select sample
-	const sampleClosestStrains = (
-		<Autocomplete
-			disablePortal
-			id="sample-distance-select"
-			options={sampleIDs}
-			sx={{ width: 300 }}
-			size='small'
-			renderInput={(params) => <TextField {...params} label="Select Sample" />}
-			onInputChange={handleSampleDistanceSelect}
-		/>
-	)
-
 	// Component to select distance threshold
 	// State used to set distance threshold value
 	const [distanceValue, setDistanceValue] = useState(10);
@@ -1318,22 +1323,39 @@ const ReportPage = () => {
 		setDistanceValue(+value)
 	};
 
-	const sampleDistanceValue = (
-		<TextField
-			id="distance-value"
-			size="small"
-			sx={{ height: 40, width: 100 }}
-			label="Max Distance"
-			variant="outlined"
-			defaultValue={distanceValue}
-			onKeyDown={(e) => {
-				if (e.key === 'Enter') {
-					e.preventDefault();
-					handleDistanceValue(e.target.value)
-				}
-			}}
-		/>
-	)
+	let sampleClosestStrains = undefined;
+	let sampleDistanceValue = undefined;
+	if (dmRows.length > 0) {
+	// Component to select sample
+		sampleClosestStrains = (
+			<Autocomplete
+				disablePortal
+				id="sample-distance-select"
+				options={sampleIDs}
+				sx={{ width: 300 }}
+				size='small'
+				renderInput={(params) => <TextField {...params} label="Select Sample" />}
+				onInputChange={handleSampleDistanceSelect}
+			/>
+		)
+
+		sampleDistanceValue = (
+			<TextField
+				id="distance-value"
+				size="small"
+				sx={{ height: 40, width: 100 }}
+				label="Max Distance"
+				variant="outlined"
+				defaultValue={distanceValue}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						handleDistanceValue(e.target.value)
+					}
+				}}
+			/>
+		)
+	}
 
 	// Find closest samples
 	let selectedSamples = [{'columns': ['Sample', 'Distance']}, {'rows': []}];
@@ -1389,61 +1411,64 @@ const ReportPage = () => {
 		);
 	}
 
-	const dmBottomMenu = (
-		<Box key="dm-bot-menu">
-			{alertMessagesComponents[5]}
-			<Box
-				key="dm-bottom-menu"
-				sx={{
-					display: 'flex',
-					flexDirection: 'row',
-					flexWrap: 'wrap',
-					justifyContent: 'center',
-					alignItems: 'center',
-					alignContent: 'space-around',
-					p: 1
-				}}
-			>
-				<Box key="dm-sample" sx={{ p: 1 }}>
-					{sampleClosestStrains}
-				</Box>
-				<Box key="dm-distance" sx={{ p: 1 }}>
-					{sampleDistanceValue}
+	let dmComponent = undefined;
+	if (dmRows.length > 0) {
+		const dmBottomMenu = (
+			<Box key="dm-bot-menu">
+				{alertMessagesComponents[5]}
+				<Box
+					key="dm-bottom-menu"
+					sx={{
+						display: 'flex',
+						flexDirection: 'row',
+						flexWrap: 'wrap',
+						justifyContent: 'center',
+						alignItems: 'center',
+						alignContent: 'space-around',
+						p: 1
+					}}
+				>
+					<Box key="dm-sample" sx={{ p: 1 }}>
+						{sampleClosestStrains}
+					</Box>
+					<Box key="dm-distance" sx={{ p: 1 }}>
+						{sampleDistanceValue}
+					</Box>
 				</Box>
 			</Box>
-		</Box>
-	);
+		);
 
-	const dmHeatmaps = (
-		<Grid
-			key="dm-heatmaps"
-			container
-			spacing={0.5}
-		>
-			<Grid key="dm-sample-heatmap" xs={12}>
-				{dmSampleHeatmap}
+		const dmHeatmaps = (
+			<Grid
+				key="dm-heatmaps"
+				container
+				spacing={0.5}
+			>
+				<Grid key="dm-sample-heatmap" xs={12}>
+					{dmSampleHeatmap}
+				</Grid>
+				<Grid key="dm-main-heatmap" xs={12}>
+					{dmHeatmap}
+				</Grid>
 			</Grid>
-			<Grid key="dm-main-heatmap" xs={12}>
-				{dmHeatmap}
-			</Grid>
-		</Grid>
-	);
+		);
 
-	const dmTitle = (
-		<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
-			Allelic Distances
-		</Typography>
-	);
+		const dmTitle = (
+			<Typography sx={{ color: '#bb7944', fontSize: 20 }}>
+				Allelic Distances
+			</Typography>
+		);
 
-	const dmComponent = (
-		<AccordionMUI
-			summaryText={dmTitle}
-			detailsData={[dmMenu, dmHeatmaps, dmBottomMenu, distanceTable]}
-			expanded={false}
-			alerts={[alertMessagesComponents[4]]}
-		>
-		</AccordionMUI>
-	);
+		dmComponent = (
+			<AccordionMUI
+				summaryText={dmTitle}
+				detailsData={[dmMenu, dmHeatmaps, dmBottomMenu, distanceTable]}
+				expanded={false}
+				alerts={[alertMessagesComponents[4]]}
+			>
+			</AccordionMUI>
+		);
+	}
 
 	// Create component to display NJ tree
 	// Get data for Phylocanvas tree

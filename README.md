@@ -10,7 +10,7 @@
 # chewBBACA
 
 **chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
-but at this point still it needs a bit of work to make that claim so we just add "chew" to add extra coolness to the software name. BSR stands for 
+but at this point it still needs a bit of work to make that claim, so we just add "chew" to add extra coolness to the software name. BSR stands for 
 BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2) 
 
 chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence 
@@ -23,12 +23,16 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## 3.3.0 - 2023-06-29
 
-- Added the AlleleCallEvaluator module.
+- Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling
+results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility
+to provide a TSV file with loci annotations to include on a table). The report consists of components to display a
+heatmap representing the Loci Presence-Absence matrix, a heatmap representing the Distance Matrix based on allelic
+differences and a Neighbor-Joining tree based on the core genome MLST alignment.
 
-Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to know more about the latest changes.
+Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation
 
-When using chewBBACA please use the following citation:
+When using chewBBACA, please use the following citation:
 
 Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)

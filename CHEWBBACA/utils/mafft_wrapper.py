@@ -38,9 +38,9 @@ def call_mafft(genefile, output_directory):
                                        )
         stdout, stderr = mafft_cline()
         outfile_basename = os.path.basename(genefile)
-        outfile_basename = outfile_basename.replace(".fasta", "_aligned.fasta")
+        outfile_basename = outfile_basename.replace('.fasta', '_aligned.fasta')
         outfile = os.path.join(output_directory, outfile_basename)
-        with open(outfile, "w") as handle:
+        with open(outfile, 'w') as handle:
             handle.write(stdout)
 
         return outfile

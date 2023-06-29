@@ -836,6 +836,7 @@ const ReportPage = () => {
 
 	// Create component to display Loci Presence-Absence Heatmap
 	const paRows = data.presence_absence;
+	console.log(paRows.length)
 
 	const colorscaleValue = [
 		[0, '#f7f7f7'],
@@ -1135,7 +1136,7 @@ const ReportPage = () => {
 			</Grid>
 		);
 
-		const paComponent = (
+		paComponent = (
 			<AccordionMUI
 				summaryText={paTitle}
 				detailsData={[paMenu, paHeatmaps]}

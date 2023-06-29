@@ -326,35 +326,32 @@ def main(input_files, schema_directory, output_directory, annotations,
     dm_lines = []
     phylo_data = {"phylo_data": []}
     if light is False:
-        print('Reading profile matrix...', end='')
         # Define path to TSV file that contains allelic profiles
-        allelic_profiles_file = fo.join_paths(input_files, ['results_alleles.tsv'])
-        # Import matrix with allelic profiles
-        profiles_matrix = pd.read_csv(allelic_profiles_file, header=0, index_col=0,
-                                      sep='\t', low_memory=False)
-        print('done.')
-        # Mask missing data
-        print('Masking profile matrix...', end='')
-        masked_profiles = profiles_matrix.apply(im.replace_chars)
-        print('done.')
-        # Compute Presence-Absence matrix
-        print('Computing Presence-Absence matrix...', end='')
-        pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
-                                                         output_directory)
-        print('done.')
+        allelic_profiles_file = fo.join_paths(input_files,
+                                              ['results_alleles.tsv'])
+
+        if no_pa is False or no_tree is False or cg_alignment is True:
+            # Import matrix with allelic profiles
+            print('Reading profile matrix...', end='')
+            profiles_matrix = pd.read_csv(allelic_profiles_file,
+                                          header=0, index_col=0,
+                                          sep='\t', low_memory=False)
+            print('done.')
+            # Mask missing data
+            print('Masking profile matrix...', end='')
+            masked_profiles = profiles_matrix.apply(im.replace_chars)
+            print('done.')
+            # Compute Presence-Absence matrix
+            print('Computing Presence-Absence matrix...', end='')
+            pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
+                                                             output_directory)
+            print('done.')
 
         if no_pa is False:
             # Sort Presence-Absence matrix based on decreasing loci presence
             sorted_loci = [x[0] for x in loci_stats]
             pa_matrix = pa_matrix[sorted_loci]
             pa_lines = pa_matrix.values.tolist()
-
-        # Compute the cgMLST at 100%
-        print('Determining cgMLST loci...')
-        cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
-                                                          1, len(sample_ids))
-        cgMLST_genes = cgMLST_genes.tolist()
-        print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
 
         if no_dm is False:
             # Compute distance matrix
@@ -368,6 +365,12 @@ def main(input_files, schema_directory, output_directory, annotations,
         # Only using the loci in the cgMLST
         # Might have to change if we need to work with all loci in the future
         if no_tree is False or cg_alignment is True:
+            # Compute the cgMLST at 100%
+            print('Determining cgMLST loci...')
+            cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
+                                                              1, len(sample_ids))
+            cgMLST_genes = cgMLST_genes.tolist()
+            print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
             # Create FASTA files with alleles identified in samples
             # Create temporary directory to store FASTA files
             print('Creating FASTA files with identified alleles...')

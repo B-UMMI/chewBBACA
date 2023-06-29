@@ -247,7 +247,7 @@ SCHEMA_REPORT_HTML = ("""
     <noscript> You need to enable JavaScript to run this app. </noscript>
     <div id="root"></div>
     <script> preComputedData = {0} </script>
-    <script src="./schema_bundle.js"></script>
+    <script src="./report_bundle.js"></script>
 </body>
 </html>
 """)
@@ -268,10 +268,29 @@ LOCUS_REPORT_HTML = ("""
         <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
         <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
         <script> preComputedDataInd = {0} </script>
-        <script src="./loci_bundle.js"></script>
+        <script src="./report_bundle.js"></script>
     </body>
 </html>
 """)
+
+# HTML template to create main AlleleCall report
+ALLELECALL_REPORT_HTML = ("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AlleleCall Report - React Edition</title>
+</head>
+<body style="background-color: #f6f6f6">
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <script> preComputedData = {0} </script>
+    <script src="./report_bundle.js"></script>
+</body>
+</html>
+""")
+
 
 # Do not use list of strings as constants if the strings include formatting
 # placeholders. Multiple references to the list of strings will have the same
@@ -306,7 +325,7 @@ LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
                  'threshold ({1}bp)\tAlleles above threshold ({2}bp)\t'
                  'Missing Allele IDs')
 
-# Column headers for Invalid Alleles table in the loci reports
+# Column headers for the Invalid Alleles table in the loci reports
 INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',
                            'Exception Description']
 
@@ -319,6 +338,22 @@ TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
 DISTINCT_ALLELES_COLUMNS = ['Protein Allele ID',
                             'Count',
                             'List of Distinct Alleles']
+
+# Column headers for the Sample Stats table in the allele calling report
+SAMPLE_STATS_COLUMNS = ['Sample', 'Total Contigs', 'Total CDSs',
+                        'Proportion of Classified CDSs', 'Identified Loci',
+                        'Proportion of Identified Loci',
+                        'Valid Classifications', 'Invalid Classifications']
+
+# Column headers for the Loci Stats table in the allele calling report
+LOCI_STATS_COLUMNS = ['Locus', 'Total CDSs', 'Valid Classes',
+                      'Invalid Classes', 'Proportion Samples']
+
+# Column headers for the Summary Stats table in the allele calling report
+SUMMARY_STATS_COLUMNS = ['Total Samples', 'Total Loci', 'Total CDSs',
+                         'Total CDSs Classified', 'EXC', 'INF',
+                         'PLOT3', 'PLOT5', 'LOTSC', 'NIPH',
+                         'NIPHEM', 'ALM', 'ASM', 'PAMA', 'LNF']
 
 # Exception messages
 

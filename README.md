@@ -27,7 +27,7 @@ settings and a set of functions to visualize and validate allele variation in th
 results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility
 to provide a TSV file with loci annotations to include on a table). The report includes components to display a
 heatmap representing the Loci Presence-Absence matrix, a heatmap representing the Distance Matrix based on allelic
-differences and a Neighbor-Joining tree based on the core genome MLST alignment.
+differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

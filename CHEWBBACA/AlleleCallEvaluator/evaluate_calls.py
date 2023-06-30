@@ -7,9 +7,9 @@ This module generates an interactive HTML report for the allele calling
 results. The report provides summary statistics to evaluate results per
 sample and per locus (with the possibility to provide a TSV file with
 loci annotations to include on a table). The report includes components
-to display a heatmap representing the Loci Presence-Absence matrix, a
-heatmap representing the Distance matrix based on allelic differences
-and a NJ tree based on the cgMLST alignment.
+to display a heatmap representing the loci presence-absence matrix, a
+heatmap representing the distance matrix based on allelic differences
+and a Neighbor-Joining (NJ) tree based on the MSA of the core genome loci.
 
 Code documentation
 ------------------
@@ -330,7 +330,7 @@ def main(input_files, schema_directory, output_directory, annotations,
             # Define path to TSV file that contains allelic profiles
             allelic_profiles_file = fo.join_paths(input_files,
                                                   ['results_alleles.tsv'])
-    
+
             # Import matrix with allelic profiles
             print('Reading profile matrix...', end='')
             profiles_matrix = pd.read_csv(allelic_profiles_file,
@@ -343,22 +343,33 @@ def main(input_files, schema_directory, output_directory, annotations,
             output_masked = os.path.join(output_directory, 'masked.tsv')
             masked_profiles.to_csv(output_masked, sep='\t')
             print('done.')
-            if no_pa is False or no_tree is False or cg_alignment is True:
-                # Compute Presence-Absence matrix
-                print('Computing Presence-Absence matrix...', end='')
-                pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
-                                                                 output_directory)
-                print('done.')
-    
+            # Compute Presence-Absence matrix
+            print('Computing Presence-Absence matrix...', end='')
+            pa_matrix, pa_outfile = determine_cgmlst.presAbs(masked_profiles,
+                                                             output_directory)
+            print('done.')
+
             if no_pa is False:
                 # Sort Presence-Absence matrix based on decreasing loci presence
                 sorted_loci = [x[0] for x in loci_stats]
                 pa_matrix = pa_matrix[sorted_loci]
                 pa_lines = pa_matrix.values.tolist()
 
+            if no_dm is False or no_tree is False or cg_alignment is True:
+                # Compute the cgMLST at 100%
+                print('Determining cgMLST loci...')
+                cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
+                                                                  1, len(sample_ids))
+                cgMLST_genes = cgMLST_genes.tolist()
+                print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
+                cgMLST_matrix = masked_profiles[cgMLST_genes]
+                cgMLST_matrix_outfile = os.path.join(output_directory, 'cgMLST.tsv')
+                cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
+
             if no_dm is False:
                 # Compute distance matrix
-                dm_file = dm.main(output_masked, output_directory,
+                # Based on cgMLST profiles
+                dm_file = dm.main(cgMLST_matrix_outfile, output_directory,
                                   cpu_cores, True, True)
                 # Import distance matrix
                 distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
@@ -368,12 +379,6 @@ def main(input_files, schema_directory, output_directory, annotations,
         # Only using the loci in the cgMLST
         # Might have to change if we need to work with all loci in the future
         if no_tree is False or cg_alignment is True:
-            # Compute the cgMLST at 100%
-            print('Determining cgMLST loci...')
-            cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
-                                                              1, len(sample_ids))
-            cgMLST_genes = cgMLST_genes.tolist()
-            print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
             # Create FASTA files with alleles identified in samples
             # Create temporary directory to store FASTA files
             print('Creating FASTA files with identified alleles...')
@@ -452,7 +457,7 @@ def main(input_files, schema_directory, output_directory, annotations,
             print('done.')
 
             if no_tree is False:
-                print('Computing the NJ tree based on the cgMLST alignment...', end='')
+                print('Computing the NJ tree based on the core genome MSA...', end='')
                 # Compute NJ tree with FastTree
                 out_tree = fo.join_paths(alignment_dir, ['cgMLST.tree'])
                 fw.call_fasttree(full_alignment, out_tree)

@@ -20,7 +20,6 @@ Code documentation
 import os
 import csv
 import math
-import shutil
 
 import random
 

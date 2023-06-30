@@ -716,8 +716,8 @@ def run_evaluate_calls():
 
     parser.add_argument('--light', action='store_true', required=False,
                         dest='light',
-                        help='Do not compute presence-absence matrix, '
-                             'distance matrix and the NJ cgMLST tree.')
+                        help='Do not compute the presence-absence matrix, '
+                             'the distance matrix and the Neighbor-Joining tree.')
 
     parser.add_argument('--no-pa', action='store_true', required=False,
                         dest='no_pa',
@@ -729,12 +729,12 @@ def run_evaluate_calls():
 
     parser.add_argument('--no-tree', action='store_true', required=False,
                         dest='no_tree',
-                        help='Do not compute the NJ cgMLST tree.')
+                        help='Do not compute the Neighbor-Joining tree.')
 
     parser.add_argument('--cg-alignment', action='store_true', required=False,
                         dest='cg_alignment',
-                        help='Compute the cgMLST alignment, even if the '
-                             '`--no-tree` parameter is True.')
+                        help='Compute the MSA of the core genome loci, even '
+                             'if `--no-tree` is provided.')
 
     args = parser.parse_args()
     del args.AlleleCallEvaluator

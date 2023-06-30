@@ -2,7 +2,7 @@
 
 ## 3.3.0 - 2023-06-29
 
-- Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility to provide a TSV file with loci annotations to include on a table). The report includes components to display a heatmap representing the Loci Presence-Absence matrix, a heatmap representing the Distance Matrix based on allelic differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
+- Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility to provide a TSV file with loci annotations to include on a table). The report includes components to display a heatmap representing the loci presence-absence matrix, a heatmap representing the Distance Matrix based on allelic differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
 
 ## 3.2.0 - 2023-04-27
 

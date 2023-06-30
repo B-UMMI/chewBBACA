@@ -163,9 +163,9 @@ The ``Sample Stats`` table includes the following columns:
   - **Proportion of Classified CDSs**: The proportion of CDSs identified in the sample that were classified.
   - **Identified Loci**: The number of schema loci identified in the sample.
   - **Proportion of Identified Loci**: The proportion of schema loci that were identified in the sample.
-  - **Valid Classifications**: Total number of valid classifications (EXC+INF).
+  - **Valid Classifications**: Total number of valid classifications (EXC and INF).
   - **Invalid Classifications**: Total number of invalid classifications (PLOT3, PLOT5, LOTSC, NIPH, NIPHEM,
-    ALM, ASM, PAMA.
+    ALM, ASM and PAMA).
 
 The ``Loci Stats`` table includes the following columns:
 
@@ -212,7 +212,7 @@ created with chewBBACA. If you want to annotate an external schema, you can adap
 Loci Presence-Absence
 .....................
 
-The sixth component displays a Heatmap representing the loci presence-absence matrix for all samples in the
+The sixth component displays a heatmap representing the loci presence-absence matrix for all samples in the
 dataset. Blue cells (z=1) correspond to loci presence and grey cells (z=0) to loci absence. The **Select Sample**
 dropdown menu enables the selection of a single sample to display its heatmap on top of the main heatmap. The
 **Select Locus** dropdown menu enables the selection of a single locus to display its heatmap on the right of

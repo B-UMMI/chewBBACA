@@ -51,13 +51,13 @@ Outputs
 
 ::
 
-	OutputFolderName
-  ├── allelic_differences_symmetric.tsv
-  ├── cgMLST_alignment.fasta
-  ├── main_report.html
-  ├── masked.tsv
-	├── Presence_Absence.tsv
-	└── report_bundle.js
+   OutputFolderName
+   ├── allelic_differences_symmetric.tsv
+   ├── cgMLST_alignment.fasta
+   ├── main_report.html
+   ├── masked.tsv
+   ├── Presence_Absence.tsv
+   └── report_bundle.js
 
 - A TSV file, ``allelic_differences_symmetric.tsv``, that contains the symmetric distance matrix based on allelic differences.
 

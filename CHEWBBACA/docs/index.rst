@@ -23,7 +23,7 @@ Welcome to chewBBACA's documentation!
    user/modules/CreateSchema
    user/modules/AlleleCall
    user/modules/SchemaEvaluator
-   user/AlleleCallEvaluator
+   user/modules/AlleleCallEvaluator
    user/modules/ExtractCgMLST
    user/modules/RemoveGenes
    user/modules/PrepExternalSchema

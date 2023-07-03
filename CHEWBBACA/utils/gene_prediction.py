@@ -12,9 +12,6 @@ Code documentation
 """
 
 
-import os
-import subprocess
-
 import pyrodigal
 
 try:
@@ -30,16 +27,50 @@ except ModuleNotFoundError:
 
 
 def create_orf_finder(training_data, closed, mask, meta):
-    """
-    """
+    """Create a Pyrodigal OrfFinder object.
 
-    orf_finder = pyrodigal.OrfFinder(training_info=training_data, closed=closed, mask=mask, meta=meta)
+    Parameters
+    ----------
+    training_data : pyrodigal.TrainingInfo
+        A training info instance used to predict genes in single
+        mode.
+    closed : bool
+        True to prevent prediction of partial genes at edges of
+        sequences, False otherwise.
+    meta: bool
+        True to run Prodigal in `meta` mode (uses pre-trained
+        profiles).
+
+    Returns
+    -------
+    orf_finder : pyrodigal.OrfFinder
+        A OrfFinder object configured based on provided arguments.
+    """
+    orf_finder = pyrodigal.OrfFinder(training_info=training_data,
+                                     closed=closed,
+                                     mask=mask,
+                                     meta=meta)
 
     return orf_finder
 
 
 def train_orf_finder(orf_finder, sequences, translation_table):
-    """
+    """Train a Pyrodigal OrfFinder object based on a set of sequences.
+
+    Parameters
+    ----------
+    orf_finder : pyrodigal.OrfFinder
+        A OrfFinder object.
+    sequences : bytes
+        Sequences used to train the OrfFinder (unpacked list
+        of bytes objects).
+    translation_table : int
+        Translation table to use.
+
+    Return
+    ------
+    orf_finder : pyrodigal.OrfFinder
+        A OrfFinder object configured based on provided arguments.
     """
     orf_finder.train(sequences, translation_table=translation_table)
 
@@ -47,7 +78,17 @@ def train_orf_finder(orf_finder, sequences, translation_table):
 
 
 def read_training_file(training_file):
-    """
+    """Load training info for Pyrodigal from Prodigal training file.
+
+    Parameters
+    ----------
+    training_file : str
+        Path to Prodigal training file.
+
+    Returns
+    -------
+    training_data : pyrodigal.TrainingInfo
+        The deserialized training info.
     """
     with open(training_file, 'rb') as infile:
         training_data = pyrodigal.TrainingInfo.load(infile)
@@ -55,16 +96,31 @@ def read_training_file(training_file):
     return training_data
 
 
-def predict_genes(orf_finder, sequence):
-    """
-    """
-    genes = orf_finder.find_genes(sequence)
-
-    return genes
-
-
 def get_gene_info(contig_id, genome_id, protid, genes):
-    """
+    """Get genes information from a pyrodigal.Genes object.
+
+    Parameters
+    ----------
+    contig_id : str
+        The unique identifier of the sequence/contig.
+    genome_id : str
+        The unique identifier of the genome/file.
+    protid : int
+        The integer identifier to attriute to the first gene.
+    genes : pyrodigal.Genes
+        The list of genes predicted by Prodigal.
+
+    Returns
+    -------
+    gene_info : list
+        List with one sublist per gene predicted. Each sublist
+        includes the sequence SHA256 hash, the DNA sequence, the
+        genome identifier, the contig identifier, the start position
+        in the sequence, the end position, the integer identifier and
+        the strand the gene was identified in.
+    protid : int
+        The integer identifier to attribute to the first gene
+        in the next sequence/contig.
     """
     gene_info = []
     for gene in genes:
@@ -79,7 +135,14 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 
 
 def write_gene_fasta(gene_info, output_file):
-    """
+    """Write a FASTA file based on the results returned by `get_gene_info`.
+
+    Parameters
+    ----------
+    gene_info : list
+        List with the data for the genes returned by `get_gene_info`.
+    output_file : str
+        Path to the output FASTA file.
     """
     fasta_sequences = []
     for gene in gene_info:
@@ -89,7 +152,17 @@ def write_gene_fasta(gene_info, output_file):
 
 
 def write_coordinates_pickle(gene_info, contig_sizes, output_file):
-    """
+    """Write gene coordinates to a pickle file.
+
+    Parameters
+    ----------
+    gene_info : list
+        List with the data for the genes returned by `get_gene_info`.
+    contig_sizes : dict
+        Dictionary with contig/sequence identifiers as keys and
+        contig/sequence size as values.
+    output_file : str
+    Path to the output file.
     """
     gene_coordinates = {}
     for gene in gene_info:
@@ -97,18 +170,51 @@ def write_coordinates_pickle(gene_info, contig_sizes, output_file):
     fo.pickle_dumper([gene_coordinates, contig_sizes], output_file)
 
 
-def predict_genome_genes(input_file, output_directory, orf_finder, translation_table):
+def predict_genome_genes(input_file, output_directory, orf_finder,
+                         translation_table):
+    """Predict genes for sequences in a FASTA file.
 
+    Parameters
+    ----------
+    input_file : str
+        Path to the FASTA file.
+    output_directory : str
+        Path to the output_directory to store files with
+        the results.
+    orf_finder : pyrodigal.OrfFinder
+        A OrfFinder object.
+    translation_table : int
+        Translation table used to configure the OrfFinder
+        (None type if the OrfFinder does not need to be
+         configured).
+
+    Returns
+    -------
+    input_file : str
+        Path to the input FASTA file.
+    total_genome : int
+        Total number of genes predicted.
+    fasta_outfile : str
+        Path to the output FASTA file that contains the
+        predited gene sequences.
+    coordinates_outfile : str
+        Path to the output pickle file that contains the gene
+        coordinates and contig size data.
+    """
     # Get genome unique identifier
     genome_basename = input_file[1]
     records = fao.sequence_generator(input_file[0])
     records = {rec.id: bytes(rec.seq) for rec in records}
-    contig_sizes = {recid: len(sequence) for recid, sequence in records.items()}
+    contig_sizes = {recid: len(sequence)
+                    for recid, sequence in records.items()}
 
     # Train based on input sequences
-    # Only train if object does not contain training info and if it won't run in meta mode
+    # Only train if object does not contain training info
+    # and if it won't run in meta mode
     if orf_finder.training_info is None and orf_finder.meta is False:
-        orf_finder = train_orf_finder(orf_finder, *records.values(), translation_table)
+        orf_finder = train_orf_finder(orf_finder,
+                                      *records.values(),
+                                      translation_table)
 
     # Predict genes for all input contigs
     contig_genes = {}
@@ -129,11 +235,13 @@ def predict_genome_genes(input_file, output_directory, orf_finder, translation_t
     coordinates_outfile = None
     if total_genome > 0:
         # Create FASTA file with DNA sequences
-        fasta_outfile = fo.join_paths(output_directory, [f'{genome_basename}.fasta'])
+        fasta_outfile = fo.join_paths(output_directory,
+                                      [f'{genome_basename}.fasta'])
         write_gene_fasta(gene_info, fasta_outfile)
 
         # Save gene coordinates and contig sizes to pickle
-        coordinates_outfile = fo.join_paths(output_directory, [f'{genome_basename}.coordinates'])
+        coordinates_outfile = fo.join_paths(output_directory,
+                                            [f'{genome_basename}.coordinates'])
         write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
 
     return [input_file, total_genome, fasta_outfile, coordinates_outfile]

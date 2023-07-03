@@ -186,17 +186,13 @@ def run_create_schema():
     args = parser.parse_args()
     del args.CreateSchema
 
-    # check if Prodigal is installed if input files are genome assemblies
-    if args.cds_input is False:
-        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
-
-    # check if ptf exists
+    # Check if ptf exists
     if args.ptf_path is not None:
         ptf_exists = os.path.isfile(args.ptf_path)
         if ptf_exists is False:
             sys.exit('Invalid path for Prodigal training file.')
 
-    # create output directory
+    # Create output directory
     created = fo.create_directory(args.output_directory)
     if created is False:
         sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
@@ -204,25 +200,25 @@ def run_create_schema():
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
 
-    # add clustering parameters
+    # Add clustering parameters
     args.word_size = ct.WORD_SIZE_DEFAULT
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
     args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
     args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
-    # run CreateSchema process
+    # Run the CreateSchema process
     create_schema.main(**vars(args))
 
     schema_dir = os.path.join(args.output_directory, args.schema_name)
-    # copy training file to schema directory
+    # Copy Prodigal Training File (PTF) to schema directory
     ptf_hash = None
     if args.ptf_path is not None:
         shutil.copy(args.ptf_path, schema_dir)
-        # determine PTF checksum
+        # Determine PTF checksum
         ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
-    # write schema config file
+    # Write schema config file
     schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
                                            args.translation_table, ct.MSL_MIN,
                                            version, args.size_threshold,
@@ -230,11 +226,10 @@ def run_create_schema():
                                            args.clustering_sim, args.representative_filter,
                                            args.intra_filter, schema_dir)
 
-    # create file with genes/loci list
+    # Create the file with the list of genes/loci
     pv.write_gene_list(schema_dir)
 
-    # remove temporary file with paths
-    # to genome files
+    # Remove temporary file with paths to input genomes
     fo.remove_files([genome_list])
 
 
@@ -307,7 +302,7 @@ def run_allele_call():
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
                         help='Path to the Prodigal training file. Default is '
-                             'to get training file from the schema\'s '
+                             'to get the training file from the schema\'s '
                              'directory')
 
     parser.add_argument('--gl', '--genes-list', type=str,
@@ -445,14 +440,9 @@ def run_allele_call():
 
     args = parser.parse_args()
 
-    # determine if Prodigal is installed and in PATH
-    # check if Prodigal is installed if input files are genome assemblies
-    if args.cds_input is False:
-        prodigal_installed = pv.check_prodigal(ct.PRODIGAL_PATH)
-
     config_file = os.path.join(args.schema_directory, '.schema_config')
-    # legacy schemas do not have config file
-    # create one with provided arguments
+    # Legacy schemas do not have config file
+    # Create one with provided arguments
     if os.path.isfile(config_file) is False:
         schema_files = os.listdir(args.schema_directory)
         # Exit if there is no 'short' directory or if there are no FASTA files
@@ -494,27 +484,27 @@ def run_allele_call():
               '{0}.'.format(results_dir))
 
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
-    # user provided a list of genes to call
+    # User provided a list of genes to call
     if args.genes_list is not False:
         loci_list = pv.check_input_type(args.genes_list, loci_list,
                                         args.schema_directory)
-    # working with the whole schema
+    # Working with the whole schema
     else:
         loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     genome_list = pv.check_input_type(args.input_files, genome_list)
 
-    # determine if schema was downloaded from Chewie-NS
+    # Determine if schema was downloaded from Chewie-NS
     ns_config = fo.join_paths(args.schema_directory, ['.ns_config'])
     args.ns = os.path.isfile(ns_config)
 
-    # add clustering arguments
+    # Add clustering arguments
     args.word_size = ct.WORD_SIZE_DEFAULT
     args.window_size = ct.WINDOW_SIZE_DEFAULT
     args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 
-    # single dictionary with most arguments
+    # Single dictionary with most arguments
     config = {'Minimum sequence length': args.minimum_length,
               'Size threshold': args.size_threshold,
               'Translation table': args.translation_table,
@@ -538,7 +528,7 @@ def run_allele_call():
     # if args.store_profiles is True:
     #     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
 
-    # remove temporary files with paths to genomes and schema files
+    # Remove temporary files with paths to input genomes and schema files
     fo.remove_files([loci_list])
     fo.remove_files([genome_list])
 

@@ -1775,23 +1775,6 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     fo.write_lines(tsv_lines, output_file)
 
 
-def write_coordinates_file(coordinates_files):
-    """
-    """
-    files = []
-    for k, v in coordinates_files.items():
-        output_directory = os.path.dirname(v)
-        current = fo.pickle_loader(v)
-        lines = [data for hashid, data in current[0].items()]
-        lines = im.flatten_list(lines)
-        lines = ['\t'.join(line) for line in lines]
-        output_file = fo.join_paths(output_directory, [f'{k}.tsv'])
-        fo.write_lines(lines, output_file)
-        files.append(output_file)
-
-    return files
-
-
 def select_representatives(representative_candidates, locus, fasta_file,
                            iteration, output_directory, blastp_path,
                            blast_db, blast_score_ratio, threads):
@@ -2911,11 +2894,16 @@ def main(input_file, loci_list, schema_directory, output_directory,
     # Create file with CDSs coordinates
     # Will not be created if input files contain predicted CDS
     if config['CDS input'] is False:
-        cds_coordinates = fo.join_paths(temp_directory, [ct.CDS_COORDINATES_BASENAME])
-        pos_files = write_coordinates_file(results['cds_coordinates'])
+        files = []
+        for gid, file in results['cds_coordinates']:
+            tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
+            cf.write_coordinates_file(file, tsv_file)
+            files.append(tsv_file)
         # Concatenate all TSV files with CDS coordinates
-        fo.concatenate_files(pos_files, cds_coordinates, header=ct.CDS_TABLE_HEADER)
-        fo.move_file(cds_coordinates, output_directory)
+        cds_coordinates = fo.join_paths(output_directory,
+                                        [ct.CDS_COORDINATES_BASENAME])
+        fo.concatenate_files(files, cds_coordinates,
+                             header=ct.CDS_TABLE_HEADER)
 
     # move file with list of excluded CDS
     # file is not created if we only search for exact matches

@@ -841,3 +841,21 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                       f'score for {ids_map[rep_results[0][0]]}')
 
     return self_scores
+
+
+def write_coordinates_file(coordinates_file, output_file):
+    """Write genome CDS coordinates to a TSV file.
+
+    Parameters
+    ----------
+    coordinates_file : str
+        Path to the pickle file that contains data about
+        the CDSs coordinates.
+    output_file : str
+        Path to the output TSV file.
+    """
+    data = fo.pickle_loader(coordinates_file)
+    lines = [coords for h, coords in data[0].items()]
+    lines = im.flatten_list(lines)
+    lines = ['\t'.join(line) for line in lines]
+    fo.write_lines(lines, output_file)

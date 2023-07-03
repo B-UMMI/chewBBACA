@@ -176,23 +176,6 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
     return loci_paths
 
 
-def write_coordinates_file(coordinates_files):
-    """
-    """
-    files = []
-    for k, v in coordinates_files.items():
-        output_directory = os.path.dirname(v)
-        current = fo.pickle_loader(v)
-        lines = [data for hashid, data in current[0].items()]
-        lines = im.flatten_list(lines)
-        lines = ['\t'.join(line) for line in lines]
-        output_file = fo.join_paths(output_directory, [f'{k}.tsv'])
-        fo.write_lines(lines, output_file)
-        files.append(output_file)
-
-    return files
-
-
 def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        blast_score_ratio, minimum_length, translation_table,
                        size_threshold, word_size, window_size, clustering_sim,
@@ -543,11 +526,16 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # Create file with CDSs coordinates
     # Will not be created if input files contain predicted CDS
     if cds_input is False:
-        cds_coordinates_file = fo.join_paths(temp_directory, [ct.CDS_COORDINATES_BASENAME])
-        pos_files = write_coordinates_file(cds_coordinates)
+        files = []
+        for gid, file in cds_coordinates:
+            tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
+            cf.write_coordinates_file(file, tsv_file)
+            files.append(tsv_file)
         # Concatenate all TSV files with CDS coordinates
-        fo.concatenate_files(pos_files, cds_coordinates_file, header=ct.CDS_TABLE_HEADER)
-        fo.move_file(cds_coordinates_file, output_directory)
+        cds_coordinates = fo.join_paths(output_directory,
+                                        [ct.CDS_COORDINATES_BASENAME])
+        fo.concatenate_files(files, cds_coordinates,
+                             header=ct.CDS_TABLE_HEADER)
 
     return [schema_files, temp_directory, failed]
 

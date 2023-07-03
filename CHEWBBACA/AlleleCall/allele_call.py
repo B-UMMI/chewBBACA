@@ -969,12 +969,12 @@ def write_results_contigs(classification_files, input_identifiers,
                         # add CDS coordinates to list of PAMA classifications
                         repeated_coordinates = coordinates[c][0]
                         repeated[c].append([genome_id, header[j+1],
-                                            '{0}&{1}-{2}&{3}'.format(*repeated_coordinates[:3],
-                                                                     repeated_coordinates[4])])
+                                            '{0}&{1}-{2}&{3}'.format(*repeated_coordinates[1:4],
+                                                                     repeated_coordinates[5])])
 
                 # contig identifier, start and stop positions and strand
                 # 1 for sense, 0 for antisense
-                cds_coordinates = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
+                cds_coordinates = ['{0}&{1}-{2}&{3}'.format(*c[1:4], c[5])
                                    if c not in invalid_classes else c
                                    for c in cds_coordinates]
 

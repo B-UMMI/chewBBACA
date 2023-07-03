@@ -5,8 +5,7 @@ Purpose
 -------
 
 This module contains functions related with gene prediction
-with Prodigal and extraction of predicted coding sequences
-from FASTA files.
+with Prodigal.
 
 Code documentation
 ------------------
@@ -15,6 +14,8 @@ Code documentation
 
 import os
 import subprocess
+
+import pyrodigal
 
 try:
     from utils import (constants as ct,
@@ -28,306 +29,111 @@ except ModuleNotFoundError:
                                  iterables_manipulation as im)
 
 
-def extract_genome_cds(reading_frames, contigs, starting_id):
-    """Extract coding sequence from contigs.
-
-    Extracts coding sequences from FASTA files based on the
-    start and stop coordinates predicted by Prodigal.
-
-    Parameters
-    ----------
-    reading_frames : str
-        Path to the pickled file with the coordinates to
-        extract the CDSs predicted by Prodigal.
-    contigs : dict
-        Dictionary with contig identifiers as keys and
-        contig sequences as values.
-    starting_id : int
-        Integer identifier attributed to the first CDS
-        and that will be incremented to serve as identifier
-        for subsequent CDSs.
-
-    Returns
-    -------
-    coding_sequences : dict
-        Dictionary with coding sequences ids as keys and
-        coding sequences as values.
-    coding_sequences_info : list
-        List with a sublist for each extracted CDS. Sublists
-        have information about the extracted CDS (identifier
-        of the contig the CDS was identified in, start position
-        in the contig, stop position in the contig, sequence
-        identifier attributed to that CDS and the strand that
-        coded for that CDS).
+def create_orf_finder(training_data, closed, mask, meta):
     """
-    seqid = starting_id
-    coding_sequences = {}
-    coding_sequences_info = []
-    for contig_id, frames in reading_frames.items():
-        sequence = contigs[contig_id]
-        # for each start and stop codon in the contig
-        for cds in frames:
-            # start position is 0-based, stop position is upper-bound exclusive
-            start_pos = cds[0]
-            stop_pos = cds[1]
-            strand = cds[2]
-            # extract CDS sequence
-            cds_sequence = im.extract_single_cds(sequence, *cds).upper()
-            seq_hash = im.hash_sequence(cds_sequence)
-
-            # store CDS with unique id
-            coding_sequences[seqid] = cds_sequence
-
-            # store CDS information
-            coding_sequences_info.append([contig_id, str(start_pos),
-                                          str(stop_pos), str(seqid),
-                                          str(strand), seq_hash])
-
-            # increment seqid
-            seqid += 1
-
-    return [coding_sequences, coding_sequences_info]
-
-
-def write_coordinates_tsv(cds_info, genome_id, output_file):
-    """Write a TSV file with coding sequence coordinates.
-
-    Parameters
-    ----------
-    cds_info : list
-        List with information about each coding sequence
-        identified in the genome (contig identifier,
-        CDS start position, CDS stop position, CDS
-        identifier and CDS coding strand).
-    genome_id : str
-        Identifier of the genome to add to first field
-        of every new line.
-    output_file : str
-        Path to the output file to which info will
-        be saved.
     """
-    # write TSV file
-    table_lines = [[genome_id] + protein_info[:-1]
-                   for protein_info in cds_info]
-    table_lines = [im.join_list(line, '\t') for line in table_lines]
-    table_text = im.join_list(table_lines, '\n')
-    fo.write_to_file(table_text, output_file, 'a', '\n')
+
+    orf_finder = pyrodigal.OrfFinder(training_info=training_data, closed=closed, mask=mask, meta=meta)
+
+    return orf_finder
 
 
-def write_coordinates_pickle(cds_info, contig_lengths, output_file):
-    """Save coordinates for coding sequences predicted by Prodigal.
-
-    Parameters
-    ----------
-    cds_info : list
-        List with information about each coding sequence
-        identified in the genome (contig identifier,
-        CDS start position, CDS stop position, CDS
-        identifier and CDS coding strand).
-    contig_lengths : dict
-        Dictionary with contig identifiers as keys and
-        contig lengths as values.
-    output_file : str
-        Path to the output file to which info will
-        be saved.
+def train_orf_finder(orf_finder, sequences, translation_table):
     """
-    # write pickle with CDS hash to CDS info dictionary
-    pickle_data = [{}, contig_lengths]
-    # create dictionary to map CDS hash to CDS location
-    for p in cds_info:
-        # make sure to store CDS duplicated in the genome
-        pickle_data[0].setdefault(p[-1], []).append(p[:-1])
-
-    fo.pickle_dumper(pickle_data, output_file)
-
-
-def save_extracted_cds(genome, identifier, orf_file, protein_table, cds_file):
-    """Extract coding sequences from a FASTA file.
-
-    Extracts coding sequences from a FASTA file based on
-    Prodigal's predictions. Writes coding sequences to a
-    FASTA file and information about coding sequences to
-    a TSV file.
-
-    Parameters
-    ----------
-    genome : str
-        Path to the FASTA file with the FASTA sequences for
-        a genome.
-    identifier : str
-        Genome identifier to add to FASTA records headers
-        and to the first field in the TSV file.
-    orf_file : str
-        Path to the file with Prodigal results.
-    protein_table : str
-        Path to the TSV file to which coding sequences
-        information will be written.
-    cds_file : str
-        Path to the FASTA file to which coding sequences
-        will be written.
-
-    Returns
-    -------
-    total_cds : int
-        Total number of coding sequences extracted from
-        the genome.
     """
-    # import contigs for current genome/assembly
-    contigs = fao.import_sequences(genome)
-    # determine contig lengths
-    contig_lengths = {k: len(v) for k, v in contigs.items()}
-    # extract coding sequences from contigs
-    reading_frames = fo.pickle_loader(orf_file)
-    genome_info = extract_genome_cds(reading_frames, contigs, 1)
-    # save coding sequences to file
-    # create records and write them to file
-    cds_data = [[identifier, k, v] for k, v in genome_info[0].items()]
-    cds_lines = fao.fasta_lines(ct.FASTA_CDS_TEMPLATE, cds_data)
-    fo.write_lines(cds_lines, cds_file, write_mode='a')
+    orf_finder.train(sequences, translation_table=translation_table)
 
-    write_coordinates_tsv(genome_info[1], identifier, protein_table)
-    pickle_out = os.path.join(os.path.dirname(protein_table), identifier+'.cds_hash')
-    write_coordinates_pickle(genome_info[1], contig_lengths, pickle_out)
-
-    total_cds = len(genome_info[0])
-
-    return total_cds
+    return orf_finder
 
 
-def cds_batch_extractor(genomes, index, prodigal_path, temp_directory):
-    """Extract coding sequences from a set of genomes.
-
-    Parameters
-    ----------
-    input_data : list
-        List with a set of paths for FASTA files with
-        genomic sequences, followed by the path to the
-        directory with files with Prodigal resutls, the
-        path to the temporary directory for all files and
-        directories that will be read and written and
-        an index/identifier to add to the output files
-        with coding sequences and coding sequences info.
-
-    Returns
-    -------
-    A list with the following elements:
-        protein_table : str
-            Path to the TSV file to which coding sequence
-            coordinates was written.
-        cds_file : str
-            Path to the FASTA file to which coding sequences
-            were written.
-        batch_total : int
-            Total number of coding sequences extracted from
-            the set of input genomes.
+def read_training_file(training_file):
     """
-    protein_table = fo.join_paths(temp_directory,
-                                  ['cds_coordinates_{0}.tsv'.format(index)])
-
-    cds_file = fo.join_paths(temp_directory,
-                             ['coding_sequences_{0}.fasta'.format(index)])
-
-    batch_total = 0
-    for g in genomes:
-        # Determine Prodigal ORF file path for current genome
-        identifier = fo.split_joiner(fo.file_basename(g, False), [0], '.')
-        orf_file_path = fo.join_paths(prodigal_path,
-                                      ['{0}.cds_coordinates'.format(identifier)])
-        total = save_extracted_cds(g, identifier, orf_file_path,
-                                   protein_table, cds_file)
-        batch_total += total
-
-    return [protein_table, cds_file, batch_total]
-
-
-def run_prodigal(input_file, translation_table, mode, ptf_path):
-    """Execute Prodigal.
-
-    Parameters
-    ----------
-    input_file : str
-        Path to a FASTA file.
-    translation_table : int
-        Genetic code.
-    mode : str
-        Prodigal execution mode ('single' is the default,
-        'meta' should be used to predict genes from smaller
-        contigs).
-    ptf_path : str or None
-        Path to the training file.
-
-    Returns
-    -------
-    stdout : bytes
-        Prodigal's stdout.
-    stderr : bytes
-        Prodigal's stderr.
     """
-    if ptf_path is not None:
-        proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
-                                 '-m', '-g', str(translation_table), '-p',
-                                 mode, '-f', 'sco', '-q', '-t', ptf_path],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-    elif ptf_path is None:
-        proc = subprocess.Popen(['prodigal', '-i', input_file, '-c',
-                                 '-m', '-g', str(translation_table), '-p',
-                                 mode, '-f', 'sco', '-q'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+    with open(training_file, 'rb') as infile:
+        training_data = pyrodigal.TrainingInfo.load(infile)
 
-    # Read the stdout from Prodigal
-    stdout = proc.stdout.readlines()
-    stderr = proc.stderr.readlines()
-
-    return [stdout, stderr]
+    return training_data
 
 
-def main(input_file, output_dir, ptf_path, translation_table, mode):
+def predict_genes(orf_finder, sequence):
+    """
+    """
+    genes = orf_finder.find_genes(sequence)
 
-    stdout, stderr = run_prodigal(input_file, translation_table, mode, ptf_path)
+    return genes
+
+
+def get_gene_info(contig_id, genome_id, protid, genes):
+    """
+    """
+    gene_info = []
+    for gene in genes:
+        sequence = gene.sequence()
+        sequence_hash = im.hash_sequence(sequence)
+        gene_info.append([sequence_hash, sequence, genome_id, contig_id,
+                          str(gene.begin), str(gene.end), str(protid),
+                          str(gene.strand)])
+        protid += 1
+
+    return gene_info, protid
+
+
+def write_gene_fasta(gene_info, output_file):
+    """
+    """
+    fasta_sequences = []
+    for gene in gene_info:
+        fasta_str = ct.FASTA_CDS_TEMPLATE.format(gene[2], gene[6], gene[1])
+        fasta_sequences.append(fasta_str)
+    fo.write_lines(fasta_sequences, output_file)
+
+
+def write_coordinates_pickle(gene_info, contig_sizes, output_file):
+    """
+    """
+    gene_coordinates = {}
+    for gene in gene_info:
+        gene_coordinates.setdefault(gene[0], []).append(gene[2:])
+    fo.pickle_dumper([gene_coordinates, contig_sizes], output_file)
+
+
+def predict_genome_genes(input_file, output_directory, orf_finder, translation_table):
 
     # Get genome unique identifier
-    genome_basename = fo.split_joiner(fo.file_basename(input_file, False), [0], '.')
+    genome_basename = input_file[1]
+    records = fao.sequence_generator(input_file[0])
+    records = {rec.id: bytes(rec.seq) for rec in records}
+    contig_sizes = {recid: len(sequence) for recid, sequence in records.items()}
 
-    if len(stderr) > 0:
-        stderr = [line.decode('utf-8').strip() for line in stderr]
-        stderr = [line for line in stderr if line != '']
-        error = ' '.join(stderr)
-        return [input_file, error]
+    # Train based on input sequences
+    # Only train if object does not contain training info and if it won't run in meta mode
+    if orf_finder.training_info is None and orf_finder.meta is False:
+        orf_finder = train_orf_finder(orf_finder, *records.values(), translation_table)
 
-    # Parse output
-    lines = [line.decode('utf-8').strip() for line in stdout]
+    # Predict genes for all input contigs
+    contig_genes = {}
+    for recid, sequence in records.items():
+        genes = orf_finder.find_genes(sequence)
+        contig_genes[recid] = genes
 
-    # determine contigs headers indexes
-    contigs_headers = [line for line in lines if 'seqhdr' in line]
-    contigs_ids = [line.split('"')[1].split()[0] for line in contigs_headers]
-    contigs_idx = [lines.index(line) for line in contigs_headers] + [len(lines)]
+    # Extract data from Gene objects
+    protid = 1
+    gene_info = []
+    for recid, genes in contig_genes.items():
+        data = get_gene_info(recid, genome_basename, protid, genes)
+        gene_info.extend(data[0])
+        protid = data[1]
 
-    # get CDSs' positions for each contig
-    contigs_pos = {contigs_ids[i]: lines[contigs_idx[i]+1:contigs_idx[i+1]]
-                   for i in range(len(contigs_ids))}
-
-    # exclude contigs without coding sequences
-    contigs_pos = {k: v[1:] for k, v in contigs_pos.items() if len(v) > 1}
-
-    # +/1 for sense, -/0 for antisense
-    strand_trans = {'+': 1, '-': 0}
-
-    # split and convert list elements
-    contigs_pos = {k: [p.split('_')[1:] for p in v]
-                   for k, v in contigs_pos.items()}
-    contigs_pos = {k: [[int(p[0])-1, int(p[1]), strand_trans[p[2]]]
-                   for p in v] for k, v in contigs_pos.items()}
-
-    total_contigs = {k: len(v) for k, v in contigs_pos.items()}
-    total_genome = sum(total_contigs.values())
-
+    total_genome = len(gene_info)
+    fasta_outfile = None
+    coordinates_outfile = None
     if total_genome > 0:
-        # save positions in file
-        filepath = os.path.join(output_dir, genome_basename + '.cds_coordinates')
-        fo.pickle_dumper(contigs_pos, filepath)
+        # Create FASTA file with DNA sequences
+        fasta_outfile = fo.join_paths(output_directory, [f'{genome_basename}.fasta'])
+        write_gene_fasta(gene_info, fasta_outfile)
 
-    status = [input_file, total_genome]
+        # Save gene coordinates and contig sizes to pickle
+        coordinates_outfile = fo.join_paths(output_directory, [f'{genome_basename}.coordinates'])
+        write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
 
-    return status
+    return [input_file, total_genome, fasta_outfile, coordinates_outfile]

@@ -2895,7 +2895,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     # Will not be created if input files contain predicted CDS
     if config['CDS input'] is False:
         files = []
-        for gid, file in results['cds_coordinates']:
+        for gid, file in results['cds_coordinates'].items():
             tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
             cf.write_coordinates_file(file, tsv_file)
             files.append(tsv_file)

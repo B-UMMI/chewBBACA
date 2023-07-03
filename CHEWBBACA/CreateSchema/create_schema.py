@@ -527,7 +527,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # Will not be created if input files contain predicted CDS
     if cds_input is False:
         files = []
-        for gid, file in cds_coordinates:
+        for gid, file in cds_coordinates.items():
             tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
             cf.write_coordinates_file(file, tsv_file)
             files.append(tsv_file)

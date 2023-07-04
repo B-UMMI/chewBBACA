@@ -210,28 +210,30 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
+    cds_path = fo.join_paths(temp_directory, ['2_cds_files'])
+    fo.create_directory(cds_path)
     if cds_input is False:
         print('Number of inputs: {0}'.format(len(fasta_files)))
 
-        # create directory to store files with Prodigal results
-        prodigal_path = fo.join_paths(temp_directory, ['1_gene_prediction'])
-        fo.create_directory(prodigal_path)
+        # create directory to store files with Pyrodigal results
+        pyrodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
+        fo.create_directory(pyrodigal_path)
 
-        # run Prodigal to determine CDSs for all input genomes
-        print('\nPredicting gene sequences...\n')
+        # Run Pyrodigal to predict genes for all input genomes
+        print('\n== CDS prediction ==\n')
+        print('Predicting CDS for {0} inputs...'.format(len(fasta_files)))
+        pyrodigal_results = cf.predict_genes(inputs_basenames, ptf_path,
+                                             translation_table, prodigal_mode,
+                                             cpu_cores, pyrodigal_path)
 
-        # gene prediction step
-        failed = cf.predict_genes(fasta_files, ptf_path,
-                                  translation_table, prodigal_mode,
-                                  cpu_cores, prodigal_path)
-
+        failed, total_extracted, cds_fastas, cds_coordinates = pyrodigal_results
         if len(failed) > 0:
             print('\nFailed to predict genes for {0} genomes'
                   '.'.format(len(failed)))
             print('Make sure that Prodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
 
-            # remove failed genomes from paths
+            # Remove failed genomes from paths
             fasta_files = im.filter_list(fasta_files, failed)
 
         if len(fasta_files) == 0:
@@ -239,57 +241,28 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                      'of the input files.\nPlease provide input files '
                      'in the accepted FASTA format.')
 
-        # CDS extraction step
-        print('\n\nExtracting coding sequences...\n')
-        # create output directory
-        cds_extraction_path = fo.join_paths(temp_directory,
-                                            ['2_cds_extraction'])
-        fo.create_directory(cds_extraction_path)
-        eg_results = cf.extract_genes(fasta_files, prodigal_path,
-                                      cpu_cores, cds_extraction_path)
-        cds_files, total_extracted, cds_coordinates = eg_results
-        print('\n\nExtracted a total of {0} coding sequences from {1} '
-              'genomes.'.format(total_extracted, len(fasta_files)))
-        # move TSV file with CDS coordinates to output directory
-        fo.move_file(cds_coordinates, output_directory)
+        print('\nExtracted a total of {0} CDS from {1} '
+              'inputs.'.format(total_extracted, len(fasta_files)))
+    # Inputs are Fasta files with the predicted CDSs
     else:
-        # rename the CDSs in each file based on the input unique identifiers
+        # Rename the CDSs in each file based on the input unique identifiers
         print('\nRenaming coding sequences for {0} '
               'input files...'.format(len(inputs_basenames)))
-        # create directory to store FASTA files with renamed CDSs
-        cds_path = fo.join_paths(temp_directory, ['cds_files'])
-        fo.create_directory(cds_path)
 
         renaming_inputs = []
-        renamed_files = []
+        cds_fastas = []
         for k, v in inputs_basenames.items():
             output_file = fo.join_paths(cds_path, [f'{v}.fasta'])
             cds_prefix = f'{v}-protein'
             renaming_inputs.append([k, output_file, 1, 50000,
                                     cds_prefix, False, fao.integer_headers])
-            renamed_files.append(output_file)
+            cds_fastas.append(output_file)
 
         # rename CDSs in files
         renaming_results = mo.map_async_parallelizer(renaming_inputs,
                                                      mo.function_helper,
                                                      cpu_cores,
                                                      show_progress=False)
-
-        # divide inputs into 15 sublists (equal to what's done
-        # when extracting CDSs predicted by Prodigal)
-        num_chunks = 15
-        concatenation_inputs = im.divide_list_into_n_chunks(renamed_files,
-                                                            num_chunks)
-        file_index = 1
-        cds_files = []
-        for group in concatenation_inputs:
-            output_file = fo.join_paths(cds_path,
-                                        ['coding_sequences_{0}.fasta'.format(file_index)])
-            fo.concatenate_files(group, output_file)
-            cds_files.append(output_file)
-            file_index += 1
-            # delete individual FASTA files to release disk space
-            fo.remove_files(group)
 
         # no inputs failed gene prediction
         failed = []
@@ -300,7 +273,22 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         print('Input files contain a total of {0} '
               'coding sequences.'.format(cds_count))
 
-    # create directory to store files from pre-process steps
+    # Divide input FASTA files into 15 sublists
+    num_chunks = 15
+    concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas,
+                                                        num_chunks)
+    file_index = 1
+    cds_files = []
+    for group in concatenation_inputs:
+        output_file = fo.join_paths(cds_path,
+                                    ['coding_sequences_{0}.fasta'.format(file_index)])
+        fo.concatenate_files(group, output_file)
+        cds_files.append(output_file)
+        file_index += 1
+        # delete individual FASTA files to release disk space
+        fo.remove_files(group)
+
+    # Create directory to store files from pre-process steps
     preprocess_dir = fo.join_paths(temp_directory, ['3_cds_preprocess'])
     fo.create_directory(preprocess_dir)
 
@@ -533,6 +521,20 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     schema_files = create_schema_structure(loci_representatives, output_directory,
                                            schema_name)
+
+    # Create file with CDSs coordinates
+    # Will not be created if input files contain predicted CDS
+    if cds_input is False:
+        files = []
+        for gid, file in cds_coordinates.items():
+            tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
+            cf.write_coordinates_file(file, tsv_file)
+            files.append(tsv_file)
+        # Concatenate all TSV files with CDS coordinates
+        cds_coordinates = fo.join_paths(output_directory,
+                                        [ct.CDS_COORDINATES_BASENAME])
+        fo.concatenate_files(files, cds_coordinates,
+                             header=ct.CDS_TABLE_HEADER)
 
     return [schema_files, temp_directory, failed]
 

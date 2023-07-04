@@ -668,40 +668,6 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
     return blast_path
 
 
-def check_prodigal(prodigal_path):
-    """Determine if Prodigal is installed and added to the PATH.
-
-    Parameters
-    ----------
-    prodigal_path : str
-        Name or path used to call Prodigal.
-
-    Returns
-    -------
-    True if Prodigal is installed.
-
-    Raises
-    ------
-    SystemExit
-        - If it is not possible to run the command to determine
-        the Prodigal version.
-    """
-    # check Prodigal version
-    try:
-        proc = subprocess.Popen([prodigal_path, '-v'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-    except:
-        sys.exit('Could not determine Prodigal version '
-                 '({0} -v).\nPlease verify that Prodigal '
-                 'is installed and added to PATH.'.format(prodigal_path))
-
-    # prodigal version is captured in stderr
-    stdout, stderr = proc.communicate()
-
-    return True
-
-
 def hash_ptf(ptf_path):
     """Determine hash value for a Prodigal training file.
 

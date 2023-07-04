@@ -969,12 +969,12 @@ def write_results_contigs(classification_files, input_identifiers,
                         # add CDS coordinates to list of PAMA classifications
                         repeated_coordinates = coordinates[c][0]
                         repeated[c].append([genome_id, header[j+1],
-                                            '{0}&{1}-{2}&{3}'.format(*repeated_coordinates[:3],
-                                                                     repeated_coordinates[4])])
+                                            '{0}&{1}-{2}&{3}'.format(*repeated_coordinates[1:4],
+                                                                     repeated_coordinates[5])])
 
                 # contig identifier, start and stop positions and strand
                 # 1 for sense, 0 for antisense
-                cds_coordinates = ['{0}&{1}-{2}&{3}'.format(*c[:3], c[4])
+                cds_coordinates = ['{0}&{1}-{2}&{3}'.format(*c[1:4], c[5])
                                    if c not in invalid_classes else c
                                    for c in cds_coordinates]
 
@@ -1452,7 +1452,7 @@ def identify_paralogous(repeated, output_directory):
 def classify_inexact_matches(locus, genomes_matches, inv_map,
                              locus_results_file, locus_mode, temp_directory,
                              size_threshold, blast_score_ratio, output_directory,
-                             cds_input):
+                             cds_input, cds_coordinates):
     """Classify inexact matches found for a locus.
 
     Parameters
@@ -1551,15 +1551,15 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
             if cds_input is False:
                 # there is no DNA or Protein exact match, perform full evaluation
                 # open pickle for genome and get coordinates
-                genome_cds_file = fo.join_paths(temp_directory, ['2_cds_extraction', current_g+'.cds_hash'])
+                genome_cds_file = cds_coordinates[current_g]
                 genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
                 # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
                 # get CDS start and stop positions
                 genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
-                contig_leftmost_pos = int(genome_coordinates[1])
-                contig_rightmost_pos = int(genome_coordinates[2])
+                contig_leftmost_pos = int(genome_coordinates[2])
+                contig_rightmost_pos = int(genome_coordinates[3])
                 # get contig length
-                contig_length = genome_cds_coordinates[1][genome_coordinates[0]]
+                contig_length = genome_cds_coordinates[1][genome_coordinates[1]]
                 # get representative length
                 representative_length = match[7]
                 # get target left and right positions that aligned
@@ -1703,7 +1703,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                             hashes[current_hash][locus_id] = 0
 
                     current_index = hashes[current_hash][locus_id]
-                    protid = coordinates[current_index][3]
+                    protid = coordinates[current_index][4]
                     h.append('{0}|{1}|{2}&{3}|{1}-protein{4}&{5}'.format(index,
                                                                          k,
                                                                          locus_id,
@@ -1933,30 +1933,35 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                  'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
 
     # inputs are genome assemblies
+    # create directory to store FASTA files with renamed CDSs
+    cds_path = fo.join_paths(temp_directory, ['2_cds_files'])
+    fo.create_directory(cds_path)
     if config['CDS input'] is False:
-        # create directory to store files with Prodigal results
-        prodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
-        fo.create_directory(prodigal_path)
+        # create directory to store files with Pyrodigal results
+        pyrodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
+        fo.create_directory(pyrodigal_path)
 
-        # run Prodigal to determine CDSs for all input genomes
+        # Run Pyrodigal to determine CDSs for all input genomes
         print('\n== CDS prediction ==\n')
 
         # gene prediction step
         print('Predicting CDS for {0} inputs...'.format(len(fasta_files)))
-        failed = cf.predict_genes(fasta_files,
-                                  config['Prodigal training file'],
-                                  config['Translation table'],
-                                  config['Prodigal mode'],
-                                  config['CPU cores'],
-                                  prodigal_path)
+        pyrodigal_results = cf.predict_genes(inputs_basenames,
+                                             config['Prodigal training file'],
+                                             config['Translation table'],
+                                             config['Prodigal mode'],
+                                             config['CPU cores'],
+                                             pyrodigal_path)
+
+        failed, total_extracted, cds_fastas, cds_coordinates = pyrodigal_results
 
         if len(failed) > 0:
             print('\nFailed to predict CDS for {0} inputs'
                   '.'.format(len(failed)))
-            print('Make sure that Prodigal runs in meta mode (--pm meta) '
+            print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
 
-            # remove failed genomes from paths
+            # Remove failed genomes from paths
             fasta_files = im.filter_list(fasta_files, failed)
 
         if len(fasta_files) == 0:
@@ -1964,60 +1969,28 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                      'of the input files.\nPlease provide input files '
                      'in the accepted FASTA format.')
 
-        # CDS extraction step
-        print('\n\n== CDS extraction ==\n')
-        # create output directory
-        cds_extraction_path = fo.join_paths(temp_directory,
-                                            ['2_cds_extraction'])
-        fo.create_directory(cds_extraction_path)
-        print('Extracting predicted CDS for {0} inputs...'.format(len(fasta_files)))
-        eg_results = cf.extract_genes(fasta_files,
-                                      prodigal_path,
-                                      config['CPU cores'],
-                                      cds_extraction_path)
-        cds_files, total_extracted, cds_coordinates = eg_results
-
         print('\nExtracted a total of {0} CDS from {1} '
               'inputs.'.format(total_extracted, len(fasta_files)))
-    # inputs are Fasta files with the predicted CDSs
+    # Inputs are Fasta files with the predicted CDSs
     else:
-        # rename the CDSs in each file based on the input unique identifiers
+        # Rename the CDSs in each file based on the input unique identifiers
         print('\nRenaming coding sequences for {0} '
               'input files...'.format(len(inputs_basenames)))
-        # create directory to store FASTA files with renamed CDSs
-        cds_path = fo.join_paths(temp_directory, ['cds_files'])
-        fo.create_directory(cds_path)
 
         renaming_inputs = []
-        renamed_files = []
+        cds_fastas = []
         for k, v in inputs_basenames.items():
             output_file = fo.join_paths(cds_path, [f'{v}.fasta'])
             cds_prefix = f'{v}-protein'
             renaming_inputs.append([k, output_file, 1, 50000,
                                     cds_prefix, False, fao.integer_headers])
-            renamed_files.append(output_file)
+            cds_fastas.append(output_file)
 
         # rename CDSs in files
         renaming_results = mo.map_async_parallelizer(renaming_inputs,
                                                      mo.function_helper,
                                                      config['CPU cores'],
                                                      show_progress=False)
-
-        # divide inputs into 15 sublists (equal to what's done
-        # when extracting CDSs predicted by Prodigal)
-        num_chunks = 15
-        concatenation_inputs = im.divide_list_into_n_chunks(renamed_files,
-                                                            num_chunks)
-        file_index = 1
-        cds_files = []
-        for group in concatenation_inputs:
-            output_file = fo.join_paths(cds_path,
-                                        ['coding_sequences_{0}.fasta'.format(file_index)])
-            fo.concatenate_files(group, output_file)
-            cds_files.append(output_file)
-            file_index += 1
-            # delete individual FASTA files to release disk space
-            fo.remove_files(group)
 
         # no inputs failed gene prediction
         failed = []
@@ -2033,7 +2006,22 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     if len(cds_coordinates) > 0:
         template_dict['cds_coordinates'] = cds_coordinates
 
-    # create directory to store files from pre-process steps
+    # Divide input FASTA files into 15 sublists
+    num_chunks = 15
+    concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas,
+                                                        num_chunks)
+    file_index = 1
+    cds_files = []
+    for group in concatenation_inputs:
+        output_file = fo.join_paths(cds_path,
+                                    ['coding_sequences_{0}.fasta'.format(file_index)])
+        fo.concatenate_files(group, output_file)
+        cds_files.append(output_file)
+        file_index += 1
+        # delete individual FASTA files to release disk space
+        fo.remove_files(group)
+
+    # Create directory to store files from pre-process steps
     preprocess_dir = fo.join_paths(temp_directory, ['3_cds_preprocess'])
     fo.create_directory(preprocess_dir)
 
@@ -2105,7 +2093,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     print('Unclassified CDS: {0}'.format(len(selected_ids)))
 
     # user only wants to determine exact matches
-    if config['Mode'] == 1:
+    if config['Mode'] == 1 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
         template_dict['unclassified_ids'] = selected_ids
@@ -2142,6 +2130,13 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
           'stored in {0}'.format(invalid_alleles_file))
     template_dict['invalid_alleles'] = invalid_alleles_file
     print('Unclassified CDS: {0}'.format(len(selected_ids)-len(ut_seqids)))
+
+    if len(selected_ids)-len(ut_seqids) == 0:
+        template_dict['classification_files'] = classification_files
+        template_dict['protein_fasta'] = distinct_file
+        template_dict['unclassified_ids'] = selected_ids
+
+        return template_dict
 
     # protein sequences deduplication step
     print('\n== Protein deduplication ==')
@@ -2206,7 +2201,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     print('Unclassified proteins: {0}'.format(total_selected))
 
-    if config['Mode'] == 2:
+    if config['Mode'] == 2 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = unique_pfasta
         template_dict['unclassified_ids'] = selected_ids
@@ -2381,6 +2376,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                               config['BLAST Score Ratio'],
                                               blast_clusters_results_dir,
                                               config['CDS input'],
+                                              template_dict['cds_coordinates'],
                                               classify_inexact_matches])
 
             class_results = mo.map_async_parallelizer(classification_inputs,
@@ -2405,7 +2401,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                         if rec.id not in excluded]
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
-    if config['Mode'] == 3:
+    if config['Mode'] == 3 or len(unclassified_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = all_prots
         template_dict['unclassified_ids'] = unclassified_ids
@@ -2540,6 +2536,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                           config['BLAST Score Ratio'],
                                           blast_iteration_results_dir,
                                           config['CDS input'],
+                                          template_dict['cds_coordinates'],
                                           classify_inexact_matches])
 
         print('Classifying proteins...', end='')
@@ -2731,10 +2728,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     # list files with CDSs coordinates
     if config['CDS input'] is False:
-        coordinates_dir = fo.join_paths(temp_directory, ['2_cds_extraction'])
-        coordinates_files = fo.listdir_fullpath(coordinates_dir, '.cds_hash')
-        coordinates_files = {fo.file_basename(f, True).split('.cds_hash')[0]: f
-                             for f in coordinates_files}
+        coordinates_files = results['cds_coordinates']
     else:
         coordinates_files = None
 
@@ -2904,10 +2898,19 @@ def main(input_file, loci_list, schema_directory, output_directory,
                 no_inferred)
         print('done.')
 
-    # move file with CDSs coordinates
-    # will not be created if input files contain predicted CDS
+    # Create file with CDSs coordinates
+    # Will not be created if input files contain predicted CDS
     if config['CDS input'] is False:
-        fo.move_file(results['cds_coordinates'], output_directory)
+        files = []
+        for gid, file in results['cds_coordinates'].items():
+            tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
+            cf.write_coordinates_file(file, tsv_file)
+            files.append(tsv_file)
+        # Concatenate all TSV files with CDS coordinates
+        cds_coordinates = fo.join_paths(output_directory,
+                                        [ct.CDS_COORDINATES_BASENAME])
+        fo.concatenate_files(files, cds_coordinates,
+                             header=ct.CDS_TABLE_HEADER)
 
     # move file with list of excluded CDS
     # file is not created if we only search for exact matches

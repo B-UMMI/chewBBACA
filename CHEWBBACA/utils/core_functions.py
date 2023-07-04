@@ -14,6 +14,8 @@ Code documentation
 import os
 import sys
 
+import pyrodigal
+
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
@@ -69,92 +71,49 @@ def predict_genes(fasta_files, ptf_path, translation_table,
         failed cases. Returns NoneType if gene prediction
         succeeded for all inputs.
     """
-    # divide input genomes into equal number of sublists for
-    # maximum process progress resolution
-    prodigal_inputs = im.divide_list_into_n_chunks(fasta_files,
-                                                   len(fasta_files))
+    if ptf_path is not None:
+        # Read training file to create OrfFinder object
+        training_data = gp.read_training_file(ptf_path)
+        # Create OrfFinder object based on training data
+        orf_finder = gp.create_orf_finder(training_data, True, True, False)
+    else:
+        # Create OrfFinder object and train later
+        meta = True if prodigal_mode == 'meta' else False
+        orf_finder = gp.create_orf_finder(None, True, True, meta)
 
-    common_args = [output_directory, ptf_path,
-                   translation_table, prodigal_mode]
+    common_args = [output_directory, orf_finder, translation_table]
 
-    # add common arguments to all sublists
-    prodigal_inputs = im.multiprocessing_inputs(prodigal_inputs,
-                                                common_args,
-                                                gp.main)
+    # Divide inputs into equal number of sublists for maximum process
+    # progress resolution
+    pyrodigal_inputs = im.divide_list_into_n_chunks(list(fasta_files.items()),
+                                                    len(fasta_files))
 
-    # run Prodigal to predict genes
-    prodigal_results = mo.map_async_parallelizer(prodigal_inputs,
-                                                 mo.function_helper,
-                                                 cpu_cores,
-                                                 show_progress=True)
+    # Add common arguments to all sublists
+    pyrodigal_inputs = im.multiprocessing_inputs(pyrodigal_inputs,
+                                                 common_args,
+                                                 gp.predict_genome_genes)
 
-    # determine if Prodigal predicted genes for all genomes
-    failed = {line[0]: line[1]
-              for line in prodigal_results
+    # Run Pyrodigal to predict genes
+    pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
+                                                  mo.function_helper,
+                                                  cpu_cores,
+                                                  show_progress=True)
+
+    # Determine if Pyrodigal predicted genes for all genomes
+    failed = {line[0][0]: line[1]
+              for line in pyrodigal_results
               if line[1] == 0
               or isinstance(line[1], str) is True}
 
-    return failed
+    total_cds = sum([line[1]
+                     for line in pyrodigal_results
+                     if isinstance(line[1], int) is True])
 
+    cds_fastas = [line[2] for line in pyrodigal_results if line[2] is not None]
 
-def extract_genes(fasta_files, prodigal_path, cpu_cores,
-                  temp_directory):
-    """Extract coding sequences from FASTA files.
+    cds_hashes = {line[0][1]: line[3] for line in pyrodigal_results if line[3] is not None}
 
-    Extract coding sequences from genomic Fasta files and
-    saves coding sequences and info about coding sequences.
-
-    Parameters
-    ----------
-    fasta_files : list
-        List of paths to FASTA files with genomic sequences.
-    prodigal_path : str
-        Path to the directory with the files with Prodigal
-        results.
-    cpu_cores : int
-        Number of processes that will extract coding sequences
-        in parallel.
-    temp_directory : str
-        Path to the directory where FASTA files with extracted
-        coding sequences will be stored in.
-
-    Returns
-    -------
-    cds_files : list
-        List with paths to the FASTA files that contain
-        extracted coding sequences.
-    total_extracted : int
-        Total number of coding sequences extracted from the
-        input fasta files.
-    """
-    # divide inputs into 15 sublists for ~7% process progress resolution
-    num_chunks = 15
-    extractor_inputs = im.divide_list_into_n_chunks(fasta_files, num_chunks)
-
-    # add common arguments and unique index/identifier
-    output_index = [i+1 for i in range(len(extractor_inputs))]
-    extractor_inputs = im.aggregate_iterables([extractor_inputs, output_index])
-    extractor_inputs = im.multiprocessing_inputs(extractor_inputs,
-                                                 [prodigal_path, temp_directory],
-                                                 gp.cds_batch_extractor)
-
-    # extract coding sequences
-    extracted_cdss = mo.map_async_parallelizer(extractor_inputs,
-                                               mo.function_helper,
-                                               cpu_cores,
-                                               show_progress=True)
-
-    total_extracted = sum([f[2] for f in extracted_cdss])
-
-    # create full table file
-    table_files = [f[0] for f in extracted_cdss]
-    table_file = fo.join_paths(temp_directory, [ct.CDS_COORDINATES_BASENAME])
-    fo.concatenate_files(table_files, table_file, ct.CDS_TABLE_HEADER)
-    fo.remove_files(table_files)
-
-    cds_files = [f[1] for f in extracted_cdss]
-
-    return [cds_files, total_extracted, table_file]
+    return [failed, total_cds, cds_fastas, cds_hashes]
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
@@ -882,3 +841,21 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                       f'score for {ids_map[rep_results[0][0]]}')
 
     return self_scores
+
+
+def write_coordinates_file(coordinates_file, output_file):
+    """Write genome CDS coordinates to a TSV file.
+
+    Parameters
+    ----------
+    coordinates_file : str
+        Path to the pickle file that contains data about
+        the CDSs coordinates.
+    output_file : str
+        Path to the output TSV file.
+    """
+    data = fo.pickle_loader(coordinates_file)
+    lines = [coords for h, coords in data[0].items()]
+    lines = im.flatten_list(lines)
+    lines = ['\t'.join(line) for line in lines]
+    fo.write_lines(lines, output_file)

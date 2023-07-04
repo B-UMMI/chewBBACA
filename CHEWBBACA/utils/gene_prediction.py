@@ -61,8 +61,8 @@ def train_orf_finder(orf_finder, sequences, translation_table):
     ----------
     orf_finder : pyrodigal.OrfFinder
         A OrfFinder object.
-    sequences : bytes
-        Sequences used to train the OrfFinder (unpacked list
+    sequences : list
+        Sequences used to train the OrfFinder (list
         of bytes objects).
     translation_table : int
         Translation table to use.
@@ -72,7 +72,7 @@ def train_orf_finder(orf_finder, sequences, translation_table):
     orf_finder : pyrodigal.OrfFinder
         A OrfFinder object configured based on provided arguments.
     """
-    orf_finder.train(sequences, translation_table=translation_table)
+    orf_finder.train(*sequences, translation_table=translation_table)
 
     return orf_finder
 
@@ -213,7 +213,7 @@ def predict_genome_genes(input_file, output_directory, orf_finder,
     # and if it won't run in meta mode
     if orf_finder.training_info is None and orf_finder.meta is False:
         orf_finder = train_orf_finder(orf_finder,
-                                      *records.values(),
+                                      records.values(),
                                       translation_table)
 
     # Predict genes for all input contigs

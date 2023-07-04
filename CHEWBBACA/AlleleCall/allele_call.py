@@ -2093,7 +2093,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     print('Unclassified CDS: {0}'.format(len(selected_ids)))
 
     # user only wants to determine exact matches
-    if config['Mode'] == 1:
+    if config['Mode'] == 1 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
         template_dict['unclassified_ids'] = selected_ids
@@ -2130,6 +2130,13 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
           'stored in {0}'.format(invalid_alleles_file))
     template_dict['invalid_alleles'] = invalid_alleles_file
     print('Unclassified CDS: {0}'.format(len(selected_ids)-len(ut_seqids)))
+
+    if len(selected_ids)-len(ut_seqids) == 0:
+        template_dict['classification_files'] = classification_files
+        template_dict['protein_fasta'] = distinct_file
+        template_dict['unclassified_ids'] = selected_ids
+
+        return template_dict
 
     # protein sequences deduplication step
     print('\n== Protein deduplication ==')
@@ -2194,7 +2201,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     print('Unclassified proteins: {0}'.format(total_selected))
 
-    if config['Mode'] == 2:
+    if config['Mode'] == 2 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = unique_pfasta
         template_dict['unclassified_ids'] = selected_ids
@@ -2394,7 +2401,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                         if rec.id not in excluded]
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
-    if config['Mode'] == 3:
+    if config['Mode'] == 3 or len(unclassified_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = all_prots
         template_dict['unclassified_ids'] = unclassified_ids

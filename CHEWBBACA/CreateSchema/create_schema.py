@@ -227,7 +227,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                              cpu_cores, pyrodigal_path)
 
         failed, total_extracted, cds_fastas, cds_coordinates = pyrodigal_results
-
         if len(failed) > 0:
             print('\nFailed to predict genes for {0} genomes'
                   '.'.format(len(failed)))

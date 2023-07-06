@@ -2466,10 +2466,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                     [concat_rep_basename+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
-            # max_targets set to None (BLAST defaults to 500)
+            # If max_targets is set to None, BLAST defaults to 500
             blast_inputs.append([blastp_path, blast_db, file,
                                  outfile, 1, 1,
-                                 remaining_seqids_file, 'blastp', None,
+                                 remaining_seqids_file, 'blastp', 20,
                                  ct.IGNORE_RAISED, None, bw.run_blast])
 
         print('BLASTing loci representatives against unclassified proteins...', end='')

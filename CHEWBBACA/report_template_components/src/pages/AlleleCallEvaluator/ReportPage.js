@@ -1365,7 +1365,7 @@ const ReportPage = () => {
 		const sampleIndex = sampleIDs.indexOf(sampleDistanceSelect)
 		let sampleRow = dmRows[sampleIndex]
 		for (let i = 0; i < sampleIDs.length; i++) {
-			if (sampleIDs[i] != sampleDistanceSelect) {
+			if (sampleIDs[i] !== sampleDistanceSelect) {
 				if (sampleRow[i] <= distanceValue) {
 					selectedSamples[1].rows.push([sampleIDs[i], sampleRow[i]])
 				}

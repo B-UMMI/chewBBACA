@@ -106,18 +106,23 @@ The allele call report includes the following components:
 
 - **Results Summary Data**
 
-  - Total number of samples, total number of loci, total number of coding sequences (CDSs) extracted from the samples, total number of CDSs classified and totals per classification type.
+  - The total number of samples, total number of loci, total number of coding sequences (CDSs) identified in the samples, total number of CDSs classified and totals per classification type.
 - **Classification Counts**
   - Tab Panel with the following panels:
-    - Classification Counts per Sample: stacked bars with the classification counts per sample.
-    - Classification Counts per Locus: stacked bars with the classification counts per locus.
+    - Counts per Sample: displays the stacked bar charts for the sample classification type count.
+    - Counts per Locus: displays the stacked bar charts for the loci classification type counts.
 
-	The samples/loci are sorted in order of decreasing number of valid (EXC+INF) classifications.
+	The samples/loci are sorted in order of decreasing number of valid (EXC+INF) classifications. The plot area
+	will display at most data for 300 samples/loci. You can click the left/right arrows to view the previous/next
+	300 samples/loci and the double left/right arrows to view the data for the first/last 300 samples/loci. The
+	component includes a slider to select the range of sample/loci bars that are visible.
 - **Detailed Statistics**
   - Tab Panel with the following panels:
 
-    - Sample Stats: sample statistics and statistic selection to plot distribution.
-	- Loci Stats: loci statistics and statistic selection to plot distribution.
+    - Sample Stats: detailed sample statistics.
+	- Loci Stats: detailed loci statistics.
+
+	The dropdown menu below the tables allows the selection of a single column to generate a histogram for the values in the selected column.
 - **Loci Annotations**
   - Annotations provided for each locus (added from the TSV file passed to the *--a* parameter).
 
@@ -125,10 +130,17 @@ The allele call report includes the following components:
     If you've provided the *--loci-reports* parameter, the loci identifiers in the first column will link to the loci individual reports.
 - **Loci Presence-Absence**
 
-  - Heatmap representing the loci presence-absence matrix for all samples in the dataset. Blue cells (z=1) correspond to loci presence and grey cells (z=0) to loci absence. The "Select Sample" dropdown menu enables the selection of a single sample to display its heatmap on top of the main heatmap. The "Select Locus" dropdown menu enables the selection of a single locus to display its heatmap on the right of the main heatmap. 
+  - Heatmap representing the loci presence-absence matrix for all samples in the dataset. Blue cells (z=1) correspond to
+    loci presence and grey cells (z=0) to loci absence. The "Select Sample" dropdown menu enables the selection of a single
+	sample to display its heatmap on top of the main heatmap. The "Select Locus" dropdown menu enables the selection of a
+	single locus to display its heatmap on the right of the main heatmap. 
 - **Allelic distances**
 
-  - Heatmap representing the allelic distance matrix for all samples in the dataset. The allelic distances are computed based on the cgMLST profiles (loci that are not present in all samples are not included in the computations). The "Select Sample" dropdown menu enables the selection of a single sample to display its heatmap on top of the main heatmap. The menu after the heatmap enables the selection of a single sample and of a distance threshold to display a table with the list of samples at a distance equal or smaller than the specified distance value.
+  - Heatmap representing the allelic distance matrix for all samples in the dataset. The allelic distances are computed based
+    on the cgMLST profiles (loci that are not present in all samples are not included in the computations). The "Select Sample"
+	dropdown menu enables the selection of a single sample to display its heatmap on top of the main heatmap. The menu after
+	the heatmap enables the selection of a single sample and of a distance threshold to display a table with the list of samples
+	at a distance equal or smaller than the specified distance value.
 - **Core-genome Neighbor-Joining Tree**
 
   - A tree drawn with Phylocanvas based on the Neighbor-Joining (NJ) tree computed by FastTree. The tree is computed based on the MSA for the set of loci that constitute the core-genome.

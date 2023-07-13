@@ -241,8 +241,8 @@ distance value.
    :width: 1400px
    :align: center
 
-Allelic Distances
-.................
+Core-genome Neighbor-Joining Tree
+.................................
 
 The last component displays a tree drawn with `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_
 based on the Neighbor-Joining (NJ) tree computed by `FastTree <http://www.microbesonline.org/fasttree/>`_. The tree is computed based on the MSA for the set of loci

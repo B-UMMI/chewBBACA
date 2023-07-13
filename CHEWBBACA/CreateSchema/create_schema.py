@@ -188,19 +188,13 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     inputs_basenames = {k: fo.split_joiner(v, [0], '.')
                         for k, v in inputs_basenames.items()}
 
-    # map input identifiers to integers
-    # use the mapped integers to refer to each input
-    # this reduces memory usage compared to using string identifiers
-    basename_map = im.integer_mapping(inputs_basenames.values())
-    basename_inverse_map = im.invert_dictionary(basename_map)
-
-    # detect if some inputs share the same unique prefix
-    if len(basename_inverse_map) < len(fasta_files):
-        basename_counts = [[basename, list(inputs_basenames.values()).count(basename)]
-                           for basename in basename_map]
+    # Detect if some inputs share the same unique prefix
+    basename_list = list(inputs_basenames.values())
+    if len(set(basename_list)) < len(fasta_files):
+        basename_counts = [[basename, basename_list.count(basename)]
+                           for basename in set(basename_list)]
         repeated_basenames = ['{0}: {1}'.format(*l)
                               for l in basename_counts if l[1] > 1]
-        fo.delete_directory(output_directory)
         sys.exit('\nSome input files share the same filename prefix '
                  '(substring before the first "." in the filename). '
                  'Please make sure that every input file has a unique '
@@ -232,11 +226,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                   '.'.format(len(failed)))
             print('Make sure that Prodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
-
-            # Remove failed genomes from paths
-            fasta_files = im.filter_list(fasta_files, failed)
-
-        if len(fasta_files) == 0:
+        if len(cds_fastas) == 0:
             sys.exit('\nCould not predict gene sequences from any '
                      'of the input files.\nPlease provide input files '
                      'in the accepted FASTA format.')
@@ -272,6 +262,22 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         cds_count = sum(renaming_results)
         print('Input files contain a total of {0} '
               'coding sequences.'.format(cds_count))
+
+    # Write Prodigal stderr for inputs that failed gene prediction
+    if len(failed) > 0:
+        # Exclude inputs that failed gene prediction
+        inputs_basenames = im.prune_dictionary(inputs_basenames, failed.keys())
+        # Write Prodigal stderr for inputs that failed gene prediction
+        failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
+        failed_outfile = fo.join_paths(output_directory,
+                                       ['gene_prediction_failures.tsv'])
+        fo.write_lines(failed_lines, failed_outfile)
+
+    # Map input identifiers to integers
+    # Use the mapped integers to refer to each input
+    # This reduces memory usage compared to using string identifiers
+    basename_map = im.integer_mapping(inputs_basenames.values())
+    basename_inverse_map = im.invert_dictionary(basename_map)
 
     # Divide input FASTA files into 15 sublists
     num_chunks = 15
@@ -536,7 +542,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         fo.concatenate_files(files, cds_coordinates,
                              header=ct.CDS_TABLE_HEADER)
 
-    return [schema_files, temp_directory, failed]
+    return [schema_files, temp_directory]
 
 
 def main(input_files, output_directory, schema_name, ptf_path,
@@ -570,7 +576,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
                                  intra_filter, cpu_cores, blast_path,
                                  prodigal_mode, cds_input)
 
-    # remove temporary files
+    # Remove temporary files
     if no_cleanup is False:
         exists = fo.delete_directory(results[1])
 

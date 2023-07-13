@@ -169,7 +169,7 @@ def filter_by_substring(files, suffixes, reverse=False):
     return filtered
 
 
-def filter_by_extension(files, extensions, reverse=False):
+def filter_by_extension(files, extensions):
     """Filter files based on file extension.
 
     Parameters
@@ -178,22 +178,21 @@ def filter_by_extension(files, extensions, reverse=False):
         A list with filenames or file paths.
     extensions : list
         List with file extensions.
-    reverse : bool
-        False to select files that end with any of the extensions.
-        True to select files that do not end with any of the extensions.
 
     Returns
     -------
-    filtered : list
-        List with files that passed filtering.
+    has_extension : list
+        List with files that end with one of the provided
+        file extensions.
+    no_extension : list
+        List with files that do not end with one of the provided
+        file extensions.
     """
-    filtered = [file for file in files
-                if any([file.endswith(ext) for ext in extensions])]
+    has_extension = [file for file in files
+                     if any([file.endswith(ext) for ext in extensions])]
+    no_extension = list(set(files)-set(has_extension))
 
-    if reverse is True:
-        filtered = list(set(files)-set(filtered))
-
-    return filtered
+    return has_extension, no_extension
 
 
 def create_directory(directory_path):

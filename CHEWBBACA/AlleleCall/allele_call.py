@@ -1911,21 +1911,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     inputs_basenames = {k: fo.split_joiner(v, [0], '.')
                         for k, v in inputs_basenames.items()}
 
-    # map input identifiers to integers
-    # use the mapped integers to refer to each input
-    # this reduces memory usage compared to using string identifiers
-    basename_map = im.integer_mapping(inputs_basenames.values())
-    basename_inverse_map = im.invert_dictionary(basename_map)
-    template_dict['basename_map'] = basename_inverse_map
-
-    # detect if some inputs share the same unique prefix
-    if len(basename_inverse_map) < len(fasta_files):
-        basename_counts = [[basename, list(inputs_basenames.values()).count(basename)]
-                           for basename in basename_map]
+    # Detect if some inputs share the same unique prefix
+    basename_list = list(inputs_basenames.values())
+    if len(set(basename_list)) < len(fasta_files):
+        basename_counts = [[basename, basename_list.count(basename)]
+                           for basename in set(basename_list)]
         repeated_basenames = ['{0}: {1}'.format(*l)
                               for l in basename_counts if l[1] > 1]
-        # only delete temp directory created for each run
-        # do not delete output directory because it might include other files
+        # Only delete temp directory created for each run
+        # Do not delete output directory because it might include other files
         fo.delete_directory(temp_directory)
         sys.exit('\nSome input files share the same filename prefix '
                  '(substring before the first "." in the filename). '
@@ -1960,11 +1954,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                   '.'.format(len(failed)))
             print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
-
-            # Remove failed genomes from paths
-            fasta_files = im.filter_list(fasta_files, failed)
-
-        if len(fasta_files) == 0:
+        if len(cds_fastas) == 0:
             sys.exit('\nCould not predict CDS for any '
                      'of the input files.\nPlease provide input files '
                      'in the accepted FASTA format.')
@@ -1992,9 +1982,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                      config['CPU cores'],
                                                      show_progress=False)
 
-        # no inputs failed gene prediction
+        # No inputs failed gene prediction
         failed = []
-        # cannot get CDS coordinates if skipping gene prediction
+        # Cannot get CDS coordinates if skipping gene prediction
         cds_coordinates = {}
 
         cds_count = sum(renaming_results)
@@ -2002,9 +1992,22 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
               'coding sequences.'.format(cds_count))
 
     if len(failed) > 0:
-        template_dict['invalid_inputs'] = failed
+        # Exclude inputs that failed gene prediction
+        inputs_basenames = im.prune_dictionary(inputs_basenames, failed.keys())
+        # Write Prodigal stderr for inputs that failed gene prediction
+        failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
+        failed_outfile = fo.join_paths(os.path.dirname(temp_directory),
+                                       ['gene_prediction_failures.tsv'])
+        fo.write_lines(failed_lines, failed_outfile)
     if len(cds_coordinates) > 0:
         template_dict['cds_coordinates'] = cds_coordinates
+
+    # Map input identifiers to integers
+    # Use the mapped integers to refer to each input
+    # This reduces memory usage compared to using string identifiers
+    basename_map = im.integer_mapping(inputs_basenames.values())
+    basename_inverse_map = im.invert_dictionary(basename_map)
+    template_dict['basename_map'] = basename_inverse_map
 
     # Divide input FASTA files into 15 sublists
     num_chunks = 15
@@ -2917,13 +2920,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if config['Mode'] != 1:
         fo.move_file(results['invalid_alleles'], output_directory)
 
-    # Write Prodigal stderr for inputs that failed gene prediction
-    if results['invalid_inputs'] is not None:
-        failed_file = fo.join_paths(output_directory, ['prodigal_stderr.tsv'])
-        lines = ['{0}\t{1}'.format(line[0], line[1])
-                 for line in results['invalid_inputs']]
-        fo.write_lines(lines, failed_file)
-
     # Count total for each classification type
     global_counts, total_cds = count_classifications(results['classification_files'].values(),
                                                      classification_labels)
@@ -2937,7 +2933,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     elif no_inferred is True or len(novel_alleles) == 0:
         print('No new alleles to add to schema.')
 
-    # remove temporary files
+    # Remove temporary files
     if no_cleanup is False:
         fo.delete_directory(temp_directory)
 

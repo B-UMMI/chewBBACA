@@ -1167,7 +1167,7 @@ def write_gene_list(schema_dir):
     """
     # Loci FASTA files must end with '.fasta' extension
     schema_files = os.listdir(schema_dir)
-    loci_files = fo.filter_by_extension(schema_files, ['.fasta'])
+    loci_files, _ = fo.filter_by_extension(schema_files, ['.fasta'])
     output_file = fo.join_paths(schema_dir, ['.genes_list'])
     fo.pickle_dumper(loci_files, output_file)
 
@@ -1313,14 +1313,15 @@ def check_input_type(input_path, output_file, parent_dir=None):
     if os.path.isfile(input_path):
         # Check if it is a FASTA file
         if fao.validate_fasta(input_path) is True:
+            # Exit if input is a single FASTA file
             sys.exit(ct.FASTA_INPUT_EXCEPTION)
 
         # Read list of input files
         files = [line[0] for line in fo.read_tabular(input_path)]
 
-        # list of input genes must have full paths
+        # List of input genes must have full paths
         if parent_dir is not None:
-            # add parent directory path if necessary
+            # Add parent directory path if necessary
             files = [os.path.join(parent_dir, file)
                      if parent_dir not in file
                      else file
@@ -1328,43 +1329,42 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
         # Need to verify if files end with any of the accepted file
         # extensions, not only '.fasta'
-        fasta_files = []
+        valid_files = []
+        invalid_files = []
         for file in files:
             if any([file.endswith(s) for s in ct.FASTA_EXTENSIONS]) is True:
-                fasta_files.append(file)
+                valid_files.append(file)
             else:
-                # Add extensions to try to get file
-                for s in ct.FASTA_EXTENSIONS:
-                    putative_file = f'{file}{s}'
-                    if os.path.exists(putative_file):
-                        fasta_files.append(putative_file)
-                        break
+                invalid_files.append(file)
 
         # Check that all files exist
-        missing = [file for file in fasta_files
-                   if os.path.exists(file) is False]
-        if len(missing) > 0:
-            sys.exit(ct.MISSING_INPUTS_EXCEPTION.format(im.join_list(missing, '\n')))
+        invalid_files += [file for file in valid_files
+                          if os.path.exists(file) is False]
+        # Exit if list of input files contained invalid files
+        if len(invalid_files) > 0:
+            sys.exit(ct.MISSING_INPUTS_EXCEPTION.format(im.join_list(invalid_files, '\n')))
         # Save file paths to output file
         else:
-            fo.write_lines(fasta_files, output_file)
+            fo.write_lines(valid_files, output_file)
     elif os.path.isdir(input_path):
         # List absolute paths
         files = fo.listdir_fullpath(input_path)
 
         # Filter based on file extension
-        files = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
+        valid_files, _ = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
 
         # filter any directories that might end with FASTA extension
-        files = [file for file in files if os.path.isdir(file) is False]
+        valid_files = [file
+                       for file in valid_files
+                       if os.path.isdir(file) is False]
 
-        # only keep files whose content is typical of a FASTA file
-        fasta_files = fao.filter_non_fasta(files)
+        # Only keep files whose content is typical of a FASTA file
+        valid_files = fao.filter_non_fasta(valid_files)
 
-        # if there are FASTA files
-        if len(fasta_files) > 0:
+        # If there are FASTA files
+        if len(valid_files) > 0:
             # Save file paths to output file
-            fo.write_lines(fasta_files, output_file)
+            fo.write_lines(valid_files, output_file)
         else:
             sys.exit(ct.MISSING_FASTAS_EXCEPTION)
     else:

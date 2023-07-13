@@ -446,7 +446,7 @@ def run_allele_call():
     if os.path.isfile(config_file) is False:
         schema_files = os.listdir(args.schema_directory)
         # Exit if there is no 'short' directory or if there are no FASTA files
-        if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])) == 0:
+        if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])[0]) == 0:
             sys.exit(ct.SCHEMA_INVALID_PATH)
         upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
                                             args.blast_score_ratio, args.translation_table,

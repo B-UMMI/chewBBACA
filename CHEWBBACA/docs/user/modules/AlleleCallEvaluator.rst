@@ -9,6 +9,11 @@ to display a heatmap representing the loci presence-absence matrix, a heatmap re
 distance matrix based on allelic differences and a Neighbor-Joining (NJ) tree based on the MSA of
 the core genome loci.
 
+.. warning::
+  The peak memory usage will be considerably higher and the process will take a while to finish for datasets
+  with thousands of strains (mainly due to the computation of the Multiple Sequence Alignments of the core loci
+  and of the NJ tree).
+
 Basic Usage
 :::::::::::
 
@@ -86,8 +91,8 @@ Outputs
 - A JavaScript bundle file, ``report_bundle.js``, necessary to visualize the report.
 
 .. warning::
-  The JS bundle is necessary to visualize the HTML report. Do not delete this file. You should
-  not move or delete this file. If you want to share the report, simply
+  The JS bundle is necessary to visualize the HTML report. Do not
+  move or delete this file. If you want to share the report, simply
   compress the output folder and share the compressed archive. The receiver can simply uncompress
   the archive and open the HTML file with a browser.
 

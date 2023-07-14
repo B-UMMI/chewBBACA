@@ -332,8 +332,8 @@ Multiple Sequence Alignment
 ...........................
 
 The seventh component of the locus report presents the protein multiple sequence alignment (MSA) produced by
-`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_. The MSA only includes the distinct proteins encoded by
-the valid alleles.
+`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ (with options ``--retree 1`` and ``--maxiterate 0``).
+The MSA only includes the distinct proteins encoded by the valid alleles.
 
 .. image:: /_static/images/loci_reports_msa.png
    :width: 1400px

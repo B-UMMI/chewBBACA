@@ -245,8 +245,10 @@ Core-genome Neighbor-Joining Tree
 .................................
 
 The last component displays a tree drawn with `Phylocanvas.gl <https://www.npmjs.com/package/@phylocanvas/phylocanvas.gl>`_
-based on the Neighbor-Joining (NJ) tree computed by `FastTree <http://www.microbesonline.org/fasttree/>`_. The tree is computed based on the MSA for the set of loci
-that constitute the core-genome.
+based on the Neighbor-Joining (NJ) tree computed by `FastTree <http://www.microbesonline.org/fasttree/>`_ (with the options
+``-fastest``, ``-nosupport`` and ``-noml``). The tree is computed based on the MSA for the set of loci that constitute the
+core-genome (The MSA for each core locus is determined with `MAFFT <https://mafft.cbrc.jp/alignment/software/>`_, with the
+options ``--retree 1`` and ``--maxiterate 0``. The MSAs for all the core loci are concatenated to create the full MSA).
 
 .. image:: /_static/images/allelecall_report_cgMLST_tree.png
    :width: 1400px

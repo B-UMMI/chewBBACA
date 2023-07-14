@@ -109,7 +109,7 @@ Parameters
 ::
 
     -i, --input-files           (Required) Path to the directory that contains the input FASTA files.
-                                Alternatively, a single file with a list of paths to FASTA files, one
+                                Alternatively, a file with a list of full paths to FASTA files, one
                                 per line.
 
     -o, --output-directory      (Required) Output directory where the process will store intermediate

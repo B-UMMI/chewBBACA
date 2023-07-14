@@ -103,8 +103,8 @@ def run_create_schema():
     parser.add_argument('-i', '--input-files', nargs='?', type=str,
                         required=True, dest='input_files',
                         help='Path to the directory that contains the input '
-                             'FASTA files. Alternatively, a TXT file with '
-                             'a list of paths to FASTA files, one per line.')
+                             'FASTA files. Alternatively, a file with '
+                             'a list of full paths to FASTA files, one per line.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
@@ -281,7 +281,7 @@ def run_allele_call():
     parser.add_argument('-i', '--input-files', nargs='?', type=str,
                         required=True, dest='input_files',
                         help='Path to the directory with the genome FASTA '
-                             'files or to a file with a list of paths to '
+                             'files or to a file that contains a list of full paths to '
                              'the FASTA files, one per line.')
 
     parser.add_argument('-g', '--schema-directory', type=str,
@@ -307,9 +307,10 @@ def run_allele_call():
 
     parser.add_argument('--gl', '--genes-list', type=str,
                         required=False, default=False, dest='genes_list',
-                        help='Path to a file with the list of genes '
-                             'in the schema that the process should '
-                             'identify alleles for (one per line).')
+                        help='Path to a file that contains the list of full paths '
+                             'or file basenames (including the ".fasta" extension), '
+                             'one per line, to the loci FASTA files the process should use to '
+                             'perform allele calling.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
                         required=False, dest='blast_score_ratio',

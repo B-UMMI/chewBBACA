@@ -112,8 +112,8 @@ Parameters
 
 ::
 
-    -i, --input-files           (Required) Path to the directory with the genome FASTA files or to a file with
-                                a list of paths to the FASTA files, one per line.
+    -i, --input-files           (Required) Path to the directory with the genome FASTA files or to a file that
+                                contains a list of full paths to the FASTA files, one per line.
 
     -g, --schema-directory      (Required) Path to the schema directory. The schema directory contains the loci
                                 FASTA files and a folder named "short" that contains the FASTA files with the
@@ -127,8 +127,9 @@ Parameters
                                 file from the schema's directory (default: searches for a training file in
                                 the schema's directory).
 
-    --gl, --genes-list          (Optional) Path to a file with the list of genes in the schema that the process
-                                should identify alleles for (default: False).
+    --gl, --genes-list          (Optional) Path to a file that contains the list of full paths or file basenames
+                                (including the ".fasta" extension), one per line, for the loci FASTA files the
+                                process should use to perform allele calling (default: False).
 
     --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio value. Sequences with alignments with a BSR
                                 value equal to or greater than this value will be considered as sequences
@@ -207,8 +208,9 @@ Parameters
   ``GCF_000007125-protein1``, ``GCF_000007125-protein2``, ..., ``GCF_000007125-proteinN``).
 
 .. note::
-	If a text file with a list of gene identifiers, one per line, is passed to the ``--gl``
-	parameter, the process will only perform allele calling for the genes in that list.
+	If a text file that contains a list of full paths or file basenames to loci FASTA files (including the
+  ".fasta" extension), one per line, is passed to the ``--gl`` parameter, the process will only perform
+  allele calling for the loci in that list.
 
 Outputs
 -------

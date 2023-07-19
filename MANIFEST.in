@@ -1,3 +1,4 @@
+include CHANGELOG.md
 include CHEWBBACA/prodigal_training_files/*
-include CHEWBBACA/SchemaEvaluator/resources/*
-include CHEWBBACA/SchemaEvaluator/assets/*
+include CHEWBBACA/report_template_components/*
+graft CHEWBBACA/report_template_components/

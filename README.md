@@ -29,6 +29,12 @@ to provide a TSV file with loci annotations to include on a table). The report i
 heatmap representing the loci presence-absence matrix, a heatmap representing the distance matrix based on allelic
 differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
 
+- Added [pyrodigal](https://github.com/althonos/pyrodigal) for gene prediction. This simplified the processing of the gene prediction results and reduced runtime.
+
+- Fixed issue where the AlleleCall module would try to create results files for excluded inputs.
+
+- Fixed exception capturing during multiprocessing when using Python>=3.11.
+
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation

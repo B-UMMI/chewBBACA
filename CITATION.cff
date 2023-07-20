@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: If you use chewBBACA in your research, please cite it using these metadata.
+title: chewBBACA
+abstract: chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor settings and a set of functions to analyse and validate typing schemas and allele calling results.
+authors:
+  - family-names: Mamede
+    given-names: Rafael
+  - family-names: Vila-Cerqueira
+    given-names: Pedro
+  - family-names: Silva
+    given-names: Mickael
+  - family-names: Carriço
+    given-names: João
+  - family-names: Ramirez
+    given-names: Mário
+version: 3.3.0
+date-released: "2023-06-29"
+keywords:
+  - bioinformatics
+  - genomics 
+  - mlst
+  - cgmlst
+  - wgmlst
+  - outbreak detection
+  - bacterial genome analysis
+  - bacterial strains
+  - allele calling
+license: GPL-3.0
+doi: 10.1099/mgen.0.000166
+repository-code: "https://github.com/B-UMMI/chewBBACA" 
+contact:
+  - email: imm-bioinfo@medicina.ulisboa.pt
+    name: "Molecular Microbiology and Infection Unit (UMMI), Instituto de Medicina Molecular João Lobo Antunes, Faculdade de Medicina, Universidade de Lisboa"

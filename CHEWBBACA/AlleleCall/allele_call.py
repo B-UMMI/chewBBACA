@@ -591,7 +591,7 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
 
 def contig_position_classification(representative_length, representative_leftmost_pos,
                                    representative_rightmost_pos, contig_length,
-                                   contig_leftmost_pos, contig_rightmost_pos):
+                                   contig_leftmost_pos, contig_rightmost_pos, strand):
     """Determine classification based on the alignment position on the contig.
 
     Parameters
@@ -624,29 +624,27 @@ def contig_position_classification(representative_length, representative_leftmos
 
     # check if it is PLOT
     # match in sense strand
-    if contig_rightmost_pos > contig_leftmost_pos:
-        # determine rightmost aligned position in contig
-        contig_rightmost_rest = contig_length - contig_rightmost_pos
-        # determine leftmost aligned position in contig
-        contig_leftmost_rest = contig_leftmost_pos
-        # determine number of rightmost bases in the target that did not align
-        representative_rightmost_rest = representative_length - representative_rightmost_pos
-        # determine number of leftmost bases in the target that did not align
-        representative_leftmost_rest = representative_leftmost_pos
-    # reverse values because CDS was identified in reverse strand
-    elif contig_rightmost_pos < contig_leftmost_pos:
-        contig_leftmost_rest = contig_rightmost_pos
-        contig_rightmost_rest = contig_length - contig_leftmost_pos
-        # also need to reverse values for representative
-        representative_leftmost_rest = representative_rightmost_pos
-        representative_rightmost_rest = representative_length - representative_leftmost_pos
+    # determine rightmost aligned position in contig
+    contig_rightmost_rest = contig_length - contig_rightmost_pos
+    # determine leftmost aligned position in contig
+    contig_leftmost_rest = contig_leftmost_pos
+    # determine number of rightmost bases in the target that did not align
+    representative_rightmost_rest = representative_length - representative_rightmost_pos
+    # determine number of leftmost bases in the target that did not align
+    representative_leftmost_rest = representative_leftmost_pos
 
     # check if the unaligned region of the matched allele exceeds
     # one of the contig ends
-    if contig_leftmost_rest < representative_leftmost_rest:
-        return 'PLOT5'
-    elif contig_rightmost_rest < representative_rightmost_rest:
-        return 'PLOT3'
+    if strand == '1':
+        if contig_leftmost_rest < representative_leftmost_rest:
+            return 'PLOT5'
+        elif contig_rightmost_rest < representative_rightmost_rest:
+            return 'PLOT3'
+    else:
+        if contig_rightmost_rest < representative_leftmost_rest:
+            return 'PLOT5'
+        elif contig_leftmost_rest < representative_rightmost_rest:
+            return 'PLOT3'
 
 
 def allele_size_classification(sequence_length, locus_mode, size_threshold):
@@ -1571,7 +1569,8 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                                                               representative_rightmost_pos,
                                                               contig_length,
                                                               contig_leftmost_pos,
-                                                              contig_rightmost_pos)
+                                                              contig_rightmost_pos,
+                                                              genome_coordinates[4])
 
                 if relative_pos is not None:
                     locus_results = update_classification(genome, locus_results,
@@ -2095,7 +2094,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     print('Unclassified CDS: {0}'.format(len(selected_ids)))
 
-    # user only wants to determine exact matches
+    # User only wants to determine exact matches or all sequences were classified
     if config['Mode'] == 1 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
@@ -2134,6 +2133,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     template_dict['invalid_alleles'] = invalid_alleles_file
     print('Unclassified CDS: {0}'.format(len(selected_ids)-len(ut_seqids)))
 
+    # All sequences were excluded during translation
     if len(selected_ids)-len(ut_seqids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
@@ -2204,6 +2204,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     print('Unclassified proteins: {0}'.format(total_selected))
 
+    # User only wanted DNA and Protein exact matches or all sequences were classified
     if config['Mode'] == 2 or len(selected_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = unique_pfasta
@@ -2404,6 +2405,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                         if rec.id not in excluded]
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
+    # User only wanted exact matches and clustering or all sequences were classified
     if config['Mode'] == 3 or len(unclassified_ids) == 0:
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = all_prots

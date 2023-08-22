@@ -1570,7 +1570,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                                                               contig_length,
                                                               contig_leftmost_pos,
                                                               contig_rightmost_pos,
-                                                              genome_coordinates[4])
+                                                              genome_coordinates[5])
 
                 if relative_pos is not None:
                     locus_results = update_classification(genome, locus_results,

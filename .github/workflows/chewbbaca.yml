@@ -54,24 +54,6 @@ jobs:
         which mafft
         mafft --version
 
-    - name: checkout prodigal
-      uses: actions/checkout@v3
-      with:
-        repository: hyattpd/Prodigal
-        path: prodigal
-
-    - name: install prodigal
-      run: |
-        pushd $GITHUB_WORKSPACE/prodigal
-        make
-        chmod +x prodigal
-        echo "$GITHUB_WORKSPACE/prodigal" >> $GITHUB_PATH
-        popd
-
-    - name: check prodigal
-      run: |
-        prodigal -v
-
     - name: checkout chewbbaca
       uses: actions/checkout@v3
       with:

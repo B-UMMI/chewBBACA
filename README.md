@@ -35,6 +35,8 @@ differences and a Neighbor-Joining tree based on the MSA of the core genome loci
 
 - Fixed exception capturing during multiprocessing when using Python>=3.11.
 
+- Fixed PLOT5/3 identification when coding sequences are in the reverse strand.
+
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation

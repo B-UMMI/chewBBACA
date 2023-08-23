@@ -2065,7 +2065,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     dna_exact_hits = 0
     dna_matches_ids = 0
     print('\nSearching for DNA exact matches...', end='')
-    # list files in pre-computed dir
+    # List files in pre-computed directory
     dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
     for file in dna_tables:
         dna_matches = dna_exact_matches(file,
@@ -2073,7 +2073,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                         im.invert_dictionary(loci_files),
                                         classification_files,
                                         basename_inverse_map)
-        # might have duplicate IDs
+        # Might have duplicate IDs
         matched_seqids.extend(dna_matches[0])
         dna_exact_hits += dna_matches[1]
         dna_matches_ids += dna_matches[2]
@@ -2212,53 +2212,57 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
         return template_dict
 
-    # translate schema representatives
+    # Translate schema representatives
     print('\n== Clustering ==')
     print('\nTranslating schema\'s representative alleles...', end='')
     rep_dir = fo.join_paths(schema_directory, ['short'])
-    rep_list = fo.listdir_fullpath(rep_dir, '.fasta')
-    # Filter to get only files in list of loci
-    rep_basenames = {file: fo.file_basename(file, False).replace('_short', '') for file in rep_list}
-    rep_list = [k for k, v in rep_basenames.items() if v in loci_basenames.values()]
-
+    rep_full_list = fo.listdir_fullpath(rep_dir, '.fasta')
     reps_protein_dir = fo.join_paths(temp_directory, ['4_translated_representatives'])
     fo.create_directory(reps_protein_dir)
-    protein_files = mo.parallelize_function(fao.translate_fasta, rep_list,
+    protein_files = mo.parallelize_function(fao.translate_fasta, rep_full_list,
                                             [reps_protein_dir,
                                              config['Translation table']],
                                             config['CPU cores'],
                                             False)
-    protein_repfiles = [r[1] for r in protein_files]
+
+    translated_rep_basenames = {file[1]: fo.file_basename(file[0], False).replace('_short', '') for file in protein_files}
+    protein_target_repfiles = [k for k, v in translated_rep_basenames.items() if v in loci_basenames.values()]
     print('done.')
 
-    # cluster protein sequences
+    # Cluster protein sequences
     proteins = fao.import_sequences(unique_pfasta)
 
-    # create directory to store clustering data
+    # Create directory to store clustering data
     clustering_dir = fo.join_paths(temp_directory, ['5_clustering'])
     fo.create_directory(clustering_dir)
 
-    # define BLASTp and makeblastdb paths
+    # Define BLASTp and makeblastdb paths
     blastp_path = fo.join_paths(config['BLAST path'], [ct.BLASTP_ALIAS])
     makeblastdb_path = fo.join_paths(config['BLAST path'], [ct.MAKEBLASTDB_ALIAS])
 
-    # concatenate all schema representative
+    # Concatenate all schema representative
     concat_reps = fo.join_paths(reps_protein_dir, ['concat_reps.fasta'])
-    fo.concatenate_files(protein_repfiles, concat_reps)
+    fo.concatenate_files(protein_target_repfiles, concat_reps)
 
-    # create dict with mapping between allele header and locus id
+    # Create dict with mapping between allele header and locus id
     rep_recs = fao.sequence_generator(concat_reps)
     rep_map = {}
     for rec in rep_recs:
         rep_map[rec.id] = '_'.join((rec.id).split('_')[:-1])
 
-    # determine self-score for representatives if file is missing
+    # Determine self-score for representatives if file is missing
     self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
     if os.path.isfile(self_score_file) is False:
         print('Determining BLASTp raw score for each representative...', end='')
+        # Determine for all loci, not just target loci
+        if len(translated_rep_basenames) > len(protein_target_repfiles):
+            concat_full_reps = fo.join_paths(reps_protein_dir, ['concat_full_reps.fasta'])
+            fo.concatenate_files(list(translated_rep_basenames.keys()), concat_full_reps)
+        else:
+            concat_full_reps = concat_reps
         self_score_dir = fo.join_paths(reps_protein_dir, ['self_scores'])
         fo.create_directory(self_score_dir)
-        self_scores = cf.determine_self_scores(concat_reps, self_score_dir,
+        self_scores = cf.determine_self_scores(concat_full_reps, self_score_dir,
                                                makeblastdb_path, blastp_path,
                                                'prot',
                                                config['CPU cores'])
@@ -2267,15 +2271,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     else:
         self_scores = fo.pickle_loader(self_score_file)
 
-    # create Kmer index for representatives
+    # Create Kmer index for representatives
     print('Creating minimizer index for representative alleles...', end='')
     representatives = im.kmer_index(concat_reps, 5)
     print('done.')
     print('Created index with {0} distinct minimizers for {1} loci.'.format(len(representatives), len(loci_files)))
 
-    # cluster CDSs into representative clusters
+    # Cluster CDSs into representative clusters
     print('Clustering proteins...')
-    # define input group size based on number of available CPU cores
+    # Define input group size based on number of available CPU cores
     group_size = math.ceil(len(proteins)/config['CPU cores'])
     cs_results = cf.cluster_sequences(proteins,
                                       config['Word size'],
@@ -2290,16 +2294,16 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                       group_size,
                                       False)
 
-    # exclude singletons
+    # Exclude singletons
     clusters = {k: v for k, v in cs_results.items() if len(v) > 0}
     print('\nClustered {0} proteins into {1} clusters.'
           ''.format(len(proteins), len(clusters)))
 
-    # create Fasta file with remaining proteins and representatives
+    # Create Fasta file with remaining proteins and representatives
     all_prots = fo.join_paths(clustering_dir, ['distinct_proteins.fasta'])
     fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
 
-    # create index for distinct protein sequences
+    # Create index for distinct protein sequences
     prot_index = fao.index_fasta(all_prots)
 
     # BLASTp if there are clusters with n>1
@@ -2394,7 +2398,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                     loci_modes[locus] = v[1]
                     excluded.extend(v[2])
 
-            # may have repeated elements due to same CDS matching different loci
+            # May have repeated elements due to same CDS matching different loci
             excluded = set(excluded)
 
         print('\nClassified {0} distinct proteins.'.format(len(excluded)))
@@ -2414,30 +2418,31 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         return template_dict
 
     print('\n== Representative determination ==\n')
-    # create directory to store data for each iteration
+    # Create directory to store data for each iteration
     iterative_rep_dir = fo.join_paths(temp_directory, ['6_representative_determination'])
     fo.create_directory(iterative_rep_dir)
 
     remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['unclassified_proteins.fasta'])
-    # create Fasta with unclassified sequences
+    # Create Fasta with unclassified sequences
     fao.get_sequences_by_id(prot_index, unclassified_ids,
                             remaining_seqs_file, limit=50000)
 
-    # shorten ids to avoid BLASTp error?
+    # Shorten ids to avoid BLASTp error?
     blast_db = fo.join_paths(iterative_rep_dir, ['blastdb'])
-    # will not work if file contains duplicated seqids
+    # Will not work if file contains duplicated seqids
     db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
                                  blast_db, 'prot')
 
-    # get seqids of schema representatives
+    # Get seqids of schema representatives
     reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
 
     # BLAST schema representatives against remaining unclassified CDSs
     new_reps = {}
     iteration = 1
     exausted = False
-    # keep iterating while new representatives are discovered
-    # this step can run faster if we align several representatives per core, instead of distributing 1 per core.
+    # Keep iterating while new representatives are discovered
+    # This step can run faster if we align several representatives per core,
+    # instead of distributing 1 per core.
     while exausted is False:
         iter_string = 'Iteration {0}'.format(iteration)
         print(iter_string)
@@ -2450,13 +2455,13 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         fo.write_lines(unclassified_ids, remaining_seqids_file)
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
-        print('Loci: {0}'.format(len(protein_repfiles)))
+        print('Loci: {0}'.format(len(protein_target_repfiles)))
 
-        # concatenate to create groups of 100 loci
+        # Concatenate to create groups of 100 loci
         concat_repfiles = []
-        for i in range(0, len(protein_repfiles), 100):
-            concat_file = fo.join_paths(iteration_directory, ['concat_reps{0}-{1}.fasta'.format(i+1, i+len(protein_repfiles[i:i+100]))])
-            fo.concatenate_files(protein_repfiles[i:i+100], concat_file)
+        for i in range(0, len(protein_target_repfiles), 100):
+            concat_file = fo.join_paths(iteration_directory, ['concat_reps{0}-{1}.fasta'.format(i+1, i+len(protein_target_repfiles[i:i+100]))])
+            fo.concatenate_files(protein_target_repfiles[i:i+100], concat_file)
             concat_repfiles.append(concat_file)
 
         # create BLASTp inputs
@@ -2498,7 +2503,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                 loci_output_files.append(loci_separate_outfile)
 
         loci_results = {}
-        # create directory to store files with matches
+        # Create directory to store files with matches
         iteration_matches_dir = fo.join_paths(iteration_directory, ['matches'])
         fo.create_directory(iteration_matches_dir)
         for f in loci_output_files:
@@ -2522,7 +2527,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             exausted = True
             continue
 
-        # process results per genome and per locus
+        # Process results per genome and per locus
         classification_inputs = []
         blast_iteration_results_dir = fo.join_paths(iteration_directory, ['results'])
         fo.create_directory(blast_iteration_results_dir)
@@ -2612,19 +2617,19 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             total_representatives = sum([len(v) for k, v in representatives.items()])
             print('selected {0} representatives.'.format(total_representatives))
 
-        # new representatives and alleles that amtch in other genomes should have been all classified
+        # New representatives and alleles that amtch in other genomes should have been all classified
         print('Unclassified proteins: {0}\n'.format(len(unclassified_ids)))
 
-        # stop iterating if there are no new representatives
+        # Stop iterating if there are no new representatives
         if len(representatives) == 0:
             exausted = True
         else:
             selected_dir = fo.join_paths(new_reps_directory, ['selected'])
             fo.create_directory(selected_dir)
-            # create files with representative sequences
+            # Create files with representative sequences
             rep_map = {}
             reps_ids = []
-            protein_repfiles = []
+            protein_target_repfiles = []
             for k, v in representatives.items():
                 # get new representative for locus
                 current_new_reps = [e[0] for e in v]
@@ -2632,16 +2637,16 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                 for c in current_new_reps:
                     rep_map[c] = k
 
-                # need to add 'short' or locus id will not be split
+                # Need to add 'short' or locus id will not be split
                 rep_file = fo.join_paths(selected_dir,
                                          ['{0}_short_reps_iter.fasta'.format(k)])
                 fao.get_sequences_by_id(prot_index, current_new_reps, rep_file)
-                protein_repfiles.append(rep_file)
+                protein_target_repfiles.append(rep_file)
 
-            # concatenate reps
+            # Concatenate reps
             concat_repy = fo.join_paths(new_reps_directory, ['concat_reps.fasta'])
             fao.get_sequences_by_id(prot_index, set(reps_ids), concat_repy, limit=50000)
-            # determine self-score for new reps
+            # Determine self-score for new reps
             candidates_blast_dir = fo.join_paths(new_reps_directory, ['representatives_self_score'])
             fo.create_directory(candidates_blast_dir)
             new_self_scores = cf.determine_self_scores(concat_repy, candidates_blast_dir,
@@ -2796,7 +2801,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
                         new_id = k+'_'+r[-1]
                         results['self_scores'][new_id] = results['self_scores'][r[0]]
                         # Delete old entries
-                        # Does not delete entried from representative candidates that were converted to NIPH
+                        # Does not delete entries from representative candidates that were converted to NIPH
                         if r[0] not in reps_to_del:
                             reps_to_del.add(r[0])
 

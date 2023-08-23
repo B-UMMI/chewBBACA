@@ -31,13 +31,15 @@ differences and a Neighbor-Joining tree based on the MSA of the core genome loci
 
 - Added [pyrodigal](https://github.com/althonos/pyrodigal) for gene prediction. This simplified the processing of the gene prediction results and reduced runtime.
 
-- Fixed issue where the AlleleCall module would try to create results files for excluded inputs.
+- Fixed an issue where the AlleleCall module would try to create results files for excluded inputs.
 
 - Fixed exception capturing during multiprocessing when using Python>=3.11.
 
 - Fixed PLOT5/3 identification when coding sequences are in the reverse strand.
 
-- Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema.
+- Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema (would only compute the self-scores for the subset of loci if the 'self_scores' file had still not been created).
+
+- Fixed issue related to the classification of single EXC/INF and single/multiple ASM/ALM (would classify some inputs as NIPH instead of EXC/INF).
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

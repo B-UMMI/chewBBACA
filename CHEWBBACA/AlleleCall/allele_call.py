@@ -67,7 +67,7 @@ def loci_mode_file(loci_files, output_file):
     for file in loci_files:
         locus_id = fo.file_basename(file, False)
         allele_sizes = list(fao.sequence_lengths(file).values())
-        # select first if there are several values with same frequency
+        # Select first if there are several values with same frequency
         loci_modes[locus_id] = [sm.determine_mode(allele_sizes)[0], allele_sizes]
 
     fo.pickle_dumper(loci_modes, output_file)

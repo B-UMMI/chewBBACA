@@ -37,6 +37,8 @@ differences and a Neighbor-Joining tree based on the MSA of the core genome loci
 
 - Fixed PLOT5/3 identification when coding sequences are in the reverse strand.
 
+- Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema.
+
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation

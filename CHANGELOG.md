@@ -12,6 +12,8 @@
 
 - Fixed PLOT5/3 identification when coding sequences are in the reverse strand.
 
+- Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema.
+
 ## 3.2.0 - 2023-04-27
 
 - New version of the SchemaEvaluator module. The updated version fixes several issues related with outdated dependencies that were leading to errors in the previous version. The new version also includes new features and components. Read the [docs page](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html) to know more about the latest version of the SchemaEvaluator module.

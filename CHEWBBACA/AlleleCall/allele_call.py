@@ -309,27 +309,27 @@ def update_classification(genome_id, locus_results, match_info):
     locus_results : dict
         Updated results.
     """
-    # add data about match
+    # Add data about match
     locus_results.setdefault(genome_id, [match_info[3]]).append(match_info)
 
-    # get all classifications
+    # Get all classifications
     classes_list = [c[3] for c in locus_results[genome_id][1:]]
-    # evaluate classification for genomes with multiple matches
+    # Evaluate classification for genomes with multiple matches
     if len(classes_list) > 1:
         classes_counts = Counter(classes_list)
-        # multiple matches, single class
+        # Multiple matches, single class
         if len(classes_counts) == 1:
             if 'EXC' in classes_counts:
                 locus_results[genome_id][0] = 'NIPHEM'
-            # multiple INF, ASM, ALM, etc classes are classified as NIPH
+            # Multiple INF, ASM, ALM, etc classes are classified as NIPH
             else:
                 locus_results[genome_id][0] = 'NIPH'
-        # multiple matches and classes
+        # Multiple matches and classes
         elif len(classes_counts) > 1:
-            # inputs that include both EXC and INF are classified as NIPH
-            if 'EXC' and 'INF' in classes_counts:
+            # Inputs that include both EXC and INF are classified as NIPH
+            if 'EXC' in classes_counts and 'INF' in classes_counts:
                 locus_results[genome_id][0] = 'NIPH'
-            # any class with PLOT3, PLOT5 or LOTSC are classified as NIPH
+            # Any class plus PLOT3, PLOT5 or LOTSC are classified as NIPH
             elif any([c in ['PLOT3', 'PLOT5', 'LOTSC'] for c in classes_counts]) is True:
                 locus_results[genome_id][0] = 'NIPH'
             # EXC or INF with ASM/ALM
@@ -338,10 +338,10 @@ def update_classification(genome_id, locus_results, match_info):
                 # Single EXC or INF classified as EXC or INF even if there are ASM/ALM
                 if match_count == 1:
                     locus_results[genome_id][0] = 'EXC' if 'EXC' in classes_counts else 'INF'
-                # multiple EXC or INF classified as NIPH
+                # Multiple EXC or INF classified as NIPH
                 else:
                     locus_results[genome_id][0] = 'NIPH'
-            # multiple ASM and ALM are classified as NIPH
+            # Multiple ASM and ALM are classified as NIPH
             else:
                 locus_results[genome_id][0] = 'NIPH'
 
@@ -368,7 +368,7 @@ def count_classifications(classification_files, classification_labels):
         have been classified.
     """
     classification_counts = Counter()
-    # get total number of classified CDSs
+    # Get total number of classified CDSs
     total_cds = 0
     for file in classification_files:
         locus_results = fo.pickle_loader(file)
@@ -378,7 +378,7 @@ def count_classifications(classification_files, classification_labels):
         locus_counts = Counter(locus_classifications)
         classification_counts += locus_counts
 
-    # add classification that might be missing
+    # Add classification types that might be missing
     classification_counts.update(Counter({k: 0 for k in classification_labels[:-1]
                                           if k not in classification_counts}))
 
@@ -1520,16 +1520,16 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
             except Exception as e:
                 pass
 
-            # get hash of the CDS DNA sequence
+            # Get hash of the CDS DNA sequence
             target_dna_hash = match[2]
-            # get hash of the translated CDS sequence
+            # Get hash of the translated CDS sequence
             target_prot_hash = match[1]
 
-            # get the BSR value
+            # Get the BSR value
             bsr = match[3]
 
             # CDS DNA sequence was identified in one of the previous inputs
-            # This will change classification to NIPH if the input
+            # This might change classification to NIPH if the input
             # already had a classification for the current locus
             if target_dna_hash in seen_dna:
                 locus_results = update_classification(genome, locus_results,
@@ -1537,33 +1537,33 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                                                        target_dna_hash, 'EXC', 1.0))
                 continue
 
-            # translated CDS matches other translated CDS that was classified
+            # Translated CDS matches other translated CDS that was classified
             if target_prot_hash in seen_prot:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, 'INF', 1.0))
-                # add DNA hash to classify the next match as EXC
+                # Add DNA hash to classify the next match as EXC
                 seen_dna[target_dna_hash] = target_seqid
                 continue
 
             if cds_input is False:
-                # there is no DNA or Protein exact match, perform full evaluation
-                # open pickle for genome and get coordinates
+                # There is no DNA or Protein exact match, perform full evaluation
+                # Open pickle for genome and get coordinates
                 genome_cds_file = cds_coordinates[current_g]
                 genome_cds_coordinates = fo.pickle_loader(genome_cds_file)
-                # classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
-                # get CDS start and stop positions
+                # Classifications based on position on contig (PLOT3, PLOT5 and LOTSC)
+                # Get CDS start and stop positions
                 genome_coordinates = genome_cds_coordinates[0][target_dna_hash][0]
                 contig_leftmost_pos = int(genome_coordinates[2])
                 contig_rightmost_pos = int(genome_coordinates[3])
-                # get contig length
+                # Get contig length
                 contig_length = genome_cds_coordinates[1][genome_coordinates[1]]
-                # get representative length
+                # Get representative length
                 representative_length = match[7]
-                # get target left and right positions that aligned
+                # Get target left and right positions that aligned
                 representative_leftmost_pos = match[4]
                 representative_rightmost_pos = match[5]
-                # determine if it is PLOT3, PLOT5 or LOTSC
+                # Determine if it is PLOT3, PLOT5 or LOTSC
                 relative_pos = contig_position_classification(representative_length,
                                                               representative_leftmost_pos,
                                                               representative_rightmost_pos,
@@ -1576,23 +1576,23 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                     locus_results = update_classification(genome, locus_results,
                                                           (rep_alleleid, target_seqid,
                                                            target_dna_hash, relative_pos, bsr))
-                    # need to exclude so that it does not duplicate ASM/ALM classifications later
+                    # Need to exclude so that it does not duplicate ASM/ALM classifications later
                     excluded.append(target_seqid)
                     continue
 
             target_dna_len = match[6]
-            # check if ASM or ALM
+            # Check if ASM or ALM
             relative_size = allele_size_classification(target_dna_len, locus_mode, size_threshold)
             if relative_size is not None:
                 locus_results = update_classification(genome, locus_results,
                                                       (rep_alleleid, target_seqid,
                                                        target_dna_hash, relative_size, bsr))
-                # need to exclude so that it does not duplicate PLOT3/5 classifications later
+                # Need to exclude so that it does not duplicate PLOT3/5 classifications later
                 excluded.append(target_seqid)
                 continue
 
-            # add INF
-            # this will turn into NIPH if there are multiple hits for the same input
+            # Add INF
+            # This will turn into NIPH if there are multiple hits for the same input
             locus_results = update_classification(genome, locus_results,
                                                   (rep_alleleid, target_seqid,
                                                    target_dna_hash, 'INF', bsr))
@@ -1601,22 +1601,22 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
             excluded.append(target_seqid)
             seen_prot.append(target_prot_hash)
 
-        # update locus mode value if classification for genome is INF
+        # Update locus mode value if classification for genome is INF
         if genome in locus_results and locus_results[genome][0] == 'INF':
-            # append length of inferred allele to list with allele sizes
+            # Append length of inferred allele to list with allele sizes
             locus_mode[1].append(target_dna_len)
             # compute mode
             locus_mode[0] = sm.determine_mode(locus_mode[1])[0]
-            # only add as representative candidate if classification is not NIPH
+            # Only add as representative candidate if classification is not NIPH
             inf_bsr = locus_results[genome][1][4]
             if inf_bsr >= blast_score_ratio and inf_bsr < blast_score_ratio+0.1:
                 representative_candidates.append((genome, target_seqid,
                                                   match[8], target_dna_hash))
 
-    # save updated results
+    # Save updated results
     fo.pickle_dumper(locus_results, locus_results_file)
 
-    # save info about updated mode, excluded ids and representative candidates
+    # Save info about updated mode, excluded ids and representative candidates
     locus_info = {locus: [locus_results_file, locus_mode,
                           excluded, representative_candidates]}
     locus_info_file = fo.join_paths(output_directory, ['{0}_classification_info'.format(locus)])

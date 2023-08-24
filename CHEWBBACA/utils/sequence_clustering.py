@@ -238,6 +238,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
             identifiers of sequences that contain that kmer
             as values.
     """
+    # several = {}
     for protid, protein in sorted_sequences.items():
 
         minimizers = im.determine_minimizers(protein, window_size,
@@ -262,6 +263,11 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                                                       len(protein),
                                                       len(minimizers),
                                                       len(distinct_minimizers)))
+####
+            # if len(selected_reps) > 1:
+            #     for i in range(0, top):
+            #         several.setdefault(protid, []).append(selected_reps[i][0])
+####
         else:
             if grow is True:
                 for k in distinct_minimizers:
@@ -270,6 +276,8 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                 clusters[protid] = [(protid, 1.0, len(protein),
                                     len(minimizers), len(distinct_minimizers))]
                 reps_sequences[protid] = protein
+
+    # print(several)
 
     return [clusters, reps_sequences, reps_groups]
 

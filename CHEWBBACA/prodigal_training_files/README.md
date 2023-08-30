@@ -10,6 +10,8 @@
 
 **Haemophilus influenzae**: [GCF_001856725.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_001856725.1)
 
+**Klebsiella pneumoniae**: [GCF_000240185.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000240185.1)
+
 **Legionella pneumophila**: [GCF_000008485.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000008485.1)
 
 **Listeria monocytogenes**: [GCF_000196035.1](https://www.ncbi.nlm.nih.gov/assembly/GCF_000196035.1/)

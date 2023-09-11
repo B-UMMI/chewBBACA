@@ -5,4 +5,4 @@ plotly>=5.8.0
 SPARQLWrapper>=2.0.0
 requests>=2.27.1
 pandas>=1.5.1,<2.1
-pyrodigal>=2.2.0
+pyrodigal>=2.2.0,<=2.3.0

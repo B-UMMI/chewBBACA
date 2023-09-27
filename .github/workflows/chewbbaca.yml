@@ -65,7 +65,7 @@ jobs:
 
     - name: check fasttree2
       run: |
-        which fasttree2
+        which FastTree
         FastTree -help
 
     - name: checkout chewbbaca

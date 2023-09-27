@@ -60,7 +60,7 @@ jobs:
         pushd $GITHUB_WORKSPACE/fasttree2
         wget http://www.microbesonline.org/fasttree/FastTree
         sudo chmod +x FastTree
-        echo "$GITHUB_WORKSPACE/fasttree2/FastTree" >> $GITHUB_PATH
+        echo "$GITHUB_WORKSPACE/fasttree2" >> $GITHUB_PATH
         popd
 
     - name: check fasttree2

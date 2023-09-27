@@ -54,6 +54,20 @@ jobs:
         which mafft
         mafft --version
 
+    - name: install fasttree2
+      run: |
+        mkdir $GITHUB_WORKSPACE/fasttree2
+        pushd $GITHUB_WORKSPACE/fasttree2
+        wget http://www.microbesonline.org/fasttree/FastTree
+        sudo chmod +x FastTree
+        echo "$GITHUB_WORKSPACE/fasttree2/FastTree" >> $GITHUB_PATH
+        popd
+
+    - name: check fasttree2
+      run: |
+        which fasttree2
+        FastTree -help
+
     - name: checkout chewbbaca
       uses: actions/checkout@v3
       with:

@@ -27,6 +27,11 @@ with Prodigal will be skipped.
 	Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
 	information about the requirements to create a training file.
 
+.. important::
+	chewBBACA >=3.3.0 uses `Pyrodigal <https://github.com/althonos/pyrodigal>`_ for gene
+  prediction. Pyrodigal is a Python module that provides bindings to Prodigal, including
+  several bug fixes and performance improvements.
+
 The allele calling algorithm has the following main steps:
 
 - Gene predictipon with Prodigal followed by coding sequence (CDS) extraction to create FASTA files

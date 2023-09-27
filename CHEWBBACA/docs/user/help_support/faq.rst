@@ -52,6 +52,28 @@ You can also download schemas compatible with chewBBACA from `Chewie-NS <https:/
 Chewie-NS allows chewBBACA users to download and update cg/wgMLST schemas, allowing the easy sharing of
 results, while ensuring the reproducibility and consistency of these steps.
 
+Is it possible to perform allele calling without adding novel alleles to the schema?
+....................................................................................
+Yes, you can use the ``--no-inferred`` parameter to specify that you do not want to add novel alleles
+identified during allele calling. This can be useful to avoid contaminating the schema when you
+are not sure if the genome assemblies are from the same taxon as the schema was created for or if they might be
+of low quality (e.g. contaminated, highly fragmented, high number of ambiguous bases, etc.).
+
+I would like to inspect the sequences that were not classified during allele calling. Is there an output with information about those sequences?
+................................................................................................................................................
+chewBBACA can create a FASTA file, ``unclassified_sequences.fasta``, with the coding sequences that were not classified if you pass the ``--output-unclassified``
+parameter.
+
+Is there any information about the sequences classified as non-*EXC* or non-*INF*?
+..............................................................................
+chewBBACA can create a FASTA file, ``missing_classes.fasta``, and a TSV file, ``missing_classes.tsv``, with the list of coding sequences classified as
+*ASM/ALM/PLOT3/PLOT5/LOTSC/NIPH/NIPHEM* if you pass the ``--output-missing`` parameter.
+
+Can I get the list of new alleles identified during allele calling?
+...................................................................
+The ``results_alleles.tsv`` file includes the ``INF-`` prefix in the identifiers of newly inferred alleles. chewBBACA can also create a FASTA file, ``novel_alleles.fasta``,
+with the sequences of all new alleles if you pass the ``--output-novel`` parameter.
+
 Are the schemas created with chewBBACA v2 compatible with chewBBACA v3?
 .......................................................................
 To use a schema created with chewBBACA v2 in chewBBACA v3, you need to use the

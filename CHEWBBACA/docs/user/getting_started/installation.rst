@@ -54,7 +54,6 @@ Other dependencies
 * `BLAST >=2.9.0 <https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/>`_ (we recommend using BLAST 2.9.0+)
 * `Prodigal >=2.6.3 <https://github.com/hyattpd/prodigal/releases/>`_ (for chewBBACA <3.3.0)
 * `MAFFT >=7.505 <https://mafft.cbrc.jp/alignment/software/>`_ (for schema evaluation only)
-* `Pyrodigal >=2.2.0,<=2.3.0 <https://github.com/althonos/pyrodigal/releases>`_ (for chewBBACA >=3.3.0)
 * `FastTree >=2.1.11 <http://www.microbesonline.org/fasttree/>`_ (for allele calling evaluation only)
 
 .. important::

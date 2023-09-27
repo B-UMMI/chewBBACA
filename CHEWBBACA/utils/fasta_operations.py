@@ -216,6 +216,10 @@ def fasta_lines(template, records_data):
     return seqs_lines
 
 
+### Change this to use next() instead of any()
+### Should be faster
+### Reading just the first line with Python should reduce memory usage but less robust
+
 def validate_fasta(file_path):
     """Check if a file is a FASTA file.
 
@@ -229,10 +233,13 @@ def validate_fasta(file_path):
     True if file has valid FASTA format,
     False otherwise.
     """
-    records = SeqIO.parse(file_path, 'fasta')
+    # with open(file_path, 'r') as infile:
+    #     first_line = infile.read(1)
+    first_record = next(SeqIO.parse(file_path, 'fasta'))
 
-    # returns False if it was not a FASTA file
-    return any(records)
+    # returns False if there are no valid FASTA records
+    return True if first_record is not None else False
+    #return True if '>' in first_line else False
 
 
 def filter_non_fasta(files):

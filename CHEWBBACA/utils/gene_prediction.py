@@ -26,8 +26,8 @@ except ModuleNotFoundError:
                                  iterables_manipulation as im)
 
 
-def create_orf_finder(training_data, closed, mask, meta):
-    """Create a Pyrodigal OrfFinder object.
+def create_gene_finder(training_data, closed, mask, meta):
+    """Create a Pyrodigal GeneFinder object.
 
     Parameters
     ----------
@@ -43,38 +43,38 @@ def create_orf_finder(training_data, closed, mask, meta):
 
     Returns
     -------
-    orf_finder : pyrodigal.OrfFinder
-        A OrfFinder object configured based on provided arguments.
+    gene_finder : pyrodigal.GeneFinder
+        A GeneFinder object configured based on provided arguments.
     """
-    orf_finder = pyrodigal.OrfFinder(training_info=training_data,
-                                     closed=closed,
-                                     mask=mask,
-                                     meta=meta)
+    gene_finder = pyrodigal.GeneFinder(training_info=training_data,
+                                       closed=closed,
+                                       mask=mask,
+                                       meta=meta)
 
-    return orf_finder
+    return gene_finder
 
 
-def train_orf_finder(orf_finder, sequences, translation_table):
-    """Train a Pyrodigal OrfFinder object based on a set of sequences.
+def train_gene_finder(gene_finder, sequences, translation_table):
+    """Train a Pyrodigal GeneFinder object based on a set of sequences.
 
     Parameters
     ----------
-    orf_finder : pyrodigal.OrfFinder
-        A OrfFinder object.
+    gene_finder : pyrodigal.GeneFinder
+        A GeneFinder object.
     sequences : list
-        Sequences used to train the OrfFinder (list
+        Sequences used to train the GeneFinder (list
         of bytes objects).
     translation_table : int
         Translation table to use.
 
     Return
     ------
-    orf_finder : pyrodigal.OrfFinder
-        A OrfFinder object configured based on provided arguments.
+    gene_finder : pyrodigal.GeneFinder
+        A GeneFinder object configured based on provided arguments.
     """
-    orf_finder.train(*sequences, translation_table=translation_table)
+    gene_finder.train(*sequences, translation_table=translation_table)
 
-    return orf_finder
+    return gene_finder
 
 
 def read_training_file(training_file):
@@ -170,7 +170,7 @@ def write_coordinates_pickle(gene_info, contig_sizes, output_file):
     fo.pickle_dumper([gene_coordinates, contig_sizes], output_file)
 
 
-def predict_genome_genes(input_file, output_directory, orf_finder,
+def predict_genome_genes(input_file, output_directory, gene_finder,
                          translation_table):
     """Predict genes for sequences in a FASTA file.
 
@@ -181,11 +181,11 @@ def predict_genome_genes(input_file, output_directory, orf_finder,
     output_directory : str
         Path to the output_directory to store files with
         the results.
-    orf_finder : pyrodigal.OrfFinder
-        A OrfFinder object.
+    gene_finder : pyrodigal.GeneFinder
+        A GeneFinder object.
     translation_table : int
-        Translation table used to configure the OrfFinder
-        (None type if the OrfFinder does not need to be
+        Translation table used to configure the GeneFinder
+        (None type if the GeneFinder does not need to be
          configured).
 
     Returns
@@ -211,15 +211,15 @@ def predict_genome_genes(input_file, output_directory, orf_finder,
     # Train based on input sequences
     # Only train if object does not contain training info
     # and if it won't run in meta mode
-    if orf_finder.training_info is None and orf_finder.meta is False:
-        orf_finder = train_orf_finder(orf_finder,
-                                      records.values(),
-                                      translation_table)
+    if gene_finder.training_info is None and gene_finder.meta is False:
+        gene_finder = train_gene_finder(gene_finder,
+                                        records.values(),
+                                        translation_table)
 
     # Predict genes for all input contigs
     contig_genes = {}
     for recid, sequence in records.items():
-        genes = orf_finder.find_genes(sequence)
+        genes = gene_finder.find_genes(sequence)
         contig_genes[recid] = genes
 
     # Extract data from Gene objects

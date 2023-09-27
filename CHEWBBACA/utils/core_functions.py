@@ -72,14 +72,14 @@ def predict_genes(fasta_files, ptf_path, translation_table,
         succeeded for all inputs.
     """
     if ptf_path is not None:
-        # Read training file to create OrfFinder object
+        # Read training file to create GeneFinder object
         training_data = gp.read_training_file(ptf_path)
-        # Create OrfFinder object based on training data
-        orf_finder = gp.create_orf_finder(training_data, True, True, False)
+        # Create GeneFinder object based on training data
+        orf_finder = gp.create_gene_finder(training_data, True, True, False)
     else:
-        # Create OrfFinder object and train later
+        # Create GeneFinder object and train later
         meta = True if prodigal_mode == 'meta' else False
-        orf_finder = gp.create_orf_finder(None, True, True, meta)
+        orf_finder = gp.create_gene_finder(None, True, True, meta)
 
     common_args = [output_directory, orf_finder, translation_table]
 

@@ -58,9 +58,9 @@ jobs:
       run: |
         mkdir $GITHUB_WORKSPACE/fasttree2
         pushd $GITHUB_WORKSPACE/fasttree2
-        wget http://www.microbesonline.org/fasttree/FastTree
-        sudo chmod +x FastTree
-        echo "$GITHUB_WORKSPACE/fasttree2" >> $GITHUB_PATH
+        wget https://anaconda.org/bioconda/fasttree/2.1.11/download/linux-64/fasttree-2.1.11-h031d066_2.tar.bz2
+        bzip2 -d fasttree-2.1.11-h031d066_2.tar.bz2 && tar -xvf fasttree-2.1.11-h031d066_2.tar && rm fasttree-2.1.11-h031d066_2.tar
+        echo "$GITHUB_WORKSPACE/fasttree2/bin" >> $GITHUB_PATH
         popd
 
     - name: check fasttree2

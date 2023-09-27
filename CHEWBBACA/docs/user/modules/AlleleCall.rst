@@ -24,11 +24,11 @@ be used and provided as input. Users can also provide input files with CDSs, in 
 with Prodigal will be skipped.
 
 .. important::
-	Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
-	information about the requirements to create a training file.
+  Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
+  information about the requirements to create a training file.
 
 .. important::
-	chewBBACA >=3.3.0 uses `Pyrodigal <https://github.com/althonos/pyrodigal>`_ for gene
+  chewBBACA >=3.3.0 uses `Pyrodigal <https://github.com/althonos/pyrodigal>`_ for gene
   prediction. Pyrodigal is a Python module that provides bindings to Prodigal, including
   several bug fixes and performance improvements.
 

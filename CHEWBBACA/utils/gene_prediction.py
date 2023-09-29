@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions related with gene prediction
-with Prodigal.
+with Pyrodigal.
 
 Code documentation
 ------------------

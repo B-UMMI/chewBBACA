@@ -14,8 +14,6 @@ Code documentation
 import os
 import sys
 
-import pyrodigal
-
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,

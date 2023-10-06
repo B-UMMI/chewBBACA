@@ -250,7 +250,9 @@ def filter_non_fasta(files):
     """
     fasta_files = [file for file in files if validate_fasta(file) is True]
 
-    return fasta_files
+    invalid_files = list(set(files)-set(fasta_files))
+
+    return fasta_files, invalid_files
 
 
 def sequence_lengths(fasta_file, hashed=False):

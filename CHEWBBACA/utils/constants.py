@@ -363,11 +363,20 @@ FASTA_INPUT_EXCEPTION = ('Input file is a FASTA file. Please provide '
                          'the FASTA files or a file with the list of full '
                          'paths to the FASTA files (one per line).')
 
+# Some input files have an invalid file extension
+INVALID_EXTENSION_EXCEPTION = ('The following input files do not have a '
+                               'valid file extension:\n{0}\nPlease ensure '
+                               'that the filenames end with one of the '
+                               f'following extensions: {FASTA_EXTENSIONS}.')
+
 # Some of the file paths provided do not exist
 MISSING_INPUTS_EXCEPTION = ('Could not find some of the files provided in '
                             'the input list. Please verify that you\'ve '
-                            'provided the full paths to valid input '
+                            'provided valid paths to the following input '
                             'files.\n{0}')
+
+# Files that do not have the expected format of a FASTA file
+NON_FASTA_EXCEPTION = ('The following input files are not in FASTA format:\n{0}')
 
 # Input directory does not contain FASTA files
 MISSING_FASTAS_EXCEPTION = ('Could not get input files. Please provide '
@@ -393,3 +402,18 @@ SCHEMA_INVALID_PATH = ('Provided path does not include all the necessary '
 OUTPUT_DIRECTORY_EXISTS = ('Output directory already exists. Please '
                            'provide a path to a directory that will be '
                            'created to store the results.')
+
+# Input file is a FASTA file but chewBBACA expects a file with a list of
+# loci file paths
+FASTA_LOCI_LIST_EXCEPTION = ('Path provided to --gl is for a FASTA file. Please provide '
+                             'a file with the list of locus identifiers or full '
+                             'paths to the loci FASTA files (one per line).')
+
+# Invalid paths to loci FASTA files
+MISSING_LOCI_EXCEPTION = ('Could not find some of the loci FASTA files provided in '
+                          'the input list. Please verify that you\'ve '
+                          'provided valid paths to the following input '
+                          'files.\n{0}')
+
+# Invalid format for loci files
+NON_FASTA_LOCI_EXCEPTION = ('The following loci files are not in FASTA format:\n{0}')

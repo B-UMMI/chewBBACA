@@ -83,7 +83,7 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
         call.
     """
     results = []
-    # use context manager to join and close pool automatically
+    # Use context manager to join and close pool automatically
     with Pool(cpu) as pool:
         if callback == 'extend':
             rawr = pool.map_async(function, inputs,

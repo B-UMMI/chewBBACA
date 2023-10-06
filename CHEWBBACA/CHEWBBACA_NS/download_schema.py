@@ -486,23 +486,23 @@ def main(species_id, schema_id, download_folder, cpu_cores,
 
     if schema_date == zip_date:
         print('\nDownloading compressed version...')
-        # chewie-NS does not add clustering parameters to config, change that
+        # Chewie-NS does not add clustering parameters to config, change that
         schema_path = download_compressed(zip_uri, species_name, schema_name,
                                           download_folder, headers_get)
     else:
         print('\nDownloading schema FASTA files...')
-        # download FASTA files
+        # Download loci FASTA files
         loci = schema_loci(schema_uri, headers_get)
         ns_files = download_fastas(loci, download_folder, headers_get,
                                    schema_date)
 
-        # download Prodigal training file
+        # Download Prodigal training file
         ptf_hash = schema_params_dict['prodigal_training_file']
         ptf_file = download_ptf(ptf_hash, download_folder, schema_id,
                                 species_id, species_name, headers_get,
                                 nomenclature_server)
 
-        # use PrepExternalSchema main to determine representatives
+        # Use PrepExternalSchema to determine representatives
         genus, epithet = species_name.split(' ')
         schema_name = '{0}{1}_{2}'.format(genus[0].lower(), epithet, schema_name)
         schema_path = fo.join_paths(download_folder, [schema_name])
@@ -518,14 +518,14 @@ def main(species_id, schema_id, download_folder, cpu_cores,
 
         # Determine representatives and create schema
         # Do not apply minimum length and size threshold values
-        PrepExternalSchema.main(loci_list,
-                                [schema_path, schema_path_short],
-                                cpu_cores,
-                                float(schema_params_dict['bsr']),
-                                0,
-                                int(schema_params_dict['translation_table']),
-                                None,
-                                blast_path)
+        adapt_schema.main(loci_list,
+                          [schema_path, schema_path_short],
+                          cpu_cores,
+                          float(schema_params_dict['bsr']),
+                          0,
+                          int(schema_params_dict['translation_table']),
+                          None,
+                          blast_path)
 
         # Copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)

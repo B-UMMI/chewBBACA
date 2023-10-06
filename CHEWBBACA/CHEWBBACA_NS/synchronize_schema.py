@@ -991,11 +991,11 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     if attributed > 0 or count > 0:
         loci_list = fo.join_paths(schema_directory, [ct.LOCI_LIST])
         loci_list = pv.check_input_type(temp_dir, loci_list)
-        PrepExternalSchema.main(loci_list, [schema_directory, schema_short_directory],
-                                cpu_cores, float(schema_params['bsr'][0]),
-                                0, 11, None, blast_path)
+        adapt_schema.main(loci_list, [schema_directory, schema_short_directory],
+                          cpu_cores, float(schema_params['bsr'][0]),
+                          0, 11, None, blast_path)
 
-        # delete invalid alleles and genes files
+        # Delete invalid alleles and genes files
         parent_dir = os.path.dirname(schema_directory)
         files = [fo.join_paths(parent_dir, [file])
                  for file in os.listdir(parent_dir)

@@ -15,7 +15,6 @@ Code documentation
 import os
 import re
 import sys
-import csv
 import shutil
 import hashlib
 import argparse
@@ -1278,19 +1277,156 @@ def read_configs(schema_path, filename):
     return configs
 
 
-def check_input_type(input_path, output_file, parent_dir=None):
-    """Check the input path is a file or a directory.
-
-    If the path is for a directory, the function creates a file
-    with the list of paths to FASTA files in the directory.
+def check_input_type(input_path, output_file):
+    """Validate input and create list of files to use.
 
     Parameters
     ----------
     input_path : str
-        Path to file or directory.
+        Path to a file or directory.
     output_file : str
-        Path to the output file with the list of FASTA
-        files.
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Returns
+    -------
+    output_file : str
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Raises
+    ------
+    SystemExit
+        - If the input path is not a valid path for a file or
+          directory.
+    """
+    # Input path is for a file
+    if os.path.isfile(input_path):
+        output_file = validate_input_file(input_path, output_file)
+    # Input path is for a directory
+    elif os.path.isdir(input_path):
+        output_file = validate_input_dir(input_path, output_file)
+    else:
+        sys.exit(ct.INVALID_INPUT_PATH)
+
+    return output_file
+
+
+def validate_input_file(input_path, output_file):
+    """Validate a file with a list of paths to input files.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to a file with a list of paths.
+    output_file : str
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Returns
+    -------
+    output_file : str
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Raises
+    ------
+    SystemExit
+        - If the input path is for a FASTA file.
+        - If any of the provided paths does not exist.
+        - If any of the file basenames does not end with one of
+          the accepted file extensions.
+        - If the format of any of the files is not FASTA.
+    """
+    # Check if it is a single FASTA file
+    if fao.validate_fasta(input_path) is True:
+        # Exit if input is a single FASTA file
+        sys.exit(ct.FASTA_INPUT_EXCEPTION)
+
+    # Read list of input files
+    files = [line[0] for line in fo.read_tabular(input_path)]
+
+    invalid_files = []
+    # Need to verify if files end with any of the accepted file
+    # extensions, not only '.fasta'
+    valid_extension, invalid_extension = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
+    if len(invalid_extension) > 0:
+        invalid_files.append([invalid_extension, ct.INVALID_EXTENSION_EXCEPTION])
+
+    # Check that all files exist
+    missing = [file for file in files if os.path.exists(file) is False]
+    if len(missing) > 0:
+        invalid_files.append([missing, ct.MISSING_INPUTS_EXCEPTION])
+
+    # Only keep files whose content is typical of a FASTA file
+    fasta_files, non_fasta = fao.filter_non_fasta(files)
+    if len(non_fasta) > 0:
+        invalid_files.append([non_fasta, ct.NON_FASTA_EXCEPTION])
+
+    # Exit if list of input files contained invalid files
+    if len(invalid_files) > 0:
+        exception_messages = [e[1].format(im.join_list(e[0], '\n')) for e in invalid_files]
+        sys.exit(im.join_list(exception_messages, '\n'))
+    # Save file paths to output file
+    else:
+        fo.write_lines(files, output_file)
+
+    return output_file
+
+
+def validate_input_dir(input_path, output_file):
+    """List and validate input files in a directory.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to the directory that contains the input files.
+    output_file : str
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Returns
+    -------
+    output_file : str
+        Path to the output file created to store the paths
+        to valid FASTA files.
+
+    Raises
+    ------
+    SystemExit
+        - If there are no valid FASTA files in the input directory.
+    """
+    # List absolute paths
+    # Only keep paths to files
+    files = [file for file in fo.listdir_fullpath(input_path)
+             if os.path.isdir(file) is False]
+
+    # Filter based on file extension
+    valid_extension, invalid_extension = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
+
+    # Only keep files whose content is typical of a FASTA file
+    fasta_files, non_fasta = fao.filter_non_fasta(valid_extension)
+
+    # If there are FASTA files
+    if len(fasta_files) > 0:
+        # Save file paths to output file
+        fo.write_lines(fasta_files, output_file)
+    else:
+        sys.exit(ct.MISSING_FASTAS_EXCEPTION)
+
+    return output_file
+
+
+def validate_loci_list(input_path, output_file, parent_dir=None):
+    """Validate a list of paths to loci FASTA files or loci IDs.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to a file with a list of paths.
+    output_file : str
+        Path to the output file created to store the paths
+        to valid loci FASTA files.
     parent_dir : str
         Parent directory to add to construct paths
         to input files when users provide a file
@@ -1298,76 +1434,57 @@ def check_input_type(input_path, output_file, parent_dir=None):
 
     Returns
     -------
-    output_file : str
-        Path to a file with a list of paths for FASTA
-        files.
+    Path to the output file created to store the paths
+    to valid loci FASTA files.
 
     Raises
     ------
     SystemExit
-        - If there were no FASTA files in the directory.
-        - If input path is not a valid path for a file or
-          for a directory.
+        - If the input path is for a FASTA file.
+        - If any of the provided paths does not exist.
+        - If the format of any of the files is not FASTA.
     """
-    # Check if input path is a file or a directory
-    if os.path.isfile(input_path):
-        # Check if it is a FASTA file
-        if fao.validate_fasta(input_path) is True:
-            # Exit if input is a single FASTA file
-            sys.exit(ct.FASTA_INPUT_EXCEPTION)
+    # Check if it is a single FASTA file
+    if fao.validate_fasta(input_path) is True:
+        # Exit if input is a single FASTA file
+        sys.exit(ct.FASTA_LOCI_LIST_EXCEPTION)
 
-        # Read list of input files
-        files = [line[0] for line in fo.read_tabular(input_path)]
+    # Read list of input files
+    files = [line[0] for line in fo.read_tabular(input_path)]
 
-        # List of input genes must have full paths
-        if parent_dir is not None:
-            # Add parent directory path if necessary
-            files = [os.path.join(parent_dir, file)
-                     if parent_dir not in file
-                     else file
-                     for file in files]
+    # List must have full paths
+    if parent_dir is not None:
+        # Add parent directory path if necessary
+        files = [os.path.join(parent_dir, file)
+                 if parent_dir not in file
+                 else file
+                 for file in files]
 
-        # Need to verify if files end with any of the accepted file
-        # extensions, not only '.fasta'
-        valid_files = []
-        invalid_files = []
-        for file in files:
-            if any([file.endswith(s) for s in ct.FASTA_EXTENSIONS]) is True:
-                valid_files.append(file)
-            else:
-                invalid_files.append(file)
+    # Add '.fasta' extension if it is missing from IDs
+    # Loci files use the '.fasta' extension, anything else might
+    # mean there is an issue with the schema or it is an external schema
+    files = [file+'.fasta'
+             if any([file.endswith(ext) for ext in ct.FASTA_EXTENSIONS]) is False
+             else file
+             for file in files]
 
-        # Check that all files exist
-        invalid_files += [file for file in valid_files
-                          if os.path.exists(file) is False]
-        # Exit if list of input files contained invalid files
-        if len(invalid_files) > 0:
-            sys.exit(ct.MISSING_INPUTS_EXCEPTION.format(im.join_list(invalid_files, '\n')))
-        # Save file paths to output file
-        else:
-            fo.write_lines(valid_files, output_file)
-    elif os.path.isdir(input_path):
-        # List absolute paths
-        files = fo.listdir_fullpath(input_path)
+    # Check that all files exist
+    invalid_files = []
+    missing = [file for file in files if os.path.exists(file) is False]
+    if len(missing) > 0:
+        invalid_files.append([missing, ct.MISSING_LOCI_EXCEPTION])
 
-        # Filter based on file extension
-        valid_files, _ = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
+    # Only keep files whose content is typical of a FASTA file
+    fasta_files, non_fasta = fao.filter_non_fasta(files)
+    if len(non_fasta) > 0:
+        invalid_files.append([non_fasta, ct.NON_FASTA_LOCI_EXCEPTION])
 
-        # filter any directories that might end with FASTA extension
-        valid_files = [file
-                       for file in valid_files
-                       if os.path.isdir(file) is False]
-
-        # Only keep files whose content is typical of a FASTA file
-        valid_files = fao.filter_non_fasta(valid_files)
-
-        # If there are FASTA files
-        if len(valid_files) > 0:
-            # Save file paths to output file
-            fo.write_lines(valid_files, output_file)
-        else:
-            sys.exit(ct.MISSING_FASTAS_EXCEPTION)
+    # Exit if list of input files contained invalid files
+    if len(invalid_files) > 0:
+        exception_messages = [e[1].format(im.join_list(e[0], '\n')) for e in invalid_files]
+        sys.exit(im.join_list(exception_messages, '\n'))
+    # Save file paths to output file
     else:
-        sys.exit(ct.INVALID_INPUT_PATH)
+        fo.write_lines(files, output_file)
 
     return output_file

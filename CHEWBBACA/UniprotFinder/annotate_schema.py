@@ -321,20 +321,27 @@ def create_annotations_table(annotations, output_directory, header,
     return output_file
 
 
-def main(input_files, output_directory, protein_table, blast_score_ratio,
-         cpu_cores, taxa, proteome_matches, no_sparql, no_cleanup, blast_path):
+def main(schema_directory, output_directory, genes_list, protein_table,
+         blast_score_ratio, cpu_cores, taxa, proteome_matches, no_sparql,
+         no_cleanup, blast_path):
 
-    # create output directory
+    # Create output directory
     fo.create_directory(output_directory)
 
-    # create temp directory
+    # Create temp directory
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)
 
-    # validate input files
-    genes_list = fo.join_paths(temp_directory, [ct.LOCI_LIST])
-    genes_list = pv.check_input_type(input_files, genes_list)
-    loci_paths = fo.read_lines(genes_list)
+    # Validate input files
+    # User provided a list of genes to call
+    loci_list = fo.join_paths(temp_directory, [ct.LOCI_LIST])
+    if genes_list is not False:
+        loci_list = pv.validate_loci_list(genes_list, loci_list, schema_directory)
+    # Working with the whole schema
+    else:
+        loci_list = pv.check_type(schema_directory, loci_list)
+
+    loci_paths = fo.read_lines(loci_list)
     loci_basenames = [fo.file_basename(locus, False) for locus in loci_paths]
 
     schema_directory = os.path.dirname(loci_paths[0])
@@ -365,9 +372,9 @@ def main(input_files, output_directory, protein_table, blast_score_ratio,
             print('Cannot retrieve annotations from UniProt\'s SPARQL endpoint.')
             print(str(available))
         else:
-            # search for annotations through the SPARQL endpoint
+            # Search for annotations through the SPARQL endpoint
             print('\nQuerying UniProt\'s SPARQL endpoint...')
-            config_file = fo.join_paths(input_files, ['.schema_config'])
+            config_file = fo.join_paths(schema_directory, ['.schema_config'])
             if os.path.isfile(config_file) is True:
                 config = fo.pickle_loader(config_file)
                 translation_table = config.get('translation_table', [11])[0]

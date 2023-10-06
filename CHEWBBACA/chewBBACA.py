@@ -487,8 +487,8 @@ def run_allele_call():
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     # User provided a list of genes to call
     if args.genes_list is not False:
-        loci_list = pv.check_input_type(args.genes_list, loci_list,
-                                        args.schema_directory)
+        loci_list = pv.validate_loci_list(args.genes_list, loci_list,
+                                          args.schema_directory)
     # Working with the whole schema
     else:
         loci_list = pv.check_input_type(args.schema_directory, loci_list)
@@ -642,8 +642,8 @@ def run_evaluate_schema():
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     # User provided a loci subset to analyse
     if args.genes_list is not False:
-        loci_list = pv.check_input_type(args.genes_list, loci_list,
-                                        args.schema_directory)
+        loci_list = pv.validate_loci_list(args.genes_list, loci_list,
+                                          args.schema_directory)
     # Working with the whole schema
     else:
         loci_list = pv.check_input_type(args.schema_directory, loci_list)
@@ -923,13 +923,13 @@ def run_adapt_schema():
 
     def msg(name=None):
 
-        # simple command to adapt external schema with default arguments values
-        simple_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
+        # Simple command to adapt external schema with default argument values
+        simple_cmd = ('  chewBBACA.py PrepExternalSchema -s <schema_directory> '
                       '-o <output_directory> '
                       '--ptf <ptf_path> ')
 
-        # command to adapt external schema with non-default arguments values
-        params_cmd = ('  chewBBACA.py PrepExternalSchema -i <input_files> '
+        # Command to adapt external schema with non-default argument values
+        params_cmd = ('  chewBBACA.py PrepExternalSchema -s <schema_directory> '
                       '-o <output_directory> '
                       '--ptf <ptf_path>\n'
                       '\t\t\t\t  --cpu <cpu_cores> '
@@ -966,17 +966,22 @@ def run_adapt_schema():
     parser.add_argument('PrepExternalSchema', nargs='+',
                         help='')
 
-    parser.add_argument('-i', '--input-files', type=str,
-                        required=True, dest='input_files',
-                        help='Path to the folder containing the FASTA files, '
-                             'one FASTA file per gene/locus (alternatively, '
-                             'a file with a list of paths can be given).')
+    parser.add_argument('-g', '--schema-directory', type=str,
+                        required=True, dest='schema_directory',
+                        help='Path to the directory that contains the schema '
+                             'FASTA files to adapt.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
                         help='The directory where the output files will be '
                              'saved (will create the directory if it does not '
                              'exist).')
+
+    parser.add_argument('--gl', '--genes-list', type=str,
+                        required=False, default=False, dest='genes_list',
+                        help='Path to a file that contains the list of full paths '
+                             'to the loci FASTA files or the loci IDs, one per line, '
+                             'the process should adapt.')
 
     parser.add_argument('--ptf', '--training-file', type=str,
                         required=False, dest='ptf_path',
@@ -1055,8 +1060,14 @@ def run_adapt_schema():
         sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
     fo.create_directory(schema_short_path)
 
+    # User provided a list of genes to call
     loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
-    args.input_files = pv.check_input_type(args.input_files, loci_list)
+    if args.genes_list is not False:
+        loci_list = pv.validate_loci_list(args.genes_list, loci_list,
+                                          args.schema_directory)
+    # Working with the whole schema
+    else:
+        loci_list = pv.check_input_type(args.schema_directory, loci_list)
 
     print(f'Number of cores: {args.cpu_cores}')
     print(f'BLAST Score Ratio: {args.blast_score_ratio}')
@@ -1078,7 +1089,7 @@ def run_adapt_schema():
           f'adaptation and {args.size_threshold} to store in the schema '
           'config file.')
 
-    adapt_schema.main(args.input_files, output_dirs,
+    adapt_schema.main(loci_list, output_dirs,
                       args.cpu_cores, args.blast_score_ratio,
                       adaptation_ml, args.translation_table,
                       adaptation_st, args.blast_path)
@@ -1112,21 +1123,21 @@ def run_annotate_schema():
 
     def msg(name=None):
 
-        # simple command to find annotations by querying Uniprot's SPARQL endpoint
+        # Simple command to find annotations by querying Uniprot's SPARQL endpoint
         # and aligning against reference proteomes
-        simple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+        simple_cmd = ('  chewBBACA.py UniprotFinder -g <schema_directory> '
                       '-t <protein_table> -o <output_directory>\n'
                       '\t\t\t     --taxa "Streptococcus agalactiae" '
                       '--cpu <cpu_cores>')
 
-        # command to align against the reference proteomes of several species
-        multiple_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+        # Command to align against the reference proteomes of several species
+        multiple_cmd = ('  chewBBACA.py UniprotFinder -g <schema_directory> '
                         '-t <protein_table> -o <output_directory>\n'
                         '\t\t\t     --taxa "Streptococcus agalactiae" "Streptococcus pyogenes" '
                         '--cpu <cpu_cores>')
 
-        # command to align against the reference proteomes of several species
-        genus_cmd = ('  chewBBACA.py UniprotFinder -i <input_files> '
+        # Command to align against the reference proteomes at genus level
+        genus_cmd = ('  chewBBACA.py UniprotFinder -g <schema_directory> '
                       '-t <protein_table> -o <output_directory>\n'
                       '\t\t\t     --taxa "Streptococcus" '
                       '--cpu <cpu_cores>')
@@ -1150,17 +1161,25 @@ def run_annotate_schema():
     parser.add_argument('UniprotFinder', nargs='+',
                         help='')
 
-    parser.add_argument('-i', '--input-files', type=str,
-                        required=True, dest='input_files',
-                        help='Path to the schema\'s directory or to a file '
-                             'with a list of paths to loci FASTA files, one '
-                             'per line.')
+    parser.add_argument('-g', '--schema-directory', type=str,
+                        required=True, dest='schema_directory',
+                        help='Path to the schema directory. The schema '
+                             'directory contains the loci FASTA files and '
+                             'a folder named "short" that contains the '
+                             'FASTA files with the loci representative '
+                             'alleles.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
                         help='Output directory where the process will '
                              'store intermediate files and save the final '
                              'TSV file with the annotations.')
+
+    parser.add_argument('--gl', '--genes-list', type=str,
+                        required=False, default=False, dest='genes_list',
+                        help='Path to a file that contains the list of full paths '
+                             'to the loci FASTA files or the loci IDs, one per line, '
+                             'the process should find annotations for.')
 
     parser.add_argument('-t', '--protein-table', type=str,
                         required=False, dest='protein_table',

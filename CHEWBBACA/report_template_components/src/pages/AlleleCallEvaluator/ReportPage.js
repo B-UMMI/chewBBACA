@@ -835,7 +835,9 @@ const ReportPage = () => {
 	}
 
 	// Create component to display Loci Presence-Absence Heatmap
-	const paRows = data.presence_absence;
+	const paRows = data.presence_absence[0].rows;
+	const paLociIDs = data.presence_absence[1].loci_ids;
+	const paSampleIDs = data.presence_absence[2].sample_ids;
 
 	const colorscaleValue = [
 		[0, '#f7f7f7'],
@@ -847,8 +849,8 @@ const ReportPage = () => {
 		const paData = [
 			{
 				z: paRows,
-				x: lociIDs,
-				y: sampleIDs,
+				x: paLociIDs,
+				y: paSampleIDs,
 				type: 'heatmap',
 				showscale: false,
 				colorscale: colorscaleValue,
@@ -911,13 +913,13 @@ const ReportPage = () => {
 	}
 
 	let paSampleHeatmap = undefined;
-	if (paRows.length > 0 && sampleIDs.includes(selectedSample)) {
-		let selectedSampleIndex = sampleIDs.indexOf(selectedSample)
+	if (paRows.length > 0 && paSampleIDs.includes(selectedSample)) {
+		let selectedSampleIndex = paSampleIDs.indexOf(selectedSample)
 		let paSampleData = [
 			{
 				z: [paRows[selectedSampleIndex]],
-				x: lociIDs,
-				y: [sampleIDs[selectedSampleIndex]],
+				x: paLociIDs,
+				y: [paSampleIDs[selectedSampleIndex]],
 				type: 'heatmap',
 				showscale: false,
 				colorscale: colorscaleValue,
@@ -982,7 +984,7 @@ const ReportPage = () => {
 				<Autocomplete
 					disablePortal
 					id="sample-select"
-					options={sampleIDs}
+					options={paSampleIDs}
 					sx={{ width: 300 }}
 					size='small'
 					renderInput={(params) => <TextField {...params} label="Select Sample" />}
@@ -1000,8 +1002,8 @@ const ReportPage = () => {
 	}
 
 	let paLocusHeatmap = undefined;
-	if (paRows.length > 0 && lociIDs.includes(selectedLocus)) {
-		let selectedLocusIndex = lociIDs.indexOf(selectedLocus)
+	if (paRows.length > 0 && paLociIDs.includes(selectedLocus)) {
+		let selectedLocusIndex = paLociIDs.indexOf(selectedLocus)
 
 		// Get locus values for all samples
 		let locusData = []
@@ -1012,8 +1014,8 @@ const ReportPage = () => {
 		let paLocusData = [
 			{
 				z: locusData,
-				x: [lociIDs[selectedLocusIndex]],
-				y: sampleIDs,
+				x: [paLociIDs[selectedLocusIndex]],
+				y: paSampleIDs,
 				type: 'heatmap',
 				showscale: false,
 				colorscale: colorscaleValue,
@@ -1079,7 +1081,7 @@ const ReportPage = () => {
 				<Autocomplete
 					disablePortal
 					id="locus-select"
-					options={lociIDs}
+					options={paLociIDs}
 					sx={{ width: 300 }}
 					size='small'
 					renderInput={(params) => <TextField {...params} label="Select Locus" />}
@@ -1147,15 +1149,16 @@ const ReportPage = () => {
 	}
 
 	// Create component to display Distance Matrix Heatmap
-	const dmRows = data.distance_matrix;
+	const dmRows = data.distance_matrix[0].rows;
+	const dmSampleIDs = data.distance_matrix[1].sample_ids;
 
 	let dmHeatmap = undefined;
 	if (dmRows.length > 0) {
 		const dmData = [
 			{
 				z: dmRows,
-				x: sampleIDs,
-				y: sampleIDs,
+				x: dmSampleIDs,
+				y: dmSampleIDs,
 				type: 'heatmap',
 				showscale: true,
 				colorscale: 'Viridis',
@@ -1214,13 +1217,13 @@ const ReportPage = () => {
 	}
 
 	let dmSampleHeatmap = undefined;
-	if (dmRows.length > 0 && sampleIDs.includes(selectedDmSample)) {
-		let selectedDmSampleIndex = sampleIDs.indexOf(selectedDmSample)
+	if (dmRows.length > 0 && dmSampleIDs.includes(selectedDmSample)) {
+		let selectedDmSampleIndex = dmSampleIDs.indexOf(selectedDmSample)
 		let dmSampleData = [
 			{
 				z: [dmRows[selectedDmSampleIndex]],
-				x: sampleIDs,
-				y: [sampleIDs[selectedDmSampleIndex]],
+				x: dmSampleIDs,
+				y: [dmSampleIDs[selectedDmSampleIndex]],
 				type: 'heatmap',
 				showscale: false,
 				colorscale: 'Viridis',
@@ -1281,7 +1284,7 @@ const ReportPage = () => {
 				key="dm-sample-menu"
 				disablePortal
 				id="sample-select"
-				options={sampleIDs}
+				options={dmSampleIDs}
 				sx={{ width: 300 }}
 				size='small'
 				renderInput={(params) => <TextField {...params} label="Select Sample" />}
@@ -1331,7 +1334,7 @@ const ReportPage = () => {
 			<Autocomplete
 				disablePortal
 				id="sample-distance-select"
-				options={sampleIDs}
+				options={dmSampleIDs}
 				sx={{ width: 300 }}
 				size='small'
 				renderInput={(params) => <TextField {...params} label="Select Sample" />}
@@ -1359,14 +1362,14 @@ const ReportPage = () => {
 
 	// Find closest samples
 	let selectedSamples = [{'columns': ['Sample', 'Distance']}, {'rows': []}];
-	if (sampleIDs.includes(sampleDistanceSelect)) {
+	if (dmSampleIDs.includes(sampleDistanceSelect)) {
 		// Find closest strains based on distance threshold
-		const sampleIndex = sampleIDs.indexOf(sampleDistanceSelect)
+		const sampleIndex = dmSampleIDs.indexOf(sampleDistanceSelect)
 		let sampleRow = dmRows[sampleIndex]
-		for (let i = 0; i < sampleIDs.length; i++) {
-			if (sampleIDs[i] !== sampleDistanceSelect) {
+		for (let i = 0; i < dmSampleIDs.length; i++) {
+			if (dmSampleIDs[i] !== sampleDistanceSelect) {
 				if (sampleRow[i] <= distanceValue) {
-					selectedSamples[1].rows.push([sampleIDs[i], sampleRow[i]])
+					selectedSamples[1].rows.push([dmSampleIDs[i], sampleRow[i]])
 				}
 			}
 		}

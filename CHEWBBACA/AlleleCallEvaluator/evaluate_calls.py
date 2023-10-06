@@ -353,7 +353,10 @@ def main(input_files, schema_directory, output_directory, annotations,
                 # Sort Presence-Absence matrix based on decreasing loci presence
                 sorted_loci = [x[0] for x in loci_stats]
                 pa_matrix = pa_matrix[sorted_loci]
-                pa_lines = pa_matrix.values.tolist()
+                sorted_samples = pa_matrix.index.tolist()
+                pa_data = [{"rows": pa_matrix.values.tolist()},
+                           {"loci_ids": sorted_loci},
+                           {"sample_ids": sorted_samples}]
 
             if no_dm is False or no_tree is False or cg_alignment is True:
                 # Compute the cgMLST at 100%
@@ -374,7 +377,8 @@ def main(input_files, schema_directory, output_directory, annotations,
                 # Import distance matrix
                 distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
                                          sep='\t', low_memory=False)
-                dm_lines = distance_m.values.tolist()
+                dm_data = [{"rows": distance_m.values.tolist()},
+                           {"sample_ids": distance_m.columns.tolist()}]
 
         # Only using the loci in the cgMLST
         # Might have to change if we need to work with all loci in the future
@@ -477,8 +481,8 @@ def main(input_files, schema_directory, output_directory, annotations,
                                   {"rows": loci_stats}],
                    "annotations": [{"columns": annotation_values[0]},
                                    {"rows": annotation_values[1]}],
-                   "presence_absence": pa_lines,
-                   "distance_matrix": dm_lines,
+                   "presence_absence": pa_data,
+                   "distance_matrix": dm_data,
                    "cgMLST_tree": phylo_data,
                    }
 

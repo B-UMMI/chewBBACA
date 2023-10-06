@@ -31,7 +31,7 @@ def pickle_loader(pickle_in):
 @pytest.mark.parametrize(
         'test_args, expected',
         [(['chewBBACA.py', 'PrepExternalSchema',
-           '-i', 'data/prep_data/empty_dir',
+           '-g', 'data/prep_data/empty_dir',
            '-o', 'adapted_schema'],
          'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
@@ -39,7 +39,7 @@ def pickle_loader(pickle_in):
          'with one of the following extensions: '
          '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
-           '-i', 'data/prep_data/empty_files',
+           '-g', 'data/prep_data/empty_files',
            '-o', 'adapted_schema'],
          'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
@@ -47,7 +47,7 @@ def pickle_loader(pickle_in):
          'with one of the following extensions: '
          '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
-           '-i', 'data/prep_data/zero_bytes_pair',
+           '-g', 'data/prep_data/zero_bytes_pair',
            '-o', 'adapted_schema'],
          'Could not get input files. Please provide a directory'
          ' with FASTA files or a file with the list of full '
@@ -55,7 +55,7 @@ def pickle_loader(pickle_in):
          'with one of the following extensions: '
          '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
          (['chewBBACA.py', 'PrepExternalSchema',
-           '-i', 'this/path/aint/real',
+           '-g', 'this/path/aint/real',
            '-o', 'adapted_schema'],
           'Input argument is not a valid directory or '
           'file with a list of paths to FASTA files. Please provide a '
@@ -87,11 +87,11 @@ def test_prep_invalid_input(test_args, expected):
         'test_args, expected',
         [
             (['chewBBACA.py', 'PrepExternalSchema',
-              '-i', 'data/prep_data/valid_input',
+              '-g', 'data/prep_data/valid_input',
               '-o', 'preped_schema'],
              'data/prep_data/expected_results_valid'),
             (['chewBBACA.py', 'PrepExternalSchema',
-              '-i', 'data/prep_data/file_extensions',
+              '-g', 'data/prep_data/file_extensions',
               '-o', 'preped_schema'],
              'data/prep_data/expected_results_extension'),
         ]

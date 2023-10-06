@@ -924,12 +924,12 @@ def run_adapt_schema():
     def msg(name=None):
 
         # Simple command to adapt external schema with default argument values
-        simple_cmd = ('  chewBBACA.py PrepExternalSchema -s <schema_directory> '
+        simple_cmd = ('  chewBBACA.py PrepExternalSchema -g <schema_directory> '
                       '-o <output_directory> '
                       '--ptf <ptf_path> ')
 
         # Command to adapt external schema with non-default argument values
-        params_cmd = ('  chewBBACA.py PrepExternalSchema -s <schema_directory> '
+        params_cmd = ('  chewBBACA.py PrepExternalSchema -g <schema_directory> '
                       '-o <output_directory> '
                       '--ptf <ptf_path>\n'
                       '\t\t\t\t  --cpu <cpu_cores> '

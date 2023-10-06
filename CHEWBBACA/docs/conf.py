@@ -15,6 +15,8 @@
 #target_dir = os.path.abspath(os.path.join(current_dir, "../"))
 #sys.path.insert(0, target_dir)
 
+import sphinx_rtd_theme
+
 # -- Project information -----------------------------------------------------
 
 project = 'chewBBACA'
@@ -38,6 +40,7 @@ extensions = [
     'numpydoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
+    'sphinx_rtd_theme',
     # 'sphinxcontrib.httpdomain',
     # 'sphinxcontrib.autohttp.flask',
     # 'sphinxcontrib.autohttp.flaskqref'

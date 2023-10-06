@@ -65,7 +65,7 @@ chewBBACA can create a FASTA file, ``unclassified_sequences.fasta``, with the co
 parameter.
 
 Is there any information about the sequences classified as non-*EXC* or non-*INF*?
-..............................................................................
+..................................................................................
 chewBBACA can create a FASTA file, ``missing_classes.fasta``, and a TSV file, ``missing_classes.tsv``, with the list of coding sequences classified as
 *ASM/ALM/PLOT3/PLOT5/LOTSC/NIPH/NIPHEM* if you pass the ``--output-missing`` parameter.
 

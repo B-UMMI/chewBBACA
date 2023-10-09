@@ -10,7 +10,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py UniprotFinder -i /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_coordinates.tsv --taxa "Species Name" --cpu 4
+	chewBBACA.py UniprotFinder -g /path/to/SchemaName -o /path/to/OutputFolderName -t /path/to/cds_coordinates.tsv --taxa "Species Name" --cpu 4
 
 Parameters
 ----------

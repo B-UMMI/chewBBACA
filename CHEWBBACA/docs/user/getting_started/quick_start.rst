@@ -46,7 +46,7 @@ locus) in a directory and adapt the following template command:
 
 ::
 
-	chewBBACA.py PrepExternalSchema -i ExternalSchemaFastaFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile
+	chewBBACA.py PrepExternalSchema -g ExternalSchemaFastaFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile
 
 .. important::
 	External schemas need to be processed to filter out sequences that do not meet a set of

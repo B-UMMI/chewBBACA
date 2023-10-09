@@ -215,8 +215,8 @@ Parameters
   ``GCF_000007125-protein1``, ``GCF_000007125-protein2``, ..., ``GCF_000007125-proteinN``).
 
 .. note::
-	If a text file that contains a list of full paths or file basenames to loci FASTA files (including the ".fasta" extension),
-  one per line, is passed to the ``--gl`` parameter, the process will only perform allele calling for the loci in that list.
+  If a text file that contains a list of full paths to loci FASTA files or loci IDs, one per line, is
+  passed to the ``--gl`` parameter, the process will only perform allele calling for the loci in that list.
 
 Outputs
 -------

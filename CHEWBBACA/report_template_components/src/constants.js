@@ -192,6 +192,8 @@ export let alleleCallReportAlertMessages = [
 	["Select a sample/locus to display the heatmap for that sample/locus.", "info"],
 	["Select a sample to display the heatmap for that sample.", "info"],
 	["Select a sample and a distance value to display a table with the list of samples with a distance to the selected sample equal or smaller than the specified distance value.", "info"],
+	["The distances were computed by determining the number of allelic differences from the set of %VALUE% core loci.", "info"],
+	["The tree was computed based on the MSA for the set of %VALUE% core loci.", "info"],
 ];
 
 export const msaColorSchemes = [

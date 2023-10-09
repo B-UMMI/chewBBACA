@@ -69,6 +69,10 @@ const ReportPage = () => {
 	// Replace values in Alert Messages data
 	alleleCallReportAlertMessages[0][0] = alleleCallReportAlertMessages[0][0].replaceAll("%VALUE%", 'samples')
 	alleleCallReportAlertMessages[1][0] = alleleCallReportAlertMessages[1][0].replaceAll("%VALUE%", 'loci')
+	// Get size of cgMLST
+	const cgMLSTSize = data.cgMLST_size[0].cgMLST100
+	alleleCallReportAlertMessages[6][0] = alleleCallReportAlertMessages[6][0].replaceAll("%VALUE%", cgMLSTSize)
+	alleleCallReportAlertMessages[7][0] = alleleCallReportAlertMessages[7][0].replaceAll("%VALUE%", cgMLSTSize)
 
 	// Create all Alert components
 	const alertMessagesComponents = alleleCallReportAlertMessages.map((alert, index) => {
@@ -1467,7 +1471,7 @@ const ReportPage = () => {
 				summaryText={dmTitle}
 				detailsData={[dmMenu, dmHeatmaps, dmBottomMenu, distanceTable]}
 				expanded={false}
-				alerts={[alertMessagesComponents[4]]}
+				alerts={[alertMessagesComponents[4], alertMessagesComponents[6]]}
 			>
 			</AccordionMUI>
 		);
@@ -1505,6 +1509,7 @@ const ReportPage = () => {
 				summaryText={phylogeneticElementTitle}
 				detailsData={[phylogeneticElementTree]}
 				expanded={false}
+				alerts={[alertMessagesComponents[7]]}
 			>
 			</AccordionMUI>
 		);

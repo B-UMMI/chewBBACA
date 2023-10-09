@@ -484,6 +484,7 @@ def main(input_files, schema_directory, output_directory, annotations,
                    "presence_absence": pa_data,
                    "distance_matrix": dm_data,
                    "cgMLST_tree": phylo_data,
+                   "cgMLST_size": [{"cgMLST100": len(cgMLST_genes)}],
                    }
 
     # Write report HTML file

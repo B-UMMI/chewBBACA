@@ -70,11 +70,14 @@ Parameters
 
 ::
 
-    -i, --input-files          (Required) Path to the folder containing the FASTA files, one FASTA file
-                               per gene/locus (alternatively, a file with a list of paths can be given).
+    -g, --schema-directory     (Required) Path to the directory that contains the schema FASTA files to adapt,
+                               one FASTA file per gene/locus.
 
     -o, --output-directory     (Required) The directory where the output files will be saved (will
                                create the directory if it does not exist).
+
+    --gl, --genes-list         (Optional) Path to a file that contains the list of full paths to the loci FASTA
+                               files or the loci IDs, one per line, the process should adapt (default: False).
 
     --ptf, --training-file     (Optional) Path to the Prodigal training file that will be included in
                                the adapted schema (default: None).

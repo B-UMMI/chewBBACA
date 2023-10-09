@@ -104,6 +104,3 @@ Parameters
     --submit                    If the process should identify new alleles in the local schema and
                                 send them to the NS. (only authorized users can submit new alleles)
                                 (default: False).
-                                                   
-    --update-profiles           If the process should update local profiles stored in the SQLite
-                                database (default: False).

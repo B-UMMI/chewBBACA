@@ -174,9 +174,6 @@ Parameters
     --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used in the Schema
                                 Pre-processing step (default: 1).
 
-    --thr, --threads            (Optional) Number of threads to use to search for annotations on
-                                UniProt (default: 5).
-
     --ns, --nomenclature-server (Optional) The base URL for the Nomenclature Server. The default value,
                                 "main", will establish a connection to "https://chewbbaca.online/",
                                 "tutorial" to "https://tutorial.chewbbaca.online/" and "local" to

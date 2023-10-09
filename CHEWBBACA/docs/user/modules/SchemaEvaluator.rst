@@ -50,7 +50,7 @@ Parameters
                                 MAFFT and does not add the Phylogenetic Tree and MSA components
                                 (default: False).
 
-    --add-sequences             (Optional) Adds Code Editor with the DNA and Protein sequences to
+    --add-sequences             (Optional) Adds Code Editor components with the DNA and Protein sequences to
                                 loci reports. The Code Editor is in readonly mode (allows to search
                                 for and copy text) (default: False).
 

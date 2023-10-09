@@ -143,9 +143,11 @@ Parameters
     --b, --blast-path           (Optional) Path to the BLAST executables (default: assumes BLAST executables
                                 were added to PATH).
 
-    --pm, --prodigal-mode       (Optional) Prodigal running mode (default: single).
+    --pm, --prodigal-mode       (Optional) Prodigal running mode ("single" for finished genomes, reasonable
+                                quality draft genomes and big viruses. "meta" for metagenomes, low quality
+                                draft genomes, small viruses, and small plasmids) (default: single).
 
-    --cds                       (Optional) If provided, input is a single or several FASTA files with coding
+    --cds, --cds-input          (Optional) If provided, input is a single or several FASTA files with coding
                                 sequences (one per input genome, default: False).
 		
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution

@@ -17,11 +17,15 @@ Parameters
 
 ::
 
-    -i, --input-files      (Required) Path to the schema's directory or to a file with a list of paths
-                           to loci FASTA files, one per line.
+    -g, --schema-directory (Required) Path to the schema directory. The schema directory contains the loci FASTA
+                           files and a folder named "short" that contains the FASTA files with the loci representative
+                           alleles.
 
     -o, --output-directory (Required) Output directory where the process will store intermediate
                            files and save the final TSV file with the annotations.
+
+    --gl, --genes-list     (Optional) Path to a file that contains the list of full paths to the loci FASTA files or
+                           the loci IDs, one per line, the process should find annotations for (default: False).
 
     -t, --protein-table    (Optional) Path to the "cds_coordinates.tsv" file created by the CreateSchema
                            process (default: None).

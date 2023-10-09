@@ -161,10 +161,12 @@ Parameters
                                 that is not the one added to the PATH (default: assumes BLAST executables were added
                                 to PATH).
 
-    --pm, --prodigal-mode       (Optional) Prodigal running mode (default: single).
+    --pm, --prodigal-mode       (Optional) Prodigal running mode ("single" for finished genomes, reasonable
+                                quality draft genomes and big viruses. "meta" for metagenomes, low quality
+                                draft genomes, small viruses, and small plasmids) (default: single).
 
-    --cds, --cds-input          (Optional) Input files contain coding sequences (one Fasta file per strain). Skips
-                                gene prediction with Prodigal (default: False).
+    --cds, --cds-input          (Optional) Input files contain coding sequences (one Fasta file per strain). chewBBACA
+                                skips the gene prediction step with Prodigal if this argument is provided (default: False).
 
     --no-inferred               (Optional) If provided, the process will not add the sequences of inferred alleles
                                 (INF) to the schema. Allelic profiles will still include the allele identifiers

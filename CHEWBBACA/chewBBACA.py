@@ -253,13 +253,13 @@ def run_allele_call():
                       '--st <size_threshold>')
         # command to perform AlleleCall with Fasta files that contain CDS
         cds_cmd = ('chewBBACA.py AlleleCall -i <input_files> '
-                                            '-g <schema_directory>'
+                                            '-g <schema_directory> '
                                             '-o <output_directory> '
                                             '--cds')
 
         usage_msg = ('\nPerform allele calling with schema default parameters:\n  {0}\n'
                      '\nPerform allele calling with non-default parameters:\n  {1}\n'
-                     '\nPerform allele calling with FASTA files that contain CDS:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
+                     '\nPerform allele calling with FASTA files that contain CDSs:\n  {2}'.format(simple_cmd, params_cmd, cds_cmd))
 
         return usage_msg
 
@@ -622,7 +622,7 @@ def run_evaluate_schema():
 
     parser.add_argument('--add-sequences', required=False,
                         action='store_true', dest='add_sequences',
-                        help='Adds Code Editor with the DNA and Protein '
+                        help='Adds Code Editor components with the DNA and Protein '
                              'sequences to loci reports. The Code Editor '
                              'is in readonly mode (allows to search for '
                              'and copy text).')
@@ -969,7 +969,7 @@ def run_adapt_schema():
     parser.add_argument('-g', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
                         help='Path to the directory that contains the schema '
-                             'FASTA files to adapt.')
+                             'FASTA files to adapt, one FASTA file per gene/locus.')
 
     parser.add_argument('-o', '--output-directory', type=str,
                         required=True, dest='output_directory',
@@ -1126,7 +1126,7 @@ def run_annotate_schema():
         # Simple command to find annotations by querying Uniprot's SPARQL endpoint
         # and aligning against reference proteomes
         simple_cmd = ('  chewBBACA.py UniprotFinder -g <schema_directory> '
-                      '-t <protein_table> -o <output_directory>\n'
+                      '-o <output_directory> -t <protein_table>\n'
                       '\t\t\t     --taxa "Streptococcus agalactiae" '
                       '--cpu <cpu_cores>')
 

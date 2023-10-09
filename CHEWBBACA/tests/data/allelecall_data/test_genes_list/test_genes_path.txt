@@ -1,0 +1,7 @@
+data/allelecall_data/sagalactiae_schema/sagalactiae-protein10.fasta
+data/allelecall_data/sagalactiae_schema/sagalactiae-protein1
+data/allelecall_data/sagalactiae_schema/sagalactiae-protein2.fasta
+sagalactiae-protein3
+sagalactiae-protein4.fasta
+data/allelecall_data/sagalactiae_schema/sagalactiae-protein5
+data/allelecall_data/sagalactiae_schema/sagalactiae-protein6

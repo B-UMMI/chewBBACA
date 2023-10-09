@@ -1455,7 +1455,7 @@ def validate_loci_list(input_path, output_file, parent_dir=None):
     # List must have full paths
     if parent_dir is not None:
         # Add parent directory path if necessary
-        files = [os.path.join(parent_dir, file)
+        files = [os.path.join(parent_dir, fo.file_basename(file))
                  if parent_dir not in file
                  else file
                  for file in files]

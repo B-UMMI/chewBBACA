@@ -4,8 +4,8 @@ MAINTAINER UMMI, imm-bioinfo@medicina.ulisboa.pt
 # Create directory to store files
 WORKDIR /WORKY/
 
-# Install wget to download files, git to clone repos and Python 3 to install and use chewBBACA
-RUN apt update && apt install -y wget git python3 python3-setuptools
+# Install curl and wget to download files, git to clone repos and Python 3 to install and use chewBBACA
+RUN apt update && apt install -y wget curl git python3 python3-setuptools
 
 # Install BLAST
 WORKDIR /WORKY/BLAST
@@ -32,9 +32,14 @@ ENV PATH="/WORKY/FastTree:${PATH}"
 
 # INSTALL chewBBACA and dependencies listed in requirements.txt
 WORKDIR /WORKY/chewBBACA
-# Clone chewBBACA repo
-RUN git clone https://github.com/B-UMMI/chewBBACA.git
-WORKDIR /WORKY/chewBBACA/chewBBACA
+# Download latest chewBBACA release
+RUN curl -ks https://api.github.com/repos/B-UMMI/chewBBACA/releases/latest | \
+	grep "tarball_url" | \
+	cut -d "\"" -f4 | \
+	xargs -I {} wget --no-check-certificate -O chewBBACA.tar.gz {}
+RUN tar -xf chewBBACA.tar.gz
+RUN mv B-UMMI-chewBBACA*/* .
+RUN rm -rf B-UMMI-chewBBACA*
 # Install chewBBACA and dependencies
 RUN python3 setup.py install
 ENV PATH="/WORKY/chewBBACA/chewBBACA:${PATH}"

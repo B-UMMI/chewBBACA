@@ -8,7 +8,7 @@ Useful links
 - Use `BBACA gitter <https://gitter.im/BBACA/Lobby>`_ if you have any pressing
   question. Chat can be faster and better than email for troubleshooting purposes.
 - A ready to use `docker image <https://hub.docker.com/r/ummidock/chewbbaca>`_
-  automatically built from the latest version of chewBBACA in Ubuntu 16.04.
+  automatically built from the latest version of chewBBACA in Ubuntu 22.04.
 - chewBBACA is available as a `Galaxy module <https://toolshed.g2.bx.psu.edu/repository?repository_id=88fd7663075eeae9&changeset_revision=093352878303>`_.
   Many thanks to Stefano Morabito and `Arnold Knijn <https://github.com/aknijn>`_
   for EURL VTEC in ISS, Rome!

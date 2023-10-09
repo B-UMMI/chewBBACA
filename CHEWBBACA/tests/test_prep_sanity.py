@@ -94,6 +94,11 @@ def test_prep_invalid_input(test_args, expected):
               '-g', 'data/prep_data/file_extensions',
               '-o', 'preped_schema'],
              'data/prep_data/expected_results_extension'),
+            (['chewBBACA.py', 'PrepExternalSchema',
+              '-g', 'data/prep_data/file_extensions',
+              '-o', 'preped_schema',
+              '--gl', 'data/prep_data/test_genes_list/test_genes_extension.txt'],
+             'data/prep_data/expected_results_extension'),
         ]
 )
 def test_prep_valid_input(test_args, expected):

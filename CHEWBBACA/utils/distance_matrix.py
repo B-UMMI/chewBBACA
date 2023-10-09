@@ -28,11 +28,13 @@ import pandas as pd
 
 try:
     from utils import (
+        constants as ct,
         file_operations as fo,
         iterables_manipulation as im,
         multiprocessing_operations as mo)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (
+        constants as ct,
         file_operations as fo,
         iterables_manipulation as im,
         multiprocessing_operations as mo)
@@ -345,7 +347,7 @@ def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
     # remove extension that is after last '.'
     input_basename = '.'.join(input_basename.split('.')[0:-1])
 
-    output_masked = os.path.join(output_directory, 'masked_profiles.tsv')
+    output_masked = os.path.join(output_directory, ct.MASKED_PROFILES_BASENAME)
     if masked is False:
         print('Masking profile matrix...', end='')
         profiles_matrix = pd.read_csv(input_matrix,
@@ -388,7 +390,7 @@ def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
     print('\nCreating distance matrix...', end='')
     # create files with headers
     col_ids = ['FILE'] + genome_ids
-    output_pairwise = os.path.join(output_directory, 'allelic_differences.tsv')
+    output_pairwise = os.path.join(output_directory, ct.DISTANCE_MATRIX_BASENAME)
     # output_p = os.path.join(output_directory,
     #                         '{0}_shared_loci.tsv'.format(input_basename))
 

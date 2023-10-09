@@ -234,7 +234,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 
     # Read "results_statistics.tsv" to get class counts per sample
     sample_statistics_file = fo.join_paths(input_files,
-                                           ['results_statistics.tsv'])
+                                           [ct.RESULTS_STATISTICS_BASENAME])
     sample_counts = pd.read_csv(sample_statistics_file, delimiter='\t')
 
     # Sort based on decreasing number of EXC
@@ -253,7 +253,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 
     # Read "loci_summary_stats.tsv" to get class counts per locus
     loci_statistics_file = fo.join_paths(input_files,
-                                         ['loci_summary_stats.tsv'])
+                                         [ct.LOCI_STATS_BASENAME])
     loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
     # Sort based on decreasing number of EXC
     loci_counts = loci_counts.sort_values(by=['EXC'], ascending=False)
@@ -274,7 +274,7 @@ def main(input_files, schema_directory, output_directory, annotations,
     # CDSs per sample (future development will use coordinates for synteny
     # analysis)
     print('Computing sample statistics...', end='')
-    cds_coordinates_file = fo.join_paths(input_files, ['cds_coordinates.tsv'])
+    cds_coordinates_file = fo.join_paths(input_files, [ct.CDS_COORDINATES_BASENAME])
     sample_stats = compute_sample_stats(sample_ids, total_loci,
                                         cds_coordinates_file, sample_counts)
 
@@ -329,7 +329,7 @@ def main(input_files, schema_directory, output_directory, annotations,
         if False in [no_pa, no_dm, no_tree] or cg_alignment is True:
             # Define path to TSV file that contains allelic profiles
             allelic_profiles_file = fo.join_paths(input_files,
-                                                  ['results_alleles.tsv'])
+                                                  [ct.RESULTS_ALLELES_BASENAME])
 
             # Import matrix with allelic profiles
             print('Reading profile matrix...', end='')
@@ -340,7 +340,7 @@ def main(input_files, schema_directory, output_directory, annotations,
             # Mask missing data
             print('Masking profile matrix...', end='')
             masked_profiles = profiles_matrix.apply(im.replace_chars)
-            output_masked = os.path.join(output_directory, 'masked.tsv')
+            output_masked = os.path.join(output_directory, ct.MASKED_PROFILES_BASENAME)
             masked_profiles.to_csv(output_masked, sep='\t')
             print('done.')
             # Compute Presence-Absence matrix
@@ -366,7 +366,7 @@ def main(input_files, schema_directory, output_directory, annotations,
                 cgMLST_genes = cgMLST_genes.tolist()
                 print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
                 cgMLST_matrix = masked_profiles[cgMLST_genes]
-                cgMLST_matrix_outfile = os.path.join(output_directory, 'cgMLST.tsv')
+                cgMLST_matrix_outfile = os.path.join(output_directory, ct.CGMLST_PROFILES_BASENAME)
                 cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
 
             if no_dm is False:
@@ -456,7 +456,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 
             # Concatenate all cgMLST alignmnet records
             full_alignment = fo.join_paths(output_directory,
-                                           ['cgMLST_alignment.fasta'])
+                                           [ct.CORE_MSA_BASENAME])
             fo.concatenate_files(sample_alignment_files, full_alignment)
             print('done.')
 
@@ -490,7 +490,7 @@ def main(input_files, schema_directory, output_directory, annotations,
     # Write report HTML file
     report_html = ct.ALLELECALL_REPORT_HTML
     report_html = report_html.format(json.dumps(report_data))
-    report_html_file = fo.join_paths(output_directory, ['main_report.html'])
+    report_html_file = fo.join_paths(output_directory, [ct.ALLELECALL_REPORT_BASENAME])
     fo.write_to_file(report_html, report_html_file, 'w', '\n')
 
     # Copy JS bundle to output directory

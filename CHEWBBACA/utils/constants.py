@@ -17,65 +17,65 @@ import platform
 
 
 # BLAST Score Ratio default values
-# value must be contained in the [0.0,1.0] interval
+# Value must be contained in the [0.0,1.0] interval
 BSR_MIN = 0.0
 BSR_MAX = 1.0
 DEFAULT_BSR = 0.6
 
-# minimum sequence length defaults
+# Minimum sequence length defaults
 MSL_MIN = 0
-# large value to ensure that all sequences above minimum value are accepted
+# Large value to ensure that all sequences above minimum value are accepted
 MSL_MAX = sys.maxsize
-# default minimum sequence length value of 201 nucleotides (67 aminoacids)
+# Default minimum sequence length value of 201 nucleotides (67 aminoacids)
 MINIMUM_LENGTH_DEFAULT = 201
 
-# size variation threshold defaults
+# Size variation threshold defaults
 ST_MIN = 0.0
 ST_MAX = 1.0
-# new alleles are inferred if their length value does
+# New alleles are inferred if their length value does
 # not deviate more than this value from the locus sequence
 # length mode
 # ASM if below threshold and ALM if above
 SIZE_THRESHOLD_DEFAULT = 0.2
 
-# word size/k value used for minimizer clustering
+# Word size/k value used for minimizer clustering
 # this value should not be modified
 WORD_SIZE_MIN = 5
 WORD_SIZE_MAX = 5
 WORD_SIZE_DEFAULT = 5
 
-# number of adjacent kmers to consider when selecting minimizers
+# Number of adjacent kmers to consider when selecting minimizers
 # this value should not be modified
 WINDOW_SIZE_MIN = 5
 WINDOW_SIZE_MAX = 5
 WINDOW_SIZE_DEFAULT = 5
 
-# minimum decimal proportion of shared distinct minimizers for
+# Minimum decimal proportion of shared distinct minimizers for
 # a sequence to be added to a cluster
 # this value should not be modified
 CLUSTERING_SIMILARITY_MIN = 0.20
 CLUSTERING_SIMILARITY_MAX = 0.20
 CLUSTERING_SIMILARITY_DEFAULT = 0.20
 
-# decimal proportion of shared distinct minimizers with cluster
+# Decimal proportion of shared distinct minimizers with cluster
 # representative
 REPRESENTATIVE_FILTER_MIN = 0.9
 REPRESENTATIVE_FILTER_MAX = 0.9
-# in the CreateSchema process, clustered sequences are excluded
+# In the CreateSchema process, clustered sequences are excluded
 # if they share this proportion of distinct minimizers with the
 # cluster representative
 REPRESENTATIVE_FILTER_DEFAULT = 0.9
 
-# decimal proportion of shared distinct minimizers with other
+# Decimal proportion of shared distinct minimizers with other
 # clustered sequences
 INTRA_CLUSTER_MIN = 0.9
 INTRA_CLUSTER_MAX = 0.9
-# in the CreateSchema process, clustered sequences are excluded
+# In the CreateSchema process, clustered sequences are excluded
 # if they share this proportion of distinct minimizers with another
 # clustered sequence of equal or greater length
 INTRA_CLUSTER_DEFAULT = 0.9
 
-# genetic codes/translation tables
+# Genetic codes/translation tables
 GENETIC_CODES = {1: 'Standard',
                  4: 'The mold, protozoan, and coelenterate mitochondrial '
                     'code and the mycoplasma/spiroplasma code',
@@ -84,7 +84,7 @@ GENETIC_CODES = {1: 'Standard',
 
 GENETIC_CODES_DEFAULT = 11
 
-# valid FASTA file extensions
+# Valid FASTA file extensions
 FASTA_EXTENSIONS = ['.fasta', '.fna', '.ffn', '.fa', '.fas']
 
 # Chewie-NS related constants
@@ -102,7 +102,7 @@ HEADERS_POST_JSON = {'Authorization': None,
                      'accept': 'application/json',
                      'user_id': None}
 
-# list of Chewie-NS instance identifiers and URLs
+# List of Chewie-NS instance identifiers and URLs
 HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
            'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
            'local': 'http://127.0.0.1:5000/NS/api/'}
@@ -117,10 +117,10 @@ repository = 'https://github.com/B-UMMI/chewBBACA'
 documentation = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
 contacts = 'imm-bioinfo@medicina.ulisboa.pt'
 
-# timeout, in seconds, to wait for user input
+# Timeout, in seconds, to wait for user input
 prompt_timeout = 30
 
-# minimum MAJOR and MINOR BLAST versions
+# Minimum MAJOR and MINOR BLAST versions
 BLAST_MAJOR = 2
 BLAST_MINOR = 9
 
@@ -138,18 +138,18 @@ IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
                  '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the '
                  'argument to -seqidlist']
 
-# replacements for genome and loci identifiers
+# Replacements for genome and loci identifiers
 CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
                      (")", ""), ("'", ""), ("\"", ""),
                      (":", "")]
 
-# minimum Python version
+# Minimum Python version
 MIN_PYTHON = [(3, 6, 0), '3.6.0']
 
 # FTP to get UniProt's reference proteomes
 UNIPROT_PROTEOMES_FTP = ('https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/')
 
-# list of UniProt's uninformative terms
+# List of UniProt's uninformative terms
 UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
 
 # AlleleCall logfile basename and content template
@@ -161,8 +161,9 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Used this number of CPU cores: {4}\n'
                     'Used a BSR of: {5}\n')
 
-# basename for files created by AlleleCall
+# Basename for files created by AlleleCall
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
+RESULTS_STATISTICS_BASENAME = 'results_statistics.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 NOVEL_BASENAME = 'novel_alleles.fasta'
 PARALOGS_BASENAME = 'RepeatedLoci.tsv'
@@ -170,16 +171,16 @@ LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
 CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
 PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
 PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
-# header for TSV file with loci stats
+# Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
                      'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
-# header for TSV file with information about extracted CDSs
+# Header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
-# headers for TSV files with paralogous loci count and per genome
+# Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
 
-# allele calling classifications
+# Allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
                               'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
                               'ASM', 'PAMA', 'LNF']
@@ -187,22 +188,22 @@ ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
 # PLNF classificaton for modes {1,2,3}
 PROBABLE_LNF = 'PLNF'
 
-# regex pattern to match locus identifier
+# Regex pattern to match locus identifier
 LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
 
-# string template for a standard single line FASTA record
+# String template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
 FASTA_CDS_TEMPLATE = '>{0}-protein{1}\n{2}'
 
 DNA_BASES = 'AGCT'
 
-# define default BLASTp task
+# Define default BLASTp task
 BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
 
 # BLAST outfmt
 BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
 
-# dictionary template to map variables returned by AlleleCall
+# Dictionary template to map variables returned by AlleleCall
 ALLELECALL_DICT = {'classification_files': None,
                    'basename_map': None,
                    'cds_coordinates': None,
@@ -290,12 +291,25 @@ ALLELECALL_REPORT_HTML = ("""
 </html>
 """)
 
+# Basename for files created by the SchemaEvaluator module
+SCHEMA_REPORT_BASENAME = 'schema_report.html'
+
+# Basename for files created by the AlleleCallEvaluator module
+DISTANCE_MATRIX_BASENAME = 'distance_matrix.tsv'
+CORE_MSA_BASENAME = 'cgMLST_MSA.fasta'
+MASKED_PROFILES_BASENAME = 'masked_profiles.tsv'
+CGMLST_PROFILES_BASENAME = 'cgMLST_profiles.tsv'
+ALLELECALL_REPORT_BASENAME = 'allelecall_report.html'
+
+# Basename for files created by ExtractCgMLST module
+PRESENCE_ABSENCE_BASENAME = 'presence_absence.tsv'
+MISSING_LOCI_BASENAME = 'missing_loci_stats.tsv'
 
 # Do not use list of strings as constants if the strings include formatting
 # placeholders. Multiple references to the list of strings will have the same
 # id and altering the strings with format will not change the list id. In
 # multiprocessing it can reference the same list/id in different processess
-# and use the latest changes to a string in the list/id when those cahnges
+# and use the latest changes to a string in the list/id when those changes
 # might not refer to the current process (returning an incorrect value).
 
 # Table header for the Schema report summary data

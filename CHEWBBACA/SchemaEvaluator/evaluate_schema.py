@@ -729,7 +729,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # Write Schema Report HTML file
     schema_html = ct.SCHEMA_REPORT_HTML
     schema_html = schema_html.format(json.dumps(schema_data))
-    schema_html_file = fo.join_paths(output_directory, ['schema_report.html'])
+    schema_html_file = fo.join_paths(output_directory, [ct.SCHEMA_REPORT_BASENAME])
     fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
 
     # Compute data for loci reports

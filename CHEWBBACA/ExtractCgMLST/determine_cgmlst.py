@@ -55,10 +55,12 @@ from plotly.offline import plot
 import plotly.graph_objects as go
 
 try:
-    from utils import (file_operations as fo,
+    from utils import (constants as ct,
+                       file_operations as fo,
                        iterables_manipulation as im)
 except ModuleNotFoundError:
-    from CHEWBBACA.utils import (file_operations as fo,
+    from CHEWBBACA.utils import (constants as ct,
+                                 file_operations as fo,
                                  iterables_manipulation as im)
 
 
@@ -226,7 +228,7 @@ def presAbs(matrix, output_directory):
     """
     presence_absence = matrix.apply(binarize_matrix)
 
-    pa_path = fo.join_paths(output_directory, ['Presence_Absence.tsv'])
+    pa_path = fo.join_paths(output_directory, [ct.PRESENCE_ABSENCE_BASENAME])
     presence_absence.to_csv(pa_path, sep='\t')
 
     return [presence_absence, pa_path]
@@ -348,7 +350,7 @@ def main(input_file, output_directory, threshold, step,
     sorted_genomes = missing_data_df.index.tolist()
 
     # write table with missing data stats
-    mdata_path = os.path.join(output_directory, 'mdata_stats.tsv')
+    mdata_path = os.path.join(output_directory, ct.MISSING_LOCI_BASENAME)
     missing_data_df.to_csv(mdata_path, sep='\t', index=False)
     print('Missing data table saved to {0}'.format(mdata_path))
 

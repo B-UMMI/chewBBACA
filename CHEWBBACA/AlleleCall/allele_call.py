@@ -845,7 +845,7 @@ def write_results_statistics(classification_files, input_identifiers,
 
     outlines = ['\t'.join(line) for line in lines]
 
-    output_file = fo.join_paths(output_directory, ['results_statistics.tsv'])
+    output_file = fo.join_paths(output_directory, [ct.RESULTS_STATISTICS_BASENAME])
     fo.write_lines(outlines, output_file)
 
 

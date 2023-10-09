@@ -11,8 +11,8 @@ instructions and displaying the obtained outputs.
 
 Please start by going through the following steps:
 
-- Install chewBBACA v3.2.0. Check :doc:`Installation </user/getting_started/installation>` for instructions
-  on how to install chewBBACA v3.2.0.
+- Install chewBBACA. Check :doc:`Installation </user/getting_started/installation>` for instructions
+  on how to install chewBBACA.
 - Download the ZIP file with the datasets and expected results for the tutorial `here <https://zenodo.org/record/7529470#.Y8A2zfenxhE>`_.
 - Uncompress the ZIP file (this will create a folder named ``chewBBACA_tutorial`` that has all
   the necessary data).
@@ -69,9 +69,9 @@ following command:
 
 	chewBBACA.py AlleleCall -i genomes/complete_genomes/ -g tutorial_schema/schema_seed -o results32_wgMLST --cpu 6
 
-The allele call used the default BLAST Score Ratio (BSR) value of ``0.6`` and took 1m26s to complete (an average of ~2.7 seconds per genome). The allele call identified 14,704
+The allele call used the default BLAST Score Ratio (BSR) value of ``0.6`` and took 1m26s to complete (an average of ~2.7 seconds per genome). The allele call identified 14,705
 novel alleles and added those alleles to the schema, increasing the number of alleles in the
-schema from 3,127 to 17,831.
+schema from 3,127 to 17,832.
 
 Paralog detection
 :::::::::::::::::
@@ -159,7 +159,7 @@ strains:
 
 	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST_712
 
-The number of loci present in 95% of genomes based on the 712 assemblies is 1,195, a slight decrease
+The number of loci present in 95% of genomes based on the 712 assemblies is 1,194, a slight decrease
 from the number of loci present in 95% of the 32 genomes used for schema creation.
 
 Evaluate genome quality
@@ -190,7 +190,7 @@ We used the following command to recompute the cgMLST:
 
 	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --g expected_results/Evaluate_genome_quality/excluded_genomes.txt
 
-The determined cgMLST at 95% includes 1,249 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
+The determined cgMLST at 95% includes 1,248 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
 
 Minimum Spanning Tree
 :::::::::::::::::::::

@@ -308,9 +308,8 @@ def run_allele_call():
     parser.add_argument('--gl', '--genes-list', type=str,
                         required=False, default=False, dest='genes_list',
                         help='Path to a file that contains the list of full paths '
-                             'or file basenames (including the ".fasta" extension), '
-                             'one per line, to the loci FASTA files the process should use to '
-                             'perform allele calling.')
+                             'to the loci FASTA files or loci IDs, one per line, '
+                             'the process should use to perform allele calling.')
 
     parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
                         required=False, dest='blast_score_ratio',
@@ -573,9 +572,9 @@ def run_evaluate_schema():
 
     parser.add_argument('--gl', '--genes-list', type=str,
                         required=False, default=False, dest='genes_list',
-                        help='Path to a file with the list of genes '
+                        help='Path to a file with the list of loci '
                              'in the schema that the process should '
-                             'analyse (one per line).')
+                             'analyse (one per line, full path or loci IDs).')
 
     parser.add_argument('-a', '--annotations', type=str, required=False,
                         dest='annotations',

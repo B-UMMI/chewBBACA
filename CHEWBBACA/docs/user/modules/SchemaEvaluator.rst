@@ -26,7 +26,8 @@ Parameters
                                 files will be generated (default: None).
 
     --gl, --genes-list          (Optional) Path to a file with the list of genes in the schema
-                                that the process should analyse (one per line) (default: False).
+                                that the process should analyse (one per line, full path or loci
+                                IDs) (default: False).
 
     -a, --annotations           (Optional) Path to the TSV file created by the UniprotFinder module (
                                 default: None).

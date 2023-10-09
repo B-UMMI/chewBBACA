@@ -132,9 +132,9 @@ Parameters
                                 file from the schema's directory (default: searches for a training file in
                                 the schema's directory).
 
-    --gl, --genes-list          (Optional) Path to a file that contains the list of full paths or file basenames
-                                (including the ".fasta" extension), one per line, for the loci FASTA files the
-                                process should use to perform allele calling (default: False).
+    --gl, --genes-list          (Optional) Path to a file that contains the list of full paths to the loci
+                                FASTA files or loci IDs, one per line, the process should use to perform
+                                allele calling (default: False).
 
     --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio value. Sequences with alignments with a BSR
                                 value equal to or greater than this value will be considered as sequences

@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.3.0 - 2023-06-29
+## 3.3.0 - 2023-10-11
 
 - Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility to provide a TSV file with loci annotations to include on a table). The report includes components to display a heatmap representing the loci presence-absence matrix, a heatmap representing the distance matrix based on allelic differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
 
@@ -15,6 +15,8 @@
 - Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema (would only compute the self-scores for the subset of loci if the 'self_scores' file had still not been created).
 
 - Fixed issue related to the classification of single EXC/INF and single/multiple ASM/ALM (would classify some inputs as NIPH instead of EXC/INF).
+
+- Fixed issue related to protein exact match classification when multiple pre-computed PROTEINtable files include the same protein hash.
 
 ## 3.2.0 - 2023-04-27
 

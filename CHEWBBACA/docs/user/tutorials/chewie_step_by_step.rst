@@ -188,7 +188,7 @@ We used the following command to recompute the cgMLST:
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST95_645 --g expected_results/Evaluate_genome_quality/excluded_genomes.txt
+	chewBBACA.py ExtractCgMLST -i cgMLST_712.tsv -o cgMLST_645 --g expected_results/Evaluate_genome_quality/excluded_genomes.txt
 
 The determined cgMLST at 95% includes 1,248 loci, an additional 54 loci (~+4% of the previously defined cgMLST).
 

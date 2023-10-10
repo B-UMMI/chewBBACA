@@ -112,7 +112,7 @@ def allele_hash_table(fasta_files, table_id, translation_table,
                        for rec in alleles]
 
         for record in alleles:
-            # needs to be string because of '*' added to schemas from Chewie-NS
+            # Needs to be string because of '*' added to schemas from Chewie-NS
             allele_id = record[0].split('_')[-1]
             allele_hash = im.hash_sequence(record[1])
             hashtable.setdefault(allele_hash, []).append((locus_index, allele_id))
@@ -146,17 +146,17 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
         List with the paths for the files that contain the hash tables (
         files are created in the output diretory with the Pickle module).
     """
-    # define maximum number of sequence hashes per hash table
+    # Define maximum number of sequence hashes per hash table
     max_sequences = ct.HASH_TABLE_MAXIMUM_ALLELES
 
     input_groups = []
     current_group = []
     total_alleles = 0
     for file in loci_files:
-        # count number of sequences per file
+        # Count number of sequences per file
         with open(file, 'r') as infile:
             num_alleles = sum(1 for _ in infile) / 2
-        # increment total sequences and reset if it reaches limit
+        # Increment total sequences and reset if it reaches limit
         total_alleles += num_alleles
         current_group.append((file, loci_files.index(file)))
         if total_alleles >= max_sequences or file == loci_files[-1]:
@@ -164,8 +164,8 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
             current_group = []
             total_alleles = 0
 
-    # create inputs to parallelize hash table creation
-    # hash tables for DNA sequences
+    # Create inputs to parallelize hash table creation
+    # Hash tables for DNA sequences
     inputs = [[g, i+1, None, output_directory, 'DNAtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
@@ -174,7 +174,7 @@ def pre_compute_hash_tables(output_directory, loci_files, translation_table,
                                             cpu_cores,
                                             show_progress=False)
 
-    # hash tables for translated alleles
+    # Hash tables for translated alleles
     inputs = [[g, i+1, translation_table, output_directory, 'PROTEINtable', allele_hash_table]
               for i, g in enumerate(input_groups)]
 
@@ -209,29 +209,29 @@ def update_hash_tables(loci_files, loci_to_call, translation_table,
     -------
     Total number of new allele hashes added to the pre-computed hash tables.
     """
-    # create hash tables with data for new alleles
+    # Create hash tables with data for new alleles
     novel_dnatable = {}
     novel_proteintable = {}
     for key, value in loci_files.items():
-        # get locus integer identifier
+        # Get locus integer identifier
         locus_index = loci_to_call[key]
-        # import new alleles
+        # Import new alleles
         records = fao.sequence_generator(value[0])
         for rec in records:
-            # compute allele SHA256 hash
+            # Compute allele SHA256 hash
             allele_id = (rec.id).split('_')[-1]
             sequence = str(rec.seq)
             seq_hash = im.hash_sequence(sequence)
             prot_hash = im.hash_sequence(str(sm.translate_sequence(sequence, translation_table)))
-            # add to hash tables that will be used to update pre-computed data
+            # Add to hash tables that will be used to update pre-computed data
             novel_dnatable.setdefault(seq_hash, []).append((locus_index, allele_id))
             novel_proteintable.setdefault(seq_hash, []).append(prot_hash)
 
-    # update pre-computed hash tables
-    # list files with pre-computed hash tables and select last created
+    # Update pre-computed hash tables
+    # List files with pre-computed hash tables and select last created
     dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
     prot_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
-    # load hash tables to update
+    # Load hash tables to update
     latest_dna_table = sorted(dna_tables,
                               key=lambda x: int(x.split('table')[-1]))[-1]
     latest_prot_table = sorted(prot_tables,
@@ -239,12 +239,12 @@ def update_hash_tables(loci_files, loci_to_call, translation_table,
     current_dna_table = fo.pickle_loader(latest_dna_table)
     current_prot_table = fo.pickle_loader(latest_prot_table)
     for key, value in novel_dnatable.items():
-        # add entry for each new allele
+        # Add entry for each new allele
         current_dna_table.setdefault(key, []).extend(value)
         current_prot_table.setdefault(novel_proteintable[key][0], []).extend(value)
-        # check if it reached the maximum number of alleles per table file
+        # Check if it reached the maximum number of alleles per table file
         if len(current_dna_table) >= ct.HASH_TABLE_MAXIMUM_ALLELES:
-            # save current hash tables and create new files
+            # Save current hash tables and create new files
             fo.pickle_dumper(current_dna_table, latest_dna_table)
             fo.pickle_dumper(current_prot_table, latest_prot_table)
             new_index = int(latest_dna_table.split('DNAtable')[-1]) + 1
@@ -470,7 +470,7 @@ def dna_exact_matches(table_file, presence_dnahashtable, loci_files,
 
 def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
                           classification_files, input_ids, dna_index,
-                          presence_DNAhashtable):
+                          presence_DNAhashtable, previous_hashes):
     """Find exact matches at protein level.
 
     Parameters
@@ -496,6 +496,9 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     input_ids : dict
         Dictionary with input integer identifiers as keys
         and input sequence identifiers as values.
+    previous_hashes : set
+        Set of protein hashes that were matched in the previous
+        function calls.
 
     Returns
     -------
@@ -511,15 +514,20 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
         Number of matched CDSs.
     total_distinct_prots : int
         Number of matched distinct prots.
+    previous_hashes : set
+        Set of protein hashes that were matched in the previous
+        function calls and in the current call.
     """
     variant_table = fo.pickle_loader(table_file)
     common = set(variant_table.keys()).intersection(set(presence_PROThashtable.keys()))
     common_data = {c: variant_table[c] for c in common}
     sorted_common = sorted(list(common_data.items()), key=lambda x: x[1][0][0])
+    # Group matches by locus
     groups = {}
     for r in sorted_common:
-        # only gets information about the first locus that contains alleles
-        # does not get addiitonal info if allele is present in several loci
+        # Only gets information about the first locus and first match
+        # Does not get additional info if translated allele matches multiple
+        # alleles in a single locus or multiple alleles in different loci
         groups.setdefault(r[1][0][0], []).append((r[0], r[1][0][1]))
 
     groups = {loci_files[k]: v for k, v in groups.items() if k in loci_files}
@@ -541,35 +549,32 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
         locus_exact_prot_hashes = []
         locus_lengths = []
         for r in results:
-            if r[0] in presence_PROThashtable:
-                # get protids for distinct DNA CDSs
+            # Do not proceed if the protein hash was in another pre-computed table
+            if r[0] in presence_PROThashtable and r[0] not in previous_hashes:
+                # Get protids for distinct DNA CDSs
                 matched_protids = im.polyline_decoding(presence_PROThashtable[r[0]])
                 matched_protids = ['{0}-protein{1}'.format(input_ids[matched_protids[i+1]], matched_protids[i])
                                    for i in range(0, len(matched_protids), 2)]
                 locus_total_prots += len(matched_protids)
                 locus_exact_prot_hashes.extend(matched_protids)
                 locus_total_distinct_prots += 1
-                # for each distinct CDS that codes for the protein
+                # For each distinct CDS that codes for the protein
                 for m in matched_protids:
                     cds = str(dna_index.get(m).seq)
                     cds_hash = im.hash_sequence(cds)
-                    # get IDs of genomes that contain the CDS
+                    # Get IDs of genomes that contain the CDS
                     matched_inputs = im.polyline_decoding(presence_DNAhashtable[cds_hash])
                     locus_total_cds += len(matched_inputs)-1
-                    # for each genome ID that contains the CDS
+                    # For each genome ID that contains the CDS
                     for gid in matched_inputs[1:]:
-                        # first time seeing CDS
+                        # First time seeing CDS
                         if cds_hash not in locus_matched_dna:
                             current_class = 'INF'
-                            # representative_seqid = r[1]
                             locus_matched_dna[cds_hash] = m
                             locus_lengths.append(len(cds))
                         else:
                             current_class = 'EXC'
-                            # if it matches a INF, change protid to seqid of INF
-                            # that will be assigned a new allele id later
-                            # representative_seqid = locus_matched_dna[cds_hash]
-                        # for protein exact matches, the seqid of the translated allele,
+                        # For protein exact matches, the seqid of the translated allele,
                         # the seqid of the protein chosen as representative during sequence deduplication,
                         match_data = (r[1], m, cds_hash, current_class, 1.0)
                         locus_classifications = update_classification(gid, locus_classifications,
@@ -581,12 +586,16 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
         exc_prot += locus_total_prots
         exc_cds += locus_total_cds
         exc_distinct_prot += locus_total_distinct_prots
-        # update locus mode
+        # Update locus mode
         if len(locus_lengths) > 0:
             locus_id = fo.file_basename(g, False)
             loci_modes.append([locus_id, locus_lengths])
 
-    return [exact_phashes, exc_prot, exc_cds, exc_distinct_prot, loci_modes]
+    # Save hashes to avoid classifying a protein hash that is in multiple PROTEINtables
+    previous_hashes = previous_hashes.union(common)
+
+    return [exact_phashes, exc_prot, exc_cds, exc_distinct_prot, loci_modes,
+            previous_hashes]
 
 
 def contig_position_classification(representative_length, representative_leftmost_pos,
@@ -1657,31 +1666,31 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     """
     invalid_cases = classification_labels[2:-1]
 
-    # get information about missing cases for each input genome
+    # Get information about missing cases for each input genome
     missing_cases = {}
-    # get hash if coordinates are available, seqid otherwise
+    # Get hash if coordinates are available, seqid otherwise
     id_index = 2 if coordinates_files is not None else 1
     for locus, file in class_files.items():
         locus_id = fo.get_locus_id(locus)
         if locus_id is None:
             locus_id = fo.file_basename(locus, False)
         locus_classifications = fo.pickle_loader(file)
-        # get data for genomes that do not have EXC or INF classifications
+        # Get data for genomes that do not have EXC or INF classifications
         # it will not get invalid classes if a genome is classified as EXC|INF
         for gid, v in locus_classifications.items():
             if v[0] in invalid_cases:
                 genome_info = [locus_id, v[0], [[e[id_index], e[3]] for e in v[1:]]]
                 missing_cases.setdefault(input_map[gid], []).append(genome_info)
 
-    # add integer index to FASTA header and first TSV column
+    # Add integer index to FASTA header and first TSV column
     index = 1
     tsv_lines = ['Index\tGenome\tLocus\tLocus_classification\tCDS\tCDS_classification']
-    # fetch genome coordinates and create FASTA headers
-    # input files contained genome assemblies
+    # Fetch genome coordinates and create FASTA headers
+    # Input files contained genome assemblies
     if coordinates_files is not None:
         for k, v in missing_cases.items():
             genome_coordinates = fo.pickle_loader(coordinates_files[k])[0]
-            # genomes may have duplicated CDSs
+            # Genomes may have duplicated CDSs
             # store hash and increment i to get correct positions
             hashes = {}
             for c in v:
@@ -1694,15 +1703,16 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                     if current_hash not in hashes:
                         hashes[current_hash] = {locus_id: 0}
                     else:
-                        # multiple matches to the same locus
+                        # Multiple matches to the same locus
                         if locus_id in hashes[current_hash]:
                             hashes[current_hash][locus_id] += 1
-                        # multiple matches to multiple loci
+                        # Multiple matches to multiple loci
                         else:
                             hashes[current_hash][locus_id] = 0
 
                     current_index = hashes[current_hash][locus_id]
                     protid = coordinates[current_index][4]
+
                     h.append('{0}|{1}|{2}&{3}|{1}-protein{4}&{5}'.format(index,
                                                                          k,
                                                                          locus_id,
@@ -1716,7 +1726,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                                                                          protid,
                                                                          h[1]))
                     index += 1
-    # input files contained CDSs and there are no genome coordinates
+    # Input files contained CDSs and there are no genome coordinates
     else:
         for k, v in missing_cases.items():
             for c in v:
@@ -1737,7 +1747,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
                                                               seqid_classification))
                     index += 1
 
-    # get FASTA sequences
+    # Get FASTA sequences
     missing_records = []
     dna_index = fao.index_fasta(fasta_file)
     if coordinates_files is not None:
@@ -1765,11 +1775,11 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
             missing_records.extend(current_records)
 
-    # write FASTA file
+    # Write FASTA file
     output_file = fo.join_paths(output_directory, ['missing_classes.fasta'])
     fo.write_lines(missing_records, output_file)
 
-    # write TSV file
+    # Write TSV file
     output_file = fo.join_paths(output_directory, ['missing_classes.tsv'])
     fo.write_lines(tsv_lines, output_file)
 
@@ -2154,13 +2164,14 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     print('identified {0} distinct proteins.'.format(len(distinct_pseqids)))
     template_dict['protein_hashtable'] = distinct_pseqids
 
-    # identify exact matches at protein level
-    # exact matches are novel alleles that can be added to the schema
+    # Identify exact matches at protein level
+    # Exact matches at protein level are novel alleles
     print('\n== Protein exact matches ==')
     exc_cds = 0
     exc_prot = 0
     exc_distinct_prot = 0
     exact_phashes = []
+    previous_hashes = set()
     print('\nSearching for Protein exact matches...', end='')
     # list files in pre-computed dir
     protein_tables = fo.listdir_fullpath(pre_computed_dir, 'PROTEINtable')
@@ -2171,17 +2182,20 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                 classification_files,
                                                 basename_inverse_map,
                                                 dna_index,
-                                                dna_distinct_htable)
+                                                dna_distinct_htable,
+                                                previous_hashes)
 
         exact_phashes.extend(protein_matches[0])
         exc_prot += protein_matches[1]
         exc_cds += protein_matches[2]
         exc_distinct_prot += protein_matches[3]
-        # update locus mode
+        # Update locus mode
         if len(protein_matches[4]) > 0:
             for r in protein_matches[4]:
                 loci_modes[r[0]][1].extend(r[1])
                 loci_modes[r[0]][0] = sm.determine_mode(loci_modes[r[0]][1])[0]
+        # Save protein hashes that were already processed
+        previous_hashes = protein_matches[5]
 
     print('found {0} exact matches ({1} distinct CDS, {2} total CDS).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))

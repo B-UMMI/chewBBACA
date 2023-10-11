@@ -43,6 +43,8 @@ differences and a Neighbor-Joining tree based on the MSA of the core genome loci
 
 - Fixed issue related to protein exact match classification when multiple pre-computed PROTEINtable files include the same protein hash.
 
+- Changed the `-i`, `--input-files` parameter in the PrepExternalSchema and UniprotFinder modules to `-g`, `--schema-directory` and added the `--gl`, `--genes-list` parameter to enable adapting or annotating a subset of the loci in the schema.
+
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation

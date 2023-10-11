@@ -18,6 +18,8 @@
 
 - Fixed issue related to protein exact match classification when multiple pre-computed PROTEINtable files include the same protein hash.
 
+- Changed the `-i`, `--input-files` parameter in the PrepExternalSchema and UniprotFinder modules to `-g`, `--schema-directory` and added the `--gl`, `--genes-list` parameter to enable adapting or annotating a subset of the loci in the schema.
+
 ## 3.2.0 - 2023-04-27
 
 - New version of the SchemaEvaluator module. The updated version fixes several issues related with outdated dependencies that were leading to errors in the previous version. The new version also includes new features and components. Read the [docs page](https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html) to know more about the latest version of the SchemaEvaluator module.

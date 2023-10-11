@@ -339,7 +339,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
         loci_list = pv.validate_loci_list(genes_list, loci_list, schema_directory)
     # Working with the whole schema
     else:
-        loci_list = pv.check_type(schema_directory, loci_list)
+        loci_list = pv.check_input_type(schema_directory, loci_list)
 
     loci_paths = fo.read_lines(loci_list)
     loci_basenames = [fo.file_basename(locus, False) for locus in loci_paths]

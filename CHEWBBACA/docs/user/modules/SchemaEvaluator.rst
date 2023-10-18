@@ -104,9 +104,11 @@ Outputs
 
 .. warning::
   The JS bundles are necessary to visualize the HTML reports. Do not delete these files. You should
-  not move or delete any of the files in the output folder. If you want to share the report, simply
-  compress the output folder and share the compressed archive. The receiver can simply uncompress
-  the archive and open the HTML files in a browser to visualize the report.
+  not move or delete any of the files in the output folder.
+
+.. note::
+  If you want to share the report, simply compress the output folder and share the compressed archive.
+  The receiver can simply uncompress the archive and open the HTML files with a browser to visualize the report.
 
 .. note::
   Several report components only display the allele integer identifiers (the integer after the ``_`` in the

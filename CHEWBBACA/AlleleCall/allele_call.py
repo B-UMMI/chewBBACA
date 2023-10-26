@@ -2109,6 +2109,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
         template_dict['unclassified_ids'] = selected_ids
+        template_dict['representatives'] = {}
 
         return template_dict
 
@@ -2148,6 +2149,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = distinct_file
         template_dict['unclassified_ids'] = selected_ids
+        template_dict['representatives'] = {}
 
         return template_dict
 
@@ -2223,6 +2225,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = unique_pfasta
         template_dict['unclassified_ids'] = selected_ids
+        template_dict['representatives'] = {}
 
         return template_dict
 
@@ -2428,6 +2431,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         template_dict['classification_files'] = classification_files
         template_dict['protein_fasta'] = all_prots
         template_dict['unclassified_ids'] = unclassified_ids
+        template_dict['representatives'] = {}
 
         return template_dict
 

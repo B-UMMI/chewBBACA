@@ -412,6 +412,17 @@ Example for the ``SAMD00008628`` genome:
   algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted
   by the hash of the DNA sequence).
 
+Identify genetic clusters
+:::::::::::::::::::::::::
+
+We recommend that you use `ReporTree <https://github.com/insapathogenomics/ReporTree>`_ to identify genetic clusters
+based on the allelic profiles (contained in the ``results_alleles.tsv`` output file) determined by chewBBACA. ReporTree
+includes functionalities to identify genetic clusters at any distance threshold level(s), obtain summary reports with relevant
+statistics computed based on sample metadata, identify regions of cluster stability, etc. Cluster nomenclature can be maintained
+and updated in subsequent analyses, which is especially useful in surveillance-oriented workflows. Check the
+`publication <https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-023-01196-1>`_ and the
+`GitHub repository <https://github.com/insapathogenomics/ReporTree>`_ to know more about ReporTree.
+
 Concurrent allele calling
 :::::::::::::::::::::::::
 

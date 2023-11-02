@@ -301,10 +301,10 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     total_loci = len(loci)
     print('Number of loci to download: {0}'.format(total_loci))
 
-    # build the list of urls to get
+    # Build the list of urls to get
     fasta_urls = [cr.make_url(locus, 'fasta') for locus in loci]
 
-    # multithread the requests
+    # Multithread the requests
     print('Downloading schema files...')
     total = 0
     failed = []
@@ -337,8 +337,7 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     return ns_files
 
 
-def download_compressed(zip_uri, species_name, schema_name,
-                        download_folder, headers_get):
+def download_compressed(zip_uri, schema_filename, download_folder, headers_get):
     """Download and extract ZIP archive with a ready-to-use schema.
 
     Parameters
@@ -346,10 +345,8 @@ def download_compressed(zip_uri, species_name, schema_name,
     zip_uri : str
         Endpoint URL to make the request to download
         the compressed schema.
-    species_name : str
-        Scientific name of the schema species.
-    schema_name : str
-        Name of the schema in the Chewie-NS.
+    schema_filename : str
+        Name assigned to the local schema.
     download_folder : str
         Path to the directory to which the ZIP archive
         will be saved.
@@ -362,22 +359,19 @@ def download_compressed(zip_uri, species_name, schema_name,
         ZIP archive contents will be extracted to this
         directory.
     """
-    zip_name = '{0}{1}_{2}.zip'.format(species_name[0].lower(),
-                                       species_name.split(' ')[-1],
-                                       schema_name)
-    schema_path = os.path.join(download_folder,
-                               zip_name.split('.zip')[0])
+    schema_path = os.path.join(download_folder, schema_filename)
     fo.create_directory(schema_path)
 
-    # download ZIP archive
+    # Download ZIP archive
+    zip_name = f'{schema_filename}.zip'
     url, zip_response = cr.simple_get_request(zip_uri, headers_get,
                                               parameters={'request_type': 'download'})
     zip_path = os.path.join(schema_path, zip_name)
     open(zip_path, 'wb').write(zip_response.content)
-    # uncompress
+    # Uncompress
     print('Decompressing schema...')
     shutil.unpack_archive(zip_path, extract_dir=schema_path)
-    # delete ZIP
+    # Delete ZIP
     os.remove(zip_path)
 
     return schema_path
@@ -439,8 +433,8 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         sys.exit('There is no species with the provided '
                  'identifier in the Chewie-NS.')
 
-    # check if user provided schema identifier or schema description
-    # get info about all the species schemas
+    # Check if user provided schema identifier or schema description
+    # Get info about all the species schemas
     schema_id, schema_uri,\
         schema_name, schema_params = cr.get_species_schemas(schema_id,
                                                             species_id,
@@ -452,12 +446,16 @@ def main(species_id, schema_id, download_folder, cpu_cores,
     print("Schema's species: {0} "
           "(id={1})".format(species_name, species_id))
 
-    # create parameters dict
+    # Assign name to local schema
+    schema_basename = '_'.join(species_name.split(' '))
+    schema_basename = f'{schema_basename}_{schema_name}'
+
+    # Create parameters dict
     schema_params_dict = {k: schema_params[k]['value']
                           for k in schema_params.keys()
                           if k != 'name'}
 
-    # check if schema is locked
+    # Check if schema is locked
     lock_status = schema_params_dict['Schema_lock']
     if lock_status != 'Unlocked':
         sys.exit('Schema is locked. This might be because it '
@@ -465,18 +463,18 @@ def main(species_id, schema_id, download_folder, cpu_cores,
                  ' Please try again later and contact the Administrator '
                  'if the schema stays locked for a long period of time.')
 
-    # get zip information
+    # Get zip information
     zip_uri, zip_date = check_compressed(schema_uri, headers_get)
 
     schema_date = download_date(date, zip_date, latest,
                                 schema_params_dict['dateEntered'],
                                 schema_params_dict['last_modified'])
 
-    # check output folder
+    # Check output folder
     if not os.path.exists(download_folder):
         os.mkdir(download_folder)
     else:
-        # verify that folder is empty and abort if it is not
+        # Verify that folder is empty and abort if it is not
         download_folder_files = os.listdir(download_folder)
         if len(download_folder_files) > 0:
             sys.exit('Download folder is not empty. Please ensure '
@@ -487,7 +485,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
     if schema_date == zip_date:
         print('\nDownloading compressed version...')
         # Chewie-NS does not add clustering parameters to config, change that
-        schema_path = download_compressed(zip_uri, species_name, schema_name,
+        schema_path = download_compressed(zip_uri, schema_basename,
                                           download_folder, headers_get)
     else:
         print('\nDownloading schema FASTA files...')
@@ -503,9 +501,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
                                 nomenclature_server)
 
         # Use PrepExternalSchema to determine representatives
-        genus, epithet = species_name.split(' ')
-        schema_name = '{0}{1}_{2}'.format(genus[0].lower(), epithet, schema_name)
-        schema_path = fo.join_paths(download_folder, [schema_name])
+        schema_path = fo.join_paths(download_folder, [schema_basename])
         schema_path_short = fo.join_paths(schema_path, ['short'])
         # Create output directories
         schema_path_exists = fo.create_directory(schema_path)

@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.1 - 2023-11-03
+
+- Fixed issue leading to errors during allele calling if it was running in default mode (4) and all CDSs were classified before representative determination.
+
+- Fixed schema name assignment in the DownloadSchema module.
+
+- Fixed bug related to gene prediction parallelization when running Pyrodigal in meta mode. Processes were hanging if `multiprocessing.pool.Pool` was used. Using `multiprocessing.pool.ThreadPool` fixes the issue. The solution was described in an [issue](https://github.com/althonos/pyrodigal/issues/46) in Pyrodigals' repository.
+
 ## 3.3.0 - 2023-10-11
 
 - Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility to provide a TSV file with loci annotations to include on a table). The report includes components to display a heatmap representing the loci presence-absence matrix, a heatmap representing the distance matrix based on allelic differences and a Neighbor-Joining tree based on the MSA of the core genome loci.

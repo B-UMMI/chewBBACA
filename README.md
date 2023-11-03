@@ -21,29 +21,13 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-## 3.3.0 - 2023-10-11
+## 3.3.1 - 2023-11-03
 
-- Added the AlleleCallEvaluator module. This module generates an interactive HTML report for the allele calling
-results. The report provides summary statistics to evaluate results per sample and per locus (with the possibility
-to provide a TSV file with loci annotations to include on a table). The report includes components to display a
-heatmap representing the loci presence-absence matrix, a heatmap representing the distance matrix based on allelic
-differences and a Neighbor-Joining tree based on the MSA of the core genome loci.
+- Fixed issue leading to errors during allele calling if it was running in default mode (4) and all CDSs were classified before representative determination.
 
-- Added [pyrodigal](https://github.com/althonos/pyrodigal) for gene prediction. This simplified the processing of the gene prediction results and reduced runtime.
+- Fixed schema name assignment in the DownloadSchema module.
 
-- Fixed an issue where the AlleleCall module would try to create results files for excluded inputs.
-
-- Fixed exception capturing during multiprocessing when using Python>=3.11.
-
-- Fixed PLOT5/3 identification when coding sequences are in the reverse strand.
-
-- Fixed computation of the representative self-scores when performing allele calling for a subset of the loci in a schema (would only compute the self-scores for the subset of loci if the 'self_scores' file had still not been created).
-
-- Fixed issue related to the classification of single EXC/INF and single/multiple ASM/ALM (would classify some inputs as NIPH instead of EXC/INF).
-
-- Fixed issue related to protein exact match classification when multiple pre-computed PROTEINtable files include the same protein hash.
-
-- Changed the `-i`, `--input-files` parameter in the PrepExternalSchema and UniprotFinder modules to `-g`, `--schema-directory` and added the `--gl`, `--genes-list` parameter to enable adapting or annotating a subset of the loci in the schema.
+- Fixed bug related to gene prediction parallelization when running Pyrodigal in meta mode.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
@@ -51,4 +35,4 @@ Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.
 
 When using chewBBACA, please use the following citation:
 
-Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
+> Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)

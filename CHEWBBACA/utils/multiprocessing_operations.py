@@ -14,7 +14,7 @@ Code documentation
 
 import time
 import traceback
-from multiprocessing import Pool
+import multiprocessing.pool
 
 try:
     from utils import iterables_manipulation as im
@@ -51,7 +51,7 @@ def function_helper(input_args):
 
 
 def map_async_parallelizer(inputs, function, cpu, callback='extend',
-                           chunksize=1, show_progress=False):
+                           chunksize=1, show_progress=False, pool_type='pool'):
     """Run function in parallel.
 
     Parameters
@@ -71,10 +71,13 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
         Size of input chunks that will be passed to
         each process. The function will create groups
         of inputs with this number of elements.
-    show_progress: bool
+    show_progress : bool
         True to show a progress bar with the percentage
         of inputs that have been processed, False
         otherwise.
+    pool_type : str
+        The multiprocessing.pool object that will be used,
+        Pool or ThreadPool.
 
     Returns
     -------
@@ -82,9 +85,15 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
         List with the results returned for each function
         call.
     """
+    if pool_type == 'pool':
+        multiprocessing_function = multiprocessing.pool.Pool
+    # Gene prediction uses ThreadPool because Pyrodigal might hang with Pool
+    elif pool_type == 'threadpool':
+        multiprocessing_function = multiprocessing.pool.ThreadPool
+
     results = []
     # Use context manager to join and close pool automatically
-    with Pool(cpu) as pool:
+    with multiprocessing_function(cpu) as pool:
         if callback == 'extend':
             rawr = pool.map_async(function, inputs,
                                   callback=results.extend, chunksize=chunksize)

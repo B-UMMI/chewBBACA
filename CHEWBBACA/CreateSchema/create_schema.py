@@ -183,13 +183,13 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                        prodigal_mode, cds_input):
     """Create a schema seed based on a set of input FASTA files."""
     # Map full paths to unique identifier (prefix before first '.')
-    inputs_basenames = im.mapping_function(fasta_files,
+    input_basenames = im.mapping_function(fasta_files,
                                            fo.file_basename, [False])
-    inputs_basenames = {k: fo.split_joiner(v, [0], '.')
-                        for k, v in inputs_basenames.items()}
+    input_basenames = {k: fo.split_joiner(v, [0], '.')
+                        for k, v in input_basenames.items()}
 
     # Detect if some inputs share the same unique prefix
-    basename_list = list(inputs_basenames.values())
+    basename_list = list(input_basenames.values())
     if len(set(basename_list)) < len(fasta_files):
         basename_counts = [[basename, basename_list.count(basename)]
                            for basename in set(basename_list)]
@@ -216,7 +216,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         # Run Pyrodigal to predict genes for all input genomes
         print('\n== CDS prediction ==\n')
         print('Predicting CDS for {0} inputs...'.format(len(fasta_files)))
-        pyrodigal_results = cf.predict_genes(inputs_basenames, ptf_path,
+        pyrodigal_results = cf.predict_genes(input_basenames, ptf_path,
                                              translation_table, prodigal_mode,
                                              cpu_cores, pyrodigal_path)
 
@@ -237,11 +237,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     else:
         # Rename the CDSs in each file based on the input unique identifiers
         print('\nRenaming coding sequences for {0} '
-              'input files...'.format(len(inputs_basenames)))
+              'input files...'.format(len(input_basenames)))
 
         renaming_inputs = []
         cds_fastas = []
-        for k, v in inputs_basenames.items():
+        for k, v in input_basenames.items():
             output_file = fo.join_paths(cds_path, [f'{v}.fasta'])
             cds_prefix = f'{v}-protein'
             renaming_inputs.append([k, output_file, 1, 50000,
@@ -266,7 +266,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # Write Prodigal stderr for inputs that failed gene prediction
     if len(failed) > 0:
         # Exclude inputs that failed gene prediction
-        inputs_basenames = im.prune_dictionary(inputs_basenames, failed.keys())
+        input_basenames = im.prune_dictionary(input_basenames, failed.keys())
         # Write Prodigal stderr for inputs that failed gene prediction
         failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
         failed_outfile = fo.join_paths(output_directory,
@@ -276,7 +276,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # Map input identifiers to integers
     # Use the mapped integers to refer to each input
     # This reduces memory usage compared to using string identifiers
-    basename_map = im.integer_mapping(inputs_basenames.values())
+    basename_map = im.integer_mapping(input_basenames.values())
     basename_inverse_map = im.invert_dictionary(basename_map)
 
     # Divide input FASTA files into 15 sublists
@@ -458,40 +458,40 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # sort seqids before final BLASTp to ensure consistent results
     schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
-    # create directory for final BLASTp
+    # Create directory for final BLASTp
     final_blast_dir = fo.join_paths(temp_directory, ['5_final_blast'])
     fo.create_directory(final_blast_dir)
 
-    # create FASTA file with remaining sequences
+    # Create FASTA file with remaining sequences
     beta_file = os.path.join(final_blast_dir, 'remaining_sequences.fasta')
     fao.get_sequences_by_id(proteins, schema_seqids, beta_file)
 
-    # change sequence identifiers to avoid BLAST error
+    # Change sequence identifiers to avoid BLAST error
     # related to sequence header ength limite
     integer_seqids = os.path.join(final_blast_dir, 'remaining_sequences_integer_headers.fasta')
     ids_dict2 = fao.integer_headers(beta_file, integer_seqids, prefix='seq_')
 
-    # create BLASTp database
+    # Create BLASTp database
     blast_db = fo.join_paths(final_blast_dir, ['remaining_sequences'])
     db_stderr = bw.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
 
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
-    # divide FASTA file into groups of 100 sequences to reduce
+    # Divide FASTA file into groups of 100 sequences to reduce
     # execution time for large sequence sets
     split_dir = fo.join_paths(final_blast_dir, ['cds_subsets'])
     fo.create_directory(split_dir)
     splitted_fastas = fao.split_seqcount(integer_seqids, split_dir, 100)
 
-    # create directory to store results from final BLASTp
+    # Create directory to store results from final BLASTp
     final_blastp_dir = fo.join_paths(final_blast_dir, ['BLAST_results'])
     fo.create_directory(final_blastp_dir)
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
                                                     fo.file_basename(i[0], False))
                      for i in splitted_fastas]
 
-    # add common arguments to all sublists
+    # Add common arguments to all sublists
     blast_inputs = [[blastp_path, blast_db, file[0],
                      blast_outputs[i], 1, 1, bw.run_blast]
                     for i, file in enumerate(splitted_fastas)]
@@ -506,7 +506,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
 
-    # concatenate files with BLASTp results
+    # Concatenate files with BLASTp results
     blast_output = fo.join_paths(final_blast_dir, ['blast_out_concat.tsv'])
     blast_output = fo.concatenate_files(blast_outputs, blast_output)
 
@@ -521,7 +521,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nRemoved {0} sequences that were highly similar '
           'to other sequences.'.format(len(final_excluded)))
 
-    # create file with the schema representative sequences
+    # Create file with the schema representative sequences
     loci_representatives = os.path.join(final_blast_dir, 'loci_representatives.fasta')
     fao.get_sequences_by_id(indexed_dna_file, schema_seqids, loci_representatives)
 
@@ -551,22 +551,29 @@ def main(input_files, output_directory, schema_name, ptf_path,
          representative_filter, intra_filter, cpu_cores, blast_path,
          cds_input, prodigal_mode, no_cleanup):
 
-    print('Prodigal training file: {0}'.format(ptf_path))
-    print('CPU cores: {0}'.format(cpu_cores))
-    print('BLAST Score Ratio: {0}'.format(blast_score_ratio))
-    print('Translation table: {0}'.format(translation_table))
-    print('Minimum sequence length: {0}'.format(minimum_length))
-    print('Size threshold: {0}'.format(size_threshold))
-    print('Word size: {0}'.format(word_size))
-    print('Window size: {0}'.format(window_size))
-    print('Clustering similarity: {0}'.format(clustering_sim))
-    print('Representative filter: {0}'.format(representative_filter))
-    print('Intra-cluster filter: {0}'.format(intra_filter))
+    print(f'Prodigal training file: {ptf_path}')
+    print(f'Prodigal mode: {prodigal_mode}')
+    print(f'CPU cores: {cpu_cores}')
+    print(f'BLAST Score Ratio: {blast_score_ratio}')
+    print(f'Translation table: {translation_table}')
+    print(f'Minimum sequence length: {minimum_length}')
+    print(f'Size threshold: {size_threshold}')
+    print(f'Word size: {word_size}')
+    print(f'Window size: {window_size}')
+    print(f'Clustering similarity: {clustering_sim}')
+    print(f'Representative filter: {representative_filter}')
+    print(f'Intra-cluster filter: {intra_filter}')
 
-    # read file with paths to input files
+    if prodigal_mode == 'meta' and ptf_path is not None:
+        print('Prodigal mode is set to "meta". Will add training file to '
+              'the schema, but will not use it for gene prediction during '
+              'schema creation.')
+        ptf_path = None
+
+    # Read file with paths to input files
     input_files = fo.read_lines(input_files, strip=True)
 
-    # sort paths to FASTA files
+    # Sort paths to FASTA files
     input_files = im.sort_iterable(input_files, sort_key=lambda x: x.lower())
 
     results = create_schema_seed(input_files, output_directory, schema_name,
@@ -580,5 +587,5 @@ def main(input_files, output_directory, schema_name, ptf_path,
     if no_cleanup is False:
         exists = fo.delete_directory(results[1])
 
-    # print message about schema that was created
+    # Print message about schema that was created
     print('Created schema seed with {0} loci.'.format(len(results[0])))

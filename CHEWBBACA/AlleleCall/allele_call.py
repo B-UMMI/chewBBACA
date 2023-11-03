@@ -1935,19 +1935,20 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                  'Please make sure that every input file has a unique '
                  'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
 
-    # inputs are genome assemblies
-    # create directory to store FASTA files with renamed CDSs
+    # Create directory to store FASTA files with renamed CDSs
     cds_path = fo.join_paths(temp_directory, ['2_cds_files'])
     fo.create_directory(cds_path)
+
+    # Inputs are genome assemblies
     if config['CDS input'] is False:
-        # create directory to store files with Pyrodigal results
+        # Create directory to store files with Pyrodigal results
         pyrodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
         fo.create_directory(pyrodigal_path)
 
         # Run Pyrodigal to determine CDSs for all input genomes
         print('\n== CDS prediction ==\n')
 
-        # gene prediction step
+        # Gene prediction step
         print('Predicting CDS for {0} inputs...'.format(len(fasta_files)))
         pyrodigal_results = cf.predict_genes(inputs_basenames,
                                              config['Prodigal training file'],
@@ -2688,6 +2689,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
          no_inferred, output_unclassified, output_missing, output_novel,
          no_cleanup, hash_profiles, ns, config):
 
+    if config['Prodigal mode'] == 'meta' and config['Prodigal training file'] is not None:
+        print(f'Prodigal mode is set to "meta". Will not use the training file in {config["Prodigal training file"]}.')
+        config['Prodigal training file'] = None
+
     # Print config parameters
     for k, v in config.items():
         print('{0}: {1}'.format(k, v))
@@ -2953,10 +2958,12 @@ def main(input_file, loci_list, schema_directory, output_directory,
     print('\n'.join(['{0}: {1}'.format(k, v)
                      for k, v in global_counts.items()]))
     if no_inferred is False and config['Mode'] != 1 and len(novel_alleles) > 0:
-        print('Added {0} novel alleles to schema.'.format(sum(added2)))
-        print('Added {0} representative alleles to schema.'.format(added[1]))
-    elif no_inferred is True or len(novel_alleles) == 0:
-        print('No new alleles to add to schema.')
+        print('Added {0} novel alleles to the schema.'.format(sum(added2)))
+        print('Added {0} representative alleles to the schema.'.format(added[1]))
+    elif no_inferred is True:
+        print('User passed "--no-inferred". No alleles added to the schema.')
+    elif len(novel_alleles) == 0:
+        print('No newly inferred alleles to add to schema.')
 
     # Remove temporary files
     if no_cleanup is False:

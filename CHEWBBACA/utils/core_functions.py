@@ -73,13 +73,14 @@ def predict_genes(fasta_files, ptf_path, translation_table,
         # Read training file to create GeneFinder object
         training_data = gp.read_training_file(ptf_path)
         # Create GeneFinder object based on training data
-        orf_finder = gp.create_gene_finder(training_data, True, True, False)
+        gene_finder = gp.create_gene_finder(training_data, True, True, False)
+    elif ptf_path is None and prodigal_mode == 'meta':
+        # Create GeneFinder object to run in meta mode
+        gene_finder = gp.create_gene_finder(None, True, True, True)
     else:
-        # Create GeneFinder object and train later
-        meta = True if prodigal_mode == 'meta' else False
-        orf_finder = gp.create_gene_finder(None, True, True, meta)
+        gene_finder = None
 
-    common_args = [output_directory, orf_finder, translation_table]
+    common_args = [output_directory, gene_finder, translation_table]
 
     # Divide inputs into equal number of sublists for maximum process
     # progress resolution
@@ -92,10 +93,12 @@ def predict_genes(fasta_files, ptf_path, translation_table,
                                                  gp.predict_genome_genes)
 
     # Run Pyrodigal to predict genes
+    # Need to use ThreadPool. Pyrodigal might hang when using Pool
     pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
                                                   mo.function_helper,
                                                   cpu_cores,
-                                                  show_progress=True)
+                                                  show_progress=True,
+                                                  pool_type='threadpool')
 
     # Determine if Pyrodigal predicted genes for all genomes
     failed = {line[0][0]: line[1]

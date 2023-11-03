@@ -186,7 +186,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
     translation_table : int
         Translation table used to configure the GeneFinder
         (None type if the GeneFinder does not need to be
-         configured).
+        configured).
 
     Returns
     -------
@@ -209,17 +209,19 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
                     for recid, sequence in records.items()}
 
     # Train based on input sequences
-    # Only train if object does not contain training info
-    # and if it won't run in meta mode
-    if gene_finder.training_info is None and gene_finder.meta is False:
-        gene_finder = train_gene_finder(gene_finder,
-                                        records.values(),
-                                        translation_table)
+    # Only train if there is no GeneFinder object
+    if gene_finder is not None:
+        current_gene_finder = gene_finder
+    else:
+        current_gene_finder = create_gene_finder(None, True, True, False)
+        current_gene_finder = train_gene_finder(current_gene_finder,
+                                                records.values(),
+                                                translation_table)
 
     # Predict genes for all input contigs
     contig_genes = {}
     for recid, sequence in records.items():
-        genes = gene_finder.find_genes(sequence)
+        genes = current_gene_finder.find_genes(sequence)
         contig_genes[recid] = genes
 
     # Extract data from Gene objects

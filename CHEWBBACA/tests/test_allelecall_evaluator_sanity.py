@@ -29,7 +29,7 @@ from CHEWBBACA import chewBBACA
                 "-o",
                 "results_report",
             ],
-            "Path to input schema does not exist. Please provide a valid path.",
+            "Path to input files does not exist. Please provide a valid path.",
         ),
         # (
         #     [

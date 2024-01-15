@@ -27,12 +27,11 @@ import requests
 from collections import defaultdict
 from urllib3.exceptions import InsecureRequestWarning
 
-from Bio import SeqIO
-
 try:
     from PrepExternalSchema import adapt_schema
     from utils import (constants as ct,
                        file_operations as fo,
+                       fasta_operations as fao,
                        chewiens_requests as cr,
                        # profiles_sqlitedb as ps,
                        parameters_validation as pv,
@@ -41,6 +40,7 @@ except ModuleNotFoundError:
     from CHEWBBACA.PrepExternalSchema import adapt_schema
     from CHEWBBACA.utils import (constants as ct,
                                  file_operations as fo,
+                                 fasta_operations as fao,
                                  chewiens_requests as cr,
                                  # profiles_sqlitedb as ps,
                                  parameters_validation as pv,
@@ -470,7 +470,7 @@ def altered_loci(loci, schema_dir, pickled_loci, not_in_ns,
         ns_seqs = {seq: seqid for seqid, seq in alleles.items()}
 
         local_seqs = {str(rec.seq): [rec.id, (rec.id).split('_')[-1]]
-                      for rec in SeqIO.parse(locus_file, 'fasta')}
+                      for rec in fao.sequence_generator(locus_file)}
 
         # create dictionary with updated records
         # add local records without '*'
@@ -566,7 +566,7 @@ def unaltered_loci(loci, schema_dir, pickled_loci, not_in_ns, temp_dir):
         locus_file = fo.join_paths(schema_dir, [gene])
         # get local locus sequences
         records = {rec.id: [(rec.id).split('_')[-1], str(rec.seq)]
-                   for rec in SeqIO.parse(locus_file, 'fasta')}
+                   for rec in fao.sequence_generator(locus_file)}
 
         # determine if there are sequences with '*'
         novel_local = {im.hash_sequence(v[1]):

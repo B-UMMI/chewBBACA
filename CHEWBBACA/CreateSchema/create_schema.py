@@ -110,8 +110,6 @@ import os
 import sys
 import math
 
-from Bio import SeqIO
-
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
@@ -160,7 +158,7 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
 
     # add allele identifier to all sequences
     schema_records = {im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS): str(rec.seq)
-                      for rec in SeqIO.parse(schema_seed_fasta, 'fasta')}
+                      for rec in fao.sequence_generator(schema_seed_fasta)}
 
     loci_basenames = {k: k+'.fasta' for k in schema_records}
     loci_paths = {k: fo.join_paths(schema_dir, [v])
@@ -316,7 +314,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     print('Kept {0} distinct sequences.'.format(len(distinct_seqids)))
 
-    indexed_dna_file = SeqIO.index(distinct_file, 'fasta')
+    indexed_dna_file = fao.index_fasta(distinct_file)
 
     # determine small sequences step
     print('\nRemoving sequences smaller than {0} '

@@ -516,11 +516,11 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
     """
     out_seqs = []
     duplicates = {}
-    exausted = False
+    exhausted = False
     # limit of 10000 Fasta records in memory
     out_limit = 10000
     seq_generator = fao.sequence_generator(sequences_file)
-    while exausted is False:
+    while exhausted is False:
         record = next(seq_generator, None)
         if record is not None:
             # seq object has to be converted to string
@@ -542,10 +542,10 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
             genome_id = map_ids[genome_id]
             duplicates.setdefault(seq_hash, []).extend([int(protid), int(genome_id)])
         else:
-            exausted = True
+            exhausted = True
 
         # write Fasta records to file
-        if len(out_seqs) == out_limit or exausted is True:
+        if len(out_seqs) == out_limit or exhausted is True:
             if len(out_seqs) > 0:
                 out_seqs = im.join_list(out_seqs, '\n')
                 fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
@@ -581,15 +581,11 @@ def determine_small(sequences_file, minimum_length, variation=0):
         List with the identifiers of small sequences.
     """
     variation = minimum_length - (minimum_length*variation)
-    small_seqids = []
     seq_generator = fao.sequence_generator(sequences_file)
+    small_seqids = []
     for record in seq_generator:
-        # seq object has to be converted to string
-        sequence = str(record.seq)
-        seqid = record.id
-
-        if len(sequence) < variation:
-            small_seqids.append(seqid)
+        if len(record.seq) < variation:
+            small_seqids.append(record.id)
 
     return small_seqids
 

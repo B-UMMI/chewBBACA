@@ -14,14 +14,15 @@ import zlib
 import hashlib
 
 import pandas as pd
-from Bio import SeqIO
 
 try:
     from utils import (file_operations as fo,
+                       fasta_operations as fao,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
+                                 fasta_operations as fao,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
 
@@ -47,10 +48,10 @@ def hash_column(column, locus_file, hashing_function):
     """
     # read Fasta files with locus alleles
     locus_alleles = {(rec.id).split('_')[-1].replace('*', ''): str(rec.seq)
-                     for rec in SeqIO.parse(locus_file[0], 'fasta')}
+                     for rec in fao.sequence_generator(locus_file[0])}
     if len(locus_file) > 1:
         novel_records = {(rec.id).split('_')[-1].replace('*', ''): str(rec.seq)
-                         for rec in SeqIO.parse(locus_file[1], 'fasta')}
+                         for rec in fao.sequence_generator(locus_file[1])}
         locus_alleles = im.merge_dictionaries([locus_alleles, novel_records], True)
 
     hashed_alleles = {}

@@ -18,8 +18,6 @@ import sys
 import math
 from collections import Counter
 
-from Bio import SeqIO
-
 try:
     from utils import (constants as ct,
                        blast_wrapper as bw,
@@ -2423,7 +2421,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     # get seqids of remaining unclassified sequences
     unclassified_ids = [rec.id
-                        for rec in SeqIO.parse(unique_pfasta, 'fasta')
+                        for rec in fao.sequence_generator(unique_pfasta)
                         if rec.id not in excluded]
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
@@ -2453,7 +2451,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                  blast_db, 'prot')
 
     # Get seqids of schema representatives
-    reps_ids = [rec.id for rec in SeqIO.parse(concat_reps, 'fasta')]
+    reps_ids = [rec.id for rec in fao.sequence_generator(concat_reps)]
 
     # BLAST schema representatives against remaining unclassified CDSs
     new_reps = {}

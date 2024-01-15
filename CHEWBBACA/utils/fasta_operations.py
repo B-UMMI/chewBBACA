@@ -39,6 +39,8 @@ def sequence_generator(input_file):
     records : Bio.SeqIO.FastaIO.FastaIterator
         SeqRecord iterator.
     """
+    # Useful to create the generator
+    # Need to exhaust the generator to avoid high memory usage
     records = SeqIO.parse(input_file, 'fasta')
 
     return records
@@ -72,14 +74,15 @@ def import_sequences(input_file):
 
     Returns
     -------
-    seqs_dict : dict
+    records_dict : dict
         Dictionary with sequence identifiers as keys and
         sequences as values.
     """
     records = sequence_generator(input_file)
-    seqs_dict = {rec.id: str(rec.seq.upper()) for rec in records}
+    # Only want record identifier and sequence, no need to use SeqIO.to_dict
+    records_dict = {rec.id: str(rec.seq.upper()) for rec in records}
 
-    return seqs_dict
+    return records_dict
 
 
 def count_sequences(fasta_file):
@@ -148,9 +151,9 @@ def integer_headers(input_fasta, output_fasta, start=1,
     """
     seqs = []
     ids_map = {}
-    exausted = False
+    exhausted = False
     seq_generator = sequence_generator(input_fasta)
-    while exausted is False:
+    while exhausted is False:
         record = next(seq_generator, None)
         if record is not None:
             # new_id = 'seq_{0}'.format(start)
@@ -162,9 +165,9 @@ def integer_headers(input_fasta, output_fasta, start=1,
             seqs.append(new_rec)
             start += 1
         elif record is None:
-            exausted = True
+            exhausted = True
 
-        if len(seqs) == limit or exausted is True:
+        if len(seqs) == limit or exhausted is True:
             fo.write_lines(seqs, output_fasta, write_mode='a')
             seqs = []
 
@@ -229,9 +232,11 @@ def validate_fasta(file_path):
     True if file has valid FASTA format,
     False otherwise.
     """
-    records = SeqIO.parse(file_path, 'fasta')
+    # Empty list if file is empty or has any problem
+    # Need to convert to list to exhaust generator
+    # Otherwise it might increase memory usage
+    records = list(sequence_generator(file_path))
 
-    # returns False if file is not correctly formatted
     return any(records)
 
 

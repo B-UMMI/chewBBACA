@@ -102,7 +102,6 @@ import itertools
 import multiprocessing
 import concurrent.futures
 
-from Bio import SeqIO
 from SPARQLWrapper import SPARQLWrapper, JSON
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -822,7 +821,7 @@ def create_alleles_files(schema_files, loci_responses, invalid_alleles,
         locus_uri = loci_responses[file][1][0]
 
         alleles_sequences = [str(rec.seq)
-                             for rec in SeqIO.parse(file, 'fasta')
+                             for rec in fao.sequence_generator(file)
                              if rec.id not in invalid_alleles]
 
         post_inputs = [locus_uri, species_name,

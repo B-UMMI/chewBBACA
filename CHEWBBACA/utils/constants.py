@@ -407,10 +407,19 @@ INVALID_INPUT_PATH = ('Input argument is not a valid directory or '
                       'files (one per line and ending with one of the '
                       f'following file extensions: {FASTA_EXTENSIONS}).')
 
-# Invalid path to schema
+# Path to schema does not exist
+SCHEMA_PATH_MISSING = ('Path to input schema does not exist. Please provide '
+                       'a valid path.')
+
+# Path to schema does not include expected files
 SCHEMA_INVALID_PATH = ('Provided path does not include all the necessary '
                        'schema files. Please verify that you have passed '
                        'the correct path to the schema.')
+
+# User provided legacy schema. Tell user to adapt with the PrepExternalSchema module
+ADAPT_LEGACY_SCHEMA = ('Schema does not include a config file. Probably because '
+                       'it was created with chewBBACA<=2.1.0. Please adapt schema '
+                       'with the PrepExternalSchema module to add a config file.')
 
 # Output directory exists
 OUTPUT_DIRECTORY_EXISTS = ('Output directory already exists. Please '

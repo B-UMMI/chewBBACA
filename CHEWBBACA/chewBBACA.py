@@ -440,21 +440,21 @@ def run_allele_call():
 
     args = parser.parse_args()
 
+    # Check if input schema path exists
+    if not os.path.exists(args.schema_directory):
+        sys.exit(ct.SCHEMA_PATH_MISSING)
+
+    # Verify schema files
+    schema_files = os.listdir(args.schema_directory)
+    # Exit if there is no 'short' directory or if there are no FASTA files
+    if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])[0]) == 0:
+        sys.exit(ct.SCHEMA_INVALID_PATH)
+
     config_file = os.path.join(args.schema_directory, '.schema_config')
     # Legacy schemas do not have config file
-    # Create one with provided arguments
+    # Tell users to adapt with PrepExternalSchema module
     if os.path.isfile(config_file) is False:
-        schema_files = os.listdir(args.schema_directory)
-        # Exit if there is no 'short' directory or if there are no FASTA files
-        if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])[0]) == 0:
-            sys.exit(ct.SCHEMA_INVALID_PATH)
-        upgraded = pv.upgrade_legacy_schema(args.ptf_path, args.schema_directory,
-                                            args.blast_score_ratio, args.translation_table,
-                                            args.minimum_length, version,
-                                            args.size_threshold, args.force_continue)
-        args.ptf_path, args.blast_score_ratio, \
-            args.translation_table, args.minimum_length, \
-            args.size_threshold = upgraded
+        sys.exit(ct.ADAPT_LEGACY_SCHEMA)
     else:
         schema_params = fo.pickle_loader(config_file)
         # Chek if user provided different values
@@ -629,9 +629,9 @@ def run_evaluate_schema():
     args = parser.parse_args()
     del args.SchemaEvaluator
 
-    # Check if input file path exists
+    # Check if input schema path exists
     if not os.path.exists(args.schema_directory):
-        sys.exit('Input argument is not a valid directory. Exiting...')
+        sys.exit(ct.SCHEMA_PATH_MISSING)
 
     # Create output directory
     created = fo.create_directory(args.output_directory)
@@ -729,9 +729,9 @@ def run_evaluate_calls():
     args = parser.parse_args()
     del args.AlleleCallEvaluator
 
-    # Check if input file path exists
+    # Check if path to input files exists
     if not os.path.exists(args.input_files):
-        sys.exit('Input argument is not a valid directory. Exiting...')
+        sys.exit('Path to input files does not exist. Please provide a valid path.')
 
     # Create output directory
     created = fo.create_directory(args.output_directory)
@@ -1629,7 +1629,7 @@ def main():
 
     matches = ["--v", "-v", "-version", "--version"]
     if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
-        # print version and exit
+        # Print version and exit
         print('chewBBACA version: {0}'.format(version))
         sys.exit(0)
 
@@ -1639,7 +1639,7 @@ def main():
     print('Documentation: {0}'.format(ct.documentation))
     print('Contacts: {0}\n'.format(ct.contacts))
 
-    # display help message if selected process is not valid
+    # Display help message if selected process is not valid
     if len(sys.argv) == 1 or sys.argv[1] not in functions_info:
         print('USAGE: chewBBACA.py [module] -h \n')
         print('Select one of the following modules :\n')

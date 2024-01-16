@@ -8,14 +8,14 @@ Install the latest released version using `conda <https://anaconda.org/bioconda/
 
 ::
 
-	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.3.1"
+	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.3.2"
 
 If you're having issues installing chewBBACA through conda, we recommend that you install
 `mamba <https://mamba.readthedocs.io/en/latest/index.html>`_ and run the following command:
 
 ::
 
-	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.3.1"
+	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.3.2"
 
 .. important::
 	We strongly recommend that users install and use BLAST 2.9.0+. Please open an

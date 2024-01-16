@@ -21,13 +21,13 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-## 3.3.1 - 2023-11-03
+## 3.3.2 - 2024-01-16
 
-- Fixed issue leading to errors during allele calling if it was running in default mode (4) and all CDSs were classified before representative determination.
+- Changed FASTA file validation to reduce memory usage.
 
-- Fixed schema name assignment in the DownloadSchema module.
+- Removed legacy schema conversion. Users should use the `PrepExternalSchema` module to adapt schemas created with chewBBACA<=2.1.0.
 
-- Fixed bug related to gene prediction parallelization when running Pyrodigal in meta mode.
+- Added prints about output files created by the `PrepExternalSchema` module.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

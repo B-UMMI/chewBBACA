@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.2 - 2024-01-16
+
+- Changed FASTA file validation to reduce memory usage.
+
+- Removed legacy schema conversion. Users should use the `PrepExternalSchema` module to adapt schemas created with chewBBACA<=2.1.0.
+
+- Added prints about output files created by the `PrepExternalSchema` module.
+
 ## 3.3.1 - 2023-11-03
 
 - Fixed issue leading to errors during allele calling if it was running in default mode (4) and all CDSs were classified before representative determination.

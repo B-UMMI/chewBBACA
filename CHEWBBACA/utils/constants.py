@@ -207,6 +207,7 @@ BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
 ALLELECALL_DICT = {'classification_files': None,
                    'basename_map': None,
                    'cds_coordinates': None,
+                   'cds_counts': None,
                    'dna_fasta': None,
                    'protein_fasta': None,
                    'dna_hashtable': None,

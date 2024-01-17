@@ -37,7 +37,7 @@ Python dependencies
 
 * numpy ~=1.24.3
 * scipy ~=1.10.1
-* biopython >=1.78
+* biopython >=1.79
 * plotly >=5.8.0
 * SPARQLWrapper >=2.0.0
 * requests >=2.27.1

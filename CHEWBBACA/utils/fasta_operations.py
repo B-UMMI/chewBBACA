@@ -174,7 +174,7 @@ def integer_headers(input_fasta, output_fasta, start=1,
     if id_map is True:
         return ids_map
     else:
-        return len(ids_map)
+        return (input_fasta, len(ids_map))
 
 
 def fasta_str_record(record_template, record_data):

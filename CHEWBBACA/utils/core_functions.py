@@ -106,6 +106,10 @@ def predict_genes(fasta_files, ptf_path, translation_table,
               if line[1] == 0
               or isinstance(line[1], str) is True}
 
+    cds_counts = {line[0][1]: line[1]
+                  for line in pyrodigal_results
+                  if isinstance(line[1], int) is True}
+
     total_cds = sum([line[1]
                      for line in pyrodigal_results
                      if isinstance(line[1], int) is True])
@@ -114,7 +118,7 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
     cds_hashes = {line[0][1]: line[3] for line in pyrodigal_results if line[3] is not None}
 
-    return [failed, total_cds, cds_fastas, cds_hashes]
+    return [failed, total_cds, cds_fastas, cds_hashes, cds_counts]
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,

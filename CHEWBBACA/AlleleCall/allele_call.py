@@ -811,7 +811,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 
 def write_results_statistics(classification_files, input_identifiers,
-                             output_directory, classification_labels):
+                             cds_counts, output_directory, classification_labels):
     """Write a TSV file with classification counts per input.
 
     Parameters
@@ -822,11 +822,16 @@ def write_results_statistics(classification_files, input_identifiers,
     input_identifiers : dict
         Dictionary with input integer identifiers as keys
         and input string identifiers as values.
+    cds_counts : dict
+        Dictionary with input integer identifiers as keys
+        and the number of CDSs identified in each input as values.
     output_directory : str
         Path to the output directory where the TSV file will
         be created.
     """
-    # initialize classification counts per input
+    # Store total number of classified CDSs per input
+    classified = {i: 0 for i in input_identifiers}
+    # Initialize classification counts per input
     class_counts = {i: {c: 0 for c in classification_labels}
                     for i in input_identifiers}
     for file in classification_files.values():
@@ -838,16 +843,24 @@ def write_results_statistics(classification_files, input_identifiers,
         for i in class_counts:
             if i in locus_results:
                 class_counts[i][locus_results[i][0]] += 1
+                # Increment classified CDSs count
+                current_classified = [c for c in locus_results[i][1:] if isinstance(c, tuple) is True]
+                classified[i] += len(current_classified)
             else:
                 class_counts[i][classification_labels[-1]] += 1
 
-    # substitute integer identifiers by string identifiers
+    for i in class_counts:
+        class_counts[i]['Classified_CDSs'] = classified[i]
+        class_counts[i]['Total_CDSs'] = cds_counts[i]
+
+    # Substitute integer identifiers by string identifiers
     class_counts = {input_identifiers[i]: v for i, v in class_counts.items()}
 
-    # initialize with header line
-    lines = [['FILE'] + classification_labels]
-    for k, v in class_counts.items():
-        input_line = [k] + [str(v[c]) for c in classification_labels]
+    # Initialize with header line
+    header_line = ['FILE'] + classification_labels + ['Classified_CDSs', 'Total_CDSs']
+    lines = [header_line]
+    for i, v in class_counts.items():
+        input_line = [i] + [str(v[c]) for c in header_line[1:]]
         lines.append(input_line)
 
     outlines = ['\t'.join(line) for line in lines]
@@ -1955,7 +1968,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                              config['CPU cores'],
                                              pyrodigal_path)
 
-        failed, total_extracted, cds_fastas, cds_coordinates = pyrodigal_results
+        failed, total_extracted, cds_fastas, cds_coordinates, cds_counts = pyrodigal_results
 
         if len(failed) > 0:
             print('\nFailed to predict CDS for {0} inputs'
@@ -1994,10 +2007,11 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         failed = []
         # Cannot get CDS coordinates if skipping gene prediction
         cds_coordinates = {}
-
-        cds_count = sum(renaming_results)
+        cds_counts = {r[0]: r[1] for r in renaming_results}
+        cds_counts = {inputs_basenames[k]: v for k, v in cds_counts.items()}
+        total_cdss = sum([r[1] for r in renaming_results])
         print('Input files contain a total of {0} '
-              'coding sequences.'.format(cds_count))
+              'coding sequences.'.format(total_cdss))
 
     if len(failed) > 0:
         # Exclude inputs that failed gene prediction
@@ -2016,6 +2030,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     basename_map = im.integer_mapping(inputs_basenames.values())
     basename_inverse_map = im.invert_dictionary(basename_map)
     template_dict['basename_map'] = basename_inverse_map
+
+    cds_counts = {basename_map[k]: v for k, v in cds_counts.items()}
+    template_dict['cds_counts'] = cds_counts
 
     # Divide input FASTA files into 15 sublists
     num_chunks = 15
@@ -2701,13 +2718,13 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     start_time = pdt.get_datetime()
 
-    # read file with paths to input files
+    # Read file with paths to input files
     input_files = fo.read_lines(input_file, strip=True)
-    # sort paths to FASTA files
+    # Sort paths to FASTA files
     input_files = im.sort_iterable(input_files, sort_key=str.lower)
     print('Number of inputs: {0}'.format(len(input_files)))
 
-    # get list of loci to call
+    # Get list of loci to call
     loci_to_call = fo.read_lines(loci_list)
     print('Number of loci: {0}'.format(len(loci_to_call)))
 
@@ -2754,10 +2771,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if config['Mode'] != 4:
         classification_labels[-1] = ct.PROBABLE_LNF
 
-    # Sort for order similar to v2.0
+    # Sort to get order similar to chewBBACA v2
     results['classification_files'] = dict(sorted(results['classification_files'].items()))
 
-    # list files with CDSs coordinates
+    # List files with CDSs coordinates
     if config['CDS input'] is False:
         coordinates_files = results['cds_coordinates']
     else:
@@ -2877,6 +2894,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     print('Writing results_statistics.tsv...', end='')
     write_results_statistics(results['classification_files'],
                              results['basename_map'],
+                             results['cds_counts'],
                              output_directory,
                              classification_labels)
     print('done.')
@@ -2943,8 +2961,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
         fo.concatenate_files(files, cds_coordinates,
                              header=ct.CDS_TABLE_HEADER)
 
-    # move file with list of excluded CDS
-    # file is not created if we only search for exact matches
+    # Move file with list of excluded CDS
+    # File is not created if we only search for exact matches
     if config['Mode'] != 1:
         fo.move_file(results['invalid_alleles'], output_directory)
 

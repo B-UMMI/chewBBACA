@@ -421,14 +421,18 @@ def main(input_files, schema_directory, output_directory, annotations,
 
             # Align sequences with MAFFT
             print('\nDetermining the MSA for each locus...')
-            alignment_dir = fo.join_paths(temp_directory, ['alignment_files'])
-            fo.create_directory(alignment_dir)
-            alignmnet_inputs = im.divide_list_into_n_chunks(protein_files,
-                                                            len(protein_files))
-            common_args = [alignment_dir]
+            mafft_outdir = fo.join_paths(temp_directory, ['alignment_files'])
+            fo.create_directory(mafft_outdir)
+            mafft_outfiles = [os.path.basename(file) for file in protein_files]
+            mafft_outfiles = [file.replace('.fasta', '_aligned.fasta') for file in mafft_outfiles]
+            mafft_outfiles = [fo.join_paths(mafft_outdir, [file]) for file in mafft_outfiles]
 
+            mafft_inputs = [[file, mafft_outfiles[i]]
+                             for i, file in enumerate(protein_files)]
+
+            common_args = []
             # Add common arguments to all sublists
-            inputs = im.multiprocessing_inputs(alignmnet_inputs,
+            inputs = im.multiprocessing_inputs(mafft_inputs,
                                                common_args,
                                                mw.call_mafft)
 
@@ -436,13 +440,11 @@ def main(input_files, schema_directory, output_directory, annotations,
                                                 mo.function_helper,
                                                 cpu_cores,
                                                 show_progress=True)
-            mafft_files = {fo.file_basename(file, False).split('_protein_aligned')[0]: file
-                           for file in results if file is not False}
 
             print('\nCreating file with the full cgMLST alignment...', end='')
             # Concatenate all alignment files and index with BioPython
-            concat_aln = fo.join_paths(alignment_dir, ['cgMLST_concat.fasta'])
-            fo.concatenate_files(mafft_files.values(), concat_aln)
+            concat_aln = fo.join_paths(mafft_outdir, ['cgMLST_concat.fasta'])
+            fo.concatenate_files(mafft_outfiles, concat_aln)
             # Index file
             concat_index = fao.index_fasta(concat_aln)
             sample_alignment_files = []
@@ -463,7 +465,7 @@ def main(input_files, schema_directory, output_directory, annotations,
             if no_tree is False:
                 print('Computing the NJ tree based on the core genome MSA...', end='')
                 # Compute NJ tree with FastTree
-                out_tree = fo.join_paths(alignment_dir, ['cgMLST.tree'])
+                out_tree = fo.join_paths(mafft_outdir, ['cgMLST.tree'])
                 fw.call_fasttree(full_alignment, out_tree)
                 phylo_data = fo.read_file(out_tree)
                 phylo_data = {"phylo_data": phylo_data}

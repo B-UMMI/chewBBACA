@@ -13,37 +13,35 @@ Code documentation
 
 
 import os
-from Bio.Align.Applications import MafftCommandline
+import shutil
+import subprocess
+
+try:
+    from utils import iterables_manipulation as im
+except ModuleNotFoundError:
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
-def call_mafft(genefile, output_directory):
+def call_mafft(input_file, output_file):
     """Call MAFFT to generate an alignment.
 
     Parameters
     ----------
-    genefile : str
+    input_file : str
         Path to a FASTA file with the sequences to align.
 
     Returns
     -------
     Path to the file with the computed MSA if successful, False otherwise.
     """
-    try:
-        mafft_cline = MafftCommandline(input=genefile,
-                                       adjustdirection=True,
-                                       treeout=True,
-                                       thread=1,
-                                       retree=1,
-                                       maxiterate=0,
-                                       )
-        stdout, stderr = mafft_cline()
-        outfile_basename = os.path.basename(genefile)
-        outfile_basename = outfile_basename.replace('.fasta', '_aligned.fasta')
-        outfile = os.path.join(output_directory, outfile_basename)
-        with open(outfile, 'w') as handle:
-            handle.write(stdout)
+    mafft_cmd = [shutil.which('mafft'), '--thread', '1', '--treeout', '--retree', '1',
+                 '--maxiterate', '0', input_file, '>', output_file]
+    mafft_cmd = ' '.join(mafft_cmd)
 
-        return outfile
-    except Exception as e:
-        print(e)
-        return False
+    mafft_cmd = subprocess.Popen(mafft_cmd,
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+    mafft_cmd.wait()
+
+    return os.path.exists(output_file)

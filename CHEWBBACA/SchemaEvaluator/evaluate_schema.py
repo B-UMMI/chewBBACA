@@ -496,15 +496,20 @@ def locus_report(locus_file, locus_data, annotation_columns,
     msa_data = {"sequences": []}
     if light is False:
         if locus_data[13][2] > 1 and locus_data[13][5] > 1:
-            output_directory = os.path.dirname(locus_data[18])
-            alignment_file = mw.call_mafft(locus_data[18], output_directory)
+            mafft_infile = locus_data[18]
+            output_directory = os.path.dirname(mafft_infile)
+            output_directory = os.path.abspath(output_directory)
+            mafft_outfile = os.path.basename(mafft_infile)
+            mafft_outfile = mafft_outfile.replace('.fasta', '_aligned.fasta')
+            mafft_outfile = fo.join_paths(output_directory, [mafft_outfile])
+            mafft_outfile_exists = mw.call_mafft(mafft_infile, mafft_outfile)
             # Get MSA data
-            alignment_text = fo.read_file(alignment_file)
+            alignment_text = fo.read_file(mafft_outfile)
             msa_data['sequences'] = alignment_text
 
             # Get Tree data
             # Get the phylocanvas data
-            tree_file = alignment_file.replace('_aligned.fasta', '.fasta.tree')
+            tree_file = mafft_outfile.replace('_aligned.fasta', '.fasta.tree')
             phylo_data = fo.read_file(tree_file)
 
             # Start by substituting greatest value to avoid substituting

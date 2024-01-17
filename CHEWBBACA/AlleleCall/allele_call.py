@@ -1997,7 +1997,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                     cds_prefix, False, fao.integer_headers])
             cds_fastas.append(output_file)
 
-        # rename CDSs in files
+        # Rename CDSs in files
         renaming_results = mo.map_async_parallelizer(renaming_inputs,
                                                      mo.function_helper,
                                                      config['CPU cores'],

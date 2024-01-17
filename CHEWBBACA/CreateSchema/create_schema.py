@@ -218,7 +218,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                              translation_table, prodigal_mode,
                                              cpu_cores, pyrodigal_path)
 
-        failed, total_extracted, cds_fastas, cds_coordinates = pyrodigal_results
+        failed, total_extracted, cds_fastas, cds_coordinates, cds_counts = pyrodigal_results
         if len(failed) > 0:
             print('\nFailed to predict genes for {0} genomes'
                   '.'.format(len(failed)))
@@ -257,9 +257,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         # cannot get CDS coordinates if skipping gene prediction
         cds_coordinates = {}
 
-        cds_count = sum(renaming_results)
+        cds_counts = sum([r[1] for r in renaming_results])
         print('Input files contain a total of {0} '
-              'coding sequences.'.format(cds_count))
+              'coding sequences.'.format(cds_counts))
 
     # Write Prodigal stderr for inputs that failed gene prediction
     if len(failed) > 0:

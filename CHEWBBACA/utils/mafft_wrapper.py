@@ -13,35 +13,50 @@ Code documentation
 
 
 import os
-import shutil
 import subprocess
 
 try:
-    from utils import iterables_manipulation as im
+    from utils import (constants as ct,
+                       iterables_manipulation as im)
 except ModuleNotFoundError:
-    from CHEWBBACA.utils import iterables_manipulation as im
+    from CHEWBBACA.utils import (constants as ct,
+                                 iterables_manipulation as im)
 
 
 def call_mafft(input_file, output_file):
-    """Call MAFFT to generate an alignment.
+    """Call MAFFT to compute a MSA.
 
     Parameters
     ----------
     input_file : str
         Path to a FASTA file with the sequences to align.
+    output_file : str
+        Path to the output file created by MAFFT.
 
     Returns
     -------
-    Path to the file with the computed MSA if successful, False otherwise.
+    output_file : str
+        Path to the output file.
+    outfile_exists : bool
+        True if the output file was created, False otherwise.
+    stdout : bytes
+        MAFFT stdout.
+    stderr : bytes
+        MAFFT stderr.
+
+    True if the output file was created, False otherwise.
     """
-    mafft_cmd = [shutil.which('mafft'), '--thread', '1', '--treeout', '--retree', '1',
+    mafft_cmd = [ct.MAFFT_ALIAS, '--thread', '1', '--treeout', '--retree', '1',
                  '--maxiterate', '0', input_file, '>', output_file]
     mafft_cmd = ' '.join(mafft_cmd)
 
+    # Must include subprocess.PIPE to get stdout and stderr
     mafft_cmd = subprocess.Popen(mafft_cmd,
-                                 shell=True,
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-    mafft_cmd.wait()
+                                 stderr=subprocess.PIPE,
+                                 shell=True)
+    stdout, stderr = mafft_cmd.communicate()
 
-    return os.path.exists(output_file)
+    outfile_exists = os.path.exists(output_file)
+
+    return [output_file, outfile_exists, stdout, stderr]

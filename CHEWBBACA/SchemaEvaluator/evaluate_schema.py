@@ -502,23 +502,27 @@ def locus_report(locus_file, locus_data, annotation_columns,
             mafft_outfile = os.path.basename(mafft_infile)
             mafft_outfile = mafft_outfile.replace('.fasta', '_aligned.fasta')
             mafft_outfile = fo.join_paths(output_directory, [mafft_outfile])
-            mafft_outfile_exists = mw.call_mafft(mafft_infile, mafft_outfile)
-            # Get MSA data
-            alignment_text = fo.read_file(mafft_outfile)
-            msa_data['sequences'] = alignment_text
+            # Run MAFFT to compute MSA
+            mafft_results = mw.call_mafft(mafft_infile, mafft_outfile)
+            if mafft_results[1] is True:
+                # Get MSA data
+                alignment_text = fo.read_file(mafft_outfile)
+                msa_data['sequences'] = alignment_text
 
-            # Get Tree data
-            # Get the phylocanvas data
-            tree_file = mafft_outfile.replace('_aligned.fasta', '.fasta.tree')
-            phylo_data = fo.read_file(tree_file)
+                # Get Tree data
+                # Get the phylocanvas data
+                tree_file = mafft_outfile.replace('_aligned.fasta', '.fasta.tree')
+                phylo_text = fo.read_file(tree_file)
 
-            # Start by substituting greatest value to avoid substituting
-            # smaller values contained in greater values
-            for i in range(locus_data[1], 0, -1):
-                phylo_data = phylo_data.replace(f'{i}_', '')
+                # Start by substituting greatest value to avoid substituting
+                # smaller values contained in greater values
+                for i in range(locus_data[1], 0, -1):
+                    phylo_text = phylo_text.replace(f'{i}_', '')
 
-            phylo_data = phylo_data.replace('\n', '')
-            phylo_data = {"phylo_data": phylo_data}
+                phylo_text = phylo_text.replace('\n', '')
+                phylo_data['phylo_data'] = phylo_text
+            else:
+                print(f'Could not compute MSA and phylogenetic tree for locus {locus}')
 
     locus_columns = ct.LOCUS_COLUMNS.format(minimum_length,
                                             locus_data[14],
@@ -772,50 +776,20 @@ def main(schema_directory, output_directory, genes_list, annotations,
 
     # Copy the JS bundle files to the respective directories
     # JS bundle used by schema report
-    script_path = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_path)
     # When chewBBACA is installed
-    try:
-        shutil.copy(fo.join_paths(script_path,
-                                  ['report_template_components',
-                                   'src',
-                                   'bundles',
-                                   'SchemaEvaluator',
-                                   'schema_report',
-                                   'report_bundle.js']),
-                    output_directory)
+    script_path = os.path.dirname(os.path.abspath(__file__))
     # For development
-    except Exception as e:
-        shutil.copy(fo.join_paths(parent_dir,
-                                  ['report_template_components',
-                                   'src',
-                                   'bundles',
-                                   'SchemaEvaluator',
-                                   'schema_report',
-                                   'report_bundle.js']),
-                    output_directory)
+    if script_path.endswith('CHEWBBACA') is False:
+        script_path = os.path.dirname(script_path)
+
+    shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_SCHEMA_BUNDLE]),
+                output_directory)
+
     if loci_reports is True:
-        # JS bundle used by loci reports
-        try:
-            shutil.copy(fo.join_paths(script_path,
-                                      ['report_template_components',
-                                       'src',
-                                       'bundles',
-                                       'SchemaEvaluator',
-                                       'loci_reports',
-                                       'report_bundle.js']),
-                        html_dir)
-        except Exception as e:
-            shutil.copy(fo.join_paths(parent_dir,
-                                      ['report_template_components',
-                                       'src',
-                                       'bundles',
-                                       'SchemaEvaluator',
-                                       'loci_reports',
-                                       'report_bundle.js']),
-                        html_dir)
+        shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_LOCI_BUNDLE]),
+                    html_dir)
 
     # Delete all temporary files
     fo.delete_directory(temp_directory)
 
-    print(f'\nResults available in {output_directory}.')
+    print(f'\nResults available in {os.path.abspath(output_directory)}.')

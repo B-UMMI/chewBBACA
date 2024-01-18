@@ -48,15 +48,17 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
         A list with the warnings and errors raised by BLAST.
     """
     # use '-parse-seqids' to be able to retrieve/align sequences by identifier
-    blastdb_cmd = [makeblastdb_path, '-in', input_fasta,
+    makedb_cmd = [makeblastdb_path, '-in', input_fasta,
                    '-out', output_path, '-parse_seqids',
                    '-dbtype', db_type]
 
-    makedb_cmd = subprocess.Popen(blastdb_cmd,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+    makedb_process = subprocess.Popen(makedb_cmd,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
 
-    stderr = makedb_cmd.stderr.readlines()
+    #stdout, stderr = makedb_process.communicate()
+
+    stderr = makedb_process.stderr.readlines()
 
     # ignore errors/warnings provided to `ignore`
     if len(stderr) > 0:

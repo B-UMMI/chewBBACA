@@ -13,6 +13,7 @@ Code documentation
 
 
 import sys
+import shutil
 import platform
 
 
@@ -124,12 +125,9 @@ prompt_timeout = 30
 BLAST_MAJOR = 2
 BLAST_MINOR = 9
 
-# BLASTp and makeblastdb aliases for Linux and Windows
-BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else 'blastp'
-MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else 'makeblastdb'
-
-# Prodigal alias (must be in PATH)
-PRODIGAL_PATH = 'prodigal'
+# Paths to BLASTp and makeblastdb executables in Linux and Windows
+BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else shutil.which('blastp')
+MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else shutil.which('makeblastdb')
 
 # BLAST warnings to be ignored
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
@@ -137,6 +135,9 @@ IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
                  '-seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
                  '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the '
                  'argument to -seqidlist']
+
+# Path to MAFFT executable
+MAFFT_ALIAS = shutil.which('mafft')
 
 # Replacements for genome and loci identifiers
 CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
@@ -305,6 +306,15 @@ ALLELECALL_REPORT_BASENAME = 'allelecall_report.html'
 # Basename for files created by ExtractCgMLST module
 PRESENCE_ABSENCE_BASENAME = 'presence_absence.tsv'
 MISSING_LOCI_BASENAME = 'missing_loci_stats.tsv'
+
+# Relative path to the JS bundles used by SchemaEvaluator
+# Main page
+SCHEMA_EVALUATOR_SCHEMA_BUNDLE = 'report_template_components/src/bundles/SchemaEvaluator/schema_report/report_bundle.js'
+# Loci pages
+SCHEMA_EVALUATOR_LOCI_BUNDLE = 'report_template_components/src/bundles/SchemaEvaluator/loci_reports/report_bundle.js'
+
+# Relative path to the JS bundle used by AlleleCallEvaluator
+ALLELECALL_EVALUATOR_BUNDLE = 'report_template_components/src/bundles/AlleleCallEvaluator/report_bundle.js'
 
 # Do not use list of strings as constants if the strings include formatting
 # placeholders. Multiple references to the list of strings will have the same

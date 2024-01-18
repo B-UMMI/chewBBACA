@@ -419,7 +419,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 
             protein_files = [r[1] for r in results]
 
-            # Align sequences with MAFFT
+            # Run MAFFT to compute MSA
             print('\nDetermining the MSA for each locus...')
             mafft_outdir = fo.join_paths(temp_directory, ['alignment_files'])
             fo.create_directory(mafft_outdir)
@@ -436,15 +436,23 @@ def main(input_files, schema_directory, output_directory, annotations,
                                                common_args,
                                                mw.call_mafft)
 
-            results = mo.map_async_parallelizer(inputs,
-                                                mo.function_helper,
-                                                cpu_cores,
-                                                show_progress=True)
+            mafft_results = mo.map_async_parallelizer(inputs,
+                                                      mo.function_helper,
+                                                      cpu_cores,
+                                                      show_progress=True)
+
+            # Identify cases where MAFFT failed
+            mafft_failed = [r[0] for r in mafft_results if r[1] is False]
+            if len(mafft_failed) > 0:
+                print(f'\nCould not determine MSA for {len(mafft_failed)} loci.')
+
+            # Get files that were created by MAFFT
+            mafft_successful = [r[0] for r in mafft_results if r[1] is True]
 
             print('\nCreating file with the full cgMLST alignment...', end='')
             # Concatenate all alignment files and index with BioPython
             concat_aln = fo.join_paths(mafft_outdir, ['cgMLST_concat.fasta'])
-            fo.concatenate_files(mafft_outfiles, concat_aln)
+            fo.concatenate_files(mafft_successful, concat_aln)
             # Index file
             concat_index = fao.index_fasta(concat_aln)
             sample_alignment_files = []
@@ -495,25 +503,15 @@ def main(input_files, schema_directory, output_directory, annotations,
     report_html_file = fo.join_paths(output_directory, [ct.ALLELECALL_REPORT_BASENAME])
     fo.write_to_file(report_html, report_html_file, 'w', '\n')
 
-    # Copy JS bundle to output directory
+    # Copy the JS bundle to the output directory
+    # When chewBBACA is installed
     script_path = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_path)
-    try:
-        fo.copy_file(fo.join_paths(script_path,
-                                   ['report_template_components',
-                                    'src',
-                                    'bundles',
-                                    'AlleleCallEvaluator',
-                                    'report_bundle.js']),
-                     output_directory)
-    except Exception as e:
-        fo.copy_file(fo.join_paths(parent_dir,
-                                   ['report_template_components',
-                                    'src',
-                                    'bundles',
-                                    'AlleleCallEvaluator',
-                                    'report_bundle.js']),
-                     output_directory)
+    # For development
+    if script_path.endswith('CHEWBBACA') is False:
+        script_path = os.path.dirname(script_path)
+
+    fo.copy_file(fo.join_paths(script_path, [ct.ALLELECALL_EVALUATOR_BUNDLE]),
+                 output_directory)
 
     # Delete all temporary files
     fo.delete_directory(temp_directory)

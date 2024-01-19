@@ -119,6 +119,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
+    from utils.parameters_validation import get_blast_version
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
@@ -128,6 +129,7 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
+    from utils.parameters_validation import get_blast_version
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
@@ -316,18 +318,18 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     indexed_dna_file = fao.index_fasta(distinct_file)
 
-    # determine small sequences step
+    # Identify small sequences
     print('\nRemoving sequences smaller than {0} '
           'nucleotides...'.format(minimum_length), end='')
     ss_results = cf.exclude_small(distinct_file, minimum_length)
     small_seqids, ss_lines = ss_results
     print('removed {0} sequences.'.format(len(small_seqids)))
 
-    # exclude seqids of small sequences
+    # Exclude seqids of small sequences
     schema_seqids = list(set(distinct_seqids) - set(small_seqids))
     schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
-    # sequence translation step
+    # Sequence translation
     cds_translation_dir = fo.join_paths(preprocess_dir, ['cds_translation'])
     fo.create_directory(cds_translation_dir)
     print('Translating {0} CDS...'.format(len(schema_seqids)))
@@ -337,7 +339,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     protein_file, ut_seqids, ut_lines = ts_results
     print('\nIdentified {0} CDS that could not be translated.'.format(len(ut_seqids)))
 
-    # write info about invalid alleles to file
+    # Write info about invalid alleles to file
     invalid_alleles_file = fo.join_paths(output_directory,
                                          ['invalid_cds.txt'])
     invalid_alleles = im.join_list(ut_lines+ss_lines, '\n')
@@ -345,8 +347,8 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nInfo about untranslatable and small sequences '
           'stored in {0}'.format(invalid_alleles_file))
 
-    # protein sequences deduplication step
-    # create directory to store files from protein deduplication
+    # Protein deduplication
+    # Create directory to store files during protein deduplication
     print('\nRemoving duplicated protein sequences...', end='')
     protein_dedup_dir = fo.join_paths(preprocess_dir,
                                       ['translated_cds_deduplication'])
@@ -366,11 +368,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nKept {0} sequences after filtering the initial '
           'sequences.'.format(len(distinct_protein_seqs)))
 
-    # protein clustering step
-    # read protein sequences
+    # Protein clustering
+    # Read protein sequences
     proteins = fao.import_sequences(distinct_prots_file)
 
-    # create directory to store clustering data
+    # Create directory to store clustering data
     clustering_dir = fo.join_paths(temp_directory, ['4_clustering'])
     fo.create_directory(clustering_dir)
 
@@ -383,7 +385,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('\nClustered {0} proteins into {1} clusters.'
           ''.format(len(proteins), len(cs_results)))
 
-    # exclude based on high similarity to cluster representatives
+    # Exclude based on high similarity to cluster representatives
     rep_filter_dir = fo.join_paths(clustering_dir, ['representative_filter'])
     fo.create_directory(rep_filter_dir)
     print('Removing sequences based on high similarity with the '
@@ -397,10 +399,10 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     print('Remaining sequences after representative and singleton '
           'pruning: {0}'.format(clustered_sequences))
 
-    # remove excluded seqids
+    # Remove excluded seqids
     schema_seqids = list(set(schema_seqids) - excluded_seqids)
 
-    # exclude based on high similarity to other clustered sequences
+    # Exclude based on high similarity to other clustered sequences
     intra_filter_dir = fo.join_paths(clustering_dir, ['intracluster_filter'])
     fo.create_directory(intra_filter_dir)
     print('Removing sequences based on high similarity with '
@@ -411,13 +413,19 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     clusters, intra_excluded = cip_results
     print('removed {0} sequences.'.format(len(intra_excluded)))
 
-    # remove excluded seqids - we get set of sequences from clusters
+    # Remove excluded seqids - we get set of sequences from clusters
     # plus singletons
     schema_seqids = list(set(schema_seqids) - set(intra_excluded))
 
-    # define BLASTp and makeblastdb paths
+    # Define BLASTp and makeblastdb paths
     blastp_path = fo.join_paths(blast_path, [ct.BLASTP_ALIAS])
     makeblastdb_path = fo.join_paths(blast_path, [ct.MAKEBLASTDB_ALIAS])
+    blast_version = get_blast_version(blast_path)
+    # Determine if it is necessary to run blastdb_aliastool to convert
+    # accession list to binary format based on BLAST version being >2.9
+    blastdb_aliastool_path = None
+    if blast_version['MINOR'] > ct.BLAST_MINOR:
+        blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
 
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
@@ -426,18 +434,19 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         print('Clusters to BLAST: {0}'.format(len(clusters)))
         blast_results, ids_dict = cf.blast_clusters(clusters, proteins,
                                                     blasting_dir, blastp_path,
-                                                    makeblastdb_path, cpu_cores)
+                                                    makeblastdb_path, cpu_cores,
+                                                    blastdb_aliastool_path)
 
         blast_files = im.flatten_list(blast_results)
 
-        # compute and exclude based on BSR
+        # Compute and exclude based on BSR
         blast_excluded_alleles = [sm.apply_bsr(fo.read_tabular(file),
                                                indexed_dna_file,
                                                blast_score_ratio,
                                                ids_dict)
                                   for file in blast_files]
 
-        # merge bsr results
+        # Merge BSR results
         blast_excluded_alleles = im.flatten_list(blast_excluded_alleles)
 
         blast_excluded_alleles = set([ids_dict[seqid] for seqid in blast_excluded_alleles])
@@ -445,15 +454,14 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         print('\n\nRemoved {0} sequences based on high BSR value with '
               'other sequences.'.format(len(blast_excluded_alleles)))
 
-        # write list of excluded to file
+        # Write list of excluded to file
         blast_excluded_outfile = fo.join_paths(blasting_dir, ['excluded.txt'])
         fo.write_lines(blast_excluded_alleles, blast_excluded_outfile)
 
-    # perform final BLAST to identify similar sequences that do not
-    # share many/any kmers
+    # Perform final BLAST to identify similar sequences that do not share many/any kmers
     print('Total of {0} sequences to compare in final BLAST.'.format(len(schema_seqids)))
 
-    # sort seqids before final BLASTp to ensure consistent results
+    # Sort seqids before final BLASTp to ensure consistent results
     schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
     # Create directory for final BLASTp
@@ -471,7 +479,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     # Create BLASTp database
     blast_db = fo.join_paths(final_blast_dir, ['remaining_sequences'])
-    db_stderr = bw.make_blast_db(makeblastdb_path, integer_seqids, blast_db, 'prot')
+    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
+                                            integer_seqids,
+                                            blast_db, 'prot')
 
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
@@ -495,12 +505,12 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                     for i, file in enumerate(splitted_fastas)]
 
     print('Performing final BLASTp...')
-    blast_stderr = mo.map_async_parallelizer(blast_inputs,
-                                             mo.function_helper,
-                                             cpu_cores,
-                                             show_progress=True)
+    blast_results = mo.map_async_parallelizer(blast_inputs,
+                                              mo.function_helper,
+                                              cpu_cores,
+                                              show_progress=True)
 
-    blast_stderr = im.flatten_list(blast_stderr)
+    blast_stderr = im.flatten_list([r[1] for r in blast_results])
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
 

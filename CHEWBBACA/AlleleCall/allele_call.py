@@ -29,6 +29,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
+    from utils.parameters_validation import get_blast_version
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
@@ -40,6 +41,7 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
+    from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
 def loci_mode_file(loci_files, output_file):
@@ -1797,7 +1799,8 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
 def select_representatives(representative_candidates, locus, fasta_file,
                            iteration, output_directory, blastp_path,
-                           blast_db, blast_score_ratio, threads):
+                           blast_db, blast_score_ratio, threads,
+                           blastdb_aliastool_path):
     """Select new representative alleles for a locus.
 
     Parameters
@@ -1836,14 +1839,20 @@ def select_representatives(representative_candidates, locus, fasta_file,
     ids_file = fo.join_paths(output_directory,
                              ['{0}_candidates_ids_{1}.fasta'.format(locus, iteration)])
     fo.write_lines(list(representative_candidates.keys()), ids_file)
+    if blastdb_aliastool_path is not None:
+        binary_file = f'{ids_file}.bin'
+        bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                 ids_file,
+                                 binary_file)
+        ids_file = binary_file
 
     # BLASTp to compare all candidates
     blast_output = fo.join_paths(output_directory,
                                  ['{0}_candidates_{1}_blastout.tsv'.format(locus, iteration)])
     # pass number of max targets per query to reduce execution time
-    blastp_stderr = bw.run_blast(blastp_path, blast_db, fasta_file,
-                                 blast_output, threads=threads,
-                                 ids_file=ids_file, max_targets=100)
+    blastp_stdout, blastp_stderr = bw.run_blast(blastp_path, blast_db, fasta_file,
+                                                blast_output, threads=threads,
+                                                ids_file=ids_file, max_targets=100)
 
     blast_results = fo.read_tabular(blast_output)
     # get self scores
@@ -2272,6 +2281,12 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     # Define BLASTp and makeblastdb paths
     blastp_path = fo.join_paths(config['BLAST path'], [ct.BLASTP_ALIAS])
     makeblastdb_path = fo.join_paths(config['BLAST path'], [ct.MAKEBLASTDB_ALIAS])
+    blast_version = get_blast_version(config['BLAST path'])
+    # Determine if it is necessary to run blastdb_aliastool to convert
+    # accession list to binary format based on BLAST version being >2.9
+    blastdb_aliastool_path = None
+    if blast_version['MINOR'] > ct.BLAST_MINOR:
+        blastdb_aliastool_path = fo.join_paths(config['BLAST path'], [ct.BLASTDB_ALIASTOOL_ALIAS])
 
     # Concatenate all schema representative
     concat_reps = fo.join_paths(reps_protein_dir, ['concat_reps.fasta'])
@@ -2298,7 +2313,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         self_scores = cf.determine_self_scores(concat_full_reps, self_score_dir,
                                                makeblastdb_path, blastp_path,
                                                'prot',
-                                               config['CPU cores'])
+                                               config['CPU cores'],
+                                               blastdb_aliastool_path)
         fo.pickle_dumper(self_scores, self_score_file)
         print('done.')
     else:
@@ -2352,6 +2368,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                     blasting_dir, blastp_path,
                                                     makeblastdb_path,
                                                     config['CPU cores'],
+                                                    blastdb_aliastool_path,
                                                     True)
 
         blast_files = im.flatten_list(blast_results)
@@ -2464,8 +2481,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     # Shorten ids to avoid BLASTp error?
     blast_db = fo.join_paths(iterative_rep_dir, ['blastdb'])
     # Will not work if file contains duplicated seqids
-    db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
-                                 blast_db, 'prot')
+    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
+                                            remaining_seqs_file,
+                                            blast_db,
+                                            'prot')
 
     # Get seqids of schema representatives
     reps_ids = [rec.id for rec in fao.sequence_generator(concat_reps)]
@@ -2487,6 +2506,13 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         # create text file with unclassified seqids
         remaining_seqids_file = fo.join_paths(iteration_directory, ['unclassified_seqids_{0}.txt'.format(iteration)])
         fo.write_lines(unclassified_ids, remaining_seqids_file)
+        if blastdb_aliastool_path is not None:
+            binary_file = f'{remaining_seqids_file}.bin'
+            bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                     remaining_seqids_file,
+                                     binary_file)
+            remaining_seqids_file = binary_file
+
         # BLAST representatives against remaining sequences
         # iterative process until the process does not detect new representatives
         print('Loci: {0}'.format(len(protein_target_repfiles)))
@@ -2514,7 +2540,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             blast_inputs.append([blastp_path, blast_db, file,
                                  outfile, 1, 1,
                                  remaining_seqids_file, 'blastp', 20,
-                                 ct.IGNORE_RAISED, None, bw.run_blast])
+                                 None, bw.run_blast])
 
         print('BLASTing loci representatives against unclassified proteins...', end='')
         # BLAST representatives against unclassified sequences
@@ -2632,7 +2658,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                     fao.get_sequences_by_id(prot_index, list(current_candidates.keys()), fasta_file)
                     representative_inputs.append([current_candidates, k, fasta_file,
                                                   iteration, blast_selection_dir, blastp_path,
-                                                  blast_db, config['BLAST Score Ratio'], 1,
+                                                  blast_db, config['BLAST Score Ratio'], 1, blastdb_aliastool_path,
                                                   select_representatives])
                 else:
                     representatives[k] = [(v[0][1], v[0][3])]
@@ -2685,7 +2711,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             fo.create_directory(candidates_blast_dir)
             new_self_scores = cf.determine_self_scores(concat_repy, candidates_blast_dir,
                                                        makeblastdb_path, blastp_path,
-                                                       'prot', config['CPU cores'])
+                                                       'prot', config['CPU cores'], blastdb_aliastool_path)
 
             self_scores = {**self_scores, **new_self_scores}
 

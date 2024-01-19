@@ -43,8 +43,6 @@ def call_mafft(input_file, output_file):
         MAFFT stdout.
     stderr : bytes
         MAFFT stderr.
-
-    True if the output file was created, False otherwise.
     """
     mafft_cmd = [ct.MAFFT_ALIAS, '--thread', '1', '--treeout', '--retree', '1',
                  '--maxiterate', '0', input_file, '>', output_file]

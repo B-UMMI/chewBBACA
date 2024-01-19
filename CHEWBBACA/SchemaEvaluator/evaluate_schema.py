@@ -354,12 +354,12 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
     validCDS = nr_alleles - invalidCDS
     validated_proportion = round(validCDS / nr_alleles, 3)
 
-    # determine sequences shorter than minimum length
+    # Determine sequences shorter than minimum length
     short_ids = [(allele_ids[i], v)
                  for i, v in enumerate(lengths)
                  if v < minimum_length]
 
-    # format exception strings for Exceptions Table Component in loci reports
+    # Format exception strings for Exceptions Table Component in loci reports
     formatted_exceptions = reformat_translation_exceptions(exceptions_lines,
                                                            allele_lengths)
 

@@ -42,7 +42,7 @@ def website_availability(url):
     Returns
     -------
     reponse : http.client.HTTPResponse or urllib.error.HTTPError
-        Responde with status code 200 if website is reachable
+        Response with status code 200 if website is reachable
         or a different status code if the website was not reachable.
     """
     try:
@@ -185,8 +185,8 @@ def get_data(sparql_query):
             UNIPROT_SERVER.setTimeout(60)
             result = UNIPROT_SERVER.query().convert()
             success = True
+        # Might fail if sequence is too long for GET method(URITooLong)
         except Exception as e:
-            # might fail if sequence is too long for GET method(URITooLong)
             failed.append(e)
             tries += 1
             time.sleep(1)

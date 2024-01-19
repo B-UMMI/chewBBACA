@@ -108,10 +108,6 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
            'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
            'local': 'http://127.0.0.1:5000/NS/api/'}
 
-# UniProt SPARQL endpoint
-UNIPROT_SPARQL = 'http://sparql.uniprot.org/sparql'
-MAX_QUERIES = 10
-
 # Authors, GitHub repository, documentation, tutorial and contacts
 authors = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
 repository = 'https://github.com/B-UMMI/chewBBACA'
@@ -128,8 +124,12 @@ BLAST_MINOR = 9
 # Paths to BLASTp and makeblastdb executables in Linux and Windows
 BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else shutil.which('blastp')
 MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else shutil.which('makeblastdb')
+BLASTDB_ALIASTOOL_ALIAS = 'blastdb_aliastool.exe' if platform.system() == 'Windows' else shutil.which('blastdb_aliastool')
 
 # BLAST warnings to be ignored
+# This warning is raised in BLAST>=2.10 when passing a TXT file with sequence identifiers to -seqidlist
+# To avoid this warning the TXT file must be converted to binary with the blastdb_aliastool
+# Performance can be severely affected if the TXT is not converted to binary
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
                  'performance, please run blastdb_aliastool '
                  '-seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
@@ -146,6 +146,11 @@ CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
 
 # Minimum Python version
 MIN_PYTHON = [(3, 6, 0), '3.6.0']
+
+# UniProt SPARQL endpoint
+UNIPROT_SPARQL = 'https://sparql.uniprot.org/sparql'
+UNIPROT_SPARQL_THREADS = 4
+MAX_QUERIES = 10
 
 # FTP to get UniProt's reference proteomes
 UNIPROT_PROTEOMES_FTP = ('https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/')
@@ -229,8 +234,6 @@ HASH_TABLE_MAXIMUM_ALLELES = 200000
 # File header for file with summary statistics created by PrepExternalSchema
 PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'
                                      'Number_representatives')
-
-UNIPROT_SPARQL_THREADS = 4
 
 # Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]

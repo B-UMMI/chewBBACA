@@ -22,6 +22,7 @@ Code documentation
 
 import os
 import sys
+from http.client import HTTPResponse
 
 try:
     from utils import (
@@ -141,14 +142,14 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         with information about loci retrieved from the most
         similar records in UniProt's reference proteomes.
     """
-    # get paths to files with representative sequences
+    # Get paths to files with representative sequences
     short_directory = fo.join_paths(schema_directory, ['short'])
     reps_paths = [fo.join_paths(short_directory, [file])
                   for file in os.listdir(short_directory)
                   if file.endswith('.fasta') is True]
 
     print('Translating representative sequences...')
-    # translate representatives for all loci
+    # Translate representatives for all loci
     translated_reps = fo.join_paths(temp_directory, ['translated_reps'])
     fo.create_directory(translated_reps)
 
@@ -200,19 +201,27 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         print('\nDetermining self-score of representatives...', end='')
         blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
         makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+        blast_version = pv.get_blast_version(blast_path)
+        # Determine if it is necessary to run blastdb_aliastool to convert
+        # accession list to binary format based on BLAST version being >2.9
+        blastdb_aliastool_path = None
+        if blast_version['MINOR'] > ct.BLAST_MINOR:
+            blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+
         self_scores = cf.determine_self_scores(reps_concat, temp_directory,
-            makeblastdb_path, blastp_path, 'prot', cpu_cores)
+            makeblastdb_path, blastp_path, 'prot', cpu_cores, blastdb_aliastool_path)
         print('done.')
 
         # create BLASTdb with proteome sequences
         proteome_blastdb = fo.join_paths(proteomes_directory,
                                          ['proteomes_db'])
-        stderr = bw.make_blast_db('makeblastdb', proteomes_concat,
-                                  proteome_blastdb, 'prot')
+        db_stdout, db_stderr = bw.make_blast_db('makeblastdb',
+                                                proteomes_concat,
+                                                proteome_blastdb, 'prot')
 
         # BLASTp to determine annotations
-        blast_inputs = [['blastp', proteome_blastdb, file, file+'_blastout.tsv',
-                         1, 1, None, None, proteome_matches, None, None, bw.run_blast]
+        blast_inputs = [[blastp_path, proteome_blastdb, file, file+'_blastout.tsv',
+                         1, 1, None, None, proteome_matches, None, bw.run_blast]
                         for file in reps_protein_files]
 
         print('\nBLASTing representatives against proteomes...')
@@ -363,14 +372,15 @@ def main(schema_directory, output_directory, genes_list, protein_table,
         print('No taxa names provided. Will not annotate based on '
               'UniProt\'s reference proteomes.')
 
-    failed = {}
-    sparql_results = {}
+    sparql_annotated = {}
+    sparql_failed = {}
     if no_sparql is False:
-        # check if SPARQL endpoint is up
+        # Check if SPARQL endpoint is up
         available = ur.website_availability(ct.UNIPROT_SPARQL)
-        if available.code != 200:
-            print('Cannot retrieve annotations from UniProt\'s SPARQL endpoint.')
-            print(str(available))
+        if type(available) != HTTPResponse or available.code != 200:
+            print(f'Could not connect to {ct.UNIPROT_SPARQL}')
+            print(available)
+            print('Cannot retrieve annotations through UniProt\'s SPARQL endpoint.')
         else:
             # Search for annotations through the SPARQL endpoint
             print('\nQuerying UniProt\'s SPARQL endpoint...')
@@ -381,22 +391,26 @@ def main(schema_directory, output_directory, genes_list, protein_table,
             else:
                 translation_table = 11
 
-            # get annotations through UniProt SPARQL endpoint
+            # Get annotations through UniProt SPARQL endpoint
             results = sparql_annotations(loci_paths, translation_table)
+            for i, r in enumerate(results):
+                if fo.file_basename(r[0], False) in loci_basenames:
+                    if r[1] != '' or r[2] != '':
+                        sparql_annotated[loci_basenames[i]] = r[1:3]
+                    else:
+                        if len(r[-1]) > 0:
+                            messages = list(set([exc.msg for exc in r[-1]]))
+                            sparql_failed[loci_basenames[i]] = '\n'.join(messages)
+                else:
+                    sparql_failed[loci_basenames[i]] = r[1]
 
-            sparql_results = {fo.file_basename(r[0], False): r[1:-1]
-                              for r in results}
-            found = sum([1 for k, v in sparql_results.items() if set(v) != {''}])
-            print('\nFound annotations for {0}/{1} loci.'.format(found, len(loci_paths)))
-
-            failed = {fo.file_basename(r[0], False): r[-1]
-                      for r in results if len(r[-1]) > 0}
+            print('\nFound annotations for {0}/{1} loci.'.format(len(sparql_annotated), len(loci_paths)))
     else:
         print('\nProvided "--no-sparql" argument. Skipped step to '
               'search for annotations through UniProt\'s SPARQL '
               'endpoint.')
 
-    if len(proteome_results) == 0 and len(sparql_results) == 0:
+    if len(proteome_results) == 0 and len(sparql_annotated) == 0:
         exists = fo.delete_directory(output_directory)
         sys.exit('Could not retrieve annotations for any loci.')
     else:
@@ -407,8 +421,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
             table_lines = fo.read_tabular(protein_table)
             header += table_lines[0]
             for l in table_lines[1:]:
-                # create locus identifier based on genome identifier and
-                # cds identifier in file
+                # Create locus ID based on genome ID and CDS ID in file
                 locus_id = l[0].replace('_', '-')
                 locus_id = locus_id + '-protein{0}'.format(l[-2])
                 loci_info[locus_id] = l
@@ -428,7 +441,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
                 annotations[locus] += loci_info.get(locus, ['']*6)
 
             if no_sparql is False:
-                annotations[locus] += sparql_results.get(locus, ['']*2)
+                annotations[locus] += sparql_annotated.get(locus, ['']*2)
 
             if taxa is not None:
                 annotations[locus].append(proteome_results.get(locus, [['']*5]))
@@ -436,19 +449,15 @@ def main(schema_directory, output_directory, genes_list, protein_table,
         output_file = create_annotations_table(annotations, output_directory,
                                                header, schema_basename)
 
-        print('\nThe table with new information can be found at:'
-              '\n{0}'.format(output_file))
+        print(f'\nOutput file with loci annotations available at {output_file}')
 
-        # write file with information about cases that failed
-        if len(failed) > 0:
-            failed_lines = []
-            for locus, messages in failed.items():
-                distinct_messages = list(set([m.msg for m in messages]))
-                locus_message = '{0}:\n{1}'.format(locus, '\n'.join(distinct_messages))
-                failed_lines.append(locus_message)
+        # Write file with information about cases that failed
+        if len(sparql_failed) > 0:
+            failed_lines = [f'Locus: {k}\n{str(v)}' for k, v in sparql_failed.items()]
             failed_outfile = fo.join_paths(output_directory, ['failed.txt'])
             failed_text = '\n'.join(failed_lines)
             fo.write_to_file(failed_text, failed_outfile, 'w', '\n')
+            print(f'Output file with information about exceptions available at {failed_outfile}')
 
         if no_cleanup is False:
             exists = fo.delete_directory(temp_directory)

@@ -22,8 +22,7 @@ except ModuleNotFoundError:
                                  iterables_manipulation as im)
 
 
-def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
-                  ignore=None):
+def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
     """Create a BLAST database.
 
     Parameters
@@ -39,34 +38,26 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type,
         the `input_fasta`.
     db_type : str
         Type of the database, nucleotide (nuc) or protein (prot).
-    ignore : list or NoneType
-        List with BLAST warnings that should be ignored.
 
     Returns
     -------
-    stderr : list
-        A list with the warnings and errors raised by BLAST.
+    stdout : bytes
+        BLAST stdout.
+    stderr : bytes or str
+        BLAST stderr.
     """
     # use '-parse-seqids' to be able to retrieve/align sequences by identifier
     makedb_cmd = [makeblastdb_path, '-in', input_fasta,
-                   '-out', output_path, '-parse_seqids',
-                   '-dbtype', db_type]
+                  '-out', output_path, '-parse_seqids',
+                  '-dbtype', db_type]
 
     makedb_process = subprocess.Popen(makedb_cmd,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
 
-    #stdout, stderr = makedb_process.communicate()
+    stdout, stderr = makedb_process.communicate()
 
-    stderr = makedb_process.stderr.readlines()
-
-    # ignore errors/warnings provided to `ignore`
-    if len(stderr) > 0:
-        stderr = im.decode_str(stderr, 'utf8')
-        if ignore is not None:
-            stderr = im.filter_list(stderr, ignore)
-
-    return stderr
+    return [stdout, stderr]
 
 
 def determine_blast_task(sequences, blast_type='blastp'):
@@ -110,7 +101,7 @@ def determine_blast_task(sequences, blast_type='blastp'):
 
 def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_hsps=1, threads=1, ids_file=None, blast_task=None,
-              max_targets=None, ignore=None, composition_stats=None):
+              max_targets=None, composition_stats=None):
     """Execute BLAST to align sequences against a BLAST database.
 
     Parameters
@@ -140,45 +131,54 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
     max_targets : int
         Maximum number of target/subject sequences to align
         against.
-    ignore : list or None
-        List with BLAST warnings that should be ignored.
     composition_stats : int
         Specify the composition-based statistics method used
         by BLAST.
 
     Returns
     -------
-    stderr : list
-        A list with the warnings and errors raised by BLAST.
+    stdout : bytes
+        BLAST stdout.
+    stderr : bytes or str
+        BLAST stderr.
     """
-    # do not retrieve hits with high probability of occuring by chance
+    # Do not retrieve hits with high probability of occuring by chance
     blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
                   '-out', blast_output, '-outfmt', ct.BLAST_DEFAULT_OUTFMT,
                   '-max_hsps', str(max_hsps), '-num_threads', str(threads),
                   '-evalue', '0.001']
 
-    # add file with list of sequence identifiers to align against
+    # Add file with list of sequence identifiers to align against
     if ids_file is not None:
         blast_args.extend(['-seqidlist', ids_file])
-    # add type of BLASTp or BLASTn task
+    # Add type of BLASTp or BLASTn task
     if blast_task is not None:
         blast_args.extend(['-task', blast_task])
-    # add maximum number of target sequences to align against
+    # Add maximum number of target sequences to align against
     if max_targets is not None:
         blast_args.extend(['-max_target_seqs', str(max_targets)])
     if composition_stats is not None:
         blast_args.extend(['-comp_based_stats', str(composition_stats)])
 
-    blast_proc = subprocess.Popen(blast_args,
+    blast_process = subprocess.Popen(blast_args,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
 
-    stderr = blast_proc.stderr.readlines()
+    stdout, stderr = blast_process.communicate()
 
-    # ignore errors/warnings provided to `ignore`
-    if len(stderr) > 0:
-        stderr = im.decode_str(stderr, 'utf8')
-        if ignore is not None:
-            stderr = im.filter_list(stderr, ignore)
+    return [stdout, stderr]
 
-    return stderr
+
+def run_blastdb_aliastool(blastdb_aliastool_path, seqid_infile, seqid_outfile):
+    """
+    """
+    blastdb_aliastool_args = [blastdb_aliastool_path, '-seqid_file_in',
+                              seqid_infile, '-seqid_file_out', seqid_outfile]
+
+    blastdb_aliastool_process = subprocess.Popen(blastdb_aliastool_args,
+                                                 stdout=subprocess.PIPE,
+                                                 stderr=subprocess.PIPE)
+
+    stdout, stderr = blastdb_aliastool_process.communicate()
+
+    return [stdout, stderr]

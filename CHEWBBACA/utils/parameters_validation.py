@@ -575,28 +575,74 @@ def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-def which(program):
-    """Determine if a program is in PATH.
+def get_blast_path(blast_path):
+    """Determines if BLAST is in PATH.
 
     Parameters
     ----------
-    program : str
-        The name used to call the program.
+    blast_path : str or NoneType
+        Path to the directory with the BLAST executables or
+        NoneType if user did not provide a value.
 
     Returns
     -------
-    program_path : str
-        Program path added to PATH.
+    blast_path : str or NoneType
+        Validated path to the directory that contains the BLAST
+        executables or NoneType if it was not possible to validate
+        the provided path or if the BLAST executables are not in PATH.
     """
-    proc = subprocess.Popen(['which', program],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+    # Search for BLAST in PATH
+    if not blast_path:
+        blastp_path = shutil.which(ct.BLASTP_ALIAS)
+        if blastp_path is not None:
+            blast_path = os.path.dirname(blastp_path)
+        else:
+            blast_path = None
+    # Validate user-provided path
+    else:
+        blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
+        executable = is_exe(blastp_path)
+        if executable is False:
+            blast_path = None
 
-    stdout, stderr = proc.communicate()
+    return blast_path
 
-    program_path = stdout.decode('utf8').strip()
 
-    return program_path
+def get_blast_version(blast_path):
+    """Determines BLAST version.
+
+    Parameters
+    ----------
+    blast_path : str
+        Path to the directory that contains the BLAST executables.
+
+    Returns
+    -------
+    version : dict or NoneType
+        Dictionary with the BLAST MAJOR and MINOR versions or
+        NoneType if it was not possible to determine the BLAST
+        version.
+    """
+    blastp_path = fo.join_paths(blast_path, [ct.BLASTP_ALIAS])
+    # Check BLAST version
+    try:
+        proc = subprocess.Popen([blastp_path, '-version'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        version_string = stdout.decode('utf8')
+        version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
+        blast_version_pat = re.compile(version_pattern)
+
+        match = blast_version_pat.search(version_string)
+        if match is not None:
+            version = {k: int(v) for k, v in match.groupdict().items()}
+        else:
+            version = None
+    except:
+        version = None
+
+    return version
 
 
 def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
@@ -627,42 +673,17 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
         - If it is not possible to determine the BLAST
         version or if it does not match minimum requirements.
     """
-    # search for BLAST in PATH
-    if not blast_path:
-        blastp_path = which(ct.BLASTP_ALIAS)
-        if not blastp_path:
-            sys.exit('Could not find BLAST executables in PATH.')
-        else:
-            blast_path = os.path.dirname(blastp_path)
-    # validate user-provided path
-    else:
-        blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-        executable = is_exe(blastp_path)
-        if executable is False:
-            sys.exit('Provided path does not contain BLAST executables.')
+    # Validate BLAST path
+    blast_path = get_blast_path(blast_path)
+    if blast_path is None:
+        sys.exit('Could not find BLAST executables.')
 
-    # check BLAST version
-    try:
-        proc = subprocess.Popen([blastp_path, '-version'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-    except:
-        sys.exit('Could not determine BLAST version.\n'
-                 'Please verify that BLAST is installed and added to PATH.')
-
-    stdout, stderr = proc.communicate()
-
-    version_string = stdout.decode('utf8')
-    version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
-    blast_version_pat = re.compile(version_pattern)
-
-    match = blast_version_pat.search(version_string)
-    if match is None:
-        sys.exit('Could not determine BLAST version.')
-
-    version = {k: int(v) for k, v in match.groupdict().items()}
-    if version['MAJOR'] < major or (version['MAJOR'] >= major and version['MINOR'] < minor):
-        sys.exit('Please update BLAST to version >= {0}.{1}.0'.format(major, minor))
+    blast_version = get_blast_version(blast_path)
+    if blast_version is None:
+        sys.exit('Could not determine BLAST version. Please make '
+                 f'sure that BLAST>={major}.{minor}.0 is installed.')
+    if blast_version['MAJOR'] < major or (blast_version['MAJOR'] >= major and blast_version['MINOR'] < minor):
+        sys.exit(f'Please update BLAST to version >={major}.{minor}.0')
 
     return blast_path
 

@@ -429,7 +429,7 @@ def representative_pruner(clusters, sim_cutoff):
 
 
 def cluster_blaster(seqids, sequences, output_directory,
-                    blast_path, blastdb_path, only_rep=False):
+                    blast_path, blastdb_path, blastdb_aliastool_path, only_rep=False):
     """Align sequences in the same cluster with BLAST.
 
     Parameters
@@ -478,10 +478,17 @@ def cluster_blaster(seqids, sequences, output_directory,
         blast_output = os.path.join(output_directory,
                                     '{0}_blast_out.tsv'.format(cluster_id))
 
+        if blastdb_aliastool_path is not None:
+            binary_file = f'{ids_file}.bin'
+            bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                     ids_file,
+                                     binary_file)
+            ids_file = binary_file
+
         # Use subprocess to capture errors and warnings
-        stderr = bw.run_blast(blast_path, blastdb_path, fasta_file,
-                              blast_output, 1, 1,
-                              ids_file, ignore=ct.IGNORE_RAISED)
+        stdout, stderr = bw.run_blast(blast_path, blastdb_path, fasta_file,
+                                      blast_output, 1, 1,
+                                      ids_file)
 
         if len(stderr) > 0:
             raise ValueError('\n'.join(stderr))
@@ -523,7 +530,6 @@ def blast_seqids(clusters, output_directory, ids_dict, only_rep):
 
     ids_to_blast = []
     for rep in clusters:
-
         cluster_file = os.path.join(output_directory,
                                     '{0}_ids.txt'.format(rev_ids[rep]))
         if only_rep is False:

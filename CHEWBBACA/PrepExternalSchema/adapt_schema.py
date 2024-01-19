@@ -27,6 +27,7 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
+    from utils.parameters_validation import get_blast_version
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
@@ -35,6 +36,7 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
+    from utils.parameters_validation import get_blast_version
 
 
 def bsr_categorizer(blast_results, representatives,
@@ -99,7 +101,7 @@ def bsr_categorizer(blast_results, representatives,
         if bsr_values[ind] >= min_bsr and bsr_values[ind] < max_bsr:
             hot_reps.setdefault(res[0], []).append(res[4])
 
-    # determine representatives that only led to low BSR
+    # Identify representatives that only led to low BSR
     low_reps = list(set(low_reps) - set(high_reps))
 
     return [high_bsr, low_bsr, hotspot_bsr, high_reps, low_reps, hot_reps]
@@ -130,43 +132,36 @@ def select_candidate(candidates, proteins, seqids,
         The set of all representatives, including the new
         representative that was chosen by the function.
     """
-    # with more than one sequence as candidate, select longest
+    # With more than one sequence as candidate, select longest
     if len(candidates) > 1:
-
-        # determine length of all candidates
+        # Determine length of all candidates
         candidates_len = [(seqid, len(proteins[seqid]))
                           for seqid in candidates]
 
-        # order representative candidates by length descending order
+        # Order representative candidates by length descending order
         candidates_len = sorted(candidates_len, key=lambda x: x[1],
                                 reverse=True)
 
-        # longest allele is the new representative
+        # Longest allele is the new representative
         representatives.append(candidates_len[0][0])
         final_representatives.append(candidates_len[0][0])
-
-    # if there is only one candidate, keep that
+    # If there is only one candidate, keep that
     elif len(candidates) == 1:
-
         representatives.append(candidates[0])
         final_representatives.append(candidates[0])
-
-    # if no hit qualifies and there are still sequences
+    # If no hit qualifies and there are still sequences
     # without representative
     elif len(candidates) == 0 and \
             len(seqids) > len(representatives):
-
-        # determine length of remaining sequences
+        # Determine length of remaining sequences
         # (representatives not included)
         candidates_len = [(seqid, len(proteins[seqid]))
                           for seqid in seqids
                           if seqid not in representatives]
-
-        # sort by descending length
+        # Sort by descending length
         candidates_len = sorted(candidates_len, key=lambda x: x[1],
                                 reverse=True)
-
-        # longest of remaining sequences is new representative
+        # Longest of remaining sequences is new representative
         representatives.append(candidates_len[0][0])
         final_representatives.append(candidates_len[0][0])
 
@@ -174,7 +169,8 @@ def select_candidate(candidates, proteins, seqids,
 
 
 def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
-               table_id, size_threshold, blastp_path, makeblastdb_path):
+               table_id, size_threshold, blastp_path, makeblastdb_path,
+               blastdb_aliastool_path):
     """Adapts a set of loci from an external schema.
 
     Adapts an external schema for usage with chewBBACA. Removes invalid
@@ -267,7 +263,9 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 
             # create blastdb with all distinct proteins
             blastp_db = os.path.join(locus_temp_dir, locus_id)
-            bw.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
+            db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
+                                                    protein_file,
+                                                    blastp_db, 'prot')
 
             # determine appropriate blastp task (proteins < 30aa need blastp-short)
             blastp_task = bw.determine_blast_task(equal_prots)
@@ -287,16 +285,21 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
                 ids_file = fo.join_paths(locus_temp_dir,
                                          [f'{locus_id}_ids.txt'])
                 fo.write_to_file(ids_str, ids_file, 'w', '')
+                if blastdb_aliastool_path is not None:
+                    binary_file = f'{ids_file}.bin'
+                    bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                            ids_file,
+                                            binary_file)
+                    ids_file = binary_file
 
                 # BLAST representatives against non-represented
                 blast_output = fo.join_paths(locus_temp_dir,
                                              [f'{locus_id}_blast_out.tsv'])
                 # Set 'max_target_seqs' to huge number because BLAST only
                 # returns 500 hits by default
-                blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
-                                            blast_output, 1, 1, ids_file,
-                                            blastp_task, 100000,
-                                            ignore=ct.IGNORE_RAISED)
+                blast_stdout, blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
+                                                          blast_output, 1, 1, ids_file,
+                                                          blastp_task, 100000)
                 if len(blast_stderr) > 0:
                     raise ValueError(blast_stderr)
 
@@ -413,13 +416,19 @@ def main(input_files, output_directories, cpu_cores, blast_score_ratio,
     even_loci_groups = mo.distribute_loci(loci_info, 100, 'seqcount')
     # with few inputs, some sublists might be empty
     even_loci_groups = [i for i in even_loci_groups if len(i) > 0]
-    # add common arguments
+    # Add common arguments
     blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
     makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+    blast_version = get_blast_version(blast_path)
+    # Determine if it is necessary to run blastdb_aliastool to convert
+    # accession list to binary format based on BLAST version being >2.9
+    blastdb_aliastool_path = None
+    if blast_version['MINOR'] > ct.BLAST_MINOR:
+        blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
     even_loci_groups = [[i, schema_path, schema_short_path,
                          blast_score_ratio, minimum_length,
                          translation_table, size_threshold,
-                         blastp_path, makeblastdb_path,
+                         blastp_path, makeblastdb_path, blastdb_aliastool_path,
                          adapt_loci] for i in even_loci_groups]
 
     print('Adapting {0} loci...\n'.format(len(genes_list)))

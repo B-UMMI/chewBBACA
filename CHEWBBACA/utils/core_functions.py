@@ -593,7 +593,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
 
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
-                   only_rep=False):
+                   blastdb_aliastool_path, only_rep=False):
     """Use BLAST to align sequences in the same clusters.
 
     Parameters
@@ -617,6 +617,10 @@ def blast_clusters(clusters, sequences, output_directory,
         Path to the `makeblastdb` executable.
     cpu_cores : int
         Number of BLASTp processes to run in parallel.
+    blastdb_aliastool_path : str or NoneType
+        Path to the blastalias_tool executable if it is necessary to
+        convert seqid files to binary format, NoneType otherwise
+    only_rep
 
     Returns
     -------
@@ -651,8 +655,9 @@ def blast_clusters(clusters, sequences, output_directory,
     # create BLAST DB
     blast_db = fo.join_paths(output_directory,
                              ['clustered_sequences'])
-    db_stderr = bw.make_blast_db(makeblastdb_path, integer_clusters,
-                                 blast_db, 'prot')
+    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
+                                            integer_clusters,
+                                            blast_db, 'prot')
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
@@ -660,7 +665,7 @@ def blast_clusters(clusters, sequences, output_directory,
                                      'BLAST_results')
     fo.create_directory(blast_results_dir)
 
-    # create files with replaced sequence identifiers per cluster
+    # Create files with replaced sequence identifiers per cluster
     seqids_to_blast = sc.blast_seqids(clusters, blast_results_dir, ids_dict,
                                       only_rep)
 
@@ -669,7 +674,7 @@ def blast_clusters(clusters, sequences, output_directory,
     splitted_seqids = mo.distribute_loci(seqids_to_blast, process_num, 'seqcount')
 
     common_args = [integer_clusters, blast_results_dir, blastp_path,
-                   blast_db, only_rep, sc.cluster_blaster]
+                   blast_db, blastdb_aliastool_path, only_rep, sc.cluster_blaster]
 
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
@@ -704,7 +709,7 @@ def compute_bsr(subject_score, query_score):
 
 
 def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
-                          blast_path, db_type, blast_threads):
+                          blast_path, db_type, blast_threads, blastdb_aliastool_path):
     """Compute the self-alignment raw score for sequences in a FASTA file.
 
     Parameters
@@ -722,6 +727,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         protein (prot).
     blast_threads : int
         Number of threads/cores used to run BLAST.
+    blastdb_aliastool_path : str or NoneType
+        Path to the blastalias_tool executable if it is necessary to
+        convert seqid files to binary format, NoneType otherwise
 
     Returns
     -------
@@ -738,11 +746,12 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 
     blast_db = fo.join_paths(output_directory,
                              [fo.file_basename(integer_fasta, False)])
-    # will not work if file contains duplicates
-    db_stderr = bw.make_blast_db(makeblastdb_path, integer_fasta,
-                                 blast_db, db_type)
+    # Will not work if file contains duplicates
+    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
+                                            integer_fasta,
+                                            blast_db, db_type)
 
-    # split Fasta file to BLAST short sequences (<30aa) separately
+    # Split Fasta file to BLAST short sequences (<30aa) separately
     # only possible to have alleles <30aa with non-default schemas
     above_outfile, below_outfile = fao.split_seqlength(integer_fasta,
                                                        output_directory,
@@ -753,50 +762,67 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         # execution time for large sequence sets
         split_fastas = fao.split_seqcount(above_outfile[0], output_directory, 100)
 
-        # create TXT with list of sequence identifiers
+        # Create TXT with list of sequence identifiers
         seqids_files = []
         for f in split_fastas:
             seqids = list(f[1])
             seqids_file = fo.join_paths(output_directory, [fo.file_basename(f[0], False)])
             fo.write_lines(seqids, seqids_file)
             seqids_files.append(seqids_file)
-    # this should not happen or be very rare, but just in case
+
+        if blastdb_aliastool_path is not None:
+            binary_seqid_files = []
+            for file in seqids_files:
+                binary_file = f'{file}.bin'
+                bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                         file,
+                                         binary_file)
+                binary_seqid_files.append(binary_file)
+            seqids_files = binary_seqid_files
+    # This should not happen or be very rare, but just in case
     else:
         split_fastas = []
 
-    # create directory to store results from final BLASTp
+    # Create directory to store results from final BLASTp
     final_blastp_dir = fo.join_paths(output_directory, ['BLAST_results'])
     fo.create_directory(final_blastp_dir)
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
                                                     fo.file_basename(file[0], False))
                      for file in split_fastas]
 
-    # add common arguments to all sublists
+    # Add common arguments to all sublists
     blast_inputs = [[blast_path, blast_db, file[0],
                      blast_outputs[i], 1, 1,
                      seqids_files[i], 'blastp', None,
-                     ct.IGNORE_RAISED, None, bw.run_blast]
+                     None, bw.run_blast]
                     for i, file in enumerate(split_fastas)]
 
-    # add file with short sequences
+    # Add file with short sequences
     if below_outfile is not None:
         seqids = list(below_outfile[1])
         seqids_file = fo.join_paths(output_directory, [fo.file_basename(below_outfile[0], False)])
         fo.write_lines(seqids, seqids_file)
+        if blastdb_aliastool_path is not None:
+            binary_file = f'{seqids_file}.bin'
+            bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                     seqids_file,
+                                     binary_file)
+            seqids_file = binary_file
+
         below_blastout = '{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
                                                         fo.file_basename(below_outfile[0], False))
         blast_outputs.append(below_blastout)
         blast_inputs.append([blast_path, blast_db, below_outfile[0],
                              below_blastout, 1, 1,
                              seqids_file, 'blastp-short', None,
-                             ct.IGNORE_RAISED, None, bw.run_blast])
+                             None, bw.run_blast])
 
-    blast_stderr = mo.map_async_parallelizer(blast_inputs,
-                                             mo.function_helper,
-                                             blast_threads,
-                                             show_progress=False)
+    blast_results = mo.map_async_parallelizer(blast_inputs,
+                                              mo.function_helper,
+                                              blast_threads,
+                                              show_progress=False)
 
-    blast_stderr = im.flatten_list(blast_stderr)
+    blast_stderr = im.flatten_list([r[1] for r in blast_results])
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
 
@@ -815,7 +841,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         dna_length = (int(line[3])*3)+3
         self_scores[ids_map[line[0]]] = (dna_length, float(line[6]))
 
-    # determine if we got the score for all representatives
+    # Determine if we got the score for all representatives
     if len(self_scores) < len(ids_map):
         missing = [seqid
                    for seqid in ids_map
@@ -831,12 +857,18 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
             # save file with ids
             id_file = fo.join_paths(output_directory, [f'{current_rep.id}_ids.txt'])
             fo.write_lines([current_rep.id], id_file)
+            if blastdb_aliastool_path is not None:
+                binary_file = f'{id_file}.bin'
+                bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                         id_file,
+                                         binary_file)
+                id_file = binary_file
+
             rep_blastout = fo.join_paths(output_directory, [f'{current_rep.id}_blastout.tsv'])
             # disable composition-based stats
-            bw.run_blast(blast_path, blast_db, rep_file,
-                         rep_blastout, 1, 1,
-                         id_file, 'blastp', None,
-                         ct.IGNORE_RAISED, 0)
+            blast_stdout, blast_stderr = bw.run_blast(blast_path, blast_db, rep_file,
+                                                      rep_blastout, 1, 1,
+                                                      id_file, 'blastp', None, 0)
             rep_results = fo.read_tabular(rep_blastout)
             if len(rep_results) > 0:
                 dna_length = (int(rep_results[0][3])*3)+3

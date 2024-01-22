@@ -33,7 +33,7 @@ setup(
   include_package_data = True,
   entry_points={'console_scripts': ["chewBBACA.py = CHEWBBACA.chewBBACA:main",
                                     "chewie = CHEWBBACA.chewBBACA:main"]
-                }
+                },
   project_urls={
     'Documentation': 'https://chewbbaca.readthedocs.io/en/latest/index.html',
     'Source': 'https://github.com/B-UMMI/chewBBACA',

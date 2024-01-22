@@ -129,7 +129,7 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
-    from utils.parameters_validation import get_blast_version
+    from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):

@@ -4,8 +4,11 @@ import CHEWBBACA
 
 VERSION = CHEWBBACA.__version__
 
-packages = find_namespace_packages()
-exclude_package_data = {"CHEWBBACA": ["tests"]}
+packages = find_namespace_packages(
+  exclude=[
+    "CHEWBBACA.tests*"
+  ]
+)
 
 install_requires = (
   'numpy~=1.24.3',
@@ -21,7 +24,6 @@ install_requires = (
 setup(
   name = 'chewBBACA',
   packages=packages,
-  exclude_package_data=exclude_package_data,
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification.',
   author = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez',

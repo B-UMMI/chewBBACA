@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chewBBACA"
+version = "3.3.2"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy~=1.24.3",
+    "scipy~=1.10.1",
+    "biopython>=1.79",
+    "plotly>=5.8.0",
+    "SPARQLWrapper>=2.0.0",
+    "pandas>=1.5.1,<2.1",
+    "requests>=2.27.1",
+    "pyrodigal>=3.0.0"
+]
+authors = [
+    {name = "Rafael Mamede"},
+    {name = "Pedro Cerqueira"},
+    {name = "Mickael Silva"},
+    {name = "João Carriço"},
+    {name = "Mário Ramirez"}
+]
+maintainers = [
+  {name = "UMMI", email = "imm-bioinfo@medicina.ulisboa.pt"}
+]
+description = "A complete suite for gene-by-gene schema creation and strain identification."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = [
+    "bioinformatics",
+    "genomics",
+    "mlst",
+    "bacteria",
+    "cgmlst",
+    "wgmlst",
+    "outbreak detection",
+    "allele calling",
+    "bacterial typing",
+    "bacterial genome analysis"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.scripts]
+"chewBBACA.py" = "CHEWBBACA.chewBBACA:main"
+"chewie" = "CHEWBBACA.chewBBACA:main"
+
+[project.urls]
+Repository = "https://github.com/B-UMMI/chewBBACA"
+Documentation = "https://chewbbaca.readthedocs.io/en/latest/index.html"
+Changelog = "https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md"

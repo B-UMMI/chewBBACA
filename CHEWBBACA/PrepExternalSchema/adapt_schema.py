@@ -36,7 +36,7 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
-    from utils.parameters_validation import get_blast_version
+    from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
 def bsr_categorizer(blast_results, representatives,

@@ -1,15 +1,18 @@
-from setuptools import setup
+from setuptools import setup, find_namespace_packages
 
 import CHEWBBACA
 
 VERSION = CHEWBBACA.__version__
 
+packages = find_namespace_packages(include=['CHEWBBACA'])
+
 setup(
   name = 'chewBBACA',
-  packages = ['CHEWBBACA', 'CHEWBBACA.AlleleCall', 'CHEWBBACA.CreateSchema',
-              'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
-              'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder', 'CHEWBBACA.ExtractCgMLST',
-              'CHEWBBACA.AlleleCallEvaluator'],
+  # packages = ['CHEWBBACA', 'CHEWBBACA.AlleleCall', 'CHEWBBACA.CreateSchema',
+  #             'CHEWBBACA.utils', 'CHEWBBACA.SchemaEvaluator', 'CHEWBBACA.PrepExternalSchema',
+  #             'CHEWBBACA.CHEWBBACA_NS', 'CHEWBBACA.UniprotFinder', 'CHEWBBACA.ExtractCgMLST',
+  #             'CHEWBBACA.AlleleCallEvaluator'],
+  packages=packages,
   version = VERSION,
   description = 'A complete suite for gene-by-gene schema creation and strain identification.',
   author = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez',

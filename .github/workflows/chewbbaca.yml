@@ -26,6 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install py
+        pip install build
 
     - name: install blast
       run: |
@@ -77,7 +78,8 @@ jobs:
     - name: install chewbbaca
       run: |
         pushd $GITHUB_WORKSPACE/chewbbaca
-        python setup.py install
+        #python setup.py install
+        python -m pip install .
 
     - name: check chewbbaca
       run: |

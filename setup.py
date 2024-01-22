@@ -4,8 +4,8 @@ import CHEWBBACA
 
 VERSION = CHEWBBACA.__version__
 
-packages = find_namespace_packages(include=['CHEWBBACA*'])
-exclude_package_data = {"CHEWBBACA": ["tests*"]}
+packages = find_namespace_packages()
+exclude_package_data = {"CHEWBBACA": ["tests"]}
 
 install_requires = (
   'numpy~=1.24.3',

@@ -24,6 +24,8 @@ jobs:
     - name: install dependencies
       run: |
         python -m pip install --upgrade pip
+        # Install setuptools to provide distutils for Python >3.12
+        pip install setuptools
         pip install pytest
         pip install py
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chewBBACA"
 version = "3.3.2"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dependencies = [
     "numpy~=1.24.3",
     "scipy~=1.10.1",
@@ -53,7 +53,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]

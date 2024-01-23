@@ -32,7 +32,7 @@ setup(
   # url = 'https://github.com/B-UMMI/chewBBACA', 
   # keywords = ['cgMLST', 'bacterial typing', 'nomenclature server'],
   # install_requires = install_requires,
-  # python_requires = '>=3.7',
+  # python_requires = '>=3.8',
   include_package_data = True,
   # entry_points={'console_scripts': ["chewBBACA.py = CHEWBBACA.chewBBACA:main",
   #                                   "chewie = CHEWBBACA.chewBBACA:main"]

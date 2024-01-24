@@ -176,7 +176,7 @@ def get_data(sparql_query):
     """
     tries = 0
     failed = []
-    max_tries = 5
+    max_tries = ct.MAX_RETRIES
     success = False
     while success is False and tries < max_tries:
         try:
@@ -258,31 +258,33 @@ def get_annotation(gene, translation_table):
     """
     selected_url = ''
     selected_name = ''
-    # import locus alleles
+    # Import locus alleles
     sequences = fao.import_sequences(gene)
+    queried = []
     for seqid, sequence in sequences.items():
-        # translate allele
+        # Translate allele
         protein_sequence = str(sm.translate_sequence(sequence,
                                                      table_id=translation_table))
 
-        query = uniprot_query(protein_sequence)
-        result, failed = get_data(query)
+        if protein_sequence not in queried:
+            query = uniprot_query(protein_sequence)
+            result, failed = get_data(query)
+            queried.append(protein_sequence)
+            if len(result) > 0:
+                name, url, label = select_name(result)
 
-        if len(result) > 0:
-            name, url, label = select_name(result)
-
-            lowercase_name = name.lower()
-            if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
-                if selected_name == '':
+                lowercase_name = name.lower()
+                if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
+                    if selected_name == '':
+                        selected_name = name
+                        selected_url = url
+                    continue
+                elif name == '':
+                    continue
+                else:
                     selected_name = name
                     selected_url = url
-                continue
-            elif name == '':
-                continue
-            else:
-                selected_name = name
-                selected_url = url
-                break
+                    break
 
     return [gene, selected_name, selected_url, failed]
 

@@ -336,7 +336,7 @@ def create_uniprot_queries(file, max_queries=ct.MAX_QUERIES):
     return queries_file
 
 
-def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
+def get_annotation(queries_file, max_retries=ct.MAX_RETRIES):
     """Query the UniProt SPARQL endpoint to retrieve protein annotations.
 
         This function uses the SPARQL queries imported from
@@ -380,7 +380,6 @@ def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
 
     tries = 0
     # define maximum number of tries
-    max_tries = max_queries
     found = False
     while found is False:
 
@@ -409,7 +408,7 @@ def get_annotation(queries_file, max_queries=ct.MAX_QUERIES):
             pass
 
         tries += 1
-        if tries == max_tries or tries == len(queries):
+        if tries == max_retries or tries == len(queries):
             found = True
 
     annotation_info = [locus, prev_name, prev_label, prev_url]

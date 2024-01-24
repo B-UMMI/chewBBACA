@@ -335,7 +335,9 @@ def main(schema_directory, output_directory, genes_list, protein_table,
          no_cleanup, blast_path):
 
     # Create output directory
-    fo.create_directory(output_directory)
+    created = fo.create_directory(output_directory)
+    if created is False:
+        sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 
     # Create temp directory
     temp_directory = fo.join_paths(output_directory, ['temp'])

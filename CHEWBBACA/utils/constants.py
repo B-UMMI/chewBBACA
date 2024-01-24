@@ -150,7 +150,10 @@ MIN_PYTHON = [(3, 6, 0), '3.6.0']
 # UniProt SPARQL endpoint
 UNIPROT_SPARQL = 'https://sparql.uniprot.org/sparql'
 UNIPROT_SPARQL_THREADS = 4
-MAX_QUERIES = 10
+# Maximum number of retries if querying the SPARQL endpoint fails
+MAX_RETRIES = 2
+# Maximum number of sequences used to query the SPARQL endpoint
+MAX_QUERIES = 20
 
 # FTP to get UniProt's reference proteomes
 UNIPROT_PROTEOMES_FTP = ('https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/')
@@ -356,7 +359,7 @@ LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
 INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',
                            'Exception Description']
 
-TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon found',
+TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon',
                           'is not a start codon',
                           'is not a stop codon',
                           'sequence length is not a multiple of 3',

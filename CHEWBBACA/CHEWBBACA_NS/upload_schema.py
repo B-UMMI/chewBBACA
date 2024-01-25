@@ -936,13 +936,13 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     else:
         token = ''
 
-    # verify user
+    # Verify user
     print('-- User Permissions --')
     # GET request headers
     headers_get = ct.HEADERS_GET_JSON
     headers_get['Authorization'] = token
 
-    # determine current user ID and Role
+    # Determine current user ID and Role
     if 'tutorial' not in nomenclature_server:
         user_id, user_role, user_auth = cr.user_info(nomenclature_server, headers_get)
     else:
@@ -952,11 +952,9 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     print('User role: {0}'.format(user_role))
     print('Authorized: {0}\n'.format(user_auth))
 
-    # only Admin or Contributor type users can upload schemas
+    # Only Admin or Contributor type users can upload schemas
     if not user_auth:
-        sys.exit('Current user has no Administrator '
-                 'or Contributor permissions.\n'
-                 'Not allowed to upload schemas.')
+        sys.exit(ct.LOADSCHEMA_NO_PERMISSIONS)
 
     # POST requests headers
     headers_post = ct.HEADERS_POST_JSON
@@ -973,17 +971,15 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     # Get schema files from genes list file
     genes_list = os.path.join(schema_directory, '.genes_list')
     genes = fo.pickle_loader(genes_list)
-
     fasta_paths = [os.path.join(schema_directory, file) for file in genes]
     fasta_paths.sort()
 
-    # total number of loci
+    # Total number of loci
     total_loci = len(fasta_paths)
-    # total number of alelles
+    # Total number of alelles
     total_alleles = sum(list(map(fao.count_sequences, fasta_paths)))
 
-    # Get the name of the species from the provided id
-    # or vice-versa
+    # Get the name of the species from the provided id or vice-versa
     species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
     if isinstance(species_info, list):
         species_id, species_name = species_info
@@ -994,30 +990,29 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     print('Number of loci: {0}'.format(total_loci))
     print('Number of alleles: {0}\n'.format(total_alleles))
 
-    # verify schema configs
+    # Verify schema config
     print('Verifying schema configs...')
-    # load schema config file
+    # Load schema config file
     configs = pv.read_configs(schema_directory, '.schema_config')
 
-    # validate arguments values
+    # Validate arguments values
     schema_ptfs = configs['prodigal_training_file']
     ptf_info = pv.validate_ptf(None, schema_directory, schema_ptfs, True)
     if ptf_info[0] is None or ptf_info[2] is True:
-        sys.exit('Please ensure that the schema\'s directory includes the '
-                 'Prodigal training file used to create the schema.')
+        sys.exit(ct.LOADSCHEMA_MISSING_PTF)
 
     bsr_val = pv.bsr_type(configs.get('bsr', ''))
     msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
     tt_val = pv.translation_table_type(configs.get('translation_table', ''))
     st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
     cv_val = configs.get('chewBBACA_version', '')[0]
-    # add window size
+    # Add window size
     ws_val = pv.validate_ws(configs.get('word_size', None))
     cs_val = pv.validate_cs(configs.get('cluster_sim', None))
     rf_val = pv.validate_rf(configs.get('representative_filter', None))
     if_val = pv.validate_if(configs.get('intraCluster_filter', None))
 
-    # dictionary with schema parameters values to send to the NS
+    # Dictionary with schema parameters values to send to the NS
     params = {'bsr': bsr_val, 'prodigal_training_file': ptf_info[1],
               'translation_table': tt_val, 'minimum_locus_length': msl_val,
               'chewBBACA_version': 'chewBBACA {0}'.format(cv_val),
@@ -1040,7 +1035,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
         ptf_file = ptf_info[0]
         ptf_hash = ptf_info[1]
 
-    # determine schema status
+    # Determine schema status
     upload_type = schema_status(nomenclature_server, headers_get,
                                 schema_name, species_id,
                                 continue_up)
@@ -1055,15 +1050,15 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
         print('Schema exists and is incomplete '
               '("{0}", id={1})'.format(schema_name, schema_id))
 
-    # get schema description
+    # Get schema description
     if continue_up is False:
         if description_file is not None and os.path.isfile(description_file) is True:
-            # determine file hash
+            # Determine file hash
             description_hash = fo.hash_file(description_file, hashlib.blake2b())
             print('Schema description: {0}'.format(description_file))
         else:
             print('Could not get a description from a file. '
-                  'Reset to schema name.')
+                  'Will use the name of the schema as description.')
             description_file = 'schema_description.txt'
             with open(description_file, 'w') as sd:
                 sd.write(schema_name)
@@ -1073,12 +1068,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 
     print('\n-- Schema Pre-processing --')
 
-    # hash schema files to get unique identifiers based on content
+    # Hash schema files to get unique identifiers based on content
     hashed_files = {fo.hash_file(file, hashlib.blake2b()): file for file in fasta_paths}
     print('Determining data to upload...')
     absent_loci = fasta_paths
     if upload_type[0] == 'incomplete':
-
         loci_info, absent_loci, fasta_paths = schema_completedness(nomenclature_server, species_id,
                                                                    upload_type[1], headers_get,
                                                                    hashed_files)
@@ -1088,14 +1082,14 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     print('  Loci without the full set of alleles: '
           '{0}\n'.format(len(fasta_paths)))
 
-    # create inputs for QC step
+    # Create inputs for QC step
     inputs = [(file,
                file.split('/')[-1].split('.fasta')[0],
                int(params['translation_table']),
                0,
                None) for file in fasta_paths]
 
-    # validate schema data and create files with translated sequences
+    # Validate schema data and create files with translated sequences
     print('Translating sequences based on schema configs...')
     qc_results = []
     genes_pools = multiprocessing.Pool(processes=cpu_cores)
@@ -1103,7 +1097,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
                                  callback=qc_results.extend)
     rawr.wait()
 
-    # get invalid alleles
+    # Get invalid alleles
     invalid_alleles = [r[2] for r in qc_results]
     invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
     invalid_identifiers = set([r[0] for r in invalid_alleles])
@@ -1111,11 +1105,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     print('  Found a total of {0} invalid '
           'alleles.\n'.format(len(invalid_identifiers)))
 
-    # list translated sequences files
+    # List translated sequences files
     dna_files = [r[0] for r in qc_results]
     prot_files = [r[1] for r in qc_results]
 
-    # determine loci missing annotations
+    # Determine loci missing annotations
     miss_annotation = [pf for pf in prot_files
                        if pf.split('_prots')[0] + '.fasta' in absent_loci]
 
@@ -1123,13 +1117,13 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 
     queries_files = []
     if len(miss_annotation) > 0:
-        # create SPARQL queries to query UniProt SPARQL endpoint
+        # Create SPARQL queries to query UniProt SPARQL endpoint
         print('Creating SPARQL queries to search UniProt for annotations...')
         with concurrent.futures.ThreadPoolExecutor(max_workers=ct.UNIPROT_SPARQL_THREADS) as executor:
             for res in executor.map(create_uniprot_queries, miss_annotation):
                 queries_files.append(res)
 
-        # multithreaded annotation searching
+        # Multithreaded annotation searching
         print('Searching for annotations on UniProt...')
         loci_annotations = {}
         total_found = 0
@@ -1142,7 +1136,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
                 print('\r', 'Searched annotations for '
                       '{0}/{1} loci'.format(total_found, total_loci), end='')
 
-        # get user and custom annotations
+        # Get user and custom annotations
         if os.path.isfile(str(annotations)) is True:
             user_annotations = import_annotations(annotations)
             valid = 0

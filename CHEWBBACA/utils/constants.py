@@ -457,3 +457,11 @@ MISSING_LOCI_EXCEPTION = ('Could not find some of the loci FASTA files provided 
 
 # Invalid format for loci files
 NON_FASTA_LOCI_EXCEPTION = ('The following loci files are not in FASTA format:\n{0}')
+
+# User does not have permissions to upload schemas to Chewie-NS
+LOADSCHEMA_NO_PERMISSIONS = ('Current user has no Administrator or Contributor '
+                             'permissions.\nNot allowed to upload schemas.')
+
+# PTF is missing from schema's directory
+LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes the '
+                          'Prodigal training file used to create the schema.')

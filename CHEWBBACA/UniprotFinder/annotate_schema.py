@@ -247,7 +247,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
     return proteome_results
 
 
-def sparql_annotations(loci_files, translation_table):
+def sparql_annotations(loci_files, translation_table, cpu_cores):
     """Retrieve annotations from UniProt's SPARQL endpoint.
 
     Parameters
@@ -264,13 +264,13 @@ def sparql_annotations(loci_files, translation_table):
         URL to the page of the record that matched the
         locus.
     """
-    # create inputs to multiprocessing
+    # Create inputs to multiprocessing
     uniprot_args = [[gene, translation_table, ur.get_annotation]
                     for gene in loci_files]
 
-    # this works with all alleles in the loci to maximize
-    # chance of finding info
-    workers = ct.UNIPROT_SPARQL_THREADS
+    # This works with all alleles in the loci to maximize
+    # chance of finding annotations
+    workers = cpu_cores if cpu_cores <= ct.UNIPROT_SPARQL_THREADS else ct.UNIPROT_SPARQL_THREADS
     annotations = mo.map_async_parallelizer(uniprot_args,
                                             mo.function_helper,
                                             workers,
@@ -360,7 +360,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
     print('Schema: {0}'.format(schema_directory))
     print('Number of loci: {0}'.format(len(loci_paths)))
 
-    # find annotations based on reference proteomes for species
+    # Find annotations based on reference proteomes for species
     proteome_results = {}
     if taxa is not None:
         proteome_results = proteome_annotations(schema_directory,
@@ -394,7 +394,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
                 translation_table = 11
 
             # Get annotations through UniProt SPARQL endpoint
-            results = sparql_annotations(loci_paths, translation_table)
+            results = sparql_annotations(loci_paths, translation_table, cpu_cores)
             for i, r in enumerate(results):
                 if fo.file_basename(r[0], False) in loci_basenames:
                     if r[1] != '' or r[2] != '':

@@ -44,6 +44,15 @@ except ModuleNotFoundError:
     from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
+def seqidlist_to_binary(infile, blastdb_aliastool_path):
+    binary_file = f'{infile}.bin'
+    bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                             infile,
+                             binary_file)
+
+    return binary_file
+
+
 def loci_mode_file(loci_files, output_file):
     """Determine the allele size mode for a set of loci.
 
@@ -435,8 +444,10 @@ def dna_exact_matches(table_file, presence_dnahashtable, loci_files,
     matched_seqids = []
     dna_exact_hits = 0
     dna_matches_ids = 0
+    loci_excluded = {}
     for g, results in groups.items():
         class_file = classification_files[g]
+        locus_id = fo.file_basename(class_file).split('_results')[0]
         locus_classifications = fo.pickle_loader(class_file)
 
         locus_matched_seqids = []
@@ -458,6 +469,8 @@ def dna_exact_matches(table_file, presence_dnahashtable, loci_files,
             # store representative id for the sequences
             locus_matched_seqids.append(representative_seqid)
 
+            loci_excluded.setdefault(locus_id, []).append(representative_seqid)
+
         # save updated classifications
         fo.pickle_dumper(locus_classifications, class_file)
         # extend list of matched seqids
@@ -465,7 +478,7 @@ def dna_exact_matches(table_file, presence_dnahashtable, loci_files,
         dna_exact_hits += locus_total_matches
         dna_matches_ids += len(locus_matched_seqids)
 
-    return [matched_seqids, dna_exact_hits, dna_matches_ids]
+    return [matched_seqids, dna_exact_hits, dna_matches_ids, loci_excluded]
 
 
 def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
@@ -537,8 +550,10 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     exc_cds = 0
     exc_distinct_prot = 0
     loci_modes = []
+    loci_excluded = {}
     for g, results in groups.items():
         class_file = classification_files[g]
+        locus_id = fo.file_basename(class_file).split('_results')[0]
         locus_classifications = fo.pickle_loader(class_file)
 
         locus_total_cds = 0
@@ -580,6 +595,7 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
                         locus_classifications = update_classification(gid, locus_classifications,
                                                                       match_data)
                 locus_matched_proteins.add(r[0])
+                loci_excluded.setdefault(locus_id, []).extend(matched_protids)
 
         fo.pickle_dumper(locus_classifications, class_file)
         exact_phashes.extend(locus_exact_prot_hashes)
@@ -595,7 +611,7 @@ def protein_exact_matches(table_file, presence_PROThashtable, loci_files,
     previous_hashes = previous_hashes.union(common)
 
     return [exact_phashes, exc_prot, exc_cds, exc_distinct_prot, loci_modes,
-            previous_hashes]
+            previous_hashes, loci_excluded]
 
 
 def contig_position_classification(representative_length, representative_leftmost_pos,
@@ -1368,7 +1384,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores,
 
 
 def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
-                   phashtable, inv_map):
+                   phashtable, inv_map, only_dna=False):
     """Expand distinct matches to create matches for all matched inputs.
 
     Parameters
@@ -1409,9 +1425,12 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
     for target_id in match_info:
         target_protein = str(pfasta_index.get(target_id).seq)
         target_phash = im.hash_sequence(target_protein)
-        target_integers = im.polyline_decoding(phashtable[target_phash])
-        target_seqids = ['{0}-protein{1}'.format(inv_map[target_integers[i+1]], target_integers[i])
-                         for i in range(0, len(target_integers), 2)]
+        if only_dna is False:
+            target_integers = im.polyline_decoding(phashtable[target_phash])
+            target_seqids = ['{0}-protein{1}'.format(inv_map[target_integers[i+1]], target_integers[i])
+                            for i in range(0, len(target_integers), 2)]
+        else:
+            target_seqids = [target_id]
         for seqid in target_seqids:
             target_cds = str(dfasta_index.get(seqid).seq)
             target_dhash = im.hash_sequence(target_cds)
@@ -2103,6 +2122,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     print('\nSearching for DNA exact matches...', end='')
     # List files in pre-computed directory
     dna_tables = fo.listdir_fullpath(pre_computed_dir, 'DNAtable')
+    loci_excluded = {}
     for file in dna_tables:
         dna_matches = dna_exact_matches(file,
                                         dna_distinct_htable,
@@ -2113,6 +2133,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         matched_seqids.extend(dna_matches[0])
         dna_exact_hits += dna_matches[1]
         dna_matches_ids += dna_matches[2]
+        for k, v in dna_matches[3].items():
+            loci_excluded.setdefault(k, []).extend(v)
 
     print('found {0} exact matches (matching {1} distinct '
           'alleles).'.format(dna_exact_hits, dna_matches_ids))
@@ -2224,6 +2246,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                 loci_modes[r[0]][0] = sm.determine_mode(loci_modes[r[0]][1])[0]
         # Save protein hashes that were already processed
         previous_hashes = protein_matches[5]
+
+        # Update excluded seqids
+        for k, v in protein_matches[6].items():
+            loci_excluded.setdefault(k, []).extend(v)
 
     print('found {0} exact matches ({1} distinct CDS, {2} total CDS).'
           ''.format(exc_distinct_prot, exc_prot, exc_cds))
@@ -2350,14 +2376,17 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
           ''.format(len(proteins), len(clusters)))
 
     # Create Fasta file with remaining proteins and representatives
+    distinct_cds_translated = fao.translate_fasta(distinct_file, preprocess_dir, 11)[1]
     all_prots = fo.join_paths(clustering_dir, ['distinct_proteins.fasta'])
-    fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
+    #fo.concatenate_files([unique_pfasta, concat_reps], all_prots)
+    fo.concatenate_files([distinct_cds_translated, concat_reps], all_prots)
 
     # Create index for distinct protein sequences
     prot_index = fao.index_fasta(all_prots)
 
     # BLASTp if there are clusters with n>1
     excluded = []
+    loci_excluded_files = {}
     if len(clusters) > 0:
         blasting_dir = fo.join_paths(clustering_dir, ['cluster_BLASTer'])
         fo.create_directory(blasting_dir)
@@ -2443,11 +2472,35 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                       config['CPU cores'],
                                                       show_progress=True)
 
+
+############################### This only includes distinct pseqids?
+
+
             for r in class_results:
                 current_results = fo.pickle_loader(r)
                 for locus, v in current_results.items():
                     loci_modes[locus] = v[1]
                     excluded.extend(v[2])
+                    # Determine list of unclassified seqids per locus
+                    excluded_seqids = []
+                    for se in list(set(v[2])):
+                        se_seq = str(prot_index.get(se).seq)
+                        se_hash = im.hash_sequence(se_seq)
+                        se_integers = im.polyline_decoding(distinct_pseqids[se_hash])
+                        se_seqids = ['{0}-protein{1}'.format(basename_inverse_map[se_integers[i+1]], se_integers[i])
+                                        for i in range(0, len(se_integers), 2)]
+                        excluded_seqids.extend(se_seqids)
+
+                    locus_excluded = loci_excluded.get(locus, None)
+                    if locus_excluded is not None:
+                        locus_excluded.extend(excluded_seqids)
+                    else:
+                        locus_excluded = excluded_seqids
+
+                    # Save to file
+                    locus_excluded_outfile = fo.join_paths(clustering_dir, [f'{locus}_excluded_seqids.txt'])
+                    fo.write_lines(locus_excluded, locus_excluded_outfile)
+                    loci_excluded_files[locus] = [locus_excluded_outfile]
 
             # May have repeated elements due to same CDS matching different loci
             excluded = set(excluded)
@@ -2456,6 +2509,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
     # Get seqids of remaining unclassified sequences
     unclassified_ids = [seqid for seqid in selected_ids if seqid not in excluded]
+    # unclassified_ids_outfile = [fo.join_paths(clustering_dir, ['unclassified_seqids.txt'])]
+    # fo.write_lines(unclassified_ids, unclassified_ids_outfile[0])
     print('Unclassified proteins: {0}'.format(len(unclassified_ids)))
 
     # User only wanted exact matches and clustering or all sequences were classified
@@ -2472,10 +2527,21 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     iterative_rep_dir = fo.join_paths(temp_directory, ['6_representative_determination'])
     fo.create_directory(iterative_rep_dir)
 
-    remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['unclassified_proteins.fasta'])
+    # Convert TXT with seqids to binary
+    if blastdb_aliastool_path is not None:
+        loci_excluded_files = {k: [v[0], seqidlist_to_binary(v[0], blastdb_aliastool_path)] for k, v in loci_excluded_files.items()}
+        # unclassified_ids_outfile.append(seqidlist_to_binary(unclassified_ids_outfile[0], blastdb_aliastool_path))
+
+
+############################################################################
+
+
+    remaining_seqs_file = distinct_cds_translated
+
+    #remaining_seqs_file = fo.join_paths(iterative_rep_dir, ['unclassified_proteins.fasta'])
     # Create Fasta with unclassified sequences
-    fao.get_sequences_by_id(prot_index, unclassified_ids,
-                            remaining_seqs_file, limit=50000)
+    # fao.get_sequences_by_id(prot_index, unclassified_ids,
+    #                         remaining_seqs_file, limit=50000)
 
     # Shorten ids to avoid BLASTp error?
     blast_db = fo.join_paths(iterative_rep_dir, ['blastdb'])
@@ -2502,26 +2568,10 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         # Create directory for current iteration
         iteration_directory = fo.join_paths(iterative_rep_dir, ['iteration_{0}'.format(iteration)])
         fo.create_directory(iteration_directory)
-        # Create text file with unclassified seqids
-        remaining_seqids_file = fo.join_paths(iteration_directory, ['unclassified_seqids_{0}.txt'.format(iteration)])
-        fo.write_lines(unclassified_ids, remaining_seqids_file)
-        if blastdb_aliastool_path is not None:
-            binary_file = f'{remaining_seqids_file}.bin'
-            bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                     remaining_seqids_file,
-                                     binary_file)
-            remaining_seqids_file = binary_file
 
         # BLAST representatives against unclassified sequences
         # Iterative process until no more sequences are classified
         print('\r', f'{iteration}\t{len(protein_target_repfiles)}\t...', end='')
-
-        # Concatenate to create groups of 100 loci
-        concat_repfiles = []
-        for i in range(0, len(protein_target_repfiles), 100):
-            concat_file = fo.join_paths(iteration_directory, ['concat_reps{0}-{1}.fasta'.format(i+1, i+len(protein_target_repfiles[i:i+100]))])
-            fo.concatenate_files(protein_target_repfiles[i:i+100], concat_file)
-            concat_repfiles.append(concat_file)
 
         # Create BLASTp inputs
         output_files = []
@@ -2529,17 +2579,17 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         # Create directory to store BLASTp results
         iteration_blast_dir = fo.join_paths(iteration_directory, ['BLAST_results'])
         fo.create_directory(iteration_blast_dir)
-        for file in concat_repfiles:
-            concat_rep_basename = fo.file_basename(file, False)
-            outfile = fo.join_paths(iteration_blast_dir,
-                                    [concat_rep_basename+'_blast_results_iter{0}.tsv'.format(iteration)])
+        for file in protein_target_repfiles:
+            current_locus = (fo.file_basename(file)).split('_short')[0]
+            outfile = fo.join_paths(iteration_blast_dir, [current_locus+'_blast_results_iter{0}.tsv'.format(iteration)])
             output_files.append(outfile)
 
             # If max_targets is set to None, BLAST defaults to 500
             blast_inputs.append([blastp_path, blast_db, file,
                                  outfile, 1, 1,
-                                 remaining_seqids_file, 'blastp', 500,
-                                 None, bw.run_blast])
+                                 None, 'blastp', 500,
+                                 None, loci_excluded_files.get(current_locus, [None])[-1],
+                                 bw.run_blast])
 
         # BLAST representatives against unclassified sequences
         blastp_results = mo.map_async_parallelizer(blast_inputs,
@@ -2547,31 +2597,19 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                    config['CPU cores'],
                                                    show_progress=False)
 
-        loci_output_files = []
-        for f in output_files:
-            concat_results = fo.read_tabular(f)
-            loci_separate_results = {}
-            for line in concat_results:
-                loci_separate_results.setdefault(rep_map[line[0]], []).append(line)
-            for k, v in loci_separate_results.items():
-                loci_separate_outfile = fo.join_paths(iteration_blast_dir, ['{0}_blast_results_iter{1}.tsv'.format(k, iteration)])
-                lines = ['\t'.join(l) for l in v]
-                fo.write_lines(lines, loci_separate_outfile)
-                loci_output_files.append(loci_separate_outfile)
-
         loci_results = {}
         # Create directory to store files with matches
         iteration_matches_dir = fo.join_paths(iteration_directory, ['matches'])
         fo.create_directory(iteration_matches_dir)
-        for f in loci_output_files:
+        for f in output_files:
             locus_id = fo.get_locus_id(f)
             if locus_id is None:
                 locus_id = fo.file_basename(f).split('_blast')[0]
             best_matches = select_highest_scores(f)
-            match_info = process_blast_results(best_matches, config['BLAST Score Ratio'],
+            match_info = process_blast_results(list(best_matches.values()), config['BLAST Score Ratio'],
                                                self_scores, None)
             locus_results = expand_matches(match_info, prot_index, dna_index,
-                                           dna_distinct_htable, distinct_pseqids, basename_inverse_map)
+                                           dna_distinct_htable, distinct_pseqids, basename_inverse_map, True)
 
             if len(locus_results) > 0:
                 locus_file = fo.join_paths(iteration_matches_dir, ['{0}_locus_matches'.format(locus_id)])
@@ -2623,6 +2661,18 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                 excluded.extend(v[2])
                 if len(v[3]) > 0:
                     representative_candidates[locus] = v[3]
+                # Update files with seqidlist per locus
+                locus_excluded = loci_excluded_files.get(locus, [None])[0]
+                if locus_excluded is not None:
+                    locus_excluded = fo.read_lines(locus_excluded)
+                    locus_excluded = list(set(locus_excluded).union(set(v[2])))
+                else:
+                    locus_excluded = list(set(v[2]))
+                locus_excluded_file = fo.join_paths(iteration_directory, [f'{locus}_excluded.txt'])
+                fo.write_lines(locus_excluded, locus_excluded_file)
+                loci_excluded_files[locus] = [locus_excluded_file]
+                if blastdb_aliastool_path is not None:
+                    loci_excluded_files[locus].append(seqidlist_to_binary(locus_excluded_file, blastdb_aliastool_path))
 
         # Remove representative candidates ids from excluded
         excluded = set(excluded)

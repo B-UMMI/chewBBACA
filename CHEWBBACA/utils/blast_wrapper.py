@@ -101,7 +101,7 @@ def determine_blast_task(sequences, blast_type='blastp'):
 
 def run_blast(blast_path, blast_db, fasta_file, blast_output,
               max_hsps=1, threads=1, ids_file=None, blast_task=None,
-              max_targets=None, composition_stats=None):
+              max_targets=None, composition_stats=None, negative_ids=None):
     """Execute BLAST to align sequences against a BLAST database.
 
     Parameters
@@ -159,6 +159,8 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
         blast_args.extend(['-max_target_seqs', str(max_targets)])
     if composition_stats is not None:
         blast_args.extend(['-comp_based_stats', str(composition_stats)])
+    if negative_ids is not None:
+        blast_args.extend(['-negative_seqidlist', negative_ids])
 
     blast_process = subprocess.Popen(blast_args,
                                   stdout=subprocess.PIPE,

@@ -531,18 +531,10 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         fo.remove_files(ns_files)
 
         # Write hidden schema config file
-        del(schema_params_dict['Schema_lock'])
-        schema_config = pv.write_schema_config(schema_params_dict['bsr'],
-                                               ptf_hash,
-                                               schema_params_dict['translation_table'],
-                                               schema_params_dict['minimum_locus_length'],
+        schema_params_dict['ptf_path'] = ptf_hash
+        schema_params_dict['window_size'] = schema_params_dict.get('window_size', None)
+        schema_config = pv.write_schema_config(schema_params_dict,
                                                schema_params_dict['chewBBACA_version'],
-                                               schema_params_dict['size_threshold'],
-                                               schema_params_dict['word_size'],
-                                               schema_params_dict.get('window_size', None),  # add window size to chewie-NS
-                                               schema_params_dict['cluster_sim'],
-                                               schema_params_dict['representative_filter'],
-                                               schema_params_dict['intraCluster_filter'],
                                                schema_path)
 
         # Create ns_config file

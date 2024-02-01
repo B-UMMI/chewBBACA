@@ -183,6 +183,8 @@ MISSING_TSV_BASENAME = 'missing_classes.tsv'
 NOVEL_BASENAME = 'novel_alleles.fasta'
 CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
 INVALID_CDS_BASENAME = 'invalid_cds.txt'
+SCHEMA_CONFIG_BASENAME = '.schema_config'
+GENE_LIST_BASENAME = '.genes_list'
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
                      'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
@@ -231,8 +233,6 @@ ALLELECALL_DICT = {'classification_files': None,
 
 GENOME_LIST = 'listGenomes2Call.txt'
 LOCI_LIST = 'listGenes2Call.txt'
-
-LOCI_LIST_FILE = '.genes_list'
 
 # Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
@@ -481,3 +481,6 @@ LOADSCHEMA_NO_PERMISSIONS = ('Current user has no Administrator or Contributor '
 # PTF is missing from schema's directory
 LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes the '
                           'Prodigal training file used to create the schema.')
+
+# Path for PTF does not exist
+INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'

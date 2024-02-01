@@ -969,7 +969,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     print('Local schema: {0}'.format(schema_directory))
 
     # Get schema files from genes list file
-    genes_list = os.path.join(schema_directory, '.genes_list')
+    genes_list = fo.join_paths(schema_directory, [ct.GENE_LIST_BASENAME])
     genes = fo.pickle_loader(genes_list)
     fasta_paths = [os.path.join(schema_directory, file) for file in genes]
     fasta_paths.sort()
@@ -993,7 +993,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     # Verify schema config
     print('Verifying schema configs...')
     # Load schema config file
-    configs = pv.read_configs(schema_directory, '.schema_config')
+    configs = pv.read_configs(schema_directory, ct.SCHEMA_CONFIG_BASENAME)
 
     # Validate arguments values
     schema_ptfs = configs['prodigal_training_file']

@@ -386,7 +386,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
         else:
             # Search for annotations through the SPARQL endpoint
             print('\nQuerying UniProt\'s SPARQL endpoint...')
-            config_file = fo.join_paths(schema_directory, ['.schema_config'])
+            config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
             if os.path.isfile(config_file) is True:
                 config = fo.pickle_loader(config_file)
                 translation_table = config.get('translation_table', [11])[0]

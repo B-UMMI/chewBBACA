@@ -577,7 +577,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
                       for file in schema_files}
 
     # Check if the schema was created with chewBBACA
-    config_file = os.path.join(schema_directory, ".schema_config")
+    config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
     if os.path.exists(config_file):
         # get the schema configs
         with open(config_file, "rb") as cf:

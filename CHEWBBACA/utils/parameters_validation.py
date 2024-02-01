@@ -744,14 +744,14 @@ def validate_ptf_path(ptf_path, schema_directory):
                        if file.endswith('.trn')]
         if len(schema_ptfs) > 1:
             sys.exit('Found more than one Prodigal training '
-                     'file in schema directory.\nPlease maintain '
+                     'file in the schema directory.\nPlease maintain '
                      'only the training file used in the schema '
                      'creation process.')
         elif len(schema_ptfs) == 1:
             if schema_ptfs[0] is not None:
                 ptf_path = os.path.join(schema_directory, schema_ptfs[0])
             else:
-                print('There is no Prodigal training file in schema\'s '
+                print('There is no Prodigal training file in the schema '
                       'directory.')
                 ptf_path = None
     else:
@@ -1004,56 +1004,24 @@ def write_gene_list(schema_dir):
     # Loci FASTA files must end with '.fasta' extension
     schema_files = os.listdir(schema_dir)
     loci_files, _ = fo.filter_by_extension(schema_files, ['.fasta'])
-    output_file = fo.join_paths(schema_dir, ['.genes_list'])
+    output_file = fo.join_paths(schema_dir, [ct.GENE_LIST_BASENAME])
     fo.pickle_dumper(loci_files, output_file)
 
     return [os.path.isfile(output_file), output_file]
 
 
-def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
-                        minimum_sequence_length, chewie_version, size_threshold,
-                        word_size, window_size, clustering_sim, representative_filter,
-                        intra_filter, output_directory):
-    """ Writes chewBBACA's parameters values used to create
+def write_schema_config(args, chewie_version, output_directory):
+    """ Writes chewBBACA's parameter values used to create
         a schema to a file.
 
     Parameters
     ----------
-    blast_score_ratio : float
-        BLAST Score Ratio value used to create the
-        schema.
-    ptf_hash : str
-        BLAKE2 hash of the Prodigal training file
-        content.
-    translation_table : int
-        Genetic code used to predict and translate
-        coding sequences.
-    minimum_sequence_length : int
-        Minimum sequence length, sequences with a
-        length value lower than this value are not
-        included in the schema.
+    args : dict
+        Dictionary with the parameter values to store in the
+        schema config file.
     chewie_version : str
         Version of the chewBBACA suite used to create
         the schema.
-    size_threshold : float
-        Sequence size variation percentage threshold,
-        new alleles cannot have a length value that
-        deviates +/- than this value in relation to the
-        locus's representative sequence.
-    word_size : int
-        Word/k value used to cluster protein sequences
-        during schema creation and allele calling.
-    clustering_sim : float
-        Proportion of k-mers/minimizers that two proteins
-        need to have in common to be clustered together.
-    representative_filter : float
-        Proportion of k-mers/minimizers that a clustered
-        protein has to have in common with the representative
-        protein of the cluster to be considered the same gene.
-    intra_filter : float
-        Proportion of k-mers/minimizers that clustered
-        proteins have to have in common to be considered
-        of the same gene.
     output_directory : str
         Path to the output directory where the file with
         schema parameters values will be created.
@@ -1066,22 +1034,27 @@ def write_schema_config(blast_score_ratio, ptf_hash, translation_table,
     is the path to the created file.
     """
 
-    size_threshold = None if size_threshold in [None, 'None'] else float(size_threshold)
+    # Deal with multiple names for the same parameter
+    size_threshold = None if args['size_threshold'] in [None, 'None'] else float(args['size_threshold'])
+    bsr = float(args.get('blast_score_ratio')) if 'blast_score_ratio' in args else float(args['bsr'])
+    minimum_locus_length = int(args.get('minimum_length')) if 'minimum_length' in args else int(args['minimum_locus_length'])
+    cluster_sim = args.get('clustering_sim') if 'clustering_sim' in args else args['cluster_sim']
+    intraCluster_filter = args.get('intra_filter') if 'intra_filter' in args else args['intraCluster_filter']
 
     params = {}
-    params['bsr'] = [float(blast_score_ratio)]
-    params['prodigal_training_file'] = [ptf_hash]
-    params['translation_table'] = [int(translation_table)]
-    params['minimum_locus_length'] = [int(minimum_sequence_length)]
+    params['bsr'] = [bsr]
+    params['prodigal_training_file'] = [args['ptf_path']]
+    params['translation_table'] = [int(args['translation_table'])]
+    params['minimum_locus_length'] = [minimum_locus_length]
     params['chewBBACA_version'] = [chewie_version]
     params['size_threshold'] = [size_threshold]
-    params['word_size'] = [word_size]
-    params['window_size'] = [window_size]
-    params['cluster_sim'] = [clustering_sim]
-    params['representative_filter'] = [representative_filter]
-    params['intraCluster_filter'] = [intra_filter]
+    params['word_size'] = [args['word_size']]
+    params['window_size'] = [args['window_size']]
+    params['cluster_sim'] = [cluster_sim]
+    params['representative_filter'] = [args['representative_filter']]
+    params['intraCluster_filter'] = [intraCluster_filter]
 
-    config_file = os.path.join(output_directory, '.schema_config')
+    config_file = os.path.join(output_directory, ct.SCHEMA_CONFIG_BASENAME)
     fo.pickle_dumper(params, config_file)
 
     return [os.path.isfile(config_file), config_file]

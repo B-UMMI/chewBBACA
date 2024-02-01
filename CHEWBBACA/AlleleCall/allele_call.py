@@ -2762,7 +2762,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     # Get list of loci in the schema
     schema_loci = fo.pickle_loader(fo.join_paths(schema_directory,
-                                                 [ct.LOCI_LIST_FILE]))
+                                                 [ct.GENE_LIST_BASENAME]))
     schema_loci_paths = [fo.join_paths(schema_directory, [file])
                             for file in schema_loci]
 
@@ -2847,8 +2847,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                               mo.function_helper,
                                               config['CPU cores'],
                                               show_progress=False)
-    novel_alleles_count = sum(len(v) for v in novel_alleles)
     novel_alleles = im.merge_dictionaries(novel_alleles)
+    novel_alleles_count = sum(len(v) for k, v in novel_alleles.items())
     print(f'Assigned identifiers to {novel_alleles_count} new alleles.')
 
     updated_files = {}
@@ -3009,9 +3009,9 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                      classification_labels)
 
     print(f'Classified a total of {total_cds} CDSs.')
-    class_counts_header = [f'{c:^8}' for c in ct.ALLELECALL_CLASSIFICATIONS]
+    class_counts_header = [f'{c:^8}' for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]]
     class_counts_header = ' '.join(class_counts_header)
-    class_counts_values = [f'{global_counts.get(c, 0):^8}' for c in ct.ALLELECALL_CLASSIFICATIONS]
+    class_counts_values = [f'{global_counts.get(c, 0):^8}' for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]]
     class_counts_values = ' '.join(class_counts_values)
     print('='*len(class_counts_header))
     print(class_counts_header)
@@ -3020,8 +3020,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     print('='*len(class_counts_header))
 
     if no_inferred is False and config['Mode'] != 1 and len(novel_alleles) > 0:
-        print('Added {0} novel alleles to the schema.'.format(sum(added2)))
-        print('Added {0} representative alleles to the schema.'.format(added[1]))
+        print('Added {0} new alleles to the schema.'.format(sum(added2)))
+        print('Added {0} new representative alleles to the schema.'.format(added[1]))
     elif no_inferred is True:
         print('User passed "--no-inferred". No alleles added to the schema.')
     elif len(novel_alleles) == 0:

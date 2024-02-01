@@ -761,7 +761,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
 
-    schema_params = pv.read_configs(schema_directory, '.schema_config')
+    schema_params = pv.read_configs(schema_directory, ct.SCHEMA_CONFIG_BASENAME)
 
     # verify that local configs have a single value per parameter
     if all([len(schema_params[k]) == 1
@@ -819,7 +819,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
           ''.format(count, len(loci_alleles)))
 
     # Get schema files from genes list file
-    genes_list = fo.join_paths(schema_directory, ['.genes_list'])
+    genes_list = fo.join_paths(schema_directory, [ct.GENE_LIST_BASENAME])
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure

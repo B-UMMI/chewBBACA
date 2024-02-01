@@ -5,6 +5,8 @@ Purpose
 -------
 
 This is the main script of the chewBBACA suite.
+It parses the options and arguments provided through the command
+line and calls the specified module.
 
 """
 
@@ -97,8 +99,7 @@ def run_create_schema():
                                             'create a schema. Module documentation available at '
                                             'https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html')
 
-    parser.add_argument('CreateSchema', nargs='+',
-                        help='')
+    parser.add_argument('CreateSchema', nargs='+', help='')
 
     parser.add_argument('-i', '--input-files', nargs='?', type=str,
                         required=True, dest='input_files',
@@ -186,11 +187,10 @@ def run_create_schema():
     args = parser.parse_args()
     del args.CreateSchema
 
-    # Check if ptf exists
+    # Check if PTF exists
     if args.ptf_path is not None:
-        ptf_exists = os.path.isfile(args.ptf_path)
-        if ptf_exists is False:
-            sys.exit('Invalid path for Prodigal training file.')
+        if os.path.isfile(args.ptf_path) is False:
+            sys.exit(ct.INVALID_PTF_PATH)
 
     # Create output directory
     created = fo.create_directory(args.output_directory)
@@ -219,12 +219,9 @@ def run_create_schema():
         ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
 
     # Write schema config file
-    schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                           args.translation_table, ct.MSL_MIN,
-                                           version, args.size_threshold,
-                                           args.word_size, args.window_size,
-                                           args.clustering_sim, args.representative_filter,
-                                           args.intra_filter, schema_dir)
+    args.minimum_length = ct.MSL_MIN
+    args.ptf_path = ptf_hash
+    schema_config = pv.write_schema_config(vars(args), version, schema_dir)
 
     # Create the file with the list of genes/loci
     pv.write_gene_list(schema_dir)
@@ -450,7 +447,7 @@ def run_allele_call():
     if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])[0]) == 0:
         sys.exit(ct.SCHEMA_INVALID_PATH)
 
-    config_file = os.path.join(args.schema_directory, '.schema_config')
+    config_file = os.path.join(args.schema_directory, ct.SCHEMA_CONFIG_BASENAME)
     # Legacy schemas do not have config file
     # Tell users to adapt with PrepExternalSchema module
     if os.path.isfile(config_file) is False:
@@ -557,8 +554,7 @@ def run_evaluate_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('SchemaEvaluator', nargs='+',
-                        help='Evaluates a set of loci.')
+    parser.add_argument('SchemaEvaluator', nargs='+', help='')
 
     parser.add_argument('-g', '--schema-directory', type=str, required=True,
                         dest='schema_directory',
@@ -669,12 +665,11 @@ def run_evaluate_calls():
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='AlleleCallEvaluator',
-                                     description='',
+                                     description='Evaluates allele calling results.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('AlleleCallEvaluator', nargs='+',
-                        help='Evaluates allele calling results.')
+    parser.add_argument('AlleleCallEvaluator', nargs='+', help='')
 
     parser.add_argument('-i', '--input-files', type=str, required=True,
                         dest='input_files',
@@ -774,8 +769,7 @@ def run_determine_cgmlst():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('ExtractCgMLST', nargs='+',
-                        help='')
+    parser.add_argument('ExtractCgMLST', nargs='+', help='')
 
     parser.add_argument('-i', '--input-file', type=str,
                         required=True, dest='input_file',
@@ -840,9 +834,7 @@ def run_remove_genes():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('RemoveGenes', nargs='+',
-                        help='Remove loci from a matrix with allelic '
-                             'profiles.')
+    parser.add_argument('RemoveGenes', nargs='+', help='')
 
     parser.add_argument('-i', '--input-file', type=str,
                         required=True, dest='input_file',
@@ -890,8 +882,7 @@ def run_join_profiles():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('JoinProfiles', nargs='+',
-                        help='')
+    parser.add_argument('JoinProfiles', nargs='+', help='')
 
     parser.add_argument('-p', '--profiles', nargs='+', type=str,
                         required=True, dest='profiles',
@@ -942,27 +933,21 @@ def run_adapt_schema():
         return usage_msg
 
     parser = argparse.ArgumentParser(prog='PrepExternalSchema',
-                                     description='Enables the '
-                                                 'adaptation of external '
-                                                 'schemas so that the loci '
-                                                 'and alleles present in '
-                                                 'those schemas can be used '
-                                                 'with chewBBACA. During '
-                                                 'the process, alleles that '
-                                                 'do not correspond to a '
-                                                 'complete CDS or that cannot '
-                                                 'be translated are discarded '
-                                                 'from the final schema. One '
-                                                 'or more alleles of each '
-                                                 'gene/locus will be chosen '
-                                                 'as representatives and '
-                                                 'included in the "short" '
-                                                 'directory.',
+                                     description='Enables the adaptation of external '
+                                                 'schemas so that the loci and alleles '
+                                                 'present in those schemas can be used '
+                                                 'with chewBBACA. During the process, '
+                                                 'alleles that do not correspond to a '
+                                                 'complete CDS or that cannot be '
+                                                 'translated are discarded from the '
+                                                 'final schema. One or more alleles of '
+                                                 'each gene/locus will be chosen as '
+                                                 'representatives and included in the '
+                                                 '"short" directory.',
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('PrepExternalSchema', nargs='+',
-                        help='')
+    parser.add_argument('PrepExternalSchema', nargs='+', help='')
 
     parser.add_argument('-g', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
@@ -1041,11 +1026,10 @@ def run_adapt_schema():
     args = parser.parse_args()
     del args.PrepExternalSchema
 
-    # Check if ptf exists
+    # Check if PTF exists
     if args.ptf_path is not None:
-        ptf_exists = os.path.isfile(args.ptf_path)
-        if ptf_exists is False:
-            sys.exit('Invalid path for Prodigal training file.')
+        if os.path.isfile(args.ptf_path) is False:
+            sys.exit(ct.INVALID_PTF_PATH)
 
     # Define output paths
     schema_path = os.path.abspath(args.output_directory)
@@ -1101,12 +1085,13 @@ def run_adapt_schema():
         print('Copied Prodigal training file to schema directory.')
 
     # Write schema config file
-    schema_config = pv.write_schema_config(args.blast_score_ratio, ptf_hash,
-                                           args.translation_table, args.minimum_length,
-                                           version, args.size_threshold, ct.WORD_SIZE_DEFAULT,
-                                           ct.WINDOW_SIZE_DEFAULT, ct.CLUSTERING_SIMILARITY_DEFAULT,
-                                           ct.REPRESENTATIVE_FILTER_DEFAULT, ct.INTRA_CLUSTER_DEFAULT,
-                                           schema_path)
+    args.ptf_path = ptf_hash
+    args.word_size = ct.WORD_SIZE_DEFAULT
+    args.window_size = ct.WINDOW_SIZE_DEFAULT
+    args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
+    args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
+    args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
+    schema_config = pv.write_schema_config(vars(args), version, schema_path)
 
     # Create hidden file with list of loci
     genes_list_file = pv.write_gene_list(schema_path)
@@ -1156,8 +1141,7 @@ def run_annotate_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('UniprotFinder', nargs='+',
-                        help='')
+    parser.add_argument('UniprotFinder', nargs='+', help='')
 
     parser.add_argument('-g', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
@@ -1264,8 +1248,7 @@ def run_download_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('DownloadSchema', nargs='+',
-                        help='')
+    parser.add_argument('DownloadSchema', nargs='+', help='')
 
     parser.add_argument('-sp', '--species-id', type=str,
                         required=True, dest='species_id',
@@ -1289,9 +1272,7 @@ def run_download_schema():
                              '(will be redefined to a lower value '
                              'if it is equal to or exceeds the total'
                              'number of available CPU cores/threads). '
-                             'This value is only used if local sequences '
-                             'are aligned against reference proteomes with '
-                             'BLASTp. This value is only used if it is '
+                             'This value is only used if it is '
                              'necessary to construct the schema locally.')
 
     parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
@@ -1362,8 +1343,7 @@ def run_upload_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('LoadSchema', nargs='+',
-                        help='')
+    parser.add_argument('LoadSchema', nargs='+', help='')
 
     parser.add_argument('-i', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
@@ -1465,8 +1445,7 @@ def run_synchronize_schema():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('SyncSchema', nargs='+',
-                        help='')
+    parser.add_argument('SyncSchema', nargs='+', help='')
 
     parser.add_argument('-sc', '--schema-directory', type=str,
                         required=True, dest='schema_directory',
@@ -1550,8 +1529,7 @@ def run_stats_requests():
                                      usage=msg(),
                                      formatter_class=ModifiedHelpFormatter)
 
-    parser.add_argument('NSStats', nargs='+',
-                        help='')
+    parser.add_argument('NSStats', nargs='+', help='')
 
     parser.add_argument('-m', '--mode', type=str,
                         required=True, dest='mode',
@@ -1626,8 +1604,8 @@ def main():
                                   'and schemas in Chewie-NS.',
                                   run_stats_requests]}
 
-    matches = ["--v", "-v", "-version", "--version"]
-    if len(sys.argv) > 1 and any(m in sys.argv[1] for m in matches):
+    version_triggers = ['-v', '--v', '-version', '--version']
+    if len(sys.argv) > 1 and sys.argv[1] in version_triggers:
         # Print version and exit
         print('chewBBACA version: {0}'.format(version))
         sys.exit(0)
@@ -1639,8 +1617,9 @@ def main():
     print('Contacts: {0}\n'.format(ct.contacts))
 
     # Display help message if selected process is not valid
-    if len(sys.argv) == 1 or sys.argv[1] not in functions_info:
-        print('USAGE: chewBBACA.py [module] -h \n')
+    help_triggers = ['-h', '--h', '-help', '--help']
+    if len(sys.argv) == 1 or sys.argv[1] not in functions_info or sys.argv[1] in help_triggers:
+        print('USAGE: chewBBACA.py [module] -h, --help\n')
         print('Select one of the following modules :\n')
         for f in functions_info:
             print('{0}: {1}'.format(f, functions_info[f][0]))
@@ -1648,6 +1627,10 @@ def main():
 
     # Check python version
     python_version = pv.validate_python_version()
+
+    # Trigger module help message if no arguments are provided
+    if len(sys.argv) == 2 and sys.argv[1] in functions_info:
+        sys.argv.append('-h')
 
     process = sys.argv[1]
     functions_info[process][1]()

@@ -180,4 +180,4 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
     # delete intermediate dataframes
     fo.remove_files([header_file]+hashed_files)
 
-    return True
+    return output_file

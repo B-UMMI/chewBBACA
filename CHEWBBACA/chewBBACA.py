@@ -480,8 +480,7 @@ def run_allele_call():
                                     ['results_{0}'.format(current_time_str)])
         created = fo.create_directory(results_dir)
         args.output_directory = results_dir
-        print('Output directory exists. Will store results in '
-              '{0}.'.format(results_dir))
+        print(f'Output directory exists. Will store results in {results_dir}\n')
 
     loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
     # User provided a list of genes to call

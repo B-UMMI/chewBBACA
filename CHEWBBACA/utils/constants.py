@@ -170,16 +170,19 @@ LOGFILE_TEMPLATE = ('Started script at: {0}\n'
                     'Used this number of CPU cores: {4}\n'
                     'Used a BSR of: {5}\n')
 
-# Basename for files created by AlleleCall
-RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
-RESULTS_STATISTICS_BASENAME = 'results_statistics.tsv'
-UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
-NOVEL_BASENAME = 'novel_alleles.fasta'
-PARALOGS_BASENAME = 'RepeatedLoci.tsv'
-LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
-CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
+# Basename for files created by the AlleleCall module
+RESULTS_COORDINATES_BASENAME = 'results_contigsInfo.tsv'
 PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
 PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
+RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
+RESULTS_STATISTICS_BASENAME = 'results_statistics.tsv'
+LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
+UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
+MISSING_FASTA_BASENAME = 'missing_classes.fasta'
+MISSING_TSV_BASENAME = 'missing_classes.tsv'
+NOVEL_BASENAME = 'novel_alleles.fasta'
+CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
+INVALID_CDS_BASENAME = 'invalid_cds.txt'
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
                      'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
@@ -233,6 +236,19 @@ LOCI_LIST_FILE = '.genes_list'
 
 # Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
+
+# AlleleCall section headers
+CONFIG_VALUES = 'Configuration values'
+PRECOMPUTED_DATA = 'Pre-computed data'
+CDS_PREDICTION = 'CDS prediction'
+CDS_DEDUPLICATION = 'CDS deduplication'
+CDS_EXACT = 'CDS exact matching'
+CDS_TRANSLATION = 'CDS translation'
+PROTEIN_DEDUPLICATION = 'Protein deduplication'
+PROTEIN_EXACT = 'Protein exact matching'
+PROTEIN_CLUSTERING = 'Protein clustering'
+REPRESENTATIVE_DETERMINATION = 'Representative determination'
+WRAPPING_UP = 'Wrapping up'
 
 # File header for file with summary statistics created by PrepExternalSchema
 PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'

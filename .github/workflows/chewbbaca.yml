@@ -69,7 +69,7 @@ jobs:
         FastTree -help
 
     - name: checkout chewbbaca
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: B-UMMI/chewBBACA
         path: chewbbaca

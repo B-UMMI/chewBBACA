@@ -123,9 +123,9 @@ def validate_date(date, date_format='%Y-%m-%dT%H:%M:%S.%f'):
 
 def process_header(process):
     """Print a header with the name of the process."""
-    header = 'chewBBACA - {0}'.format(process)
+    header = f'chewBBACA - {process}'
     hf = '='*(len(header)+4)
-    print('{0}\n  {1}\n{0}'.format(hf, header))
+    print(f'{hf}\n  {header}\n{hf}')
 
 
 # decorator to time main processes
@@ -140,7 +140,7 @@ def process_timer(func):
         if any([option in ['-h', '--help'] for option in sys.argv]) is False:
             start = get_datetime()
             start_str = datetime_str(start)
-            print('Started at: {0}\n'.format(start_str))
+            print(f'Started at: {start_str}\n')
 
         # run function
         func(*args, **kwargs)
@@ -148,9 +148,9 @@ def process_timer(func):
         # does not print elapsed time if the help message is printed
         end = get_datetime()
         end_str = datetime_str(end)
-        print('\nFinished at: {0}'.format(end_str))
+        print(f'\nFinished at: {end_str}')
 
         minutes, seconds = datetime_diff(start, end)
-        print('Took {0: .0f}m{1: .0f}s.'.format(minutes, seconds))
+        print(f'Took {minutes: .0f}m{seconds: .0f}s.')
 
     return wrapper

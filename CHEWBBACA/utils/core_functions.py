@@ -118,12 +118,158 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
     cds_hashes = {line[0][1]: line[3] for line in pyrodigal_results if line[3] is not None}
 
-    return [failed, total_cds, cds_fastas, cds_hashes, cds_counts]
+    # Merge dictionaries with info about CDSs closes to contig tips
+    close_to_tip = [line[4] for line in pyrodigal_results if len(line[4]) > 0]
+    close_to_tip = im.merge_dictionaries(close_to_tip)
+
+    return [failed, total_cds, cds_fastas, cds_hashes, cds_counts, close_to_tip]
+
+
+def merge_dna_dedup(dedup_files, ids_map):
+    """Select distinct DNA sequences based on sequence deduplication results.
+
+    Parameters
+    ----------
+    dedup_files : list
+        List with the paths to the files with the results
+        from sequence deduplication.
+    ids_map : dict
+        List with two dictionaries mapping input
+        identifiers to integer identifiers and vice
+        versa.
+
+    Return
+    ------
+    merged_results : dict
+        Dictionary with distinct sequence hashes as keys
+        and lists with the protid and input integer identifier
+        of the sequence chosen as representative followed by the
+        list of other inputs that contain the sequence
+        (e.g. 02bf9c4f695ce7...: [3567, 1, 2, 3, 10] ).
+        The lists are encoded with polyline encoding.
+    total_duplicated : dict
+        Total number of times a sequence was duplicated.
+    representative_seqids : list
+        List with the sequence identifiers of the
+        representative sequences.
+    """
+    merged_results = {}
+    total_duplicated = 0
+    representative_seqids = []
+    for file in dedup_files:
+        results = fo.pickle_loader(file)
+        # Sequence hash and list with protid:inputID pairs
+        for hashid, ids in results.items():
+            stored_ids = merged_results.get(hashid, [])
+            # Already have a representative seqid
+            if len(stored_ids) > 0:
+                stored_ids = im.polyline_decoding(stored_ids)
+                # Get input integer identifiers
+                new_ids = [ids[i] for i in range(1, len(ids), 2)]
+                total_duplicated += (len(ids)/2)
+            # New distinct sequence
+            else:
+                # Choose first sequence seqid as representative
+                rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+                representative_seqids.append(rep_seqid)
+                new_ids = ids[0:2] + [ids[i] for i in range(3, len(ids), 2)]
+                # Do not count representative as duplicate
+                total_duplicated += (len(ids)/2) - 1
+
+            merged_results[hashid] = im.polyline_encoding(stored_ids+new_ids)
+
+    return [merged_results, total_duplicated, representative_seqids]
+
+
+def merge_protein_dedup(dedup_files, ids_map):
+    """Select distinct proteins based on sequence deduplication results.
+
+    Parameters
+    ----------
+    dedup_files : list
+        List with the paths to the files with the results
+        from sequence deduplication.
+    ids_map : dict
+        List with two dictionaries mapping input
+        identifiers to integer identifiers and vice
+        versa.
+
+    Return
+    ------
+    merged_results : dict
+        Dictionary with distinct sequence hashes as keys
+        and lists with protid and input integer identifiers
+        pairs. The lists are encoded with polyline encoding.
+    total_duplicated : dict
+        Total number of times a sequence was duplicated.
+    representative_seqids : list
+        List with the sequence identifiers of the
+        representative sequences.
+    """
+    merged_results = {}
+    total_duplicated = 0
+    representative_seqids = []
+    for file in dedup_files:
+        results = fo.pickle_loader(file)
+        # Sequence hash and list with protid:inputID pairs
+        for hashid, ids in results.items():
+            stored_ids = merged_results.get(hashid, [])
+            new_ids = ids
+            # Already have a representative seqid
+            if len(stored_ids) > 0:
+                stored_ids = im.polyline_decoding(stored_ids)
+                total_duplicated += (len(ids)/2)
+            else:
+                rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+                representative_seqids.append(rep_seqid)
+                total_duplicated += (len(ids)/2) - 1
+            
+            merged_results[hashid] = im.polyline_encoding(stored_ids+new_ids)
+
+    return [merged_results, total_duplicated, representative_seqids]
+
+
+def merge_get_seqids(dedup_files, ids_map):
+    """Select distinct sequences based on sequence deduplication results.
+
+    Parameters
+    ----------
+    dedup_files : list
+        List with the paths to the files with the results
+        from sequence deduplication.
+    ids_map : dict
+        List with two dictionaries mapping input
+        identifiers to integer identifiers and vice
+        versa.
+
+    Return
+    ------
+    total_duplicated : dict
+        Total number of times a sequence was duplicated.
+    representative_seqids : list
+        List with the sequence identifiers of the
+        representative sequences.
+    """
+    total_duplicated = 0
+    representative_seqids = []
+    representative_hashes = set()
+    for file in dedup_files:
+        results = fo.pickle_loader(file)
+        # Sequence hash and list with protid:inputID pairs
+        for hashid, ids in results.items():
+            if hashid not in representative_hashes:
+                rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+                representative_seqids.append(rep_seqid)
+                representative_hashes.add(hashid)
+                total_duplicated += (len(ids)/2) - 1
+            else:
+                total_duplicated += (len(ids)/2)
+
+    return [None, total_duplicated, representative_seqids]
 
 
 def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-                       outfile_template, ids_map, protein=False,
-                       only_seqids=False):
+                       ids_map, protein=False, only_seqids=False):
     """Identify duplicated sequences and select distinct set of sequences.
 
     Parameters
@@ -136,8 +282,15 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
     cpu_cores : int
         Number of deduplication processes to run in
         parallel.
-    outfile_template : str
-        Template for the name of output files.
+    ids_map : list
+        List with two dictionaries mapping input
+        identifiers to integer identifiers and vice
+        versa.
+    protein : bool
+        If sequences to deduplicate are proteins.
+    only_seqids : bool
+        Return only the list of distinct seqids.
+        Do not return the hash table with encoded results.
 
     Returns
     -------
@@ -148,78 +301,50 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
         distinct_seqs : str
             Path to the FASTA file with distinct sequences.
     """
-    # create groups of inputs for multiprocessing
-    output_files = [fo.join_paths(temp_directory,
-                                  [outfile_template.format(str(i+1)+'.fasta')])
+    # Define output files paths
+    output_files = [fo.join_paths(temp_directory, [f'distinct_{str(i+1)}.fasta'])
                     for i, file in enumerate(fasta_files)]
-
-    inputs = im.aggregate_iterables([fasta_files, output_files])
-
-    dedup_inputs = im.multiprocessing_inputs(inputs,
-                                             [ids_map[0]],
+    # Create input lists to pass to multiprocessing
+    dedup_inputs = im.aggregate_iterables([fasta_files, output_files])
+    dedup_inputs = im.multiprocessing_inputs(dedup_inputs, [ids_map[0]],
                                              sm.determine_distinct)
 
-    # determine distinct sequences
+    # Determine set of distinct sequences per file
     dedup_results = mo.map_async_parallelizer(dedup_inputs,
                                               mo.function_helper,
                                               cpu_cores,
                                               show_progress=False)
 
-    repeated = 0
-    merged_results = {}
-    distinct_seqids = []
-    # merge results
-    for p in dedup_results:
-        r = fo.pickle_loader(p)
-        for k, v in r.items():
-            if k in merged_results:
-                stored_ids = im.polyline_decoding(merged_results[k])
-                if protein is False:
-                    rest = [v[i] for i in range(1, len(v), 2)]
-                    merged_results[k] = im.polyline_encoding(stored_ids+rest)
-                else:
-                    merged_results[k] = im.polyline_encoding(stored_ids+v)
-                repeated += (len(v)/2)
-            else:
-                seqid = '{0}-protein{1}'.format(ids_map[1][v[1]], v[0])
-                distinct_seqids.append(seqid)
-                if protein is False:
-                    rep = v[0:2]
-                    rest = [v[i] for i in range(3, len(v), 2)]
-                    merged_results[k] = im.polyline_encoding(rep+rest)
-                else:
-                    merged_results[k] = im.polyline_encoding(v)
-
-                repeated += (len(v)/2) - 1
-
-    # save table with deduplicated records
-    hash_table_file = fo.join_paths(temp_directory, [outfile_template.format('merged.hashtable')])
-    fo.pickle_dumper(merged_results, hash_table_file)
-
-    # remove intermediate deduplication tables
-    fo.remove_files(dedup_results)
-
-    # concatenate Fasta files from parallel processes
-    dedup_files = [f[1] for f in dedup_inputs]
-    cds_file = fo.join_paths(temp_directory, [outfile_template.format('concat.fasta')])
-    cds_file = fo.concatenate_files(dedup_files, cds_file)
-
-    # create index for concatenated Fasta
-    cds_index = fao.index_fasta(cds_file)
-
-    # define filename for file with distinct sequences
-    distinct_seqs = fo.join_paths(temp_directory,
-                                  [outfile_template.format('merged.fasta')])
-    # get the representative record for each distinct sequence
-    fao.get_sequences_by_id(cds_index, distinct_seqids,
-                            distinct_seqs, 50000)
-
-    fo.remove_files(dedup_files+[cds_file])
-
-    if only_seqids is False:
-        return [merged_results, distinct_seqs, repeated]
+    if only_seqids is True:
+        merge_results = merge_get_seqids(dedup_results, ids_map)
     else:
-        return [distinct_seqids, distinct_seqs, repeated]
+        if protein is False:
+            merge_results = merge_dna_dedup(dedup_results, ids_map)  
+        else:
+            merge_results = merge_protein_dedup(dedup_results, ids_map)
+
+    hash_table, duplicated_count, representative_seqids = merge_results
+
+    if hash_table is not None:
+        hash_table_file = fo.join_paths(temp_directory, ['distinct.hashtable'])
+        fo.pickle_dumper(hash_table, hash_table_file)
+
+    # Concatenate Fasta files from parallel processes
+    dedup_outfiles = [files[1] for files in dedup_inputs]
+    merge_fasta = fo.join_paths(temp_directory, ['concat.fasta'])
+    merge_fasta = fo.concatenate_files(dedup_outfiles, merge_fasta)
+
+    # Create index for concatenated Fasta and get representative sequences
+    merge_fasta_index = fao.index_fasta(merge_fasta)
+    representative_fasta = fo.join_paths(temp_directory, ['distinct.fasta'])
+    fao.get_sequences_by_id(merge_fasta_index, representative_seqids,
+                            representative_fasta, 50000)
+
+    # Remove intermediate files
+    fo.remove_files(dedup_outfiles+dedup_results+[merge_fasta])
+
+    return [hash_table, representative_seqids,
+            representative_fasta, duplicated_count]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
@@ -300,15 +425,15 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
             indicates why the sequence could not be
             translated.
     """
-    # divide inputs into sublists
+    # Divide inputs into sublists
     translation_inputs = im.divide_list_into_n_chunks(sequence_ids, cpu_cores)
 
-    # create paths to files with protein sequences
-    protein_template = fo.join_paths(temp_directory, ['translated_cds_{0}.fasta'])
+    # Create paths to files with protein sequences
+    protein_template = fo.join_paths(temp_directory, ['translated_{0}.fasta'])
     protein_files = [protein_template.format(i+1)
                      for i in range(len(translation_inputs))]
 
-    # add common args to sublists
+    # Add common args to sublists
     common_args = [sequences_file, translation_table, minimum_length]
     translation_inputs = im.aggregate_iterables([translation_inputs,
                                                  protein_files])
@@ -316,24 +441,23 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
                                                    common_args,
                                                    sm.translate_coding_sequences)
 
-    # translate sequences
+    # Translate sequences
     translation_results = mo.map_async_parallelizer(translation_inputs,
                                                     mo.function_helper,
                                                     cpu_cores,
                                                     show_progress=True)
 
-    # concatenate files
-    protein_file = fo.join_paths(temp_directory, ['translated_cds_concat.fasta'])
+    # Concatenate files
+    protein_file = fo.join_paths(temp_directory, ['translated.fasta'])
     protein_file = fo.concatenate_files(protein_files, protein_file)
     fo.remove_files(protein_files)
 
-    # determine sequences that could not be translated
+    # Determine sequences that could not be translated
     untrans_lines = []
     untrans_seqids = []
     for res in translation_results:
         if len(res[0]) > 0:
-            untrans_lines.extend(['{0}: {1}'.format(r[0], r[1])
-                                  for r in res[0]])
+            untrans_lines.extend([f'{r[0]}: {r[1]}' for r in res[0]])
             untrans_seqids.extend([r[0] for r in res[0]])
 
     return [protein_file, untrans_seqids, untrans_lines]
@@ -374,9 +498,9 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
         will be saved to.
     cpu_cores : int
         Number of clustering processes to run in parallel.
-    divide : bool
-        If input sequences should be divided into smaller
-        groups that can be processed in parallel.
+    divide : int
+        Create smaller groups of sequences that can
+        be processed in parallel.
     position : bool
         True if the start position for each k-mer should be saved.
         False otherwise.
@@ -391,16 +515,13 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
         representative and the length of the clustered
         sequence.
     """
-    # sort sequences by length
+    # Sort sequences by length
     sorted_seqs = {k: v for k, v in im.sort_iterable(sequences.items(),
                                                      sort_key=lambda x: len(x[1]),
                                                      reverse=True)}
 
     if divide is not None:
-        # divide sequences into sublists
-        # do not divide based on number of available cores as it may
-        # lead to different results with different number of cores
-        # divide into clusters with fixed number of sequences
+        # Divide input sequences into smaller groups
         cluster_inputs = im.split_iterable(sorted_seqs, divide)
     else:
         cluster_inputs = [sorted_seqs]
@@ -411,22 +532,27 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
                    sc.clusterer]
     cluster_inputs = [[c, *common_args] for c in cluster_inputs]
 
-    # cluster proteins in parallel
+    # Cluster proteins
     clustering_results = mo.map_async_parallelizer(cluster_inputs,
                                                    mo.function_helper,
                                                    cpu_cores,
                                                    show_progress=True)
 
-    # merge clusters
+    # Merge clusters
     clusters = [d[0] for d in clustering_results]
     clusters = im.merge_dictionaries(clusters)
     rep_sequences = [d[1] for d in clustering_results]
     rep_sequences = im.merge_dictionaries(rep_sequences)
 
-    # perform clustering with representatives
-    # this step does not run for AlleleCall
-    if len(cluster_inputs) > 1 and any(len(r) > 0 for r in rep_sequences) is True:
-        # cluster representatives
+    # Perform clustering with representatives
+    # This step does not run for AlleleCall as we do
+    # not need to compare schema representatives
+    # It runs for CreateSchema because the representatives
+    # from each cluster group were not compared
+    # No need to run this step if input sequences were not divided into smaller groups
+    # AlleleCall does not select new representatives, so this does not run
+    if len(cluster_inputs) > 1 and len(rep_sequences) > 0:
+        # Cluster representatives
         rep_clusters = sc.clusterer(rep_sequences, word_size,
                                     window_size, clustering_sim,
                                     representatives, grow_clusters,
@@ -435,21 +561,21 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 
         merged_clusters = {}
         for k, v in rep_clusters[0].items():
-            # merge clusters whose representatives are similar
+            # Merge clusters whose representatives are similar
             for n in v:
-                # representatives from other clusters are added with
+                # Representatives from other clusters are added with
                 # similarity score against new representative
-                # clustered sequences from other clusters are added
+                # Clustered sequences from other clusters are added
                 # with similarity score against their representative
                 add_seqids = [n] + [s for s in clusters[n[0]] if s[0] != n[0]]
                 merged_clusters.setdefault(k, []).extend(add_seqids)
 
         clusters = merged_clusters
 
-    # sort clusters
+    # Sort clusters
     clusters = {k: v for k, v in im.sort_iterable(clusters.items())}
 
-    # write file with clustering results
+    # Write file with clustering results
     clusters_out = os.path.join(temp_directory, 'clusters.txt')
     sc.write_clusters(clusters, clusters_out)
 
@@ -606,8 +732,8 @@ def blast_clusters(clusters, sequences, output_directory,
         representative and the length of the clustered
         sequence.
     sequences : dict
-        Dictionary with sequence identifiers as keys and
-        sequences as values.
+        Path to the FASTA file that contains the sequences in
+        the clusters.
     output_directory : str
         Path to the directory where the clustering results
         will be saved to.
@@ -624,58 +750,31 @@ def blast_clusters(clusters, sequences, output_directory,
 
     Returns
     -------
-    A list with the following elements:
-        blast_results : list
-            List with paths to the files with BLASTp results
-            (one file per cluster).
-        ids_dict : dict
-            Dictionary that maps sequence identifiers to
-            shorter and unique integer identifiers used
-            to avoid errors during BLAST execution related with
-            sequence headers/identifiers that exceed the
-            length limit allowed by BLAST.
+    blast_results : list
+        List with paths to the files with BLASTp results
+        (one file per cluster).
     """
-    # create FASTA file with sequences in clusters
-    clustered_seqs_file = fo.join_paths(output_directory,
-                                        ['clustered_sequences.fasta'])
-    clustered_sequences = [[k]+[e[0] for e in v] for k, v in clusters.items()]
-    clustered_sequences = im.flatten_list(clustered_sequences)
-    # do not include duplicate identifiers
-    clustered_sequences = list(set(clustered_sequences))
-    fao.get_sequences_by_id(sequences, clustered_sequences,
-                            clustered_seqs_file)
-
-    # create FASTA file with replaced headers to avoid header
-    # length limitation in BLAST
-    integer_clusters = fo.join_paths(output_directory,
-                                     ['clustered_sequences_integer_headers.fasta'])
-    ids_dict = fao.integer_headers(clustered_seqs_file, integer_clusters,
-                                   prefix='seq_')
-
-    # create BLAST DB
-    blast_db = fo.join_paths(output_directory,
-                             ['clustered_sequences'])
-    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
-                                            integer_clusters,
+    # Create directory to store BLASTp database
+    blast_db_dir = fo.join_paths(output_directory, ['BLASTp_db'])
+    fo.create_directory(blast_db_dir)
+    # Create BLAST DB
+    blast_db = fo.join_paths(blast_db_dir, ['distinct_proteins'])
+    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path, sequences,
                                             blast_db, 'prot')
     if len(db_stderr) > 0:
         sys.exit(db_stderr)
 
-    blast_results_dir = os.path.join(output_directory,
-                                     'BLAST_results')
-    fo.create_directory(blast_results_dir)
+    blastp_results_dir = os.path.join(output_directory, 'BLASTp_outfiles')
+    fo.create_directory(blastp_results_dir)
 
-    # Create files with replaced sequence identifiers per cluster
-    seqids_to_blast = sc.blast_seqids(clusters, blast_results_dir, ids_dict,
-                                      only_rep)
+    # Create TXT files with the list of sequences per cluster
+    seqids_to_blast = sc.blast_seqids(clusters, blastp_results_dir, only_rep)
 
-    # distribute clusters per available cores
+    # Distribute clusters per available cores
     process_num = 20 if cpu_cores <= 20 else cpu_cores
     splitted_seqids = mo.distribute_loci(seqids_to_blast, process_num, 'seqcount')
-
-    common_args = [integer_clusters, blast_results_dir, blastp_path,
+    common_args = [sequences, blastp_results_dir, blastp_path,
                    blast_db, blastdb_aliastool_path, only_rep, sc.cluster_blaster]
-
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
     # BLAST sequences in a cluster against every sequence in that cluster
@@ -684,7 +783,7 @@ def blast_clusters(clusters, sequences, output_directory,
                                               cpu_cores,
                                               show_progress=True)
 
-    return [blast_results, ids_dict]
+    return [blast_results, blastp_results_dir]
 
 
 def compute_bsr(subject_score, query_score):
@@ -738,35 +837,36 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         tuples with the sequence length and the raw score
         of the self-alignment as values.
     """
-    # change identifiers to shorten and avoid BLAST error
-    # related with sequence header length
-    integer_fasta = fasta_file.replace('.fasta', '_integer_headers.fasta')
-    ids_map = fao.integer_headers(fasta_file, integer_fasta,
-                                  start=1, limit=5000, prefix='seq_')
-
-    blast_db = fo.join_paths(output_directory,
-                             [fo.file_basename(integer_fasta, False)])
+    blast_db_dir = fo.join_paths(output_directory, ['BLASTp_db'])
+    fo.create_directory(blast_db_dir)
+    blast_db = fo.join_paths(blast_db_dir, [fo.file_basename(fasta_file, False)])
     # Will not work if file contains duplicates
     db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
-                                            integer_fasta,
-                                            blast_db, db_type)
+                                            fasta_file,
+                                            blast_db,
+                                            db_type)
 
     # Split Fasta file to BLAST short sequences (<30aa) separately
     # only possible to have alleles <30aa with non-default schemas
-    above_outfile, below_outfile = fao.split_seqlength(integer_fasta,
+    above_outfile, below_outfile = fao.split_seqlength(fasta_file,
                                                        output_directory,
                                                        ct.BLAST_TASK_THRESHOLD['blastp'])
 
-    if above_outfile is not None:
-        # divide FASTA file into groups of 100 sequences to reduce
+    total_seqids = above_outfile[0] + below_outfile[0]
+    all_seqids = above_outfile[1] + below_outfile[1]
+
+    if above_outfile[0] > 0:
+        above_outdir = fo.join_paths(output_directory, ['above'])
+        fo.create_directory(above_outdir)
+        # Divide FASTA file into groups of 100 sequences to reduce
         # execution time for large sequence sets
-        split_fastas = fao.split_seqcount(above_outfile[0], output_directory, 100)
+        split_fastas = fao.split_seqcount(above_outfile[2], above_outdir, 100)
 
         # Create TXT with list of sequence identifiers
         seqids_files = []
         for f in split_fastas:
             seqids = list(f[1])
-            seqids_file = fo.join_paths(output_directory, [fo.file_basename(f[0], False)])
+            seqids_file = fo.join_paths(above_outdir, [fo.file_basename(f[0], False)])
             fo.write_lines(seqids, seqids_file)
             seqids_files.append(seqids_file)
 
@@ -784,7 +884,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         split_fastas = []
 
     # Create directory to store results from final BLASTp
-    final_blastp_dir = fo.join_paths(output_directory, ['BLAST_results'])
+    final_blastp_dir = fo.join_paths(output_directory, ['BLASTp_results'])
     fo.create_directory(final_blastp_dir)
     blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
                                                     fo.file_basename(file[0], False))
@@ -798,9 +898,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                     for i, file in enumerate(split_fastas)]
 
     # Add file with short sequences
-    if below_outfile is not None:
-        seqids = list(below_outfile[1])
-        seqids_file = fo.join_paths(output_directory, [fo.file_basename(below_outfile[0], False)])
+    if below_outfile[0] > 0:
+        seqids = below_outfile[1]
+        seqids_file = fo.join_paths(output_directory, [fo.file_basename(below_outfile[2], False)])
         fo.write_lines(seqids, seqids_file)
         if blastdb_aliastool_path is not None:
             binary_file = f'{seqids_file}.bin'
@@ -809,10 +909,10 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                                      binary_file)
             seqids_file = binary_file
 
-        below_blastout = '{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
-                                                        fo.file_basename(below_outfile[0], False))
+        below_blastout = '{0}/{1}_blastout.tsv'.format(final_blastp_dir,
+                                                        fo.file_basename(below_outfile[2], False))
         blast_outputs.append(below_blastout)
-        blast_inputs.append([blast_path, blast_db, below_outfile[0],
+        blast_inputs.append([blast_path, blast_db, below_outfile[2],
                              below_blastout, 1, 1,
                              seqids_file, 'blastp-short', None,
                              None, bw.run_blast])
@@ -826,12 +926,12 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     if len(blast_stderr) > 0:
         sys.exit(blast_stderr)
 
-    # concatenate files with BLASTp results
-    blast_output = fo.join_paths(final_blastp_dir, ['blast_out_concat.tsv'])
+    # Concatenate files with BLASTp results
+    blast_output = fo.join_paths(final_blastp_dir, ['blastout_concat.tsv'])
     blast_output = fo.concatenate_files(blast_outputs, blast_output)
 
     current_results = fo.read_tabular(blast_output)
-    # get raw score and sequence length
+    # Get raw score and sequence length
     # multiply by 3 to get DNA sequence length and add 3 to count stop codon
     self_results = [line for line in current_results if line[0] == line[4]]
     self_scores = {}
@@ -839,22 +939,22 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         # multiply by 3 to get DNA sequence length
         # add 3 to count stop codon
         dna_length = (int(line[3])*3)+3
-        self_scores[ids_map[line[0]]] = (dna_length, float(line[6]))
+        self_scores[line[0]] = (dna_length, float(line[6]))
 
     # Determine if we got the score for all representatives
-    if len(self_scores) < len(ids_map):
+    if len(self_scores) < total_seqids:
         missing = [seqid
-                   for seqid in ids_map
+                   for seqid in all_seqids
                    if seqid not in [line[0] for line in self_results]]
-        # index FASTA file
-        concat_reps_index = fao.index_fasta(integer_fasta)
+        # Index FASTA file
+        concat_reps_index = fao.index_fasta(fasta_file)
+        # Get all representatives that do not have a self-score
         for seqid in missing:
-            # get sequence
             current_rep = concat_reps_index[seqid]
             record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [current_rep.id, str(current_rep.seq)])
             rep_file = fo.join_paths(output_directory, [f'{current_rep.id}_solo.fasta'])
             fo.write_lines([record], rep_file)
-            # save file with ids
+            # Create file with representative seqid to only compare against self
             id_file = fo.join_paths(output_directory, [f'{current_rep.id}_ids.txt'])
             fo.write_lines([current_rep.id], id_file)
             if blastdb_aliastool_path is not None:
@@ -865,17 +965,17 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                 id_file = binary_file
 
             rep_blastout = fo.join_paths(output_directory, [f'{current_rep.id}_blastout.tsv'])
-            # disable composition-based stats
+            # Cannot get self-alignemnt for some sequences if composition-based stats is enabled
             blast_stdout, blast_stderr = bw.run_blast(blast_path, blast_db, rep_file,
                                                       rep_blastout, 1, 1,
                                                       id_file, 'blastp', None, 0)
             rep_results = fo.read_tabular(rep_blastout)
             if len(rep_results) > 0:
                 dna_length = (int(rep_results[0][3])*3)+3
-                self_scores[ids_map[rep_results[0][0]]] = (dna_length, float(rep_results[0][6]))
+                self_scores[rep_results[0][0]] = (dna_length, float(rep_results[0][6]))
             else:
                 print('Could not determine the self-alignment raw '
-                      f'score for {ids_map[rep_results[0][0]]}')
+                      f'score for {rep_results[0][0]}')
 
     return self_scores
 

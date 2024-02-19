@@ -227,9 +227,16 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
     # Extract data from Gene objects
     protid = 1
     gene_info = []
+    close_to_tip = {genome_basename: {}}
     for recid, genes in contig_genes.items():
         data = get_gene_info(recid, genome_basename, protid, genes)
         gene_info.extend(data[0])
+        if len(data[0]) > 0:
+            first_cds = data[0][0]
+            close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[3]], int(first_cds[4]), int(first_cds[5]), first_cds[-1]))
+            if first_cds != data[0][-1]:
+                last_cds = data[0][-1]
+                close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[3]], int(last_cds[4]), int(last_cds[5]), last_cds[-1]))
         protid = data[1]
 
     total_genome = len(gene_info)
@@ -243,7 +250,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
 
         # Save gene coordinates and contig sizes to pickle
         coordinates_outfile = fo.join_paths(output_directory,
-                                            [f'{genome_basename}.coordinates'])
+                                            [f'{genome_basename}_coordinates'])
         write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
 
-    return [input_file, total_genome, fasta_outfile, coordinates_outfile]
+    return [input_file, total_genome, fasta_outfile, coordinates_outfile, close_to_tip]

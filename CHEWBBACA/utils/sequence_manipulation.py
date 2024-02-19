@@ -256,17 +256,13 @@ def determine_mode(values):
     modes : list
         The most frequent integer values.
     """
-    # determine frequency of each length value
+    # Determine frequency of each value
     counts = Counter(values)
-
-    # order by most common first
+    # Order by frequency
     most_common = counts.most_common()
-
-    # get most common
-    modes = [most_common[0][0]]
-
-    # determine if there are more length values that are just as common
-    modes += [m[0] for m in most_common[1:] if m[1] == most_common[0][1]]
+    # Get first value and any other value with same frequency
+    modes = [m[0] for m in most_common
+             if m[1] == most_common[0][1]]
 
     return modes
 
@@ -590,7 +586,7 @@ def determine_small(sequences_file, minimum_length, variation=0):
     return small_seqids
 
 
-def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
+def apply_bsr(blast_results, fasta_file, bsr):
     """Find similar sequences based on the BLAST Score Ratio.
 
     Parameters
@@ -603,10 +599,6 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         sequences that were aligned.
     bsr : float
         The BSR value to use as threshold
-    ids_dict : dict
-        Dictionary with the mapping between
-        sequence identifiers used for BLAST and
-        the original sequence identifiers.
 
     Returns
     -------
@@ -614,42 +606,41 @@ def apply_bsr(blast_results, fasta_file, bsr, ids_dict):
         List with the identifiers of the sequences
         that were highly similar to other sequences.
     """
+    # Separate self-results from other results
     self_scores = {r[0]: r[-1] for r in blast_results if r[0] == r[4]}
-    # do not include self-scores lines, no need to evaluate those hits
     blast_results = [r for r in blast_results if r[0] != r[4]]
 
+    # Determine sequence lengths
     lengths = {}
     for k in self_scores:
-        record = fasta_file.get(ids_dict[k])
+        record = fasta_file.get(k)
         sequence = str(record.seq)
         lengths[k] = len(sequence)
 
+    # Exclude based on BSR
     excluded_alleles = []
-    for res in blast_results:
-
-        query = res[0]
-        hit = res[4]
-        score = res[-1]
-
+    for result in blast_results:
+        query = result[0]
+        target = result[4]
+        score = result[-1]
         if query not in excluded_alleles:
-            # try to apply BSR strategy
+            # Determine sequence to exclude based on BSR
             try:
                 self_blast_score = self_scores[query]
-
                 query_length = lengths[query]
-                hit_length = lengths[hit]
-                blast_score_ratio = float(score) / float(self_blast_score)
+                target_length = lengths[target]
+                blast_score_ratio = float(score)/float(self_blast_score)
 
-                # BSR has to be greater than threshold, just as in the original function
-                if blast_score_ratio >= bsr and hit not in excluded_alleles:
-
-                    if hit_length > query_length and query not in excluded_alleles:
+                # Only proceed if target has not been excluded
+                if blast_score_ratio >= bsr and target not in excluded_alleles:
+                    # Exclude query if target is bigger
+                    if target_length > query_length and query not in excluded_alleles:
                         excluded_alleles.append(query)
-
-                    elif hit_length <= query_length:
-                        excluded_alleles.append(hit)
-            # it might not work because there is no self score for
-            # some sequences due to low complexity regions...
+                    # Exclude target if query is bigger
+                    elif target_length <= query_length:
+                        excluded_alleles.append(target)
+            # It might not be possible to determine the self-score for some sequences
+            # This might be related with composition-based stats being enabled
             except Exception:
                 excluded_alleles.append(query)
 

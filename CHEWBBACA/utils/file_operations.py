@@ -26,6 +26,7 @@ import zipfile
 import pathlib
 import urllib.request
 from itertools import islice
+from collections import Counter
 from multiprocessing import TimeoutError
 from multiprocessing.pool import ThreadPool
 
@@ -71,27 +72,6 @@ def split_joiner(string, indices, delimiter):
     joined_string = delimiter.join([split_string[i] for i in indices])
 
     return joined_string
-
-
-## Need to improve this!!!
-
-def get_locus_id(locus_path):
-    """Extract the locus identifier from a path.
-
-    Parameters
-    ----------
-    locus_path : str
-        Path to the locus Fasta file.
-
-    Returns
-    -------
-    locus_id : str
-        Locus identifier without the .fasta extension.
-    """
-    locus_basename = file_basename(locus_path)
-    locus_id = im.match_regex(locus_basename, ct.LOCUS_ID_PATTERN)
-
-    return locus_id
 
 
 def remove_files(files):
@@ -652,27 +632,68 @@ def transpose_matrix(input_file, output_directory):
     """
     intermediate_files = []
     with open(input_file, 'r') as infile:
-        # get column identifiers
+        # Get column identifiers
         columns = [c.strip() for c in (infile.__next__()).split('\t')]
-        # divide into smaller sets to avoid loading complete file
+        # Divide into smaller sets to avoid loading complete file
         total_column_sets = math.ceil(len(columns)/500)
         column_sets = im.divide_list_into_n_chunks(columns, total_column_sets)
-        # use Pandas to read columns sets and save transpose
+        # Use Pandas to read columns sets and save transpose
         for i, c in enumerate(column_sets):
             # dtype=str or Pandas converts values into floats
             df = pd.read_csv(input_file, usecols=c, delimiter='\t', dtype=str)
             output_file = join_paths(output_directory, ['chunk{0}.tsv'.format(i)])
-            # transpose columns
+            # Transpose columns
             df = df.T
-            # do not save header that contains row indexes
+            # Do not save header that contains row indexes
             df.to_csv(output_file, sep='\t', header=False)
             intermediate_files.append(output_file)
 
-    # concatenate all files with transposed lines
+    # Concatenate all files with transposed lines
     transposed_file = input_file.replace('.tsv', '_transpose.tsv')
     concatenate_files(intermediate_files, transposed_file)
 
-    # delete intermediate files
+    # Delete intermediate files
     remove_files(intermediate_files)
 
     return transposed_file
+
+
+def count_repeated_matrix(matrix_file, ignore_values):
+    """Count number of repeated elements per line in a matrix.
+
+    Parameters
+    ----------
+    matrix_file : str
+        Path to the file that contains the matrix.
+    ignore_values : list
+        List of values to ignore when counting repeated elements.
+
+    Returns
+    -------
+    repeated_values : set
+        Set of values that appear more than once in at least a row
+        of the matrix.
+    repeated_counts : dict
+        Dictionary with row identifiers as keys and the total number
+        of times a value is repeated in that row as values.
+    """
+    repeated_counts = {}
+    repeated_values = set()
+    with open(matrix_file, 'r') as infile:
+        csv_reader = csv.reader(infile, delimiter='\t')
+        header = csv_reader.__next__()
+        for i, l in enumerate(csv_reader):
+            genome_id = l[0]
+            # Count number of ocurrences for each hash/seqid
+            hashes = [h for h in l[1:] if h not in ignore_values]
+            hash_counts = Counter(hashes)
+            repeated_hashes = [count
+                               for count in hash_counts.most_common()
+                               if count[1] > 1]
+            for h in repeated_hashes:
+                repeated_values.add(h[0])
+            # Store number of times a CDS is repeated -1 to adjust
+            # CDS counts per input
+            repeated_counts[genome_id] = sum((h[1]-1) for h in repeated_hashes)
+
+    return [repeated_values, repeated_counts]

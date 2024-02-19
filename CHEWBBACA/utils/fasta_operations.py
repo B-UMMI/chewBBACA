@@ -271,8 +271,8 @@ def sequence_lengths(fasta_file, hashed=False):
     fasta_file : str
         Path to a FASTA file.
     hashed : bool
-        If False, sequence identifiers are extracted from
-        sequence headers. If True, sequence hashes will be
+        If False, sequence headers are used as
+        keys. If True, sequence hashes will be
         used as keys.
 
     Returns
@@ -417,22 +417,19 @@ def split_seqlength(fasta_path, output_directory, length_cutoff):
     above_cutoff = list(set(length_values) - set(below_cutoff))
 
     fasta_index = index_fasta(fasta_path)
+
+    above_data = [len(above_cutoff), above_cutoff]
     if len(above_cutoff) > 0:
         above_outfile = fo.join_paths(output_directory, ['above_cutoff.fasta'])
         above_count = get_sequences_by_id(fasta_index, above_cutoff, above_outfile)
-        above_seqids = (seqid for seqid in above_cutoff)
-        above_data = [above_outfile, above_seqids]
-    else:
-        above_data = None
+        above_data.append(above_outfile)
 
-    # file has sequences shorter than cutoff value
+    # File includes sequences shorter than cutoff value
+    below_data = [len(below_cutoff), below_cutoff]
     if len(below_cutoff) > 0:
         below_outfile = fo.join_paths(output_directory, ['below_cutoff.fasta'])
         below_count = get_sequences_by_id(fasta_index, below_cutoff, below_outfile)
-        below_seqids = (seqid for seqid in below_cutoff)
-        below_data = [below_outfile, below_seqids]
-    else:
-        below_data = None
+        below_data.append(below_outfile)
 
     return [above_data, below_data]
 

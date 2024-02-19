@@ -655,7 +655,7 @@ def find_missing(integer_list):
     return missing_integers
 
 
-# add new parameter that accepts method to sample kmers
+# Add new parameter that accepts method to sample kmers
 def kmer_index(fasta_file, word_size, fasta=True):
     """Create a k-mer index from a set of sequences in a FASTA file.
 
@@ -699,7 +699,7 @@ def kmer_index(fasta_file, word_size, fasta=True):
                                           word_size, position=False)
         kmers = set(minimizers)
 
-        # create dict with kmers as keys and list
+        # Create dictionary with kmers as keys and list
         # of sequences with given kmers as values
         for kmer in kmers:
             kmers_mapping.setdefault(kmer, []).append(seqid)
@@ -781,7 +781,7 @@ def multiprocessing_inputs(inputs, common_args, function):
         the function that will receive the arguments.
     """
     input_groups = []
-    # create a list for each distinct input
+    # Create a list for each distinct input
     for g in inputs:
         new_input = g + common_args + [function]
         input_groups.append(new_input)
@@ -1019,9 +1019,10 @@ def replace_chars(column, missing_replace='0'):
 def inclusive_range(start, stop, step):
     """
     """
-
     i = start
     while i < stop:
         yield i
         i += step
     yield stop
+
+

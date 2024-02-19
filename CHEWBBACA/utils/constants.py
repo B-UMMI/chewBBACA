@@ -85,6 +85,13 @@ GENETIC_CODES = {1: 'Standard',
 
 GENETIC_CODES_DEFAULT = 11
 
+# Proteins to cluster are divided into a maximum
+# of 40 smaller groups in CreateSchema
+# Dividing based on the number of CPU cores can lead to
+# variable results because we do not have pre-defined clusters
+# in CreateSchema.
+CREATESCHEMA_CLUSTERING_NGROUPS = 40
+
 # Valid FASTA file extensions
 FASTA_EXTENSIONS = ['.fasta', '.fna', '.ffn', '.fa', '.fas']
 
@@ -193,6 +200,8 @@ CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
 # Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
+# Header for TSV file with information about CDSs classified as ambiguous
+MISSING_HEADER = 'Index\tGenome\tLocus\tLocus_classification\tCDS\tCDS_classification'
 
 # Allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
@@ -202,8 +211,8 @@ ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
 # PLNF classificaton for modes {1,2,3}
 PROBABLE_LNF = 'PLNF'
 
-# Regex pattern to match locus identifier
-LOCUS_ID_PATTERN = r'.*-protein[0-9]+'
+# Maximum number of values stored while creating the 'results_contigsInfo.tsv' file
+RESULTS_CONTIGS_MAXVALS = 300000
 
 # String template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
@@ -249,6 +258,10 @@ PROTEIN_EXACT = 'Protein exact matching'
 PROTEIN_CLUSTERING = 'Protein clustering'
 REPRESENTATIVE_DETERMINATION = 'Representative determination'
 WRAPPING_UP = 'Wrapping up'
+
+# CreateSchema exclusive section headers
+EXCLUDE_SMALL = 'Short CDS removal'
+FINAL_BLASTp = 'Final BLASTp'
 
 # File header for file with summary statistics created by PrepExternalSchema
 PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'

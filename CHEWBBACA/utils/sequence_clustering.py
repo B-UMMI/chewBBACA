@@ -255,7 +255,7 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
                if len(selected_reps) < seq_num_cluster
                else seq_num_cluster)
 
-        # sort to get most similar at index 0
+        # Sort to get most similar at index 0
         if len(selected_reps) > 0:
             for i in range(0, top):
                 clusters[selected_reps[i][0]].append((protid,
@@ -454,12 +454,10 @@ def cluster_blaster(seqids, sequences, output_directory,
         List with the paths to the files with the BLAST
         results for each cluster.
     """
-    # have to index file here, cannot provide index as argument while multiprocessing, why?
     indexed_fasta = fao.index_fasta(sequences)
 
     out_files = []
     for cluster in seqids:
-
         cluster_id = cluster
         ids_file = os.path.join(output_directory,
                                 '{0}_ids.txt'.format(cluster_id))
@@ -476,7 +474,7 @@ def cluster_blaster(seqids, sequences, output_directory,
             fao.get_sequences_by_id(indexed_fasta, [cluster_id], fasta_file)
 
         blast_output = os.path.join(output_directory,
-                                    '{0}_blast_out.tsv'.format(cluster_id))
+                                    '{0}_blastout.tsv'.format(cluster_id))
 
         if blastdb_aliastool_path is not None:
             binary_file = f'{ids_file}.bin'
@@ -498,7 +496,7 @@ def cluster_blaster(seqids, sequences, output_directory,
     return out_files
 
 
-def blast_seqids(clusters, output_directory, ids_dict, only_rep):
+def blast_seqids(clusters, output_directory, only_rep):
     """Create files with the identifiers of the sequences in each cluster.
 
     Parameters
@@ -513,33 +511,22 @@ def blast_seqids(clusters, output_directory, ids_dict, only_rep):
     output_directory : str
         Path to the directory where files with identifiers
         will be created.
-    ids_dict : dict
-        Dictionary that maps sequence identifiers to
-        shorter and unique identifiers that will be
-        saved in the files and used as sequence
-        identifiers during BLAST to avoid errors
-        related with sequence headers/identifiers
-        that exceed length limit allowed by BLAST.
 
     Returns
     -------
     ids_to_blast : list
         List with the identifiers of all clusters.
     """
-    rev_ids = {v: k for k, v in ids_dict.items()}
-
     ids_to_blast = []
     for rep in clusters:
-        cluster_file = os.path.join(output_directory,
-                                    '{0}_ids.txt'.format(rev_ids[rep]))
+        cluster_file = os.path.join(output_directory, f'{rep}_ids.txt')
         if only_rep is False:
-            cluster_ids = [rev_ids[rep]] + [rev_ids[seqid[0]]
-                                            for seqid in clusters[rep]]
+            cluster_ids = [rep] + [seqid[0] for seqid in clusters[rep]]
         else:
-            cluster_ids = [rev_ids[seqid[0]] for seqid in clusters[rep]]
+            cluster_ids = [seqid[0] for seqid in clusters[rep]]
 
         cluster_lines = im.join_list(cluster_ids, '\n')
         fo.write_to_file(cluster_lines, cluster_file, 'w', '')
-        ids_to_blast.append((rev_ids[rep], len(cluster_ids)))
+        ids_to_blast.append((rep, len(cluster_ids)))
 
     return ids_to_blast

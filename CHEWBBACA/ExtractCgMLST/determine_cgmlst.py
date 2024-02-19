@@ -186,10 +186,10 @@ def compute_cgMLST(matrix, sorted_genomes, threshold, step):
         Dictionary with the number of genomes used to compute the
         cgMLST as keys and the size of the core-genome as values.
     """
-    # determine genes at or above threshold
+    # Determine genes at or above threshold
     cgMLST_size = {}
     for i in im.inclusive_range(1, len(sorted_genomes), step):
-        # get subdataframe for current genomes
+        # Get subdataframe for current genomes
         current_df = matrix.loc[sorted_genomes[:i]]
         pa_rows, _ = current_df.shape
         is_above_threshold = current_df.apply(above_threshold,

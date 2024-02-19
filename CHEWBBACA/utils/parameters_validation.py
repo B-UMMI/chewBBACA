@@ -42,7 +42,7 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def __init__(self, prog, indent_increment=2, max_help_position=56, width=100):
         super().__init__(prog, indent_increment, max_help_position, width)
 
-    # override split lines method
+    # Override split lines method
     def _split_lines(self, text, width):
         lines = super()._split_lines(text, width) + ['']
         return lines
@@ -52,16 +52,13 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
             default = self._get_default_metavar_for_positional(action)
             metavar, = self._metavar_formatter(action, default)(1)
             return metavar
-
         else:
             parts = []
-
-            # if the Optional doesn't take a value, format is:
+            # If the Optional doesn't take a value, format is:
             #    -s, --long
             if action.nargs == 0:
                 parts.extend(action.option_strings)
-
-            # if the Optional takes a value, format is:
+            # If the Optional takes a value, format is:
             #    -s ARGS, --long ARGS
             else:
                 default = self._get_default_metavar_for_optional(action)

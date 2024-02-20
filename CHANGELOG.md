@@ -1,18 +1,26 @@
 # Changelog
 
-## 3.3.3 - 2024--
+## 3.3.3 - 2024-02-20
 
 - Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.9, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.
 
 - The `Bio.Application` modules are deprecated and might be removed from future Biopython versions. Modified the function that calls MAFFT so that it uses the subprocess module instead of `Bio.Align.Applications.MafftCommandline`. Changed the Biopython version requirement to >=1.79.
 
-- The `UniprotFinder` module now exits cleanly if the output directory already exists.
-
-- Fixed the in-frame stop codon count values displayed in the reports created by the SchemaEvaluator module.
-
 - Added a `pyproject.toml` configuration file and simplified the instructions in `setup.py`. The use of `setup.py` as a command line tool is deprecated and the `pyproject.toml` configuration file allows to install and build packages through the recommended method.
 
 - Updated the Dockerfile to install chewBBACA with `python3 -m pip install .` instead of the deprecated `python setup.py install` command.
+
+- Removed FASTA header integer conversion before running BLASTp. This was done to avoid a warning from BLAST related to sequence identifier length exceeding 50 characters.
+
+- The seqids and coordinates of the CDSs closest to contig tips are stored in a dictionary during gene prediction to simplify LOTSC and PLOT5/3 determination (in many cases this reduces runtime by ~20%).
+
+- Limited the number of values stored in memory while creating the `results_contigsInfo.tsv` output file.
+
+- Fixed the in-frame stop codon count values displayed in the reports created by the SchemaEvaluator module.
+
+- The `UniprotFinder` module now exits cleanly if the output directory already exists.
+
+- Improved info printed to the stdout by the CreateSchema and AlleleCall modules, added comments, and changed variable names to better match data being stored.
 
 ## 3.3.2 - 2024-01-16
 

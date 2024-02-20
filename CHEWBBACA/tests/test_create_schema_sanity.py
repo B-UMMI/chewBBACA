@@ -47,13 +47,13 @@ def test_createschema_valid(test_args, expected):
     schema_seed = os.path.join(test_args[5], 'schema_seed')
     output_files = [os.path.join(schema_seed, file)
                     for file in os.listdir(schema_seed)
-                    if 'short' != file]
+                    if 'short' not in file]
     output_files.sort()
 
     expected_seed = os.path.join(expected, 'schema_seed')
     expected_files = [os.path.join(expected_seed, file)
                       for file in os.listdir(expected_seed)
-                      if 'short' != file]
+                      if 'short' not in file]
     expected_files.sort()
 
     # get config files

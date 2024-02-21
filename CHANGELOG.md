@@ -10,11 +10,15 @@
 
 - Updated the Dockerfile to install chewBBACA with `python3 -m pip install .` instead of the deprecated `python setup.py install` command.
 
-- Removed FASTA header integer conversion before running BLASTp. This was done to avoid a warning from BLAST related to sequence identifier length exceeding 50 characters.
+- Removed FASTA header integer conversion before running BLASTp. This was done to avoid a warning from BLAST related to sequence header length exceeding 50 characters.
 
 - The seqids and coordinates of the CDSs closest to contig tips are stored in a dictionary during gene prediction to simplify LOTSC and PLOT5/3 determination (in many cases this reduces runtime by ~20%).
 
-- Limited the number of values stored in memory while creating the `results_contigsInfo.tsv` output file.
+- Limited the number of values stored in memory while creating the `results_contigsInfo.tsv` and `results_alleles.tsv` output files to reduce memory usage.
+
+- Adding data to the FASTA and TSV files for the missing classes per locus instead of storing the complete per input data to reduce memory usage.
+
+- The data for novel alleles is saved to files to reduce memory usage.
 
 - Fixed the in-frame stop codon count values displayed in the reports created by the SchemaEvaluator module.
 

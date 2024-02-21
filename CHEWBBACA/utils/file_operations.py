@@ -635,7 +635,7 @@ def transpose_matrix(input_file, output_directory):
         # Get column identifiers
         columns = [c.strip() for c in (infile.__next__()).split('\t')]
         # Divide into smaller sets to avoid loading complete file
-        total_column_sets = math.ceil(len(columns)/500)
+        total_column_sets = math.ceil(len(columns)/100)
         column_sets = im.divide_list_into_n_chunks(columns, total_column_sets)
         # Use Pandas to read columns sets and save transpose
         for i, c in enumerate(column_sets):

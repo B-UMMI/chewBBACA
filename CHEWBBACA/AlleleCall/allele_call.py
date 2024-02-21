@@ -776,17 +776,22 @@ def write_results_alleles(classification_files, input_identifiers,
     output_file : str
         Path to the output file.
     """
+    # Limit the number of values to store in memory
+    values_limit = ct.RESULTS_MAXVALS
+    # Define intermediate file path
+    intermediate_file = fo.join_paths(output_directory,
+                                      ['inter_results_alleles.tsv'])
     # Add first column with input identifiers
     columns = [['FILE'] + input_identifiers]
-    for file in classification_files:
+    for i, file in enumerate(classification_files):
         # Get locus identifier to add as column header
         locus_id = loci_finder.search(file).group()
         locus_results = fo.pickle_loader(file)
         locus_column = [locus_id]
-        for i in range(1, len(input_identifiers)+1):
+        for ri in range(1, len(input_identifiers)+1):
             # Determine if locus was found in each input
-            if i in locus_results:
-                current_result = locus_results[i]
+            if ri in locus_results:
+                current_result = locus_results[ri]
                 # Exact or inferred, append assigned allele id
                 if current_result[0] in ['EXC', 'INF']:
                     locus_column.append(current_result[-1])
@@ -799,12 +804,19 @@ def write_results_alleles(classification_files, input_identifiers,
 
         columns.append(locus_column)
 
-    # Group elements with the same list index
-    lines = im.aggregate_iterables(columns)
-    lines = ['\t'.join(line) for line in lines]
+        if (len(columns)*len(input_identifiers)) >= values_limit or (i+1) == len(classification_files):
+            inter_lines = [im.join_list(c, '\t') for c in columns]
+            fo.write_lines(inter_lines, intermediate_file, write_mode='a')
+            columns = []
 
+    # Transpose intermediate file
+    transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
+    # Change basename of transposed file
     output_file = fo.join_paths(output_directory, [ct.RESULTS_ALLELES_BASENAME])
-    fo.write_lines(lines, output_file)
+    fo.move_file(transposed_file, output_file)
+
+    # Delete intermediate files
+    fo.remove_files([intermediate_file])
 
     return output_file
 
@@ -929,7 +941,7 @@ def write_results_contigs(classification_files, input_identifiers,
                                       ['inter_results_contigsInfo.tsv'])
     columns = [['FILE'] + list(input_identifiers.values())]
     # Limit the number of values to store in memory
-    values_limit = ct.RESULTS_CONTIGS_MAXVALS
+    values_limit = ct.RESULTS_MAXVALS
     # Get hash if coordinates are available, seqid otherwise
     id_index = 2 if cds_coordinates_files is not None else 1
     for i, file in enumerate(classification_files):
@@ -946,7 +958,7 @@ def write_results_contigs(classification_files, input_identifiers,
 
         columns.append(column)
 
-        if (len(columns)*len(classification_files)) >= values_limit or (i+1) == len(classification_files):
+        if (len(columns)*len(input_identifiers)) >= values_limit or (i+1) == len(classification_files):
             inter_lines = [im.join_list(c, '\t') for c in columns]
             fo.write_lines(inter_lines, intermediate_file, write_mode='a')
             columns = []
@@ -1070,7 +1082,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     return output_file
 
 
-def assign_allele_ids(locus_files, ns, repeated):
+def assign_allele_ids(locus_files, ns, repeated, output_directory):
     """Assign allele identifiers to CDSs classified as EXC or INF.
 
     Parameters
@@ -1094,8 +1106,10 @@ def assign_allele_ids(locus_files, ns, repeated):
         for each novel allele.
     """
     # Dictionary to store new allele identifiers
-    novel_alleles = {}
+    novel_alleles = []
+    total_novel = 0
     # Import allele calling results
+    locus_id = loci_finder.search(locus_files[0]).group()
     locus_results = fo.pickle_loader(locus_files[1])
     # Sort by input order
     sorted_results = sorted(locus_results.items(), key=lambda x: x[0])
@@ -1133,7 +1147,8 @@ def assign_allele_ids(locus_files, ns, repeated):
                     current_alleleid_str = f'{alleleid_prefix}{max_alleleid}'
                     locus_results[genome_id].append('INF-{0}'.format(current_alleleid_str))
                     matched_alleles[cds_hash] = current_alleleid_str
-                    novel_alleles.setdefault(locus_files[0], []).append([cds_hash, current_alleleid_str])
+                    novel_alleles.append([cds_hash, current_alleleid_str])
+                    total_novel += 1
                     # EXC to INF to enable accurate count of INF classifications
                     # Some INF classifications might be converted to NIPH based on similar
                     # matches on the same genome. Matches to the new INF/NIPH will be
@@ -1147,7 +1162,11 @@ def assign_allele_ids(locus_files, ns, repeated):
         # Save updated results
         fo.pickle_dumper(locus_results, locus_files[1])
 
-    return novel_alleles
+    # Save novel alleles data
+    if len(novel_alleles) > 0:
+        novel_outfile = fo.join_paths(output_directory, [f'{locus_id}'])
+        fo.pickle_dumper(novel_alleles, novel_outfile)
+        return [locus_files[0], novel_outfile, total_novel]
 
 
 def create_novel_fastas(inferred_alleles, inferred_representatives,
@@ -1190,18 +1209,19 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
     # Count number of novel and representative alleles added to schema
     total_inferred = 0
     total_representatives = 0
-    for locus, alleles in inferred_alleles.items():
-        locus_id = loci_finder.search(locus).group()
+    for locus_novel in inferred_alleles:
+        locus_id = loci_finder.search(locus_novel[1]).group()
+        current_novel = fo.pickle_loader(locus_novel[1])
 
-        updated_novel[locus] = []
+        updated_novel[locus_novel[0]] = []
         # Get novel alleles through indexed Fasta file
         novel_alleles = ['>{0}_{1}\n{2}'.format(locus_id, a[1],
                                                 str(sequence_index.get(a[2]).seq))
-                         for a in alleles]
+                         for a in current_novel]
         # Create Fasta file with novel alleles
         novel_file = fo.join_paths(output_directory, ['{0}.fasta'.format(locus_id)])
         fo.write_lines(novel_alleles, novel_file)
-        updated_novel[locus].append(novel_file)
+        updated_novel[locus_novel[0]].append(novel_file)
         total_inferred += len(novel_alleles)
 
         # Add representatives
@@ -1212,7 +1232,7 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
             # Create Fasta file with novel representative alleles
             novel_rep_file = fo.join_paths(output_directory, ['short', '{0}_short.fasta'.format(locus_id)])
             fo.write_lines(reps_sequences, novel_rep_file)
-            updated_novel[locus].append(novel_rep_file)
+            updated_novel[locus_novel[0]].append(novel_rep_file)
             total_representatives += len(reps_sequences)
 
     return [total_inferred, total_representatives, updated_novel]
@@ -1619,7 +1639,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
 
 
 def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
-                         output_directory, coordinates_files, classification_labels):
+                         output_directory, classification_labels, cds_input):
     """Create Fasta file with sequences for missing data classes.
 
     Parameters
@@ -1641,12 +1661,10 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     output_directory : str
         Path to the output directory where the Fasta file will
         be saved to.
-    coordinates_files : dict
-        Dictionary with the mapping between input string identifiers
-        and paths to pickled files that contain a dictionary with the
-        coordinates of the CDS identified in each input.
     classification_labels : list
         List with the class labels attributed by chewBBACA.
+    cds_input : bool
+        False if there are files with CDS coordinates, True otherwise.
 
     Returns
     -------
@@ -1657,78 +1675,51 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
     """
     invalid_cases = classification_labels[2:-1]
 
-    # Get information about missing cases for each input genome
-    missing_cases = {}
+    # Index FASTA file to get CDSs
+    dna_index = fao.index_fasta(fasta_file)
+
+    # Define path to output FASTA file
+    output_fasta_file = fo.join_paths(output_directory, [ct.MISSING_FASTA_BASENAME])
+
+    # Define path to output TSV file
+    output_tsv_file = fo.join_paths(output_directory, [ct.MISSING_TSV_BASENAME])
+    # Write header line
+    fo.write_lines([ct.MISSING_HEADER], output_tsv_file, write_mode='a')
+
+    # Add integer index to FASTA header and first TSV column
+    index = 1
     # Get hash if coordinates are available, seqid otherwise
-    id_index = 2 if coordinates_files is not None else 1
+    id_index = 2 if cds_input is False else 1
     for locus, file in class_files.items():
+        locus_lines = []
+        locus_records = []
         locus_id = loci_finder.search(locus).group()
         locus_classifications = fo.pickle_loader(file)
         # Get data for genomes that do not have EXC or INF classifications
         # it will not get invalid classes if a genome is classified as EXC|INF
         for gid, v in locus_classifications.items():
+            genome_id = input_map[gid]
             if v[0] in invalid_cases:
-                genome_info = [locus_id, v[0], [[e[id_index], e[3]] for e in v[1:]]]
-                missing_cases.setdefault(input_map[gid], []).append(genome_info)
-
-    # Index FASTA file to get CDSs
-    dna_index = fao.index_fasta(fasta_file)
-
-    # Add integer index to FASTA header and first TSV column
-    index = 1
-    missing_records = []
-    missing_lines = [ct.MISSING_HEADER]
-    for gid, loci_results in missing_cases.items():
-        current_records = []
-        if coordinates_files is not None:
-            genome_coordinates = fo.pickle_loader(coordinates_files[gid])[0]
-        # Input files contained CDSs and there are no genome coordinates
-        else:
-            genome_coordinates = None
-        # Genomes may have duplicated CDSs
-        # Store hash and increment i to get correct positions
-        hashes = {}
-        for locus_results in loci_results:
-            locus_id = locus_results[0]
-            classification = locus_results[1]
-            matches = locus_results[2]
-            for match in matches:
-                # Get hash or seqid
-                match_id = match[0]
-                match_classification = match[1]
-                coordinates = genome_coordinates.get(match_id)
-                if coordinates is not None:
-                    if match_id not in hashes:
-                        hashes[match_id] = {locus_id: 0}
-                    else:
-                        # Multiple matches to the same locus
-                        if locus_id in hashes[match_id]:
-                            hashes[match_id][locus_id] += 1
-                        # Multiple matches to multiple loci
-                        else:
-                            hashes[match_id][locus_id] = 0
-
+                matches = [[e[id_index], e[3]] for e in v[1:]]
+                for match in matches:
+                    # Get hash or seqid depending on input type
+                    match_id = match[0]
+                    match_classification = match[1]
                     # Get seqid of the representative CDS
-                    match_protid, match_gid = im.polyline_decoding(dna_hashtable[match_id])[:2]
-                    match_id = f'{input_map[match_gid]}-protein{match_protid}'
+                    if id_index == 2:
+                        match_protid, match_gid = im.polyline_decoding(dna_hashtable[match_id])[:2]
+                        match_id = f'{input_map[match_gid]}-protein{match_protid}'
 
-                sequence_header = (f'{index}|{gid}|{locus_id}&{classification}|{match_id}&{match_classification}')
-                sequence = str(dna_index[match_id].seq)
-                record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [sequence_header, sequence])
-                current_records.append(record)
+                    sequence_header = (f'{index}|{genome_id}|{locus_id}&{v[0]}|{match_id}&{match_classification}')
+                    sequence = str(dna_index[match_id].seq)
+                    record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [sequence_header, sequence])
+                    locus_records.append(record)
+                    locus_lines.append(f'{index}\t{genome_id}\t{locus_id}\t{v[0]}\t{match_id}\t{match_classification}')
+                    index += 1
 
-                missing_lines.append(f'{index}\t{gid}\t{locus_id}\t{classification}\t{match_id}\t{match_classification}')
-                index += 1
-
-        missing_records.extend(current_records)
-
-    # Write FASTA file
-    output_fasta_file = fo.join_paths(output_directory, [ct.MISSING_FASTA_BASENAME])
-    fo.write_lines(missing_records, output_fasta_file)
-
-    # Write TSV file
-    output_tsv_file = fo.join_paths(output_directory, [ct.MISSING_TSV_BASENAME])
-    fo.write_lines(missing_lines, output_tsv_file)
+        if len(locus_records) > 0:
+            fo.write_lines(locus_records, output_fasta_file, write_mode='a')
+            fo.write_lines(locus_lines, output_tsv_file, write_mode='a')
 
     return [output_fasta_file, output_tsv_file]
 
@@ -2463,10 +2454,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     fao.get_sequences_by_id(prot_index, unclassified_seqids,
                             remaining_seqs_file, limit=50000)
 
-    # Shorten ids to avoid BLASTp error?
+    # Create BLAST DB
     blast_db_dir = fo.join_paths(iterative_rep_dir, ['BLASTp_db'])
     fo.create_directory(blast_db_dir)
-    # Create BLAST DB
     blast_db = fo.join_paths(blast_db_dir, ['unclassified_proteins'])
     db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
                                             blast_db, 'prot')
@@ -2830,10 +2820,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
     results_contigs = write_results_contigs(list(results['classification_files'].values()),
-                                              results['int_to_unique'],
-                                              output_directory,
-                                              results['cds_coordinates'],
-                                              classification_labels)
+                                            results['int_to_unique'],
+                                            output_directory,
+                                            results['cds_coordinates'],
+                                            classification_labels)
     outfile, repeated_info, repeated_counts = results_contigs
 
     # Identify paralogous loci
@@ -2844,37 +2834,47 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
     # Assign allele identifiers to inferred alleles
     print('Assigning allele identifiers to inferred alleles...')
+    # Create directory to store data for novel alleles
+    novel_directory = fo.join_paths(temp_directory, ['novel_alleles'])
+    novel_data_directory = fo.join_paths(novel_directory, ['data'])
+    fo.create_directory(novel_data_directory)
     assignment_inputs = list(results['classification_files'].items())
-    assignment_inputs = [[g, ns, set(list(repeated_info.keys())), assign_allele_ids]
+    repeated_hashes = set(repeated_info.keys())
+    assignment_inputs = [[g, ns, repeated_hashes, novel_data_directory, assign_allele_ids]
                          for g in assignment_inputs]
+
     novel_alleles = mo.map_async_parallelizer(assignment_inputs,
                                               mo.function_helper,
                                               config['CPU cores'],
                                               show_progress=False)
-    novel_alleles = im.merge_dictionaries(novel_alleles)
-    novel_alleles_count = sum(len(v) for k, v in novel_alleles.items())
-    print(f'Assigned identifiers to {novel_alleles_count} new alleles.')
+    # Only keep data for loci that have novel alleles
+    novel_alleles = [r for r in novel_alleles if r is not None]
+    novel_alleles_count = sum([locus_novel[2] for locus_novel in novel_alleles])
+    print(f'Assigned identifiers to {novel_alleles_count} new alleles for {len(novel_alleles)} loci.')
 
     updated_files = {}
     if config['Mode'] != 1:
         print('Getting original sequence identifiers for new alleles...')
-        # Get seqids that match hashes
-        for k, v in novel_alleles.items():
-            for r in v:
-                rep_seqid = im.polyline_decoding(results['dna_hashtable'][r[0]])[0:2]
+        for locus_novel in novel_alleles:
+            current_novel = fo.pickle_loader(locus_novel[1])
+            for l in current_novel:
+                # Get seqids that match hashes
+                rep_seqid = im.polyline_decoding(results['dna_hashtable'][l[0]])[0:2]
                 rep_seqid = '{0}-protein{1}'.format(results['int_to_unique'][rep_seqid[1]], rep_seqid[0])
-                r.append(rep_seqid)
+                l.append(rep_seqid)
+            fo.pickle_dumper(current_novel, locus_novel[1])
 
         reps_info = {}
         if config['Mode'] == 4:
             print('Getting data for new representative alleles...')
             # Get info for new representative alleles that must be added to files in the short directory
-            for k, v in novel_alleles.items():
-                locus_id = loci_finder.search(k).group()
+            for locus_novel in novel_alleles:
+                locus_id = loci_finder.search(locus_novel[1]).group()
+                current_novel = fo.pickle_loader(locus_novel[1])
                 current_results = results['representatives'].get(locus_id, None)
                 if current_results is not None:
                     for e in current_results:
-                        allele_id = [line[1] for line in v if line[0] == e[1]]
+                        allele_id = [line[1] for line in current_novel if line[0] == e[1]]
                         # We might have representatives that were converted to NIPH but still appear in the list
                         if len(allele_id) > 0:
                             reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
@@ -2902,10 +2902,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
         if len(novel_alleles) > 0:
             print('Creating FASTA files with the new alleles...')
             # Create Fasta files with novel alleles
-            novel_directory = fo.join_paths(temp_directory, ['novel_alleles'])
-            novel_rep_directory = fo.join_paths(novel_directory, ['short'])
+            novel_fastas_directory = fo.join_paths(novel_directory, ['novel_fastas'])
+            novel_rep_directory = fo.join_paths(novel_fastas_directory, ['short'])
             fo.create_directory(novel_rep_directory)
-            novel_data = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_directory)
+            novel_data = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_fastas_directory)
             total_inferred, total_representatives, updated_novel = novel_data
             updated_files = updated_novel
             if no_inferred is False:
@@ -2914,10 +2914,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
                 alleles_added = add_inferred_alleles(updated_novel)
                 # Recompute mode for loci with novel alleles
                 print(f'Updating allele size mode values stored in {loci_modes_file}')
-                for file in novel_alleles:
-                    alleles_sizes = list(fao.sequence_lengths(file).values())
+                for locus_novel in novel_alleles:
+                    alleles_sizes = list(fao.sequence_lengths(locus_novel[0]).values())
                     # Select first value in list if there are several values with same frequency
-                    loci_modes[fo.file_basename(file, False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
+                    loci_modes[fo.file_basename(locus_novel[0], False)] = [sm.determine_mode(alleles_sizes)[0], alleles_sizes]
                 fo.pickle_dumper(loci_modes, loci_modes_file)
                 # Add novel alleles hashes to pre-computed hash tables
                 print(f'Updating pre-computed hash tables in {pre_computed_dir}')
@@ -2967,8 +2967,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                 results['int_to_unique'],
                                                 results['dna_hashtable'],
                                                 output_directory,
-                                                results['cds_coordinates'],
-                                                classification_labels)
+                                                classification_labels,
+                                                config['CDS input'])
 
     # Create FASTA file with inferred alleles
     if len(novel_alleles) > 0 and output_novel is True:
@@ -2982,7 +2982,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     if hash_profiles is not None:
         print(f'Creating file with {hash_profiles} hashed profiles...')
         hashed_profiles_file = ph.main(profiles_table, schema_directory, output_directory,
-                                       hash_profiles, 4, 1000, updated_files,
+                                       hash_profiles, config['CPU cores'], 100, updated_files,
                                        no_inferred)
 
     # Create TSV file with CDS coordinates

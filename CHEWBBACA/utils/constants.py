@@ -212,7 +212,7 @@ ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
 PROBABLE_LNF = 'PLNF'
 
 # Maximum number of values stored while creating the 'results_contigsInfo.tsv' file
-RESULTS_CONTIGS_MAXVALS = 300000
+RESULTS_MAXVALS = 300000
 
 # String template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = '>{0}\n{1}'

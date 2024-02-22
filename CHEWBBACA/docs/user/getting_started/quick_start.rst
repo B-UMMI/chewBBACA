@@ -18,11 +18,10 @@ input files, one full path per line):
 	
 	chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
 
-Option 2 - Coding sequences
-............................
+Option 2 - Coding DNA Sequences
+...............................
 
-If you do not need/want to use Prodigal for gene prediction, you can provide FASTA files with coding
-sequences (CDSs) and use the ``--cds`` parameter to skip the gene prediction step:
+You can provide FASTA files with Coding DNA Sequences (CDSs) and skip the gene prediction step by passing the ``--cds`` parameter:
 
 ::
 	
@@ -35,7 +34,7 @@ sequences (CDSs) and use the ``--cds`` parameter to skip the gene prediction ste
 .. note::
 	The CreateSchema module creates a schema seed with one representative allele per locus in the
 	schema. To include more allele variants in the schema, we recommend starting by performing
-	allele calling with the set of genome assemblies/coding sequences used for schema creation.
+	allele calling with the set of genome assemblies/CDSs used for schema creation.
 
 
 Option 3 - Adapt an external schema
@@ -63,13 +62,13 @@ Determine the allelic profiles for genome assemblies:
 
 	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName
 
-Use a subset of the loci in a schema:
+Perform allele calling with a subset of the schema loci:
 
 ::
 
 	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName --gl LociList.txt
 
-Provide FASTA files with coding sequences (one file per genome/strain):
+Provide FASTA files with CDSs (one file per genome/strain):
 
 ::
 

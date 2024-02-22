@@ -192,8 +192,11 @@ Outputs
 - The training file passed to create the schema is also included in ``OutputFolderName/SchemaName``
   and will be automatically detected during the allele calling process.
 
-- A file with the coordinates of the identified genes in each genome passed to create the schema,
-  ``cds_coordinates.tsv``.
+- The ``cds_coordinates.tsv`` file contains the coordinates (genome unique identifier, contig
+  identifier, start position, stop position, protein identifier attributed by chewBBACA, and coding
+  strand (chewBBACA<=3.2.0 assigns 1 to the forward strand and 0 to the reverse strand and
+  chewBBACA>=3.3.0 assigns 1 and -1 to the forward and reverse strands, respectively)) of the CDSs
+  identified in each genome. 
 
-- A file with the list of alleles predicted by Prodigal that were excluded based on the
-  minimum sequence length value and the presence of ambiguous bases, ``invalid_cds.txt``.
+- The ``invalid_cds.txt`` file contains the list of alleles predicted by Prodigal that were
+  excluded based on the minimum sequence size value and presence of ambiguous bases.

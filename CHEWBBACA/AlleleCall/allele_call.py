@@ -2597,8 +2597,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
                                                   config['CPU cores'],
                                                   show_progress=False)
 
-################ Need to identify representative candidates that match several loci and remove them from the analysis
-
+        # Need to identify representative candidates that match several
+        # loci and remove them from the analysis
         excluded = []
         representative_candidates = {}
         for r in class_results:

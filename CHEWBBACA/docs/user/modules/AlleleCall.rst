@@ -10,7 +10,7 @@ influenced by several factors:
 
 - Quality of the sequence assembly (influenced by several aspects, such as the sequencing
   method, the assembler used, etc);
-- If the alleles must correspond to coding sequences (CDSs) and open reading frames (ORFs);
+- If the alleles must correspond to Coding DNA Sequences (CDSs) and open reading frames (ORFs);
 - Presence of possibly homologous loci (this situation can result in an allele assignment
   to a possibly wrong locus given the difficulty in distinguishing closely related homologs).
 
@@ -34,7 +34,7 @@ with Prodigal will be skipped.
 
 The allele calling algorithm has the following main steps:
 
-- Gene predictipon with Prodigal followed by coding sequence (CDS) extraction to create FASTA files
+- Gene predictipon with Prodigal followed by CDS extraction to create FASTA files
   that contain all CDSs extracted from the inputs (There is also the option to provide FASTA files
   with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
 
@@ -208,9 +208,9 @@ Parameters
 
 .. important::
   If you provide the ``--cds-input`` parameter, chewBBACA assumes that the input FASTA files contain
-  coding sequences and skips the gene prediction step with Prodigal. To avoid issues related with the
+  CDSs and skips the gene prediction step with Prodigal. To avoid issues related with the
   format of the sequence headers, chewBBACA renames the sequence headers based on the unique basename
-  prefix determined for each input file and on the order of the coding sequences (e.g.: coding sequences
+  prefix determined for each input file and on the order of the CDSs (e.g.: CDSs
   inside a file named ``GCF_000007125.1_ASM712v1_cds_from_genomic.fna`` are renamed to
   ``GCF_000007125-protein1``, ``GCF_000007125-protein2``, ..., ``GCF_000007125-proteinN``).
 
@@ -236,8 +236,10 @@ Outputs
 
 
 - The ``cds_coordinates.tsv`` file contains the coordinates (genome unique identifier, contig
-  identifier, start position, stop position, protein identifier attributed by chewBBACA and coding
-  strand) of the coding sequences identified in each genome.
+  identifier, start position, stop position, protein identifier attributed by chewBBACA, and coding
+  strand (chewBBACA<=3.2.0 assigns 1 to the forward strand and 0 to the reverse strand and
+  chewBBACA>=3.3.0 assigns 1 and -1 to the forward and reverse strands, respectively)) of the CDSs
+  identified in each genome. 
 
 - The ``invalid_cds.txt`` file contains the list of alleles predicted by Prodigal that were
   excluded based on the minimum sequence size value and presence of ambiguous bases.

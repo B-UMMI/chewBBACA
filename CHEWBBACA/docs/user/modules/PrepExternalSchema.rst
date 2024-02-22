@@ -112,10 +112,10 @@ Outputs
 
 - ``<adapted_schema>_invalid_alleles.txt`` - contains the identifiers of the alleles that were
   excluded and the reason for the exclusion of each allele.
-- ``<adapted_schema>_invalid_genes.txt`` - contains the list of genes that had no valid alleles.
-- ``<adapted_schema>_summary_stats.tsv`` - contains summary statistics for each gene. Number of
+- ``<adapted_schema>_invalid_genes.txt`` - contains the list of genes that had no valid alleles, one gene identifier per line.
+- ``<adapted_schema>_summary_stats.tsv`` - contains summary statistics for each gene (number of
   alleles in the external schema, number of valid alleles included in the adapted schema and
-  number of representatives.
+  number of representative alleles chosen by chewBBACA).
 
 .. note::
 	For most genes, only one or a few sequences need to be chosen as representatives to

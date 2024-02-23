@@ -21,7 +21,7 @@ settings and a set of functions to visualize and validate allele variation in th
 
 ## News
 
-## 3.3.3 - 2024-02-21
+## 3.3.3 - 2024-02-23
 
 - Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.9, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.
 

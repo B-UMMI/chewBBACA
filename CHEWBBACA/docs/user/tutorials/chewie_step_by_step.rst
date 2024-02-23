@@ -24,7 +24,7 @@ Please start by going through the following steps:
 	The expected results for each section were included in the ``expected_results`` folder
 	for reference (each subfolder has the name of one of the sections).
 
-Metadata about the NCBI genomes used in this tutorial is available on the TSV file ``genomes/GBS_NCBI_metadata.tsv``.
+Metadata about the NCBI genomes used in this tutorial is available on the TSV file ``genomes/sagalactiae_NCBI_metadata.tsv``.
 
 chewBBACA includes Prodigal training files for several species, including for
 *Streptococcus agalactiae*. You can check the list of available training files

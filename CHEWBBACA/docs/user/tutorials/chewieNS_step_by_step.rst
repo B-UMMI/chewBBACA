@@ -240,7 +240,7 @@ To download the schema you have uploaded, please run the following command:
 
     Downloading compressed version...
     Decompressing schema...
-    Schema is now available at: sagalactiae_ns/sagalactiae_tut
+    Schema is now available at: sagalactiae_ns/Streptococcus_agalactiae_tut
 
 The process will download a ready-to-use schema to the output directory you have specified.
 The loci and alleles included in the schema are the same that were in the original schema,
@@ -274,12 +274,14 @@ the following command:
 
 ::
 
-    $ chewBBACA.py AlleleCall -i sagalactiae_genomes/subset1/ -g sagalactiae_ns/sagalactiae_tut/ -o subset1_results 
+    $ chewBBACA.py AlleleCall -i sagalactiae_genomes/subset1/ -g sagalactiae_ns/Streptococcus_agalactiae_tut/ -o subset1_results 
 
     ==========================
       chewBBACA - AlleleCall
     ==========================
 
+     Configuration values 
+    ======================
     Minimum sequence length: 201
     Size threshold: 0.2
     Translation table: 11
@@ -289,111 +291,117 @@ the following command:
     Clustering similarity: 0.2
     Prodigal training file: Streptococcus_agalactiae.trn
     CPU cores: 1
-    BLAST path: /home/user/.conda/envs/env/bin
+    BLAST path: /home/user/envs/chewie333/bin
     CDS input: False
     Prodigal mode: single
     Mode: 4
     Number of inputs: 12
     Number of loci: 10
+    Intermediate files will be stored in subset1_results/temp
 
-    Determining sequence length mode for all loci...done.
+     Pre-computed data 
+    ===================
+    Determining allele size mode for all loci...
+    Loci allele size mode values stored in sagalactiae_ns/Streptococcus_agalactiae_tut/loci_modes
+    Could not find pre-computed hash tables used for exact matching.
+    Creating hash tables...
+    Hash tables stored in sagalactiae_ns/Streptococcus_agalactiae_tut/pre_computed
 
-    Creating pre-computed hash tables...done.
-
-    == CDS prediction ==
-
-    Predicting CDS for 12 inputs...
+     CDS prediction 
+    ================
+    Predicting CDSs for 12 inputs...
     [====================] 100%
+    Extracted a total of 24282 CDSs from 12 inputs.
 
-    == CDS extraction ==
+     CDS deduplication 
+    ===================
+    Identifying distinct CDSs...
+    Identified 14751 distinct CDSs.
 
-    Extracting predicted CDS for 12 inputs...
+     CDS exact matching 
+    ====================
+    Searching for CDS exact matches...
+    Found 2 exact matches (2 distinct schema alleles).
+    Unclassified CDSs: 14749
+
+     CDS translation 
+    =================
+    Translating 14749 CDSs...
     [====================] 100%
-    Extracted a total of 24282 CDS from 12 inputs.
+    428 CDSs could not be translated.
+    Unclassified CDSs: 14321
 
-    == CDS deduplication ==
+     Protein deduplication 
+    =======================
+    Identifying distinct proteins...
+    Identified 11319 distinct proteins.
 
-    Identifying distinct CDS...identified 14751 distinct CDS.
-
-    == CDS exact matches ==
-
-    Searching for DNA exact matches...found 2 exact matches (matching 2 distinct alleles).
-    Unclassified CDS: 14749
-
-    == CDS translation ==
-
-    Translating 14749 CDS...
-    [====================] 100%
-    Identified 428 CDS that could not be translated.
-    Information about untranslatable and small sequences stored in subset1_results/temp/invalid_cds.txt
-    Unclassified CDS: 14321
-
-    == Protein deduplication ==
-
-    Identifying distinct proteins...identified 11319 distinct proteins.
-
-    == Protein exact matches ==
-
-    Searching for Protein exact matches...found 1 exact matches (2 distinct CDS, 2 total CDS).
+     Protein exact matching 
+    ========================
+    Searching for Protein exact matches...
+    Found 1 exact matches (2 distinct CDSs, 2 total CDSs).
     Unclassified proteins: 11318
 
-    == Clustering ==
-
-    Translating schema's representative alleles...done.
-    Determining BLASTp raw score for each representative...done.
-    Creating minimizer index for representative alleles...done.
+     Protein clustering 
+    ====================
+    Translating schema representative alleles...
+    Determining BLASTp self-score for each representative...
+    Representative BLASTp self-scores stored in sagalactiae_ns/Streptococcus_agalactiae_tut/short/self_scores
+    Creating minimizer index for representative alleles...
     Created index with 2400 distinct minimizers for 10 loci.
     Clustering proteins...
     [====================] 100%
-    Clustered 11318 proteins into 7 clusters.
-    Clusters to BLAST: 7
+    Clustered 58 proteins into 7 clusters.
+    11260 proteins were not added to any cluster.
+    Aligning cluster representatives against clustered proteins...
     [====================] 100%
-    Classifying clustered proteins...
+    Classifying high-scoring matches...
     [====================] 100%
     Classified 40 distinct proteins.
     Unclassified proteins: 11278
 
-    == Representative determination ==
+     Representative determination 
+    ==============================
+    Aligning representative alleles against unclassified proteins...
+    ===========================================================================
+     Iteration    Loci     High-Scoring   Classified   Selected   Unclassified 
+    ===========================================================================
+         1         10           1             3           1          11275     
+         2          1           1             1           0          11274     
+    ===========================================================================
 
-    Iteration 1
-    ===========
-    Loci: 10
-    BLASTing loci representatives against unclassified proteins...done.
-    Loci with high-scoring matches: 1
-    Classifying proteins...classified 3 proteins.
-    Selecting representatives for next iteration...selected 1 representatives.
-    Unclassified proteins: 11275
-
-    Iteration 2
-    ===========
-    Loci: 1
-    BLASTing loci representatives against unclassified proteins...done.
-    Loci with high-scoring matches: 1
-    Classifying proteins...classified 1 proteins.
-    Unclassified proteins: 11274
-
-    == Wrapping up ==
-
-    Writing results_contigsInfo.tsv...done.
-    Writing paralogous_loci.tsv and paralogous_counts.tsv...done.
-    Detected number of paralogous loci: 0
-    Writing logging_info.txt...done.
-    Writing results_alleles.tsv...done.
-    Writing results_statistics.tsv...done.
-    Writing loci_summary_stats.tsv...done.
+     Wrapping up 
+    =============
+    Creating file with genome coordinates profiles (results_contigsInfo.tsv)...
+    Identifying paralogous loci and creating files with the list of paralogous loci (paralogous_counts.tsv & paralogous_loci.tsv)...
+    Identified 0 paralogous loci.
+    Assigning allele identifiers to inferred alleles...
+    Assigned identifiers to 47 new alleles for 7 loci.
+    Getting original sequence identifiers for new alleles...
+    Getting data for new representative alleles...
+    Adding the BLASTp self-score for the new representatives to sagalactiae_ns/Streptococcus_agalactiae_tut/short/self_scores
+    Creating FASTA files with the new alleles...
+    Adding new alleles to schema...
+    Updating allele size mode values stored in sagalactiae_ns/Streptococcus_agalactiae_tut/loci_modes
+    Updating pre-computed hash tables in sagalactiae_ns/Streptococcus_agalactiae_tut/pre_computed
+    Creating file with the allelic profiles (results_alleles.tsv)...
+    Creating file with class counts per input (results_statistics.tsv)...
+    Creating file with class counts per locus (loci_summary_stats.tsv)...
+    Creating file with the coordinates of CDSs identified in inputs (cds_coordinates.tsv)...
+    Creating file with invalid CDSs (invalid_cds.txt)...
+    Counting number of classified CDSs...
     Classified a total of 67 CDSs.
-    INF: 47
-    EXC: 17
-    ASM: 3
-    PLOT3: 0
-    PLOT5: 0
-    LOTSC: 0
-    NIPH: 0
-    NIPHEM: 0
-    ALM: 0
-    PAMA: 0
-    Added 47 novel alleles to schema.
-    Added 1 representative alleles to schema.
+    =========================================================================================
+      EXC      INF     PLOT3    PLOT5    LOTSC     NIPH    NIPHEM    ALM      ASM      PAMA  
+    =========================================================================================
+      17       47       0        0        0        0        0        0        3        0    
+    =========================================================================================
+    Added 47 new alleles to the schema.
+    Added 1 new representative alleles to the schema.
+    Removing temporary directory with intermediate files...
+    Creating log file (logging_info.txt)...
+
+    Results available in subset1_results
 
 The ``AlleleCall`` process will print the total number of classified CDSs per classification category to the standard
 output. You can see a  :doc:`detailed description </user/modules/AlleleCall>` 
@@ -449,7 +457,7 @@ downloaded from).
 
 ::
 
-    $ chewBBACA.py SyncSchema -sc sagalactiae_ns/sagalactiae_tut/ --submit
+    $ chewBBACA.py SyncSchema -sc sagalactiae_ns/Streptococcus_agalactiae_tut/ --submit
 
     ==========================
       chewBBACA - SyncSchema
@@ -570,7 +578,7 @@ A sample command would be:
     Number of invalid alleles: 0
 
     Successfully adapted 10/10 loci present in the input schema.
-    Schema is now available at: sagalactiae_snapshot/sagalactiae_tut
+    Schema is now available at: sagalactiae_snapshot/Streptococcus_agalactiae_tut
 
 This will download all FASTA files for all loci in the schema and construct the schema locally.
 Since we have requested for the schema in a state prior to its ``Last Change Date``, we will
@@ -587,23 +595,18 @@ match.
 
 ::
 
-    $ chewBBACA.py AlleleCall -i sagalactiae_genomes/subset2/ -g sagalactiae_snapshot/sagalactiae_tut/ -o subset2_results 
+    $ chewBBACA.py AlleleCall -i sagalactiae_genomes/subset2/ -g sagalactiae_snapshot/Streptococcus_agalactiae_tut/ -o subset2_results 
 
     ...
 
     Classified a total of 75 CDSs.
-    INF: 49
-    EXC: 25
-    ASM: 1
-    PLOT3: 0
-    PLOT5: 0
-    LOTSC: 0
-    NIPH: 0
-    NIPHEM: 0
-    ALM: 0
-    PAMA: 0
-    Added 49 novel alleles to schema.
-    Added 1 representative alleles to schema.
+    =========================================================================================
+      EXC      INF     PLOT3    PLOT5    LOTSC     NIPH    NIPHEM    ALM      ASM      PAMA  
+    =========================================================================================
+      25       49       0        0        0        0        0        0        1        0    
+    =========================================================================================
+    Added 49 new alleles to the schema.
+    Added 1 new representative alleles to the schema.
 
     ...
 
@@ -631,7 +634,7 @@ To perform this last synchronization, execute:
 
 ::
 
-    $ chewBBACA.py SyncSchema -sc sagalactiae_snapshot/sagalactiae_tut/ --submit
+    $ chewBBACA.py SyncSchema -sc sagalactiae_snapshot/Streptococcus_agalactiae_tut/ --submit
 
     ...
 

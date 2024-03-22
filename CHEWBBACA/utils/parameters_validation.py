@@ -1316,18 +1316,19 @@ def check_unique_prefixes(input_list):
 	"""
 	input_paths = fo.read_lines(input_list)
 	basenames = [fo.file_basename(file) for file in input_paths]
-	unique_ids = [fo.split_joiner(name, [0], '.') for name in basenames]
+	unique_ids = {}
+	for name in basenames:
+		prefix = fo.split_joiner(name, [0], '.')
+		unique_ids.setdefault(prefix, []).append(name)
 
 	# Detect if some inputs share the same unique prefix
 	if len(set(unique_ids)) < len(input_paths):
-		basename_counts = [[name, basenames.count(name)]
-							for name in set(basenames)]
-		repeated_basenames = ['{0}: {1}'.format(*l)
-								for l in basename_counts if l[1] > 1]
-		sys.exit('\nSome input files share the same filename prefix '
-				'(substring before the first "." in the filename). '
-				'Please make sure that every input file has a unique '
-				'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
+		repeated_basenames = [v for k, v in unique_ids.items() if len(v) > 1]
+		repeated_basenames = [','.join(l) for l in repeated_basenames]
+		sys.exit('The following input files share the same filename prefix '
+				 '(substring before the first "." in the filename):\n{0}\n'
+				 'Please ensure that every input file has a unique '
+				 'filename prefix.'.format('\n'.join(repeated_basenames)))
 
 	return False
 
@@ -1354,7 +1355,7 @@ def check_blanks(input_list):
 	include_blanks = [name for name in basenames if ' ' in name]
 
 	if len(include_blanks) > 0:
-		sys.exit('\nThe following input files include blank spaces '
+		sys.exit('The following input files include blank spaces '
 				 'in the filename:\n{0}\nPlease ensure that filenames '
 				 'do not include blank spaces or special characters '
 				 '(e.g. !@#?$^*()+)'.format('\n'.join(include_blanks)))

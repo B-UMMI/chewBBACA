@@ -663,7 +663,7 @@ def allele_size_classification(sequence_length, locus_mode, size_threshold):
 
 
 def write_loci_summary(classification_files, output_directory, total_inputs,
-                       classification_labels):
+                       classification_labels, loci_finder):
     """Write a TSV file with classification counts per locus.
 
     Parameters
@@ -679,6 +679,10 @@ def write_loci_summary(classification_files, output_directory, total_inputs,
     classification_labels : list
         List with the possible class labels assigned by
         chewBBACA.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
+
 
     Returns
     -------
@@ -757,7 +761,7 @@ def write_logfile(start_time, end_time, total_inputs,
 
 
 def write_results_alleles(classification_files, input_identifiers,
-                          output_directory, missing_class):
+                          output_directory, missing_class, loci_finder):
     """Write a TSV file with the allelic profiles for the input samples.
 
     Parameters
@@ -770,6 +774,9 @@ def write_results_alleles(classification_files, input_identifiers,
         Path to the output directory.
     missing_class : str
         'LNF' if execution mode is 4, 'PLNF' otherwise.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -823,7 +830,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 def write_results_statistics(classification_files, input_identifiers,
                              cds_counts, output_directory, classification_labels,
-                             repeated_counts, invalid_counts):
+                             repeated_counts, invalid_counts, loci_finder):
     """Write a TSV file with classification counts per input.
 
     Parameters
@@ -849,6 +856,9 @@ def write_results_statistics(classification_files, input_identifiers,
     invalid_counts : dict
         Dictionary with input identifiers as keys and the total
         number of invalid CDSs as values.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -897,7 +907,7 @@ def write_results_statistics(classification_files, input_identifiers,
 
 def write_results_contigs(classification_files, input_identifiers,
                           output_directory, cds_coordinates_files,
-                          classification_labels):
+                          classification_labels, loci_finder):
     """Write a TSV file with the CDS coordinates for each input.
 
     Writes a TSV file with coding sequence coordinates (contig
@@ -921,6 +931,9 @@ def write_results_contigs(classification_files, input_identifiers,
         coordinates as values.
     classification_labels : list
         List with the class labels attributed by chewBBACA.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -1082,7 +1095,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
     return output_file
 
 
-def assign_allele_ids(locus_files, ns, repeated, output_directory):
+def assign_allele_ids(locus_files, ns, repeated, output_directory, loci_finder):
     """Assign allele identifiers to CDSs classified as EXC or INF.
 
     Parameters
@@ -1170,7 +1183,7 @@ def assign_allele_ids(locus_files, ns, repeated, output_directory):
 
 
 def create_novel_fastas(inferred_alleles, inferred_representatives,
-                        sequences_file, output_directory):
+                        sequences_file, output_directory, loci_finder):
     """Create FASTA files with the novel alleles for each locus.
 
     Parameters
@@ -1189,6 +1202,9 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
     output_directory : str
         Path to the directory where the FASTA files that contain
         the novel alleles will be saved to.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -1238,7 +1254,7 @@ def create_novel_fastas(inferred_alleles, inferred_representatives,
     return [total_inferred, total_representatives, updated_novel]
 
 
-def add_inferred_alleles(inferred_alleles):
+def add_inferred_alleles(inferred_alleles, loci_finder):
     """Add inferred alleles to a schema.
 
     Prameters
@@ -1247,6 +1263,9 @@ def add_inferred_alleles(inferred_alleles):
         Dictionary with paths to loci FASTA files in the schema as
         keys and paths to the FASTA files that contain the novel
         alleles as values.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -1639,7 +1658,8 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
 
 
 def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
-                         output_directory, classification_labels, cds_input):
+                         output_directory, classification_labels, cds_input,
+						 loci_finder):
     """Create Fasta file with sequences for missing data classes.
 
     Parameters
@@ -1665,6 +1685,9 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
         List with the class labels attributed by chewBBACA.
     cds_input : bool
         False if there are files with CDS coordinates, True otherwise.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -1843,7 +1866,7 @@ def count_invalid(input_ids, invalid_seqids, cds_index, distinct_htable):
     return invalid_counts
 
 
-def merge_blast_results(blast_outfiles, output_directory):
+def merge_blast_results(blast_outfiles, output_directory, loci_finder):
     """Concatenate BLAST output files based on locus identifier.
 
     Parameters
@@ -1853,6 +1876,9 @@ def merge_blast_results(blast_outfiles, output_directory):
         the locus identifier.
     output_directory : str
         Path to the output directory.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -1877,7 +1903,8 @@ def merge_blast_results(blast_outfiles, output_directory):
 
 
 def allele_calling(fasta_files, schema_directory, temp_directory,
-                   loci_modes, loci_files, config, pre_computed_dir):
+                   loci_modes, loci_files, config, pre_computed_dir,
+				   loci_finder):
     """Perform allele calling for a set of inputs.
 
     Parameters
@@ -1901,6 +1928,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     pre_computed_dir : str
         Path to the the directory that contains the files with the
         pre-computed hash tables.
+	loci_finder : re.Pattern
+		Regular expression object to search for loci identifiers
+		in paths and filenames.
 
     Returns
     -------
@@ -2361,7 +2391,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         # Concatenate files based on locus identifier included in file paths
         blast_merged_dir = fo.join_paths(blast_results_dir, ['concatenated'])
         fo.create_directory(blast_merged_dir)
-        concatenated_files = merge_blast_results(blast_files, blast_merged_dir)
+        concatenated_files = merge_blast_results(blast_files, blast_merged_dir, loci_finder)
 
         # Select best hit per target, filter based on BSR, expand matches
         # and get relevant data for classification
@@ -2762,8 +2792,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
     loci_ids = sorted(loci_ids, key=lambda x: len(x), reverse=True)
     # Create regex object to search for loci identifiers in paths/strings
     loci_finder = re.compile('|'.join(loci_ids))
-    # Define as global variable to use inside any function
-    globals()['loci_finder'] = loci_finder
 
     # Create directory to store intermediate files
     temp_directory = fo.join_paths(output_directory, ['temp'])
@@ -2800,7 +2828,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     # Perform allele calling
     results = allele_calling(input_files, schema_directory,
                              temp_directory, loci_modes.copy(),
-                             loci_to_call, config, pre_computed_dir)
+                             loci_to_call, config, pre_computed_dir,
+							 loci_finder)
 
     # Assign allele identifiers, add alleles to schema and create output files
     print(f'\n {ct.WRAPPING_UP} ')
@@ -2823,7 +2852,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                             results['int_to_unique'],
                                             output_directory,
                                             results['cds_coordinates'],
-                                            classification_labels)
+                                            classification_labels,
+											loci_finder)
     outfile, repeated_info, repeated_counts = results_contigs
 
     # Identify paralogous loci
@@ -2840,7 +2870,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
     fo.create_directory(novel_data_directory)
     assignment_inputs = list(results['classification_files'].items())
     repeated_hashes = set(repeated_info.keys())
-    assignment_inputs = [[g, ns, repeated_hashes, novel_data_directory, assign_allele_ids]
+    assignment_inputs = [[g, ns, repeated_hashes, novel_data_directory, loci_finder, assign_allele_ids]
                          for g in assignment_inputs]
 
     novel_alleles = mo.map_async_parallelizer(assignment_inputs,
@@ -2911,7 +2941,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
             if no_inferred is False:
                 print('Adding new alleles to schema...')
                 # Add inferred alleles to schema
-                alleles_added = add_inferred_alleles(updated_novel)
+                alleles_added = add_inferred_alleles(updated_novel, loci_finder)
                 # Recompute mode for loci with novel alleles
                 print(f'Updating allele size mode values stored in {loci_modes_file}')
                 for locus_novel in novel_alleles:
@@ -2929,7 +2959,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
     profiles_table = write_results_alleles(list(results['classification_files'].values()),
                                            list(results['int_to_unique'].values()),
                                            output_directory,
-                                           classification_labels[-1])
+                                           classification_labels[-1],
+										   loci_finder)
 
     # Create file with class counts per input file
     print(f'Creating file with class counts per input ({ct.RESULTS_STATISTICS_BASENAME})...')
@@ -2939,14 +2970,16 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                 output_directory,
                                                 classification_labels,
                                                 repeated_counts,
-                                                results['invalid_alleles'][1])
+                                                results['invalid_alleles'][1],
+												loci_finder)
 
     # Create file with class counts per locus called
     print(f'Creating file with class counts per locus ({ct.LOCI_STATS_BASENAME})...')
     loci_stats_file = write_loci_summary(results['classification_files'],
                                          output_directory,
                                          len(input_files),
-                                         classification_labels)
+                                         classification_labels,
+										 loci_finder)
 
     # Create FASTA file with unclassified CDSs
     if output_unclassified is True:
@@ -2968,7 +3001,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                 results['dna_hashtable'],
                                                 output_directory,
                                                 classification_labels,
-                                                config['CDS input'])
+                                                config['CDS input'],
+												loci_finder)
 
     # Create FASTA file with inferred alleles
     if len(novel_alleles) > 0 and output_novel is True:

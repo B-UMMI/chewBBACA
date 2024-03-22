@@ -6,7 +6,15 @@ About chewBBACA
 
 **chewBBACA** is a software suite for the creation and evaluation of core genome and whole genome MultiLocus Sequence 
 Typing (cg/wgMLST) schemas and results. The "BBACA" stands for "BSR-Based Allele Calling Algorithm". BSR stands for 
-BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2). The "chew" part adds extra coolness to the name and could be thought of as "Comprehensive and Highly Efficient Workflow". chewBBACA allows to define the target loci in a schema based on multiple genomes (e.g. define target loci based on the distinct loci identified in a dataset of high-quality genomes for a species or lineage of interest) and performs allele calling to determine the allelic profiles of bacterial strains, easily scaling to thousands of genomes with modest computational resources. chewBBACA includes functionalities to annotate the schema loci, compute the set of loci that constitute the core genome for a given dataset, and generate interactive reports for schema and allele calling results evaluation to enable an intuitive analysis of the results in surveillance and outbreak detection settings or population studies. Pre-defined cg/wgMLST schemas can be downloaded from [Chewie-NS ](https://chewbbaca.online/) or adapted from other cg/wgMLST platforms.
+BLAST Score Ratio as proposed by `Rasko DA et al. <http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2>`_. 
+The "chew" part adds extra coolness to the name and could be thought of as "Comprehensive and Highly Efficient Workflow". 
+chewBBACA allows to define the target loci in a schema based on multiple genomes (e.g. define target loci based on the distinct 
+loci identified in a dataset of high-quality genomes for a species or lineage of interest) and performs allele calling to determine 
+the allelic profiles of bacterial strains, easily scaling to thousands of genomes with modest computational resources. chewBBACA 
+includes functionalities to annotate the schema loci, compute the set of loci that constitute the core genome for a given dataset, 
+and generate interactive reports for schema and allele calling results evaluation to enable an intuitive analysis of the results 
+in surveillance and outbreak detection settings or population studies. Pre-defined cg/wgMLST schemas can be downloaded from 
+`Chewie-NS <https://chewbbaca.online/>`_ or adapted from other cg/wgMLST platforms.
 
 The general workflow of chewBBACA is represented in the following image:
 

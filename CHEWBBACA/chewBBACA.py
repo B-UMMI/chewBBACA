@@ -199,6 +199,10 @@ def run_create_schema():
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     args.input_files = pv.check_input_type(args.input_files, genome_list)
+	# Detect if some inputs share the same unique prefix
+	repeated_prefixes = pv.check_unique_prefixes(args.input_files)
+	# Detect if filenames include blank spaces
+	blank_spaces = pv.check_blanks(args.input_files)
 
     # Add clustering parameters
     args.word_size = ct.WORD_SIZE_DEFAULT
@@ -490,6 +494,10 @@ def run_allele_call():
 
     genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
     genome_list = pv.check_input_type(args.input_files, genome_list)
+	# Detect if some inputs share the same unique prefix
+	repeated_prefixes = pv.check_unique_prefixes(genome_list)
+	# Detect if filenames include blank spaces
+	blank_spaces = pv.check_blanks(genome_list)
 
     # Determine if schema was downloaded from Chewie-NS
     ns_config = fo.join_paths(args.schema_directory, ['.ns_config'])

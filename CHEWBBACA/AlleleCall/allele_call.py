@@ -1960,21 +1960,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     full_to_basename = im.mapping_function(fasta_files, fo.file_basename, [False])
     full_to_unique = {k: fo.split_joiner(v, [0], '.') for k, v in full_to_basename.items()}
 
-    # Detect if some inputs share the same unique prefix
-    basename_list = list(full_to_unique.values())
-    if len(set(basename_list)) < len(fasta_files):
-        basename_counts = [[basename, basename_list.count(basename)]
-                           for basename in set(basename_list)]
-        repeated_basenames = ['{0}: {1}'.format(*l)
-                              for l in basename_counts if l[1] > 1]
-        # Only delete temp directory created for each run
-        # Do not delete output directory because it might include other files
-        fo.delete_directory(temp_directory)
-        sys.exit('\nSome input files share the same filename prefix '
-                 '(substring before the first "." in the filename). '
-                 'Please make sure that every input file has a unique '
-                 'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
-
     # Create directory to store files with Pyrodigal results
     pyrodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
     fo.create_directory(pyrodigal_path)

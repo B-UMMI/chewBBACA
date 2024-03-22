@@ -1295,3 +1295,68 @@ def validate_loci_list(input_path, output_file, parent_dir=None):
         fo.write_lines(files, output_file)
 
     return output_file
+
+
+def check_unique_prefixes(input_list):
+	"""Check if all input files have an unique identifier.
+
+	Parameters
+	----------
+	input_list : str
+		Path to file that contains the list of paths to input files.
+
+	Returns
+	-------
+	False if there are no input files sharing the same identifier.
+
+	Raises
+    ------
+    SystemExit
+        - If there are multiple files sharing the same prefix.
+	"""
+	input_paths = fo.read_lines(input_list)
+	basenames = [fo.file_basename(file) for file in input_paths]
+	unique_ids = [fo.split_joiner(name, [0], '.') for name in basenames]
+
+	# Detect if some inputs share the same unique prefix
+	if len(set(unique_ids)) < len(input_paths):
+		basename_counts = [[name, basenames.count(name)]
+							for name in set(basenames)]
+		repeated_basenames = ['{0}: {1}'.format(*l)
+								for l in basename_counts if l[1] > 1]
+		sys.exit('\nSome input files share the same filename prefix '
+				'(substring before the first "." in the filename). '
+				'Please make sure that every input file has a unique '
+				'filename prefix.\n{0}'.format('\n'.join(repeated_basenames)))
+
+	return False
+
+
+def check_blank(input_list):
+	"""Check if input files do not include blank spaces in the filename.
+
+	Parameters
+	----------
+	input_list : str
+		Path to file that contains the list of paths to input files.
+
+	Returns
+	-------
+	False if there are no blank spaces in the filenames.
+
+	Raises
+    ------
+    SystemExit
+        - If there are blank spaces in any of the filenames.
+	"""
+	input_paths = fo.read_lines(input_list)
+	basenames = [fo.file_basename(file) for file in input_paths]
+	include_blanks = [name for name in basenames if ' ' in name]
+
+	if len(include_blanks) > 0:
+		sys.exit('\nThe following input files include blank spaces '
+				 'in the filename:\n{0}\nPlease ensure that filenames '
+				 'do not include blank spaces or special characters '
+				 '(e.g. !@#?$^*()+)'.format('\n'.join(include_blanks)))
+
+	return False

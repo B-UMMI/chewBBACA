@@ -4,8 +4,8 @@ Important Notes
 - chewBBACA only works with **Python 3** (automatic testing for Python 3.8-3.11
   with GitHub Actions).
 - We strongly recommend that users install and use **BLAST 2.9.0+** with chewBBACA<=3.3.2, as the files passed to ``-seqidlist`` are not converted to
-  a binary format with ``blastdb_aliastool``, which might affect performance in some cases if using BLAST>=2.10. chewBBACA>=3.3.3 determines if the files should be converted
-  to the binary format based on the BLAST version.
+  a binary format with ``blastdb_aliastool``, which might affect performance in some cases if using BLAST>=2.10. This is not an issue in chewBBACA>=3.3.3
+  because it determines if the files should be converted to the binary format based on the BLAST version.
 - chewBBACA includes Prodigal training files for some species. You can consult the list of
   Prodigal training files that are readily available `here <https://github.com/B-UMMI/chewBBACA/tree/master/CHEWBBACA/prodigal_training_files>`_.
   We strongly recommend using the same Prodigal training file for schema creation and allele calling to ensure consistent results.

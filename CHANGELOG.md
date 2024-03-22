@@ -4,7 +4,7 @@
 
 - Improved BLAST exception capturing.
 
-- CreateSchema and Allelecall exit if any of the input files include blank spaces in the filename.
+- CreateSchema and Allelecall exit if input files include blank spaces in the filename.
 
 - Removed global variable that could lead to issues during multiprocessing.
 

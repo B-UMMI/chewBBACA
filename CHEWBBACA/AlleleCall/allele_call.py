@@ -2919,7 +2919,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
             novel_fastas_directory = fo.join_paths(novel_directory, ['novel_fastas'])
             novel_rep_directory = fo.join_paths(novel_fastas_directory, ['short'])
             fo.create_directory(novel_rep_directory)
-            novel_data = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_fastas_directory)
+            novel_data = create_novel_fastas(novel_alleles, reps_info, results['dna_fasta'], novel_fastas_directory, loci_finder)
             total_inferred, total_representatives, updated_novel = novel_data
             updated_files = updated_novel
             if no_inferred is False:

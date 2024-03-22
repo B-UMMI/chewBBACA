@@ -451,12 +451,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
     # Create BLASTp database
     blast_db = fo.join_paths(final_blast_dir, ['remaining_sequences'])
-    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
-                                            quasi_schema_file,
-                                            blast_db, 'prot')
-
-    if len(db_stderr) > 0:
-        sys.exit(db_stderr)
+    db_std = bw.make_blast_db(makeblastdb_path, quasi_schema_file, blast_db, 'prot')
 
     # Divide FASTA file into groups of 100 sequences to reduce
     # execution time for large sequence sets
@@ -481,10 +476,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
                                               mo.function_helper,
                                               cpu_cores,
                                               show_progress=True)
-
-    blast_stderr = im.flatten_list([r[1] for r in blast_results])
-    if len(blast_stderr) > 0:
-        sys.exit(blast_stderr)
 
     # Concatenate files with BLASTp results
     blast_output = fo.join_paths(final_blast_dir, ['blast_out_concat.tsv'])

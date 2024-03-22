@@ -478,18 +478,15 @@ def cluster_blaster(seqids, sequences, output_directory,
 
         if blastdb_aliastool_path is not None:
             binary_file = f'{ids_file}.bin'
-            bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                     ids_file,
-                                     binary_file)
+            blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                        			             ids_file,
+                                    			 binary_file)
             ids_file = binary_file
 
         # Use subprocess to capture errors and warnings
-        stdout, stderr = bw.run_blast(blast_path, blastdb_path, fasta_file,
-                                      blast_output, 1, 1,
-                                      ids_file)
-
-        if len(stderr) > 0:
-            raise ValueError('\n'.join(stderr))
+        blast_std = bw.run_blast(blast_path, blastdb_path, fasta_file,
+                                 blast_output, 1, 1,
+                                 ids_file)
 
         out_files.append(blast_output)
 

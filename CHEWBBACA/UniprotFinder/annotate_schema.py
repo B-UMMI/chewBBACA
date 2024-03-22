@@ -215,9 +215,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
         # create BLASTdb with proteome sequences
         proteome_blastdb = fo.join_paths(proteomes_directory,
                                          ['proteomes_db'])
-        db_stdout, db_stderr = bw.make_blast_db('makeblastdb',
-                                                proteomes_concat,
-                                                proteome_blastdb, 'prot')
+        db_std = bw.make_blast_db('makeblastdb', proteomes_concat, proteome_blastdb, 'prot')
 
         # BLASTp to determine annotations
         blast_inputs = [[blastp_path, proteome_blastdb, file, file+'_blastout.tsv',

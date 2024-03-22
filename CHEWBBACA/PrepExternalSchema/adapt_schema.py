@@ -263,9 +263,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 
             # create blastdb with all distinct proteins
             blastp_db = os.path.join(locus_temp_dir, locus_id)
-            db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
-                                                    protein_file,
-                                                    blastp_db, 'prot')
+            db_std = bw.make_blast_db(makeblastdb_path, protein_file, blastp_db, 'prot')
 
             # determine appropriate blastp task (proteins < 30aa need blastp-short)
             blastp_task = bw.determine_blast_task(equal_prots)
@@ -287,9 +285,9 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
                 fo.write_to_file(ids_str, ids_file, 'w', '')
                 if blastdb_aliastool_path is not None:
                     binary_file = f'{ids_file}.bin'
-                    bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                            ids_file,
-                                            binary_file)
+                    blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                			             ids_file,
+                                            			 binary_file)
                     ids_file = binary_file
 
                 # BLAST representatives against non-represented
@@ -297,11 +295,9 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
                                              [f'{locus_id}_blast_out.tsv'])
                 # Set 'max_target_seqs' to huge number because BLAST only
                 # returns 500 hits by default
-                blast_stdout, blast_stderr = bw.run_blast(blastp_path, blastp_db, rep_file,
-                                                          blast_output, 1, 1, ids_file,
-                                                          blastp_task, 100000)
-                if len(blast_stderr) > 0:
-                    raise ValueError(blast_stderr)
+                blast_std = bw.run_blast(blastp_path, blastp_db, rep_file,
+                                         blast_output, 1, 1, ids_file,
+                                         blastp_task, 100000)
 
                 # Import BLAST results
                 blast_results = fo.read_tabular(blast_output)

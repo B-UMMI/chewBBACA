@@ -1332,7 +1332,7 @@ def check_unique_prefixes(input_list):
 	return False
 
 
-def check_blank(input_list):
+def check_blanks(input_list):
 	"""Check if input files do not include blank spaces in the filename.
 
 	Parameters

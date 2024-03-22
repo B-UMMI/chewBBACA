@@ -1796,18 +1796,18 @@ def select_representatives(representative_candidates, locus, fasta_file,
     # Convert to binary format if BLAST>=2.10
     if blastdb_aliastool_path is not None:
         binary_file = f'{ids_file}.bin'
-        bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                 ids_file,
-                                 binary_file)
+        blastp_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                                 			  ids_file,
+                                 			  binary_file)
         ids_file = binary_file
 
     # BLASTp to compare all candidates
     blast_output = fo.join_paths(output_directory,
                                  ['{0}_candidates_{1}_blastout.tsv'.format(locus, iteration)])
     # Define -max_target_seqs to reduce execution time
-    blastp_stdout, blastp_stderr = bw.run_blast(blastp_path, blast_db, fasta_file,
-                                                blast_output, threads=threads,
-                                                ids_file=ids_file, max_targets=100)
+    blastp_std = bw.run_blast(blastp_path, blast_db, fasta_file,
+                              blast_output, threads=threads,
+                              ids_file=ids_file, max_targets=100)
 
     blast_results = fo.read_tabular(blast_output)
     # Get self-score for all candidates
@@ -2473,8 +2473,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
     blast_db_dir = fo.join_paths(iterative_rep_dir, ['BLASTp_db'])
     fo.create_directory(blast_db_dir)
     blast_db = fo.join_paths(blast_db_dir, ['unclassified_proteins'])
-    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path, remaining_seqs_file,
-                                            blast_db, 'prot')
+    db_std = bw.make_blast_db(makeblastdb_path, remaining_seqs_file, blast_db, 'prot')
 
     # Map representative allele header to locus ID
     rep_recs = fao.sequence_generator(concat_reps)
@@ -2502,9 +2501,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         fo.write_lines(unclassified_seqids, remaining_seqids_file)
         if blastdb_aliastool_path is not None:
             binary_file = f'{remaining_seqids_file}.bin'
-            bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                     remaining_seqids_file,
-                                     binary_file)
+            blastp_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                         			              remaining_seqids_file,
+                                     			  binary_file)
             remaining_seqids_file = binary_file
 
         # BLAST representatives against unclassified sequences

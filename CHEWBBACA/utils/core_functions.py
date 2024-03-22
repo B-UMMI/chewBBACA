@@ -759,10 +759,7 @@ def blast_clusters(clusters, sequences, output_directory,
     fo.create_directory(blast_db_dir)
     # Create BLAST DB
     blast_db = fo.join_paths(blast_db_dir, ['distinct_proteins'])
-    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path, sequences,
-                                            blast_db, 'prot')
-    if len(db_stderr) > 0:
-        sys.exit(db_stderr)
+    db_std = bw.make_blast_db(makeblastdb_path, sequences, blast_db, 'prot')
 
     blastp_results_dir = os.path.join(output_directory, 'BLASTp_outfiles')
     fo.create_directory(blastp_results_dir)
@@ -841,10 +838,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
     fo.create_directory(blast_db_dir)
     blast_db = fo.join_paths(blast_db_dir, [fo.file_basename(fasta_file, False)])
     # Will not work if file contains duplicates
-    db_stdout, db_stderr = bw.make_blast_db(makeblastdb_path,
-                                            fasta_file,
-                                            blast_db,
-                                            db_type)
+    db_std = bw.make_blast_db(makeblastdb_path, fasta_file, blast_db, db_type)
 
     # Split Fasta file to BLAST short sequences (<30aa) separately
     # only possible to have alleles <30aa with non-default schemas
@@ -874,9 +868,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
             binary_seqid_files = []
             for file in seqids_files:
                 binary_file = f'{file}.bin'
-                bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                         file,
-                                         binary_file)
+                blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                            			             file,
+                                        			 binary_file)
                 binary_seqid_files.append(binary_file)
             seqids_files = binary_seqid_files
     # This should not happen or be very rare, but just in case
@@ -904,9 +898,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         fo.write_lines(seqids, seqids_file)
         if blastdb_aliastool_path is not None:
             binary_file = f'{seqids_file}.bin'
-            bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                     seqids_file,
-                                     binary_file)
+            blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                        			             seqids_file,
+                                    			 binary_file)
             seqids_file = binary_file
 
         below_blastout = '{0}/{1}_blastout.tsv'.format(final_blastp_dir,
@@ -921,10 +915,6 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
                                               mo.function_helper,
                                               blast_threads,
                                               show_progress=False)
-
-    blast_stderr = im.flatten_list([r[1] for r in blast_results])
-    if len(blast_stderr) > 0:
-        sys.exit(blast_stderr)
 
     # Concatenate files with BLASTp results
     blast_output = fo.join_paths(final_blastp_dir, ['blastout_concat.tsv'])
@@ -959,16 +949,16 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
             fo.write_lines([current_rep.id], id_file)
             if blastdb_aliastool_path is not None:
                 binary_file = f'{id_file}.bin'
-                bw.run_blastdb_aliastool(blastdb_aliastool_path,
-                                         id_file,
-                                         binary_file)
+                blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+                            			             id_file,
+                                        			 binary_file)
                 id_file = binary_file
 
             rep_blastout = fo.join_paths(output_directory, [f'{current_rep.id}_blastout.tsv'])
             # Cannot get self-alignemnt for some sequences if composition-based stats is enabled
-            blast_stdout, blast_stderr = bw.run_blast(blast_path, blast_db, rep_file,
-                                                      rep_blastout, 1, 1,
-                                                      id_file, 'blastp', None, 0)
+            blast_std = bw.run_blast(blast_path, blast_db, rep_file,
+                                     rep_blastout, 1, 1,
+                                     id_file, 'blastp', None, 0)
             rep_results = fo.read_tabular(rep_blastout)
             if len(rep_results) > 0:
                 dna_length = (int(rep_results[0][3])*3)+3

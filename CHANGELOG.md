@@ -2,7 +2,7 @@
 
 ## 3.3.3 - 2024-02-23
 
-- Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.9, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.
+- Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.10, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.
 
 - The `Bio.Application` modules are deprecated and might be removed from future Biopython versions. Modified the function that calls MAFFT so that it uses the subprocess module instead of `Bio.Align.Applications.MafftCommandline`. Changed the Biopython version requirement to >=1.79.
 

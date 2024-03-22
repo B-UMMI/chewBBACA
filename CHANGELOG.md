@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.4 - 2024-03-22
+
+- Improved BLAST exception capturing.
+
+- CreateSchema and Allelecall exit if any of the input files include blank spaces in the filename.
+
+- Removed global variable that could lead to issues during multiprocessing.
+
 ## 3.3.3 - 2024-02-23
 
 - Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.10, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.

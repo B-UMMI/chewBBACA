@@ -9,43 +9,21 @@
 
 # chewBBACA
 
-**chewBBACA** stands for "BSR-Based Allele Calling Algorithm". The "chew" part could be thought of as "Comprehensive and  Highly Efficient Workflow" 
-but at this point it still needs a bit of work to make that claim, so we just add "chew" to add extra coolness to the software name. BSR stands for 
-BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2) 
-
-chewBBACA is a comprehensive pipeline including a set of functions for the creation and validation of whole genome and core genome MultiLocus Sequence 
-Typing (wg/cgMLST) schemas, providing an allele calling algorithm based on Blast Score Ratio that can be run in multiprocessor 
-settings and a set of functions to visualize and validate allele variation in the loci. chewBBACA performs the schema creation and allele calls on complete or draft genomes.
+**chewBBACA** is a software suite for the creation and evaluation of core genome and whole genome MultiLocus Sequence 
+Typing (cg/wgMLST) schemas and results. The "BBACA" stands for "BSR-Based Allele Calling Algorithm". BSR stands for 
+BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-6-2). The "chew" part adds extra coolness to the name and could be thought of as "Comprehensive and Highly Efficient Workflow". chewBBACA allows to define the target loci in a schema based on multiple genomes (e.g. define target loci based on the distinct loci identified in a dataset of high-quality genomes for a species or lineage of interest) and performs allele calling to determine the allelic profiles of bacterial strains, easily scaling to thousands of genomes with modest computational resources. chewBBACA includes functionalities to annotate the schema loci, compute the set of loci that constitute the core genome for a given dataset, and generate interactive reports for schema and allele calling results evaluation to enable intuitive analysis of the results in surveillance and outbreak detection settings or population studies. Pre-defined cg/wgMLST schemas can be downloaded from [Chewie-NS ](https://chewbbaca.online/) or adapted from other cg/wgMLST platforms.
 
 ### Check the [documentation](https://chewbbaca.readthedocs.io/en/latest/index.html) for implementation details and guidance on using chewBBACA.
 
 ## News
 
-## 3.3.3 - 2024-02-23
+## 3.3.4 - 2024-03-22
 
-- Fixed warning related with BLASTp `--seqidlist` parameter. For BLAST>=2.10, the TXT file with the sequence IDs is converted to binary format with `blastdb_aliastool`.
+- Improved BLAST exception capturing.
 
-- The `Bio.Application` modules are deprecated and might be removed from future Biopython versions. Modified the function that calls MAFFT so that it uses the subprocess module instead of `Bio.Align.Applications.MafftCommandline`. Changed the Biopython version requirement to >=1.79.
+- CreateSchema and Allelecall exit if any of the input files include blank spaces in the filename.
 
-- Added a `pyproject.toml` configuration file and simplified the instructions in `setup.py`. The use of `setup.py` as a command line tool is deprecated and the `pyproject.toml` configuration file allows to install and build packages through the recommended method.
-
-- Updated the Dockerfile to install chewBBACA with `python3 -m pip install .` instead of the deprecated `python setup.py install` command.
-
-- Removed FASTA header integer conversion before running BLASTp. This was done to avoid a warning from BLAST related to sequence header length exceeding 50 characters.
-
-- The seqids and coordinates of the CDSs closest to contig tips are stored in a dictionary during gene prediction to simplify LOTSC and PLOT5/3 determination (in many cases this reduces runtime by ~20%).
-
-- Limited the number of values stored in memory while creating the `results_contigsInfo.tsv` and `results_alleles.tsv` output files to reduce memory usage.
-
-- Adding data to the FASTA and TSV files for the missing classes per locus instead of storing the complete per input data to reduce memory usage.
-
-- The data for novel alleles is saved to files to reduce memory usage.
-
-- Fixed the in-frame stop codon count values displayed in the reports created by the SchemaEvaluator module.
-
-- The `UniprotFinder` module now exits cleanly if the output directory already exists.
-
-- Improved info printed to the stdout by the CreateSchema and AlleleCall modules, added comments, and changed variable names to better match data being stored.
+- Removed global variable that could lead to issues during multiprocessing.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

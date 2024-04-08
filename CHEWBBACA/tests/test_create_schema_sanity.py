@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+This script contains tests to verify that the CreateSchema module works as expected.
+"""
+
 
 import py
 import os
@@ -14,16 +18,29 @@ from unittest.mock import patch
 from CHEWBBACA import chewBBACA
 
 
-def pickle_loader(pickle_in):
+def pickle_loader(input_file):
+    """Use the Pickle module to de-serialize an object.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to file with byte stream to be de-serialized.
+
+    Returns
+    -------
+    content : type
+        Variable that refers to the de-serialized
+        object.
     """
-    """
+    with open(input_file, 'rb') as pinfile:
+        content = pickle.load(pinfile)
 
-    with open(pickle_in, 'rb') as pi:
-        data = pickle.load(pi)
-
-    return data
+    return content
 
 
+# Test successful process
+# 1) With a path to a folder that contains FASTA files
+# 2) With a path to a file that contains a list of paths to FASTA files
 @pytest.mark.parametrize(
     'test_args, expected',
     [(['chewBBACA.py', 'CreateSchema',
@@ -36,6 +53,12 @@ def pickle_loader(pickle_in):
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
       'data/createschema_data/expected_results'),
+	 (['chewBBACA.py', 'CreateSchema',
+       '-i', 'data/createschema_data/mock_cds_dir',
+       '-o', 'createschema_results',
+       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn',
+	   '--cds-input'],
+      'data/createschema_data/expected_results'),
      ])
 def test_createschema_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
@@ -43,24 +66,25 @@ def test_createschema_valid(test_args, expected):
         chewBBACA.main()
         stdout, stderr = capture.reset()
 
-    # check output files
+    # Check schema files
+	# Schema created by test
     schema_seed = os.path.join(test_args[5], 'schema_seed')
     output_files = [os.path.join(schema_seed, file)
                     for file in os.listdir(schema_seed)
                     if 'short' not in file]
     output_files.sort()
-
+	# Expected schema data
     expected_seed = os.path.join(expected, 'schema_seed')
     expected_files = [os.path.join(expected_seed, file)
                       for file in os.listdir(expected_seed)
                       if 'short' not in file]
     expected_files.sort()
 
-    # get config files
+    # Get config values
     genes_lists = [output_files.pop(0), expected_files.pop(0)]
     schemas_configs = [output_files.pop(0), expected_files.pop(0)]
 
-    # compare configs
+    # Compare lists of loci
     assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
     # Read config values
     # Ignore chewBBACA version value
@@ -70,24 +94,25 @@ def test_createschema_valid(test_args, expected):
     del configs2['chewBBACA_version']
     assert configs1 == configs2
 
+	# Group test schema and expected schema files based on basename
     files = output_files + expected_files
     basename_dict = {}
     for f in files:
         basename = os.path.basename(f)
         basename_dict.setdefault(basename, []).append(f)
 
-    # assert that files in each pair are equal
+    # Assert that files in each pair are equal
     file_cmps = []
     for k, v in basename_dict.items():
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
 
-    # delete results
+    # Delete output folder or next test might fail
     try:
         shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
+    except Exception as exc_msg:
+        print(exc_msg)
 
 
 @pytest.mark.parametrize(
@@ -119,16 +144,14 @@ def test_createschema_valid(test_args, expected):
        '-i', 'data/createschema_data/genome_dir_with_header_fasta_only',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      '\nCould not predict gene sequences from any '
-      'of the input files.\nPlease provide input files '
-      'in the accepted FASTA format.'),
+      'Could not predict CDSs from any of the input files.'
+	  '\nPlease provide input files in the accepted FASTA format.'),
      (['chewBBACA.py', 'CreateSchema',
        '-i', 'data/createschema_data/invalid_genome_dir',
        '-o', 'createschema_results',
        '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      '\nCould not predict gene sequences from any '
-      'of the input files.\nPlease provide input files '
-      'in the accepted FASTA format.')
+      'Could not predict CDSs from any of the input files.'
+	  '\nPlease provide input files in the accepted FASTA format.')
      ])
 def test_createschema_empty_pairs(test_args, expected):
     with pytest.raises(SystemExit) as e:
@@ -136,10 +159,11 @@ def test_createschema_empty_pairs(test_args, expected):
             chewBBACA.main()
 
     assert e.type == SystemExit
+	# Check that the exit message includes expected message
     assert expected in e.value.code
 
-    # delete results
+    # Delete output folder or next test might fail
     try:
         shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
+    except Exception as exc_msg:
+        print(exc_msg)

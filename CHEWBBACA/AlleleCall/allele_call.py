@@ -830,7 +830,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 def write_results_statistics(classification_files, input_identifiers,
                              cds_counts, output_directory, classification_labels,
-                             repeated_counts, invalid_counts, loci_finder):
+                             repeated_counts, invalid_data, loci_finder):
     """Write a TSV file with classification counts per input.
 
     Parameters
@@ -853,7 +853,7 @@ def write_results_statistics(classification_files, input_identifiers,
     repeated_counts : dict
         Dictionary with input identifiers as keys and the total
         number of times a CDS matches multiple loci -1 as values.
-    invalid_counts : dict
+    invalid_data : dict
         Dictionary with input identifiers as keys and the total
         number of invalid CDSs as values.
 	loci_finder : re.Pattern
@@ -890,7 +890,7 @@ def write_results_statistics(classification_files, input_identifiers,
     # Subtract number of times a CDS is repeated and add invalid CDSs per input
     for i in class_counts:
         class_counts[i]['Classified_CDSs'] -= repeated_counts[i]
-        class_counts[i]['Invalid CDSs'] = invalid_counts[i]
+        class_counts[i]['Invalid CDSs'] = 0 if invalid_data is None else invalid_data[1][i]
     # Initialize with header line
     header_line = ['FILE'] + classification_labels + ['Invalid CDSs', 'Classified_CDSs', 'Total_CDSs']
     lines = [header_line]
@@ -1992,9 +1992,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
             print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
         if len(cds_fastas) == 0:
-            sys.exit('\nCould not predict CDSs for any '
-                     'of the input files.\nPlease provide input files '
-                     'in the accepted FASTA format.')
+            sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
         print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
     # Inputs are Fasta files with the predicted CDSs
@@ -2954,7 +2952,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                 output_directory,
                                                 classification_labels,
                                                 repeated_counts,
-                                                results['invalid_alleles'][1],
+                                                results['invalid_alleles'],
 												loci_finder)
 
     # Create file with class counts per locus called

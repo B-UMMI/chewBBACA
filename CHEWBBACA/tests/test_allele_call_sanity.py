@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-
+This script contains tests to verify that the AlleleCall module works as expected.
 """
 
 
@@ -26,15 +26,23 @@ args_template = ['chewBBACA.py', 'AlleleCall',
 @pytest.mark.parametrize(
         'test_args, expected',
         [(args_template,
-         'data/allelecall_data/test_results'),
+         'data/allelecall_data/test_results/mode4'),
+		(args_template+['--mode', '1'],
+          'data/allelecall_data/test_results/mode1'),
+		(args_template+['--mode', '2'],
+          'data/allelecall_data/test_results/mode2'),
+		(args_template+['--mode', '3'],
+          'data/allelecall_data/test_results/mode3'),
+		(args_template[0:3]+['data/allelecall_data/test_cds_input']+args_template[4:]+['--cds-input'],
+          'data/allelecall_data/test_results/mode4'),
+        (args_template[0:3]+['data/allelecall_data/test_genomes_list/test_genomes.txt']+args_template[4:],
+          'data/allelecall_data/test_results/mode4'),
         (args_template+['--gl', 'data/allelecall_data/test_genes_list/test_genes_extension.txt'],
          'data/allelecall_data/test_genes_list/test_genes_results'),
         (args_template+['--gl', 'data/allelecall_data/test_genes_list/test_genes_no_extension.txt'],
          'data/allelecall_data/test_genes_list/test_genes_results'),
         (args_template+['--gl', 'data/allelecall_data/test_genes_list/test_genes_path.txt'],
          'data/allelecall_data/test_genes_list/test_genes_results'),
-        (args_template[0:3]+['data/allelecall_data/test_genomes_list/test_genomes.txt']+args_template[4:],
-          'data/allelecall_data/test_results')
         ])
 def test_allelecall_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
@@ -42,34 +50,36 @@ def test_allelecall_valid(test_args, expected):
         chewBBACA.main()
         stdout, stderr = capture.reset()
 
-    # check output files
+    # Get paths to output files
     for root, dirs, files in os.walk(test_args[7]):
         output_files = [os.path.join(root, file)
                         for file in files
                         if 'logging_info.txt' != file]
 
+	# Get paths to files with expected results
     expected_files = [os.path.join(expected, file)
                       for file in os.listdir(expected)
                       if 'logging_info.txt' != file]
 
+	# Group test results and expected results based on basename
     files = output_files + expected_files
     basename_dict = {}
     for f in files:
         basename = os.path.basename(f)
         basename_dict.setdefault(basename, []).append(f)
 
-    # assert that files in each pair are equal
+    # Assert that files in each pair are equal
     file_cmps = []
     for k, v in basename_dict.items():
         file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
     assert all(file_cmps) is True
 
-    # delete results
+	# Delete output folder or next test might fail
     try:
         shutil.rmtree(test_args[7])
-    except Exception as e2:
-        pass
+    except Exception as exc_msg:
+        print(exc_msg)
 
 
 @pytest.mark.parametrize(

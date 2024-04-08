@@ -217,9 +217,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
             print('Make sure that Prodigal runs in meta mode (--pm meta) '
                   'if any input file has less than 100kbp.')
         if len(cds_fastas) == 0:
-            sys.exit('\nCould not predict gene sequences from any '
-                     'of the input files.\nPlease provide input files '
-                     'in the accepted FASTA format.')
+            sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
         print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
     # Inputs are Fasta files with the predicted CDSs

@@ -226,6 +226,9 @@ BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
 # BLAST outfmt
 BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
 
+# Input file prefix maximum length
+PREFIX_MAXLEN = 30
+
 # Dictionary template to map variables returned by AlleleCall
 ALLELECALL_DICT = {'classification_files': None,
                    'basename_map': None,
@@ -497,3 +500,9 @@ LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes t
 
 # Path for PTF does not exist
 INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'
+
+# Could not predict CDSs for input FASTA files
+# e.g. files only contain sequence headers, contain invalid
+# sequences/chars or pyrodigal cannot predict any genes
+CANNOT_PREDICT = ('Could not predict CDSs from any of the input files.'
+				  '\nPlease provide input files in the accepted FASTA format.')

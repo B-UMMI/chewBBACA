@@ -1297,6 +1297,29 @@ def validate_loci_list(input_path, output_file, parent_dir=None):
     return output_file
 
 
+def get_file_prefixes(path_list):
+	"""Determine the file prefix for each file in a list of file paths.
+
+	Parameters
+	----------
+	path_list : list
+		List with file paths.
+
+	Returns
+	-------
+	prefixes :  dict
+		Dictionary with file prefixes as keys and file basenames
+		as values.
+	"""
+	basenames = [fo.file_basename(file) for file in path_list]
+	prefixes = {}
+	for name in basenames:
+		prefix = fo.split_joiner(name, [0], '.')
+		prefixes.setdefault(prefix, []).append(name)
+
+	return prefixes
+
+
 def check_unique_prefixes(input_list):
 	"""Check if all input files have an unique identifier.
 
@@ -1315,15 +1338,11 @@ def check_unique_prefixes(input_list):
         - If there are multiple files sharing the same prefix.
 	"""
 	input_paths = fo.read_lines(input_list)
-	basenames = [fo.file_basename(file) for file in input_paths]
-	unique_ids = {}
-	for name in basenames:
-		prefix = fo.split_joiner(name, [0], '.')
-		unique_ids.setdefault(prefix, []).append(name)
+	prefixes = get_file_prefixes(input_paths)
 
 	# Detect if some inputs share the same unique prefix
-	if len(set(unique_ids)) < len(input_paths):
-		repeated_basenames = [v for k, v in unique_ids.items() if len(v) > 1]
+	if len(set(prefixes)) < len(input_paths):
+		repeated_basenames = [v for k, v in prefixes.items() if len(v) > 1]
 		repeated_basenames = [','.join(l) for l in repeated_basenames]
 		sys.exit('The following input files share the same filename prefix '
 				 '(substring before the first "." in the filename):\n{0}\n'
@@ -1359,5 +1378,37 @@ def check_blanks(input_list):
 				 'in the filename:\n{0}\nPlease ensure that filenames '
 				 'do not include blank spaces or special characters '
 				 '(e.g. !@#?$^*()+)'.format('\n'.join(include_blanks)))
+
+	return False
+
+
+def check_prefix_length(input_list):
+	"""Check if input file prefixes are not longer than 30 characters.
+
+	Parameters
+	----------
+	input_list : str
+		Path to file that contains the list of paths to input files.
+
+	Returns
+	-------
+	False if there are no input files with a unique identifier with
+	more than 30 characters.
+
+	Raises
+    ------
+    SystemExit
+        - If any input file has a unique identifier with more than 30 characters.
+	"""
+	input_paths = fo.read_lines(input_list)
+	prefixes = get_file_prefixes(input_paths)
+	long_prefixes = {k: v for k, v in prefixes.items() if len(k) > ct.PREFIX_MAXLEN}
+	# Exit if any file prefix is longer than 30 characters
+	if len(long_prefixes) > 0:
+		long_prefixes_msg = [f'{v[0]} ({k}, {len(k)} chars)' for k, v in long_prefixes.items()]
+		long_prefixes_msg = '\n'.join(long_prefixes_msg)
+		sys.exit('The following input files have a prefix longer than '
+				 f'30 characters:\n{long_prefixes_msg}\nPlease make sure '
+				 'that input files have a shorter and unique prefix.')
 
 	return False

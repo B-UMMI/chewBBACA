@@ -54,12 +54,11 @@ def test_allelecall_valid(test_args, expected):
     for root, dirs, files in os.walk(test_args[7]):
         output_files = [os.path.join(root, file)
                         for file in files
-                        if 'logging_info.txt' != file]
+						if 'logging_info.txt' != file]
 
 	# Get paths to files with expected results
     expected_files = [os.path.join(expected, file)
-                      for file in os.listdir(expected)
-                      if 'logging_info.txt' != file]
+                      for file in os.listdir(expected)]
 
 	# Group test results and expected results based on basename
     files = output_files + expected_files
@@ -71,9 +70,10 @@ def test_allelecall_valid(test_args, expected):
     # Assert that files in each pair are equal
     file_cmps = []
     for k, v in basename_dict.items():
-        file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
+		assert filecmp.cmp(v[0], v[1], shallow=False) is True
+        #file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
 
-    assert all(file_cmps) is True
+    #assert all(file_cmps) is True
 
 	# Delete output folder or next test might fail
     try:

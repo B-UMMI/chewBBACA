@@ -5,7 +5,6 @@ This script contains tests to verify that the CreateSchema module works as expec
 """
 
 
-import py
 import os
 import sys
 import shutil
@@ -62,9 +61,7 @@ def pickle_loader(input_file):
      ])
 def test_createschema_valid(test_args, expected):
     with patch.object(sys, 'argv', test_args):
-        capture = py.io.StdCapture()
         chewBBACA.main()
-        stdout, stderr = capture.reset()
 
     # Check schema files
 	# Schema created by test

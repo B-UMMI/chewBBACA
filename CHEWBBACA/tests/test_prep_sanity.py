@@ -6,7 +6,6 @@
 
 
 import os
-import py
 import sys
 import pickle
 import pytest
@@ -103,9 +102,7 @@ def test_prep_invalid_input(test_args, expected):
 )
 def test_prep_valid_input(test_args, expected):
     with patch.object(sys, 'argv', test_args):
-        capture = py.io.StdCapture()
         chewBBACA.main()
-        stdout, stderr = capture.reset()
 
     # check output files
     output_files = [os.path.join(test_args[5], file)

@@ -2033,8 +2033,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
         failed_outfile = fo.join_paths(os.path.dirname(temp_directory),
                                        ['gene_prediction_failures.tsv'])
         fo.write_lines(failed_lines, failed_outfile)
-    if len(cds_coordinates) > 0:
-        template_dict['cds_coordinates'] = cds_coordinates
+
+    template_dict['cds_coordinates'] = cds_coordinates
 
     # Map input identifiers to integers
     # Use the mapped integers to refer to each input

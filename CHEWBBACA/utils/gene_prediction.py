@@ -227,6 +227,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
     # Extract data from Gene objects
     protid = 1
     gene_info = []
+	# Store data about first and last CDS in each sequence to speedup PLOT classification
     close_to_tip = {genome_basename: {}}
     for recid, genes in contig_genes.items():
         data = get_gene_info(recid, genome_basename, protid, genes)
@@ -237,6 +238,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
             if first_cds != data[0][-1]:
                 last_cds = data[0][-1]
                 close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[3]], int(last_cds[4]), int(last_cds[5]), last_cds[-1]))
+		# Reset protid based on the number of CDSs predicted for the sequence
         protid = data[1]
 
     total_genome = len(gene_info)

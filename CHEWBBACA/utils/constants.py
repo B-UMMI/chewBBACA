@@ -506,3 +506,156 @@ INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'
 # sequences/chars or pyrodigal cannot predict any genes
 CANNOT_PREDICT = ('Could not predict CDSs from any of the input files.'
 				  '\nPlease provide input files in the accepted FASTA format.')
+
+# Test variables used by pytest
+# AlleleCall default test command
+ALLELECALL_TEST_GENOME_TEMPLATE = ['chewBBACA.py', 'AlleleCall',
+				 				   '-i', 'data/allelecall_data/test_genome',
+				 				   '-g', 'data/allelecall_data/sagalactiae_schema',
+				 				   '-o', 'allelecall_results']
+
+ALLELECALL_TEST_DEFAULT = ALLELECALL_TEST_GENOME_TEMPLATE[:]
+ALLELECALL_TEST_MODE1 = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--mode', '1']
+ALLELECALL_TEST_MODE2 = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--mode', '2']
+ALLELECALL_TEST_MODE3 = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--mode', '3']
+ALLELECALL_TEST_MODE4 = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--mode', '4']
+
+ALLELECALL_TEST_CDS_TEMPLATE = ['chewBBACA.py', 'AlleleCall',
+				 				'-i', 'data/allelecall_data/test_cds_input',
+				 				'-g', 'data/allelecall_data/sagalactiae_schema',
+				 				'-o', 'allelecall_results',
+								'--cds-input']
+
+ALLELECALL_TEST_CDS_DEFAULT = ALLELECALL_TEST_CDS_TEMPLATE[:]
+ALLELECALL_TEST_CDS_MODE1 = ALLELECALL_TEST_CDS_TEMPLATE[:]+['--mode', '1']
+ALLELECALL_TEST_CDS_MODE2 = ALLELECALL_TEST_CDS_TEMPLATE[:]+['--mode', '2']
+ALLELECALL_TEST_CDS_MODE3 = ALLELECALL_TEST_CDS_TEMPLATE[:]+['--mode', '3']
+ALLELECALL_TEST_CDS_MODE4 = ALLELECALL_TEST_CDS_TEMPLATE[:]+['--mode', '4']
+
+ALLELECALL_TEST_GENOME_LIST = ['chewBBACA.py', 'AlleleCall',
+				 			   '-i', 'data/allelecall_data/test_genomes_list/test_genomes.txt',
+				 			   '-g', 'data/allelecall_data/sagalactiae_schema',
+				 			   '-o', 'allelecall_results']
+
+ALLELECALL_TEST_LOCI_IDS_EXTENSION = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--gl', 'data/allelecall_data/test_genes_list/test_genes_extension.txt']
+ALLELECALL_TEST_LOCI_IDS_NOEXTENSION = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--gl', 'data/allelecall_data/test_genes_list/test_genes_no_extension.txt']
+ALLELECALL_TEST_LOCI_PATHS = ALLELECALL_TEST_GENOME_TEMPLATE[:]+['--gl', 'data/allelecall_data/test_genes_list/test_genes_path.txt']
+
+ALLELECALL_TEST_EMPTY_DIR = ['chewBBACA.py', 'AlleleCall',
+		   					 '-i', 'empty_dir',
+		   					 '-g', 'data/allelecall_data/sagalactiae_schema',
+		   					 '-o', 'allelecall_results']
+
+ALLELECALL_TEST_EMPTY_FILES = ['chewBBACA.py', 'AlleleCall',
+		   					   '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
+		   					   '-g', 'data/allelecall_data/sagalactiae_schema',
+		   					   '-o', 'allelecall_results']
+
+ALLELECALL_TEST_ZERO_BYTES = ['chewBBACA.py', 'AlleleCall',
+		   					  '-i', 'data/createschema_data/zero_bytes_pair',
+		   					  '-g', 'data/allelecall_data/sagalactiae_schema',
+		   					  '-o', 'allelecall_results']
+
+ALLELECALL_TEST_FAKE_PATH = ['chewBBACA.py', 'AlleleCall',
+		   					 '-i', 'this/path/aint/real',
+		   					 '-g', 'data/allelecall_data/sagalactiae_schema',
+		   					 '-o', 'allelecall_results']
+
+INVALID_BSR = ('\nBSR value is not contained in the [0.0, 1.0] interval.')
+INVALID_BSR_TYPE = ('\nInvalid BSR value of {0}. BSR value must be contained in the [0.0, 1.0] interval.')
+
+INVALID_MINLEN = ('\nInvalid minimum sequence length value. Must be equal or greater than 0.')
+INVALID_MINLEN_TYPE = ('\nInvalid minimum sequence length value. Value must be a positive integer.')
+
+INVALID_ST = ('\nInvalid size threshold value. Must be contained in the [0.0, 1.0] interval.')
+INVALID_ST_TYPE = ('\nInvalid size threshold value used to create schema. Value must be None or a positive float in the [0.0, 1.0] interval.')
+
+INVALID_GENETIC_CODE = ('\nInvalid genetic code value.\nValue must correspond to '
+                 		'one of the accepted genetic codes\n\nAccepted genetic '
+                 		'codes:\n{0}')
+
+INVALID_WS = ('\nWord size for the clustering step '
+                     'must be equal or greater than {0} and '
+                     'equal or smaller than {1}.')
+INVALID_WS_TYPE = ('\nSchema created with invalid clustering word size value.')
+
+INVALID_CS = ('\nClustering similarity threshold value '
+              'must be contained in the [0.0, 1.0] '
+              'interval.')
+INVALID_CS_TYPE = ('\nSchema created with invalid clustering threshold value.')
+
+INVALID_RF = ('\nRepresentative filter threshold value '
+              'must be contained in the [0.0, 1.0] '
+              'interval.')
+INVALID_RF_TYPE = ('\nSchema created with invalid representative filter value.')
+
+INVALID_ICF = ('\nIntra-cluster filter value '
+               'must be contained in the [0.0, 1.0] '
+               'interval.')
+INVALID_ICF_TYPE = ('\nSchema created with invalid intra-cluster filter value.')
+
+NS_CANNOT_CONNECT = ('Failed to establish a connection to the Chewie-NS instance at {0}.')
+
+PYTHON_VERSION = ('Python version found: {0}\nPlease use Python >= {1}')
+
+CPU_RESET_WARNING = ('Warning! You have provided a CPU core count value '
+             		 'that is equal to or exceeds the number of CPU '
+             		 'cores in your system! Resetting to: {0}')
+CPU_VALUE_WARNING = ('Warning! You have provided a CPU core count value '
+              		 'that is close to the maximum core count of your '
+              		 'machine ({0}/{1}). This may affect your system '
+              		 'responsiveness.')
+
+BLAST_NO_PATH = ('Could not find BLAST executables.')
+BLAST_NO_VERSION = ('Could not determine BLAST version. Please make '
+                 	'sure that BLAST>={0}.{1} is installed.')
+BLAST_UPDATE = ('Found BLAST {0}.{1}. Please update BLAST to version >={2}.{3}')
+
+MULTIPLE_PTFS = ('Found more than one Prodigal training '
+                 'file in the schema directory.\nPlease maintain '
+                 'only the training file used in the schema '
+                 'creation process.')
+MISSING_PTF = ('Could not find a Prodigal training file in the schema directory.')
+
+INVALID_PTF_PATH = ('Cannot find specified Prodigal training file.'
+                    '\nPlease provide a valid training file.\nYou '
+                    'can create a training file for a species of '
+                    'interest with the following command:\n\n  prodigal '
+                    '-i <reference_genome> -t <training_file.trn> -p '
+                    'single\n\nIt is strongly advised to provide a '
+                    'high-quality and closed genome for the training '
+                    'process.')
+
+DIFFERENT_PTF_PROMPT = ('Prodigal training file is not the one '
+              			'used to create the schema. Using this training '
+			  			'file might lead to results not consistent with '
+			  			'previous runs and invalidate the schema for '
+			  			'usage with Chewie-NS.\nContinue process?\n')
+MULTIPLE_PTF_PROMPT = ('Prodigal training file is not any of the {0} '
+                       'used in previous runs.\nContinue?\n')
+
+ARGS_DIFFER = ('Provided argument values differ from the values '
+			   'used for schema creation:\n')
+
+ARGS_DIFFER_PROMPT = ('\nContinuing might lead to results not '
+                      'consistent with previous runs.\nProviding '
+                      'parameter values that differ from the values '
+                      'used for schema creation will also invalidate '
+                      'the schema for uploading and synchronization '
+                      'with Chewie-NS.\nContinue? (yes/no)\n')
+
+MISSING_CONFIG = ('Could not find a valid config file.')
+
+INPUTS_SHARE_PREFIX = ('The following input files share the same filename prefix '
+					   '(substring before the first "." in the filename):\n{0}\n'
+					   'Please ensure that every input file has a unique '
+					   'filename prefix.')
+
+INPUTS_INCLUDE_BLANKS = ('The following input files include blank spaces '
+						 'in the filename:\n{0}\nPlease ensure that filenames '
+						 'do not include blank spaces or special characters '
+						 '(e.g. !@#?$^*()+)')
+
+INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
+					  '30 characters:\n{0}\nPlease make sure that input '
+					  'files have a shorter and unique prefix.')

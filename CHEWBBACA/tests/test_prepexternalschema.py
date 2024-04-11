@@ -7,144 +7,104 @@
 
 import os
 import sys
-import pickle
-import pytest
 import shutil
+import pytest
 import filecmp
-from unittest.mock import patch
-# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
+from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.utils import file_operations as fo
 
 
-def pickle_loader(pickle_in):
-    """
-    """
-
-    with open(pickle_in, 'rb') as pi:
-        data = pickle.load(pi)
-
-    return data
-
-
-@pytest.mark.parametrize(
-        'test_args, expected',
-        [(['chewBBACA.py', 'PrepExternalSchema',
-           '-g', 'data/prep_data/empty_dir',
-           '-o', 'adapted_schema'],
-         'Could not get input files. Please provide a directory'
-         ' with FASTA files or a file with the list of full '
-         'paths to the FASTA files and ensure that filenames end '
-         'with one of the following extensions: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
-         (['chewBBACA.py', 'PrepExternalSchema',
-           '-g', 'data/prep_data/empty_files',
-           '-o', 'adapted_schema'],
-         'Could not get input files. Please provide a directory'
-         ' with FASTA files or a file with the list of full '
-         'paths to the FASTA files and ensure that filenames end '
-         'with one of the following extensions: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
-         (['chewBBACA.py', 'PrepExternalSchema',
-           '-g', 'data/prep_data/zero_bytes_pair',
-           '-o', 'adapted_schema'],
-         'Could not get input files. Please provide a directory'
-         ' with FASTA files or a file with the list of full '
-         'paths to the FASTA files and ensure that filenames end '
-         'with one of the following extensions: '
-         '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
-         (['chewBBACA.py', 'PrepExternalSchema',
-           '-g', 'this/path/aint/real',
-           '-o', 'adapted_schema'],
-          'Input argument is not a valid directory or '
-          'file with a list of paths to FASTA files. Please provide a '
-          'valid input, either a folder with FASTA files '
-          'or a file with the list of full paths to FASTA '
-          'files (one per line and ending with one of the '
-          'following file extensions: [\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\']).')
-         ])
-def test_prep_invalid_input(test_args, expected):
-
-    # create empty dir for empty dir test
-    if 'empty_dir' in test_args[3] and os.path.isdir(test_args[3]) is False:
-        os.mkdir(test_args[3])
-
-    with pytest.raises(SystemExit) as e:
-        with patch.object(sys, 'argv', test_args):
-            chewBBACA.main()
-
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
-
-    assert e.type == SystemExit
-    assert expected in e.value.code
+# Use the tmp_path fixture to create a tmp directory for each test
+@pytest.fixture
+def args_fixture(request, tmp_path):
+	# Setup step
+	args = request.param
+	args[0][5] = os.path.join(tmp_path, args[0][5])
+	yield args
+	# Teardown step only runs after yield
+	shutil.rmtree(tmp_path)
 
 
 @pytest.mark.parametrize(
-        'test_args, expected',
-        [
-            (['chewBBACA.py', 'PrepExternalSchema',
-              '-g', 'data/prep_data/valid_input',
-              '-o', 'preped_schema'],
-             'data/prep_data/expected_results_valid'),
-            (['chewBBACA.py', 'PrepExternalSchema',
-              '-g', 'data/prep_data/file_extensions',
-              '-o', 'preped_schema'],
-             'data/prep_data/expected_results_extension'),
-            (['chewBBACA.py', 'PrepExternalSchema',
-              '-g', 'data/prep_data/file_extensions',
-              '-o', 'preped_schema',
-              '--gl', 'data/prep_data/test_genes_list/test_genes_extension.txt'],
-             'data/prep_data/expected_results_extension'),
-        ]
+		"args_fixture",
+		[
+		 (ct.PREPEXTERNALSCHEMA_TEST_VALID_INPUT, 'data/prep_data/expected_results_valid'),
+		 (ct.PREPEXTERNALSCHEMA_TEST_EXTENSIONS, 'data/prep_data/expected_results_extension'),
+		 (ct.PREPEXTERNALSCHEMA_TEST_GENE_LIST, 'data/prep_data/expected_results_extension')
+		],
+		indirect=True
 )
-def test_prep_valid_input(test_args, expected):
-    with patch.object(sys, 'argv', test_args):
-        chewBBACA.main()
+def test_prep_valid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		chewBBACA.main()
 
-    # check output files
-    output_files = [os.path.join(test_args[5], file)
-                    for file in os.listdir(test_args[5])
-                    if 'short' != file]
-    output_files.sort()
+		# Get paths to output files
+		output_dir = args_fixture[0][5]
+		output_files = [os.path.join(output_dir, file)
+						for file in os.listdir(output_dir)
+						if 'short' != file]
+		output_files.sort()
 
-    expected_files = [os.path.join(expected, file)
-                      for file in os.listdir(expected)
-                      if 'short' != file]
-    expected_files.sort()
+		# Get paths to files with expected results
+		expected_dir = args_fixture[1]
+		expected_files = [os.path.join(expected_dir, file)
+						  for file in os.listdir(expected_dir)
+						  if 'short' != file]
+		expected_files.sort()
 
-    # get config files
-    genes_lists = [output_files.pop(0), expected_files.pop(0)]
-    schemas_configs = [output_files.pop(0), expected_files.pop(0)]
+		# Get config files
+		genes_lists = [output_files.pop(0), expected_files.pop(0)]
+		schemas_configs = [output_files.pop(0), expected_files.pop(0)]
 
-    # compare configs
-    assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
-    # Read config values
-    # Ignore chewBBACA version value
-    configs1 = pickle_loader(schemas_configs[0])
-    del configs1['chewBBACA_version']
-    configs2 = pickle_loader(schemas_configs[1])
-    del configs2['chewBBACA_version']
-    assert configs1 == configs2
+		# Compare configs
+		assert fo.pickle_loader(genes_lists[0]).sort() == fo.pickle_loader(genes_lists[1]).sort()
+		# Read config values
+		# Ignore chewBBACA version value
+		configs1 = fo.pickle_loader(schemas_configs[0])
+		del configs1['chewBBACA_version']
+		configs2 = fo.pickle_loader(schemas_configs[1])
+		del configs2['chewBBACA_version']
+		assert configs1 == configs2
 
-    # compare FASTA files
-    files = output_files + expected_files
-    basename_dict = {}
-    for f in files:
-        basename = os.path.basename(f)
-        basename_dict.setdefault(basename, []).append(f)
+		# Group test results and expected results based on basename
+		files = output_files + expected_files
+		basename_dict = {}
+		for f in files:
+			basename = os.path.basename(f)
+			basename_dict.setdefault(basename, []).append(f)
 
-    # assert that files in each pair are equal
-    file_cmps = []
-    for k, v in basename_dict.items():
-        file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
+		# Assert that files in each pair are equal
+		for k, v in basename_dict.items():
+			assert filecmp.cmp(v[0], v[1], shallow=False) is True
 
-    assert all(file_cmps) is True
 
-    # Delete output directory before next test
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
+@pytest.mark.parametrize(
+		"args_fixture",
+		[
+		 (ct.PREPEXTERNALSCHEMA_TEST_EMPTY_DIR, ct.MISSING_FASTAS_EXCEPTION),
+		 (ct.PREPEXTERNALSCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
+		 (ct.PREPEXTERNALSCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
+		 (ct.PREPEXTERNALSCHEMA_TEST_INVALID_PATH, ct.INVALID_INPUT_PATH)
+		],
+		indirect=True
+)
+def test_prep_invalid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		# Create empty dir for empty dir test
+		if args_fixture[0][3] == 'empty_dir':
+			# Create inside output directory that is deleted in teardown step
+			empty_dirname = os.path.dirname(args_fixture[0][5])
+			empty_dirpath = os.path.join(empty_dirname, args_fixture[0][3])
+			os.mkdir(empty_dirpath)
+			args_fixture[0][3] = empty_dirpath
+		m.setattr(sys, 'argv', args_fixture[0])
+		with pytest.raises(SystemExit) as e:
+			chewBBACA.main()
+
+			assert e.type == SystemExit
+			assert args_fixture[1] in e.value.code

@@ -1,0 +1,18 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Schema Evaluator - Individual Analysis</title>
+    </head>
+    <body style="background-color: #f6f6f6">
+        <noscript> You need to enable JavaScript to run this app. </noscript>
+        <div id="root"></div>
+        <script src="https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.js"></script>
+        <link type=text/css rel=stylesheet href=https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.css />
+        <script> preComputedDataInd = {"summaryData": [{"columns": ["Locus", "Total Alleles", "Valid Alleles", "Invalid Alleles", "Proportion of Validated Alleles", "Distinct Protein Alleles", "Incomplete ORF", "Ambiguous Bases", "Missing Start/Stop Codon", "In-frame Stop Codon", "Alleles < 201bp", "Size Range (bp)", "Length Median (bp)", "Length Mode (bp)", "Alleles below threshold (3bp)", "Alleles above threshold (3bp)", "Missing Allele IDs"]}, {"rows": [["locus2", 3, 0, 3, 0.0, 0, 1, 0, 2, 0, 3, "3-121", 6, 3, 0, 2, 0]]}], "annotations": [{"columns": []}, {"rows": [[]]}], "lengths": [3, 6, 121], "ids": [3, 2, 1], "counts": [[3, 6, 121], [1, 1, 1]], "phylo": {"phylo_data": []}, "validIDs": [], "msa": {"sequences": []}, "dna": {"sequences": [{"name": 1, "sequence": "ATGACTGAAAATGAACAAATTTTTTGGAACAGGGTCTTGGAATTAGCTCAGAGTCAATTAAAACAGGCAACTTATGAATTTTTTGTTCATGATGATTGAAACCATAAAAAACAAAATTAAA"}, {"name": 2, "sequence": "ATGAAA"}, {"name": 3, "sequence": "ATG"}]}, "protein": {"sequences": []}, "botThreshold": 3, "topThreshold": 3, "invalidAlleles": [{"columns": ["Allele ID", "Exception Category", "Exception Description"]}, {"rows": [["1", "Incomplete ORF", "Sequence length is not a multiple of 3 (121bp); Sequence shorter than 201bp (121bp); Sequence above size threshold (121bp)"], ["2", "Missing Start/Stop Codon", "sense:Final codon 'AAA' is not a stop codon; antisense:First codon 'TTT' is not a start codon; revsense:First codon 'AAA' is not a start codon; revantisense:First codon 'TAC' is not a start codon; Sequence shorter than 201bp (6bp); Sequence above size threshold (6bp)"], ["3", "Missing Start/Stop Codon", "sense:Final codon 'ATG' is not a stop codon; antisense:First codon 'CAT' is not a start codon; revsense:First codon 'GTA' is not a start codon; revantisense:First codon 'TAC' is not a start codon; Sequence shorter than 201bp (3bp);"]]}], "nsAlleles": [], "distinctAlleles": [{"columns": ["Protein Allele ID", "Count", "List of Distinct Alleles"]}, {"rows": []}]} </script>
+        <script src="./report_bundle.js"></script>
+    </body>
+</html>
+

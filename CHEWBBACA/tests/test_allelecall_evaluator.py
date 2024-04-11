@@ -1,105 +1,80 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import py
+
 import os
 import sys
-import pickle
-import pytest
 import shutil
+import pytest
 import filecmp
-from unittest.mock import patch
-
-# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
+from CHEWBBACA.utils import constants as ct
+
+
+# Use the tmp_path fixture to create a tmp directory for each test
+@pytest.fixture
+def args_fixture(request, tmp_path):
+	# Setup step
+	args = request.param
+	args[0][7] = os.path.join(tmp_path, args[0][7])
+	yield args
+	# Teardown step only runs after yield
+	shutil.rmtree(tmp_path)
 
 
 @pytest.mark.parametrize(
-    "test_args, expected",
+    "args_fixture",
     [
-        (
-            [
-                "chewBBACA.py",
-                "AlleleCallEvaluator",
-                "-i",
-                "data/allelecall_data/fake_results",
-                "-g",
-                "data/allelecall_data/sagalactiae_schema",
-                "-o",
-                "results_report",
-            ],
-            "Path to input files does not exist. Please provide a valid path.",
-        ),
-        # (
-        #     [
-        #         "chewBBACA.py",
-        #         "AlleleCallEvaluator",
-        #         "-g",
-        #         "this/path/aint/real",
-        #         "-o",
-        #         "schema_report",
-        #     ],
-        #     "Input argument is not a valid directory. Exiting...",
-        # ),
+     (ct.ALLELECALL_EVALUATOR_VALID, 'data/allelecallevaluator_data/expected_results'),
     ],
+	indirect=True
 )
-def test_allelecallevaluator_invalid_input(test_args, expected):
+def test_allelecallevaluator_valid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		chewBBACA.main()
 
-    with pytest.raises(SystemExit) as e:
-        with patch.object(sys, "argv", test_args):
-            chewBBACA.main()
+		# Check schema files
+		# Schema created by test
+		output_dir = args_fixture[0][7]
+		output_files = [os.path.join(output_dir, file)
+						for file in os.listdir(output_dir)]
+		output_files.sort()
+		# Expected schema data
+		expected_dir = args_fixture[1]
+		expected_files = [os.path.join(expected_dir, file)
+						  for file in os.listdir(expected_dir)]
+		expected_files.sort()
 
-    # Delete output directory
-    try:
-        shutil.rmtree(test_args[7])
-    except Exception as e2:
-        pass
+		# Group test results and expected results based on basename
+		files = output_files + expected_files
+		basename_dict = {}
+		for f in files:
+			basename = os.path.basename(f)
+			basename_dict.setdefault(basename, []).append(f)
 
-    assert e.type == SystemExit
-    assert expected in e.value.code
+		# Assert that output dir contains the expected file number
+		# Cannot compare files, HTML files contains the same data but assert evaluates to False
+		for k, v in basename_dict.items():
+			assert len(v) == 2
 
 
 @pytest.mark.parametrize(
-    "test_args, expected",
+    "args_fixture",
     [
-        (
-            [
-                "chewBBACA.py",
-                "AlleleCallEvaluator",
-                "-i",
-                "data/allelecall_data/test_results",
-                "-g",
-                "data/allelecall_data/sagalactiae_schema",
-                "-o",
-                "results_report",
-            ],
-            0,
-        ),
-        # (
-        #     [
-        #         "chewBBACA.py",
-        #         "AlleleCallEvaluator",
-        #         "-i",
-        #         "data/",
-        #         "-g",
-        #         "data/",
-        #         "-o",
-        #         "results_report",
-        #     ],
-        #     0,
-        # ),
+     (ct.ALLELECALL_EVALUATOR_INVALID_PATH, ct.MISSING_INPUT_ARG),
     ],
+	indirect=True
 )
-def test_allelecallevaluator_valid(test_args, expected):
-    with pytest.raises(SystemExit) as e:
-        chewBBACA.main()
+def test_allelecallevaluator_invalid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		with pytest.raises(SystemExit) as e:
+			chewBBACA.main()
 
-    try:
-        shutil.rmtree(test_args[7])
-    except Exception as e2:
-        pass
-
-    # Check exit code
-    assert e.type == SystemExit
-    assert expected == e.value.code
+			assert e.type == SystemExit
+			# Check that the exit message includes expected message
+			assert args_fixture[1] in e.value.code

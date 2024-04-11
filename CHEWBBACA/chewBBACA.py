@@ -736,7 +736,7 @@ def run_evaluate_calls():
 
 	# Check if path to input files exists
 	if not os.path.exists(args.input_files):
-		sys.exit('Path to input files does not exist. Please provide a valid path.')
+		sys.exit(ct.MISSING_INPUT_ARG)
 
 	# Create output directory
 	created = fo.create_directory(args.output_directory)
@@ -1639,6 +1639,7 @@ def main():
 		print('Select one of the following modules:')
 		for f in functions_info:
 			print('{0}: {1}'.format(f, functions_info[f][0]))
+		print(sys.argv)
 		sys.exit(exit_code)
 
 	# Check python version

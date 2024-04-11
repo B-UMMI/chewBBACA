@@ -1,195 +1,84 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import py
+
 import os
 import sys
-import pickle
-import pytest
 import shutil
+import pytest
 import filecmp
-from unittest.mock import patch
-
-# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
+from CHEWBBACA.utils import constants as ct
+
+
+# Use the tmp_path fixture to create a tmp directory for each test
+@pytest.fixture
+def args_fixture(request, tmp_path):
+	# Setup step
+	args = request.param
+	args[0][5] = os.path.join(tmp_path, args[0][5])
+	yield args
+	# Teardown step only runs after yield
+	shutil.rmtree(tmp_path)
 
 
 @pytest.mark.parametrize(
-    "test_args, expected",
+    "args_fixture",
     [
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/empty_files",
-                "-o",
-                "schema_report",
-            ],
-            "Could not get input files.",
-        ),
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/zero_bytes_pair",
-                "-o",
-                "schema_report",
-            ],
-            "Could not get input files.",
-        ),
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "this/path/aint/real",
-                "-o",
-                "schema_report",
-            ],
-            "Path to input schema does not exist. Please provide a valid path.",
-        ),
+	 (ct.SCHEMAEVALUATOR_TEST_VALID_INPUT, 'data/schemaevaluator_data/expected_results/valid'),
+     (ct.SCHEMAEVALUATOR_TEST_SINGLE_ALLELE, 'data/schemaevaluator_data/expected_results/single_allele'),
+     (ct.SCHEMAEVALUATOR_TEST_SINGLE_INVALID_ALLELE, 'data/schemaevaluator_data/expected_results/single_invalid_allele'),
+     (ct.SCHEMAEVALUATOR_TEST_SEVERAL_INVALID_ALLELES, 'data/schemaevaluator_data/expected_results/several_invalid_alleles'),
     ],
+	indirect=True
 )
-def test_schemaEvaluator_invalid_input(test_args, expected):
+def test_schemaEvaluator_valid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		chewBBACA.main()
 
-    with pytest.raises(SystemExit) as e:
-        with patch.object(sys, "argv", test_args):
-            chewBBACA.main()
+		# Check schema files
+		# Schema created by test
+		output_dir = args_fixture[0][5]
+		output_files = [os.path.join(output_dir, file)
+						for file in os.listdir(output_dir)]
+		output_files.sort()
+		# Expected schema data
+		expected_dir = args_fixture[1]
+		expected_files = [os.path.join(expected_dir, file)
+						  for file in os.listdir(expected_dir)]
+		expected_files.sort()
 
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
+		# Group test results and expected results based on basename
+		files = output_files + expected_files
+		basename_dict = {}
+		for f in files:
+			basename = os.path.basename(f)
+			basename_dict.setdefault(basename, []).append(f)
 
-    assert e.type == SystemExit
-    assert expected in e.value.code
+		# Assert that output dir contains the expected file number
+		# Cannot compare files, HTML files contains the same data but assert evaluates to False
+		for k, v in basename_dict.items():
+			assert len(v) == 2
 
 
 @pytest.mark.parametrize(
-    "test_args, expected",
+    "args_fixture",
     [
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/test_schema",
-                "-o",
-                "schema_report",
-                "--loci-reports",
-                "--add-sequences",
-            ],
-            0,
-        ),
-        (
-            [
-               "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/single_allele",
-                "-o",
-                "schema_report",
-                "--loci-reports",
-                "--add-sequences",
-            ],
-            0,
-        ),
-        (
-            [
-               "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/single_invalid_allele",
-                "-o",
-                "schema_report",
-                "--loci-reports",
-                "--add-sequences",
-            ],
-            0,
-        ),
-        (
-            [
-                "chewBBACA.py",
-                "SchemaEvaluator",
-                "-g",
-                "data/schemaevaluator_data/several_invalid_alleles",
-                "-o",
-                "schema_report",
-                "--loci-reports",
-                "--add-sequences",  
-            ],
-            0,
-        ),
+     (ct.SCHEMAEVALUATOR_TEST_EMPTY_FILES, 'Could not get input files.'),
+     (ct.SCHEMAEVALUATOR_TEST_ZERO_BYTES, 'Could not get input files.'),
+     (ct.SCHEMAEVALUATOR_TEST_FAKE_PATH, 'Path to input schema does not exist. Please provide a valid path.')
     ],
+	indirect=True
 )
-def test_schemaEvaluator_valid(test_args, expected):
-    with pytest.raises(SystemExit) as e:
-        chewBBACA.main()
+def test_schemaEvaluator_invalid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		with pytest.raises(SystemExit) as e:
+			chewBBACA.main()
 
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as e2:
-        pass
-
-    # Check exit code
-    assert e.type == SystemExit
-    assert expected == e.value.code
-
-
-# Not working when comparing HTML files in GitHub Actions
-# Works locally
-
-# @pytest.mark.parametrize(
-#     "test_args, expected",
-#     [
-#         (
-#             [
-#                 "chewBBACA.py",
-#                 "SchemaEvaluator",
-#                 "-g",
-#                 "data/schemaevaluator_data/test_schema",
-#                 "-o",
-#                 "schema_report",
-#                 "--loci-reports",
-#                 "--add-sequences",
-#             ],
-#             "data/schemaevaluator_data/expected_results",
-#         )
-#     ],
-# )
-# def test_schemaEvaluator_valid(test_args, expected):
-#     with patch.object(sys, "argv", test_args):
-#         capture = py.io.StdCapture()
-#         chewBBACA.main()
-#         stdout, stderr = capture.reset()
-
-#     # check Schema Report HTML file
-#     schema_report_html = os.path.join(test_args[5], "schema_report.html")
-
-#     expected_schema_file = os.path.join(expected, "schema_report.html")
-
-#     schema_report_cmp = filecmp.cmp(schema_report_html, expected_schema_file, shallow=True)
-#     assert(schema_report_cmp) is True
-
-#     # check Locus Report HTML files and JS bundle
-#     locus_report_files = [
-#         os.path.join(test_args[5], "loci_reports", file)
-#         for file in os.listdir(os.path.join(test_args[5], "loci_reports"))
-#     ]
-#     locus_report_files.sort()
-
-#     expected_report_files = [
-#         os.path.join(expected, "loci_reports", file)
-#         for file in os.listdir(os.path.join(expected, "loci_reports"))
-#     ]
-#     expected_report_files.sort()
-
-#     # assert that files in each pair are equal
-#     file_cmps = []
-#     for i, file in enumerate(expected_report_files):
-#         file_cmps.append(filecmp.cmp(file, locus_report_files[i], shallow=False))
-
-#     assert all(file_cmps) is True
+			assert e.type == SystemExit
+			assert e.value.code == args_fixture[1]

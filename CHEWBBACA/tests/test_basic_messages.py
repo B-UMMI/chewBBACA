@@ -5,56 +5,69 @@ This script contains tests to verify the commands to select the main modules wor
 """
 
 
-import py
-import os
 import sys
+import shutil
 import pytest
 import filecmp
-from unittest.mock import patch
-#from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
+from CHEWBBACA.utils import constants as ct
+
+
+# Use the tmp_path fixture to create a tmp directory for each test
+@pytest.fixture
+def args_fixture(request, tmp_path):
+	# Setup step
+	args = request.param
+	yield args
+	# Teardown step only runs after yield
+	shutil.rmtree(tmp_path)
 
 
 @pytest.mark.parametrize(
-        'test_args, expected',
-        [(['chewBBACA.py', '-h'], 0),
-         (['chewBBACA.py', '--help'], 0),
-         (['chewBBACA.py', '-v'], 0),
-         (['chewBBACA.py', '--version'], 0),
-         (['chewBBACA.py', 'CreateSchema', '-h'], 0),
-         (['chewBBACA.py', 'CreateSchema', '--help'], 0),
-         (['chewBBACA.py', 'AlleleCall', '-h'], 0),
-         (['chewBBACA.py', 'AlleleCall', '--help'], 0),
-         (['chewBBACA.py', 'SchemaEvaluator', '-h'], 0),
-         (['chewBBACA.py', 'SchemaEvaluator', '--help'], 0),
-		 (['chewBBACA.py', 'AlleleCallEvaluator', '-h'], 0),
-         (['chewBBACA.py', 'AlleleCallEvaluator', '--help'], 0),
-         (['chewBBACA.py', 'ExtractCgMLST', '-h'], 0),
-         (['chewBBACA.py', 'ExtractCgMLST', '--help'], 0),
-		 (['chewBBACA.py', 'RemoveGenes', '-h'], 0),
-         (['chewBBACA.py', 'RemoveGenes', '--help'], 0),
-		 (['chewBBACA.py', 'PrepExternalSchema', '-h'], 0),
-         (['chewBBACA.py', 'PrepExternalSchema', '--help'], 0),
-		 (['chewBBACA.py', 'JoinProfiles', '-h'], 0),
-         (['chewBBACA.py', 'JoinProfiles', '--help'], 0),
-		 (['chewBBACA.py', 'UniprotFinder', '-h'], 0),
-         (['chewBBACA.py', 'UniprotFinder', '--help'], 0),
-         (['chewBBACA.py', 'DownloadSchema', '-h'], 0),
-         (['chewBBACA.py', 'DownloadSchema', '--help'], 0),
-         (['chewBBACA.py', 'LoadSchema', '-h'], 0),
-         (['chewBBACA.py', 'LoadSchema', '--help'], 0),
-         (['chewBBACA.py', 'SyncSchema', '-h'], 0),
-         (['chewBBACA.py', 'SyncSchema', '--help'], 0),
-         (['chewBBACA.py', 'NSStats', '-h'], 0),
-         (['chewBBACA.py', 'NSStats', '--help'], 0),
-		 (['chewBBACA.py', 'FakeModule', '-h'], 1), # Test with module that does not exist
-         (['chewBBACA.py', 'FakeModule', '--help'], 1),
-         ])
-def test_modules_exit_codes(test_args, expected):
-    with pytest.raises(SystemExit) as e:
-        with patch.object(sys, 'argv', test_args):
-            chewBBACA.main()
+        "args_fixture",
+        [
+		 (ct.CHEWIE_TEST_V, 0),
+		 (ct.CHEWIE_TEST_VERSION, 0),
+		 (ct.CHEWIE_TEST_H, 0),
+		 (ct.CHEWIE_TEST_HELP, 0),
+		 (ct.CREATESCHEMA_TEST_H, 0),
+		 (ct.CREATESCHEMA_TEST_HELP, 0),
+		 (ct.ALLELECALL_TEST_H, 0),
+		 (ct.ALLELECALL_TEST_HELP, 0),
+		 (ct.SCHEMAEVALUATOR_TEST_H, 0),
+		 (ct.SCHEMAEVALUATOR_TEST_HELP, 0),
+		 (ct.ALLELECALL_EVALUATOR_TEST_H, 0),
+		 (ct.ALLELECALL_EVALUATOR_TEST_HELP, 0),
+		 (ct.EXTRACTCGMLST_TEST_H, 0),
+		 (ct.EXTRACTCGMLST_TEST_HELP, 0),
+		 (ct.REMOVEGENES_TEST_H, 0),
+		 (ct.REMOVEGENES_TEST_HELP, 0),
+		 (ct.PREPEXTERNALSCHEMA_TEST_H, 0),
+		 (ct.PREPEXTERNALSCHEMA_TEST_HELP, 0),
+		 (ct.JOINPROFILES_TEST_H, 0),
+		 (ct.JOINPROFILES_TEST_HELP, 0),
+		 (ct.UNIPROTFINDER_TEST_H, 0),
+		 (ct.UNIPROTFINDER_TEST_HELP, 0),
+		 (ct.DOWNLOADSCHEMA_TEST_H, 0),
+		 (ct.DOWNLOADSCHEMA_TEST_HELP, 0),
+		 (ct.LOADSCHEMA_TEST_H, 0),
+		 (ct.LOADSCHEMA_TEST_HELP, 0),
+		 (ct.SYNCSCHEMA_TEST_H, 0),
+		 (ct.SYNCSCHEMA_TEST_HELP, 0),
+		 (ct.NSSTATS_TEST_H, 0),
+		 (ct.NSSTATS_TEST_HELP, 0),
+		 (ct.FAKEMODULE_TEST_H, 1), # Test with module that does not exist
+		 (ct.FAKEMODULE_TEST_HELP, 1)
+        ],
+		indirect=True
+)
+def test_help_codes(monkeypatch, args_fixture):
+    # Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		with pytest.raises(SystemExit) as e:
+			chewBBACA.main()
 
-    assert e.type == SystemExit
-    assert e.value.code == expected 
+			assert e.type == SystemExit
+			assert e.value.code == args_fixture[1]

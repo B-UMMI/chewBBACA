@@ -8,159 +8,102 @@ This script contains tests to verify that the CreateSchema module works as expec
 import os
 import sys
 import shutil
-import pickle
 import pytest
 import filecmp
-from unittest.mock import patch
-# from contextlib import nullcontext as does_not_raise
 
 from CHEWBBACA import chewBBACA
+from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.utils import file_operations as fo
 
 
-def pickle_loader(input_file):
-    """Use the Pickle module to de-serialize an object.
-
-    Parameters
-    ----------
-    input_file : str
-        Path to file with byte stream to be de-serialized.
-
-    Returns
-    -------
-    content : type
-        Variable that refers to the de-serialized
-        object.
-    """
-    with open(input_file, 'rb') as pinfile:
-        content = pickle.load(pinfile)
-
-    return content
+# Use the tmp_path fixture to create a tmp directory for each test
+@pytest.fixture
+def args_fixture(request, tmp_path):
+	# Setup step
+	args = request.param
+	args[0][5] = os.path.join(tmp_path, args[0][5])
+	yield args
+	# Teardown step only runs after yield
+	shutil.rmtree(tmp_path)
 
 
 # Test successful process
 # 1) With a path to a folder that contains FASTA files
 # 2) With a path to a file that contains a list of paths to FASTA files
 @pytest.mark.parametrize(
-    'test_args, expected',
-    [(['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/mock_genome_dir',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'data/createschema_data/expected_results'),
-     (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/mock_genome_list/mock_genomes.txt',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'data/createschema_data/expected_results'),
-	 (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/mock_cds_dir',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn',
-	   '--cds-input'],
-      'data/createschema_data/expected_results'),
-     ])
-def test_createschema_valid(test_args, expected):
-    with patch.object(sys, 'argv', test_args):
-        chewBBACA.main()
+    "args_fixture",
+    [
+	 (ct.CREATESCHEMA_TEST_GENOME_TEMPLATE, 'data/createschema_data/expected_results'),
+     (ct.CREATESCHEMA_TEST_GENOME_LIST, 'data/createschema_data/expected_results'),
+	 (ct.CREATESCHEMA_TEST_CDS, 'data/createschema_data/expected_results'),
+    ],
+	indirect=True
+)
+def test_createschema_valid_input(monkeypatch, args_fixture):
+    # Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		chewBBACA.main()
 
-    # Check schema files
-	# Schema created by test
-    schema_seed = os.path.join(test_args[5], 'schema_seed')
-    output_files = [os.path.join(schema_seed, file)
-                    for file in os.listdir(schema_seed)
-                    if 'short' not in file]
-    output_files.sort()
-	# Expected schema data
-    expected_seed = os.path.join(expected, 'schema_seed')
-    expected_files = [os.path.join(expected_seed, file)
-                      for file in os.listdir(expected_seed)
-                      if 'short' not in file]
-    expected_files.sort()
+		# Check schema files
+		# Schema created by test
+		output_dir = args_fixture[0][5]
+		schema_dir = os.path.join(output_dir, 'schema_seed')
+		output_files = [os.path.join(schema_dir, file)
+						for file in os.listdir(schema_dir)
+						if 'short' not in file]
+		output_files.sort()
+		# Expected schema data
+		expected_dir = os.path.join(args_fixture[1], 'schema_seed')
+		expected_files = [os.path.join(expected_dir, file)
+						  for file in os.listdir(expected_dir)
+						  if 'short' not in file]
+		expected_files.sort()
 
-    # Get config values
-    genes_lists = [output_files.pop(0), expected_files.pop(0)]
-    schemas_configs = [output_files.pop(0), expected_files.pop(0)]
+		# Get config values
+		genes_lists = [output_files.pop(0), expected_files.pop(0)]
+		schemas_configs = [output_files.pop(0), expected_files.pop(0)]
 
-    # Compare lists of loci
-    assert pickle_loader(genes_lists[0]).sort() == pickle_loader(genes_lists[1]).sort()
-    # Read config values
-    # Ignore chewBBACA version value
-    configs1 = pickle_loader(schemas_configs[0])
-    del configs1['chewBBACA_version']
-    configs2 = pickle_loader(schemas_configs[1])
-    del configs2['chewBBACA_version']
-    assert configs1 == configs2
+		# Compare lists of loci
+		assert fo.pickle_loader(genes_lists[0]).sort() == fo.pickle_loader(genes_lists[1]).sort()
+		# Read config values
+		# Ignore chewBBACA version value
+		configs1 = fo.pickle_loader(schemas_configs[0])
+		del configs1['chewBBACA_version']
+		configs2 = fo.pickle_loader(schemas_configs[1])
+		del configs2['chewBBACA_version']
+		assert configs1 == configs2
 
-	# Group test schema and expected schema files based on basename
-    files = output_files + expected_files
-    basename_dict = {}
-    for f in files:
-        basename = os.path.basename(f)
-        basename_dict.setdefault(basename, []).append(f)
+		# Group test schema and expected schema files based on basename
+		files = output_files + expected_files
+		basename_dict = {}
+		for f in files:
+			basename = os.path.basename(f)
+			basename_dict.setdefault(basename, []).append(f)
 
-    # Assert that files in each pair are equal
-    file_cmps = []
-    for k, v in basename_dict.items():
-        file_cmps.append(filecmp.cmp(v[0], v[1], shallow=False))
-
-    assert all(file_cmps) is True
-
-    # Delete output folder or next test might fail
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as exc_msg:
-        print(exc_msg)
+		# Assert that files in each pair are equal
+		for k, v in basename_dict.items():
+			assert filecmp.cmp(v[0], v[1], shallow=False) is True
 
 
 @pytest.mark.parametrize(
-    'test_args, expected',
-    [(['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/genome_dir_with_empty_genomes',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'Could not get input files. Please provide a directory'
-      ' with FASTA files or a file with the list of full '
-      'paths to the FASTA files and ensure that filenames end '
-      'with one of the following extensions: '
-      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
-     (['chewBBACA.py', 'CreateSchema',
-         '-i', 'data/createschema_data/zero_bytes_pair',
-         '-o', 'createschema_results',
-         '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'Could not get input files. Please provide a directory'
-      ' with FASTA files or a file with the list of full '
-      'paths to the FASTA files and ensure that filenames end '
-      'with one of the following extensions: '
-      '[\'.fasta\', \'.fna\', \'.ffn\', \'.fa\', \'.fas\'].'),
-     (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/mock_schema_dir',
-       '-o', 'createschema_results',
-       '--ptf', 'path/does/not/exist'],
-      'Invalid path for Prodigal training file.'),
-     (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/genome_dir_with_header_fasta_only',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'Could not predict CDSs from any of the input files.'
-	  '\nPlease provide input files in the accepted FASTA format.'),
-     (['chewBBACA.py', 'CreateSchema',
-       '-i', 'data/createschema_data/invalid_genome_dir',
-       '-o', 'createschema_results',
-       '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn'],
-      'Could not predict CDSs from any of the input files.'
-	  '\nPlease provide input files in the accepted FASTA format.')
-     ])
-def test_createschema_empty_pairs(test_args, expected):
-    with pytest.raises(SystemExit) as e:
-        with patch.object(sys, 'argv', test_args):
-            chewBBACA.main()
+    "args_fixture",
+    [
+	 (ct.CREATESCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
+     (ct.CREATESCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
+     (ct.CREATESCHEMA_INVALID_PTF_PATH, ct.INVALID_PTF_PATH),
+     (ct.CREATESCHEMA_TEST_HEADER_ONLY, ct.CANNOT_PREDICT),
+     (ct.CREATESCHEMA_TEST_INVALID_GENOME, ct.CANNOT_PREDICT)
+    ],
+	indirect=True
+)
+def test_createschema_invalid_input(monkeypatch, args_fixture):
+	# Add args to sys.argv
+	with monkeypatch.context() as m:
+		m.setattr(sys, 'argv', args_fixture[0])
+		with pytest.raises(SystemExit) as e:
+			chewBBACA.main()
 
-    assert e.type == SystemExit
-	# Check that the exit message includes expected message
-    assert expected in e.value.code
-
-    # Delete output folder or next test might fail
-    try:
-        shutil.rmtree(test_args[5])
-    except Exception as exc_msg:
-        print(exc_msg)
+			assert e.type == SystemExit
+			# Check that the exit message includes expected message
+			assert args_fixture[1] in e.value.code

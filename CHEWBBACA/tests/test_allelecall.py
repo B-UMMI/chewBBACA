@@ -27,25 +27,26 @@ def args_fixture(request, tmp_path):
 
 
 @pytest.mark.parametrize(
-		"args_fixture",
-		[
-		(ct.ALLELECALL_TEST_DEFAULT, 'data/allelecall_data/test_results/mode4'),
-		(ct.ALLELECALL_TEST_MODE1, 'data/allelecall_data/test_results/mode1'),
-		(ct.ALLELECALL_TEST_MODE2, 'data/allelecall_data/test_results/mode2'),
-		(ct.ALLELECALL_TEST_MODE3, 'data/allelecall_data/test_results/mode3'),
-		(ct.ALLELECALL_TEST_MODE4, 'data/allelecall_data/test_results/mode4'),
-		(ct.ALLELECALL_TEST_CDS_DEFAULT, 'data/allelecall_data/test_results/cds_input_mode4'),
-		(ct.ALLELECALL_TEST_CDS_MODE1, 'data/allelecall_data/test_results/cds_input_mode1'),
-		(ct.ALLELECALL_TEST_CDS_MODE2, 'data/allelecall_data/test_results/cds_input_mode2'),
-		(ct.ALLELECALL_TEST_CDS_MODE3, 'data/allelecall_data/test_results/cds_input_mode3'),
-		(ct.ALLELECALL_TEST_CDS_MODE4, 'data/allelecall_data/test_results/cds_input_mode4'),
-		(ct.ALLELECALL_TEST_GENOME_LIST, 'data/allelecall_data/test_results/mode4'),
-		(ct.ALLELECALL_TEST_LOCI_IDS_EXTENSION, 'data/allelecall_data/test_genes_list/test_genes_results'),
-		(ct.ALLELECALL_TEST_LOCI_IDS_NOEXTENSION, 'data/allelecall_data/test_genes_list/test_genes_results'),
-		(ct.ALLELECALL_TEST_LOCI_PATHS, 'data/allelecall_data/test_genes_list/test_genes_results'),
-		],
-		indirect=True) # Pass parameters through args_fixture fixture
-def test_allelecall_valid(monkeypatch, args_fixture):
+	"args_fixture",
+	[
+	 (ct.ALLELECALL_TEST_DEFAULT, 'data/allelecall_data/test_results/mode4'),
+	 (ct.ALLELECALL_TEST_MODE1, 'data/allelecall_data/test_results/mode1'),
+	 (ct.ALLELECALL_TEST_MODE2, 'data/allelecall_data/test_results/mode2'),
+	 (ct.ALLELECALL_TEST_MODE3, 'data/allelecall_data/test_results/mode3'),
+	 (ct.ALLELECALL_TEST_MODE4, 'data/allelecall_data/test_results/mode4'),
+	 (ct.ALLELECALL_TEST_CDS_DEFAULT, 'data/allelecall_data/test_results/cds_input_mode4'),
+	 (ct.ALLELECALL_TEST_CDS_MODE1, 'data/allelecall_data/test_results/cds_input_mode1'),
+	 (ct.ALLELECALL_TEST_CDS_MODE2, 'data/allelecall_data/test_results/cds_input_mode2'),
+	 (ct.ALLELECALL_TEST_CDS_MODE3, 'data/allelecall_data/test_results/cds_input_mode3'),
+	 (ct.ALLELECALL_TEST_CDS_MODE4, 'data/allelecall_data/test_results/cds_input_mode4'),
+	 (ct.ALLELECALL_TEST_GENOME_LIST, 'data/allelecall_data/test_results/mode4'),
+	 (ct.ALLELECALL_TEST_LOCI_IDS_EXTENSION, 'data/allelecall_data/test_genes_list/test_genes_results'),
+	 (ct.ALLELECALL_TEST_LOCI_IDS_NOEXTENSION, 'data/allelecall_data/test_genes_list/test_genes_results'),
+	 (ct.ALLELECALL_TEST_LOCI_PATHS, 'data/allelecall_data/test_genes_list/test_genes_results'),
+	],
+	indirect=True # Pass parameters through args_fixture fixture
+)
+def test_allelecall_valid_input(monkeypatch, args_fixture):
 	# Add args to sys.argv
 	with monkeypatch.context() as m:
 		m.setattr(sys, 'argv', args_fixture[0])
@@ -75,14 +76,16 @@ def test_allelecall_valid(monkeypatch, args_fixture):
 
 
 @pytest.mark.parametrize(
-		"args_fixture",
-		[(ct.ALLELECALL_TEST_EMPTY_DIR, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.ALLELECALL_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.ALLELECALL_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.ALLELECALL_TEST_FAKE_PATH, ct.INVALID_INPUT_PATH)
-		],
-		indirect=True)
-def test_invalid_input(monkeypatch, args_fixture):
+	"args_fixture",
+	[
+	 (ct.ALLELECALL_TEST_EMPTY_DIR, ct.MISSING_FASTAS_EXCEPTION),
+	 (ct.ALLELECALL_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
+	 (ct.ALLELECALL_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
+	 (ct.ALLELECALL_TEST_FAKE_PATH, ct.INVALID_INPUT_PATH)
+	],
+	indirect=True
+)
+def test_allelecall_invalid_input(monkeypatch, args_fixture):
 	# Add args to sys.argv
 	with monkeypatch.context() as m:
 		# Create empty dir for empty dir test
@@ -101,19 +104,20 @@ def test_invalid_input(monkeypatch, args_fixture):
 
 
 @pytest.mark.parametrize(
-		"args_fixture",
-		[(ct.ALLELECALL_TEST_DEFAULT+['--bsr', '-1'], ct.INVALID_BSR),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--bsr', '1.1'], ct.INVALID_BSR),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--bsr', 'sus'], ct.INVALID_BSR_TYPE.format('sus')),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--l', '-1'], ct.INVALID_MINLEN),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--l', 'sus'], ct.INVALID_MINLEN_TYPE),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--st', '-1'], ct.INVALID_ST),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--st', '1.1'], ct.INVALID_ST),
-		 (ct.ALLELECALL_TEST_DEFAULT+['--st', 'sus'], ct.INVALID_ST_TYPE)
-		],
-		indirect=True
+	"args_fixture",
+	[
+	 (ct.ALLELECALL_TEST_DEFAULT+['--bsr', '-1'], ct.INVALID_BSR),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--bsr', '1.1'], ct.INVALID_BSR),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--bsr', 'sus'], ct.INVALID_BSR_TYPE.format('sus')),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--l', '-1'], ct.INVALID_MINLEN),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--l', 'sus'], ct.INVALID_MINLEN_TYPE),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--st', '-1'], ct.INVALID_ST),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--st', '1.1'], ct.INVALID_ST),
+	 (ct.ALLELECALL_TEST_DEFAULT+['--st', 'sus'], ct.INVALID_ST_TYPE)
+	],
+	indirect=True
 )
-def test_invalid_args(monkeypatch, args_fixture):
+def test_allelecall_invalid_args(monkeypatch, args_fixture):
 	# Add args to sys.argv
 	with monkeypatch.context() as m:
 		m.setattr(sys, 'argv', args_fixture[0])

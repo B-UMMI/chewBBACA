@@ -11,7 +11,7 @@ import pytest
 import filecmp
 
 from CHEWBBACA import chewBBACA
-from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.tests import test_arguments as ta
 
 
 # Use the tmp_path fixture to create a tmp directory for each test
@@ -27,38 +27,38 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
         "args_fixture",
         [
-		 (ct.CHEWIE_TEST_V, 0),
-		 (ct.CHEWIE_TEST_VERSION, 0),
-		 (ct.CHEWIE_TEST_H, 0),
-		 (ct.CHEWIE_TEST_HELP, 0),
-		 (ct.CREATESCHEMA_TEST_H, 0),
-		 (ct.CREATESCHEMA_TEST_HELP, 0),
-		 (ct.ALLELECALL_TEST_H, 0),
-		 (ct.ALLELECALL_TEST_HELP, 0),
-		 (ct.SCHEMAEVALUATOR_TEST_H, 0),
-		 (ct.SCHEMAEVALUATOR_TEST_HELP, 0),
-		 (ct.ALLELECALL_EVALUATOR_TEST_H, 0),
-		 (ct.ALLELECALL_EVALUATOR_TEST_HELP, 0),
-		 (ct.EXTRACTCGMLST_TEST_H, 0),
-		 (ct.EXTRACTCGMLST_TEST_HELP, 0),
-		 (ct.REMOVEGENES_TEST_H, 0),
-		 (ct.REMOVEGENES_TEST_HELP, 0),
-		 (ct.PREPEXTERNALSCHEMA_TEST_H, 0),
-		 (ct.PREPEXTERNALSCHEMA_TEST_HELP, 0),
-		 (ct.JOINPROFILES_TEST_H, 0),
-		 (ct.JOINPROFILES_TEST_HELP, 0),
-		 (ct.UNIPROTFINDER_TEST_H, 0),
-		 (ct.UNIPROTFINDER_TEST_HELP, 0),
-		 (ct.DOWNLOADSCHEMA_TEST_H, 0),
-		 (ct.DOWNLOADSCHEMA_TEST_HELP, 0),
-		 (ct.LOADSCHEMA_TEST_H, 0),
-		 (ct.LOADSCHEMA_TEST_HELP, 0),
-		 (ct.SYNCSCHEMA_TEST_H, 0),
-		 (ct.SYNCSCHEMA_TEST_HELP, 0),
-		 (ct.NSSTATS_TEST_H, 0),
-		 (ct.NSSTATS_TEST_HELP, 0),
-		 (ct.FAKEMODULE_TEST_H, 1), # Test with module that does not exist
-		 (ct.FAKEMODULE_TEST_HELP, 1)
+		 (ta.CHEWIE_TEST_V, 0),
+		 (ta.CHEWIE_TEST_VERSION, 0),
+		 (ta.CHEWIE_TEST_H, 0),
+		 (ta.CHEWIE_TEST_HELP, 0),
+		 (ta.CREATESCHEMA_TEST_H, 0),
+		 (ta.CREATESCHEMA_TEST_HELP, 0),
+		 (ta.ALLELECALL_TEST_H, 0),
+		 (ta.ALLELECALL_TEST_HELP, 0),
+		 (ta.SCHEMAEVALUATOR_TEST_H, 0),
+		 (ta.SCHEMAEVALUATOR_TEST_HELP, 0),
+		 (ta.ALLELECALL_EVALUATOR_TEST_H, 0),
+		 (ta.ALLELECALL_EVALUATOR_TEST_HELP, 0),
+		 (ta.EXTRACTCGMLST_TEST_H, 0),
+		 (ta.EXTRACTCGMLST_TEST_HELP, 0),
+		 (ta.REMOVEGENES_TEST_H, 0),
+		 (ta.REMOVEGENES_TEST_HELP, 0),
+		 (ta.PREPEXTERNALSCHEMA_TEST_H, 0),
+		 (ta.PREPEXTERNALSCHEMA_TEST_HELP, 0),
+		 (ta.JOINPROFILES_TEST_H, 0),
+		 (ta.JOINPROFILES_TEST_HELP, 0),
+		 (ta.UNIPROTFINDER_TEST_H, 0),
+		 (ta.UNIPROTFINDER_TEST_HELP, 0),
+		 (ta.DOWNLOADSCHEMA_TEST_H, 0),
+		 (ta.DOWNLOADSCHEMA_TEST_HELP, 0),
+		 (ta.LOADSCHEMA_TEST_H, 0),
+		 (ta.LOADSCHEMA_TEST_HELP, 0),
+		 (ta.SYNCSCHEMA_TEST_H, 0),
+		 (ta.SYNCSCHEMA_TEST_HELP, 0),
+		 (ta.NSSTATS_TEST_H, 0),
+		 (ta.NSSTATS_TEST_HELP, 0),
+		 (ta.FAKEMODULE_TEST_H, 1), # Test with module that does not exist
+		 (ta.FAKEMODULE_TEST_HELP, 1)
         ],
 		indirect=True
 )

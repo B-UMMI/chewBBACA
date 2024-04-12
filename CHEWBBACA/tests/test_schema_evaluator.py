@@ -10,6 +10,7 @@ import filecmp
 
 from CHEWBBACA import chewBBACA
 from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.tests import test_arguments as ta
 
 
 # Use the tmp_path fixture to create a tmp directory for each test
@@ -26,10 +27,10 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-	 (ct.SCHEMAEVALUATOR_TEST_VALID_INPUT, 'data/schemaevaluator_data/expected_results/valid'),
-     (ct.SCHEMAEVALUATOR_TEST_SINGLE_ALLELE, 'data/schemaevaluator_data/expected_results/single_allele'),
-     (ct.SCHEMAEVALUATOR_TEST_SINGLE_INVALID_ALLELE, 'data/schemaevaluator_data/expected_results/single_invalid_allele'),
-     (ct.SCHEMAEVALUATOR_TEST_SEVERAL_INVALID_ALLELES, 'data/schemaevaluator_data/expected_results/several_invalid_alleles'),
+	 (ta.SCHEMAEVALUATOR_TEST_VALID_INPUT, 'data/schemaevaluator_data/expected_results/valid'),
+     (ta.SCHEMAEVALUATOR_TEST_SINGLE_ALLELE, 'data/schemaevaluator_data/expected_results/single_allele'),
+     (ta.SCHEMAEVALUATOR_TEST_SINGLE_INVALID_ALLELE, 'data/schemaevaluator_data/expected_results/single_invalid_allele'),
+     (ta.SCHEMAEVALUATOR_TEST_SEVERAL_INVALID_ALLELES, 'data/schemaevaluator_data/expected_results/several_invalid_alleles'),
     ],
 	indirect=True
 )
@@ -67,9 +68,9 @@ def test_schemaEvaluator_valid_input(monkeypatch, args_fixture):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-     (ct.SCHEMAEVALUATOR_TEST_EMPTY_FILES, 'Could not get input files.'),
-     (ct.SCHEMAEVALUATOR_TEST_ZERO_BYTES, 'Could not get input files.'),
-     (ct.SCHEMAEVALUATOR_TEST_FAKE_PATH, 'Path to input schema does not exist. Please provide a valid path.')
+     (ta.SCHEMAEVALUATOR_TEST_EMPTY_FILES, 'Could not get input files.'),
+     (ta.SCHEMAEVALUATOR_TEST_ZERO_BYTES, 'Could not get input files.'),
+     (ta.SCHEMAEVALUATOR_TEST_FAKE_PATH, 'Path to input schema does not exist. Please provide a valid path.')
     ],
 	indirect=True
 )

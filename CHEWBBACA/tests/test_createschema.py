@@ -13,6 +13,7 @@ import filecmp
 
 from CHEWBBACA import chewBBACA
 from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.tests import test_arguments as ta
 from CHEWBBACA.utils import file_operations as fo
 
 
@@ -33,9 +34,9 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-	 (ct.CREATESCHEMA_TEST_GENOME_TEMPLATE, 'data/createschema_data/expected_results'),
-     (ct.CREATESCHEMA_TEST_GENOME_LIST, 'data/createschema_data/expected_results'),
-	 (ct.CREATESCHEMA_TEST_CDS, 'data/createschema_data/expected_results'),
+	 (ta.CREATESCHEMA_TEST_GENOME_TEMPLATE, 'data/createschema_data/expected_results'),
+     (ta.CREATESCHEMA_TEST_GENOME_LIST, 'data/createschema_data/expected_results'),
+	 (ta.CREATESCHEMA_TEST_CDS, 'data/createschema_data/expected_results'),
     ],
 	indirect=True
 )
@@ -89,11 +90,11 @@ def test_createschema_valid_input(monkeypatch, args_fixture):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-	 (ct.CREATESCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
-     (ct.CREATESCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
-     (ct.CREATESCHEMA_INVALID_PTF_PATH, ct.INVALID_PTF_PATH),
-     (ct.CREATESCHEMA_TEST_HEADER_ONLY, ct.CANNOT_PREDICT),
-     (ct.CREATESCHEMA_TEST_INVALID_GENOME, ct.CANNOT_PREDICT)
+	 (ta.CREATESCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
+     (ta.CREATESCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
+     (ta.CREATESCHEMA_INVALID_PTF_PATH, ct.INVALID_PTF_PATH),
+     (ta.CREATESCHEMA_TEST_HEADER_ONLY, ct.CANNOT_PREDICT),
+     (ta.CREATESCHEMA_TEST_INVALID_GENOME, ct.CANNOT_PREDICT)
     ],
 	indirect=True
 )

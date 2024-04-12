@@ -13,6 +13,7 @@ import filecmp
 
 from CHEWBBACA import chewBBACA
 from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.tests import test_arguments as ta
 from CHEWBBACA.utils import file_operations as fo
 
 
@@ -30,9 +31,9 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
 		"args_fixture",
 		[
-		 (ct.PREPEXTERNALSCHEMA_TEST_VALID_INPUT, 'data/prep_data/expected_results_valid'),
-		 (ct.PREPEXTERNALSCHEMA_TEST_EXTENSIONS, 'data/prep_data/expected_results_extension'),
-		 (ct.PREPEXTERNALSCHEMA_TEST_GENE_LIST, 'data/prep_data/expected_results_extension')
+		 (ta.PREPEXTERNALSCHEMA_TEST_VALID_INPUT, 'data/prep_data/expected_results_valid'),
+		 (ta.PREPEXTERNALSCHEMA_TEST_EXTENSIONS, 'data/prep_data/expected_results_extension'),
+		 (ta.PREPEXTERNALSCHEMA_TEST_GENE_LIST, 'data/prep_data/expected_results_extension')
 		],
 		indirect=True
 )
@@ -85,10 +86,10 @@ def test_prep_valid_input(monkeypatch, args_fixture):
 @pytest.mark.parametrize(
 		"args_fixture",
 		[
-		 (ct.PREPEXTERNALSCHEMA_TEST_EMPTY_DIR, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.PREPEXTERNALSCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.PREPEXTERNALSCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
-		 (ct.PREPEXTERNALSCHEMA_TEST_INVALID_PATH, ct.INVALID_INPUT_PATH)
+		 (ta.PREPEXTERNALSCHEMA_TEST_EMPTY_DIR, ct.MISSING_FASTAS_EXCEPTION),
+		 (ta.PREPEXTERNALSCHEMA_TEST_EMPTY_FILES, ct.MISSING_FASTAS_EXCEPTION),
+		 (ta.PREPEXTERNALSCHEMA_TEST_ZERO_BYTES, ct.MISSING_FASTAS_EXCEPTION),
+		 (ta.PREPEXTERNALSCHEMA_TEST_INVALID_PATH, ct.INVALID_INPUT_PATH)
 		],
 		indirect=True
 )

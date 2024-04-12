@@ -10,6 +10,7 @@ import filecmp
 
 from CHEWBBACA import chewBBACA
 from CHEWBBACA.utils import constants as ct
+from CHEWBBACA.tests import test_arguments as ta
 
 
 # Use the tmp_path fixture to create a tmp directory for each test
@@ -26,7 +27,7 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-     (ct.ALLELECALL_EVALUATOR_VALID, 'data/allelecallevaluator_data/expected_results'),
+     (ta.ALLELECALL_EVALUATOR_VALID, 'data/allelecallevaluator_data/expected_results'),
     ],
 	indirect=True
 )
@@ -64,7 +65,7 @@ def test_allelecallevaluator_valid_input(monkeypatch, args_fixture):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-     (ct.ALLELECALL_EVALUATOR_INVALID_PATH, ct.MISSING_INPUT_ARG),
+     (ta.ALLELECALL_EVALUATOR_INVALID_PATH, ct.MISSING_INPUT_ARG),
     ],
 	indirect=True
 )

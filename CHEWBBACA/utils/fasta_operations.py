@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions to work with FASTA files.
+This module contains functions used to work with FASTA files.
 
 Code documentation
 ------------------

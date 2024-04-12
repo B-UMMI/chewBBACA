@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions to perform requests to
-UniProts's SPARQL endpoint and process retrieved data.
+UniProt's SPARQL endpoint and process retrieved data.
 
 Code documentation
 ------------------
@@ -81,10 +81,10 @@ def select_name(result):
 
     i = 0
     found = False
-    # get the entries with results
+    # Get the entries with results
     try:
         aux = result['results']['bindings']
-    # response does not contain annotation data
+    # Response does not contain annotation data
     except Exception as e:
         aux = {}
 

@@ -7,8 +7,7 @@ Purpose
 This module joins allele calling results from different
 runs. It can concatenate files with allelic profiles
 for the same set of loci or create a new file with the
-allelic profiles for the loci that were common between
-all input files.
+allelic profiles for the loci shared by all input files.
 
 Code documentation
 ------------------
@@ -62,7 +61,18 @@ def concatenate_profiles(files, loci_list, output_file):
 
 
 def main(profiles, output_file, common):
+    """Join files with allelic profiles.
 
+    Parameters
+    ----------
+    profiles : list
+        List with paths to TSV files with allelic profiles.
+    output_file : str
+        Path to the output file.
+    common : bool
+        If the process should join profile data only for shared loci
+        when the profiles do not share the same loci sets.
+    """
     if len(profiles) == 1:
         sys.exit('Provided a single file. Nothing to do.')
 
@@ -75,7 +85,6 @@ def main(profiles, output_file, common):
         # check if headers are equal
         if all([set(headers[0]) == set(h) for h in headers[1:]]) is True:
             print('Profiles have {0} loci.'.format(len(headers[0])-1))
-
             total_profiles = concatenate_profiles(profiles,
                                                   headers[0],
                                                   output_file)

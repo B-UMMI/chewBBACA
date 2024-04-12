@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This module contains functions/classes related to parameter
-and argument validation.
+This module contains functions/classes related to the validation
+of the arguments passed to chewBABCA's modules.
 
 Code documentation
 ------------------

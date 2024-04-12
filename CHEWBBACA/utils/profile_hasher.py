@@ -103,7 +103,7 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
     current_rows = pd.read_csv(profiles_table, delimiter='\t', dtype=str,
                                skiprows=skiprows, nrows=nrows, index_col=0)
 
-    # remove all 'INF-' prefixes, missing data and '*' from identifiers
+    # Remove all 'INF-' prefixes, missing data and '*' from identifiers
     current_rows = current_rows.apply(im.replace_chars, args=('-'))
 
     hashed_profiles = []
@@ -126,8 +126,33 @@ def hash_profiles(profiles_table, loci_ids, loci_files, hashing_function,
 
 def main(profiles_table, schema_directory, output_directory, hash_type,
          cpu_cores, nrows, updated_files, no_inferred):
+    """Hash allele identifiers in a matrix of allelic profiles.
 
-    # get hash function
+    Parameters
+    ----------
+    profiles_table : str
+        Path to a TSV file with allelic profiles determined by the
+        AlleleCall module.
+    schema_directory : str
+        Path to the directory of the schema used to determine the
+        allelic profiles.
+    output_directory : str
+        Path to the output directory.
+    hash_type : str
+        Hashing algorithm to use.
+    cpu_cores : int
+        Number of CPU cores used by the process.
+    nrows : int
+        Divide input file into subsets to process more efficiently.
+    updated_files : dict
+        Dictionary with paths to schema FASTA files as keys and paths
+        to FASTA files updated by allele calling as values. Only used
+        if `no_inferred` is True.
+    no_inferred : bool
+        If the allele calling process did not add inferred alleles to
+        the schema.
+    """
+    # Get hash function
     hashing_function = getattr(hashlib, hash_type, None)
     if hashing_function is None:
         hashing_function = getattr(zlib, hash_type, None)
@@ -137,7 +162,7 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
               'hashlib or zlib modules.'.format(hash_type))
         return False
 
-    # get loci identifiers
+    # Get loci identifiers
     with open(profiles_table, 'r') as infile:
         header = infile.readline()
         loci_ids = header.split()[1:]
@@ -145,25 +170,25 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
     loci_files = {}
     for locus in loci_ids:
         locus_file = fo.join_paths(schema_directory, [locus])
-        # add .fasta extension if file headers did not include it
+        # Add .fasta extension if file headers did not include it
         if locus_file.endswith('.fasta') is False:
             locus_file += '.fasta'
         loci_files[locus] = [locus_file]
         if locus_file in updated_files and no_inferred is True:
             loci_files[locus].append(updated_files[locus_file][0])
 
-    # get input/sample identifiers
+    # Get input/sample identifiers
     sample_ids = pd.read_csv(profiles_table, delimiter='\t',
                              dtype=str, usecols=['FILE'])
 
-    # write file with header
+    # Write file with header
     header_basename = fo.file_basename(profiles_table).replace('.tsv', '_header.tsv')
     header_file = fo.join_paths(output_directory, [header_basename])
     fo.write_to_file(header, header_file, 'w', '')
 
-    # create multiprocessing inputs
+    # Create multiprocessing inputs
     multi_inputs = []
-    # divide and process by row chunks
+    # Divide and process by row chunks
     for i in range(0, len(sample_ids), nrows):
         multi_inputs.append([profiles_table, loci_ids, loci_files,
                              hashing_function, nrows, range(1, i+1),
@@ -172,12 +197,12 @@ def main(profiles_table, schema_directory, output_directory, hash_type,
     hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper,
                                              cpu_cores)
 
-    # concatenate all files
+    # Concatenate all files
     output_basename = fo.file_basename(profiles_table).replace('.tsv', '_hashed.tsv')
     output_file = fo.join_paths(output_directory, [output_basename])
     fo.concatenate_files([header_file]+hashed_files, output_file)
 
-    # delete intermediate dataframes
+    # Delete intermediate dataframes
     fo.remove_files([header_file]+hashed_files)
 
     return output_file

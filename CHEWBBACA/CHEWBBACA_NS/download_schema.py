@@ -4,11 +4,9 @@
 Purpose
 -------
 
-This module enables the download of chewBBACA's schemas from the
-Chewie-NS.
-
+This module enables the download of schemas from a Chewie-NS instance.
 The process enables the download of ZIP archives that contain ready-to-use
-versions of any schema in the Chewie-NS. It also allows users to download
+versions of any schema in Chewie-NS. It also allows users to download
 any schema with the structure it had at a specific time point. It is also
 possible to download the latest version of the schema through requests to
 the Chewie-NS API, if the compressed version that is available does not

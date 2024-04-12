@@ -16,11 +16,9 @@ import os
 import subprocess
 
 try:
-    from utils import (constants as ct,
-                       iterables_manipulation as im)
+    from utils import constants as ct
 except ModuleNotFoundError:
-    from CHEWBBACA.utils import (constants as ct,
-                                 iterables_manipulation as im)
+    from CHEWBBACA.utils import constants as ct
 
 
 def call_mafft(input_file, output_file):

@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions related with the creation and
+This module contains functions related to the creation and
 manipulation of the SQLite database used to store allelic profiles.
 
 Notes
@@ -15,6 +15,8 @@ might be old and will not enforce the FOREIGN KEY constraint
 (this was only implemented in SQLite 3.6.19). We need to take
 that into account when altering the data in the database.
 
+Code documentation
+------------------
 """
 
 
@@ -30,9 +32,10 @@ except ModuleNotFoundError:
 
 
 def create_database_file(db_file):
-    """ Creates a SQLite database file.
-        If the database file already exists,
-        it will establish and close connection.
+    """Create a SQLite database file.
+
+    If the database file already exists,
+    it will establish and close connection.
 
     Parameters
     ----------
@@ -46,11 +49,10 @@ def create_database_file(db_file):
         successfully created, OperationalError
         if it could not create/establish connection
     """
-
     conn = None
     error = None
     try:
-        # creates db file if it does not exist
+        # Creates db file if it does not exist
         conn = sqlite3.connect(db_file)
     except Exception as e:
         error = e
@@ -62,8 +64,7 @@ def create_database_file(db_file):
 
 
 def create_connection(db_file):
-    """ Creates a database connection to a SQLite
-        database.
+    """Create a database connection to a SQLite database.
 
     Parameters
     ----------
@@ -77,7 +78,6 @@ def create_connection(db_file):
         successfull or error if it was not possible
         to connect to the database.
     """
-
     try:
         conn = sqlite3.connect(db_file)
     except Exception as e:
@@ -87,7 +87,7 @@ def create_connection(db_file):
 
 
 def execute_statement(conn, statement):
-    """ Executes a SQL statement.
+    """Execute a SQL statement.
 
     Parameters
     ----------
@@ -103,7 +103,6 @@ def execute_statement(conn, statement):
         successfully created, OperationalError
         if it could not create/establish connection
     """
-
     error = None
     try:
         c = conn.cursor()
@@ -115,7 +114,7 @@ def execute_statement(conn, statement):
 
 
 def select_all_rows(db_file, table):
-    """ Retrieves all rows in a table.
+    """Retrieve all rows in a table.
 
     Parameters
     ----------
@@ -131,7 +130,6 @@ def select_all_rows(db_file, table):
         is represented by a tuple with the values
         for all columns.
     """
-
     conn = create_connection(db_file)
     cur = conn.cursor()
     cur.execute('SELECT * FROM {0}'.format(table))
@@ -146,7 +144,7 @@ def select_all_rows(db_file, table):
 
 
 def create_insert_statement(table, columns, placeholders):
-    """ Creates a base SQL insert statement.
+    """Create a base SQL insert statement.
 
     Parameters
     ----------
@@ -163,7 +161,6 @@ def create_insert_statement(table, columns, placeholders):
         used to insert values into `columns`
         of a `table`.
     """
-
     statement = ('INSERT OR IGNORE INTO {0}({1}) '
                  'VALUES({2});'.format(table, ','.join(columns),
                                        ','.join(placeholders)))
@@ -172,7 +169,7 @@ def create_insert_statement(table, columns, placeholders):
 
 
 def insert_loci(db_file, matrix_file):
-    """ Inserts loci into the loci table.
+    """Insert loci into the loci table.
 
     Parameters
     ----------
@@ -187,7 +184,6 @@ def insert_loci(db_file, matrix_file):
     The number of loci that were insert
     into the table.
     """
-
     matrix_lines = read_matrix(matrix_file)
     loci_list = [locus.rstrip('.fasta') for locus in matrix_lines[0][1:]]
 
@@ -207,7 +203,7 @@ def insert_loci(db_file, matrix_file):
 
 
 def insert_multiple(db_file, base_statement, data):
-    """ Executes several insert statements.
+    """Execute several insert statements.
 
     Parameters
     ----------
@@ -225,7 +221,6 @@ def insert_multiple(db_file, base_statement, data):
         None if the SQL statement was successfully
         inserted, SQLite OperationalError otherwise.
     """
-
     error = None
     try:
         conn = create_connection(db_file)
@@ -240,9 +235,7 @@ def insert_multiple(db_file, base_statement, data):
 
 
 def create_database(db_file):
-    """ Creates the database file and tables of a SQLite database
-        that will store the allelic profiles determined with
-        a schema.
+    """Create a SQLite database to store allelic profiles.
 
     Parameters
     ----------
@@ -254,7 +247,6 @@ def create_database(db_file):
     True if the SQLite database file and tables were
     successfully created, SQLite OperationalError otherwise.
     """
-
     message = create_database_file(db_file)
 
     # samples table
@@ -308,8 +300,7 @@ def create_database(db_file):
 
 
 def read_matrix(matrix_file):
-    """ Reads a TSV file that contains a matrix with
-        allelic profiles.
+    """Read a TSV file that contains a matrix with allelic profiles.
 
     Parameters
     ----------
@@ -321,7 +312,6 @@ def read_matrix(matrix_file):
     matrix_lines : list of list
         A list with all the lines in the TSV file.
     """
-
     with open(matrix_file, 'r') as m:
         matrix_lines = list(csv.reader(m, delimiter='\t'))
 
@@ -329,8 +319,7 @@ def read_matrix(matrix_file):
 
 
 def get_loci_ids(matrix_lines):
-    """ Extracts loci identifiers from a list
-        with lines from a matrix of allelic profiles.
+    """Extract loci identifiers from a list with allelic profiles.
 
     Parameters
     ----------
@@ -344,15 +333,13 @@ def get_loci_ids(matrix_lines):
         List with the identifiers of all loci represented
         in the allelic profiles.
     """
-
     loci_ids = [locus.rstrip('.fasta') for locus in matrix_lines[0][1:]]
 
     return loci_ids
 
 
 def get_sample_ids(matrix_lines):
-    """ Extracts sample identifiers from a list
-        with lines from a matrix of allelic profiles.
+    """Extract sample identifiers from a list with allelic profiles.
 
     Parameters
     ----------
@@ -366,15 +353,13 @@ def get_sample_ids(matrix_lines):
         List with the sample identifiers of all allelic
         profiles.
     """
-
     sample_ids = [l[0].rstrip('.fasta') for l in matrix_lines[1:]]
 
     return sample_ids
 
 
 def get_profiles(matrix_lines):
-    """ Extracts profiles from a list with lines from
-        a matrix of allelic profiles.
+    """Extract profiles from a list with allelic profiles.
 
     Parameters
     ----------
@@ -387,7 +372,6 @@ def get_profiles(matrix_lines):
     profiles : list of dict
         List with one dictionary per allelic profile.
     """
-
     profiles = []
     loci_ids = matrix_lines[0][1:]
     for l in matrix_lines[1:]:
@@ -399,7 +383,7 @@ def get_profiles(matrix_lines):
 
 
 def remove_inf(profile):
-    """ Remove 'INF-' prefix from inferred alleles.
+    """Remove the 'INF-' prefix from inferred alleles.
 
     Parameters
     ----------
@@ -413,7 +397,6 @@ def remove_inf(profile):
         List with allele identifiers stripped of the
         'INF-' prefix.
     """
-
     clean_profile = [a.lstrip('INF-') if 'INF-' in a else a for a in profile]
 
     return clean_profile
@@ -422,7 +405,6 @@ def remove_inf(profile):
 def jsonify_profile(profile, loci):
     """
     """
-
     json_profile = ''
     for k, v in profile.items():
         # add first entry to JSON only if locus value is not LNF
@@ -444,7 +426,6 @@ def jsonify_profile(profile, loci):
 def store_allelecall_results(output_directory, schema_directory):
     """
     """
-
     # add profiles to SQLite database
     # parent results folder might have several results folders
     results_folders = [os.path.join(output_directory, file)
@@ -492,8 +473,7 @@ def store_allelecall_results(output_directory, schema_directory):
 
 
 def insert_allelecall_matrix(matrix_file, db_file, insert_date):
-    """ Inserts the data contained in a AlleleCall matrix into
-        the SQLite database of the schema.
+    """Insert profile data from a TSV file into a SQLite db.
 
     Parameters
     ----------
@@ -514,7 +494,6 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
     - Total number of profiles.
     - Number of unique profiles.
     """
-
     loci_list_db = select_all_rows(db_file, 'loci')
     loci_map = {t[1]: t[0] for t in loci_list_db}
 
@@ -592,8 +571,7 @@ def insert_allelecall_matrix(matrix_file, db_file, insert_date):
 
 
 def select_outdated(loci, reassigned, cursor):
-    """ Retrives the allelic profiles that have outdated
-        allele identifiers.
+    """Retrive the allelic profiles with outdated allele identifiers.
 
     Parameters
     ----------
@@ -620,7 +598,6 @@ def select_outdated(loci, reassigned, cursor):
         the outdated allele identifier and the updated
         allele identifier).
     """
-
     profiles = {}
     for locus, alleles in reassigned.items():
         locus_id = loci[locus.split('-')[-1].rstrip('.fasta').lstrip('0')]
@@ -643,8 +620,7 @@ def select_outdated(loci, reassigned, cursor):
 
 
 def alter_profiles(profiles, cursor):
-    """ Alters allele identifiers in allelic profiles
-        that are outdated.
+    """Update allele identifiers in allelic profiles.
 
     Parameters
     ----------
@@ -665,7 +641,6 @@ def alter_profiles(profiles, cursor):
         A dictionary with profiles hashes as keys and
         updated profiles as values.
     """
-
     results = {}
     for k, v in profiles.items():
         profile = v[0]
@@ -685,7 +660,7 @@ def alter_profiles(profiles, cursor):
 
 
 def update_profiles(schema_directory, reassigned):
-    """ Updates allele identifiers that have been changed.
+    """Update allele identifiers in allelic profiles.
 
     Parameters
     ----------

@@ -830,7 +830,7 @@ def write_results_alleles(classification_files, input_identifiers,
 
 def write_results_statistics(classification_files, input_identifiers,
                              cds_counts, output_directory, classification_labels,
-                             repeated_counts, invalid_data, loci_finder):
+                             repeated_counts, invalid_data):
     """Write a TSV file with classification counts per input.
 
     Parameters
@@ -856,9 +856,6 @@ def write_results_statistics(classification_files, input_identifiers,
     invalid_data : dict
         Dictionary with input identifiers as keys and the total
         number of invalid CDSs as values.
-	loci_finder : re.Pattern
-		Regular expression object to search for loci identifiers
-		in paths and filenames.
 
     Returns
     -------
@@ -870,7 +867,6 @@ def write_results_statistics(classification_files, input_identifiers,
     class_counts = {i: {c: 0 for c in classification_labels}
                     for i in input_identifiers}
     for file in classification_files.values():
-        locus_id = loci_finder.search(file).group()
         locus_results = fo.pickle_loader(file)
 
         for i in class_counts:
@@ -1361,7 +1357,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores):
             bsr = cf.compute_bsr(raw_score, query_scores[query_id][1])
         except Exception as e:
             print('Could not get the self-score for the representative '
-                  f'allele {query_id}')
+                  f'allele {query_id}', e)
             continue
         # Only keep matches above BSR threshold
         if bsr >= bsr_threshold:
@@ -1563,7 +1559,7 @@ def classify_inexact_matches(locus, genomes_matches, inv_map,
                 int(rep_alleleid.replace('*', '').split('_')[-1])
                 rep_alleleid = rep_alleleid.split('_')[-1]
             except Exception as e:
-                pass
+                print(e)
 
             # Get hash of the CDS DNA sequence
             target_dna_hash = match[2]
@@ -2952,8 +2948,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
                                                 output_directory,
                                                 classification_labels,
                                                 repeated_counts,
-                                                results['invalid_alleles'],
-												loci_finder)
+                                                results['invalid_alleles'])
 
     # Create file with class counts per locus called
     print(f'Creating file with class counts per locus ({ct.LOCI_STATS_BASENAME})...')

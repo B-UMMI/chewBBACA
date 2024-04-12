@@ -214,7 +214,7 @@ def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
         try:
             alignment += str(fasta_index[seqid].seq)
         except Exception as e:
-            print(f'Could not get {sample} allele for locus {locus}.')
+            print(f'Could not get {sample} allele for locus {locus}.', e)
     # Save alignment for sample
     alignment_outfile = fo.join_paths(output_directory,
                                       [f'{sample}_cgMLST_alignment.fasta'])
@@ -322,8 +322,6 @@ def main(input_files, schema_directory, output_directory, annotations,
     summary_rows = [total_samples, total_loci, total_cds,
                     loci_sums[-1], *loci_sums[:-1]]
 
-    pa_lines = []
-    dm_lines = []
     phylo_data = {"phylo_data": []}
     if light is False:
         if False in [no_pa, no_dm, no_tree] or cg_alignment is True:

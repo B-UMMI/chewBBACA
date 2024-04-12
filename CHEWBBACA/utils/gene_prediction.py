@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions related with gene prediction
+This module contains functions related to gene prediction
 with Pyrodigal.
 
 Code documentation

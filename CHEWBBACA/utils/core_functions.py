@@ -4,7 +4,8 @@
 Purpose
 -------
 
-This module contains functions related to
+This module contains core functions used by chewBBACA's
+modules.
 
 Code documentation
 ------------------
@@ -12,7 +13,6 @@ Code documentation
 
 
 import os
-import sys
 
 try:
     from utils import (constants as ct,

@@ -128,24 +128,24 @@ def process_header(process):
     print(f'{hf}\n  {header}\n{hf}')
 
 
-# decorator to time main processes
+# Decorator to time main processes
 def process_timer(func):
-    # use functools to preserve info about wrapped function
+    # Use functools to preserve info about wrapped function
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # get process name and print header
+        # Get process name and print header
         process_header(sys.argv[1])
 
-        # do not measure time if it is only needed to print the help message
+        # Do not measure time if it is only needed to print the help message
         if any([option in ['-h', '--help'] for option in sys.argv]) is False:
             start = get_datetime()
             start_str = datetime_str(start)
             print(f'Started at: {start_str}\n')
 
-        # run function
+        # Run function
         func(*args, **kwargs)
 
-        # does not print elapsed time if the help message is printed
+        # Does not print elapsed time if the help message is printed
         end = get_datetime()
         end_str = datetime_str(end)
         print(f'\nFinished at: {end_str}')

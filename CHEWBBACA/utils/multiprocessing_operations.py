@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This modules contains functions used to paralellize
+This module contains functions used to paralellize
 function calls.
 
 Code documentation

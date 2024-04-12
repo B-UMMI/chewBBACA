@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module contains functions to work with iterables.
+This module contains functions used to work with iterables.
 
 Code documentation
 ------------------

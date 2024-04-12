@@ -4,16 +4,13 @@
 Purpose
 -------
 
-This module enables the creation of a TSV file with annotation
-terms for the loci in a schema.
-
-The process queries UniProt's SPARQL endpoint to find exact
-matches and retrieve the product name and page URL for those
-matches. If users provide a taxon/taxa name/s, the process
-will also search for reference proteomes for the specified
-taxon/taxa and use BLASTp to align local sequences against
-reference sequences to assign annotation terms based on the
-BSR value computed for each alignment.
+This module retrieves annotations for the loci in a schema.
+The process can retrieve annotations through UniProt's SPARQL
+endpoint to find exact matches. If users provide a taxon/taxa
+name/s, the process will also search for reference proteomes
+for the specified taxon/taxa and use BLASTp to align local
+sequences against reference sequences to assign annotations
+based on the BSR value computed for each alignment.
 
 Code documentation
 ------------------
@@ -331,7 +328,42 @@ def create_annotations_table(annotations, output_directory, header,
 def main(schema_directory, output_directory, genes_list, protein_table,
          blast_score_ratio, cpu_cores, taxa, proteome_matches, no_sparql,
          no_cleanup, blast_path):
+    """Annotate loci in a schema.
 
+    Parameters
+    ----------
+    schema_directory
+        Path to the schema directory.
+    output_directory
+        Path to the output directory where the process will store
+        intermediate files and save the results.
+    genes_list
+        Path to a file that contains a list of schema loci to
+        annotate.
+    protein_table
+        Path to the 'cds_coordinates.tsv' file created by the
+        'CreateSchema' process.
+    blast_score_ratio
+        BLAST Score Ratio value. This value is only used to evaluate
+        matches against reference proteomes when a taxon/taxa name/s
+        are provided.
+    cpu_cores
+        Number of CPU cores used by the process.
+    taxa
+        List of scientific names for a set of taxa. The process will
+        download reference proteomes from UniProt and align schema
+        translated alleles against the proteomes to find annotations
+        for the loci.
+    proteome_matches
+        Maximum number of proteome matches per locus to report.
+    no_sparql
+        Do not search for annotations through UniProt's SPARQL
+        endpoint.
+    no_cleanup
+        Do not keep intermediate files.
+    blast_path
+        Path to the directory that contains the BLAST executables.
+    """
     # Create output directory
     created = fo.create_directory(output_directory)
     if created is False:

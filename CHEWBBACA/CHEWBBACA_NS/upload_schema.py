@@ -5,86 +5,17 @@ Purpose
 -------
 
 This module allows authorized users to upload chewBBACA's schemas
-to the Chewie-NS.
-
-The process for schema upload has four stages:
-
-    - User Permissions: Determines if the current user has permission
-      to upload schemas. Only Admin or Contributor level users can
-      upload schemas to the Chewie-NS.
-
-    - Parameters Validation: Validation of the set of parameters associated
-      with the schema. Only schemas that have been used with a single valid
-      value per parameter can be uploaded. Invalid or multiple values
-      for a single parameter can lead to inconsistent results; thus,
-      it is strongly advised to always perform allele calling with
-      the same set of parameters and refrain from altering the initial
-      set of parameters values defined in the schema creation or
-      adaptation processes.
-
-    - Schema Pre-processing: Applies quality control measures to identify
-      and exclude invalid alleles. Searches for annotations on UniProt
-      and imports annotations provided by users.
-
-    - Schema Upload: Collects essential data and sends it to the Chewie-NS
-      for schema creation and data insertion. The process finishes when all
-      the necessary data has been uploaded. The Chewie-NS automatically
-      detects that all data has been received and finishes data insertion.
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``schema_directory`` : Path to the directory of the schema to upload.
-
-    - e.g.: ``/home/user/schemas/ypestis_schema``
-
-- ``-sp``, ``species_id`` : The integer identifier or name of the species that
-  the schema will be associated to in the Chewie-NS.
-
-    - e.g.: ``1`` or ``'Yersinia pestis'``
-
-- ``-sn``, ``schema_name`` : A brief and meaningful name that should help
-  understand the type and content of the schema.
-
-    - e.g.: ``ypestis_cgMLST`` or ``ypestis cgMLST``
-
-- ``-lp``, ``loci_prefix`` : Prefix included in the name of each locus of the
-  schema.
-
-    - e.g.: ``ypestis``
-
-- ``--df``, ``description_file`` : Path to a text file with a description
-  about the schema. Markdown syntax is supported in order to allow greater
-  customizability of the rendered description in the Frontend. Will default
-  to the schema's name if the user does not provide a valid path for a
-  file (default=None).
-
-    - e.g.: ``/home/user/schemas/ypestis_description``
-
-- ``--a``, ``annotations`` : Path to a TSV file with loci annotations. The
-  first column has loci identifiers (w/o .fasta extension), the second has
-  user annotations and the third has custom annotations (default=None).
-
-    - e.g.: ``/home/user/schemas/ypestis_annotations``
-
-- ``--cpu``, ``cpu_cores`` : Number of CPU cores that will be used in the
-  Schema Pre-processing step (default=1).
-
-    - e.g.: ``4``
-
-- ``--ns_url``, ``nomenclature_server`` : The base URL for the Nomenclature
-  Server. The default value, "main", will establish a connection to
-  "https://chewbbaca.online/", "tutorial" to "https://tutorial.chewbbaca.online/"
-  and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). Users may also
-  provide the IP address to other Chewie-NS instances.
-
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
-
-- ``--continue_up`` : If the process should check if the schema upload was
-  interrupted and try to resume it. ``True`` if provided, ``False`` otherwise.
+to a Chewie-NS instance. The process requests the credentials of
+the user trying to upload a schema and determines if the user is
+allowed to upload the schema (only Admin and Contributor level
+users can upload schemas). The schema config file is read to
+validate the argument values used to create the schema. Only
+schemas that have been used with a single valid value per parameter
+can be uploaded. Invalid or multiple values for a single parameter
+can lead to inconsistent results; thus, it is strongly advised to
+always perform allele calling with the same set of parameters
+and refrain from altering the initial set of parameters values
+defined in the schema creation or adaptation processes.
 
 Code documentation
 ------------------
@@ -96,7 +27,6 @@ import sys
 import json
 import time
 import hashlib
-import argparse
 import requests
 import itertools
 import multiprocessing
@@ -930,7 +860,39 @@ def upload_alleles_data(alleles_data, length_files, base_url,
 def main(schema_directory, species_id, schema_name, loci_prefix,
          description_file, annotations, cpu_cores,
          nomenclature_server, continue_up):
+    """Upload a schema to a Chewie-NS module.
 
+    Parameters
+    ----------
+    schema_directory : str
+        Path to the directory of the schema to upload.
+    species_id : int
+        The integer identifier or name of the species that
+        the schema will be associated to in Chewie-NS.
+    schema_name : str
+        A brief and meaningful name that should help
+        understand the type and content of the schema.
+    loci_prefix : str
+        A short prefix included in the name of each locus.
+    description_file : str
+        Path to a text file with a description about the schema. Markdown
+        syntax is supported in order to allow greater customizability of
+        the rendered description in the Frontend. Will default to the
+        schema's name if the user does not provide a valid path for a
+        file.
+    annotations : str
+        Path to a TSV file with loci annotations. The first column has
+        loci identifiers (w/o .fasta extension), the second has user
+        annotations and the third has custom annotations.
+    cpu_cores : int
+        Number of CPU cores that will be used in the pre-processing steps.
+    nomenclature_server : str
+        The base URL for the Chewie-NS instance.
+    continue_up : bool
+        If the process should check if the schema upload was interrupted
+        and try to resume it.
+    """
+    
     if 'tutorial' not in nomenclature_server:
         token = cr.capture_login_credentials(nomenclature_server)
     else:
@@ -1277,78 +1239,3 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
     if len(absent_loci) > 0:
         os.remove(loci_file)
         os.remove('{0}.zip'.format(loci_file))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', type=str, required=True,
-                        dest='schema_directory',
-                        help='Path to the directory of the schema to upload.')
-
-    parser.add_argument('-sp', type=str, required=True,
-                        dest='species_id',
-                        help='The integer identifier or name of the species '
-                             'that the schema will be associated to in '
-                             'the NS.')
-
-    parser.add_argument('-sn', type=str, required=True,
-                        dest='schema_name',
-                        help='A brief and meaningful name that '
-                             'should help understand the type and content '
-                             'of the schema.')
-
-    parser.add_argument('-lp', type=str, required=True,
-                        dest='loci_prefix',
-                        help='Prefix included in the name of each locus of '
-                             'the schema.')
-
-    parser.add_argument('--df', type=str, required=False,
-                        dest='description_file', default=None,
-                        help='Path to a text file with a description '
-                             'about the schema. Markdown syntax is supported '
-                             'in order to offer greater customizability of '
-                             'the rendered description in the Frontend. '
-                             'Will default to the schema\'s name if the user '
-                             'does not provide a valid path for a file.')
-
-    parser.add_argument('--a', type=str, required=False,
-                        dest='annotations', default=None,
-                        help='Path to a TSV file with loci annotations. '
-                             'The first column has loci identifiers '
-                             '(w/o .fasta extension), the second has user '
-                             'annotations and the third has custom '
-                             'annotations.')
-
-    parser.add_argument('--cpu', type=int, required=False,
-                        dest='cpu_cores', default=1,
-                        help='Number of CPU cores that will '
-                             'be used in the Schema Pre-processing step.')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        default='main',
-                        dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
-                             'The default value, "main", will establish a '
-                             'connection to "https://chewbbaca.online/", '
-                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
-                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--continue_up', required=False, action='store_true',
-                        dest='continue_up',
-                        help='If the process should check if the schema '
-                             'upload was interrupted and try to resume it.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

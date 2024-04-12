@@ -16,11 +16,9 @@ import sys
 import subprocess
 
 try:
-	from utils import (constants as ct,
-					   iterables_manipulation as im)
+	from utils import constants as ct
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 iterables_manipulation as im)
+	from CHEWBBACA.utils import constants as ct
 
 
 def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):

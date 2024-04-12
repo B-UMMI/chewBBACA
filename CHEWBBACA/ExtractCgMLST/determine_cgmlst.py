@@ -4,44 +4,8 @@
 Purpose
 -------
 
-This module determines the set of genes in the core genome based on
-a matrix with allelic profiles and a threshold that defines the
-proportion of genomes a gene must be present in to be included in
-the core genome.
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-i``, ``input_file`` : Path to input file containing a matrix with
-     'allelic profiles.
-
-    - e.g.: ``/home/user/chewie/results/matrix``
-
-- ``-o``, ``output_directory`` : Path to the directory where the process
-  will store output files.
-
-    - e.g.: ``/home/user/chewie/results/output_directory``
-
-- ``--t``, ``threshold`` : Genes that constitute the core genome must be
-  in a proportion of genomes that is at least equal to this value.
-
-    - e.g.: ``0.95``
-
-- ``--s``, ``step`` : Number of genomes added to the cgMLST computation
-  at each step.
-
-    - e.g.: ``5``
-
-- ``--r``, ``genes2remove`` : Path to file with a list of genes/columns to
-  remove from the matrix (one gene identifier per line).
-
-    - e.g.: ``home/user/results/genes.txt``
-
-- ``--g``, ``genomes2remove`` : Path to file with a list of genomes/rows
-  to remove from the matrix (one genome identifier per line).
+This module determines the set of loci that constitute the core genome
+based on a matrix with allelic profiles and a loci presence threshold.
 
 Code documentation
 ------------------
@@ -272,30 +236,21 @@ def main(input_file, output_directory, threshold, step,
     Parameters
     ----------
     input_file : str
-        Path a TSV file with allelic profiles for a set
-        of genomes.
+        Path to a TSV file with allelic profiles.
     output_directory : str
         Path to the directory where the process will
         store output files.
     threshold : list
-        Core genome determination thresholds.
+        Loci presence threshold used to determine the core genome.
     step : int
         Number of genomes added to the cgMLST computation at
         each step.
     genes2remove : str
-        Path to TXT file with the list of genomes to remove.
+        Path to TXT file with a list of genomes to exclude from
+        the analysis.
     genomes2remove : str
-        Path to TXT file with the list of loci to remove.
-
-    Returns
-    -------
-    List with the paths to three files:
-
-    - Path a TSV file with the cgMLST matrix.
-    - Path to a TXT file with the list of genes that
-      constitute the core genome.
-    - Path to a TSV file with the information about
-      missing data per genome.
+        Path to TXT file with a list of loci to exclude from
+        the analysis.
     """
     fo.create_directory(output_directory)
 
@@ -418,8 +373,3 @@ def main(input_file, output_directory, threshold, step,
     plot(fig, filename=output_html, auto_open=False)
     print('HTML file with cgMLST per loci presence threshold '
           'and per step saved to {0}'.format(output_html))
-
-
-if __name__ == '__main__':
-
-    main()

@@ -389,7 +389,36 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 
 def main(input_files, output_directories, cpu_cores, blast_score_ratio,
          minimum_length, translation_table, size_threshold, blast_path):
+    """
+    Adapt a schema to be used with chewBBACA.
 
+    Parameters
+    ----------
+    input_files : str
+        Path to a TXT file with the list of schema loci to adapt.
+    output_directories :  list
+        Path to the output directories to create (the main schema
+        directory and the 'short' directory to store representative
+        alleles).
+    cpu_cores : int
+        Number of CPU cores that will be used to run the process.
+    blast_score_ratio : float
+        The BLAST Score Ratio value that will be used to evaluate
+        allele similarity and select representative alleles.
+    minimum_length : int
+        Minimum sequence length value stored in the schema config file.
+        The schema adaptation process will only discard sequences smaller
+        that this value if the `--size-filter` parameter is provided.
+    translation_table : int
+        Genetic code used to translate alleles.
+    size_threshold : float
+        Allele size variation threshold value stored in the schema
+        config file. The schema adaptation process will only discard
+        alleles below or above the locus size threshold if the
+        ´--size-filter´ parameter is provided.
+    blast_path : str
+        Path to the directory that contains the BLAST executables.
+    """
     schema_path, schema_short_path = output_directories
 
     # Import list of loci to adapt

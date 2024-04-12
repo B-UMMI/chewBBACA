@@ -4,13 +4,11 @@
 Purpose
 -------
 
-Accepts a matrix with results from the AlleleCall process of
-chewBBACA and determines the pairwise allelic differences to
-create a distance matrix. It also determines the number of
-shared loci to create a matrix with those values. The 'INF-'
-prefix is removed and ASM, ALM, NIPH, NIPHEM, PLOT3, PLOT5,
-LNF and LOTSC classifications are substituted by '0' before
-performing pairwise comparisons.
+Determines the pairwise allelic differences based on a TSV file
+with allelic profiles determined by the AlleleCall module to
+create a distance matrix. The 'INF-' prefix is removed and ASM,
+ALM, NIPH, NIPHEM, PLOT3, PLOT5, LNF and LOTSC classifications
+are substituted by '0' before computing the pairwise distances.
 
 Code documentation
 ------------------
@@ -337,8 +335,30 @@ def symmetrify_matrix(input_matrix, matrix_size, tmp_directory):
 
 
 def main(input_matrix, output_directory, cpu_cores, symmetric, masked):
+    """Compute a distance matrix based on allelic profiles.
 
-    # create output directory if it does not exist
+    Parameters
+    ----------
+    input_matrix : str
+        Path to a TSV file with allelic profiles determined by
+        the AlleleCall module.
+    output_directory : str
+        Path to the output directory.
+    cpu_cores : int
+        Number of CPU cores used to compute distances.
+    symmetric : bool
+        Determine a symmetric pairwise distance matrix, instead
+        of a triangular matrix.
+    masked : bool
+        False if the input matrix values are masked, True otherwise.
+        The process will mask the matrix values it this value is False.
+
+    Returns
+    -------
+    output_pairwise : str
+        Path to the TSV file that contains the distance matrix.
+    """
+    # Create output directory if it does not exist
     if os.path.isdir(output_directory) is False:
         os.mkdir(output_directory)
 

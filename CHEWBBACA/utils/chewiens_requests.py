@@ -5,7 +5,7 @@ Purpose
 -------
 
 This module contains functions to perform requests to
-Chewie-NS (https://github.com/B-UMMI/Chewie-NS).
+Chewie-NS instances (main: https://github.com/B-UMMI/Chewie-NS).
 
 Code documentation
 ------------------

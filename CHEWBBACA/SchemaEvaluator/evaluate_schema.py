@@ -564,7 +564,37 @@ def locus_report(locus_file, locus_data, annotation_columns,
 def main(schema_directory, output_directory, genes_list, annotations,
          translation_table, size_threshold, minimum_length,
          cpu_cores, loci_reports, light, add_sequences):
+    """Evaluate a schema and create a HTML report.
 
+    Parameters
+    ----------
+    schema_directory : str
+        Path to the schema directory.
+    output_directory : str
+        Path to the output directory where the report files will be created.
+    genes_list : str
+        Path to a file with the list of loci to evaluate.
+    annotations : str
+        Path to a TSV file created by the UniprotFinder module.
+    translation_table : int
+        Genetic code used to translate the alleles.
+    size_threshold : float
+        Allele size variation threshold. Used to determine if the size
+        of an allele is within the interval of the locus size mode +/-
+        the size threshold.
+    minimum_length : int
+        Minimum sequence length accepted for an allele to be included
+        in the schema.
+    cpu_cores : int
+        Number of CPU cores used to run the process.
+    loci_reports : bool
+        Create individual reports for the loci.
+    light : bool
+        Skips MSA and NJ tree computations for loci reports.
+    add_sequences : bool
+        Adds Code Editor components with the allele DNA and
+        protein sequences.
+    """
     # Create directory to store intermediate files
     temp_directory = fo.join_paths(output_directory, ['temp'])
     fo.create_directory(temp_directory)

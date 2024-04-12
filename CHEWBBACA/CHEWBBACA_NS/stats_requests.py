@@ -4,45 +4,12 @@
 Purpose
 -------
 
-This module enables the retrieval of information/stats from the
-Chewie-NS. Its main objective is to provide information about
-the list of species and schemas in the Chewie-NS, so that users
+This module enables the retrieval of information/stats from a
+Chewie-NS instance. Its main objective is to provide information about
+the list of species and schemas in Chewie-NS, so that users
 can quickly identify a schema of interest and download it (this
 process generates tables with species and schemas identifiers that
 can be passed to the `-sc` and `-sp` arguments of DownloadSchema).
-
-Expected input
---------------
-
-The process expects the following variables whether through command line
-execution or invocation of the :py:func:`main` function:
-
-- ``-m``, ``stats_mode`` : The process can retrieve the list of species
-  ("species" option) in the Chewie-NS, the list of schemas for a species
-  ("schemas" option and valid value for `--sp`) or information about a
-  single schema ("schemas" option and valid values for `--sp` and `--sc`).
-
-    - e.g.: ``species`` or ``schemas``
-
-- ``--ns_url``, ``nomenclature_server_url`` : The base URL for the Nomenclature Server.
-  The default value, "main", will establish a connection to "https://chewbbaca.online/",
-  "tutorial" to "https://tutorial.chewbbaca.online/"" and "local" to
-  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide the IP address to
-  other Chewie-NS instances.
-
-    - e.g.: ``http://127.0.0.1:5000/NS/api/`` (localhost)
-
-- ``--sp``, ``species_id`` : The integer identifier of a species
-  in the Chewie-NS. The process will retrieve the list of schemas
-  for the species with specified identifier.
-
-    - e.g.: ``2``
-
-- ``--sc``, ``schema_id`` : The integer identifier of a schema in
-  the Chewie-NS. The process will retrieve information about the
-  schema with specified identifier.
-
-    - e.g.: ``4``
 
 Code documentation
 ------------------
@@ -51,17 +18,14 @@ Code documentation
 
 import sys
 import requests
-import argparse
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
     from utils import (constants as ct,
-                       chewiens_requests as cr,
-                       parameters_validation as pv)
+                       chewiens_requests as cr)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
-                                 chewiens_requests as cr,
-                                 parameters_validation as pv)
+                                 chewiens_requests as cr)
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -384,7 +348,23 @@ def single_schema(species_id, schema_id, base_url, headers_get):
 
 
 def main(mode, nomenclature_server, species_id, schema_id):
+    """Get species and sschema statistics from a Chewie-NS instance.
 
+    Parameters
+    ----------
+    mode : str
+        The process can retrieve the list of species ("species" option)
+        from Chewie-NS, the list of schemas for a species ("schemas"
+        option and valid value for `species_id`) or information about a
+        single schema ("schemas" option and valid values for `species_id`
+        and `schema_id`).
+    nomenclature_server : str
+        The base URL for the Chewie-NS instance.
+    species_id : int
+        The integer identifier of a species in Chewie-NS.
+    schema_id : int
+        The integer identifier of a schema in Chewie-NS.
+    """
     headers_get = ct.HEADERS_GET_JSON
 
     print('\nRetrieving data...')
@@ -402,50 +382,6 @@ def main(mode, nomenclature_server, species_id, schema_id):
             sys.exit('\nPlease provide a valid species identifier '
                      'to get the list of available schemas.\n')
 
-    # print stats
+    # Print stats
     stats_text = '\n'.join(stats)
     print('\n{0}\n'.format(stats_text))
-
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-m', type=str, required=True,
-                        dest='stats_mode', choices=['species', 'schemas'],
-                        help='The process can retrieve the list of species '
-                             '("species" option) in the Chewie-NS or the '
-                             'list of schemas for a species '
-                             '("schemas" option).')
-
-    parser.add_argument('--ns', type=pv.validate_ns_url, required=False,
-                        default='main',
-                        dest='nomenclature_server',
-                        help='The base URL for the Nomenclature Server. '
-                             'The default value, "main", will establish a '
-                             'connection to "https://chewbbaca.online/", '
-                             '"tutorial" to "https://tutorial.chewbbaca.online/" '
-                             'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-                             'Users may also provide the IP address to other '
-                             'Chewie-NS instances.')
-
-    parser.add_argument('--sp', type=str, required=False,
-                        dest='species_id', default=None,
-                        help='The integer identifier of a '
-                             'species in the Chewie-NS.')
-
-    parser.add_argument('--sc', type=str, required=False,
-                        dest='schema_id', default=None,
-                        help='The integer identifier of a schema in '
-                             'the Chewie-NS.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == '__main__':
-
-    args = parse_arguments()
-    main(**(vars(args)))

@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This module contains functions related with sequence clustering
-based on k-mer sets.
+This module contains functions related to sequence clustering
+based on k-mers.
 
 Code documentation
 ------------------
@@ -19,14 +19,12 @@ try:
     from utils import (file_operations as fo,
                        iterables_manipulation as im,
                        blast_wrapper as bw,
-                       fasta_operations as fao,
-                       constants as ct)
+                       fasta_operations as fao)
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (file_operations as fo,
                                  iterables_manipulation as im,
                                  blast_wrapper as bw,
-                                 fasta_operations as fao,
-                                 constants as ct)
+                                 fasta_operations as fao)
 
 
 def select_representatives(kmers, reps_groups, clustering_sim):

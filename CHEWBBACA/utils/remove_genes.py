@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This module removes a set of loci from a TSV file with
-results from the AlleleCall process.
+This module removes a set of loci from results of the
+AlleleCall process.
 
 Code documentation
 ------------------
@@ -13,7 +13,6 @@ Code documentation
 
 
 import csv
-import argparse
 
 import pandas as pd
 
@@ -24,7 +23,21 @@ except ModuleNotFoundError:
 
 
 def main(input_file, genes_list, output_file, inverse):
+    """Remove loci from allele calling results.
 
+    Parameters
+    ----------
+    input_file : str
+        Path to a TSV file that contains allelic profiles
+        determined by the AlleleCall module.
+    genes_list : str
+        Path to a file with a list of loci to keep or remove.
+    output_file : str
+        Path to the output file.
+    inverse : bool
+        Keep the loci included in `genes_list` and remove the
+        rest instead.
+    """
     # Read genes list
     with open(genes_list, 'r') as infile:
         genes_list = list(csv.reader(infile, delimiter='\t'))
@@ -51,39 +64,3 @@ def main(input_file, genes_list, output_file, inverse):
     # Save dataframe to file
     df.to_csv(output_file, header=True, sep='\t', index=False)
 
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    parser.add_argument('-i', '--input-file', type=str,
-                        required=True, dest='input_file',
-                        help='TSV file that contains a matrix with '
-                             'allelic profiles determined by the '
-                             'AlleleCall process.')
-
-    parser.add_argument('-gl', '--genes-list', type=str,
-                        required=True, dest='genes_list',
-                        help='File with the list of genes to '
-                             'remove, one identifier per line.')
-
-    parser.add_argument('-o', '--output-file', type=str,
-                        required=True, dest='output_file',
-                        help='Path to the output file.')
-
-    parser.add_argument('--inverse', action='store_true',
-                        required=False, dest='inverse',
-                        help='List of genes that is provided '
-                             'is the list of genes to keep and '
-                             'all other genes should be removed.')
-
-    args = parser.parse_args()
-
-    return args
-
-
-if __name__ == "__main__":
-
-    args = parse_arguments()
-    main(**vars(args))

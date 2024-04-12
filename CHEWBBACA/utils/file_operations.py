@@ -4,9 +4,9 @@
 Purpose
 -------
 
-This module contains functions related with file operations,
-such as read and write files, create and delete files,
-manipulate file paths, compress files, verify file contents,
+This module contains functions related to file operations,
+such as reading and writing files, creating and deleting files,
+manipulating file paths, compressing files, verifying file contents,
 etc.
 
 Code documentation
@@ -33,11 +33,9 @@ from multiprocessing.pool import ThreadPool
 import pandas as pd
 
 try:
-    from utils import (constants as ct,
-                       iterables_manipulation as im)
+    from utils import iterables_manipulation as im
 except ModuleNotFoundError:
-    from CHEWBBACA.utils import (constants as ct,
-                                 iterables_manipulation as im)
+    from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def file_basename(file_path, file_extension=True):

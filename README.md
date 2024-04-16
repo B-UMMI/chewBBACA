@@ -25,6 +25,8 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 - Added more tests and improved test scripts.
 
+- Simplified the help message for all modules.
+
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 
 ## Citation

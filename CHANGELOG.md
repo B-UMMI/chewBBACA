@@ -8,6 +8,8 @@
 
 - Added more tests and improved test scripts.
 
+- Simplified the help message for all modules.
+
 ## 3.3.4 - 2024-03-22
 
 - Improved BLAST exception capturing.

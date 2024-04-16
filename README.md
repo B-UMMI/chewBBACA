@@ -17,13 +17,13 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.4 - 2024-03-22
+## 3.3.5 - 2024-04-15
 
-- Improved BLAST exception capturing.
+- Added function to check if input files passed to the CreateSchema and AlleleCall modules have unique prefixes longer than 30 characters (the prefix includes everything in the basename before the first `.`). The process prints a message with the list of input files with a prefix longer than 30 characters and exits.
 
-- CreateSchema and Allelecall exit if input files include blank spaces in the filename.
+- Fixed issue in the AlleleCall module when running in mode 1 (trying to write the file with the list of invalid CDSs, but the data is not available when running in mode 1).
 
-- Removed global variable that could lead to issues during multiprocessing.
+- Added more tests and improved test scripts.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

@@ -39,7 +39,7 @@ except ModuleNotFoundError:
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 	# prog is the name of the program 'ex: chewBBACA.py'
-	def __init__(self, prog, indent_increment=2, max_help_position=56, width=100):
+	def __init__(self, prog, indent_increment=1, max_help_position=56, width=100):
 		super().__init__(prog, indent_increment, max_help_position, width)
 
 	# Override split lines method
@@ -54,24 +54,9 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 			return metavar
 		else:
 			parts = []
-			# If the Optional doesn't take a value, format is:
-			#    -s, --long
-			if action.nargs == 0:
-				parts.extend(action.option_strings)
-			# If the Optional takes a value, format is:
-			#    -s ARGS, --long ARGS
-			else:
-				default = self._get_default_metavar_for_optional(action)
-				args_string = self._format_args(action, default)
-				for option_string in action.option_strings:
-					parts.append(option_string)
-
-				return '%s %s' % (', '.join(parts), args_string)
-
-			return ', '.join(parts)
-
-	def _get_default_metavar_for_optional(self, action):
-		return action.dest.upper()
+			parts.extend(action.option_strings)
+			parts_text = ', '.join(parts)
+			return f'{parts_text}'
 
 
 def arg_list(arg, arg_name):
@@ -907,7 +892,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		if params_answer.lower() not in ['y', 'yes']:
 			sys.exit('Exited.')
 		else:
-			# append new arguments values to configs values
+			# Append new argument values to configs values
 			for p in unmatch_params:
 				schema_params[p].append(unmatch_params[p])
 

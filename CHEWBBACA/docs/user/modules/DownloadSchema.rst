@@ -66,19 +66,19 @@ of the schema that we want to download:
 
 ::
 
-    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/download/folder
+    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/DownloadFolder
 
 To download a snapshot of the schema at a given date:
 
 ::
 
-    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/download/folder --date 2020-06-30T19:10:37
+    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/DownloadFolder --date 2020-06-30T19:10:37
 
 To retrieve the latest version of the schema:
 
 ::
 
-    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/download/folder --latest 
+    $ chewBBACA.py DownloadSchema -sp 9 -sc 1 -o path/to/DownloadFolder --latest 
 
 Parameters
 ----------

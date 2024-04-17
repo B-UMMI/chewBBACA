@@ -111,7 +111,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py AlleleCall -i /path/to/InputAssembliesFolder -g /path/to/SchemaDirectory -o /path/to/OutputFolder --cpu 4
+	chewBBACA.py AlleleCall -i /path/to/InputAssembliesFolder -g /path/to/SchemaFolder -o /path/to/OutputFolder --cpu 4
 
 Parameters
 ----------

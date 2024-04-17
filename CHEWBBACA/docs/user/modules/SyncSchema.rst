@@ -71,14 +71,14 @@ contains the schema:
 
 ::
 
-    $ chewBBACA.py SyncSchema -i path/to/schema
+    $ chewBBACA.py SyncSchema -i path/to/SchemaFolder
 
 The ``--submit`` argument allows users to submit novel alleles in their local schema to the
 Chewie-NS public server:
 
 ::
 
-    $ chewBBACA.py SyncSchema -i path/to/schema --submit
+    $ chewBBACA.py SyncSchema -i path/to/SchemaFolder --submit
 
 Parameters
 ----------

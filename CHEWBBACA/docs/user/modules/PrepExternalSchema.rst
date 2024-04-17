@@ -63,7 +63,7 @@ to the schema files may also be provided.
 
 ::
 
-	chewBBACA.py PrepExternalSchema -g /path/to/ExternalSchema -o /path/to/OutputFolderName --ptf /path/to/ProdigalTrainingFile --cpu 4
+	chewBBACA.py PrepExternalSchema -g /path/to/ExternalSchemaFolder -o /path/to/OutputFolder --ptf /path/to/ProdigalTrainingFile --cpu 4
 
 Parameters
 ----------

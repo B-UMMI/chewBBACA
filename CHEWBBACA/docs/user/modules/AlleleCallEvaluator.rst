@@ -23,7 +23,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py AlleleCallEvaluator -i /path/to/AlleleCallResultsFolder -g /path/to/SchemaDirectory -o /path/to/OutputFolderName --cpu 4
+	chewBBACA.py AlleleCallEvaluator -i /path/to/AlleleCallResultsFolder -g /path/to/SchemaFolder -o /path/to/OutputFolder --cpu 4
 
 Parameters
 ::::::::::

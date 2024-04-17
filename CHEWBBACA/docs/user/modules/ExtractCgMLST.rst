@@ -28,7 +28,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py ExtractCgMLST -i /path/to/AlleleCall/results/results_alleles.tsv -o /path/to/OutputFolderName
+	chewBBACA.py ExtractCgMLST -i /path/to/AlleleCallResultsFolder/results_alleles.tsv -o /path/to/OutputFolder
 
 Parameters
 ----------

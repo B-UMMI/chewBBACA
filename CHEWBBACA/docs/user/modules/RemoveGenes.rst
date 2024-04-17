@@ -6,14 +6,14 @@ Basic Usage
 
 ::
 
-	chewBBACA.py RemoveGenes -p <profiles1> <profiles2> -o <output_file>
+	chewBBACA.py RemoveGenes -i /path/to/ProfilesFile -g /path/to/GenesListFile -o path/to/OutputFile
 
 Parameters
 ----------
 
 ::
 
-    -i, --input-file    (Required) Path to a TSV file with allelic profiles determined by the AlleleCall process.
+    -i, --input-file    (Required) Path to a TSV file with allelic profiles determined by the AlleleCall module.
 
     -g, --genes-list    (Required) Path to a file with a list of genes to remove, one identifier per line.
 

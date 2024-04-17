@@ -6,7 +6,7 @@ Basic Usage
 
 ::
 
-	chewBBACA.py JoinProfiles -p <profiles1> <profiles2> -o <output_file>
+	chewBBACA.py JoinProfiles -p /path/to/ProfilesFile1 /path/to/ProfilesFile2 ... -o /path/to/OutputFile
 
 Parameters
 ----------

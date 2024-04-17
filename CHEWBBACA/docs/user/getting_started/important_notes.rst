@@ -22,9 +22,9 @@ Important Notes
   :doc:`PrepExternalSchema </user/modules/PrepExternalSchema>` module to convert the schema to a format
   fully compatible with chewBBACA v3.
 - If you are running chewBBACA in an environment with multiple processes accessing the same schema please use the ``--no-inferred``
-  option (see :doc:`Allele call </user/modules/AlleleCall>`).
+  option (more information in the page about the :doc:`AlleleCall module </user/modules/AlleleCall>`).
 - Input files should have short names without blank spaces or special characters. It is also important to ensure each input file has
-  a unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq>` section.
+  a short (maximum 30 characters) and unique basename prefix (everything before the first ``.`` in the basename). You can read more about this in the :doc:`FAQ </user/help_support/faq>` section.
 
 .. important::
   Have a look at the :doc:`FAQ </user/help_support/faq>` section for answers to common questions. You can suggest questions and answers

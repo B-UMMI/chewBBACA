@@ -127,7 +127,7 @@ Parameters
 
     -o, --output-directory      (Required) Output directory where the process will store intermediate files and
                                 allele calling results (will create a subdirectory named "results_<TIMESTAMP>"
-								if the path passed by the user already exists).
+                                if the path passed by the user already exists).
 
     --ptf, --training-file      (Optional) Path to the Prodigal training file used by Pyrodigal to predict genes.
                                 Default is to use the training file included in the schema's directory (default: None)
@@ -135,12 +135,12 @@ Parameters
     --gl, --genes-list          (Optional) Path to a file with the list of genes/loci to perform allele calling.
                                 The file must include the full paths to the loci FASTA files or the loci IDs, one
                                 per line. The process will perform allele calling only for the subset of genes
-								provided in the file (default: False).
+                                provided in the file (default: False).
 
     --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio (BSR) value. The BSR is computed for each BLASTp
                                 alignment and aligned sequences with a BSR >= than the defined value are
                                 considered to be alleles of the same gene (default: uses value defined in the
-								schema config file).
+                                schema config file).
 
     --l, --minimum-length       (Optional) Minimum sequence length value. Predicted coding sequences (CDSs)
                                 shorter than this value are excluded (default value added to the config file is 0).
@@ -151,7 +151,7 @@ Parameters
 
     --st, --size-threshold      (Optional) Coding sequence (CDS) size variation threshold. At the default value of
                                 0.2, CDSs with a size that deviates +-20 percent from the locus length mode are
-								classified as ASM/ALM (default: uses value defined in schema config).
+                                classified as ASM/ALM (default: uses value defined in schema config).
 
     --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to run the process (chewie resets
                                 to a lower value if it is equal to or exceeds the total number of available CPU cores)
@@ -173,7 +173,7 @@ Parameters
                                 accessed by multiple processes/users simultaneously (default: False).
 
     --output-unclassified       (Optional) Create a Fasta file with the coding sequences (CDSs) that were not
-								classified (default: False).
+                                classified (default: False).
 
     --output-missing            (Optional) Create a Fasta file with coding sequences classified as NIPH, NIPHEM,
                                 ASM, ALM, PLOT3, PLOT5 and LOTSC (default: False).

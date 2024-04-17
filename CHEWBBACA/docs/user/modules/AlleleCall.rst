@@ -18,19 +18,20 @@ Therefore, in gene-by-gene methods, the definition of an allele is determined by
 similarity search method and all the parameters used to decide if an allele can be identified
 as a *bona fide* allele of a given locus.
 
-In chewBBACA, by default, an allele needs to be a CDS defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_.
+In chewBBACA, by default, an allele needs to be a CDS defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_
+(for chewBBACA <= 3.2.0) or `Pyrodigal <https://github.com/althonos/pyrodigal>`_ (for chewBBACA >= 3.3.0).
 To ensure reproducibility of the CDS prediction, the same Prodigal training file for each bacterial species should
 be used and provided as input. Users can also provide input files with CDSs, in which case the gene prediction step
-with Prodigal will be skipped.
-
-.. important::
-  Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
-  information about the requirements to create a training file.
+with Prodigal or Pyrodigal will be skipped.
 
 .. important::
   chewBBACA >=3.3.0 uses `Pyrodigal <https://github.com/althonos/pyrodigal>`_ for gene
   prediction. Pyrodigal is a Python module that provides bindings to Prodigal, including
   several bug fixes and performance improvements.
+
+.. important::
+  Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
+  information about the requirements to create a training file.
 
 The allele calling algorithm has the following main steps:
 
@@ -86,7 +87,7 @@ Perform allele calling
 ::::::::::::::::::::::
 
 Having defined a cgMLST or wgMLST schema, we can proceed to use it to call alleles on target
-genomes. chewBBACA's *Allele Calling* algorithm can also use schemas and alleles from existing
+genomes. chewBBACA's allele calling algorithm can also use schemas and alleles from existing
 databases such as `Ridom cgMLST <http://www.cgmlst.org/ncs>`_, `BIGSdb <https://pubmlst.org/>`_,
 `BIGSdb-Pasteur <https://bigsdb.pasteur.fr/>`_, `Enterobase <http://enterobase.warwick.ac.uk/>`_ and
 `Chewie-NS <https://chewbbaca.online/>`_. External schemas can be adapted for
@@ -110,91 +111,87 @@ Basic Usage
 
 ::
 
-	chewBBACA.py AlleleCall -i /path/to/InputAssemblies -g /path/to/SchemaDirectory -o /path/to/OutputFolderName --cpu 4
+	chewBBACA.py AlleleCall -i /path/to/InputAssembliesFolder -g /path/to/SchemaDirectory -o /path/to/OutputFolder --cpu 4
 
 Parameters
 ----------
 
 ::
 
-    -i, --input-files           (Required) Path to the directory with the genome FASTA files or to a file that
-                                contains a list of full paths to the FASTA files, one per line.
+    -i, --input-files           (Required) Path to the directory that contains the input FASTA files or to a file
+                                with a list of full paths to FASTA files, one per line.
 
     -g, --schema-directory      (Required) Path to the schema directory. The schema directory contains the loci
                                 FASTA files and a folder named "short" that contains the FASTA files with the
                                 loci representative alleles.
 
-    -o, --output-directory      (Required) Output directory where the allele calling results will be stored
-                                (will create a subdirectory named "results_\<TIMESTAMP\>" if the path passed
-                                by the user already exists).
+    -o, --output-directory      (Required) Output directory where the process will store intermediate files and
+                                allele calling results (will create a subdirectory named "results_<TIMESTAMP>"
+								if the path passed by the user already exists).
 
-    --ptf, --training-file      (Optional) Path to the Prodigal training file. Default is to get training
-                                file from the schema's directory (default: searches for a training file in
-                                the schema's directory).
+    --ptf, --training-file      (Optional) Path to the Prodigal training file used by Pyrodigal to predict genes.
+                                Default is to use the training file included in the schema's directory (default: None)
 
-    --gl, --genes-list          (Optional) Path to a file that contains the list of full paths to the loci
-                                FASTA files or loci IDs, one per line, the process should use to perform
-                                allele calling (default: False).
+    --gl, --genes-list          (Optional) Path to a file with the list of genes/loci to perform allele calling.
+                                The file must include the full paths to the loci FASTA files or the loci IDs, one
+                                per line. The process will perform allele calling only for the subset of genes
+								provided in the file (default: False).
 
-    --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio value. Sequences with alignments with a BSR
-                                value equal to or greater than this value will be considered as sequences
-                                from the same gene (default: uses value defined in the schema config file).
+    --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio (BSR) value. The BSR is computed for each BLASTp
+                                alignment and aligned sequences with a BSR >= than the defined value are
+                                considered to be alleles of the same gene (default: uses value defined in the
+								schema config file).
 
-    --l, --minimum-length       (Optional) Minimum sequence length accepted for a coding sequence to be included
-                                in the schema (default: uses value defined in schema config file. Default value
-                                added to the config file is 0).
+    --l, --minimum-length       (Optional) Minimum sequence length value. Predicted coding sequences (CDSs)
+                                shorter than this value are excluded (default value added to the config file is 0).
 
     --t, --translation-table    (Optional) Genetic code used to predict genes and to translate coding sequences.
                                 Must match the genetic code used to create the training file (default: uses value
                                 defined in schema config).
 
-    --st, --size-threshold      (Optional) CDS size variation threshold. If set to a value of 0.2, alleles with
-                                size variation +-20 percent will be classified as ASM/ALM (default: uses value
-                                defined in schema config).
+    --st, --size-threshold      (Optional) Coding sequence (CDS) size variation threshold. At the default value of
+                                0.2, CDSs with a size that deviates +-20 percent from the locus length mode are
+								classified as ASM/ALM (default: uses value defined in schema config).
 
-    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to run the AlleleCall process
-                                (will be redefined to a lower value if it is equal to or exceeds the total number
-                                of available CPU cores/threads)(default: 1).
+    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to run the process (chewie resets
+                                to a lower value if it is equal to or exceeds the total number of available CPU cores)
+                                (default: 1).
 
-    --b, --blast-path           (Optional) Path to the BLAST executables. Use this option if chewBBACA cannot find
-                                the BLASTp and makeblastdb executables or if you want to use anoter BLAST installation
-                                that is not the one added to the PATH (default: assumes BLAST executables were added
-                                to PATH).
+    --b, --blast-path           (Optional) Path to the directory that contains the BLAST executables. (default: assumes
+                                BLAST executables were added to PATH).
 
     --pm, --prodigal-mode       (Optional) Prodigal running mode ("single" for finished genomes, reasonable
                                 quality draft genomes and big viruses. "meta" for metagenomes, low quality
                                 draft genomes, small viruses, and small plasmids) (default: single).
 
-    --cds, --cds-input          (Optional) Input files contain coding sequences (one Fasta file per strain). chewBBACA
-                                skips the gene prediction step with Prodigal if this argument is provided (default: False).
+    --cds, --cds-input          (Optional) If provided, chewBBACA skips the gene prediction step and assumes the
+                                input FASTA files contain coding sequences (one FASTA file per strain) (default: False).
 
     --no-inferred               (Optional) If provided, the process will not add the sequences of inferred alleles
                                 (INF) to the schema. Allelic profiles will still include the allele identifiers
                                 attributed to the inferred alleles. Use this parameter if the schema is being
                                 accessed by multiple processes/users simultaneously (default: False).
 
-    --output-unclassified       (Optional) Create a Fasta file with unclassified coding sequences (default: False).
+    --output-unclassified       (Optional) Create a Fasta file with the coding sequences (CDSs) that were not
+								classified (default: False).
 
     --output-missing            (Optional) Create a Fasta file with coding sequences classified as NIPH, NIPHEM,
                                 ASM, ALM, PLOT3, PLOT5 and LOTSC (default: False).
 
-    --output-novel              (Optional) Create Fasta file with the novel alleles inferred during the allele
-                                calling. The sequence headers include the locus and allele identifiers attributed
-                                by chewBBACA based on the allele calling results (default: False).
+    --output-novel              (Optional) Create Fasta file with the novel alleles inferred during allele calling.
+                                The sequence headers include the locus and allele identifiers attributed by
+                                chewBBACA based on the allele calling results (default: False).
 
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution are
                                 not removed at the end (default: False).
 
-    --hash-profile              (Optional) Create TSV file with hashed allelic profiles. Profiles can be hashed
-                                with any of the hash algorithms implemented in the hashlib and zlib libraries
+    --hash-profile              (Optional) Create a TSV file with hashed allelic profiles. Profiles can be hashed
+                                with any of the hashing algorithms implemented in the hashlib and zlib Python libraries
                                 (default: None).
 
-    --force-continue            (Optional) If provided, chewBBACA will add config files with default parameter
-                                values to schemas that are missing those files and will also proceed if any of
-                                the argument values does not match the value in the config files. Otherwise, it
-                                will prompt users for the parameter values to add to the config files and for
-                                permission to proceed if the argument values differ from the ones in the config
-                                files (default: False).
+    --force-continue            (Optional) If provided, chewie will not warn users and ask for permission to
+                                continue if any of the provided argument values does not match the values in the
+                                config file (default: False).
 
     --mode                      (Optional) Execution mode (1: only exact matches at DNA level; 2: exact matches
                                 at DNA and Protein level; 3: exact matches and minimizer-based clustering to find
@@ -208,7 +205,7 @@ Parameters
 
 .. important::
   If you provide the ``--cds-input`` parameter, chewBBACA assumes that the input FASTA files contain
-  CDSs and skips the gene prediction step with Prodigal. To avoid issues related with the
+  CDSs and skips the gene prediction step. To avoid issues related to the
   format of the sequence headers, chewBBACA renames the sequence headers based on the unique basename
   prefix determined for each input file and on the order of the CDSs (e.g.: CDSs
   inside a file named ``GCF_000007125.1_ASM712v1_cds_from_genomic.fna`` are renamed to
@@ -244,23 +241,14 @@ Outputs
 - The ``invalid_cds.txt`` file contains the list of alleles predicted by Prodigal that were
   excluded based on the minimum sequence size value and presence of ambiguous bases.
 
-- The ``loci_summary_stats.tsv`` file contains the counts for each classification type (*EXC*,
-  *INF*, *PLOT3*, *PLOT5*, *LOTSC*, *NIPH*, *NIPHEM*, *ALM*, *ASM*, *LNF*) and the total number
-  of classified CDS (non-*LNF*) per locus.
+- The ``loci_summary_stats.tsv`` file contains the classification type counts (*EXC*,
+  *INF*, *PLOT3*, *PLOT5*, *LOTSC*, *NIPH*, *NIPHEM*, *ALM*, *ASM*, *PAMA*, *LNF*) and the total number
+  of classified CDSs (non-*LNF*) per locus.
 
-- The ``results_statistics.tsv`` file contains the total number of exact matches (*EXC*), inferred
-  new alleles (*INF*), loci on contig tips (*PLOT3*/*PLOT5*), loci identified on contigs smaller than
-  the matched schema representative (*LOTSC*), non-informative paralogous hits (*NIPH*/*NIPHEM*),
-  alleles larger than locus length mode (*ALM*), alleles smaller than locus length mode (*ASM*)
-  and loci not found (*LNF*) classifications attributed for each genome.
-
-+--------------+-----+------+-------+-------+-------+------+--------+-----+-----+-----+
-| FILE         | EXC | INF  | PLOT3 | PLOT5 | LOTSC | NIPH | NIPHEM | ALM | ASM | LNF |
-+==============+=====+======+=======+=======+=======+======+========+=====+=====+=====+
-| SAMD00008628 | 14  | 1722 | 0     | 0     | 0     |    8 |      0 |   1 |   2 |   1 |
-+--------------+-----+------+-------+-------+-------+------+--------+-----+-----+-----+
-| SAMD00053744 | 600 | 1138 | 0     | 0     | 0     | 4    | 4      | 1   | 1   | 0   |
-+--------------+-----+------+-------+-------+-------+------+--------+-----+-----+-----+
+- The ``results_statistics.tsv`` file contains the classification type counts (*EXC*,
+  *INF*, *PLOT3*, *PLOT5*, *LOTSC*, *NIPH*, *NIPHEM*, *ALM*, *ASM*, *PAMA*, *LNF*), the total number
+  of invalid CDSs, the total number of classified CDSs (non-*LNF*) and the total number of predicted
+  CDSs per genome.
 
 The column headers stand for:
 
@@ -387,8 +375,9 @@ Example for the ``SAMD00008628`` genome:
 	The *ExtractCgMLST* module was designed to determine the set of loci that
 	constitute the core genome based on a given threshold, but it can also be used to
 	convert the TSV file with allelic profiles into a suitable format that can be imported
-	into PHYLOViZ. To convert an allelic profile output simply run the *ExtractCgMLST* module
-	with a threshold value, ``--t``, of ``0``.
+	into PHYLOViZ by substituting all non-numeric classifications by ``0``. To convert an
+	allelic profile output simply run the *ExtractCgMLST* module with a threshold
+	value, ``--t``, of ``0``.
 
 - The ``paralogous_counts.tsv`` file contains the list of paralogous loci and the number of times
   those loci matched a CDS that was also similar to other loci in the schema.

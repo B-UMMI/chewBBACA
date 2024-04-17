@@ -2,7 +2,7 @@ Quick Start
 ===========
 
 The following sections contain information about how to create a schema from scratch and
-perform allele calling to determine the allelic profiles of a set of strains of interest.
+perform allele calling to determine the allelic profiles of a set of strains.
 
 Create a schema
 :::::::::::::::
@@ -16,7 +16,7 @@ input files, one full path per line):
 
 ::
 	
-	chewBBACA.py CreateSchema -i InputAssemblies -o OutputSchemaFolder --ptf ProdigalTrainingFile
+	chewBBACA.py CreateSchema -i InputAssembliesFolder -o OutputSchemaFolder --ptf ProdigalTrainingFile
 
 Option 2 - Coding DNA Sequences
 ...............................
@@ -25,7 +25,7 @@ You can provide FASTA files with Coding DNA Sequences (CDSs) and skip the gene p
 
 ::
 	
-	chewBBACA.py CreateSchema -i InputFiles -o OutputSchemaFolder --ptf ProdigalTrainingFile --cds
+	chewBBACA.py CreateSchema -i InputFilesFolder -o OutputSchemaFolder --ptf ProdigalTrainingFile --cds
 
 .. important::
 	We recommend that you provide a Prodigal training file even when you provide FASTA files with
@@ -60,19 +60,19 @@ Determine the allelic profiles for genome assemblies:
 
 ::
 
-	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName
+	chewBBACA.py AlleleCall -i InputAssembliesFolder -g OutputSchemaFolder/SchemaName -o OutputFolderName
 
 Perform allele calling with a subset of the schema loci:
 
 ::
 
-	chewBBACA.py AlleleCall -i InputAssemblies -g OutputSchemaFolder/SchemaName -o OutputFolderName --gl LociList.txt
+	chewBBACA.py AlleleCall -i InputAssembliesFolder -g OutputSchemaFolder/SchemaName -o OutputFolderName --gl LociList.txt
 
 Provide FASTA files with CDSs (one file per genome/strain):
 
 ::
 
-	chewBBACA.py AlleleCall -i InputFiles -g OutputSchemaFolder/SchemaName -o OutputFolderName --cds
+	chewBBACA.py AlleleCall -i InputFilesFolder -g OutputSchemaFolder/SchemaName -o OutputFolderName --cds
 
 .. important::
 	- The file passed to the ``--gl`` parameter must have one full path or one locus identifier, with or without the `.fasta` extension, per line (the locus identifier is the basename of the FASTA file that contains the locus alleles).

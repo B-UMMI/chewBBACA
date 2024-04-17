@@ -14,7 +14,7 @@ Should I worry about file naming best practices for input files?
 ................................................................
 Yes, definitely. Ideally, input FASTA files should have short names without blank spaces or
 special characters (e.g.: ``!@#?$^*()+``). It is also important to ensure each input file has a
-unique basename prefix (everything before the first ``.`` in the basename). chewBBACA uses the
+short (maximum 30 characters) and unique basename prefix (everything before the first ``.`` in the basename). chewBBACA uses the
 basename prefix as a unique identifier during process execution and to label the final results.
 chewBBACA will warn you and exit if any files share the same basename prefix (e.g.: 
 ``GCF_002209245.1_ASM220924v1_genomic.fna`` and ``GCF_002209245.2_ASM220924v2_genomic.fna``).

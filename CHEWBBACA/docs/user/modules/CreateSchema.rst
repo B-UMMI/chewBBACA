@@ -29,9 +29,10 @@ In most cg/wg/pg/ag MLST schemas, contrary to MLST schemas, each locus correspon
 CDSs or best matches to existing CDSs without enforcing the need for the identified allele to be a CDS.  
 
 In **chewBBACA**, schemas are composed of loci defined by CDSs and, by default, all the called alleles of a given
-locus are CDSs as defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_ (it is also possible to provide
+locus are CDSs as defined by `Prodigal <https://github.com/hyattpd/Prodigal>`_ (for chewBBACA<=3.2.0) or
+`Pyrodigal <https://github.com/althonos/pyrodigal>`_ (for chewBBACA>=3.3.0) (it is also possible to provide
 FASTA files with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
-The use of Prodigal, instead of simply ensuring the presence of start and stop codons, adds an extra layer
+The use of Prodigal or Pyrodigal, instead of simply ensuring the presence of start and stop codons, adds an extra layer
 of confidence in identifying the most probable CDS for each allele. Because of this approach there may
 be variability in the size of the alleles identified by **chewBBACA** and by default a threshold of +/-20%
 of the mode of the size of the alleles of a given locus is used to identify a locus as present.
@@ -93,7 +94,7 @@ Basic Usage
 
 ::
 
-	$ chewBBACA.py CreateSchema -i /path/to/InputAssemblies -o /path/to/OutputFolderName --n SchemaName --ptf /path/to/ProdigalTrainingFile --cpu 4
+	$ chewBBACA.py CreateSchema -i /path/to/InputAssembliesFolder -o /path/to/OutputFolder --n SchemaName --ptf /path/to/ProdigalTrainingFile --cpu 4
 
 .. important::
 	You should adjust the value passed to the ``--cpu`` parameter based on the specifications of
@@ -108,50 +109,47 @@ Parameters
 
 ::
 
-    -i, --input-files           (Required) Path to the directory that contains the input FASTA files.
-                                Alternatively, a file with a list of full paths to FASTA files, one
-                                per line.
+    -i, --input-files           (Required) Path to the directory that contains the input FASTA files
+                                or to a file with a list of full paths to FASTA files, one per line.
 
     -o, --output-directory      (Required) Output directory where the process will store intermediate
                                 files and create the schema's directory.
 
-    --n, --schema-name          (Optional) Name given to the folder that will store the schema files
-                                (default: schema_seed).
+    --n, --schema-name          (Optional) Name given to the schema folder (default: schema_seed).
 
-    --ptf, --training-file      (Optional) Path to the Prodigal training file. We strongly advise users
-                                to provide a Prodigal training file and to keep using the same training
-                                file to ensure consistent results (default: None).
+    --ptf, --training-file      (Optional) Path to the Prodigal training file used by Pyrodigal to predict
+                                genes and added to the schema folder (default: None).
 
-    --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio value. Sequences with alignments with a BSR
-                                value equal to or greater than this value will be considered as sequences
-                                from the same gene (default: 0.6).
+    --bsr, --blast-score-ratio  (Optional) BLAST Score Ratio (BSR) value. The BSR is computed for each
+                                BLASTp alignment and aligned sequences with a BSR >= than the defined
+                                value are considered to be alleles of the same gene (default: 0.6).
 
-    --l, --minimum-length       (Optional) Minimum sequence length value. Coding sequences shorter than
-                                this value are excluded (default: 201).
+    --l, --minimum-length       (Optional) Minimum sequence length value. Predicted coding sequences (CDSs)
+                                shorter than this value are excluded (default: 201).
 
     --t, --translation-table    (Optional) Genetic code used to predict genes and to translate coding
-                                sequences (default: 11).
+                                sequences (CDSs) (default: 11).
 
-    --st, --size-threshold      (Optional) CDS size variation threshold. Added to the schema's config
-                                file and used to identify alleles with a length value that deviates
-                                from the locus length mode during the allele calling process (default: 0.2).
+    --st, --size-threshold      (Optional) Coding sequence (CDS) size variation threshold. Added to the
+                                schema's config file to identify alleles with a size that deviates from
+                                the locus length mode during the allele calling process (default: 0.2).
 
-    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to run the CreateSchema
-                                process (will be redefined to a lower value if it is equal to or exceeds
-                                the total number of available CPU cores)(default: 1).
+    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to run the process (chewie
+                                resets to a lower value if it is equal to or exceeds the total number of
+                                available CPU cores)(default: 1).
 
-    --b, --blast-path           (Optional) Path to the BLAST executables (default: assumes BLAST executables
-                                were added to PATH).
+    --b, --blast-path           (Optional) Path to the directory that contains the BLAST executables (default:
+                                assumes BLAST executables were added to PATH).
 
     --pm, --prodigal-mode       (Optional) Prodigal running mode ("single" for finished genomes, reasonable
                                 quality draft genomes and big viruses. "meta" for metagenomes, low quality
                                 draft genomes, small viruses, and small plasmids) (default: single).
 
-    --cds, --cds-input          (Optional) If provided, input is a single or several FASTA files with coding
-                                sequences (one per input genome, default: False).
+    --cds, --cds-input          (Optional) If provided, chewBBACA skips the gene prediction step and assumes
+                                the input FASTA files contain coding sequences (default: False).
 		
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution
-                                are not removed at the end (default: False).
+                                are not deleted at the end (default: False).
 
 .. important::
   If you provide the ``--cds-input`` parameter, chewBBACA assumes that the input FASTA files contain

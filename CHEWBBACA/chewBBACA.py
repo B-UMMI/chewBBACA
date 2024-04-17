@@ -1456,7 +1456,6 @@ def main():
 		print('Select one of the following modules:')
 		for f in functions_info:
 			print('{0}: {1}'.format(f, functions_info[f][0]))
-		print(sys.argv)
 		sys.exit(exit_code)
 
 	# Check python version

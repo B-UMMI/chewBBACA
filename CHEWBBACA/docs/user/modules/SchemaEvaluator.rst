@@ -20,10 +20,10 @@ Parameters
 
 ::
 
-    -g, --schema-directory      (Required) Path to the schema's directory (default: None).
+    -g, --schema-directory      (Required) Path to the schema's directory.
 
     -o, --output-directory      (Required) Path to the output directory where the report HTML
-                                files will be created (default: None).
+                                files will be created.
 
     --gl, --genes-list          (Optional) Path to a file with the list of loci in the schema that
                                 the process should analyse (one per line, full paths or loci IDs)

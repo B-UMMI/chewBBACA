@@ -35,27 +35,27 @@ Parameters
 
 ::
 
-    -i, --input-file       (Required) Path to input file containing a matrix with allelic profiles.
+    -i, --input-file       (Required) Path to the TSV file that contains the allelic profiles determined
+                           by the AlleleCall module.
 
-    -o, --output-directory (Required) Path to the directory where the process will store output
+    -o, --output-directory (Required) Path to the directory where the process will store the output
                            files.
 
     --t, --threshold       (Optional) Genes that constitute the core genome must be in a proportion
                            of genomes that is at least equal to this value. Users can provide multiple
-                           values (default: [0.95, 0.99, 1]).
+                           values to compute the core genome for multiple threshold values (default:
+                           [0.95, 0.99, 1]).
 
-    --s, --step            (Optional) Number of genomes added to the cgMLST computation at each step
-                           (default: 1).
+    --s, --step            (Optional) The allele calling results are processed iteratively to evaluate
+                           the impact of adding subsets of the results in computing the core genome. The
+                           step value controls the number of profiles added in each iteration until all
+                           profiles are included (default: 1).
 
-    --r, --genes2remove    (Optional) Path to file with a list of genes/columns to remove from the
-                           matrix (one gene identifier per line, e.g.: the list of genes listed in
-                           the "paralogous_counts.tsv" file created by the AlleleCall process)
-                           (default: False).
+    --r, --genes2remove    (Optional) Path to a file with a list of gene IDs to exclude from the
+                           analysis (one gene identifier per line) (default: False).
 
-    --g, --genomes2remove  (Optional) Path to file with a list of genomes/rows to remove from the
-                           matrix (one genome identifier per line, e.g. list of genomes to be
-                           removed based on the results from the TestGenomeQuality process)
-                           (default: False).
+    --g, --genomes2remove  (Optional) Path to a file with a list of genome IDs to exclude from
+                           the analysis (one genome identifier per line) (default: False).
 
 Outputs
 -------

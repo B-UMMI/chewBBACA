@@ -817,7 +817,7 @@ def run_join_profiles():
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/JoinProfiles.html')
 
-	parser.add_argument('JoinProfiles', nargs='+', help='')
+	parser.add_argument('JoinProfiles', nargs='+', help=argparse.SUPPRESS)
 
 	parser.add_argument('-p', '--profiles', nargs='+', type=str,
 						required=True, dest='profiles',

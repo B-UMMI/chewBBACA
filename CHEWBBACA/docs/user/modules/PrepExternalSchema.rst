@@ -70,39 +70,39 @@ Parameters
 
 ::
 
-    -g, --schema-directory     (Required) Path to the directory that contains the schema FASTA files to adapt,
+    -g, --schema-directory     (Required) Path to the directory of the schema to adapt. The schema must contain
                                one FASTA file per gene/locus.
 
-    -o, --output-directory     (Required) The directory where the output files will be saved (will
-                               create the directory if it does not exist).
+    -o, --output-directory     (Required) Path to the output directory where the adapted schema will be created.
 
-    --gl, --genes-list         (Optional) Path to a file that contains the list of full paths to the loci FASTA
-                               files or the loci IDs, one per line, the process should adapt (default: False).
+    --gl, --genes-list         (Optional) Path to a file with the list of loci in the schema that the process
+                               should adapt (one per line, full paths or loci IDs) (default: False).
 
-    --ptf, --training-file     (Optional) Path to the Prodigal training file that will be included in
-                               the adapted schema (default: None).
+    --ptf, --training-file     (Optional) Path to the Prodigal training file that will be included in the
+                               directory of the adapted schema (default: None).
 
-    --bsr, --blast-score-ratio (Optional) The BLAST Score Ratio value that will be used to adapt
-                               the external schema (default: 0.6).
+    --bsr, --blast-score-ratio (Optional) BLAST Score Ratio (BSR) value. The process selects representative
+                               alleles for each locus based on this value. Representative alleles are
+                               selected until all alleles in a locus align against one of the representatives
+                               with a BSR >= than the specified value (default: 0.6).
 
-    --l, --minimum-length      (Optional) Minimum sequence length accepted. Sequences with a length
-                               value smaller than the value passed to this argument will be discarded
-                               (default: 0).
+    --l, --minimum-length      (Optional) Minimum sequence length value stored in the schema config file. The
+                               schema adaptation process will only discard sequences smaller than this value
+                               if the --size-filter parameter is provided (default: 0).
 
-    --t, --translation-table   (Optional) Genetic code to use for CDS translation. Must match the
-                               genetic code used to create the training file (default: 11).
+    --t, --translation-table   (Optional) Genetic code used for allele translation (default: 11).
 
-    --st, --size-threshold     (Optional) CDS size variation threshold. At the default value of
-                               0.2, alleles with size variation +-20 percent when compared to the
-                               representative will not be included in the final schema (default:
-                               0.2).
+    --st, --size-threshold     (Optional) Allele size variation threshold value stored in the schema config file.
+                               The schema adaptation process will only discard alleles with a size that deviates
+                               from the locus length mode +- the size theshold value if the --size-filter parameter
+                               is provided(default: 0.2).
 
-    --cpu, --cpu-cores         (Optional) The number of CPU cores to use (default: 1).
+    --cpu, --cpu-cores         (Optional) TNumber of CPU cores/threads that will be used to run the process
+                               (chewie resets to a lower value if it is equal to or exceeds the total number
+                               of available CPU cores/threads) (default: 1).
 
-    --b, --blast-path          (Optional) Path to the BLAST executables. Use this option if
-                               chewBBACA cannot find the BLASTp and makeblastdb executables or if
-                               you want to use anoter BLAST installation that is not the one added
-                               to the PATH (default: assumes BLAST executables were added to PATH).
+    --b, --blast-path          (Optional) Path to the directory that contains the BLAST executables
+                               (default: assumes BLAST executables were added to PATH).
 
     --size-filter              (Optional) Apply the minimum length and size threshold values to
                                filter out alleles during schema adaptation (default: False).

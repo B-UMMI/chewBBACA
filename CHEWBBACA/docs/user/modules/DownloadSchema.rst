@@ -86,24 +86,25 @@ Parameters
 ::
 
     -sp, --species-id            (Required) The integer identifier or name of the species that the
-                                 schema is associated to in the NS (default: None).
+                                 schema is associated to in Chewie-NS.
 
     -sc, --schema-id             (Required) The URI, integer identifier or name of the schema to download
-                                 from the NS (default: None).
+                                 from Chewie-NS.
 
-    -o, --download-folder        (Required) Output folder to which the schema will be saved (default: None).
+    -o, --download-folder        (Required) Output folder to which the schema will be saved.
 
-    --cpu, --cpu-cores           (Optional) Number of CPU cores that will be passed to the PrepExternalSchema
-                                 process to determine representatives and create the final schema 
-                                 (default: 1).
+    --cpu, --cpu-cores           (Optional) Number of CPU cores/threads that will be used to run the process
+                                 (chewie resets to a lower value if it is equal to or exceeds the
+                                 total number of available CPU cores/threads). This value is only used
+                                 if it is necessary to construct the schema locally (default: 1).
 
-    --ns, --nomenclature-server  (Optional) The base URL for the Nomenclature Server. The default
+    --ns, --nomenclature-server  (Optional) The base URL for the Chewie-NS instance. The default
                                  value, "main", will establish a connection to "https://chewbbaca.online/",
                                  "tutorial" to "https://tutorial.chewbbaca.online/" and "local" to
                                  "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
                                  the IP address to other Chewie-NS instances (default: main).
 
-    --b, --blast-path            (Optional) Path to the BLAST executables (default: None).
+    --b, --blast-path            (Optional) Path to the directory that contains the BLAST executables (default: None).
 
     --d, --date                  (Optional) Download schema with state from specified date. Must be
                                  in the format "Y-m-dTH:M:S" (default: None).

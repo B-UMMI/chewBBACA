@@ -17,38 +17,40 @@ Parameters
 
 ::
 
-    -g, --schema-directory (Required) Path to the schema directory. The schema directory contains the loci FASTA
-                           files and a folder named "short" that contains the FASTA files with the loci representative
-                           alleles.
+    -g, --schema-directory (Required) Path to the schema's directory.
 
     -o, --output-directory (Required) Output directory where the process will store intermediate
-                           files and save the final TSV file with the annotations.
+                           files and save the final TSV file with the loci annotations.
 
-    --gl, --genes-list     (Optional) Path to a file that contains the list of full paths to the loci FASTA files or
-                           the loci IDs, one per line, the process should find annotations for (default: False).
+    --gl, --genes-list     (Optional) Path to a file with the list of loci in the schema that the process should
+                           find annotations for (one per line, full paths or loci IDs) (default: False).
 
-    -t, --protein-table    (Optional) Path to the "cds_coordinates.tsv" file created by the CreateSchema
-                           process (default: None).
+    -t, --protein-table    (Optional) Path to the TSV file with coding sequence (CDS) coordinate data,
+                           "cds_coordinates.tsv", created by the CreateSchema process. (default: None).
 
-    --bsr                  (Optional) BLAST Score Ratio value. This value is only used when a taxon/taxa
-                           is provided and local sequences are aligned against reference proteomes
-                           (default: 0.6).
+    --bsr                  (Optional) BLAST Score Ratio value. The BSR is only used when taxa names are provided
+                           to the --taxa parameter and local sequences are aligned against reference
+                           proteomes downloaded from UniProt. Annotations are selected based on a BSR
+                           >= than the specified value (default: 0.6).
 
-    --cpu, --cpu-cores     (Optional) Number of CPU cores used to run the process (default: 1).
+    --cpu, --cpu-cores     (Optional) Number of CPU cores/threads that will be used to run the process
+                           (chewie resets to a lower value if it is equal to or exceeds the total number
+                           of available CPU cores/threads) (default: 1).
 
-    --taxa                 (Optional) List of scientific names for a set of taxa. The process will
-                           search for and download reference proteomes with terms that match any of
-                           the provided taxa (default: None).
+    --taxa                 (Optional) List of scientific names for a set of taxa. The process will download
+                           reference proteomes from UniProt associated to taxa names that contain any
+                           of the provided terms. The schema representative alleles are aligned
+                           against the reference proteomes to assign annotations based on high-BSR matches
+                           (default: None).
 
     --pm                   (Optional) Maximum number of proteome matches to report (default: 1).
 
-    --no-sparql            (Optional) If provided, the process will not search for annotations 
-                           through UniProt's SPARQL endpoint.
+    --no-sparql            (Optional) Do not search for annotations through the UniProt SPARQL endpoint.
 
-    --b, --blast-path      (Optional) Path to the BLAST executables. Use this option if chewBBACA
-                           cannot find the BLASTp and makeblastdb executables or if you want to
-                           use anoter BLAST installation that is not the one added to the PATH
-                           (default: assumes BLAST executables were added to PATH).
+    --no-cleanup           (Optional) If provided, intermediate files generated during process execution are not
+                           removed at the end (default: False).
+
+    --b, --blast-path      (Optional) Path to the directory that contains the BLAST executables.
 
 Outputs
 -------

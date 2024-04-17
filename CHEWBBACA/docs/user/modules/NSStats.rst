@@ -74,15 +74,15 @@ Parameters
 
     -m, --mode                  (Required) The process can retrieve the list of species ("species"
                                 option) in the Chewie-NS or the list of schemas for a species
-                                ("schemas" option) (default: None).
+                                ("schemas" option).
 
-    --sp, --species-id          (Optional) The integer identifier of a species in the Chewie-NS
+    --sp, --species-id          (Optional) The integer identifier of a species in Chewie-NS
                                 (default: None).
 
-    --sc, --schema-id           (Optional) The integer identifier of a schema in the Chewie- NS
+    --sc, --schema-id           (Optional) The integer identifier of a schema in Chewie- NS
                                 (default: None).
 
-    --ns, --nomenclature-server (Optional) The base URL for the Nomenclature Server. The default
+    --ns, --nomenclature-server (Optional) The base URL for the Chewie-NS instance. The default
                                 value, "main", will establish a connection to "https://chewbbaca.online/",
                                 "tutorial" to "https://tutorial.chewbbaca.online/" and "local" to
                                 "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide

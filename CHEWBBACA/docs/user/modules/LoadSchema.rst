@@ -151,16 +151,15 @@ Parameters
 
 ::
 
-    -i, --schema-directory      (Required) Path to the directory of the schema to upload (default: None).
+    -i, --schema-directory      (Required) Path to the directory of the schema to upload.
 
     -sp, --species-id           (Required) The integer identifier or name of the species that the
-                                schema will be associated to in the NS (default: None).
+                                schema will be associated to in Chewie-NS.
 
     -sn, --schema-name          (Required) A brief and meaningful name that should help understand
-                                the type and content of the schema (default: None).
+                                the type and content of the schema.
 
-    -lp, --loci-prefix          (Required) Prefix included in the name of each locus of the schema
-                                (default: None).
+    -lp, --loci-prefix          (Required) Prefix included in the name of each locus of the schema.
 
     --df, --description-file    (Optional) Path to a text file with a description about the schema.
                                 Markdown syntax is supported in order to offer greater customizability
@@ -171,14 +170,17 @@ Parameters
                                 has loci identifiers (w/o .fasta extension), the second has user
                                 annotations and the third has custom annotations (default: None).
 
-    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used in the Schema
-                                Pre-processing step (default: 1).
+    --cpu, --cpu-cores          (Optional) Number of CPU cores/threads that will be used to run the process
+                                (chewie resets to a lower value if it is equal to or exceeds the total
+                                number of available CPU cores/threads). This value is used to
+                                accelerate the quality control step that checks all alleles in the
+                                schema (default: 1).
 
-    --ns, --nomenclature-server (Optional) The base URL for the Nomenclature Server. The default value,
+    --ns, --nomenclature-server (Optional) The base URL for the Chewie-NS instance. The default value,
                                 "main", will establish a connection to "https://chewbbaca.online/",
                                 "tutorial" to "https://tutorial.chewbbaca.online/" and "local" to
                                 "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
                                 the IP address to other Chewie-NS instances (default: main).
 
-    --continue_up               (Optional) If the process should check if the schema upload was
-                                interrupted and try to finish it (default: False).
+    --continue_up               (Optional) Check if the schema upload was interrupted and attempt
+                                to continue upload (default: False).

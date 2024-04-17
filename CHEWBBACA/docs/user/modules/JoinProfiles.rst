@@ -13,12 +13,15 @@ Parameters
 
 ::
 
-    -p, --profiles    (Required) Path to files containing the results from the AlleleCall process.
+    -p, --profiles    (Required) Paths to the files containing allelic profiles determined by
+                      the AlleleCall module. It is possible to provide any number of files.
+                      The results must have been determined with the same schema and share
+                      all the loci or a subset of the loci if using the --common parameter.
 
     -o, --output-file (Required) Path to the output file.
 
-    --common          (Optional) Create file with profiles for the set of common loci (default:
-                      False).
+    --common          (Optional) Merge the results based on the subset of loci shared between
+                      all files. (default: False).
 
 .. important::
 	It is necessary to pass the ``--common`` argument if the input files do not have the same

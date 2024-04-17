@@ -1144,7 +1144,7 @@ def run_download_schema():
 						help='Number of CPU cores/threads that will be '
 							 'used to run the process '
 							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total'
+							 'if it is equal to or exceeds the total '
 							 'number of available CPU cores/threads). '
 							 'This value is only used if it is '
 							 'necessary to construct the schema locally.')
@@ -1242,7 +1242,7 @@ def run_upload_schema():
 						help='Number of CPU cores/threads that will be '
 							 'used to run the process '
 							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total'
+							 'if it is equal to or exceeds the total '
 							 'number of available CPU cores/threads). '
 							 'This value is used to accelerate the '
 							 'quality control step that checks all alleles '

@@ -85,13 +85,15 @@ Parameters
 
 ::
 
-    -sc, --schema-directory     (Required) Path to the directory with the schema to besynced (default: None).
+    -sc, --schema-directory     (Required) Path to the directory with the schema to be synced (default: None).
 
-    --cpu, --cpu-cores          (Optional) Number of CPU cores that will be used to determine new
-                                representatives if the process downloads new alleles from the
-                                Chewie-NS (default: 1).
+    --cpu, --cpu-cores          (Optional) Number of CPU cores/threads that will be used to run the process
+                                (chewie resets to a lower value if it is equal to or exceeds the total
+                                number of available CPU cores/threads). This value is only used if the
+                                process retrieves novel alleles from the remote schema and needs to
+                                redetermine the set of representative alleles for the local schema (default: 1).
 
-    --ns, --nomenclature-server (Optional) The base URL for the Nomenclature Server. The default
+    --ns, --nomenclature-server (Optional) The base URL for the Chewie-NS instance. The default
                                 option will get the base URL from the schema's URI. It is also
                                 possible to specify other options that are available in chewBBACA's
                                 configs, such as: "main" will establish a connection to "https://chewbbaca.online/",
@@ -99,8 +101,8 @@ Parameters
                                 "http://127.0.0.1:5000/NS/api/" (localhost). Users may also provide
                                 the IP address to other Chewie-NS instances (default: None).
 
-    --b, --blast-path           Path to the BLAST executables (default:None).
+    --b, --blast-path           Path to the directory that contains the BLAST executables (default:None).
                                                    
     --submit                    If the process should identify new alleles in the local schema and
-                                send them to the NS. (only authorized users can submit new alleles)
+                                send them to the Chewie-NS instance. (only authorized users can submit new alleles)
                                 (default: False).

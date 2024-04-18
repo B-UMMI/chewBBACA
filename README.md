@@ -17,7 +17,7 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.5 - 2024-04-15
+## 3.3.5 - 2024-04-18
 
 - Added function to check if input files passed to the CreateSchema and AlleleCall modules have unique prefixes longer than 30 characters (the prefix includes everything in the basename before the first `.`). The process prints a message with the list of input files with a prefix longer than 30 characters and exits.
 

@@ -1,3 +1,3 @@
-# Exclude docs and tests folders
+# Exclude docs and tests folders from release files
 CHEWBBACA/docs	export-ignore
 CHEWBBACA/tests	export-ignore

@@ -1,0 +1,3 @@
+# Exclude docs and tests folders
+CHEWBBACA/docs	export-ignore
+CHEWBBACA/tests	export-ignore

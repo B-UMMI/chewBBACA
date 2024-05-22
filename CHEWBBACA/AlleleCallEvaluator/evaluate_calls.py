@@ -228,6 +228,13 @@ def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
 def main(input_files, schema_directory, output_directory, annotations,
 		 cpu_cores, light, no_pa, no_dm, no_tree, cg_alignment):
 
+	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+	if os.path.isfile(config_file) is True:
+		config = fo.pickle_loader(config_file)
+		translation_table = config.get('translation_table', [ct.GENETIC_CODES_DEFAULT])[0]
+	else:
+		translation_table = ct.GENETIC_CODES_DEFAULT
+
 	# Create temp directory
 	temp_directory = fo.join_paths(output_directory, ['temp'])
 	fo.create_directory(temp_directory)
@@ -411,7 +418,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 			# Translate FASTA files
 			print('\nTranslating FASTA files...')
 			translation_inputs = im.divide_list_into_n_chunks(results, len(results))
-			common_args = [fasta_dir, ct.GENETIC_CODES_DEFAULT]
+			common_args = [fasta_dir, translation_table]
 			# Add common arguments to all sublists
 			inputs = im.multiprocessing_inputs(translation_inputs,
 											   common_args,

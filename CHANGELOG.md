@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.3.6 - 2024-06
+
+- Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.
+
+- Changed the `max_targets` value in UniprotFinder to avoid BLASTp warning when aligning schema representative alleles against proteomes.
+
+- Updated Dockerfile. Using pip to install chewBBACA instead of downloading source from GitHub.
+
+- Fixed an issue in AlleleCallEvaluator when using `--no-pa` and `--no-dm`.
+
+- Fixed an issue in RemoveGenes where it would not get the first ID in the input list.
+
 ## 3.3.5 - 2024-04-18
 
 - Added function to check if input files passed to the CreateSchema and AlleleCall modules have unique prefixes longer than 30 characters (the prefix includes everything in the basename before the first `.`). The process prints a message with the list of input files with a prefix longer than 30 characters and exits.

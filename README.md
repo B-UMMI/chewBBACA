@@ -17,15 +17,18 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.5 - 2024-04-18
+## 3.3.6 - 2024-06
 
-- Added function to check if input files passed to the CreateSchema and AlleleCall modules have unique prefixes longer than 30 characters (the prefix includes everything in the basename before the first `.`). The process prints a message with the list of input files with a prefix longer than 30 characters and exits.
+- Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.
 
-- Fixed issue in the AlleleCall module when running in mode 1 (trying to write the file with the list of invalid CDSs, but the data is not available when running in mode 1).
+- Changed the `max_targets` value in UniprotFinder to avoid BLASTp warning when aligning schema representative alleles against proteomes.
 
-- Added more tests and improved test scripts.
+- Updated Dockerfile. Using pip to install chewBBACA instead of downloading source from GitHub.
 
-- Simplified the help message for all modules.
+- Fixed an issue in AlleleCallEvaluator when using `--no-pa` and `--no-dm`.
+
+- Fixed an issue in RemoveGenes where it would not get the first ID in the input list.
+
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

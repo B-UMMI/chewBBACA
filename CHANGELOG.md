@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.3.6 - 2024-06
+## 3.3.6 - 2024-06-12
 
 - Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.
 
@@ -10,7 +10,7 @@
 
 - Fixed an issue in the AlleleCallEvaluator module when using `--no-pa` and `--no-dm`.
 
-- The AlleleCallEvaluator module no longer tries to compute the distance matrix, MSA, and tree if cgMLST is composed of 0 loci.
+- The AlleleCallEvaluator module no longer tries to compute the distance matrix, MSA, and tree if the cgMLST is composed of 0 loci.
 
 - Fixed an issue in RemoveGenes where it would not get the first ID in the input list.
 

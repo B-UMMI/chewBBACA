@@ -17,7 +17,7 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.6 - 2024-06
+## 3.3.6 - 2024-06-12
 
 - Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.
 

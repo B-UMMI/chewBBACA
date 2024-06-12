@@ -405,6 +405,11 @@ def run_allele_call():
 	# Exit if there is no 'short' directory or if there are no FASTA files
 	if 'short' not in schema_files or len(fo.filter_by_extension(schema_files, ['.fasta'])[0]) == 0:
 		sys.exit(ct.SCHEMA_INVALID_PATH)
+	# Check if 'short' directory includes files terminating in 'bsr.txt'
+	schema_short_path = fo.join_paths(args.schema_directory, ['short'])
+	schema_short_files = os.listdir(schema_short_path)
+	if any([file.endswith('bsr.txt') for file in schema_short_files]):
+		sys.exit(ct.ADAPT_LEGACY_SCHEMA)
 
 	config_file = os.path.join(args.schema_directory, ct.SCHEMA_CONFIG_BASENAME)
 	# Legacy schemas do not have config file

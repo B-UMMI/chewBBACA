@@ -466,9 +466,10 @@ SCHEMA_INVALID_PATH = ('Provided path does not include all the necessary '
                        'the correct path to the schema.')
 
 # User provided legacy schema. Tell user to adapt with the PrepExternalSchema module
-ADAPT_LEGACY_SCHEMA = ('Schema does not include a config file. Probably because '
-                       'it was created with chewBBACA<=2.1.0. Please adapt schema '
-                       'with the PrepExternalSchema module to add a config file.')
+ADAPT_LEGACY_SCHEMA = ('Schema does not include a config file or includes files that'
+					   ' are no longer used or supported. Please use the PrepExternalSchema '
+					   'module to adapt the schema and make it compatible with chewBBACA\'s '
+					   'latest version.')
 
 # Output directory exists
 OUTPUT_DIRECTORY_EXISTS = ('Output directory already exists. Please '

@@ -376,119 +376,126 @@ def main(input_files, schema_directory, output_directory, annotations,
 																  1, len(sample_ids))
 				cgMLST_genes = cgMLST_genes.tolist()
 				print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
-				cgMLST_matrix = masked_profiles[cgMLST_genes]
-				cgMLST_matrix_outfile = os.path.join(output_directory, ct.CGMLST_PROFILES_BASENAME)
-				cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
+				if len(cgMLST_genes) > 0:
+					cgMLST_matrix = masked_profiles[cgMLST_genes]
+					cgMLST_matrix_outfile = os.path.join(output_directory, ct.CGMLST_PROFILES_BASENAME)
+					cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
 
 			if no_dm is False:
 				# Compute distance matrix
 				# Based on cgMLST profiles
-				dm_file = dm.main(cgMLST_matrix_outfile, output_directory,
-								  cpu_cores, True, True)
-				# Import distance matrix
-				distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
-										 sep='\t', low_memory=False)
-				dm_data = [{"rows": distance_m.values.tolist()},
-						   {"sample_ids": distance_m.columns.tolist()}]
+				if len(cgMLST_genes) > 0:
+					dm_file = dm.main(cgMLST_matrix_outfile, output_directory,
+									cpu_cores, True, True)
+					# Import distance matrix
+					distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
+											sep='\t', low_memory=False)
+					dm_data = [{"rows": distance_m.values.tolist()},
+							{"sample_ids": distance_m.columns.tolist()}]
+				else:
+					print('cgMLST is composed of 0 loci. Cannot compute distance matrix.')
 
 		# Only using the loci in the cgMLST
 		# Might have to change if we need to work with all loci in the future
 		if no_tree is False or cg_alignment is True:
-			# Create FASTA files with alleles identified in samples
-			# Create temporary directory to store FASTA files
-			print('Creating FASTA files with identified alleles...')
-			fasta_dir = fo.join_paths(temp_directory, ['fasta_files'])
-			fo.create_directory(fasta_dir)
+			if len(cgMLST_genes) > 0:
+				# Create FASTA files with alleles identified in samples
+				# Create temporary directory to store FASTA files
+				print('Creating FASTA files with identified alleles...')
+				fasta_dir = fo.join_paths(temp_directory, ['fasta_files'])
+				fo.create_directory(fasta_dir)
 
-			inputs = im.divide_list_into_n_chunks(cgMLST_genes, len(cgMLST_genes))
+				inputs = im.divide_list_into_n_chunks(cgMLST_genes, len(cgMLST_genes))
 
-			common_args = [schema_directory, allelic_profiles_file, fasta_dir]
+				common_args = [schema_directory, allelic_profiles_file, fasta_dir]
 
-			# Add common arguments to all sublists
-			inputs = im.multiprocessing_inputs(inputs,
-											   common_args,
-											   profile_column_to_fasta)
+				# Add common arguments to all sublists
+				inputs = im.multiprocessing_inputs(inputs,
+												common_args,
+												profile_column_to_fasta)
 
-			# Create FASTA files with identified alleles
-			results = mo.map_async_parallelizer(inputs,
-												mo.function_helper,
-												cpu_cores,
-												show_progress=True)
+				# Create FASTA files with identified alleles
+				results = mo.map_async_parallelizer(inputs,
+													mo.function_helper,
+													cpu_cores,
+													show_progress=True)
 
-			# Translate FASTA files
-			print('\nTranslating FASTA files...')
-			translation_inputs = im.divide_list_into_n_chunks(results, len(results))
-			common_args = [fasta_dir, translation_table]
-			# Add common arguments to all sublists
-			inputs = im.multiprocessing_inputs(translation_inputs,
-											   common_args,
-											   fao.translate_fasta)
-			results = mo.map_async_parallelizer(inputs,
-												mo.function_helper,
-												cpu_cores,
-												show_progress=True)
+				# Translate FASTA files
+				print('\nTranslating FASTA files...')
+				translation_inputs = im.divide_list_into_n_chunks(results, len(results))
+				common_args = [fasta_dir, translation_table]
+				# Add common arguments to all sublists
+				inputs = im.multiprocessing_inputs(translation_inputs,
+												common_args,
+												fao.translate_fasta)
+				results = mo.map_async_parallelizer(inputs,
+													mo.function_helper,
+													cpu_cores,
+													show_progress=True)
 
-			protein_files = [r[1] for r in results]
+				protein_files = [r[1] for r in results]
 
-			# Run MAFFT to compute MSA
-			print('\nDetermining the MSA for each locus...')
-			mafft_outdir = fo.join_paths(temp_directory, ['alignment_files'])
-			fo.create_directory(mafft_outdir)
-			mafft_outfiles = [os.path.basename(file) for file in protein_files]
-			mafft_outfiles = [file.replace('.fasta', '_aligned.fasta') for file in mafft_outfiles]
-			mafft_outfiles = [fo.join_paths(mafft_outdir, [file]) for file in mafft_outfiles]
+				# Run MAFFT to compute MSA
+				print('\nDetermining the MSA for each locus...')
+				mafft_outdir = fo.join_paths(temp_directory, ['alignment_files'])
+				fo.create_directory(mafft_outdir)
+				mafft_outfiles = [os.path.basename(file) for file in protein_files]
+				mafft_outfiles = [file.replace('.fasta', '_aligned.fasta') for file in mafft_outfiles]
+				mafft_outfiles = [fo.join_paths(mafft_outdir, [file]) for file in mafft_outfiles]
 
-			mafft_inputs = [[file, mafft_outfiles[i]]
-							 for i, file in enumerate(protein_files)]
+				mafft_inputs = [[file, mafft_outfiles[i]]
+								for i, file in enumerate(protein_files)]
 
-			common_args = []
-			# Add common arguments to all sublists
-			inputs = im.multiprocessing_inputs(mafft_inputs,
-											   common_args,
-											   mw.call_mafft)
+				common_args = []
+				# Add common arguments to all sublists
+				inputs = im.multiprocessing_inputs(mafft_inputs,
+												common_args,
+												mw.call_mafft)
 
-			mafft_results = mo.map_async_parallelizer(inputs,
-													  mo.function_helper,
-													  cpu_cores,
-													  show_progress=True)
+				mafft_results = mo.map_async_parallelizer(inputs,
+														mo.function_helper,
+														cpu_cores,
+														show_progress=True)
 
-			# Identify cases where MAFFT failed
-			mafft_failed = [r[0] for r in mafft_results if r[1] is False]
-			if len(mafft_failed) > 0:
-				print(f'\nCould not determine MSA for {len(mafft_failed)} loci.')
+				# Identify cases where MAFFT failed
+				mafft_failed = [r[0] for r in mafft_results if r[1] is False]
+				if len(mafft_failed) > 0:
+					print(f'\nCould not determine MSA for {len(mafft_failed)} loci.')
 
-			# Get files that were created by MAFFT
-			mafft_successful = [r[0] for r in mafft_results if r[1] is True]
+				# Get files that were created by MAFFT
+				mafft_successful = [r[0] for r in mafft_results if r[1] is True]
 
-			print('\nCreating file with the full cgMLST alignment...', end='')
-			# Concatenate all alignment files and index with BioPython
-			concat_aln = fo.join_paths(mafft_outdir, ['cgMLST_concat.fasta'])
-			fo.concatenate_files(mafft_successful, concat_aln)
-			# Index file
-			concat_index = fao.index_fasta(concat_aln)
-			sample_alignment_files = []
-			# Not dealing well with '*' in allele ids
-			for sample in sample_ids:
-				alignment_file = concatenate_loci_alignments(sample,
-															 cgMLST_genes,
-															 concat_index,
-															 fasta_dir)
-				sample_alignment_files.append(alignment_file)
+				print('\nCreating file with the full cgMLST alignment...', end='')
+				# Concatenate all alignment files and index with BioPython
+				concat_aln = fo.join_paths(mafft_outdir, ['cgMLST_concat.fasta'])
+				fo.concatenate_files(mafft_successful, concat_aln)
+				# Index file
+				concat_index = fao.index_fasta(concat_aln)
+				sample_alignment_files = []
+				# Not dealing well with '*' in allele ids
+				for sample in sample_ids:
+					alignment_file = concatenate_loci_alignments(sample,
+																cgMLST_genes,
+																concat_index,
+																fasta_dir)
+					sample_alignment_files.append(alignment_file)
 
-			# Concatenate all cgMLST alignmnet records
-			full_alignment = fo.join_paths(output_directory,
-										   [ct.CORE_MSA_BASENAME])
-			fo.concatenate_files(sample_alignment_files, full_alignment)
-			print('done.')
-
-			if no_tree is False:
-				print('Computing the NJ tree based on the core genome MSA...', end='')
-				# Compute NJ tree with FastTree
-				out_tree = fo.join_paths(mafft_outdir, ['cgMLST.tree'])
-				fw.call_fasttree(full_alignment, out_tree)
-				phylo_data = fo.read_file(out_tree)
-				phylo_data = {"phylo_data": phylo_data}
+				# Concatenate all cgMLST alignmnet records
+				full_alignment = fo.join_paths(output_directory,
+											[ct.CORE_MSA_BASENAME])
+				fo.concatenate_files(sample_alignment_files, full_alignment)
 				print('done.')
+
+				if no_tree is False:
+					print('Computing the NJ tree based on the core genome MSA...', end='')
+					# Compute NJ tree with FastTree
+					out_tree = fo.join_paths(mafft_outdir, ['cgMLST.tree'])
+					fw.call_fasttree(full_alignment, out_tree)
+					phylo_data = fo.read_file(out_tree)
+					phylo_data = {"phylo_data": phylo_data}
+					print('done.')
+			else:
+				print('cgMLST is composed of 0 loci. Cannot compute cgMLST alignment and tree.')
 
 	report_data = {"summaryData": [{"columns": summary_columns},
 								   {"rows": [summary_rows]}],

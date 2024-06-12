@@ -21,14 +21,17 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 - Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.
 
+- Added check for legacy schemas that include files terminating in `bsr.txt`. The AlleleCall module warns users that the schema needs to be adapted and exits.
+
 - Changed the `max_targets` value in UniprotFinder to avoid BLASTp warning when aligning schema representative alleles against proteomes.
 
-- Updated Dockerfile. Using pip to install chewBBACA instead of downloading source from GitHub.
+- Fixed an issue in the AlleleCallEvaluator module when using `--no-pa` and `--no-dm`.
 
-- Fixed an issue in AlleleCallEvaluator when using `--no-pa` and `--no-dm`.
+- The AlleleCallEvaluator module no longer tries to compute the distance matrix, MSA, and tree if cgMLST is composed of 0 loci.
 
 - Fixed an issue in RemoveGenes where it would not get the first ID in the input list.
 
+- Updated Dockerfile. Using pip to install chewBBACA instead of downloading source from GitHub.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

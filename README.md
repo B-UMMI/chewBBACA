@@ -19,7 +19,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## 3.3.7 - 2024-06-27
 
-- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment). 
+- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment).
+
+- Added training file for *Pseudomonas aeruginosa*.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

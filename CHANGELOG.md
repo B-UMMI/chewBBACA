@@ -2,7 +2,9 @@
 
 ## 3.3.7 - 2024-06-27
 
-- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment). 
+- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment).
+
+- Added training file for *Pseudomonas aeruginosa*.
 
 ## 3.3.6 - 2024-06-12
 

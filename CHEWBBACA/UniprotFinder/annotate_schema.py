@@ -392,9 +392,9 @@ def main(schema_directory, output_directory, genes_list, protein_table,
 	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
 	if os.path.isfile(config_file) is True:
 		config = fo.pickle_loader(config_file)
-		translation_table = config.get('translation_table', [11])[0]
+		translation_table = config.get('translation_table', [ct.GENETIC_CODES_DEFAULT])[0]
 	else:
-		translation_table = 11
+		translation_table = ct.GENETIC_CODES_DEFAULT
 
 	print(f'Schema: {schema_directory}')
 	print(f'Number of loci: {len(loci_paths)}')

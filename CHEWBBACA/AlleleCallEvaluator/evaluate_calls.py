@@ -229,9 +229,11 @@ def main(input_files, schema_directory, output_directory, annotations,
 		 cpu_cores, light, no_pa, no_dm, no_tree, cg_alignment):
 
 	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+	# Get translation table value from config file
 	if os.path.isfile(config_file) is True:
 		config = fo.pickle_loader(config_file)
 		translation_table = config.get('translation_table', [ct.GENETIC_CODES_DEFAULT])[0]
+	# Schema does not have config file, possible external schema
 	else:
 		translation_table = ct.GENETIC_CODES_DEFAULT
 

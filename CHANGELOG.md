@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.7 - 2024-06-27
+
+- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment). 
+
 ## 3.3.6 - 2024-06-12
 
 - Added support for translation tables different than 11 to UniprotFinder and AlleleCallEvaluator.

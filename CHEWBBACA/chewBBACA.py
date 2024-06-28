@@ -27,6 +27,7 @@ try:
 	from ExtractCgMLST import determine_cgmlst
 	from utils import (join_profiles,
 					   remove_genes,
+					   gene_prediction as gp,
 					   # profiles_sqlitedb as ps,
 					   process_datetime as pdt,
 					   constants as ct,
@@ -48,6 +49,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
 	from CHEWBBACA.utils import (join_profiles,
 								 remove_genes,
+								 gene_prediction as gp,
 								 # profiles_sqlitedb as ps,
 								 process_datetime as pdt,
 								 constants as ct,
@@ -102,7 +104,10 @@ def run_create_schema():
 	parser.add_argument('--ptf', '--training-file', type=str,
 						required=False, dest='ptf_path',
 						help='Path to the Prodigal training file used by Pyrodigal '
-							 'to predict genes and added to the schema folder.')
+							 'to predict genes. The translation table used to create '
+							 'this file overrides any value passed to `--t`, '
+							 '`--translation-table`. This file is copied '
+							 'to the schema folder to be used for allele calling.')
 
 	parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
 						required=False, default=ct.DEFAULT_BSR,
@@ -118,9 +123,11 @@ def run_create_schema():
 							 'sequences (CDSs) shorter than this value are excluded.')
 
 	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
-						required=False, default=11, dest='translation_table',
+						required=False, dest='translation_table',
 						help='Genetic code used to predict genes and'
-							 ' to translate coding sequences (CDSs).')
+							 ' to translate coding DNA sequences (CDSs). '
+							 'This value is ignored if a valid training file '
+							 'is passed to `--ptf`, `--training-file`.')
 
 	parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
 						required=False, default=0.2, dest='size_threshold',
@@ -167,10 +174,21 @@ def run_create_schema():
 	args = parser.parse_args()
 	del args.CreateSchema
 
-	# Check if PTF exists
-	if args.ptf_path is not None:
-		if os.path.isfile(args.ptf_path) is False:
+	# Check if user passed PTF
+	if args.ptf_path:
+		# Check if PTF exists
+		if not os.path.isfile(args.ptf_path):
 			sys.exit(ct.INVALID_PTF_PATH)
+		else:
+			# Get translation table used to create training file
+			ptf_table = gp.read_training_file(args.ptf_path).translation_table
+			args.translation_table = ptf_table
+	else:
+		if not args.translation_table:
+			args.translation_table = ct.GENETIC_CODES_DEFAULT
+
+	# Check if translation table is supported
+	pv.translation_table_type([args.translation_table])
 
 	# Create output directory
 	created = fo.create_directory(args.output_directory)
@@ -261,7 +279,9 @@ def run_allele_call():
 						required=False, dest='ptf_path',
 						help='Path to the Prodigal training file used by Pyrodigal '
 							 'to predict genes. Default is to use the training file '
-							 'included in the schema\'s directory.')
+							 'included in the schema\'s directory. The translation '
+							 'table used to create this file overrides any value '
+							 'passed to `--t`, `--translation-table`.')
 
 	parser.add_argument('--gl', '--genes-list', type=str,
 						required=False, default=False, dest='genes_list',
@@ -287,9 +307,8 @@ def run_allele_call():
 	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
 						required=False, dest='translation_table',
 						help='Genetic code used to predict genes and'
-							 ' to translate coding sequences. Must match '
-							 'the genetic code used to create the training '
-							 'file.')
+							 ' to translate coding DNA sequences (CDSs). '
+							 'This value will be ignored if a training file is used.')
 
 	parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
 						required=False, dest='size_threshold',
@@ -886,7 +905,9 @@ def run_adapt_schema():
 						required=False, dest='ptf_path',
 						help='Path to the Prodigal training file that '
 							 'will be included in the directory of the '
-							 'adapted schema.')
+							 'adapted schema. The translation table used to create '
+							 'this file overrides any value passed to `--t`, '
+							 '`--translation-table`.')
 
 	parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
 						required=False, default=ct.DEFAULT_BSR,
@@ -909,8 +930,10 @@ def run_adapt_schema():
 
 	parser.add_argument('--t', '--translation-table',
 						type=pv.translation_table_type, required=False,
-						default=11, dest='translation_table',
-						help='Genetic code used for allele translation.')
+						dest='translation_table',
+						help='Genetic code used for allele translation. This '
+							 'value is ignored if a valid training file '
+							 'is passed to `--ptf`, `--training-file`.')
 
 	parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
 						required=False, default=ct.SIZE_THRESHOLD_DEFAULT,
@@ -944,10 +967,18 @@ def run_adapt_schema():
 	args = parser.parse_args()
 	del args.PrepExternalSchema
 
-	# Check if PTF exists
-	if args.ptf_path is not None:
-		if os.path.isfile(args.ptf_path) is False:
+	# Check if user passed PTF
+	if args.ptf_path:
+		# Check if PTF exists
+		if not os.path.isfile(args.ptf_path):
 			sys.exit(ct.INVALID_PTF_PATH)
+		else:
+			# Get translation table used to create training file
+			ptf_table = gp.read_training_file(args.ptf_path).translation_table
+			args.translation_table = ptf_table
+	else:
+		if not args.translation_table:
+			args.translation_table = ct.GENETIC_CODES_DEFAULT
 
 	# Define output paths
 	schema_path = os.path.abspath(args.output_directory)

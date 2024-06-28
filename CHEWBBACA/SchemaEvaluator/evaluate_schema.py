@@ -577,7 +577,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     annotations : str
         Path to a TSV file created by the UniprotFinder module.
     translation_table : int
-        Genetic code used to translate the alleles.
+        Genetic code used to translate alleles.
     size_threshold : float
         Allele size variation threshold. Used to determine if the size
         of an allele is within the interval of the locus size mode +/-

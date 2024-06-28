@@ -24,12 +24,14 @@ import multiprocessing
 
 try:
 	from utils import (constants as ct,
+					   gene_prediction as gp,
 					   file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
 					   iterables_manipulation as im)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
+								 gene_prediction as gp,
 								 file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
@@ -242,7 +244,7 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
 		valid = False
 
 	if valid is False:
-		# format available genetic codes into list
+		# Format available genetic codes into list
 		lines = ['\t{0}: {1}'.format(k, v) for k, v in genetic_codes.items()]
 		gc_table = '\n{0}\n'.format('\n'.join(lines))
 
@@ -798,7 +800,6 @@ def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
 		True if the training file does not match any of
 		the training files previously used with the schema.
 	"""
-
 	ptf_path = validate_ptf_path(ptf_path, schema_directory)
 
 	# Determine PTF checksum
@@ -855,26 +856,21 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		Dictionary with the arguments validated values that
 		will be used for allele calling.
 	"""
-
-	# run parameters values
+	# Parameter values for current run
 	run_params = {'bsr': blast_score_ratio,
-				  'translation_table': translation_table,
+				  #'translation_table': translation_table,
 				  'minimum_locus_length': minimum_length,
 				  'size_threshold': size_threshold}
 
-	# determine user provided arguments values that differ from default
+	# Determine user provided values that differ from default
 	unmatch_params = {k: v
 					  for k, v in run_params.items()
 					  if v not in schema_params[k] and v is not None}
-	# determine arguments values not provided by user
-	default_params = {k: schema_params[k][0]
-					  for k, v in run_params.items()
-					  if v is None}
 
-	# update arguments for current run
-	for k in run_params:
-		if k in default_params:
-			run_params[k] = default_params[k]
+	# Update run values equal to None
+	for k, v in run_params.items():
+		if v is None:
+			run_params[k] = schema_params[k][0]
 
 	if len(unmatch_params) > 0:
 		print(ct.ARGS_DIFFER)
@@ -892,11 +888,11 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		if params_answer.lower() not in ['y', 'yes']:
 			sys.exit('Exited.')
 		else:
-			# Append new argument values to configs values
+			# Append new argument values to config values
 			for p in unmatch_params:
 				schema_params[p].append(unmatch_params[p])
 
-	# default is to get the training file in schema directory
+	# Default is to get the training file in schema directory
 	schema_ptfs = schema_params['prodigal_training_file']
 	ptf_path, ptf_hash, unmatch = validate_ptf(ptf_path, schema_directory,
 											   schema_ptfs, force_continue)
@@ -906,7 +902,24 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		schema_params['prodigal_training_file'].append(ptf_hash)
 		unmatch_params['prodigal_training_file'] = ptf_hash
 
-	# save updated schema config file
+	# Update translation table
+	if ptf_path:
+		# Get translation table used to create training file
+		ptf_table = gp.read_training_file(ptf_path).translation_table
+		run_params['translation_table'] = ptf_table
+		if ptf_table not in schema_params['translation_table']:
+			schema_params['translation_table'].append(ptf_table)
+			unmatch_params['translation_table'] = ptf_table
+	else:
+		if not translation_table:
+			run_params['translation_table'] = schema_params['translation_table'][0]
+		else:
+			run_params['translation_table'] = translation_table
+			if translation_table not in schema_params['translation_table']:
+				schema_params['translation_table'].append(ptf_table)
+				unmatch_params['translation_table'] = ptf_table
+
+	# Update schema config file
 	if len(unmatch_params) > 0:
 		fo.pickle_dumper(schema_params, config_file)
 

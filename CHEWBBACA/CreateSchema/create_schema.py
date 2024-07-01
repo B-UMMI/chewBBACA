@@ -154,7 +154,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         # Cannot get CDS coordinates if skipping gene prediction
         cds_coordinates = None
         total_cdss = sum([r[1] for r in renaming_results])
-        print('Input files contain a total of {total_cdss} coding sequences.')
+        print(f'Input files contain a total of {total_cdss} coding sequences.')
 
     if len(failed) > 0:
         # Exclude inputs that failed gene prediction

@@ -858,7 +858,6 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 	"""
 	# Parameter values for current run
 	run_params = {'bsr': blast_score_ratio,
-				  #'translation_table': translation_table,
 				  'minimum_locus_length': minimum_length,
 				  'size_threshold': size_threshold}
 
@@ -916,8 +915,8 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		else:
 			run_params['translation_table'] = translation_table
 			if translation_table not in schema_params['translation_table']:
-				schema_params['translation_table'].append(ptf_table)
-				unmatch_params['translation_table'] = ptf_table
+				schema_params['translation_table'].append(translation_table)
+				unmatch_params['translation_table'] = translation_table
 
 	# Update schema config file
 	if len(unmatch_params) > 0:

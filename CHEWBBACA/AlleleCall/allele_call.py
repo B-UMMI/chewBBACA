@@ -1431,7 +1431,8 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
 			# Get ids for all genomes with same CDS as representative
 			target_inputs = im.polyline_decoding(dhashtable[target_dhash])[1:]
 			for i in target_inputs:
-				genome_coordinates = close_to_tip[inv_map[i]].get(target_dhash, [()])[0]
+				# There will be no data about CDSs close to contig tips if input FASTA contain CDSs
+				genome_coordinates = close_to_tip.get(inv_map[i], {}).get(target_dhash, [()])[0]
 				input_matches.setdefault(i, []).append((target_id, target_phash,
 														target_dhash, *match_info[target_id],
 														genome_coordinates))

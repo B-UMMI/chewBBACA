@@ -17,11 +17,11 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.7 - 2024-06-27
+## 3.3.8 - 2024-07-01
 
-- Fixed issue in the PrepExternalSchema module related to the adaptation of small loci (BLASTp would not report the self-alignment).
+- Added support for genetic codes 2, 3, 5, 6, 9, 10, 12-16, 21-25 (full list available [here](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)). The CreateSchema and AlleleCall modules will use the genetic code used to create the training file (values passed to --t, --translation-table are ignored if a training file is used).
 
-- Added training file for *Pseudomonas aeruginosa*.
+- Fixed issue related to data about CDSs close to the contig tips not being available if input FASTA files contain CDSs and `--cds` is used.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

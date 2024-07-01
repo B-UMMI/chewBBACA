@@ -22,7 +22,7 @@ copyright = '2024, UMMI'
 author = 'Rafael Mamede'
 
 # The full version, including alpha/beta/rc tags
-release = '3.3.7'
+release = '3.3.8'
 
 # -- General configuration ---------------------------------------------------
 

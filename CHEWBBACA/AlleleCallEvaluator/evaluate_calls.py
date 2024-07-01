@@ -245,7 +245,8 @@ def main(input_files, schema_directory, output_directory, annotations,
 	sample_statistics_file = fo.join_paths(input_files,
 										   [ct.RESULTS_STATISTICS_BASENAME])
 	sample_counts = pd.read_csv(sample_statistics_file, delimiter='\t')
-
+	# Convert values in FILE column to str to avoid issues with IDs that can be interpreted as int
+	sample_counts['FILE'] = sample_counts['FILE'].astype({'FILE': 'string'})
 	# Sort based on decreasing number of EXC
 	sample_counts = sample_counts.sort_values(by=['EXC'], ascending=False)
 
@@ -264,6 +265,8 @@ def main(input_files, schema_directory, output_directory, annotations,
 	loci_statistics_file = fo.join_paths(input_files,
 										 [ct.LOCI_STATS_BASENAME])
 	loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
+	# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
+	loci_counts['Locus'] = loci_counts['Locus'].astype({'Locus': 'string'})
 	# Sort based on decreasing number of EXC
 	loci_counts = loci_counts.sort_values(by=['EXC'], ascending=False)
 
@@ -349,6 +352,8 @@ def main(input_files, schema_directory, output_directory, annotations,
 			profiles_matrix = pd.read_csv(allelic_profiles_file,
 										  header=0, index_col=0,
 										  sep='\t', low_memory=False)
+			# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
+			profiles_matrix.index = profiles_matrix.index.astype('string')
 			print('done.')
 			# Mask missing data
 			print('Masking profile matrix...', end='')

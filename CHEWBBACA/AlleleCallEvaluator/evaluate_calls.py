@@ -246,7 +246,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 										   [ct.RESULTS_STATISTICS_BASENAME])
 	sample_counts = pd.read_csv(sample_statistics_file, delimiter='\t')
 	# Convert values in FILE column to str to avoid issues with IDs that can be interpreted as int
-	sample_counts['FILE'] = sample_counts['FILE'].astype({'FILE': 'string'})
+	sample_counts['FILE'] = sample_counts['FILE'].astype('string')
 	# Sort based on decreasing number of EXC
 	sample_counts = sample_counts.sort_values(by=['EXC'], ascending=False)
 
@@ -266,7 +266,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 										 [ct.LOCI_STATS_BASENAME])
 	loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
 	# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
-	loci_counts['Locus'] = loci_counts['Locus'].astype({'Locus': 'string'})
+	loci_counts['Locus'] = loci_counts['Locus'].astype('string')
 	# Sort based on decreasing number of EXC
 	loci_counts = loci_counts.sort_values(by=['EXC'], ascending=False)
 
@@ -352,7 +352,7 @@ def main(input_files, schema_directory, output_directory, annotations,
 			profiles_matrix = pd.read_csv(allelic_profiles_file,
 										  header=0, index_col=0,
 										  sep='\t', low_memory=False)
-			# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
+			# Convert Index values to str to avoid issues with IDs that can be interpreted as int
 			profiles_matrix.index = profiles_matrix.index.astype('string')
 			print('done.')
 			# Mask missing data
@@ -393,12 +393,15 @@ def main(input_files, schema_directory, output_directory, annotations,
 				# Based on cgMLST profiles
 				if len(cgMLST_genes) > 0:
 					dm_file = dm.main(cgMLST_matrix_outfile, output_directory,
-									cpu_cores, True, True)
+									  cpu_cores, True, True)
 					# Import distance matrix
 					distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
-											sep='\t', low_memory=False)
+											 sep='\t', low_memory=False)
+					# Convert Index values and column names to str to avoid issues with IDs that can be interpreted as int
+					distance_m.index = distance_m.index.astype('string')
+					distance_m.columns = distance_m.columns.astype('string')
 					dm_data = [{"rows": distance_m.values.tolist()},
-							{"sample_ids": distance_m.columns.tolist()}]
+							   {"sample_ids": distance_m.columns.tolist()}]
 				else:
 					print('cgMLST is composed of 0 loci. Cannot compute distance matrix.')
 

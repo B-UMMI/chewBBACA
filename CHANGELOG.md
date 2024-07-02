@@ -2,7 +2,7 @@
 
 ## 3.3.8 - 2024-07-02
 
-- Added support for genetic codes 2, 3, 5, 6, 9, 10, 12-16, 21-25 (complete list available [here](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)). Values passed to `--t`, `--translation-table` are ignored if a training file is used. The CreateSchema and AlleleCall modules use the genetic code used to create the training file.
+- Added support for genetic codes 2, 3, 5, 6, 9, 10, 12-16, 21-25 (complete list available [here](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)). Values passed to `--t`, `--translation-table` are ignored if a training file is used. The CreateSchema, AlleleCall and PrepExternalSchema modules use the genetic code used to create the training file.
 
 - Fixed issue related to data about CDSs close to the contig tips not being available if input FASTA files contain CDSs and `--cds` is used.
 

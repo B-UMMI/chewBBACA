@@ -130,13 +130,13 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
            'local': 'http://127.0.0.1:5000/NS/api/'}
 
 # Authors, GitHub repository, documentation, tutorial and contacts
-authors = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
-repository = 'https://github.com/B-UMMI/chewBBACA'
-documentation = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
-contacts = 'imm-bioinfo@medicina.ulisboa.pt'
+AUTHORS = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
+REPOSITORY = 'https://github.com/B-UMMI/chewBBACA'
+DOCUMENTATION = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
+CONTACTS = 'imm-bioinfo@medicina.ulisboa.pt'
 
 # Timeout, in seconds, to wait for user input
-prompt_timeout = 30
+PROMPT_TIMEOUT = 30
 
 # Minimum MAJOR and MINOR BLAST versions
 BLAST_MAJOR = 2
@@ -238,7 +238,7 @@ DNA_BASES = 'AGCT'
 BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
 
 # BLAST outfmt
-BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
+BLAST_DEFAULT_OUTFMT = '6 qaccver qstart qend qlen saccver slen score'
 
 # Input file prefix maximum length
 PREFIX_MAXLEN = 30
@@ -610,15 +610,23 @@ MISSING_CONFIG = ('Could not find a valid config file.')
 INPUTS_SHARE_PREFIX = ('The following input files share the same filename prefix '
 					   '(substring before the first "." in the filename):\n{0}\n'
 					   'Please ensure that every input file has a unique '
-					   'filename prefix.')
+					   'filename prefix. This is necessary to unambiguously '
+					   'identify each input during intermediate steps and in '
+					   'output files.')
 
 INPUTS_INCLUDE_BLANKS = ('The following input files include blank spaces '
 						 'in the filename:\n{0}\nPlease ensure that filenames '
 						 'do not include blank spaces or special characters '
-						 '(e.g. !@#?$^*()+)')
+						 '(e.g. !@#?$^*()+). This is necessarry to avoid issues '
+						 'related to how these characters are recognized by '
+						 'chewBBACA and its dependencies.')
 
 INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
 					  '30 characters:\n{0}\nPlease make sure that input '
-					  'files have a shorter and unique prefix.')
+					  'files have a shorter and unique prefix (substring before '
+					  'the first "." in the filename). The prefixes are used as '
+					  'unique identifiers and long prefixes might lead to issues '
+					  '(e.g. BLAST does not accept sequence IDs longer than 50 '
+					  'characters when creating a database).')
 
 MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')

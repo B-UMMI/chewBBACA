@@ -27,7 +27,6 @@ try:
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
-	from utils.parameters_validation import get_blast_version
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
@@ -36,7 +35,6 @@ except ModuleNotFoundError:
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
-	from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
 def bsr_categorizer(blast_results, representatives,
@@ -169,8 +167,7 @@ def select_candidate(candidates, proteins, seqids,
 
 
 def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
-			   table_id, size_threshold, blastp_path, makeblastdb_path,
-			   blastdb_aliastool_path):
+			   table_id, size_threshold, blastp_path, makeblastdb_path):
 	"""Adapts a set of loci from an external schema.
 
 	Adapts an external schema for usage with chewBBACA. Removes invalid
@@ -288,12 +285,6 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 						# Create file with representative seqid to only compare against self
 						id_file = fo.join_paths(locus_temp_dir, [f'{seqid}_ids.txt'])
 						fo.write_lines([seqid], id_file)
-						if blastdb_aliastool_path is not None:
-							binary_file = f'{id_file}.bin'
-							blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
-																id_file,
-																binary_file)
-							id_file = binary_file
 
 						rep_blastout = fo.join_paths(locus_temp_dir, [f'{seqid}_blastout.tsv'])
 						# Cannot get self-alignemnt for some sequences if composition-based stats is enabled
@@ -311,12 +302,6 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 				ids_str = im.join_list([str(i) for i in ids_to_blast if i not in representatives], '\n')
 				ids_file = fo.join_paths(locus_temp_dir, [f'{locus_id}_ids.txt'])
 				fo.write_to_file(ids_str, ids_file, 'w', '')
-				if blastdb_aliastool_path is not None:
-					binary_file = f'{ids_file}.bin'
-					blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
-														 ids_file,
-														 binary_file)
-					ids_file = binary_file
 
 				# BLAST representatives against non-represented
 				blast_output = fo.join_paths(locus_temp_dir,
@@ -468,16 +453,10 @@ def main(input_files, output_directories, cpu_cores, blast_score_ratio,
 	# Add common arguments
 	blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
 	makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-	blast_version = get_blast_version(blast_path)
-	# Determine if it is necessary to run blastdb_aliastool to convert
-	# accession list to binary format based on BLAST version being >2.9
-	blastdb_aliastool_path = None
-	if blast_version['MINOR'] > ct.BLAST_MINOR:
-		blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
 	even_loci_groups = [[i, schema_path, schema_short_path,
 						 blast_score_ratio, minimum_length,
 						 translation_table, size_threshold,
-						 blastp_path, makeblastdb_path, blastdb_aliastool_path,
+						 blastp_path, makeblastdb_path,
 						 adapt_loci] for i in even_loci_groups]
 
 	print('Adapting {0} loci...\n'.format(len(genes_list)))

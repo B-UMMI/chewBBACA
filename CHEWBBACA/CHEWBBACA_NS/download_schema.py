@@ -508,7 +508,7 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         fo.create_directory(schema_path_short)
 
         loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
-        loci_list = pv.check_input_type(download_folder, loci_list)
+        loci_list, total_loci = pv.check_input_type(download_folder, loci_list)
 
         # Determine representatives and create schema
         # Do not apply minimum length and size threshold values

@@ -990,7 +990,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     schema_short_directory = fo.join_paths(schema_directory, ['short'])
     if attributed > 0 or count > 0:
         loci_list = fo.join_paths(schema_directory, [ct.LOCI_LIST])
-        loci_list = pv.check_input_type(temp_dir, loci_list)
+        loci_list, total_loci = pv.check_input_type(temp_dir, loci_list)
         adapt_schema.main(loci_list, [schema_directory, schema_short_directory],
                           cpu_cores, float(schema_params['bsr'][0]),
                           0, 11, None, blast_path)

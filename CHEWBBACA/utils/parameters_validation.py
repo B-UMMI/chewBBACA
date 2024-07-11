@@ -752,9 +752,9 @@ def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
 		ptf_num = len(schema_ptfs)
 		if force_continue is False:
 			if ptf_num == 1:
-				ptf_answer = fo.input_timeout(ct.DIFFERENT_PTF_PROMPT, ct.prompt_timeout)
+				ptf_answer = fo.input_timeout(ct.DIFFERENT_PTF_PROMPT, ct.PROMPT_TIMEOUT)
 			if ptf_num > 1:
-				ptf_answer = fo.input_timeout(ct.MULTIPLE_PTF_PROMPT.format(ptf_num), ct.prompt_timeout)
+				ptf_answer = fo.input_timeout(ct.MULTIPLE_PTF_PROMPT.format(ptf_num), ct.PROMPT_TIMEOUT)
 		else:
 			ptf_answer = 'yes'
 
@@ -880,7 +880,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 		params_diffs_text += ['{:^20} {:^20} {:^10}'.format(p[0], p[1], p[2]) for p in params_diffs]
 		print('\n'.join(params_diffs_text))
 		if force_continue is False:
-			params_answer = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.prompt_timeout)
+			params_answer = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
 		else:
 			params_answer = 'yes'
 
@@ -1051,14 +1051,14 @@ def check_input_type(input_path, output_file):
 	"""
 	# Input path is for a file
 	if os.path.isfile(input_path):
-		output_file = validate_input_file(input_path, output_file)
+		output_file, total_inputs = validate_input_file(input_path, output_file)
 	# Input path is for a directory
 	elif os.path.isdir(input_path):
-		output_file = validate_input_dir(input_path, output_file)
+		output_file, total_inputs = validate_input_dir(input_path, output_file)
 	else:
 		sys.exit(ct.INVALID_INPUT_PATH)
 
-	return output_file
+	return output_file, total_inputs
 
 
 def validate_input_file(input_path, output_file):
@@ -1120,7 +1120,7 @@ def validate_input_file(input_path, output_file):
 	else:
 		fo.write_lines(files, output_file)
 
-	return output_file
+	return output_file, len(files)
 
 
 def validate_input_dir(input_path, output_file):
@@ -1163,7 +1163,7 @@ def validate_input_dir(input_path, output_file):
 	else:
 		sys.exit(ct.MISSING_FASTAS_EXCEPTION)
 
-	return output_file
+	return output_file, len(files)
 
 
 def validate_loci_list(input_path, output_file, parent_dir=None):

@@ -62,9 +62,6 @@ except ModuleNotFoundError:
 										synchronize_schema, stats_requests)
 
 
-version = __version__
-
-
 @pdt.process_timer
 def run_create_schema():
 	"""Run the CreateSchema module to create a schema seed."""
@@ -183,26 +180,44 @@ def run_create_schema():
 			# Get translation table used to create training file
 			ptf_table = gp.read_training_file(args.ptf_path).translation_table
 			args.translation_table = ptf_table
+			print('Provided training file. Using translation table used to create training file.')
 	else:
 		if not args.translation_table:
 			args.translation_table = ct.GENETIC_CODES_DEFAULT
+			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
+
+	print(f'Prodigal training file: {args.ptf_path}')
+	print(f'Prodigal mode: {args.prodigal_mode}')
+	if args.prodigal_mode == 'meta' and args.ptf_path is not None:
+		print('Prodigal mode is set to "meta". Will add training file to '
+			  'the schema, but will not use it for gene prediction during '
+			  'schema creation.')
+		args.ptf_path = None
 
 	# Check if translation table is supported
 	pv.translation_table_type([args.translation_table])
+	print(f'Translation table: {args.translation_table}')
+
+	print(f'CPU cores: {args.cpu_cores}')
+	print(f'BLAST Score Ratio: {args.blast_score_ratio}')
+	print(f'Minimum sequence length: {args.minimum_length}')
+	print(f'Size threshold: {args.size_threshold}')
 
 	# Create output directory
 	created = fo.create_directory(args.output_directory)
 	if created is False:
 		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+	print(f'Output directory: {args.output_directory}')
 
 	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
-	args.input_files = pv.check_input_type(args.input_files, genome_list)
+	args.input_files, total_inputs = pv.check_input_type(args.input_files, genome_list)
 	# Detect if some inputs share the same unique prefix
 	repeated_prefixes = pv.check_unique_prefixes(args.input_files)
 	# Detect if filenames include blank spaces
 	blank_spaces = pv.check_blanks(args.input_files)
 	# Check if any input file has an unique prefix >= 50 characters
 	long_prefixes = pv.check_prefix_length(args.input_files)
+	print(f'Number of inputs: {total_inputs}')
 
 	# Add clustering parameters
 	args.word_size = ct.WORD_SIZE_DEFAULT
@@ -212,7 +227,8 @@ def run_create_schema():
 	args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
 
 	# Run the CreateSchema process
-	create_schema.main(**vars(args))
+	nloci = create_schema.main(**vars(args))
+	print(f'Created schema seed with {nloci} loci.')
 
 	schema_dir = os.path.join(args.output_directory, args.schema_name)
 	# Copy Prodigal Training File (PTF) to schema directory
@@ -221,14 +237,17 @@ def run_create_schema():
 		shutil.copy(args.ptf_path, schema_dir)
 		# Determine PTF checksum
 		ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
+		print(f'Copied Prodigal training file to schema seed directory.')
 
 	# Write schema config file
 	args.minimum_length = ct.MSL_MIN
 	args.ptf_path = ptf_hash
-	schema_config = pv.write_schema_config(vars(args), version, schema_dir)
+	schema_config = pv.write_schema_config(vars(args), __version__, schema_dir)
+	print(f'Wrote schema config file to {schema_config}')
 
 	# Create the file with the list of genes/loci
 	pv.write_gene_list(schema_dir)
+	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.LOCI_LIST)}')
 
 	# Remove temporary file with paths to input genomes
 	fo.remove_files([genome_list])
@@ -469,10 +488,10 @@ def run_allele_call():
 											args.schema_directory)
 	# Working with the whole schema
 	else:
-		loci_list = pv.check_input_type(args.schema_directory, loci_list)
+		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
 
 	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
-	genome_list = pv.check_input_type(args.input_files, genome_list)
+	genome_list, total_inputs = pv.check_input_type(args.input_files, genome_list)
 	# Detect if some inputs share the same unique prefix
 	repeated_prefixes = pv.check_unique_prefixes(genome_list)
 	# Detect if filenames include blank spaces
@@ -625,7 +644,7 @@ def run_evaluate_schema():
 										  args.schema_directory)
 	# Working with the whole schema
 	else:
-		loci_list = pv.check_input_type(args.schema_directory, loci_list)
+		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
 
 	args.genes_list = loci_list
 
@@ -998,7 +1017,7 @@ def run_adapt_schema():
 										  args.schema_directory)
 	# Working with the whole schema
 	else:
-		loci_list = pv.check_input_type(args.schema_directory, loci_list)
+		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
 
 	print(f'Number of cores: {args.cpu_cores}')
 	print(f'BLAST Score Ratio: {args.blast_score_ratio}')
@@ -1040,7 +1059,7 @@ def run_adapt_schema():
 	args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
 	args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
 	args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
-	schema_config = pv.write_schema_config(vars(args), version, schema_path)
+	schema_config = pv.write_schema_config(vars(args), __version__, schema_path)
 
 	# Create hidden file with list of loci
 	genes_list_file = pv.write_gene_list(schema_path)
@@ -1468,17 +1487,16 @@ def main():
 								  'and schemas in Chewie-NS.',
 								  run_stats_requests]}
 
+	print(f'chewBBACA version: {__version__}')
 	version_triggers = ['-v', '--v', '-version', '--version']
 	if len(sys.argv) > 1 and sys.argv[1] in version_triggers:
-		# Print version and exit
-		print('chewBBACA version: {0}'.format(version))
+		# Exit after printing version
 		sys.exit(0)
 
-	print('chewBBACA version: {0}'.format(version))
-	print('Authors: {0}'.format(ct.authors))
-	print('Github: {0}'.format(ct.repository))
-	print('Documentation: {0}'.format(ct.documentation))
-	print('Contacts: {0}\n'.format(ct.contacts))
+	print(f'Authors: {ct.AUTHORS}')
+	print(f'Github: {ct.REPOSITORY}')
+	print(f'Documentation: {ct.DOCUMENTATION}')
+	print(f'Contacts: {ct.CONTACTS}\n')
 
 	# Display help message if selected process is not valid
 	help_triggers = ['-h', '--h', '-help', '--help']

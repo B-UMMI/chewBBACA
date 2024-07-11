@@ -200,21 +200,14 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 		print('\nDetermining self-score of representatives...', end='')
 		blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
 		makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-		blast_version = pv.get_blast_version(blast_path)
-		# Determine if it is necessary to run blastdb_aliastool to convert
-		# accession list to binary format based on BLAST version being >2.9
-		blastdb_aliastool_path = None
-		if blast_version['MINOR'] > ct.BLAST_MINOR:
-			blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
-
 		self_scores = cf.determine_self_scores(reps_concat, temp_directory,
-			makeblastdb_path, blastp_path, 'prot', cpu_cores, blastdb_aliastool_path)
+			makeblastdb_path, blastp_path, 'prot', cpu_cores)
 		print('done.')
 
 		# create BLASTdb with proteome sequences
 		proteome_blastdb = fo.join_paths(proteomes_directory,
 										 ['proteomes_db'])
-		db_std = bw.make_blast_db('makeblastdb', proteomes_concat, proteome_blastdb, 'prot')
+		db_std = bw.make_blast_db(makeblastdb_path, proteomes_concat, proteome_blastdb, 'prot')
 
 		# BLASTp to determine annotations
 		blast_inputs = [[blastp_path, proteome_blastdb, file, file+'_blastout.tsv',
@@ -382,7 +375,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
 		loci_list = pv.validate_loci_list(genes_list, loci_list, schema_directory)
 	# Working with the whole schema
 	else:
-		loci_list = pv.check_input_type(schema_directory, loci_list)
+		loci_list, total_loci = pv.check_input_type(schema_directory, loci_list)
 
 	loci_paths = fo.read_lines(loci_list)
 	loci_basenames = [fo.file_basename(locus, False) for locus in loci_paths]

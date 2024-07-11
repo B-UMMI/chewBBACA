@@ -28,7 +28,6 @@ try:
                        sequence_manipulation as sm,
                        iterables_manipulation as im,
                        multiprocessing_operations as mo)
-    from utils.parameters_validation import get_blast_version
 except ModuleNotFoundError:
     from CHEWBBACA.utils import (constants as ct,
                                  blast_wrapper as bw,
@@ -38,7 +37,6 @@ except ModuleNotFoundError:
                                  sequence_manipulation as sm,
                                  iterables_manipulation as im,
                                  multiprocessing_operations as mo)
-    from CHEWBBACA.utils.parameters_validation import get_blast_version
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
@@ -306,12 +304,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
     # Define BLASTp and makeblastdb paths
     blastp_path = fo.join_paths(blast_path, [ct.BLASTP_ALIAS])
     makeblastdb_path = fo.join_paths(blast_path, [ct.MAKEBLASTDB_ALIAS])
-    blast_version = get_blast_version(blast_path)
-    # Determine if it is necessary to run blastdb_aliastool to convert
-    # accession list to binary format based on BLAST version being >2.9
-    blastdb_aliastool_path = None
-    if blast_version['MINOR'] > ct.BLAST_MINOR:
-        blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
 
     # All-vs-all BLASTp per cluster
     if len(clusters) > 0:
@@ -319,8 +311,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
         print('Performing all-vs-all BLASTp per cluster...')
         blast_results, blast_results_dir = cf.blast_clusters(clusters, representative_pfasta,
                                                     clustering_dir, blastp_path,
-                                                    makeblastdb_path, cpu_cores,
-                                                    blastdb_aliastool_path)
+                                                    makeblastdb_path, cpu_cores)
 
         blast_files = im.flatten_list(blast_results)
 
@@ -481,25 +472,6 @@ def main(input_files, output_directory, schema_name, ptf_path,
         If provided, intermediate files generated during process
         execution are not removed at the end.
     """
-    print(f'Prodigal training file: {ptf_path}')
-    print(f'Prodigal mode: {prodigal_mode}')
-    print(f'CPU cores: {cpu_cores}')
-    print(f'BLAST Score Ratio: {blast_score_ratio}')
-    print(f'Translation table: {translation_table}')
-    print(f'Minimum sequence length: {minimum_length}')
-    print(f'Size threshold: {size_threshold}')
-    print(f'Word size: {word_size}')
-    print(f'Window size: {window_size}')
-    print(f'Clustering similarity: {clustering_sim}')
-    print(f'Representative filter: {representative_filter}')
-    print(f'Intra-cluster filter: {intra_filter}')
-
-    if prodigal_mode == 'meta' and ptf_path is not None:
-        print('Prodigal mode is set to "meta". Will add training file to '
-              'the schema, but will not use it for gene prediction during '
-              'schema creation.')
-        ptf_path = None
-
     # Read file with paths to input files
     input_files = fo.read_lines(input_files, strip=True)
 
@@ -517,5 +489,4 @@ def main(input_files, output_directory, schema_name, ptf_path,
     if no_cleanup is False:
         exists = fo.delete_directory(results[1])
 
-    # Print message about schema that was created
-    print('Created schema seed with {0} loci.'.format(len(results[0])))
+	return len(results[0])

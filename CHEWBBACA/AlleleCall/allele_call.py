@@ -2359,7 +2359,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 															 clustering_dir, blastp_path,
 															 makeblastdb_path,
 															 config['CPU cores'],
-															 blastdb_aliastool_path
+															 blastdb_aliastool_path,
 															 True)
 
 		blast_files = im.flatten_list(blast_results)

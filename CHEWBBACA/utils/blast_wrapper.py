@@ -46,7 +46,10 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
 		BLAST stderr.
 	"""
 	# Use '-parse-seqids' to be able to specify sequences to align against
-	# Use v4 databases for performance reasons (no need to convert list of sequence IDs with blastdb_aliastool)
+	# Use v5 databases (text file with list of sequence IDs needs to be converted with blastdb_aliastool)
+	# Decent performance with all BLAST versions, except v2.11 which runs much slower for unkown reasons
+	# BLAST <= 2.11 cannot create v4 databases if sequence IDs are alphanumeric and composed of 4 chars
+	# v5 databases accept those IDs but replace '-' with '_', which is an issue when chewie is looking for the original IDs
 	makedb_cmd = [makeblastdb_path, '-in', input_fasta,
 				  '-out', output_path, '-parse_seqids',
 				  '-dbtype', db_type, '-blastdb_version', '4']
@@ -179,38 +182,38 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
 	return [stdout, stderr]
 
 
-# def run_blastdb_aliastool(blastdb_aliastool_path, seqid_infile, seqid_outfile):
-# 	"""Convert list of sequence identifiers into binary format.
+def run_blastdb_aliastool(blastdb_aliastool_path, seqid_infile, seqid_outfile):
+	"""Convert list of sequence identifiers into binary format.
 
-# 	Parameters
-# 	----------
-# 	blastdb_aliastool_path : str
-# 		Path to the blastdb_aliastool executable.
-# 	seqid_infile :  str
-# 		Path to the file that contains the list of sequence identifiers.
-# 	seqid_outfile : str
-# 		Path to the output file in binary format to pass to the -seqidlist
-# 		parameter of BLAST>=2.10.
+	Parameters
+	----------
+	blastdb_aliastool_path : str
+		Path to the blastdb_aliastool executable.
+	seqid_infile :  str
+		Path to the file that contains the list of sequence identifiers.
+	seqid_outfile : str
+		Path to the output file in binary format to pass to the -seqidlist
+		parameter of BLAST>=2.10.
 
-# 	Returns
-# 	-------
-# 	stdout : bytes
-# 		BLAST stdout.
-# 	stderr : bytes or str
-# 		BLAST stderr.
-# 	"""
-# 	blastdb_aliastool_args = [blastdb_aliastool_path, '-seqid_file_in',
-# 							  seqid_infile, '-seqid_file_out', seqid_outfile]
+	Returns
+	-------
+	stdout : bytes
+		BLAST stdout.
+	stderr : bytes or str
+		BLAST stderr.
+	"""
+	blastdb_aliastool_args = [blastdb_aliastool_path, '-seqid_file_in',
+							  seqid_infile, '-seqid_file_out', seqid_outfile]
 
-# 	blastdb_aliastool_process = subprocess.Popen(blastdb_aliastool_args,
-# 												 stdout=subprocess.PIPE,
-# 												 stderr=subprocess.PIPE)
+	blastdb_aliastool_process = subprocess.Popen(blastdb_aliastool_args,
+												 stdout=subprocess.PIPE,
+												 stderr=subprocess.PIPE)
 
-# 	stdout, stderr = blastdb_aliastool_process.communicate()
+	stdout, stderr = blastdb_aliastool_process.communicate()
 
-# 	# Exit if it is not possible to create BLAST db
-# 	if len(stderr) > 0:
-# 		sys.exit(f'Could not convert {seqid_infile} to binary format.\n'
-# 				 f'{blastdb_aliastool_path} returned the following error:\n{stderr}')
+	# Exit if it is not possible to create BLAST db
+	if len(stderr) > 0:
+		sys.exit(f'Could not convert {seqid_infile} to binary format.\n'
+				 f'{blastdb_aliastool_path} returned the following error:\n{stderr}')
 
-# 	return [stdout, stderr]
+	return [stdout, stderr]

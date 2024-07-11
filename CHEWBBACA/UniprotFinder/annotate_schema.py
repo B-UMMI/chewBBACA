@@ -200,8 +200,10 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 		print('\nDetermining self-score of representatives...', end='')
 		blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
 		makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
+		blast_version = pv.get_blast_version(blast_path)
+		blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
 		self_scores = cf.determine_self_scores(reps_concat, temp_directory,
-			makeblastdb_path, blastp_path, 'prot', cpu_cores)
+			makeblastdb_path, blastp_path, 'prot', cpu_cores, blastdb_aliastool_path)
 		print('done.')
 
 		# create BLASTdb with proteome sequences

@@ -719,7 +719,7 @@ def cluster_intra_filter(clusters, sequences, word_size,
 
 def blast_clusters(clusters, sequences, output_directory,
                    blastp_path, makeblastdb_path, cpu_cores,
-                   only_rep=False):
+                   blastdb_aliastool_path, only_rep=False):
     """Use BLAST to align sequences in the same clusters.
 
     Parameters
@@ -743,6 +743,9 @@ def blast_clusters(clusters, sequences, output_directory,
         Path to the `makeblastdb` executable.
     cpu_cores : int
         Number of BLASTp processes to run in parallel.
+	blastdb_aliastool_path : str
+        Path to the blastalias_tool executable to convert
+		seqid files to binary format.
     only_rep
 
     Returns
@@ -768,7 +771,7 @@ def blast_clusters(clusters, sequences, output_directory,
     process_num = 20 if cpu_cores <= 20 else cpu_cores
     splitted_seqids = mo.distribute_loci(seqids_to_blast, process_num, 'seqcount')
     common_args = [sequences, blastp_results_dir, blastp_path,
-                   blast_db, only_rep, sc.cluster_blaster]
+                   blast_db, blastdb_aliastool_path, only_rep, sc.cluster_blaster]
     splitted_seqids = [[s, *common_args] for s in splitted_seqids]
 
     # BLAST sequences in a cluster against every sequence in that cluster
@@ -802,7 +805,7 @@ def compute_bsr(subject_score, query_score):
 
 
 def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
-                          blast_path, db_type, blast_threads):
+                          blast_path, db_type, blast_threads, blastdb_aliastool_path):
     """Compute the self-alignment raw score for sequences in a FASTA file.
 
     Parameters
@@ -820,6 +823,9 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         protein (prot).
     blast_threads : int
         Number of threads/cores used to run BLAST.
+	blastdb_aliastool_path : str
+        Path to the blastalias_tool executable to convert
+		seqid files to binary format.
 
     Returns
     -------
@@ -857,6 +863,15 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
             seqids_file = fo.join_paths(above_outdir, [fo.file_basename(f[0], False)])
             fo.write_lines(seqids, seqids_file)
             seqids_files.append(seqids_file)
+
+		binary_seqid_files = []
+		for file in seqids_files:
+			binary_file = f'{file}.bin'
+			blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+													file,
+													binary_file)
+			binary_seqid_files.append(binary_file)
+		seqids_files = binary_seqid_files
     # This should not happen or be very rare, but just in case
     else:
         split_fastas = []
@@ -880,6 +895,12 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
         seqids = below_outfile[1]
         seqids_file = fo.join_paths(output_directory, [fo.file_basename(below_outfile[2], False)])
         fo.write_lines(seqids, seqids_file)
+
+		binary_file = f'{seqids_file}.bin'
+		blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+												seqids_file,
+												binary_file)
+		seqids_file = binary_file
 
         below_blastout = '{0}/{1}_blastout.tsv'.format(final_blastp_dir,
                                                         fo.file_basename(below_outfile[2], False))
@@ -925,6 +946,12 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
             # Create file with representative seqid to only compare against self
             id_file = fo.join_paths(output_directory, [f'{current_rep.id}_ids.txt'])
             fo.write_lines([current_rep.id], id_file)
+
+			binary_file = f'{id_file}.bin'
+			blast_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
+													id_file,
+													binary_file)
+			id_file = binary_file
             rep_blastout = fo.join_paths(output_directory, [f'{current_rep.id}_blastout.tsv'])
             # Cannot get self-alignemnt for some sequences if composition-based stats is enabled
             blast_std = bw.run_blast(blast_path, blast_db, rep_file,

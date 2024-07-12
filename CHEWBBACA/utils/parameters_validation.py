@@ -24,6 +24,7 @@ import multiprocessing
 
 try:
 	from utils import (constants as ct,
+					   blast_wrapper as bw,
 					   gene_prediction as gp,
 					   file_operations as fo,
 					   chewiens_requests as cr,
@@ -31,6 +32,7 @@ try:
 					   iterables_manipulation as im)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
+								 blast_wrapper as bw,
 								 gene_prediction as gp,
 								 file_operations as fo,
 								 chewiens_requests as cr,
@@ -1346,3 +1348,32 @@ def check_prefix_length(input_list):
 		sys.exit(ct.INPUTS_LONG_PREFIX.format(long_prefixes_msg))
 
 	return False
+
+
+def check_prefix_pdb(input_list, output_directory, makeblastdb_path, blastdbcmd_path):
+	"""
+	"""
+	input_paths = fo.read_lines(input_list)
+	prefixes = get_file_prefixes(input_paths)
+	print(prefixes)
+	# Create directory to store dummy data
+	dummy_dir = os.path.join(output_directory, ct.DUMMY_DIR)
+	fo.create_directory(dummy_dir)
+	# Create dummy FASTA records
+	dummy_seqids = [f'{i}-protein1' for i in (prefixes)]
+	dummy_records = [fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [i, ct.DUMMY_PROT]) for i in dummy_seqids]
+	dummy_file = os.path.join(dummy_dir, ct.DUMMY_FASTA)
+	fo.write_lines(dummy_records, dummy_file)
+	# Create BLAST db
+	blastdb = os.path.join(dummy_dir, ct.DUMMY_BLASTDB)
+	bw.make_blast_db(makeblastdb_path, dummy_file, blastdb, 'prot')
+	# Get sequence from BLAST db
+	output_fasta = os.path.join(dummy_dir, ct.DUMMY_OUTPUT)
+	blastdbcmd_std = bw.run_blastdbcmd(blastdbcmd_path, blastdb, output_fasta)
+	# Check if the sequence IDs in the BLAST db match the expected IDs
+	records = fao.sequence_generator(output_fasta)
+	recids = [record.id for record in records]
+	modified_seqids = set(dummy_seqids) - set(recids)
+	if len(modified_seqids) > 0:
+		pdb_prefix = [prefixes[p.split('-protein')[0]][0] for p in modified_seqids]
+		sys.exit(ct.INPUTS_PDB_PREFIX.format('\n'.join(pdb_prefix)))

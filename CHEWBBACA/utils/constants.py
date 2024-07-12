@@ -146,6 +146,14 @@ BLAST_MINOR = 9
 BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else shutil.which('blastp')
 MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else shutil.which('makeblastdb')
 BLASTDB_ALIASTOOL_ALIAS = 'blastdb_aliastool.exe' if platform.system() == 'Windows' else shutil.which('blastdb_aliastool')
+BLASTDBCMD_ALIAS = 'blastdbcmd.exe' if platform.system() == 'Windows' else shutil.which('blastdbcmd')
+
+# Protein to create dummy FASTA records used to check if sequence IDs are interpreted as PDB IDs
+DUMMY_PROT = 'MKFFYRPTGLAISINDAYQKVNFSTDGSSLRVDNPTPYFITYDQIKINGKSVKNVDMVAPYSQQTYPFKGARANETVQWTVVNDYGGDQKGESILH'
+DUMMY_FASTA = 'dummy.fasta'
+DUMMY_BLASTDB = 'dummy_db'
+DUMMY_DIR = 'dummy_dir'
+DUMMY_OUTPUT = 'dummy_output.fasta'
 
 # BLAST warnings to be ignored
 # This warning is raised in BLAST>=2.10 when passing a TXT file with sequence identifiers to -seqidlist
@@ -628,5 +636,11 @@ INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
 					  'unique identifiers and long prefixes might lead to issues '
 					  '(e.g. BLAST does not accept sequence IDs longer than 50 '
 					  'characters when creating a database).')
+
+INPUTS_PDB_PREFIX = ('The following input files have a prefix that is '
+					 'interpreted as a PDB ID:\n{0}\nPlease ensure that '
+					 'the prefix is not a valid PDB ID. This is necessary '
+					 'to avoid issues related to how these IDs are recognized '
+					 'by chewBBACA and its dependencies.')
 
 MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')

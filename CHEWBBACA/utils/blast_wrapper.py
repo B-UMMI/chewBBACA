@@ -52,7 +52,7 @@ def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
 	# v5 databases accept those IDs but replace '-' with '_', which is an issue when chewie is looking for the original IDs
 	makedb_cmd = [makeblastdb_path, '-in', input_fasta,
 				  '-out', output_path, '-parse_seqids',
-				  '-dbtype', db_type, '-blastdb_version', '4']
+				  '-dbtype', db_type, '-blastdb_version', '5']
 
 	makedb_process = subprocess.Popen(makedb_cmd,
 									  stdout=subprocess.PIPE,
@@ -215,5 +215,39 @@ def run_blastdb_aliastool(blastdb_aliastool_path, seqid_infile, seqid_outfile):
 	if len(stderr) > 0:
 		sys.exit(f'Could not convert {seqid_infile} to binary format.\n'
 				 f'{blastdb_aliastool_path} returned the following error:\n{stderr}')
+
+	return [stdout, stderr]
+
+
+def run_blastdbcmd(blastdbcmd_path, blast_db, output_file):
+	"""Run blastdbcmd to extract sequences from a BLAST database.
+
+	Parameters
+	----------
+	blastdbcmd_path : str
+		Path to the blastdbcmd executable.
+	blast_db : str
+		Path to the BLAST database.
+	output_file : str
+		Path to the output file that will store the sequences.
+
+	Returns
+	-------
+	stdout : bytes
+		BLAST stdout.
+	stderr : bytes or str
+		BLAST stderr.
+	"""
+	blastdbcmd_args = [blastdbcmd_path, '-db', blast_db, '-out', output_file, '-entry', 'all']
+
+	blastdbcmd_process = subprocess.Popen(blastdbcmd_args,
+										  stdout=subprocess.PIPE,
+										  stderr=subprocess.PIPE)
+
+	stdout, stderr = blastdbcmd_process.communicate()
+
+	# Exit if it is not possible to extract sequences from BLAST db
+	if len(stderr) > 0:
+		sys.exit(f'Cound not extract sequences from {blast_db}.\n')
 
 	return [stdout, stderr]

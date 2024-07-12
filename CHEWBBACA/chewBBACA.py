@@ -217,6 +217,11 @@ def run_create_schema():
 	blank_spaces = pv.check_blanks(args.input_files)
 	# Check if any input file has an unique prefix >= 50 characters
 	long_prefixes = pv.check_prefix_length(args.input_files)
+	# Check if any file prefixes are interpreted as PDB IDs
+	makeblastdb_path = fo.join_paths(args.blast_path, [ct.MAKEBLASTDB_ALIAS])
+	blastdbcmd_path = fo.join_paths(args.blast_path, [ct.BLASTDBCMD_ALIAS])
+	pdb_prefixes = pv.check_prefix_pdb(args.input_files, args.output_directory, makeblastdb_path, blastdbcmd_path)
+
 	print(f'Number of inputs: {total_inputs}')
 
 	# Add clustering parameters
@@ -237,13 +242,13 @@ def run_create_schema():
 		shutil.copy(args.ptf_path, schema_dir)
 		# Determine PTF checksum
 		ptf_hash = fo.hash_file(args.ptf_path, hashlib.blake2b())
-		print(f'Copied Prodigal training file to schema seed directory.')
+		print(f'Copied Prodigal training file to {schema_dir}')
 
 	# Write schema config file
 	args.minimum_length = ct.MSL_MIN
 	args.ptf_path = ptf_hash
 	schema_config = pv.write_schema_config(vars(args), __version__, schema_dir)
-	print(f'Wrote schema config file to {schema_config}')
+	print(f'Wrote schema config values to {schema_config[1]}')
 
 	# Create the file with the list of genes/loci
 	pv.write_gene_list(schema_dir)

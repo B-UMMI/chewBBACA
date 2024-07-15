@@ -528,7 +528,7 @@ INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'
 # e.g. files only contain sequence headers, contain invalid
 # sequences/chars or pyrodigal cannot predict any genes
 CANNOT_PREDICT = ('Could not predict CDSs from any of the input files.'
-				  '\nPlease provide input files in the accepted FASTA format.')
+				  '\nPlease verify the format of the input files.')
 
 INVALID_BSR = ('\nBSR value is not contained in the [0.0, 1.0] interval.')
 INVALID_BSR_TYPE = ('\nInvalid BSR value of {0}. BSR value must be contained in the [0.0, 1.0] interval.')

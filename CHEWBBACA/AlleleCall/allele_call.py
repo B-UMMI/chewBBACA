@@ -1990,9 +1990,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 			print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
 				  'if any input file has less than 100kbp.')
 		if len(cds_fastas) == 0:
-			sys.exit(f'\n{ct.CANNOT_PREDICT}')
+			sys.exit(f'{ct.CANNOT_PREDICT}')
 
-		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
+		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)-len(failed)} inputs.')
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers
@@ -2042,7 +2042,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 	template_dict['int_to_unique'] = int_to_unique
 
 	# Change to unique integer identifiers
-	cds_counts = {unique_to_int[k]: v for k, v in cds_counts.items()}
+	cds_counts = {unique_to_int[k]: v for k, v in cds_counts.items() if k in unique_to_int}
 	template_dict['cds_counts'] = cds_counts
 
 	# Concatenate subgroups of FASTA files before deduplication

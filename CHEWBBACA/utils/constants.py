@@ -153,7 +153,7 @@ DUMMY_PROT = 'MKFFYRPTGLAISINDAYQKVNFSTDGSSLRVDNPTPYFITYDQIKINGKSVKNVDMVAPYSQQTY
 DUMMY_FASTA = 'dummy.fasta'
 DUMMY_BLASTDB = 'dummy_db'
 DUMMY_DIR = 'dummy_dir'
-DUMMY_OUTPUT = 'dummy_output.fasta'
+DUMMY_BLASTDBCMD_FASTA = 'dummy_blastdbcmd.fasta'
 
 # BLAST warnings to be ignored
 # This warning is raised in BLAST>=2.10 when passing a TXT file with sequence identifiers to -seqidlist
@@ -637,10 +637,11 @@ INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
 					  '(e.g. BLAST does not accept sequence IDs longer than 50 '
 					  'characters when creating a database).')
 
-INPUTS_PDB_PREFIX = ('The following input files have a prefix that is '
-					 'interpreted as a PDB ID:\n{0}\nPlease ensure that '
-					 'the prefix is not a valid PDB ID. This is necessary '
-					 'to avoid issues related to how these IDs are recognized '
-					 'by chewBBACA and its dependencies.')
+INPUTS_PDB_PREFIX = ('The following input files have prefixes that are '
+					 'interpreted by BLAST as chain PDB IDs:\n{0}\nBLAST modifies the '
+					 'IDs of the CDSs that include these prefixes when creating a database, '
+					 'which leads to issues when chewBBACA cannot find the original '
+					 'IDs in the results. Please ensure that the file prefixes (substring '
+					 'before the first "." in the filename) cannot be interpreted as chain PDB IDs.')
 
 MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')

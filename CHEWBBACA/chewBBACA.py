@@ -212,15 +212,15 @@ def run_create_schema():
 	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
 	args.input_files, total_inputs = pv.check_input_type(args.input_files, genome_list)
 	# Detect if some inputs share the same unique prefix
-	repeated_prefixes = pv.check_unique_prefixes(args.input_files)
+	repeated_prefixes = pv.check_unique_prefixes(genome_list)
 	# Detect if filenames include blank spaces
-	blank_spaces = pv.check_blanks(args.input_files)
+	blank_spaces = pv.check_blanks(genome_list)
 	# Check if any input file has an unique prefix >= 50 characters
-	long_prefixes = pv.check_prefix_length(args.input_files)
-	# Check if any file prefixes are interpreted as PDB IDs
+	long_prefixes = pv.check_prefix_length(genome_list)
+	# Check if any input file prefixes are interpreted as PDB IDs
 	makeblastdb_path = fo.join_paths(args.blast_path, [ct.MAKEBLASTDB_ALIAS])
 	blastdbcmd_path = fo.join_paths(args.blast_path, [ct.BLASTDBCMD_ALIAS])
-	pdb_prefixes = pv.check_prefix_pdb(args.input_files, args.output_directory, makeblastdb_path, blastdbcmd_path)
+	pdb_prefixes = pv.check_prefix_pdb(genome_list, args.output_directory, makeblastdb_path, blastdbcmd_path)
 
 	print(f'Number of inputs: {total_inputs}')
 
@@ -503,6 +503,10 @@ def run_allele_call():
 	blank_spaces = pv.check_blanks(genome_list)
 	# Check if any input file has an unique prefix >= 50 characters
 	long_prefixes = pv.check_prefix_length(genome_list)
+	# Check if any input file prefixes are interpreted as PDB IDs
+	makeblastdb_path = fo.join_paths(args.blast_path, [ct.MAKEBLASTDB_ALIAS])
+	blastdbcmd_path = fo.join_paths(args.blast_path, [ct.BLASTDBCMD_ALIAS])
+	pdb_prefixes = pv.check_prefix_pdb(genome_list, args.output_directory, makeblastdb_path, blastdbcmd_path)
 
 	# Determine if schema was downloaded from Chewie-NS
 	ns_config = fo.join_paths(args.schema_directory, ['.ns_config'])
@@ -1023,6 +1027,17 @@ def run_adapt_schema():
 	# Working with the whole schema
 	else:
 		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
+
+	# Detect if some inputs share the same unique prefix
+	repeated_prefixes = pv.check_unique_prefixes(loci_list)
+	# Detect if filenames include blank spaces
+	blank_spaces = pv.check_blanks(loci_list)
+	# Check if any input file has an unique prefix >= 50 characters
+	long_prefixes = pv.check_prefix_length(loci_list)
+	# Check if any input file prefixes are interpreted as PDB IDs
+	makeblastdb_path = fo.join_paths(args.blast_path, [ct.MAKEBLASTDB_ALIAS])
+	blastdbcmd_path = fo.join_paths(args.blast_path, [ct.BLASTDBCMD_ALIAS])
+	pdb_prefixes = pv.check_prefix_pdb(loci_list, args.output_directory, makeblastdb_path, blastdbcmd_path)
 
 	print(f'Number of cores: {args.cpu_cores}')
 	print(f'BLAST Score Ratio: {args.blast_score_ratio}')

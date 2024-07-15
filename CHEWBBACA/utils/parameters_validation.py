@@ -1351,29 +1351,46 @@ def check_prefix_length(input_list):
 
 
 def check_prefix_pdb(input_list, output_directory, makeblastdb_path, blastdbcmd_path):
-	"""
+	"""Check if the BLAST database includes the expected sequence IDs.
+
+	Parameters
+	----------
+	input_list : str
+		Path to file that contains the list of paths to input files.
+	output_directory : str
+		Path to the directory where dummy data will be created.
+	makeblastdb_path : str
+		Path to the makeblastdb executable.
+	blastdbcmd_path : str
+		Path to the blastdbcmd executable.
+
+	Returns
+	-------
+	None
 	"""
 	input_paths = fo.read_lines(input_list)
 	prefixes = get_file_prefixes(input_paths)
-	print(prefixes)
 	# Create directory to store dummy data
 	dummy_dir = os.path.join(output_directory, ct.DUMMY_DIR)
 	fo.create_directory(dummy_dir)
 	# Create dummy FASTA records
 	dummy_seqids = [f'{i}-protein1' for i in (prefixes)]
 	dummy_records = [fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [i, ct.DUMMY_PROT]) for i in dummy_seqids]
-	dummy_file = os.path.join(dummy_dir, ct.DUMMY_FASTA)
-	fo.write_lines(dummy_records, dummy_file)
+	dummy_fasta = os.path.join(dummy_dir, ct.DUMMY_FASTA)
+	fo.write_lines(dummy_records, dummy_fasta)
 	# Create BLAST db
-	blastdb = os.path.join(dummy_dir, ct.DUMMY_BLASTDB)
-	bw.make_blast_db(makeblastdb_path, dummy_file, blastdb, 'prot')
+	dummy_blastdb = os.path.join(dummy_dir, ct.DUMMY_BLASTDB)
+	bw.make_blast_db(makeblastdb_path, dummy_fasta, dummy_blastdb, 'prot')
 	# Get sequence from BLAST db
-	output_fasta = os.path.join(dummy_dir, ct.DUMMY_OUTPUT)
-	blastdbcmd_std = bw.run_blastdbcmd(blastdbcmd_path, blastdb, output_fasta)
+	dummy_blastdbcmd_fasta = os.path.join(dummy_dir, ct.DUMMY_BLASTDBCMD_FASTA)
+	blastdbcmd_std = bw.run_blastdbcmd(blastdbcmd_path, dummy_blastdb, dummy_blastdbcmd_fasta)
 	# Check if the sequence IDs in the BLAST db match the expected IDs
-	records = fao.sequence_generator(output_fasta)
+	records = fao.sequence_generator(dummy_blastdbcmd_fasta)
 	recids = [record.id for record in records]
 	modified_seqids = set(dummy_seqids) - set(recids)
+	# Delete dummy data
+	fo.delete_directory(dummy_dir)
+	# Exit if BLAST db includes sequence IDs that do not match the expected IDs
 	if len(modified_seqids) > 0:
 		pdb_prefix = [prefixes[p.split('-protein')[0]][0] for p in modified_seqids]
 		sys.exit(ct.INPUTS_PDB_PREFIX.format('\n'.join(pdb_prefix)))

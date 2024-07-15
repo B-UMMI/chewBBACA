@@ -637,8 +637,8 @@ INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
 					  '(e.g. BLAST does not accept sequence IDs longer than 50 '
 					  'characters when creating a database).')
 
-INPUTS_PDB_PREFIX = ('The following input files have prefixes that are '
-					 'interpreted by BLAST as chain PDB IDs:\n{0}\nBLAST modifies the '
+INPUTS_PDB_PREFIX = ('The following input files have prefixes that are interpreted by BLAST '
+					 'as chain PDB IDs:\n{0}\nBLAST modifies the '
 					 'IDs of the CDSs that include these prefixes when creating a database, '
 					 'which leads to issues when chewBBACA cannot find the original '
 					 'IDs in the results. Please ensure that the file prefixes (substring '

@@ -130,6 +130,12 @@ ALLELECALL_TEST_SAME_PREFIX = ['chewBBACA.py', 'AlleleCall',
 		   					   '-g', 'data/allelecall_data/sagalactiae_schema',
 		   					   '-o', 'allelecall_results']
 
+# AlleleCall input prefix interpreted as PDB chain ID
+ALLELECALL_TEST_PDB_CHAIN = ['chewBBACA.py', 'AlleleCall',
+							 '-i', 'data/allelecall_data/test_invalid_input_names/pdb_prefix',
+							 '-g', 'data/allelecall_data/sagalactiae_schema',
+							 '-o', 'allelecall_results']
+
 # CreateSchema template command
 CREATESCHEMA_TEST_GENOME_TEMPLATE = ['chewBBACA.py', 'CreateSchema',
        								 '-i', 'data/createschema_data/mock_genome_dir',
@@ -178,6 +184,30 @@ CREATESCHEMA_TEST_INVALID_GENOME = ['chewBBACA.py', 'CreateSchema',
 							   		'-i', 'data/createschema_data/invalid_genome_dir',
 							   		'-o', 'createschema_results',
 							   		'--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
+
+# CreateSchema input name includes blank space
+CREATESCHEMA_TEST_BLANK_SPACE = ['chewBBACA.py', 'CreateSchema',
+		   					     '-i', 'data/allelecall_data/test_invalid_input_names/blank_spaces',
+		   					     '-o', 'createschema_results',
+							     '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
+
+# CreateSchema input file has unique prefix longer than 30 chars
+CREATESCHEMA_TEST_LONG_PREFIX = ['chewBBACA.py', 'CreateSchema',
+		   					     '-i', 'data/allelecall_data/test_invalid_input_names/long_prefix',
+		   					     '-o', 'createschema_results',
+							     '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
+
+# CreateSchema some input files have the same prefix
+CREATESCHEMA_TEST_SAME_PREFIX = ['chewBBACA.py', 'CreateSchema',
+		   					     '-i', 'data/allelecall_data/test_invalid_input_names/same_prefix',
+		   					     '-o', 'createschema_results',
+							     '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
+
+# CreateSchema input prefix interpreted as PDB chain ID
+CREATESCHEMA_TEST_PDB_CHAIN = ['chewBBACA.py', 'CreateSchema',
+							   '-i', 'data/allelecall_data/test_invalid_input_names/pdb_prefix',
+							   '-o', 'createschema_results',
+							   '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
 
 # AlleleCallEvaluator
 # AlleleCallEvaluator invalid path
@@ -228,6 +258,26 @@ PREPEXTERNALSCHEMA_TEST_GENE_LIST = ['chewBBACA.py', 'PrepExternalSchema',
 									 '-g', 'data/prep_data/file_extensions',
 									 '-o', 'preped_schema',
 									 '--gl', 'data/prep_data/test_genes_list/test_genes_extension.txt']
+
+# PrepExternalSchema input name includes blank space
+PREPEXTERNALSCHEMA_TEST_BLANK_SPACE = ['chewBBACA.py', 'PrepExternalSchema',
+									 '-g', 'data/allelecall_data/test_invalid_input_names/blank_spaces',
+									 '-o', 'preped_schema']
+
+# PrepExternalSchema input file has unique prefix longer than 30 chars
+PREPEXTERNALSCHEMA_TEST_LONG_PREFIX = ['chewBBACA.py', 'PrepExternalSchema',
+									 '-g', 'data/allelecall_data/test_invalid_input_names/long_prefix',
+									 '-o', 'preped_schema']
+
+# PrepExternalSchema some input files have the same prefix
+PREPEXTERNALSCHEMA_TEST_SAME_PREFIX = ['chewBBACA.py', 'PrepExternalSchema',
+									 '-g', 'data/allelecall_data/test_invalid_input_names/same_prefix',
+									 '-o', 'preped_schema']
+
+# PrepExternalSchema input prefix interpreted as PDB chain ID
+PREPEXTERNALSCHEMA_TEST_PDB_CHAIN = ['chewBBACA.py', 'PrepExternalSchema',
+									 '-g', 'data/allelecall_data/test_invalid_input_names/pdb_prefix',
+									 '-o', 'preped_schema']
 
 # SchemaEvaluator
 # SchemaEvaluator empty input files

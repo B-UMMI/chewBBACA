@@ -17,13 +17,11 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.8 - 2024-07-02
+## 3.3.9 - 2024-07-16
 
-- Added support for genetic codes 2, 3, 5, 6, 9, 10, 12-16, 21-25 (complete list available [here](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)). Values passed to `--t`, `--translation-table` are ignored if a training file is used. The CreateSchema, AlleleCall and PrepExternalSchema modules use the genetic code used to create the training file.
+- Fixed an issue related to sequence IDs interpreted by BLAST as PDB chain IDs.
 
-- Fixed issue related to data about CDSs close to the contig tips not being available if input FASTA files contain CDSs and `--cds` is used.
-
-- Fixed issue in the AlleleCallEvaluator module related to entirely numeric columns.
+- Fixed an issue related to CDS counting when gene prediction returns no CDSs for one or more inputs.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

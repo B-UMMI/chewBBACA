@@ -246,7 +246,7 @@ DNA_BASES = 'AGCT'
 BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
 
 # BLAST outfmt
-BLAST_DEFAULT_OUTFMT = '6 qaccver qstart qend qlen saccver slen score'
+BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
 
 # Input file prefix maximum length
 PREFIX_MAXLEN = 30

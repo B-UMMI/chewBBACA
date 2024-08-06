@@ -17,11 +17,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.9 - 2024-07-16
+## 3.3.10 - 2024-08-06
 
-- Fixed an issue related to sequence IDs interpreted by BLAST as PDB chain IDs.
-
-- Fixed an issue related to CDS counting when gene prediction returns no CDSs for one or more inputs.
+- Fixed issue in the UniprotFinder module related to TrEMBL and Swiss-Prot IDs being parsed by BLAST when the `qacc` and `sacc` format specifiers were used with `-outfmt 6`. Switched back to the `qseqid` and `sseqid` format specifiers.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

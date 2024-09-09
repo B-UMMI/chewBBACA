@@ -645,3 +645,8 @@ INPUTS_PDB_PREFIX = ('The following input files have prefixes that are interpret
 					 'before the first "." in the filename) cannot be interpreted as chain PDB IDs.')
 
 MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')
+
+MISSING_ALLELES = ('\nCould not create the FASTA files for {0} loci.'
+				   'Some alleles are not in the schema\'s FASTA files. Alleles are not '
+				   'added to the schema if the allele calling process did not '
+				   'complete successfully or if the --no-inferred option is used.')

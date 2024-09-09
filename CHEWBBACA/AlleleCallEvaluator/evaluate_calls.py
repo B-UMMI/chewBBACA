@@ -17,6 +17,7 @@ Code documentation
 
 
 import os
+import sys
 import json
 import pandas as pd
 
@@ -177,6 +178,7 @@ def profile_column_to_fasta(locus, schema_directory, allelic_profiles,
 	alleles = {k.split('_')[-1]: v for k, v in alleles.items()}
 
 	sequences = []
+	failed = [locus]
 	for i, allele in enumerate(locus_column):
 		clean_class = allele.split('INF-')[-1]
 		if clean_class in alleles:
@@ -185,11 +187,19 @@ def profile_column_to_fasta(locus, schema_directory, allelic_profiles,
 			record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
 										  [f'{locus}_{current_sample}', seq])
 			sequences.append(record)
+		# FASTA file does not contain the allele
+		# Will happen if alleles are not added to the schema during allele calling
+		# Using the --no-inferred for allele calling option leads to this
+		else:
+			print(f'Could not get allele {clean_class} for locus {locus}.')
+			failed.append(clean_class)
 
-	fasta_file = fo.join_paths(output_directory, [f'{locus}.fasta'])
-	fo.write_lines(sequences, fasta_file)
-
-	return fasta_file
+	if len(failed) == 1:
+		fasta_file = fo.join_paths(output_directory, [f'{locus}.fasta'])
+		fo.write_lines(sequences, fasta_file)
+		return fasta_file
+	else:
+		return failed
 
 
 def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
@@ -214,7 +224,7 @@ def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
 		try:
 			alignment += str(fasta_index[seqid].seq)
 		except Exception as e:
-			print(f'Could not get {sample} allele for locus {locus}.', e)
+			print(f'Could not get the aligned {locus} allele for sample {sample} to create the sample MSA.')
 	# Save alignment for sample
 	alignment_outfile = fo.join_paths(output_directory,
 									  [f'{sample}_cgMLST_alignment.fasta'])
@@ -429,6 +439,12 @@ def main(input_files, schema_directory, output_directory, annotations,
 													mo.function_helper,
 													cpu_cores,
 													show_progress=True)
+
+				# Check if FASTA files were created
+				missing_fastas = [r for r in results if type(r) == list]
+				if len(missing_fastas) > 0:
+					fo.delete_directory(output_directory)
+					sys.exit(ct.MISSING_ALLELES.format(len(missing_fastas)))
 
 				# Translate FASTA files
 				print('\nTranslating FASTA files...')

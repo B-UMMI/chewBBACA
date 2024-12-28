@@ -163,11 +163,11 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 	local_readme = fo.join_paths(temp_directory,
 								 ['reference_proteomes_readme.txt'])
 
-	# get README file with list of reference proteomes
+	# Get README file with list of reference proteomes
 	res = fo.download_file(remote_readme, local_readme)
 	print('done.')
 
-	# get lines with proteomes info for species of interest
+	# Get lines with proteomes info for species of interest
 	readme_lines = fo.read_lines(local_readme, strip=False)
 
 	selected_proteomes = im.contained_terms(readme_lines, taxa)
@@ -177,22 +177,22 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 		  '{1}.'.format(len(selected_proteomes), taxa))
 	proteome_results = {}
 	if len(selected_proteomes) > 0:
-		# create directory to store proteomes
+		# Create directory to store proteomes
 		proteomes_directory = fo.join_paths(temp_directory, ['proteomes'])
 		fo.create_directory(proteomes_directory)
 
 		proteomes_files = ur.get_proteomes(selected_proteomes,
 										   proteomes_directory)
 
-		# uncompress files and concatenate into single FASTA
+		# Uncompress files and concatenate into single FASTA
 		uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
 		proteomes_concat = fo.join_paths(proteomes_directory,
 										 ['full_proteome.fasta'])
 		proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
 												proteomes_concat)
 
-		# get self-scores
-		# concatenate protein files
+		# Get self-scores
+		# Concatenate protein files
 		reps_concat = fo.concatenate_files(reps_protein_files,
 										   fo.join_paths(temp_directory,
 														 ['reps_concat.fasta']))
@@ -206,7 +206,7 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 			makeblastdb_path, blastp_path, 'prot', cpu_cores, blastdb_aliastool_path)
 		print('done.')
 
-		# create BLASTdb with proteome sequences
+		# Create BLASTdb with proteome sequences
 		proteome_blastdb = fo.join_paths(proteomes_directory,
 										 ['proteomes_db'])
 		db_std = bw.make_blast_db(makeblastdb_path, proteomes_concat, proteome_blastdb, 'prot')
@@ -226,10 +226,10 @@ def proteome_annotations(schema_directory, temp_directory, taxa,
 						  for file in os.listdir(translated_reps)
 						  if 'blastout' in file]
 
-		# index proteome file
+		# Index proteome file
 		indexed_proteome = fao.index_fasta(proteomes_concat)
 
-		# process results for each BLASTp
+		# Process results for each BLASTp
 		proteome_results = extract_annotations(blastout_files,
 											   indexed_proteome,
 											   self_scores,
@@ -371,7 +371,7 @@ def main(schema_directory, output_directory, genes_list, protein_table,
 	fo.create_directory(temp_directory)
 
 	# Validate input files
-	# User provided a list of genes to call
+	# User provided a list of genes to annotate
 	loci_list = fo.join_paths(temp_directory, [ct.LOCI_LIST])
 	if genes_list is not False:
 		loci_list = pv.validate_loci_list(genes_list, loci_list, schema_directory)

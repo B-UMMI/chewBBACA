@@ -365,7 +365,10 @@ ALLELECALL_REPORT_BASENAME = 'allelecall_report.html'
 
 # Basename for files created by ExtractCgMLST module
 PRESENCE_ABSENCE_BASENAME = 'presence_absence.tsv'
-MISSING_LOCI_BASENAME = 'missing_loci_stats.tsv'
+GENOMES_MISSING_BASENAME = 'genomes_missing_stats.tsv'
+GENOMES_MISSING_COLUMNS = ['FILE', 'missing', 'missing percentage']
+LOCI_MISSING_BASENAME = 'loci_missing_stats.tsv'
+LOCI_MISSING_COLUMNS = ['Locus', 'missing', 'missing percentage']
 
 # Relative path to the JS bundles used by SchemaEvaluator
 # Main page

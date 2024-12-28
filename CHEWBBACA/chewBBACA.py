@@ -747,7 +747,7 @@ def run_evaluate_calls():
 
 @pdt.process_timer
 def run_determine_cgmlst():
-	"""Run the ExtractCgMLST module to determine the core-genome."""
+	"""Run the ExtractCgMLST module to determine the core genome."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]'
@@ -755,7 +755,7 @@ def run_determine_cgmlst():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ExtractCgMLST',
-									 description='Determine the set of loci that constitute the core genome.',
+									 description='Determine the set of loci that constitute the core genome based on allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -776,30 +776,37 @@ def run_determine_cgmlst():
 	parser.add_argument('--t', '--threshold', nargs='+', type=float,
 						required=False, default=ct.CGMLST_THRESHOLDS,
 						dest='threshold',
-						help='Genes that constitute the core genome '
+						help='Loci that constitute the core genome '
 							 'must be in a proportion of genomes that is '
 							 'at least equal to this value. Provide multiple '
 							 'values to compute the core genome for multiple '
 							 'threshold values.')
 
-	parser.add_argument('--s', '--step', type=int,
-						required=False, default=1,
-						dest='step',
+	parser.add_argument('--s', '--step', type=int, required=False,
+						default=1, dest='step',
 						help='The allele calling results are processed '
 							 'iteratively to evaluate the impact of '
 							 'adding subsets of the results in computing '
-							 'the core genome. The step value '
-							 'controls the number of profiles added in each '
+							 'the core genome. The step value controls '
+							 'the number of profiles added in each '
 							 'iteration until all profiles are included.')
 
-	parser.add_argument('--r', '--genes2remove', type=str,
-						required=False, default=False, dest='genes2remove',
-						help='Path to a file with a list of gene IDs to '
-							 'exclude from the analysis (one gene identifier '
+	parser.add_argument('--ca', '--compute-accessory', action='store_true', required=False,
+					    dest='compute_accessory',
+						help='Compute the results for the accessory genome.'
+							 'The accessory genome corresponds to all the '
+							 'loci not included in the core genome. The '
+							 'accessory genome is determined for each core '
+							 'genome threshold.')
+
+	parser.add_argument('--el', '--exclude-loci', type=str,
+						required=False, default=False, dest='exclude_loci',
+						help='Path to a file with a list of loci IDs to '
+							 'exclude from the analysis (one locus identifier '
 							 'per line).')
 
-	parser.add_argument('--g', '--genomes2remove', type=str,
-						required=False, default=False, dest='genomes2remove',
+	parser.add_argument('--eg', '--exclude-genomes', type=str,
+						required=False, default=False, dest='exclude_genomes',
 						help='Path to a file with a list of genome IDs to '
 							 'exclude from the analysis (one genome identifier '
 							 'per line).')
@@ -1480,10 +1487,8 @@ def main():
 										  run_evaluate_schema],
 					  'AlleleCallEvaluator': ['Build an interactive report for allele calling results evaluation.',
 											  run_evaluate_calls],
-					  'ExtractCgMLST': ['Determines the set of '
-										'loci that constitute the '
-										'core genome based on loci '
-										'presence thresholds.',
+					  'ExtractCgMLST': ['Determine the set of loci that constitute '
+									    'the core-genome based on allele calling results.',
 										run_determine_cgmlst],
 					  'RemoveGenes': ['Remove a list of loci from '
 									  'your allele call output.',

@@ -988,13 +988,15 @@ def replace_list_values(input_list, replace_dict):
 	return replaced_list
 
 
-def replace_chars(column, missing_replace='0'):
+def replace_chars(column, missing_char='0'):
 	"""Replace all non-numeric characters in a column with allele identifiers.
 
 	Parameters
 	----------
 	column : pandas.core.series.Series
 		Pandas dataframe column.
+	missing_char : str
+		Character to replace special classifications.
 
 	Returns
 	-------
@@ -1002,18 +1004,15 @@ def replace_chars(column, missing_replace='0'):
 		Input column with cells that only contain
 		numeric characters.
 	"""
-	# remove 'INF-' from inferred alleles
-	replace_inf = column.replace(to_replace='INF-',
-								 value='', regex=True)
-	# replace '*' in novel alleles from schemas in Chewie-NS
+	# Remove 'INF-' prefixes from inferred alleles
+	replaced_inf = column.replace(to_replace='INF-', value='', regex=True)
+	# Replace '*' in novel alleles from schemas downloaded from Chewie-NS
 	# before replacing missing data cases to avoid replacing '*' with '0'
-	replace_inf = replace_inf.replace(to_replace='\*',
-									  value='', regex=True)
-	# replace missing data with
-	replace_missing = replace_inf.replace(to_replace='\D+.*',
-										  value=missing_replace, regex=True)
+	replaced_ns = replaced_inf.replace(to_replace='\*', value='', regex=True)
+	# Replace special classifications with missing character
+	replaced_special = replaced_ns.replace(to_replace='\D+.*', value=missing_char, regex=True)
 
-	return replace_missing
+	return replaced_special
 
 
 def inclusive_range(start, stop, step):
@@ -1024,5 +1023,3 @@ def inclusive_range(start, stop, step):
 		yield i
 		i += step
 	yield stop
-
-

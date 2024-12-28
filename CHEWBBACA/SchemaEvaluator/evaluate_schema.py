@@ -453,7 +453,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
     allele_lengths = locus_data[11]
     allele_ids = locus_data[12]
 
-    # determine counts per distinct allele size
+    # Determine counts per distinct allele size
     counts = list(Counter(allele_lengths).items())
     sorted_counts = sorted(counts, key=lambda x: x[0])
     counts_data = list(zip(*sorted_counts))
@@ -609,7 +609,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
     # Check if the schema was created with chewBBACA
     config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
     if os.path.exists(config_file):
-        # get the schema configs
+        # Get the schema configs
         with open(config_file, "rb") as cf:
             chewie_config = pickle.load(cf)
         chewie_version = (chewie_config["chewBBACA_version"][0]).replace('chewBBACA ', '')
@@ -673,14 +673,14 @@ def main(schema_directory, output_directory, genes_list, annotations,
                                        common_args,
                                        compute_locus_statistics)
 
-    # compute loci statistics
+    # Compute loci statistics
     print('Computing loci statistics...')
     results = mo.map_async_parallelizer(inputs,
                                         mo.function_helper,
                                         cpu_cores,
                                         show_progress=True)
 
-    # group values for the same statistic
+    # Group values for the same statistic
     data = list(zip(*results))
 
     # Read loci annotations from TSV file

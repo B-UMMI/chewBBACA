@@ -17,9 +17,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.3.10 - 2024-08-06
+## 3.4.0 - 2024-12-28
 
-- Fixed issue in the UniprotFinder module related to TrEMBL and Swiss-Prot IDs being parsed by BLAST when the `qacc` and `sacc` format specifiers were used with `-outfmt 6`. Switched back to the `qseqid` and `sseqid` format specifiers.
+- Add accessory genome computation to the ExtractCgMLST module and simplify code.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

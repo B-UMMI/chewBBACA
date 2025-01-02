@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chewBBACA"
-version = "3.3.10"
+version = "3.4.0"
 requires-python = ">=3.8"
 dependencies = [
     "numpy~=1.24.3",

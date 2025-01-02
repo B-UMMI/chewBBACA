@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.5.0 - 2025-01-02
+
+- Add the SubsetResults module to subset allele calling results. The SubsetResults module supersedes the RemoveGenes module.
+
 ## 3.4.0 - 2024-12-28
 
 - Add accessory genome computation to the ExtractCgMLST module and simplify code.

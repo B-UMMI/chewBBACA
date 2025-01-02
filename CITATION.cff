@@ -13,8 +13,8 @@ authors:
     given-names: João
   - family-names: Ramirez
     given-names: Mário
-version: 3.4.0
-date-released: "2024-12-28"
+version: 3.5.0
+date-released: "2024-01-02"
 keywords:
   - bioinformatics
   - genomics 

@@ -17,9 +17,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.4.0 - 2024-12-28
+## 3.5.0 - 2025-01-02
 
-- Add accessory genome computation to the ExtractCgMLST module and simplify code.
+- Add the SubsetResults module to subset allele calling results. The SubsetResults module supersedes the RemoveGenes module.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

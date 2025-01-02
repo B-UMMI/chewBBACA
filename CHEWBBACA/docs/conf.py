@@ -18,11 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'chewBBACA'
-copyright = '2024, UMMI'
+copyright = '2025, UMMI'
 author = 'Rafael Mamede'
 
 # The full version, including alpha/beta/rc tags
-release = '3.4.0'
+release = '3.5.0'
 
 # -- General configuration ---------------------------------------------------
 

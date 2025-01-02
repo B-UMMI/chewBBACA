@@ -25,8 +25,8 @@ try:
 	from PrepExternalSchema import adapt_schema
 	from UniprotFinder import annotate_schema
 	from ExtractCgMLST import determine_cgmlst
+	from SubsetResults import subset_results
 	from utils import (join_profiles,
-					   remove_genes,
 					   gene_prediction as gp,
 					   # profiles_sqlitedb as ps,
 					   process_datetime as pdt,
@@ -47,8 +47,8 @@ except ModuleNotFoundError:
 	from CHEWBBACA.PrepExternalSchema import adapt_schema
 	from CHEWBBACA.UniprotFinder import annotate_schema
 	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+	from CHEWBBACA.SubsetResults import subset_results
 	from CHEWBBACA.utils import (join_profiles,
-								 remove_genes,
 								 gene_prediction as gp,
 								 # profiles_sqlitedb as ps,
 								 process_datetime as pdt,
@@ -818,46 +818,57 @@ def run_determine_cgmlst():
 
 
 @pdt.process_timer
-def run_remove_genes():
-	"""Run the RemoveGenes module to remove loci from allele calling results."""
+def run_subset_results():
+	"""Run the SubsetResults module to subset allele calling results based on loci and sample lists."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py RemoveGenes --input-file <file> --genes-list <file> --output-file <file> [options]'
+		usage_msg = 'chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]'
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='RemoveGenes',
-									 description='Remove a set of loci from allele calling results.',
+	parser = argparse.ArgumentParser(prog='SubsetResults',
+									 description='Subset allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/RemoveGenes.html')
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SubsetResults.html')
 
-	parser.add_argument('RemoveGenes', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument('SubsetResults', nargs='+', help=argparse.SUPPRESS)
 
 	parser.add_argument('-i', '--input-file', type=str,
 						required=True, dest='input_file',
-						help='Path to a TSV file with allelic '
-							 'profiles determined by the AlleleCall process.')
-
-	parser.add_argument('-g', '--genes-list', type=str,
-						required=True, dest='genes_list',
-						help='Path to a file with a list of genes to remove, one '
-							 'identifier per line.')
+						help='Path to a TSV file with allelic profiles.')
 
 	parser.add_argument('-o', '--output-file', type=str,
 						required=True, dest='output_file',
 						help='Path to the output file.')
 
-	parser.add_argument('--inverse', action='store_true',
-						default=False, dest='inverse',
-						help='If provided, the genes included in the list will '
-							 'be kept, and all other genes will be removed.')
+	parser.add_argument('-l', '--loci-list', type=str,
+						required=False, dest='loci_list',
+						help='Path to a TSV file with a list of loci to select, one '
+							 'locus identifier per line. If the file contains multiple '
+							 'columns, the loci identifiers must be in the first column.')
+
+	parser.add_argument('-s', '--samples-list', type=str,
+						required=False, dest='samples_list',
+						help='Path to a TSV file with a list of samples to select, one '
+							 'sample identifier per line. If the file contains multiple '
+							 'columns, the sample identifiers must be in the first column.')
+
+	parser.add_argument('--inverse-loci', action='store_true',
+						default=False, dest='inverse_loci',
+						help='If provided, the process will select the loci that are '
+							 'not in the input loci list.')
+
+	parser.add_argument('--inverse-samples', action='store_true',
+						default=False, dest='inverse_samples',
+						help='If provided, the process will select the samples that are '
+							 'not in the input loci list.')
 
 	args = parser.parse_args()
-	del args.RemoveGenes
+	del args.SubsetResults
 
-	remove_genes.main(**vars(args))
+	subset_results.main(**vars(args))
 
 
 @pdt.process_timer
@@ -1490,9 +1501,8 @@ def main():
 					  'ExtractCgMLST': ['Determine the set of loci that constitute '
 									    'the core-genome based on allele calling results.',
 										run_determine_cgmlst],
-					  'RemoveGenes': ['Remove a list of loci from '
-									  'your allele call output.',
-									  run_remove_genes],
+					  'SubsetResults': ['Subset allele calling results.',
+									  	run_subset_results],
 					  'PrepExternalSchema': ['Adapt an external schema to be '
 											 'used with chewBBACA.',
 											 run_adapt_schema],

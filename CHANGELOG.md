@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.6.0 - 2025-01-03
+
+- Add the HashProfiles module to hash allelic profiles. Remove the --hash-profiles option from the AlleleCall module.
+
 ## 3.5.0 - 2025-01-02
 
 - Add the SubsetResults module to subset allele calling results. The SubsetResults module supersedes the RemoveGenes module.

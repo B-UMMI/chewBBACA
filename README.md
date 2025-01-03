@@ -17,9 +17,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.5.0 - 2025-01-02
+## 3.6.0 - 2025-01-03
 
-- Add the SubsetResults module to subset allele calling results. The SubsetResults module supersedes the RemoveGenes module.
+- Add the HashProfiles module to hash allelic profiles. Remove the --hash-profiles option from the AlleleCall module.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

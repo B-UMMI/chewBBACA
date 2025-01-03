@@ -26,6 +26,7 @@ try:
 	from UniprotFinder import annotate_schema
 	from ExtractCgMLST import determine_cgmlst
 	from SubsetResults import subset_results
+	from HashProfiles import hash_profiles
 	from utils import (join_profiles,
 					   gene_prediction as gp,
 					   # profiles_sqlitedb as ps,
@@ -48,6 +49,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.UniprotFinder import annotate_schema
 	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
 	from CHEWBBACA.SubsetResults import subset_results
+	from CHEWBBACA.HashProfiles import hash_profiles
 	from CHEWBBACA.utils import (join_profiles,
 								 gene_prediction as gp,
 								 # profiles_sqlitedb as ps,
@@ -406,13 +408,6 @@ def run_allele_call():
 							 'during process execution are not removed at '
 							 'the end.')
 
-	parser.add_argument('--hash-profiles', type=str, required=False,
-						dest='hash_profiles',
-						help='Create a TSV file with hashed allelic profiles. '
-							 'Profiles can be hashed with any of the hashing '
-							 'algorithms implemented in the hashlib and zlib '
-							 'Python libraries.')
-
 	# parser.add_argument('--db', '--store-profiles', required=False,
 	#                     action='store_true', dest='store_profiles',
 	#                     help='If the profiles in the output matrix '
@@ -535,8 +530,7 @@ def run_allele_call():
 	allele_call.main(genome_list, loci_list, args.schema_directory,
 						args.output_directory, args.no_inferred,
 						args.output_unclassified, args.output_missing,
-						args.output_novel, args.no_cleanup, args.hash_profiles,
-						args.ns, config)
+						args.output_novel, args.no_cleanup, args.ns, config)
 
 	# if args.store_profiles is True:
 	#     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
@@ -911,6 +905,60 @@ def run_join_profiles():
 	del args.JoinProfiles
 
 	join_profiles.main(**vars(args))
+
+
+@pdt.process_timer
+def run_hash_profiles():
+	"""Run the HashProfiles module to hash allelic profiles."""
+
+	def msg(name=None):
+		usage_msg = 'chewBBACA.py HashProfiles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]'
+
+		return usage_msg
+
+	parser = argparse.ArgumentParser(prog='HashProfiles',
+									 description='Hash allelic profiles.',
+									 usage=msg(),
+									 formatter_class=ModifiedHelpFormatter,
+									 epilog='Module documentation available at '
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/HashProfiles.html')
+
+	parser.add_argument('HashProfiles', nargs='+', help=argparse.SUPPRESS)
+
+	parser.add_argument('-i', '--input-file', type=str,
+						required=True, dest='input_file',
+						help='Path to the TSV file with allelic profiles.')
+
+	parser.add_argument('-g', '--schema-directory', type=str,
+						required=True, dest='schema_directory',
+						help='Path to the schema directory.')
+
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Path to the output directory.')
+
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores/threads that will be '
+							 'used to run the process (chewie resets to a '
+							 'lower value if it is equal to or exceeds the total '
+							 'number of available CPU cores/threads).')
+
+	parser.add_argument('--hash-type', type=str, required=False,
+						default='crc32', dest='hash_type',
+						help='Hashing algorithm to use. The module supports '
+							 'all hashing algorithms implemented in the hashlib'
+							 'and zlib Python libraries.')
+
+	parser.add_argument('--nrows', type=int, required=False,
+						default=100, dest='nrows',
+						help='Divide input file into row subsets to process larger '
+							 'files more efficiently.')
+
+	args = parser.parse_args()
+	del args.HashProfiles
+
+	hash_profiles.main(**vars(args))
 
 
 @pdt.process_timer
@@ -1509,6 +1557,8 @@ def main():
 					  'JoinProfiles': ['Join allele calling results from '
 									   'different runs.',
 									   run_join_profiles],
+					  'HashProfiles': ['Hash allelic profiles.',
+									   run_hash_profiles],
 					  'UniprotFinder': ['Retrieve annotations for loci in a schema.',
 										run_annotate_schema],
 					  'DownloadSchema': ['Download a schema from Chewie-NS.',

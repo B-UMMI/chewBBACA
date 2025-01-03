@@ -22,7 +22,6 @@ from collections import Counter
 try:
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
-					   profile_hasher as ph,
 					   core_functions as cf,
 					   file_operations as fo,
 					   fasta_operations as fao,
@@ -33,7 +32,6 @@ try:
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
-								 profile_hasher as ph,
 								 core_functions as cf,
 								 file_operations as fo,
 								 fasta_operations as fao,
@@ -2727,7 +2725,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
 def main(input_file, loci_list, schema_directory, output_directory,
 		 no_inferred, output_unclassified, output_missing, output_novel,
-		 no_cleanup, hash_profiles, ns, config):
+		 no_cleanup, ns, config):
 
 	start_time = pdt.get_datetime()
 
@@ -2985,13 +2983,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
 		novel_files = [v[0] for v in updated_files.values()]
 		# Concatenate all FASTA files with inferred alleles
 		fo.concatenate_files(novel_files, novel_fasta)
-
-	# Create TSV file with hashed profiles
-	if hash_profiles is not None:
-		print(f'Creating file with {hash_profiles} hashed profiles...')
-		hashed_profiles_file = ph.main(profiles_table, schema_directory, output_directory,
-									   hash_profiles, config['CPU cores'], 100, updated_files,
-									   no_inferred)
 
 	# Create TSV file with CDS coordinates
 	# Will not be created if input files contain set of CDS instead of contigs

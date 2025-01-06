@@ -224,6 +224,9 @@ PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
 # Header for TSV file with information about CDSs classified as ambiguous
 MISSING_HEADER = 'Index\tGenome\tLocus\tLocus_classification\tCDS\tCDS_classification'
+# Header for TSV file created by the GetAlleles module
+GETALLELES_LOCI_STATS_HEADER = 'Locus\tTotal alleles in schema\tSamples with locus\tDistinct alleles in dataset'
+
 
 # Allele calling classifications
 ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',

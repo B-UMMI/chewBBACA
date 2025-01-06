@@ -17,9 +17,9 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 3.6.0 - 2025-01-03
+## 3.7.0 - 2025-01-06
 
-- Add the HashProfiles module to hash allelic profiles. Remove the --hash-profiles option from the AlleleCall module.
+- Add the GetAlleles module to get the alleles identified in a dataset and save them to FASTA files.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

@@ -336,8 +336,17 @@ is displayed in the ``Exception Description`` column.
 Multiple Sequence Alignment
 ...........................
 
-The seventh component of the locus report presents the protein multiple sequence alignment (MSA) produced by
-`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ (with options ``--retree 1`` and ``--maxiterate 0``).
+The seventh component presents the protein multiple sequence alignment (MSA) produced by
+`MAFFT <https://mafft.cbrc.jp/alignment/software/>`_ (with options ``--retree 1`` and ``--maxiterate 0``) and rendered with `MSA Viewer <https://www.npmjs.com/package/@jlab-contrib/msa>`_.
+The component includes a menu to control the following options:
+
+- Color Schema:
+- Column:
+- Search Motif:
+- Export:
+- Conservation:
+- Seq. Logo: enable this setting to display the Sequence Logo. The Sequence Logo displays the patterns in the aligned sequences. The height of each letter is made proportional to its frequency. The height of the entire stack for each position is adjusted to signify the information content of the sequences at that position. The method used to create the Sequence Logo is described in `Schneider and Stephens <https://pubmed.ncbi.nlm.nih.gov/2172928/>`_.
+
 The MSA only includes the distinct proteins encoded by the valid alleles.
 
 .. image:: /_static/images/loci_reports_msa.png

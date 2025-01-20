@@ -20,6 +20,7 @@ import math
 from collections import Counter
 
 try:
+	import PredictCDSs
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
 					   core_functions as cf,
@@ -30,6 +31,7 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	import CHEWBBACA.PredictCDSs
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
 								 core_functions as cf,
@@ -1965,32 +1967,13 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		# Run Pyrodigal to determine CDSs for all input genomes
 		print(f'\n {ct.CDS_PREDICTION} ')
 		print('='*(len(ct.CDS_PREDICTION)+2))
-
-		# Gene prediction step
-		print(f'Predicting CDSs for {len(fasta_files)} inputs...')
-		pyrodigal_results = cf.predict_genes(full_to_unique,
-											 config['Prodigal training file'],
-											 config['Translation table'],
-											 config['Prodigal mode'],
-											 config['CPU cores'],
-											 pyrodigal_path)
-
-		# Dictionary with info about inputs for which gene prediction failed
-		# Total number of CDSs identified in the inputs
-		# Paths to FASTA files with the extracted CDSs
-		# Paths to files with the coordinates of the CDSs extracted for each input
-		# Total number of CDSs identified per input
-		# Dictionary with info about the CDSs closer to contig tips per input
-		failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
-
-		if len(failed) > 0:
-			print(f'\nFailed to predict CDSs for {len(failed)} inputs.')
-			print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
-				  'if any input file has less than 100kbp.')
-		if len(cds_fastas) == 0:
-			sys.exit(f'{ct.CANNOT_PREDICT}')
-
-		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)-len(failed)} inputs.')
+		prediction_results = PredictCDSs.main(fasta_files,
+						 pyrodigal_path,
+						 config['Prodigal training file'],
+						 config['Translation table'],
+						 config['Prodigal mode'],
+						 config['CPU cores'])
+		cds_fastas, cds_coordinates, cds_counts, close_to_tip = prediction_results
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers
@@ -2011,8 +1994,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 													 config['CPU cores'],
 													 show_progress=False)
 
-		# No inputs failed gene prediction
-		failed = []
 		# Cannot get CDS coordinates if skipping gene prediction
 		cds_coordinates = None
 		close_to_tip = {}
@@ -2020,15 +2001,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		cds_counts = {full_to_unique[k]: v for k, v in cds_counts.items()}
 		total_cdss = sum([r[1] for r in renaming_results])
 		print(f'Input files contain a total of {total_cdss} coding sequences.')
-
-	if len(failed) > 0:
-		# Exclude inputs that failed gene prediction
-		full_to_unique = im.prune_dictionary(full_to_unique, failed.keys())
-		# Write Prodigal stderr for inputs that failed gene prediction
-		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
-		failed_outfile = fo.join_paths(os.path.dirname(temp_directory),
-									   ['gene_prediction_failures.tsv'])
-		fo.write_lines(failed_lines, failed_outfile)
 
 	template_dict['cds_coordinates'] = cds_coordinates
 
@@ -2983,21 +2955,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
 		novel_files = [v[0] for v in updated_files.values()]
 		# Concatenate all FASTA files with inferred alleles
 		fo.concatenate_files(novel_files, novel_fasta)
-
-	# Create TSV file with CDS coordinates
-	# Will not be created if input files contain set of CDS instead of contigs
-	if config['CDS input'] is False:
-		print(f'Creating file with the coordinates of CDSs identified in inputs ({ct.CDS_COORDINATES_BASENAME})...')
-		files = []
-		for gid, file in results['cds_coordinates'].items():
-			tsv_file = fo.join_paths(os.path.dirname(file), [f'{gid}_coordinates.tsv'])
-			cf.write_coordinates_file(file, tsv_file)
-			files.append(tsv_file)
-		# Concatenate all TSV files with CDS coordinates
-		cds_coordinates = fo.join_paths(output_directory,
-										[ct.CDS_COORDINATES_BASENAME])
-		fo.concatenate_files(files, cds_coordinates,
-							 header=ct.CDS_TABLE_HEADER)
 
 	# Move file with list of excluded CDS
 	# File is not created if we only search for exact matches

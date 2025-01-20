@@ -12,6 +12,7 @@ Code documentation
 """
 
 
+import Bio.SeqIO
 import pyrodigal
 
 try:
@@ -72,9 +73,22 @@ def train_gene_finder(gene_finder, sequences, translation_table):
 	gene_finder : pyrodigal.GeneFinder
 		A GeneFinder object configured based on provided arguments.
 	"""
-	gene_finder.train(*sequences, translation_table=translation_table)
+	training_info = gene_finder.train(*sequences, translation_table=translation_table)
 
-	return gene_finder
+	return training_info
+
+
+def create_training_file(input_file, output_directory, translation_table):
+	"""
+	"""
+	records = fao.sequence_generator(input_file)
+	records = {rec.id: bytes(rec.seq) for rec in records}
+	gene_finder = create_gene_finder(None, True, True, False)
+	training_info = train_gene_finder(gene_finder, records.values(), translation_table)
+	training_file = fo.join_paths(output_directory, [fo.file_basename(input_file, False)+'.trn'])
+	fo.pickle_dumper(training_info, training_file)
+
+	return training_file
 
 
 def read_training_file(training_file):
@@ -90,8 +104,12 @@ def read_training_file(training_file):
 	training_data : pyrodigal.TrainingInfo
 		The deserialized training info.
 	"""
-	with open(training_file, 'rb') as infile:
-		training_data = pyrodigal.TrainingInfo.load(infile)
+	### Prodigla training file must be read like this
+	#with open(training_file, 'rb') as infile:
+		#training_data = pyrodigal.TrainingInfo.load(infile)
+	
+	### Pyrodigal training file must be read like this if created with pickle
+	training_data = fo.pickle_loader(training_file)
 
 	return training_data
 
@@ -214,7 +232,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
 		current_gene_finder = gene_finder
 	else:
 		current_gene_finder = create_gene_finder(None, True, True, False)
-		current_gene_finder = train_gene_finder(current_gene_finder,
+		training_info = train_gene_finder(current_gene_finder,
 												records.values(),
 												translation_table)
 

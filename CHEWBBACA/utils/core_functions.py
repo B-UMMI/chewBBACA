@@ -17,7 +17,6 @@ import os
 try:
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
-					   gene_prediction as gp,
 					   file_operations as fo,
 					   fasta_operations as fao,
 					   sequence_clustering as sc,
@@ -27,102 +26,12 @@ try:
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
-								 gene_prediction as gp,
 								 file_operations as fo,
 								 fasta_operations as fao,
 								 sequence_clustering as sc,
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
-
-
-def predict_genes(fasta_files, ptf_path, translation_table,
-				  prodigal_mode, cpu_cores, output_directory):
-	"""Execute Prodigal to predict coding sequences from Fasta files.
-
-	Parameters
-	----------
-	fasta_files : list
-		List of paths to FASTA files with genomic
-		sequences.
-	ptf_path : str
-		Path to the Prodigal training file. Should
-		be NoneType if a training file is not provided.
-	translation_table : int
-		Genetic code used to predict and translate
-		coding sequences.
-	prodigal_mode : str
-		Prodigal execution mode.
-	cpu_cores : int
-		Number of processes that will run Prodigal in
-		parallel.
-	output_directory : str
-		Path to the directory where output files
-		with Prodigal's results will be stored in.
-
-	Returns
-	-------
-	failed_info : list
-		List that contains a list with the stderr for the
-		cases that Prodigal failed to predict genes for
-		and the path to the file with information about
-		failed cases. Returns NoneType if gene prediction
-		succeeded for all inputs.
-	"""
-	if ptf_path is not None:
-		# Read training file to create GeneFinder object
-		training_data = gp.read_training_file(ptf_path)
-		# Create GeneFinder object based on training data
-		gene_finder = gp.create_gene_finder(training_data, True, True, False)
-	elif ptf_path is None and prodigal_mode == 'meta':
-		# Create GeneFinder object to run in meta mode
-		gene_finder = gp.create_gene_finder(None, True, True, True)
-	else:
-		gene_finder = None
-
-	common_args = [output_directory, gene_finder, translation_table]
-
-	# Divide inputs into equal number of sublists for maximum process
-	# progress resolution
-	pyrodigal_inputs = im.divide_list_into_n_chunks(list(fasta_files.items()),
-													len(fasta_files))
-
-	# Add common arguments to all sublists
-	pyrodigal_inputs = im.multiprocessing_inputs(pyrodigal_inputs,
-												 common_args,
-												 gp.predict_genome_genes)
-
-	# Run Pyrodigal to predict genes
-	# Need to use ThreadPool. Pyrodigal might hang when using Pool
-	pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
-												  mo.function_helper,
-												  cpu_cores,
-												  show_progress=True,
-												  pool_type='threadpool')
-
-	# Determine if Pyrodigal predicted genes for all genomes
-	failed = {line[0][0]: line[1]
-			  for line in pyrodigal_results
-			  if line[1] == 0
-			  or isinstance(line[1], str) is True}
-
-	cds_counts = {line[0][1]: line[1]
-				  for line in pyrodigal_results
-				  if isinstance(line[1], int) is True}
-
-	total_cds = sum([line[1]
-					 for line in pyrodigal_results
-					 if isinstance(line[1], int) is True])
-
-	cds_fastas = [line[2] for line in pyrodigal_results if line[2] is not None]
-
-	cds_hashes = {line[0][1]: line[3] for line in pyrodigal_results if line[3] is not None}
-
-	# Merge dictionaries with info about CDSs closes to contig tips
-	close_to_tip = [line[4] for line in pyrodigal_results if len(line[4]) > 0]
-	close_to_tip = im.merge_dictionaries(close_to_tip)
-
-	return [failed, total_cds, cds_fastas, cds_hashes, cds_counts, close_to_tip]
 
 
 def merge_dna_dedup(dedup_files, ids_map):
@@ -966,21 +875,3 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 					  f'score for {rep_results[0][0]}')
 
 	return self_scores
-
-
-def write_coordinates_file(coordinates_file, output_file):
-	"""Write genome CDS coordinates to a TSV file.
-
-	Parameters
-	----------
-	coordinates_file : str
-		Path to the pickle file that contains data about
-		the CDSs coordinates.
-	output_file : str
-		Path to the output TSV file.
-	"""
-	data = fo.pickle_loader(coordinates_file)
-	lines = [coords for h, coords in data[0].items()]
-	lines = im.flatten_list(lines)
-	lines = ['\t'.join(line) for line in lines]
-	fo.write_lines(lines, output_file)

@@ -18,8 +18,9 @@ import argparse
 
 try:
 	from __init__ import __version__
-	from AlleleCall import allele_call
+	from PredictCDSs import predict_cdss
 	from CreateSchema import create_schema
+	from AlleleCall import allele_call
 	from SchemaEvaluator import evaluate_schema
 	from AlleleCallEvaluator import evaluate_calls
 	from PrepExternalSchema import adapt_schema
@@ -42,8 +43,9 @@ try:
 							  synchronize_schema, stats_requests)
 except ModuleNotFoundError:
 	from CHEWBBACA import __version__
-	from CHEWBBACA.AlleleCall import allele_call
+	from CHEWBBACA.PredictCDSs import predict_cdss
 	from CHEWBBACA.CreateSchema import create_schema
+	from CHEWBBACA.AlleleCall import allele_call
 	from CHEWBBACA.SchemaEvaluator import evaluate_schema
 	from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
 	from CHEWBBACA.PrepExternalSchema import adapt_schema
@@ -64,6 +66,145 @@ except ModuleNotFoundError:
 
 	from CHEWBBACA.CHEWBBACA_NS import (download_schema, upload_schema,
 										synchronize_schema, stats_requests)
+
+
+@pdt.process_timer
+def run_predict_cdss():
+	"""Run the PredictCDSs module to predict coding sequences (CDSs)."""
+
+	def msg(name=None):
+		usage_msg = 'chewBBACA.py PredictCDSs --input-files <dir> --output-directory <dir> [options]'
+
+		return usage_msg
+
+	parser = argparse.ArgumentParser(prog='PredictCDSs',
+									 description='Predict CDSs for a set of genomes.',
+									 usage=msg(),
+									 formatter_class=ModifiedHelpFormatter,
+									 epilog='Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictCDSs.html')
+
+	parser.add_argument('PredictCDSs', nargs='+', help=argparse.SUPPRESS)
+
+	parser.add_argument('-i', '--input-files', type=str,
+						required=False, dest='input_files',
+						help='Path to the directory that contains the input '
+							 'FASTA files, in FASTA or GenBank format')
+
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Output directory where the process will store '
+							 'the predicted CDSs.')
+
+	parser.add_argument('--ptf', '--training-file', type=str,
+						required=False, dest='training_file',
+						help='Path to the Prodigal training file used by Pyrodigal '
+							 'to predict genes. The translation table used to create '
+							 'this file overrides any value passed to `--t`, '
+							 '`--translation-table`. This file is copied '
+							 'to the schema folder to be used for allele calling.')
+
+	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
+						required=False, dest='translation_table',
+						help='Genetic code used to predict CDSs. This value '
+							 'is ignored if a valid training file is passed '
+							 'to `--ptf`, `--training-file`.')
+
+	parser.add_argument('--pm', '--prodigal-mode', required=False,
+						choices=['single', 'meta'],
+						default='single', dest='prodigal_mode',
+						help='Prodigal running mode ("single" for '
+							 'finished genomes, reasonable quality '
+							 'draft genomes and big viruses. "meta" '
+							 'for metagenomes, low quality draft '
+							 'genomes, small viruses, and small '
+						 	 'plasmids).')
+
+	parser.add_argument('--tr', '--training-reference', type=str,
+						required=False, dest='training_reference',
+						help='Path to the reference genome used to create '
+							 'a training file to predict CDSs.')
+
+	parser.add_argument('--jt', '--just-training', action='store_true',
+						required=False, dest='just_training',
+						help='Create training file based on the '
+							 'reference genome and exit.')
+
+	parser.add_argument('--of', '--output-format', type=str,
+						required=False, default='fasta',
+						choices=['fasta', 'genbank'],
+						dest='output_format',
+						help='Output file format. Default is FASTA.')
+
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores that will be '
+							 'used to run the process (chewie '
+							 'resets to a lower value if it is equal to '
+							 'or exceeds the total number of available '
+							 'CPU cores).')
+
+	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+						required=False, default='', dest='blast_path',
+						help='Path to the directory that contains the '
+							 'BLAST executables.')
+
+	args = parser.parse_args()
+	del args.PredictCDSs
+
+	# Create output directory
+	created = fo.create_directory(args.output_directory)
+	if created is False:
+		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+	print(f'Output directory: {args.output_directory}')
+
+	if args.training_reference:
+		training_file = gp.create_training_file(args.training_reference, args.output_directory, args.translation_table)
+		if args.just_training:
+			sys.exit(ct.JUST_TRAINING)
+		else:
+			args.training_file = training_file
+
+	# Check if user passed PTF
+	if args.training_file:
+		# Check if PTF exists
+		if not os.path.isfile(args.training_file):
+			sys.exit(ct.INVALID_PTF_PATH)
+		else:
+			# Get translation table used to create training file
+			ptf_table = gp.read_training_file(args.training_file).translation_table
+			print(ptf_table)
+			args.translation_table = ptf_table
+			print(f'Provided training file. Using translation table ({ptf_table}) used to create training file.')
+	else:
+		if not args.translation_table:
+			args.translation_table = ct.GENETIC_CODES_DEFAULT
+			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
+
+	print(f'Prodigal training file: {args.training_file}')
+	print(f'Prodigal mode: {args.prodigal_mode}')
+	if args.prodigal_mode == 'meta' and args.training_file is not None:
+		print('Prodigal mode is set to "meta". Will not use provided training file.')
+		args.training_file = None
+
+	print(f'CPU cores: {args.cpu_cores}')
+
+	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
+	args.input_files, total_inputs = pv.check_input_type(args.input_files, genome_list)
+
+	# Detect if some inputs share the same unique prefix
+	repeated_prefixes = pv.check_unique_prefixes(genome_list)
+	# Detect if filenames include blank spaces
+	blank_spaces = pv.check_blanks(genome_list)
+	# Check if any input file has an unique prefix >= 50 characters
+	long_prefixes = pv.check_prefix_length(genome_list)
+	# Check if any input file prefixes are interpreted as PDB IDs
+	makeblastdb_path = fo.join_paths(args.blast_path, [ct.MAKEBLASTDB_ALIAS])
+	blastdbcmd_path = fo.join_paths(args.blast_path, [ct.BLASTDBCMD_ALIAS])
+	pdb_prefixes = pv.check_prefix_pdb(genome_list, args.output_directory, makeblastdb_path, blastdbcmd_path)
+	del args.blast_path
+
+	# Predict CDSs
+	predict_cdss.main(**vars(args))
 
 
 @pdt.process_timer
@@ -1612,7 +1753,9 @@ def run_stats_requests():
 
 def main():
 
-	functions_info = {'CreateSchema': ['Create a gene-by-gene schema based on '
+	functions_info = {'PredictCDSs': ['Predict CDSs from inpput genomes.',
+									  run_predict_cdss],
+					  'CreateSchema': ['Create a gene-by-gene schema based on '
 									   'a set of genome assemblies or coding sequences.',
 									   run_create_schema],
 					  'AlleleCall': ['Determine the allelic profiles of a set of '

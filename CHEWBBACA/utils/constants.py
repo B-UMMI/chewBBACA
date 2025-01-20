@@ -527,9 +527,6 @@ LOADSCHEMA_NO_PERMISSIONS = ('Current user has no Administrator or Contributor '
 LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes the '
 						  'Prodigal training file used to create the schema.')
 
-# Path for PTF does not exist
-INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'
-
 # Could not predict CDSs for input FASTA files
 # e.g. files only contain sequence headers, contain invalid
 # sequences/chars or pyrodigal cannot predict any genes
@@ -592,14 +589,15 @@ MULTIPLE_PTFS = ('Found more than one Prodigal training '
 				 'creation process.')
 MISSING_PTF = ('Could not find a Prodigal training file in the schema directory.')
 
-INVALID_PTF_PATH = ('Cannot find specified Prodigal training file.'
+INVALID_PTF_PATH = ('Cannot find the specified Prodigal training file.'
 					'\nPlease provide a valid training file.\nYou '
 					'can create a training file for a species of '
-					'interest with the following command:\n\n  prodigal '
-					'-i <reference_genome> -t <training_file.trn> -p '
-					'single\n\nIt is strongly advised to provide a '
-					'high-quality and closed genome for the training '
-					'process.')
+					'interest with the of the PredictCDSs module or '
+					'by running the following command if you have '
+					'Prodigal installed:\n\n  prodigal -i <reference_genome> '
+					'-t <training_file.trn> -p single\n\nIt is strongly '
+					'advised to provide a high-quality and closed genome '
+					'for the training process.')
 
 DIFFERENT_PTF_PROMPT = ('Prodigal training file is not the one '
 			  			'used to create the schema. Using this training '
@@ -656,3 +654,5 @@ MISSING_ALLELES = ('\nCould not create the FASTA files for {0} loci.'
 				   'Some alleles are not in the schema\'s FASTA files. Alleles are not '
 				   'added to the schema if the allele calling process did not '
 				   'complete successfully or if the --no-inferred option is used.')
+
+JUST_TRAINING = ('User requested to create training file only.')

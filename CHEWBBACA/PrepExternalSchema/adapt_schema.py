@@ -66,47 +66,33 @@ def bsr_categorizer(blast_results, representatives,
 			list with all sequence identifiers of subject
 			sequences that had hits with a BSR higher than the
 			maximum defined threshold.
-		low_bsr : list
-			list with all sequence identifiers of subject
-			sequences that had hits with a BSR lower than the
-			minimum defined threshold.
 	"""
 	high_bsr = []
 	hotspot_bsr = []
-	low_bsr = []
-
-	high_reps = {}
 	hot_reps = {}
-	low_reps = {}
 
 	filtered_results = [res for res in blast_results
 						if res[0] != res[4] and res[4] not in representatives]
-	bsr_values = [float(res[-1])/representatives_scores[res[0]]
-				  for res in filtered_results]
+	for result in filtered_results:
+		result.append(float(result[-1])/representatives_scores[result[0]])
 
-	high_bsr = [res[4] for ind, res in enumerate(filtered_results)
-				if bsr_values[ind] >= max_bsr]
-	low_bsr = [res[4] for ind, res in enumerate(filtered_results)
-			   if bsr_values[ind] < min_bsr]
-	hotspot_bsr = [res[4] for ind, res in enumerate(filtered_results)
-				   if bsr_values[ind] >= min_bsr and bsr_values[ind] < max_bsr]
+	# Identify alleles with hits above BSR threshold
+	high_bsr = set([result[4] for result in filtered_results if result[-1] >= max_bsr])
+	# Identify alleles with hits in BSR hotspot interval
+	hotspot_bsr = set([result[4] for result in filtered_results if result[-1] >= min_bsr and result[-1] < max_bsr])
+	# Exclude alleles with hits above BSR threshold from hotspot list
+	hotspot_bsr = list(hotspot_bsr - high_bsr)
 
-	for ind, res in enumerate(filtered_results):
-		if bsr_values[ind] >= min_bsr:
-			high_reps.setdefault(res[0], []).append(res[4])
-		if bsr_values[ind] < min_bsr:
-			low_reps.setdefault(res[0], []).append(res[4])
-		if bsr_values[ind] >= min_bsr and bsr_values[ind] < max_bsr:
-			hot_reps.setdefault(res[0], []).append(res[4])
+	hot_reps = []
+	for result in filtered_results:
+		if result[-1] >= min_bsr and result[-1] < max_bsr:
+			if result[4] not in high_bsr and result[0] not in hot_reps:
+				hot_reps.append(result[0])
 
-	# Identify representatives that only led to low BSR
-	low_reps = list(set(low_reps) - set(high_reps))
-
-	return [high_bsr, low_bsr, hotspot_bsr, high_reps, low_reps, hot_reps]
+	return [high_bsr, hotspot_bsr, hot_reps]
 
 
-def select_candidate(candidates, proteins, seqids,
-					 representatives, final_representatives):
+def select_candidate(candidates, proteins, seqids):
 	"""Select a new representative sequence.
 
 	Parameters
@@ -118,52 +104,32 @@ def select_candidate(candidates, proteins, seqids,
 		protein sequences as values.
 	seqids : list
 		A list with the sequence identifiers that still have
-		no representative (representatives identifiers are
-		included because they have to be BLASTed in order to
-		determine their self score).
-	representatives : list
-		The sequence identifiers of all representatives.
+		no representative.
 
 	Returns
 	-------
-	representatives : list
-		The set of all representatives, including the new
-		representative that was chosen by the function.
+	selected : str
+		The sequence identfiier of the allele selected as representative.
 	"""
-	# With more than one sequence as candidate, select longest
-	if len(candidates) > 1:
-		# Determine length of all candidates
-		candidates_len = [(seqid, len(proteins[seqid]))
-						  for seqid in candidates]
+	if len(candidates) == 1:
+		selected = candidates[0]
+	else:
+		# If no hit qualifies and there are still sequences
+		# without representative
+		if len(candidates) == 0:
+			# Determine length of remaining sequences
+			candidates_len = [(seqid, len(proteins[seqid])) for seqid in seqids]
+		# With more than one sequence as candidate, select longest
+		else:
+			# Determine length of all candidates
+			candidates_len = [(seqid, len(proteins[seqid])) for seqid in candidates]
 
 		# Order representative candidates by length descending order
-		candidates_len = sorted(candidates_len, key=lambda x: x[1],
-								reverse=True)
+		candidates_len = sorted(candidates_len, key=lambda x: x[1], reverse=True)
 
-		# Longest allele is the new representative
-		representatives.append(candidates_len[0][0])
-		final_representatives.append(candidates_len[0][0])
-	# If there is only one candidate, keep that
-	elif len(candidates) == 1:
-		representatives.append(candidates[0])
-		final_representatives.append(candidates[0])
-	# If no hit qualifies and there are still sequences
-	# without representative
-	elif len(candidates) == 0 and \
-			len(seqids) > len(representatives):
-		# Determine length of remaining sequences
-		# (representatives not included)
-		candidates_len = [(seqid, len(proteins[seqid]))
-						  for seqid in seqids
-						  if seqid not in representatives]
-		# Sort by descending length
-		candidates_len = sorted(candidates_len, key=lambda x: x[1],
-								reverse=True)
-		# Longest of remaining sequences is new representative
-		representatives.append(candidates_len[0][0])
-		final_representatives.append(candidates_len[0][0])
+		selected = candidates_len[0][0]
 
-	return [representatives, final_representatives]
+	return selected
 
 
 def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
@@ -254,8 +220,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 			final_representatives.append(longest)
 
 			# Create FASTA file with distinct protein sequences
-			protein_file = fo.join_paths(locus_temp_dir,
-										 [f'{locus_id}_protein.fasta'])
+			protein_file = fo.join_paths(locus_temp_dir, [f'{locus_id}_protein.fasta'])
 			protein_data = [[i, prot_seqs[i]] for i in ids_to_blast]
 			protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, protein_data)
 			fo.write_lines(protein_lines, protein_file)
@@ -267,10 +232,13 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 			# Determine appropriate blastp task (proteins < 30aa need blastp-short)
 			blastp_task = bw.determine_blast_task(equal_prots)
 
+			# Exclude representative from list of alleles to BLAST against
+			ids_to_blast.remove(longest)
+
 			# Cycle BLAST representatives against non-representatives until
 			# all non-representatives have a representative
-			while len(set(ids_to_blast) - set(representatives)) != 0:
-				# create FASTA file with representative sequences
+			while len(ids_to_blast) > 0:
+				# Create FASTA file with representative sequences
 				rep_file = fo.join_paths(locus_temp_dir,
 										 [f'{locus_id}_rep_protein.fasta'])
 				rep_protein_data = [[r, prot_seqs[r]] for r in representatives]
@@ -305,7 +273,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 								f'score for {rep_results[0][0]}')
 
 				# Create file with seqids to BLAST against
-				ids_str = im.join_list([str(i) for i in ids_to_blast if i not in representatives], '\n')
+				ids_str = im.join_list([str(i) for i in ids_to_blast], '\n')
 				ids_file = fo.join_paths(locus_temp_dir, [f'{locus_id}_ids.txt'])
 				fo.write_to_file(ids_str, ids_file, 'w', '')
 				binary_file = f'{ids_file}.bin'
@@ -327,48 +295,25 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 				blast_results = fo.read_tabular(blast_output)
 
 				# Divide results into high, low and hot BSR values
-				hitting_high, hitting_low, hotspots, high_reps, low_reps, hot_reps = \
+				hitting_high, hotspots, hot_reps = \
 					bsr_categorizer(blast_results, representatives,
 									rep_self_scores, bsr, bsr+0.1)
 
-				excluded_reps = []
 				# Remove high BSR hits that have representative
-				hitting_high = set(hitting_high)
 				ids_to_blast = [i for i in ids_to_blast if i not in hitting_high]
+				# Only keep representatives that led to hits with BSR in hotspot
+				representatives = hot_reps
 
-				# Remove representatives that led to high BSR with subjects that were removed
-				prunned_high_reps = {k: [r for r in v if r in ids_to_blast] for k, v in high_reps.items()}
-				reps_to_remove = [k for k, v in prunned_high_reps.items() if len(v) == 0]
+				if len(ids_to_blast) > 0:
+					# Select next representative allele
+					# Sort to guarantee reproducible results with same datasets
+					rep_candidates = sorted(hotspots, key=lambda x: int(x))
+					selected = select_candidate(rep_candidates, prot_seqs, ids_to_blast)
 
-				excluded_reps.extend(reps_to_remove)
-
-				# Determine smallest set of representatives that allow to get all cycle candidates
-				excluded = []
-				hotspot_reps = set(im.flatten_list(list(hot_reps.values())))
-				for rep, hits in hot_reps.items():
-					common = hotspot_reps.intersection(set(hits))
-					if len(common) > 0:
-						hotspot_reps = hotspot_reps - common
-					else:
-						excluded.append(rep)
-
-				excluded_reps.extend(excluded)
-
-				# Remove representatives that only led to low BSR
-				excluded_reps.extend(low_reps)
-
-				representatives = [rep for rep in representatives if rep not in excluded_reps]
-				ids_to_blast = [i for i in ids_to_blast if i not in excluded_reps]
-
-				# Determine next representative from candidates
-				rep_candidates = list(set(hotspots) - hitting_high)
-				# Sort to guarantee reproducible results with same datasets
-				rep_candidates = sorted(rep_candidates, key=lambda x: int(x))
-				representatives, final_representatives = select_candidate(rep_candidates,
-																		  prot_seqs,
-																		  ids_to_blast,
-																		  representatives,
-																		  final_representatives)
+					representatives.append(selected)
+					final_representatives.append(selected)
+					# Remove newly selected representative from list of alleles to BLAST against
+					ids_to_blast.remove(selected)
 
 				# Remove files created for current gene iteration
 				os.remove(rep_file)

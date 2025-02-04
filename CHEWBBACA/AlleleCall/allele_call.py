@@ -20,7 +20,7 @@ import math
 from collections import Counter
 
 try:
-	import PredictCDSs
+	from PredictCDSs import predict_cdss
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
 					   core_functions as cf,
@@ -31,7 +31,7 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	import CHEWBBACA.PredictCDSs
+	from CHEWBBACA.PredictCDSs import predict_cdss
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
 								 core_functions as cf,
@@ -1961,19 +1961,46 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 	# Create directory to store files with Pyrodigal results
 	pyrodigal_path = fo.join_paths(temp_directory, ['1_cds_prediction'])
 	fo.create_directory(pyrodigal_path)
-
 	# Inputs are genome assemblies
 	if config['CDS input'] is False:
 		# Run Pyrodigal to determine CDSs for all input genomes
 		print(f'\n {ct.CDS_PREDICTION} ')
 		print('='*(len(ct.CDS_PREDICTION)+2))
-		prediction_results = PredictCDSs.main(fasta_files,
-						 pyrodigal_path,
-						 config['Prodigal training file'],
-						 config['Translation table'],
-						 config['Prodigal mode'],
-						 config['CPU cores'])
-		cds_fastas, cds_coordinates, cds_counts, close_to_tip = prediction_results
+		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, config['Prodigal training file'],
+											  config['Translation table'], config['Prodigal mode'], None,
+											  None, ['genes'], None, config['CPU cores'])
+
+		# Dictionary with info about inputs for which gene prediction failed
+		# Total number of CDSs identified in the inputs
+		# Paths to FASTA files with the extracted CDSs
+		# Paths to files with the coordinates of the CDSs extracted for each input
+		# Total number of CDSs identified per input
+		# Dictionary with info about the CDSs closer to contig tips per input
+		failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
+		if len(failed) > 0:
+			print(f'\nFailed to predict genes for {len(failed)} inputs')
+			print('Make sure that Prodigal runs in meta mode (--pm meta) '
+				  'if any input file has less than 100kbp.')
+		if len(cds_fastas) == 0:
+			sys.exit(f'\n{ct.CANNOT_PREDICT}')
+
+		renaming_inputs = []
+		for i, file in enumerate(cds_fastas):
+			basename = fo.file_basename(file, False)
+			parent_dir = os.path.dirname(os.path.dirname(file))
+			output_file = fo.join_paths(parent_dir, [f'{basename}.fasta'])
+			cds_prefix = f'{basename}-protein'
+			renaming_inputs.append([file, output_file, 1, 50000,
+									cds_prefix, False, True, fao.integer_headers])
+			cds_fastas[i] = output_file
+
+		# Rename CDSs in files
+		renaming_results = mo.map_async_parallelizer(renaming_inputs,
+													 mo.function_helper,
+													 config['CPU cores'],
+													 show_progress=False)
+
+		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers
@@ -1985,7 +2012,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 			output_file = fo.join_paths(pyrodigal_path, [f'{v}.fasta'])
 			cds_prefix = f'{v}-protein'
 			renaming_inputs.append([k, output_file, 1, 50000,
-									cds_prefix, False, fao.integer_headers])
+									cds_prefix, False, True, fao.integer_headers])
 			cds_fastas.append(output_file)
 
 		# Rename CDSs in files
@@ -1994,6 +2021,8 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 													 config['CPU cores'],
 													 show_progress=False)
 
+		# No inputs failed gene prediction
+		failed = []
 		# Cannot get CDS coordinates if skipping gene prediction
 		cds_coordinates = None
 		close_to_tip = {}
@@ -2001,6 +2030,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		cds_counts = {full_to_unique[k]: v for k, v in cds_counts.items()}
 		total_cdss = sum([r[1] for r in renaming_results])
 		print(f'Input files contain a total of {total_cdss} coding sequences.')
+
+	if len(failed) > 0:
+		# Exclude inputs that failed gene prediction
+		full_to_unique = im.prune_dictionary(full_to_unique, failed.keys())
+		# Write Prodigal stderr for inputs that failed gene prediction
+		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
+		failed_outfile = fo.join_paths(output_directory,
+									   ['gene_prediction_failures.tsv'])
+		fo.write_lines(failed_lines, failed_outfile)
 
 	template_dict['cds_coordinates'] = cds_coordinates
 
@@ -2792,11 +2830,16 @@ def main(input_file, loci_list, schema_directory, output_directory,
 	# Sort to get output order similar to chewBBACA v2
 	results['classification_files'] = dict(sorted(results['classification_files'].items()))
 
+	# Copy file with CDS coordinates to output directory
+	# Will not be created if input files contain predicted CDSs
+	if config['CDS input'] is False:
+		fo.copy_file(results['cds_coordinates'][0], output_directory)
+
 	print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),
 											results['int_to_unique'],
 											output_directory,
-											results['cds_coordinates'],
+											results['cds_coordinates'][1],
 											classification_labels,
 											loci_finder)
 	outfile, repeated_info, repeated_counts = results_contigs

@@ -106,12 +106,14 @@ def read_training_file(training_file):
 	training_data : pyrodigal.TrainingInfo
 		The deserialized training info.
 	"""
-	### Prodigla training file must be read like this
-	#with open(training_file, 'rb') as infile:
-		#training_data = pyrodigal.TrainingInfo.load(infile)
-	
-	### Pyrodigal training file must be read like this if created with pickle
-	training_data = fo.pickle_loader(training_file)
+	######### Need to improce training file type detection
+	# Pyrodigal training file must be read like this if created with pickle
+	try:
+		training_data = fo.pickle_loader(training_file)
+	except Exception as e:
+		# Prodigal training file must be read like this
+		with open(training_file, 'rb') as infile:
+			training_data = pyrodigal.TrainingInfo.load(infile)
 
 	return training_data
 

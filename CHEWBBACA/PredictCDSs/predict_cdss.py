@@ -144,7 +144,11 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 def main(input_files, output_directory, training_file, translation_table, prodigal_mode,
 		 training_reference, just_training, output_formats, minimum_confidence, cpu_cores):
 	# Read file with paths to input files
-	input_files = fo.read_lines(input_files, strip=True)
+	if isinstance(input_files, str):
+		input_files = fo.read_lines(input_files, strip=True)
+	# Passed list of file paths
+	elif isinstance(input_files, list):
+		pass
 	# Map full paths to unique identifier (prefix before first '.')
 	full_to_basename = im.mapping_function(input_files, fo.file_basename, [False])
 	full_to_unique = {k: fo.split_joiner(v, [0], '.')
@@ -182,10 +186,10 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 		tsv_file = fo.join_paths(os.path.dirname(file), [f'{gid}_coordinates.tsv'])
 		write_coordinates_file(file, tsv_file)
 		files.append(tsv_file)
-		fo.remove_files([file])
+
 	# Concatenate all TSV files with CDS coordinates
-	cds_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
-	fo.concatenate_files(files, cds_coordinates, header=ct.CDS_TABLE_HEADER)
+	merged_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
+	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER)
 	fo.remove_files(files)
 	print(f'Extracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 
@@ -196,4 +200,4 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 									   ['gene_prediction_failures.tsv'])
 		fo.write_lines(failed_lines, failed_outfile)
 
-	return cds_fastas, cds_coordinates, cds_counts, close_to_tip
+	return failed, total_extracted, cds_fastas, [merged_coordinates, cds_coordinates], cds_counts, close_to_tip

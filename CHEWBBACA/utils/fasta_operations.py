@@ -121,7 +121,8 @@ def write_records(records, output_file):
 
 
 def integer_headers(input_fasta, output_fasta, start=1,
-					limit=50000, prefix='', id_map=True):
+					limit=50000, prefix='', id_map=True,
+					delete_original=False):
 	"""Switch sequence headers in Fasta file by integer values.
 
 	Parameters
@@ -170,6 +171,9 @@ def integer_headers(input_fasta, output_fasta, start=1,
 		if len(seqs) == limit or exhausted is True:
 			fo.write_lines(seqs, output_fasta, write_mode='a')
 			seqs = []
+
+	if delete_original is True:
+		fo.remove_files([input_fasta])
 
 	if id_map is True:
 		return ids_map

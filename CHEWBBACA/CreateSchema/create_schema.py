@@ -20,6 +20,7 @@ import sys
 import math
 
 try:
+	from PredictCDSs import predict_cdss
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
 					   core_functions as cf,
@@ -29,6 +30,7 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	from CHEWBBACA.PredictCDSs import predict_cdss
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
 								 core_functions as cf,
@@ -107,10 +109,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		print('='*(len(ct.CDS_PREDICTION)+2))
 
 		# Gene prediction step
-		print(f'Predicting CDSs for {len(fasta_files)} inputs...')
-		pyrodigal_results = cf.predict_genes(full_to_unique, ptf_path,
-											 translation_table, prodigal_mode,
-											 cpu_cores, pyrodigal_path)
+		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, ptf_path,
+											  translation_table, prodigal_mode, None,
+											  None, ['genes'], None, cpu_cores)
 
 		# Dictionary with info about inputs for which gene prediction failed
 		# Total number of CDSs identified in the inputs
@@ -126,26 +127,42 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		if len(cds_fastas) == 0:
 			sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
-		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
-	# Inputs are Fasta files with the predicted CDSs
-	else:
-		# Rename the CDSs in each file based on the input unique identifiers
-		print(f'\nRenaming CDSs for {len(full_to_unique)} input files...')
-
 		renaming_inputs = []
-		cds_fastas = []
-		for k, v in full_to_unique.items():
-			output_file = fo.join_paths(pyrodigal_path, [f'{v}.fasta'])
-			cds_prefix = f'{v}-protein'
-			renaming_inputs.append([k, output_file, 1, 50000,
-									cds_prefix, False, fao.integer_headers])
-			cds_fastas.append(output_file)
+		for i, file in enumerate(cds_fastas):
+			basename = fo.file_basename(file, False)
+			parent_dir = os.path.dirname(os.path.dirname(file))
+			output_file = fo.join_paths(parent_dir, [f'{basename}.fasta'])
+			cds_prefix = f'{basename}-protein'
+			renaming_inputs.append([file, output_file, 1, 50000,
+									cds_prefix, False, True, fao.integer_headers])
+			cds_fastas[i] = output_file
 
 		# Rename CDSs in files
 		renaming_results = mo.map_async_parallelizer(renaming_inputs,
 													 mo.function_helper,
 													 cpu_cores,
 													 show_progress=False)
+
+		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
+	# Inputs are Fasta files with the predicted CDSs
+	else:
+		# Rename the CDSs in each file based on the input unique identifiers
+		print(f'\nRenaming CDSs for {len(full_to_unique)} input files...')
+		# Rename CDSs in each file to ensure IDs are compatible with chewBBACA
+		renaming_inputs = []
+		cds_fastas = []
+		for k, v in full_to_unique.items():
+			output_file = fo.join_paths(pyrodigal_path, [f'{v}.fasta'])
+			cds_prefix = f'{v}-protein'
+			renaming_inputs.append([k, output_file, 1, 50000,
+									cds_prefix, False, True, fao.integer_headers])
+			cds_fastas.append(output_file)
+
+		# Rename CDSs in files
+		renaming_results = mo.map_async_parallelizer(renaming_inputs,
+														mo.function_helper,
+														cpu_cores,
+														show_progress=False)
 
 		# No inputs failed gene prediction
 		failed = []
@@ -395,20 +412,35 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 	schema_files = create_schema_structure(loci_representatives, output_directory,
 										   schema_name)
 
-	# Create file with CDS coordinates
+	# Copy file with CDS coordinates to output directory
 	# Will not be created if input files contain predicted CDSs
 	if cds_input is False:
-		print(f'Creating file with the coordinates of CDSs identified in inputs ({ct.CDS_COORDINATES_BASENAME})...')
-		files = []
-		for gid, file in cds_coordinates.items():
-			tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
-			cf.write_coordinates_file(file, tsv_file)
-			files.append(tsv_file)
-		# Concatenate all TSV files with CDS coordinates
-		cds_coordinates = fo.join_paths(output_directory,
-										[ct.CDS_COORDINATES_BASENAME])
-		fo.concatenate_files(files, cds_coordinates,
-							 header=ct.CDS_TABLE_HEADER)
+		fo.copy_file(cds_coordinates[0], output_directory)
+		# Get coordiantes for CDSs selected as representative alleles
+		schema_seqids_hashes = {}
+		for seqid in schema_seqids:
+			genome_id = seqid.split('-')[0]
+			# Get hashes of CDSs selected as representatives
+			seqid_hash = im.hash_sequence(str(dna_index[seqid].seq))
+			schema_seqids_hashes.setdefault(genome_id, []).append((seqid_hash, seqid))
+
+		# Use hashes to get coordiantes from coordinate files
+		coordinate_data = {}
+		for k, v in schema_seqids_hashes.items():
+			cfile = fo.join_paths(pyrodigal_path+'/CDS_files', [f'{k}_coordinates'])
+			data = fo.pickle_loader(cfile)[0]
+			gid_hashes = [(h[1], data[h[0]][0]) for h in v]
+			coordinate_data[k] = gid_hashes
+
+		# Create lines
+		clines = []
+		for k, v in coordinate_data.items():
+			# Replace '_' by '-' in seqids
+			clines.extend([[im.replace_multiple_characters(l[0], ct.CHAR_REPLACEMENTS), *l[1]] for l in v])
+
+		coutfile = fo.join_paths(output_directory, ['selected_cds_coordinates.tsv'])
+		clines = ['CDS\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence'] + [im.join_list(l, '\t') for l in clines]
+		fo.write_lines(clines, coutfile)
 
 	return [schema_files, temp_directory]
 

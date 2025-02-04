@@ -49,7 +49,8 @@ def write_coordinates_file(coordinates_file, output_file):
 
 
 def predict_genes(fasta_files, ptf_path, translation_table,
-				  prodigal_mode, cpu_cores, output_directory):
+				  prodigal_mode, cpu_cores, output_directory,
+				  output_formats):
 	"""Execute Prodigal to predict coding sequences from Fasta files.
 
 	Parameters
@@ -92,7 +93,7 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 	else:
 		gene_finder = None
 
-	common_args = [output_directory, gene_finder, translation_table]
+	common_args = [output_directory, gene_finder, translation_table, output_formats]
 
 	# Divide into equal number of sublists for maximum progress resolution
 	pyrodigal_inputs = im.divide_list_into_n_chunks(list(fasta_files.items()),
@@ -129,19 +130,19 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 					 if isinstance(line[1], int) is True])
 
 	# Get paths to FASTA files with the extracted CDSs
-	cds_fastas = [line[2] for line in pyrodigal_results if line[2] is not None]
+	cds_fastas = [line[-1][0] for line in pyrodigal_results if line[-1][0] is not None]
 	# Get paths to files with the coordinates of the CDSs extracted for each input
-	cds_hashes = {line[0][1]: line[3] for line in pyrodigal_results if line[3] is not None}
+	cds_hashes = {line[0][1]: line[-1][-1] for line in pyrodigal_results if line[-1][-1] is not None}
 
 	# Merge dictionaries with info about CDSs close to contig tips
-	close_to_tip = [line[4] for line in pyrodigal_results if len(line[4]) > 0]
+	close_to_tip = [line[2] for line in pyrodigal_results if len(line[2]) > 0]
 	close_to_tip = im.merge_dictionaries(close_to_tip)
 
 	return [failed, total_cds, cds_fastas, cds_hashes, cds_counts, close_to_tip]
 
 
 def main(input_files, output_directory, training_file, translation_table, prodigal_mode,
-		 training_reference, just_training, output_format, cpu_cores):
+		 training_reference, just_training, output_formats, minimum_confidence, cpu_cores):
 	# Read file with paths to input files
 	input_files = fo.read_lines(input_files, strip=True)
 	# Map full paths to unique identifier (prefix before first '.')
@@ -156,7 +157,7 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 	# Gene prediction step
 	print(f'Predicting CDSs for {len(input_files)} inputs...')
 	pyrodigal_results = predict_genes(full_to_unique, training_file, translation_table,
-									  prodigal_mode, cpu_cores, pyrodigal_path)
+									  prodigal_mode, cpu_cores, pyrodigal_path, output_formats)
 
 	# Dictionary with info about inputs for which gene prediction failed
 	# Total number of CDSs identified in the inputs
@@ -165,9 +166,10 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 	# Total number of CDSs identified per input
 	# Dictionary with info about the CDSs closer to contig tips per input
 	failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
+	print()
 
 	if len(failed) > 0:
-		print(f'\nFailed to predict CDSs for {len(failed)} inputs.')
+		print(f'Failed to predict CDSs for {len(failed)} inputs.')
 		print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
 				'if any input file has less than 100kbp.')
 	if len(cds_fastas) == 0:
@@ -180,11 +182,12 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 		tsv_file = fo.join_paths(os.path.dirname(file), [f'{gid}_coordinates.tsv'])
 		write_coordinates_file(file, tsv_file)
 		files.append(tsv_file)
+		fo.remove_files([file])
 	# Concatenate all TSV files with CDS coordinates
 	cds_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
 	fo.concatenate_files(files, cds_coordinates, header=ct.CDS_TABLE_HEADER)
-
-	print(f'\nExtracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
+	fo.remove_files(files)
+	print(f'Extracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 
 	if len(failed) > 0:
 		# Write Prodigal stderr for inputs that failed gene prediction

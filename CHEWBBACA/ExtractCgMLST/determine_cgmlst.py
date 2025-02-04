@@ -266,6 +266,7 @@ def main(input_file, output_directory, threshold, step,
 	cgMLST_thresholds = sorted(threshold)
 	print('Core genome thresholds: {0}'.format(', '.join(map(str, cgMLST_thresholds))))
 	
+	# Read lists of loci and genomes to exclude from the analysis
 	genomes_to_remove = []
 	if exclude_genomes:
 		genomes_to_remove = fo.read_lines(exclude_genomes)
@@ -276,7 +277,6 @@ def main(input_file, output_directory, threshold, step,
 		profiles = remove_genomes(profiles, genomes_to_remove)
 		print('Excluded {0} genomes.'.format(total_genomes - profiles.shape[0]))
 
-	# Read lists of loci and genomes to exclude from the analysis
 	loci_to_remove = []
 	if exclude_loci:
 		loci_to_remove = fo.read_lines(exclude_loci)

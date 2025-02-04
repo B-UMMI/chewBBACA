@@ -12,6 +12,8 @@ Code documentation
 """
 
 
+import math
+
 import Bio.SeqIO
 import pyrodigal
 
@@ -143,30 +145,14 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 	gene_info = []
 	for gene in genes:
 		sequence = gene.sequence()
+		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
 		gene_info.append([sequence_hash, sequence, genome_id, contig_id,
 						  str(gene.begin), str(gene.end), str(protid),
-						  str(gene.strand)])
+						  str(gene.strand), str(confidence)])
 		protid += 1
 
 	return gene_info, protid
-
-
-def write_gene_fasta(gene_info, output_file):
-	"""Write a FASTA file based on the results returned by `get_gene_info`.
-
-	Parameters
-	----------
-	gene_info : list
-		List with the data for the genes returned by `get_gene_info`.
-	output_file : str
-		Path to the output FASTA file.
-	"""
-	fasta_sequences = []
-	for gene in gene_info:
-		fasta_str = ct.FASTA_CDS_TEMPLATE.format(gene[2], gene[6], gene[1])
-		fasta_sequences.append(fasta_str)
-	fo.write_lines(fasta_sequences, output_file)
 
 
 def write_coordinates_pickle(gene_info, contig_sizes, output_file):
@@ -189,7 +175,7 @@ def write_coordinates_pickle(gene_info, contig_sizes, output_file):
 
 
 def predict_genome_genes(input_file, output_directory, gene_finder,
-						 translation_table):
+						 translation_table, output_formats):
 	"""Predict genes for sequences in a FASTA file.
 
 	Parameters
@@ -258,19 +244,53 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
 				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[3]], int(last_cds[4]), int(last_cds[5]), last_cds[-1]))
 		# Reset protid based on the number of CDSs predicted for the sequence
 		protid = data[1]
-
+	# Get total number of CDSs predicted
 	total_genome = len(gene_info)
-	fasta_outfile = None
-	coordinates_outfile = None
+
+	# Save data if Pyrodigal was able to predict genes
+	output_files = [None, None, None, None, None, None]
 	if total_genome > 0:
-		# Create FASTA file with DNA sequences
-		fasta_outfile = fo.join_paths(output_directory,
-									  [f'{genome_basename}.fasta'])
-		write_gene_fasta(gene_info, fasta_outfile)
+		if 'genes' in output_formats:
+			fasta_outfile = fo.join_paths(output_directory, [f'{genome_basename}.fasta'])
+			with open(fasta_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_genes(outfile, sequence_id=genome_basename, width=math.inf)
+			output_files[0] = fasta_outfile
+
+		if 'translations' in output_formats:
+			translations_outfile = fo.join_paths(output_directory, [f'{genome_basename}.translations'])
+			with open(translations_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_translations(outfile, sequence_id=genome_basename, width=math.inf, include_stop=False)
+			output_files[1] = translations_outfile
+
+		if 'gff' in output_formats:
+			gff_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gff'])
+			with open(gff_outfile, 'w') as outfile:
+				i = 0
+				for recid, genes in contig_genes.items():
+					genes.write_gff(outfile, sequence_id=genome_basename, header=(i==0), include_translation_table=True)
+					i += 1
+			output_files[2] = gff_outfile
+
+		if 'genbank' in output_formats:
+			gbk_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gbk'])
+			with open(gbk_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_genbank(outfile, sequence_id=genome_basename)
+			output_files[3] = gbk_outfile
+
+		if 'scores' in output_formats:
+			scores_outfile = fo.join_paths(output_directory, [f'{genome_basename}.scores'])
+			with open(scores_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_scores(outfile, sequence_id=genome_basename)
+			output_files[4] = scores_outfile
 
 		# Save gene coordinates and contig sizes to pickle
 		coordinates_outfile = fo.join_paths(output_directory,
 											[f'{genome_basename}_coordinates'])
 		write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
+		output_files[5] = coordinates_outfile
 
-	return [input_file, total_genome, fasta_outfile, coordinates_outfile, close_to_tip]
+	return [input_file, total_genome, close_to_tip, output_files]

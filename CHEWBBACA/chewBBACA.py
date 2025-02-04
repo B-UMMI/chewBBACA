@@ -129,11 +129,17 @@ def run_predict_cdss():
 						help='Create training file based on the '
 							 'reference genome and exit.')
 
-	parser.add_argument('--of', '--output-format', type=str,
-						required=False, default='fasta',
-						choices=['fasta', 'genbank'],
-						dest='output_format',
-						help='Output file format. Default is FASTA.')
+	parser.add_argument('--of', '--output-formats', nargs='+', type=str,
+						required=False, default=['genes'],
+						choices=['genes', 'translations', 'gff', 'genbank', 'scores'],
+						dest='output_formats',
+						help='Output file formats. Default is genes (FASTA).')
+
+	parser.add_argument('--mc', '--minimum-confidence', type=float,
+						required=False, dest='minimum_confidence',
+						help='Minimum confidence value for gene prediction. '
+							 'Predicted CDSs with a confidence lower than '
+							 'this value are excluded.')
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',
@@ -158,6 +164,7 @@ def run_predict_cdss():
 	print(f'Output directory: {args.output_directory}')
 
 	if args.training_reference:
+		print(f'Creating training file based on {args.training_reference}...')
 		training_file = gp.create_training_file(args.training_reference, args.output_directory, args.translation_table)
 		if args.just_training:
 			sys.exit(ct.JUST_TRAINING)
@@ -172,15 +179,14 @@ def run_predict_cdss():
 		else:
 			# Get translation table used to create training file
 			ptf_table = gp.read_training_file(args.training_file).translation_table
-			print(ptf_table)
 			args.translation_table = ptf_table
-			print(f'Provided training file. Using translation table ({ptf_table}) used to create training file.')
 	else:
 		if not args.translation_table:
 			args.translation_table = ct.GENETIC_CODES_DEFAULT
 			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
 
 	print(f'Prodigal training file: {args.training_file}')
+	print(f'Translation table: {args.translation_table}')
 	print(f'Prodigal mode: {args.prodigal_mode}')
 	if args.prodigal_mode == 'meta' and args.training_file is not None:
 		print('Prodigal mode is set to "meta". Will not use provided training file.')
@@ -205,6 +211,9 @@ def run_predict_cdss():
 
 	# Predict CDSs
 	predict_cdss.main(**vars(args))
+
+	# Delete temporary file with paths to input genomes
+	fo.remove_files([genome_list])
 
 
 @pdt.process_timer

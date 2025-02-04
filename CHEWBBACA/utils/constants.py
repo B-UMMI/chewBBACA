@@ -218,7 +218,7 @@ GENE_LIST_BASENAME = '.genes_list'
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
 					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
 # Header for TSV file with information about extracted CDSs
-CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\n'
+CDS_TABLE_HEADER = 'Genome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\n'
 # Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'

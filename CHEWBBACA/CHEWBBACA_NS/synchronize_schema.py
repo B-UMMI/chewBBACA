@@ -714,9 +714,9 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
 def main(schema_directory, cpu_cores, nomenclature_server,
          submit, blast_path):  # update_profiles):
 
-    # get ns configs
+    # Get ns configs
     local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
-    # get schema and species identifiers
+    # Get schema and species identifiers
     schema_id = schema_uri.split('/')[-1]
     species_id = schema_uri.split('/')[-3]
     if nomenclature_server is None:
@@ -839,7 +839,6 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     results = {}
     attributed = 0
     if submit is True and user_auth is True and len(not_in_ns) > 0:
-
         # attempt to lock schema
         lock_res = cr.simple_post_request(nomenclature_server, headers_post,
                                           ['species', species_id,
@@ -855,7 +854,6 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                   'process will now update your local schema with the alleles '
                   'retrieved from the Chewie-NS.')
         else:
-
             # after locking, check if date matches ns_date
             date_res = cr.simple_get_request(nomenclature_server, headers_get,
                                              ['species', species_id, 'schemas',

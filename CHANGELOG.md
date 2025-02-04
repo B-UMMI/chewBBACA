@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.8.0 - 2025-02-04
+
+- Add the PredictCDSs module to predict CDSs from FASTA files. The PredictCDSs module can save the CDS data in several formats (genes, translations, gff, gbk, and scores). The CreateSchema and AlleleCall modules call the PredictCDSs module to perform gene prediction.
+
+- The CreateSchema module creates a TSV file with the coordinates of the CDSs selected as loci representatives.
+
 ## 3.7.0 - 2025-01-06
 
 - Add the GetAlleles module to get the alleles identified in a dataset and save them to FASTA files.

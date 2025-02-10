@@ -189,7 +189,7 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 
 	# Concatenate all TSV files with CDS coordinates
 	merged_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
-	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER)
+	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER+'\n')
 	fo.remove_files(files)
 	print(f'Extracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 

@@ -416,30 +416,15 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 	# Will not be created if input files contain predicted CDSs
 	if cds_input is False:
 		fo.copy_file(cds_coordinates[0], output_directory)
-		# Get coordiantes for CDSs selected as representative alleles
-		schema_seqids_hashes = {}
-		for seqid in schema_seqids:
-			genome_id = seqid.split('-')[0]
-			# Get hashes of CDSs selected as representatives
-			seqid_hash = im.hash_sequence(str(dna_index[seqid].seq))
-			schema_seqids_hashes.setdefault(genome_id, []).append((seqid_hash, seqid))
 
-		# Use hashes to get coordiantes from coordinate files
-		coordinate_data = {}
-		for k, v in schema_seqids_hashes.items():
-			cfile = fo.join_paths(pyrodigal_path+'/CDS_files', [f'{k}_coordinates'])
-			data = fo.pickle_loader(cfile)[0]
-			gid_hashes = [(h[1], data[h[0]][0]) for h in v]
-			coordinate_data[k] = gid_hashes
-
-		# Create lines
+		# Create TSV with allele ID to CDS ID
 		clines = []
-		for k, v in coordinate_data.items():
-			# Replace '_' by '-' in seqids
-			clines.extend([[im.replace_multiple_characters(l[0], ct.CHAR_REPLACEMENTS), *l[1]] for l in v])
+		for seqid in schema_seqids:
+			allele_id = f'{im. replace_multiple_characters(seqid, ct.CHAR_REPLACEMENTS)}_1'
+			clines.append(f'{allele_id}\t{seqid}\tY')
 
-		coutfile = fo.join_paths(output_directory, ['selected_cds_coordinates.tsv'])
-		clines = ['CDS\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence'] + [im.join_list(l, '\t') for l in clines]
+		coutfile = fo.join_paths(output_directory, ['selected_ids.tsv'])
+		clines = [ct.ALLELE_TO_CDS_HEADER] + clines
 		fo.write_lines(clines, coutfile)
 
 	return [schema_files, temp_directory]

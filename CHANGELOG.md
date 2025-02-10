@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.9.0 - 2025-02-10
+
+- Add the ComputeDistances module to compute pairwise distances. The ComputeDistances module computes pairwise distances based on the allelic profiles determined by the AlleleCall module. It supports the Hamming (same as allelic distances), Jaccard and loci (number of non-shared loci) distances. It can output computed distances in several matrix formats (upper triangular, lower triangular, and symmetric) and tabular format. The `--similarity` option allows computing similarity values instead of distances.
+
+- The CreateSchema module creates a TSV file with the list of alleles selected as representatives. The AlleleCall module creates a TSV file with the list of alleles added to the schema.
+
 ## 3.8.0 - 2025-02-04
 
 - Add the PredictCDSs module to predict CDSs from FASTA files. The PredictCDSs module can save the CDS data in several formats (genes, translations, gff, gbk, and scores). The CreateSchema and AlleleCall modules call the PredictCDSs module to perform gene prediction.

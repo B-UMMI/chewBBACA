@@ -466,7 +466,6 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
 		the end of file if it exists).
 	"""
 	joined_lines = im.join_list(lines, joiner)
-
 	write_to_file(joined_lines, output_file, write_mode, '\n')
 
 
@@ -492,6 +491,29 @@ def read_tabular(input_file, delimiter='\t'):
 		lines = [line for line in reader]
 
 	return lines
+
+
+def extract_column(input_file, delimiter='\t', column_index=0):
+	"""Extract the values of a column from a file.
+
+	Parameters
+	----------
+	input_file : str
+		Path to the input file.
+	delimiter : str, optional
+		Field delimiter. The default is '\t'.
+	column_index : int, optional
+		Index of the column to extract. The default is 0 (extract first column.)
+
+	Returns
+	-------
+	column_values : list
+		List with the column values.
+	"""
+	df = pd.read_csv(input_file, delimiter=delimiter, usecols=[0], header=0, dtype=str)
+	column_values = df[df.columns[0]].tolist()
+
+	return column_values
 
 
 def input_timeout(prompt, timeout=30):

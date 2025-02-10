@@ -1006,9 +1006,9 @@ def write_results_contigs(classification_files, input_identifiers,
 			for j, c in enumerate(l[1:]):
 				current_coordinates = coordinates.get(c, [c])[0]
 				# Contig identifier, start and stop positions and strand
-				# 1 for sense, -1 for reverse
+				# 1 for forward strand, -1 for reverse strand
 				coordinates_str = (c if current_coordinates in invalid_classes or isinstance(current_coordinates, list) is False
-								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[1:4], current_coordinates[5]))
+								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[2:5], current_coordinates[6]))
 				if c not in repeated_hashes:
 					cds_coordinates.append(coordinates_str)
 				else:
@@ -2883,6 +2883,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 			fo.pickle_dumper(current_novel, locus_novel[1])
 
 		reps_info = {}
+		representative_ids = set()
 		if config['Mode'] == 4:
 			print('Getting data for new representative alleles...')
 			# Get info for new representative alleles that must be added to files in the short directory
@@ -2896,6 +2897,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 						# We might have representatives that were converted to NIPH but still appear in the list
 						if len(allele_id) > 0:
 							reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
+							representative_ids.add(f'{locus_id}_{allele_id[0]}')
 
 			if no_inferred is False:
 				self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
@@ -2941,6 +2943,23 @@ def main(input_file, loci_list, schema_directory, output_directory,
 				print(f'Updating pre-computed hash tables in {pre_computed_dir}')
 				total_hashes = update_hash_tables(updated_novel, loci_to_call,
 								   config['Translation table'], pre_computed_dir)
+
+	# Create TSV with allele ID to CDS ID
+	# Get new allele IDs and CDS IDs
+	clines = []
+	for l in novel_alleles:
+		locus_id = fo.file_basename(l[0], False)
+		novel_data = fo.pickle_loader(l[1])
+		for l2 in novel_data:
+			allele_id = f'{locus_id}_{l2[1]}'
+			cds_id = l2[2]
+			rep = 'Y' if allele_id in representative_ids else 'N'
+			clines.append([allele_id, cds_id, rep])
+
+	clines = [im.join_list(l, '\t') for l in clines]
+	coutfile = fo.join_paths(output_directory, ['selected_ids.tsv'])
+	clines = [ct.ALLELE_TO_CDS_HEADER] + clines
+	fo.write_lines(clines, coutfile)
 
 	# Create file with allelic profiles
 	print(f'Creating file with the allelic profiles ({ct.RESULTS_ALLELES_BASENAME})...')

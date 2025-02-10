@@ -29,6 +29,7 @@ try:
 	from SubsetResults import subset_results
 	from HashProfiles import hash_profiles
 	from GetAlleles import get_alleles
+	from ComputeDistances import compute_distances
 	from utils import (join_profiles,
 					   gene_prediction as gp,
 					   # profiles_sqlitedb as ps,
@@ -54,6 +55,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.SubsetResults import subset_results
 	from CHEWBBACA.HashProfiles import hash_profiles
 	from CHEWBBACA.GetAlleles import get_alleles
+	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.utils import (join_profiles,
 								 gene_prediction as gp,
 								 # profiles_sqlitedb as ps,
@@ -1415,7 +1417,7 @@ def run_annotate_schema():
 							 'find annotations for (one per line, full '
 							 'paths or loci IDs).')
 
-	parser.add_argument('-t', '--protein-table', type=str,
+	parser.add_argument('--t', '--protein-table', type=str,
 						required=False, dest='protein_table',
 						help='Path to the TSV file with coding sequence (CDS) '
 							 'coordinate data, "cds_coordinates.tsv", created by '
@@ -1471,6 +1473,64 @@ def run_annotate_schema():
 	del args.UniprotFinder
 
 	annotate_schema.main(**vars(args))
+
+
+@pdt.process_timer
+def run_compute_distances():
+	"""Run the ComputeDistances module to compute pairwise distances."""
+
+	def msg(name=None):
+		usage_msg = 'chewBBACA.py ComputeDistances --input-file <file> --output-file <file> [options]'
+
+		return usage_msg
+
+	parser = argparse.ArgumentParser(prog='ComputeDistances',
+									 description='Compute pairwise distances.',
+									 usage=msg(),
+									 formatter_class=ModifiedHelpFormatter,
+									 epilog='Module documentation available at '
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeDistances.html')
+
+	parser.add_argument('ComputeDistances', nargs='+', help=argparse.SUPPRESS)
+
+	parser.add_argument('-i', '--input-file', type=str,
+						required=True, dest='input_file',
+						help='Path to the TSV file with allelic profiles.')
+
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Path to the output directory.')
+
+	parser.add_argument('--m', '--method', type=str, required=False,
+						default='hamming', choices=['hamming', 'jaccard', 'loci'],
+						dest='method',
+						help='Distance calculation method. The module supports '
+							 'the Hamming, Jaccard and Loci (number of loci not shared) methods.')
+
+	parser.add_argument('--outfmt', '--output-format', type=str, required=False,
+						default='upper_triangular', choices=['upper_triangular', 'lower_triangular', 'symmetric', 'table'],
+						dest='output_format',
+						help='Output format for the output file.')
+
+	parser.add_argument('--no-mask', action='store_true',
+						required=False, dest='no_mask',
+						help='Do not mask the allelic profiles.')
+
+	parser.add_argument('--similarity', action='store_true',
+						required=False, dest='similarity',
+						help='Compute similarity instead of distance.')
+
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores/threads that will be '
+							 'used to run the process (chewie resets to '
+							 'a lower value if it is equal to or exceeds '
+							 'the total number of available CPU cores/threads).')
+
+	args = parser.parse_args()
+	del args.ComputeDistances
+
+	compute_distances.main(**vars(args))
 
 
 @pdt.process_timer
@@ -1791,6 +1851,8 @@ def main():
 					  				 run_get_alleles],
 					  'UniprotFinder': ['Retrieve annotations for loci in a schema.',
 										run_annotate_schema],
+					  'ComputeDistances': ['Compute pairwise distances.',
+										  run_compute_distances],
 					  'DownloadSchema': ['Download a schema from Chewie-NS.',
 										 run_download_schema],
 					  'LoadSchema': ['Upload a schema to Chewie-NS.',

@@ -149,7 +149,9 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 		sequence = gene.sequence()
 		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
-		gene_info.append([sequence_hash, sequence, genome_id, contig_id,
+		# Store CDS ID used by chewBBACA
+		cds_id = f'{genome_id}-protein{protid}'
+		gene_info.append([sequence_hash, sequence, cds_id, genome_id, contig_id,
 						  str(gene.begin), str(gene.end), str(protid),
 						  str(gene.strand), str(confidence)])
 		protid += 1
@@ -240,10 +242,10 @@ def predict_genome_genes(input_file, output_directory, gene_finder,
 		gene_info.extend(data[0])
 		if len(data[0]) > 0:
 			first_cds = data[0][0]
-			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[3]], int(first_cds[4]), int(first_cds[5]), first_cds[-1]))
+			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[4]], int(first_cds[5]), int(first_cds[6]), first_cds[-1]))
 			if first_cds != data[0][-1]:
 				last_cds = data[0][-1]
-				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[3]], int(last_cds[4]), int(last_cds[5]), last_cds[-1]))
+				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[4]], int(last_cds[5]), int(last_cds[6]), last_cds[-1]))
 		# Reset protid based on the number of CDSs predicted for the sequence
 		protid = data[1]
 	# Get total number of CDSs predicted

@@ -227,6 +227,13 @@ PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
 MISSING_HEADER = 'Index\tGenome\tLocus\tLocus_classification\tCDS\tCDS_classification'
 # Header for TSV file created by the GetAlleles module
 GETALLELES_LOCI_STATS_HEADER = 'Locus\tTotal alleles in schema\tSamples with locus\tDistinct alleles in dataset'
+# Header for the stats TSV file created by the ComputeMSA module
+COMPUTEMSA_STATS_HEADER = 'Locus\tAlleles\tDistinct alleles'
+COMPUTEMSA_STATS_FILE = 'allele_counts.tsv'
+COMPUTEMSA_PROTEIN_CONCAT = 'protein_concat.fasta'
+COMPUTEMSA_DNA_CONCAT = 'dna_concat.fasta'
+COMPUTEMSA_PROTEIN_MSA = 'protein_msa.fasta'
+COMPUTEMSA_DNA_MSA = 'dna_msa.fasta'
 
 
 # Allele calling classifications
@@ -651,9 +658,7 @@ INPUTS_PDB_PREFIX = ('The following input files have prefixes that are interpret
 
 MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')
 
-MISSING_ALLELES = ('\nCould not create the FASTA files for {0} loci.'
-				   'Some alleles are not in the schema\'s FASTA files. Alleles are not '
-				   'added to the schema if the allele calling process did not '
-				   'complete successfully or if the --no-inferred option is used.')
+COMPUTEMSA_NO_ALLELES = ('\nCould not create the FASTA files for any of the loci or the '
+						 'loci were not identified in any of the samples.')
 
 JUST_TRAINING = ('User requested to create training file only.')

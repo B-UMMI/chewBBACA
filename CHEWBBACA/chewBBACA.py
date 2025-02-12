@@ -1534,6 +1534,68 @@ def run_compute_distances():
 
 
 @pdt.process_timer
+def run_compute_msa():
+	"""Run the ComputeMSA module to compute a Multiple Sequence Alignment based on allele calling results."""
+
+	def msg(name=None):
+		usage_msg = 'chewBBACA.py ComputeMSA --input-file <file> --schema-directory <dir> --output-directory <dir> [options]'
+
+		return usage_msg
+
+	parser = argparse.ArgumentParser(prog='ComputeMSA',
+									 description='Compute a Multiple Sequence Alignment based on allele calling results.',
+									 usage=msg(),
+									 formatter_class=ModifiedHelpFormatter,
+									 epilog='Module documentation available at '
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeMSA.html')
+
+	parser.add_argument('ComputeMSA', nargs='+', help=argparse.SUPPRESS)
+
+	parser.add_argument('-i', '--input-file', type=str,
+						required=True, dest='input_file',
+						help='Path to the TSV file with allelic profiles.')
+
+	parser.add_argument('-g', '--schema-directory', type=str,
+						required=True, dest='schema_directory',
+						help='Path to the schema directory.')
+
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Path to the output directory where the process will '
+							 'store intermediate files and the final MSA FASTA file.')
+
+	parser.add_argument('--dna-msa', action='store_true',
+						required=False, dest='dna_msa',
+						help='Converts the protein MSA to DNA to create an additional '
+							 'output file with the DNA MSA..')
+
+	parser.add_argument('--output-variable', type=str, required=False,
+						dest='output_variable',
+						help='Output a reduced MSA including only the variable positions.')
+
+	parser.add_argument('--gap-char', type=str, required=False,
+						default='-', dest='gap_char',
+						help='Character used to represent gaps in the MSA.')
+
+	parser.add_argument('--t', '--translation-table', type=int,
+						required=False, default=11, dest='translation_table',
+						help='Genetic code used to translate coding DNA '
+							 'sequences (CDSs).')
+
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores/threads that will be '
+							 'used to run the process (chewie resets to a '
+							 'lower value if it is equal to or exceeds the total '
+							 'number of available CPU cores/threads).')
+
+	args = parser.parse_args()
+	del args.ComputeMSA
+
+	compute_msa.main(**vars(args))
+
+
+@pdt.process_timer
 def run_download_schema():
 	"""Run the DownloadSchema module to download a schema from Chewie-NS."""
 
@@ -1853,6 +1915,8 @@ def main():
 										run_annotate_schema],
 					  'ComputeDistances': ['Compute pairwise distances.',
 										  run_compute_distances],
+					  'ComputeMSA': ['Compute a Multiple Sequence Alignment based on allele calling results.',
+									 run_compute_msa],
 					  'DownloadSchema': ['Download a schema from Chewie-NS.',
 										 run_download_schema],
 					  'LoadSchema': ['Upload a schema to Chewie-NS.',

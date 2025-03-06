@@ -274,9 +274,9 @@ The column headers stand for:
   genome fragmentation resulting in a shorter CDS prediction by Prodigal. To avoid locus
   misclassification, loci in such situations are classified as *PLOT*.
 
-.. image:: http://i.imgur.com/41oONeS.png
-	:width: 700px
-	:align: center
+.. image:: /_static/images/PLOT5_PLOT3_LOTSC.png
+   :width: 1400px
+   :align: center
 
 - *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
   than the matched allele.
@@ -293,14 +293,19 @@ The column headers stand for:
   referring to exact matches. Whenever several CDSs from the same genome match a single or
   multiple alleles of the same locus with 100% DNA similarity during the first DNA sequence
   comparison, the *NIPHEM* tag is attributed.
+
+.. image:: /_static/images/NIPH_NIPHEM.png
+   :width: 1400px
+   :align: center
+
 - *PAMA* - PAralogous MAtch. Attributed to CDSs that are highly similar to more than one locus.
   This type of classification allows the identification of groups of similar loci in the
   schema that are classified as paralogous loci and listed in the ``paralogous_counts.tsv`` and
   ``paralogous_loci.tsv`` files.
 
-.. image:: http://i.imgur.com/4VQtejr.png
-	:width: 700px
-	:align: center
+.. image:: /_static/images/PAMA.png
+   :width: 1400px
+   :align: center
 
 - *ALM* - Alleles 20% Larger than the length Mode of the distribution of the matched
   loci (CDS length > (locus length mode + locus length mode * 0.2)) (see image below).
@@ -312,9 +317,9 @@ The column headers stand for:
   *ALMs* it is important to remember that, although infrequently, the mode may change as
   more alleles for a given locus are called and added to a schema.
 
-.. image:: http://i.imgur.com/l1MDyEz.png
-	:width: 700px
-	:align: center
+.. image:: /_static/images/ASM_ALM.png
+   :width: 1400px
+   :align: center
 
 .. note::
 	The *ALM* and *ASM* classifications impose a limit on size variation since for the

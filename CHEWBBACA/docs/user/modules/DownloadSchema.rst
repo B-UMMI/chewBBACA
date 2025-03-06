@@ -111,3 +111,10 @@ Parameters
 
     --latest                     (Optional) If the compressed version that is available is not the
                                  latest, downloads all loci and constructs schema locally (default: False).
+
+Workflow of the DownloadSchema module
+:::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/DownloadSchema.png
+   :width: 1200px
+   :align: center

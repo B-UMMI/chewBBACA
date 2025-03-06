@@ -19,41 +19,6 @@ Every sequence that is included in the final schema has to represent a complete 
 multiple of 3 and cannot contain in-frame stop codons) and contain no invalid or ambiguous
 characters (sequences must be composed of ATCG only).
 
-By default, the process will adapt the external schema based on a BLAST Score Ratio (BSR) value of
-``0.6``, it will accept sequences of any length and will use the genetic code ``11`` (Bacteria and
-Archaea) to translate sequences. These options can be changed by passing different values to
-the ``--bsr``, ``--l`` and ``--t`` arguments. The process runs relatively fast with the default value
-for the ``--cpu`` argument, but it will complete considerably faster if it can use several CPU cores
-to evaluate several loci in parallel.
-
-For each gene in the external schema, and assuming the default BSR value, the process will:
-
-- Exclude sequences with invalid or ambiguous characters.
-- Exclude sequences with length value that is not a multiple of 3.
-- Try to translate sequences and exclude sequences that cannot be translated in any possible
-  orientation due to invalid start and/or stop codons or in-frame stop codons.
-- Select the longest (or one of the longest) sequence as the first representative for that gene;
-- Use BLASTp to align the representative against all sequences that were not excluded.
-- Calculate the BSR value for each alignment.
-- If all BSR values are greater than 0.7, the current representative is considered appropriate
-  to capture the gene sequence diversity when performing allele calling.
-- Otherwise, an additional representative has to be chosen in order to find a suitable set of
-  representatives for the gene. The new representative will be the longest sequence from the
-  set of non-representative sequences that had a BSR value in the interval [0.6,0.7] (in this
-  BSR value interval, aligned sequences are still considered to be alleles of the same gene but
-  display a degree of dissimilarity that can contribute to an increase of the sensitivity
-  compared to the utilization of only one of those sequences as representative). If there is
-  no alignment with a BSR value in the interval [0.6,0.7], the next representative will be the
-  longest (or one of the longest) sequence from the set of sequences that had an alignment with
-  a BSR<0.6.
-- The process will keep expanding the set of representatives until we have a set of
-  representatives that when aligned against all alleles of the gene, guarantee that each allele
-  has at least one alignment with a BSR>0.7.
-
-After determining the representative sequences, the process writes the FASTA file with all valid
-sequences to the adapted schema directory and the FASTA file with only the representatives to
-the *short* directory inside the adapted schema directory.
-
 Basic Usage
 -----------
 
@@ -126,3 +91,45 @@ Outputs
 	highly similar sequences, and for genes that have inversions, deletions or insertions
 	that can lead to several High-scoring Segment Pairs (HSPs), none of which have a score
 	sufficiently high to identify both sequences as belonging to the same gene.
+
+Workflow of the PrepExternalSchema module
+:::::::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/PrepExternalSchema.png
+   :width: 1200px
+   :align: center
+
+By default, the process will adapt the external schema based on a BLAST Score Ratio (BSR) value of
+``0.6``, it will accept sequences of any length and will use the genetic code ``11`` (Bacteria and
+Archaea) to translate sequences. These options can be changed by passing different values to
+the ``--bsr``, ``--l`` and ``--t`` arguments. The process runs relatively fast with the default value
+for the ``--cpu`` argument, but it will complete considerably faster if it can use several CPU cores
+to evaluate several loci in parallel.
+
+For each gene in the external schema, and assuming the default BSR value, the process will:
+
+- Exclude sequences with invalid or ambiguous characters.
+- Exclude sequences with length value that is not a multiple of 3.
+- Try to translate sequences and exclude sequences that cannot be translated in any possible
+  orientation due to invalid start and/or stop codons or in-frame stop codons.
+- Select the longest (or one of the longest) sequence as the first representative for that gene;
+- Use BLASTp to align the representative against all sequences that were not excluded.
+- Calculate the BSR value for each alignment.
+- If all BSR values are greater than 0.7, the current representative is considered appropriate
+  to capture the gene sequence diversity when performing allele calling.
+- Otherwise, an additional representative has to be chosen in order to find a suitable set of
+  representatives for the gene. The new representative will be the longest sequence from the
+  set of non-representative sequences that had a BSR value in the interval [0.6,0.7] (in this
+  BSR value interval, aligned sequences are still considered to be alleles of the same gene but
+  display a degree of dissimilarity that can contribute to an increase of the sensitivity
+  compared to the utilization of only one of those sequences as representative). If there is
+  no alignment with a BSR value in the interval [0.6,0.7], the next representative will be the
+  longest (or one of the longest) sequence from the set of sequences that had an alignment with
+  a BSR<0.6.
+- The process will keep expanding the set of representatives until we have a set of
+  representatives that when aligned against all alleles of the gene, guarantee that each allele
+  has at least one alignment with a BSR>0.7.
+
+After determining the representative sequences, the process writes the FASTA file with all valid
+sequences to the adapted schema directory and the FASTA file with only the representatives to
+the *short* directory inside the adapted schema directory.

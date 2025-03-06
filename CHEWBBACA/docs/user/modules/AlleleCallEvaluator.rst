@@ -263,3 +263,10 @@ options ``--retree 1`` and ``--maxiterate 0``. The MSAs for all the core loci ar
 .. image:: /_static/images/allelecall_report_cgMLST_tree.png
    :width: 1400px
    :align: center
+
+Workflow of the AlleleCallEvaluator module
+::::::::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/AlleleCallEvaluator.png
+   :width: 1200px
+   :align: center

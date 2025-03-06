@@ -106,3 +106,10 @@ Parameters
     --submit                    If the process should identify new alleles in the local schema and
                                 send them to the Chewie-NS instance. (only authorized users can submit new alleles)
                                 (default: False).
+
+Workflow of the LoadSchema module
+:::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/SyncSchema.png
+   :width: 1200px
+   :align: center

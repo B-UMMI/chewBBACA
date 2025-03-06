@@ -221,13 +221,13 @@ The column headers stand for:
   in the 5' end or 3' end (respectively) of the contig). This could be an artifact caused by
   genome fragmentation resulting in a shorter CDS prediction by Prodigal. To avoid locus
   misclassification, loci in such situations are classified as *PLOT*.
+- *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
+  than the matched allele.
 
 .. image:: /_static/images/PLOT5_PLOT3_LOTSC.png
    :width: 700px
    :align: center
 
-- *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
-  than the matched allele.
 - *NIPH* - Non-Informative Paralogous Hit (see image below). When ≥2 CDSs in the query
   genome match one locus in the schema with a BSR > 0.6, that locus is classified as *NIPH*.
   This suggests that such locus can have paralogous (or orthologous) loci in the query genome

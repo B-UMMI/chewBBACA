@@ -93,3 +93,10 @@ Example of the plot created by the ExtractCgMLST module based on the allelic pro
 .. note::
 	The matrix with allelic profiles created by the *ExtractCgMLST* process can be imported
 	into `PHYLOViZ <https://online.phyloviz.net/index>`_ to visualize and explore typing results.
+
+Workflow of the ExtractCgMLST module
+::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/ExtractCgMLST.png
+   :width: 1200px
+   :align: center

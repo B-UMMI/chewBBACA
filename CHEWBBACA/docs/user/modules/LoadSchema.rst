@@ -183,3 +183,10 @@ Parameters
 
     --continue_up               (Optional) Check if the schema upload was interrupted and attempt
                                 to continue upload (default: False).
+
+Workflow of the LoadSchema module
+:::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/LoadSchema.png
+   :width: 1200px
+   :align: center

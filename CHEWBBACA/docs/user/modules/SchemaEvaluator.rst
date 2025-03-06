@@ -370,3 +370,10 @@ code editor is in readonly mode (possible to copy and search but not to edit the
 .. image:: /_static/images/loci_reports_protein_editor.png
    :width: 1400px
    :align: center
+
+Workflow of the SchemaEvaluator module
+::::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/SchemaEvaluator.png
+   :width: 1200px
+   :align: center

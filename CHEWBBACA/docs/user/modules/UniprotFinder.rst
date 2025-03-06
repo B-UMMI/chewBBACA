@@ -64,3 +64,10 @@ passed to the ``-t`` parameter, the output file will also include the loci coord
 the provided terms. The reference proteomes are downloaded and the process aligns the loci
 representative alleles against the reference proteomes to include the product and gene name
 in the reference proteomes.
+
+Workflow of the UniprotFinder module
+::::::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/UniprotFinder.png
+   :width: 1200px
+   :align: center

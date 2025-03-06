@@ -275,7 +275,7 @@ The column headers stand for:
   misclassification, loci in such situations are classified as *PLOT*.
 
 .. image:: /_static/images/PLOT5_PLOT3_LOTSC.png
-   :width: 1400px
+   :width: 700px
    :align: center
 
 - *LOTSC* - A locus is classified as *LOTSC* when the contig of the query genome is smaller
@@ -295,7 +295,7 @@ The column headers stand for:
   comparison, the *NIPHEM* tag is attributed.
 
 .. image:: /_static/images/NIPH_NIPHEM.png
-   :width: 1400px
+   :width: 700px
    :align: center
 
 - *PAMA* - PAralogous MAtch. Attributed to CDSs that are highly similar to more than one locus.
@@ -304,7 +304,7 @@ The column headers stand for:
   ``paralogous_loci.tsv`` files.
 
 .. image:: /_static/images/PAMA.png
-   :width: 1400px
+   :width: 700px
    :align: center
 
 - *ALM* - Alleles 20% Larger than the length Mode of the distribution of the matched
@@ -318,7 +318,7 @@ The column headers stand for:
   more alleles for a given locus are called and added to a schema.
 
 .. image:: /_static/images/ASM_ALM.png
-   :width: 1400px
+   :width: 700px
    :align: center
 
 .. note::
@@ -390,10 +390,6 @@ Example for the ``SAMD00008628`` genome:
 - The ``paralogous_loci.tsv`` file contains the sets of paralogous loci identified per genome
   (genome identifier, identifiers of the paralogous loci and the coordinates of the CDS that
   is similar to the group of paralogous loci).
-
-.. image:: http://i.imgur.com/guExrGx.png
-	:width: 700px
-	:align: center
 
 - The ``logging_info.txt`` contains summary information about the allele calling process.
 

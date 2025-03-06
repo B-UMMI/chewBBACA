@@ -25,63 +25,11 @@ be used and provided as input. Users can also provide input files with CDSs, in 
 with Prodigal or Pyrodigal will be skipped.
 
 .. important::
+  The `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki/Gene-Prediction-Modes#training-mode>`_
+  includes information about how to create a training file.
   chewBBACA >=3.3.0 uses `Pyrodigal <https://github.com/althonos/pyrodigal>`_ for gene
   prediction. Pyrodigal is a Python module that provides bindings to Prodigal, including
   several bug fixes and performance improvements.
-
-.. important::
-  Please read the `Prodigal wiki <https://github.com/hyattpd/prodigal/wiki>`_ for more
-  information about the requirements to create a training file.
-
-The allele calling algorithm has the following main steps:
-
-- Gene predictipon with Prodigal followed by CDS extraction to create FASTA files
-  that contain all CDSs extracted from the inputs (There is also the option to provide FASTA files
-  with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
-
-- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and the
-  genomes that contain those CDSs in a hashtable with the mapping between CDS SHA-256 and list of unique
-  integer identifiers for the inputs that contain each CDS compressed with `polyline encoding <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_
-  adapted from `numcompress <https://github.com/amit1rrr/numcompress>`_).
-
-- Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
-  in the input files (Information about the exact matches found for each locus is saved to
-  classification files, one per locus in the schema. The classification files are updated throughout
-  the process with information about the matches and classifications at each step. If ``--mode`` equals 1,
-  skips the next classification steps and goes directly to the last step).
-
-- Translation of distinct CDSs that were not an exact match in the previous step (This step identifies
-  and excludes CDSs that contain ambiguous bases and with length below the theshold defined by the ``--l``
-  parameter).
-
-- Protein deduplication to identify the distinct set of proteins and keep information about the inputs that
-  contain CDSs that encode each distinct protein (Hashtable with mapping between protein SHA-256 and list of
-  unique integer identifiers for the distinct CDSs encoded with polyline encoding).
-
-- Exact matches at protein level between the translated alleles of each locus in the schema and the
-  translated CDSs identified in the input files (Classification files are updated. If ``--mode`` equals 2,
-  skips the next classification steps and goes directly to the last step).
-
-- Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and
-  clustered based on the percentage of shared distinct minimizers (Default >= 20%, interior minimizers
-  selected based on lexicographic order, k=5, w=5) with the schema representative alleles.
-
-- Alignment, using BLASTp, of each cluster representative against all proteins added to its cluster to
-  identify and classify matches with a BLAST Score Ratio (BSR) >0.7 (Classification files are updated.
-  If ``--mode`` equals 3, skips the next step).
-
-- Align the schema representatives against the distinct proteins that have not been classified. Compute the
-  BSR for each alignment and classify proteins with alignments with BSR >=0.6. For each locus, determine new
-  representative alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new
-  representatives against the remaining unclassified proteins. Keep iterating until no proteins are classified
-  for any locus (classification files are updated in each iteration).
-
-- Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
-  information stored in the classification files. If ``--no-inferred`` is passed, this step is bypassed and
-  no novel alleles are added to the database. This results in keeping a stable database to make allele calls
-  against. When in doubt about the quality of the genomes one is performing allele call on, this parameter
-  will prevent entering into the database alleles that may result from poor quality data rather than actual
-  alleles present in the bacterial population.
 
 Perform allele calling
 ::::::::::::::::::::::
@@ -403,6 +351,63 @@ Example for the ``SAMD00008628`` genome:
 - If the ``--hash-profiles`` parameter is provided, the process will use the provided hash
   algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted
   by the hash of the DNA sequence).
+
+Workflow of the AlleleCall module
+:::::::::::::::::::::::::::::::::
+
+.. image:: /_static/images/AlleleCall.png
+   :width: 1200px
+   :align: center
+
+The allele calling algorithm has the following main steps:
+
+- Gene predictipon with Prodigal followed by CDS extraction to create FASTA files
+  that contain all CDSs extracted from the inputs (There is also the option to provide FASTA files
+  with CDSs and the ``--cds`` parameter to skip the gene prediction step with Prodigal).
+
+- Identification of the distinct CDSs (chewBBACA stores information about the distinct CDSs and the
+  genomes that contain those CDSs in a hashtable with the mapping between CDS SHA-256 and list of unique
+  integer identifiers for the inputs that contain each CDS compressed with `polyline encoding <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_
+  adapted from `numcompress <https://github.com/amit1rrr/numcompress>`_).
+
+- Exact matches at DNA level between the alleles of each locus in the schema and the CDSs identified
+  in the input files (Information about the exact matches found for each locus is saved to
+  classification files, one per locus in the schema. The classification files are updated throughout
+  the process with information about the matches and classifications at each step. If ``--mode`` equals 1,
+  skips the next classification steps and goes directly to the last step).
+
+- Translation of distinct CDSs that were not an exact match in the previous step (This step identifies
+  and excludes CDSs that contain ambiguous bases and with length below the theshold defined by the ``--l``
+  parameter).
+
+- Protein deduplication to identify the distinct set of proteins and keep information about the inputs that
+  contain CDSs that encode each distinct protein (Hashtable with mapping between protein SHA-256 and list of
+  unique integer identifiers for the distinct CDSs encoded with polyline encoding).
+
+- Exact matches at protein level between the translated alleles of each locus in the schema and the
+  translated CDSs identified in the input files (Classification files are updated. If ``--mode`` equals 2,
+  skips the next classification steps and goes directly to the last step).
+
+- Minimizer-based clustering. The distinct proteins are sorted in order of decreasing length and
+  clustered based on the percentage of shared distinct minimizers (Default >= 20%, interior minimizers
+  selected based on lexicographic order, k=5, w=5) with the schema representative alleles.
+
+- Alignment, using BLASTp, of each cluster representative against all proteins added to its cluster to
+  identify and classify matches with a BLAST Score Ratio (BSR) >0.7 (Classification files are updated.
+  If ``--mode`` equals 3, skips the next step).
+
+- Align the schema representatives against the distinct proteins that have not been classified. Compute the
+  BSR for each alignment and classify proteins with alignments with BSR >=0.6. For each locus, determine new
+  representative alleles from the set of proteins that had a BSR between 0.6 and 0.7. Realign the new
+  representatives against the remaining unclassified proteins. Keep iterating until no proteins are classified
+  for any locus (classification files are updated in each iteration).
+
+- Assign novel allele identifiers, add novel alleles to the schema and write the output files based on the
+  information stored in the classification files. If ``--no-inferred`` is passed, this step is bypassed and
+  no novel alleles are added to the database. This results in keeping a stable database to make allele calls
+  against. When in doubt about the quality of the genomes one is performing allele call on, this parameter
+  will prevent entering into the database alleles that may result from poor quality data rather than actual
+  alleles present in the bacterial population.
 
 Identify genetic clusters
 :::::::::::::::::::::::::

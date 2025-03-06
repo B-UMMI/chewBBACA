@@ -35,7 +35,7 @@ except ModuleNotFoundError:
 
 
 def profile_column_to_fasta(locus, input_file, schema_directory, output_directory):
-	"""Create a FASTA file with the locus alleles identified in the dataset.
+	"""Create a FASTA file with the locus alleles identified in a dataset.
 
 	Parameters
 	----------
@@ -106,6 +106,11 @@ def concatenate_loci_alignments(sample, loci, sample_profile, fasta_index, outpu
 		Indexed FASTA file to get sequences from.
 	output_directory : str
 		Path to the output directory.
+
+	Returns
+	-------
+	alignment_outfile : str
+		Path to the FASTA file with the concatenated aligned sequences.
 	"""
 	alignment = ''
 	for locus in loci:
@@ -131,7 +136,25 @@ def concatenate_loci_alignments(sample, loci, sample_profile, fasta_index, outpu
 
 
 def add_gaps(input_file, locus_id, gap_char, sample_ids, output_directory):
-	"""
+	"""Add gap sequences to a MSA for samples that do not have an allele.
+
+	Parameters
+	----------
+	input_file : str
+		Path to the FASTA file with the aligned sequences.
+	locus_id : str
+		Locus identifier.
+	gap_char : str
+		Character to use as gap.
+	sample_ids : list
+		Sample identifiers.
+	output_directory : str
+		Path to the output directory.
+
+	Returns
+	-------
+	gapped_fasta : str
+		Path to the FASTA file containing the updated MSA.
 	"""
 	records = fao.import_sequences(input_file)
 	# Get list of samples where locus was identified

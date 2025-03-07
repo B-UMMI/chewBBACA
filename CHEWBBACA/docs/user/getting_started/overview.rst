@@ -11,51 +11,59 @@ The "chew" part adds extra coolness to the name and could be thought of as "Comp
 chewBBACA allows to define the target loci in a schema based on multiple genomes (e.g. define target loci based on the distinct 
 loci identified in a dataset of high-quality genomes for a species or lineage of interest) and performs allele calling to determine 
 the allelic profiles of bacterial strains, easily scaling to thousands of genomes with modest computational resources. chewBBACA 
-includes functionalities to annotate the schema loci, compute the set of loci that constitute the core genome for a given dataset, 
-and generate interactive reports for schema and allele calling results evaluation to enable an intuitive analysis of the results 
-in surveillance and outbreak detection settings or population studies. Pre-defined cg/wgMLST schemas can be downloaded from 
-`Chewie-NS <https://chewbbaca.online/>`_ or adapted from other cg/wgMLST platforms.
+includes functionalities to annotate the schema loci, compute the set of loci that constitute the core genome based on the results
+for a given dataset, and generate interactive reports for schema and allele calling results evaluation to enable an intuitive
+analysis of the results in surveillance and outbreak detection settings or population studies. Pre-defined cg/wgMLST schemas can
+be downloaded from  `Chewie-NS <https://chewbbaca.online/>`_ or adapted from other cg/wgMLST platforms.
 
-The general workflow of chewBBACA is represented in the following image:
+The main processes available in chewBBACA are represented in the following workflow:
 
 .. image:: /_static/images/Overview.png
    :width: 1000px
    :align: center
 
+- Steps labelled 1: Schema creation from genome assemblies or coding sequences in FASTA format.
+- Steps labelled 2: Adaptation of external schemas for usage with chewBBACA.
+- Steps labelled 3: Upload, download, and synchronize schemas from `Chewie-NS <https://chewbbaca.online/>`_.
+- Steps labelled 4: Perform allele calling to determine allelic profiles.
+- Steps labelled 5: Compute the core genome based on allele calling results.
+- Steps labelled 6: Annotate schema loci based on UniProt data.
+- Steps labelled 7: Evaluate schemas and explore loci diversity through an interactive report.
+- Steps labelled 8: Evaluate allele calling results through an interactive report.
+
 Citation
 --------
 
-chewBBACA has been published (version 2.0.5 at the time) in Microbial Genomics under the title:
+**chewBBACA 1** was published in Microbial Genomics under the title:
 **chewBBACA: A complete suite for gene-by-gene schema creation and strain identification** - `Link to paper 
 <http://mgen.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.000166>`_. 
 
-When using chewBBACA please use the following citation:
+**chewBBACA 2** added the integration with Chewie-NS, which was described in the following article:
+**Chewie Nomenclature Server (chewie-NS): a deployable nomenclature server for easy sharing of core and whole genome MLST schemas** - `Link to paper <https://academic.oup.com/nar/article/49/D1/D660/5929238>`_.
 
-::
-
-  Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. doi:10.1099/mgen.0.000166
+When using chewBBACA please cite at least one of the papers above.
 
 Licensing
 ---------
 
 This project is licensed under the `GPLv3 license 
 <https://github.com/B-UMMI/Nomenclature_Server_docker_compose/blob/master/LICENSE>`_.
-The source code of chewBBACA is available at `<https://github.com/B-UMMI/chewBBACA>`_.
+The source code of chewBBACA is available on `GitHub <https://github.com/B-UMMI/chewBBACA>`_.
 
 Funding
 -------
 
-- INNUENDO project co-funded by the European Food Safety Authority (EFSA), grant agreement
+- **INNUENDO** project co-funded by the European Food Safety Authority (EFSA), grant agreement
   GP/EFSA/AFSCO/2015/01/CT2 ("New approaches in identifying and characterizing microbial and
   chemical hazards"). The conclusions, findings, and opinions expressed in this review paper
   reflect only the view of the authors and not the official position of the European Food Safety
   Authority (EFSA).
-- ONEIDA project (LISBOA-01-0145-FEDER-016417) co-funded by FEEI - "Fundos Europeus Estruturais
+- **ONEIDA** project (LISBOA-01-0145-FEDER-016417) co-funded by FEEI - "Fundos Europeus Estruturais
   e de Investimento" from "Programa Operacional Regional Lisboa 2020" FCT - "Fundação para a
   Ciência e a Tecnologia".
-- BacGenTrack (TUBITAK/0004/2014) [FCT/ Scientific and Technological Research Council of Turkey
+- **BacGenTrack** (TUBITAK/0004/2014) [FCT/ Scientific and Technological Research Council of Turkey
   (Türkiye Bilimsel ve Teknolojik Araşrrma Kurumu, TÜBİTAK)]
 
-.. image:: http://i.imgur.com/XhvagNV.png
-   :width: 500px
+.. image:: /_static/images/chewie_funding.png
+   :width: 700px
    :align: center

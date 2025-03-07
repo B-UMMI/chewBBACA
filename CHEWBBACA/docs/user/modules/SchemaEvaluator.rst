@@ -375,5 +375,5 @@ Workflow of the SchemaEvaluator module
 ::::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/SchemaEvaluator.png
-   :width: 1200px
+   :width: 1000px
    :align: center

@@ -69,5 +69,5 @@ Workflow of the UniprotFinder module
 ::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/UniprotFinder.png
-   :width: 1200px
+   :width: 1000px
    :align: center

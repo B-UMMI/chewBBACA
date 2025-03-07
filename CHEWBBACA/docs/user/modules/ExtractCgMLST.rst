@@ -98,5 +98,5 @@ Workflow of the ExtractCgMLST module
 ::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/ExtractCgMLST.png
-   :width: 1200px
+   :width: 1000px
    :align: center

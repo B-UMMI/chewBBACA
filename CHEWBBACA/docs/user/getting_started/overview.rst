@@ -19,7 +19,7 @@ in surveillance and outbreak detection settings or population studies. Pre-defin
 The general workflow of chewBBACA is represented in the following image:
 
 .. image:: /_static/images/Overview.png
-   :width: 1200px
+   :width: 1000px
    :align: center
 
 Citation

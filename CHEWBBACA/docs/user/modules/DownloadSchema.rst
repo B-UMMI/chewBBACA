@@ -116,5 +116,5 @@ Workflow of the DownloadSchema module
 :::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/DownloadSchema.png
-   :width: 1200px
+   :width: 1000px
    :align: center

@@ -356,7 +356,7 @@ Workflow of the AlleleCall module
 :::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/AlleleCall.png
-   :width: 1200px
+   :width: 1000px
    :align: center
 
 The allele calling algorithm has the following main steps:

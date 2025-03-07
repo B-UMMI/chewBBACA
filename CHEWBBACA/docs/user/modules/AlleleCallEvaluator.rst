@@ -268,5 +268,5 @@ Workflow of the AlleleCallEvaluator module
 ::::::::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/AlleleCallEvaluator.png
-   :width: 1200px
+   :width: 1000px
    :align: center

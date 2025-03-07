@@ -96,7 +96,7 @@ Workflow of the PrepExternalSchema module
 :::::::::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/PrepExternalSchema.png
-   :width: 1200px
+   :width: 1000px
    :align: center
 
 By default, the process will adapt the external schema based on a BLAST Score Ratio (BSR) value of

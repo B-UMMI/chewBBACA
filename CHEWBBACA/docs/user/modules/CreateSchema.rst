@@ -157,7 +157,7 @@ Workflow of the CreateSchema module
 :::::::::::::::::::::::::::::::::::
 
 .. image:: /_static/images/CreateSchema.png
-   :width: 1200px
+   :width: 1000px
    :align: center
 
 The schema creation algorithm has the following main steps:

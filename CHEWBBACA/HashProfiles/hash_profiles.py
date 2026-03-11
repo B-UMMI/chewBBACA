@@ -123,7 +123,7 @@ def hash_profiles(input_file, loci_ids, loci_files, hashing_function,
 	return output_file
 
 
-def main(input_file, schema_directory, output_directory, hash_type, cpu_cores, nrows):
+def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_cores):
 	"""Hash allele identifiers in a matrix of allelic profiles.
 
 	Parameters

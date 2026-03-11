@@ -27,11 +27,11 @@ try:
 		fasta_operations as fao,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo,
-		distance_matrix as dm,
 		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
 	from ComputeMSA import compute_msa
 	from ExtractCgMLST import determine_cgmlst
+	from ComputeDistances import compute_distances
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (
 		constants as ct,
@@ -39,11 +39,11 @@ except ModuleNotFoundError:
 		fasta_operations as fao,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo,
-		distance_matrix as dm,
 		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
 	from CHEWBBACA.ComputeMSA import compute_msa
 	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+	from CHEWBBACA.ComputeDistances import compute_distances
 
 
 def compute_sample_stats(sample_ids, total_loci, coordinates_file,
@@ -403,11 +403,10 @@ def main(input_files, schema_directory, output_directory, annotations,
 				# Compute distance matrix
 				# Based on cgMLST profiles
 				if len(cgMLST_genes) > 0:
-					dm_file = dm.main(cgMLST_matrix_outfile, output_directory,
-									  cpu_cores, True, True)
+					distances_dir = fo.join_paths(output_directory, ['distances'])
+					dm_file = compute_distances.main(cgMLST_matrix_outfile, distances_dir, 'hamming', 'symmetric', True, False, cpu_cores)
 					# Import distance matrix
-					distance_m = pd.read_csv(dm_file[0], header=0, index_col=0,
-											 sep='\t', low_memory=False)
+					distance_m = pd.read_csv(dm_file, header=0, index_col=0, sep='\t', low_memory=False)
 					# Convert Index values and column names to str to avoid issues with IDs that can be interpreted as int
 					distance_m.index = distance_m.index.astype('string')
 					distance_m.columns = distance_m.columns.astype('string')

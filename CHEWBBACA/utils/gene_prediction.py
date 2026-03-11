@@ -72,9 +72,22 @@ def train_gene_finder(gene_finder, sequences, translation_table):
 	gene_finder : pyrodigal.GeneFinder
 		A GeneFinder object configured based on provided arguments.
 	"""
-	gene_finder.train(*sequences, translation_table=translation_table)
+	training_info = gene_finder.train(*sequences, translation_table=translation_table)
 
-	return gene_finder
+	return training_info
+
+
+def create_training_file(input_file, output_directory, translation_table):
+	"""
+	"""
+	records = fao.sequence_generator(input_file)
+	records = {rec.id: bytes(rec.seq) for rec in records}
+	gene_finder = create_gene_finder(None, True, True, False)
+	training_info = train_gene_finder(gene_finder, records.values(), translation_table)
+	training_file = fo.join_paths(output_directory, [fo.file_basename(input_file, False)+'.trn'])
+	fo.pickle_dumper(training_info, training_file)
+
+	return training_file
 
 
 def read_training_file(training_file):
@@ -90,8 +103,14 @@ def read_training_file(training_file):
 	training_data : pyrodigal.TrainingInfo
 		The deserialized training info.
 	"""
-	with open(training_file, 'rb') as infile:
-		training_data = pyrodigal.TrainingInfo.load(infile)
+	######### Need to improce training file type detection
+	# Pyrodigal training file must be read like this if created with pickle
+	try:
+		training_data = fo.pickle_loader(training_file)
+	except Exception as e:
+		# Prodigal training file must be read like this
+		with open(training_file, 'rb') as infile:
+			training_data = pyrodigal.TrainingInfo.load(infile)
 
 	return training_data
 
@@ -125,10 +144,13 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 	gene_info = []
 	for gene in genes:
 		sequence = gene.sequence()
+		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
-		gene_info.append([sequence_hash, sequence, genome_id, contig_id,
+		# Store CDS ID used by chewBBACA
+		cds_id = f'{genome_id}-protein{protid}'
+		gene_info.append([sequence_hash, sequence, cds_id, genome_id, contig_id,
 						  str(gene.begin), str(gene.end), str(protid),
-						  str(gene.strand)])
+						  str(gene.strand), str(confidence)])
 		protid += 1
 
 	return gene_info, protid
@@ -170,7 +192,7 @@ def write_coordinates_pickle(gene_info, contig_sizes, output_file):
 	fo.pickle_dumper([gene_coordinates, contig_sizes], output_file)
 
 
-def predict_genome_genes(input_file, output_directory, gene_finder, translation_table):
+def predict_genome_genes(input_file, output_directory, gene_finder, translation_table, output_formats):
 	"""Predict genes for sequences in a FASTA file.
 
 	Parameters
@@ -200,11 +222,9 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 		Path to the output pickle file that contains the gene
 		coordinates and contig size data.
 	"""
-	# Get path to genome FASTA file, genome basename and alias
-	genome_path, genome_basename = input_file
-
-	# Load genome sequences
-	records = fao.sequence_generator(genome_path)
+	# Get genome unique identifier
+	genome_basename = input_file[1]
+	records = fao.sequence_generator(input_file[0])
 	records = {rec.id: bytes(rec.seq) for rec in records}
 	contig_sizes = {recid: len(sequence)
 					for recid, sequence in records.items()}
@@ -215,7 +235,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 		current_gene_finder = gene_finder
 	else:
 		current_gene_finder = create_gene_finder(None, True, True, False)
-		current_gene_finder = train_gene_finder(current_gene_finder,
+		training_info = train_gene_finder(current_gene_finder,
 												records.values(),
 												translation_table)
 
@@ -235,25 +255,59 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 		gene_info.extend(data[0])
 		if len(data[0]) > 0:
 			first_cds = data[0][0]
-			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[3]], int(first_cds[4]), int(first_cds[5]), first_cds[-1]))
+			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[4]], int(first_cds[5]), int(first_cds[6]), first_cds[-1]))
 			if first_cds != data[0][-1]:
 				last_cds = data[0][-1]
-				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[3]], int(last_cds[4]), int(last_cds[5]), last_cds[-1]))
+				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[4]], int(last_cds[5]), int(last_cds[6]), last_cds[-1]))
 		# Reset protid based on the number of CDSs predicted for the sequence
 		protid = data[1]
-
+	# Get total number of CDSs predicted
 	total_genome = len(gene_info)
-	fasta_outfile = None
-	coordinates_outfile = None
+
+	# Save data if Pyrodigal was able to predict genes
+	output_files = [None, None, None, None, None, None]
 	if total_genome > 0:
-		# Create FASTA file with DNA sequences
-		fasta_outfile = fo.join_paths(output_directory,
-									  [f'{genome_basename}.fasta'])
-		write_gene_fasta(gene_info, fasta_outfile)
+		if 'genes' in output_formats:
+			fasta_outfile = fo.join_paths(output_directory, [f'{genome_basename}.fasta'])
+			with open(fasta_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_genes(outfile, sequence_id=genome_basename, width=math.inf)
+			output_files[0] = fasta_outfile
+
+		if 'translations' in output_formats:
+			translations_outfile = fo.join_paths(output_directory, [f'{genome_basename}.translations'])
+			with open(translations_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_translations(outfile, sequence_id=genome_basename, width=math.inf, include_stop=False)
+			output_files[1] = translations_outfile
+
+		if 'gff' in output_formats:
+			gff_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gff'])
+			with open(gff_outfile, 'w') as outfile:
+				i = 0
+				for recid, genes in contig_genes.items():
+					genes.write_gff(outfile, sequence_id=genome_basename, header=(i==0), include_translation_table=True)
+					i += 1
+			output_files[2] = gff_outfile
+
+		if 'genbank' in output_formats:
+			gbk_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gbk'])
+			with open(gbk_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_genbank(outfile, sequence_id=genome_basename)
+			output_files[3] = gbk_outfile
+
+		if 'scores' in output_formats:
+			scores_outfile = fo.join_paths(output_directory, [f'{genome_basename}.scores'])
+			with open(scores_outfile, 'w') as outfile:
+				for recid, genes in contig_genes.items():
+					genes.write_scores(outfile, sequence_id=genome_basename)
+			output_files[4] = scores_outfile
 
 		# Save gene coordinates and contig sizes to pickle
 		coordinates_outfile = fo.join_paths(output_directory,
 											[f'{genome_basename}_coordinates'])
 		write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
+		output_files[5] = coordinates_outfile
 
-	return [input_file, total_genome, fasta_outfile, coordinates_outfile, close_to_tip]
+	return [input_file, total_genome, close_to_tip, output_files]

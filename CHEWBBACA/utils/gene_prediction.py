@@ -12,6 +12,8 @@ Code documentation
 """
 
 
+import math
+
 import pyrodigal
 
 try:
@@ -146,31 +148,15 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 		sequence = gene.sequence()
 		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
-		# Store CDS ID used by chewBBACA
-		cds_id = f'{genome_id}-protein{protid}'
-		gene_info.append([sequence_hash, sequence, cds_id, genome_id, contig_id,
-						  str(gene.begin), str(gene.end), str(protid),
-						  str(gene.strand), str(confidence)])
+		# Store CDS IDs used by Pyrodigal and chewBBACA to link the data in the output files
+		pyrodigal_id = f'{genome_id}_{protid}'
+		chewie_id = f'{genome_id}-protein{protid}'
+		gene_info.append([sequence_hash, sequence, pyrodigal_id, chewie_id,
+						  genome_id, contig_id, str(gene.begin), str(gene.end),
+						  str(protid), str(gene.strand), str(confidence)])
 		protid += 1
 
 	return gene_info, protid
-
-
-def write_gene_fasta(gene_info, output_file):
-	"""Write a FASTA file based on the results returned by `get_gene_info`.
-
-	Parameters
-	----------
-	gene_info : list
-		List with the data for the genes returned by `get_gene_info`.
-	output_file : str
-		Path to the output FASTA file.
-	"""
-	fasta_sequences = []
-	for gene in gene_info:
-		fasta_str = ct.FASTA_CDS_TEMPLATE.format(gene[2], gene[6], gene[1])
-		fasta_sequences.append(fasta_str)
-	fo.write_lines(fasta_sequences, output_file)
 
 
 def write_coordinates_pickle(gene_info, contig_sizes, output_file):
@@ -255,10 +241,10 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 		gene_info.extend(data[0])
 		if len(data[0]) > 0:
 			first_cds = data[0][0]
-			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[4]], int(first_cds[5]), int(first_cds[6]), first_cds[-1]))
+			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[5]], int(first_cds[6]), int(first_cds[7]), first_cds[-1]))
 			if first_cds != data[0][-1]:
 				last_cds = data[0][-1]
-				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[4]], int(last_cds[5]), int(last_cds[6]), last_cds[-1]))
+				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[5]], int(last_cds[6]), int(last_cds[7]), last_cds[-1]))
 		# Reset protid based on the number of CDSs predicted for the sequence
 		protid = data[1]
 	# Get total number of CDSs predicted
@@ -268,21 +254,23 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 	output_files = [None, None, None, None, None, None]
 	if total_genome > 0:
 		if 'genes' in output_formats:
-			fasta_outfile = fo.join_paths(output_directory, [f'{genome_basename}.fasta'])
+			# Define path to output FASTA
+			fasta_outfile = fo.join_paths(output_directory, ['genes', f'{genome_basename}.fasta'])
 			with open(fasta_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
+					# Use math.inf to write sequences in a single line
 					genes.write_genes(outfile, sequence_id=genome_basename, width=math.inf)
 			output_files[0] = fasta_outfile
 
 		if 'translations' in output_formats:
-			translations_outfile = fo.join_paths(output_directory, [f'{genome_basename}.translations'])
+			translations_outfile = fo.join_paths(output_directory, ['translations', f'{genome_basename}.translations'])
 			with open(translations_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
 					genes.write_translations(outfile, sequence_id=genome_basename, width=math.inf, include_stop=False)
 			output_files[1] = translations_outfile
 
 		if 'gff' in output_formats:
-			gff_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gff'])
+			gff_outfile = fo.join_paths(output_directory, ['gff', f'{genome_basename}.gff'])
 			with open(gff_outfile, 'w') as outfile:
 				i = 0
 				for recid, genes in contig_genes.items():
@@ -291,14 +279,14 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 			output_files[2] = gff_outfile
 
 		if 'genbank' in output_formats:
-			gbk_outfile = fo.join_paths(output_directory, [f'{genome_basename}.gbk'])
+			gbk_outfile = fo.join_paths(output_directory, ['gbk', f'{genome_basename}.gbk'])
 			with open(gbk_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
 					genes.write_genbank(outfile, sequence_id=genome_basename)
 			output_files[3] = gbk_outfile
 
 		if 'scores' in output_formats:
-			scores_outfile = fo.join_paths(output_directory, [f'{genome_basename}.scores'])
+			scores_outfile = fo.join_paths(output_directory, ['scores', f'{genome_basename}.scores'])
 			with open(scores_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
 					genes.write_scores(outfile, sequence_id=genome_basename)

@@ -101,7 +101,7 @@ def run_predict_cdss():
 						help='Path to the output directory where the process will store the files with the predicted CDSs.')
 
 	parser.add_argument('--ptf', '--training-file', type=str,
-						required=False, dest='ptf_path',
+						required=False, dest='training_file',
 						help='Path to the Prodigal training file used by Pyrodigal '
 							 'to predict genes. The translation table used to create '
 							 'this file overrides any value passed to `--t`, '
@@ -385,7 +385,7 @@ def run_create_schema():
 
 	# Create the file with the list of genes/loci
 	pv.write_gene_list(schema_dir)
-	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.LOCI_LIST)}')
+	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.GENE_LIST_BASENAME)}')
 
 	# Remove temporary file with paths to input genomes
 	fo.remove_files([genome_list])

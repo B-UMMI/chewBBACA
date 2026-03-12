@@ -44,6 +44,8 @@ def write_coordinates_file(coordinates_file, output_file):
 	data = fo.pickle_loader(coordinates_file)
 	lines = [coords for h, coords in data[0].items()]
 	lines = im.flatten_list(lines)
+	# Sort lines by genome and protein ID (converting to int ensures natural sort)
+	lines.sort(key=lambda x: (x[2], int(x[6])))
 	lines = ['\t'.join(line) for line in lines]
 	fo.write_lines(lines, output_file)
 
@@ -96,8 +98,12 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 	common_args = [output_directory, gene_finder, translation_table, output_formats]
 
 	# Divide into equal number of sublists for maximum progress resolution
-	pyrodigal_inputs = im.divide_list_into_n_chunks(list(fasta_files.items()),
-													len(fasta_files))
+	pyrodigal_inputs = im.divide_list_into_n_chunks(fasta_files, len(fasta_files))
+
+	# Create subfolders to store each output format
+	for output_format in output_formats:
+		format_outdir = fo.join_paths(output_directory, [output_format])
+		fo.create_directory(format_outdir)
 
 	# Add common arguments to all sublists
 	pyrodigal_inputs = im.multiprocessing_inputs(pyrodigal_inputs,
@@ -149,19 +155,18 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 	# Passed list of file paths
 	elif isinstance(input_files, list):
 		pass
-	# Map full paths to unique identifier (prefix before first '.')
-	full_to_basename = im.mapping_function(input_files, fo.file_basename, [False])
-	full_to_unique = {k: fo.split_joiner(v, [0], '.')
-						for k, v in full_to_basename.items()}
 
-	# Create directory to store files with Pyrodigal results
-	pyrodigal_path = fo.join_paths(output_directory, ['CDS_files'])
-	fo.create_directory(pyrodigal_path)
+	# Sort file paths
+	input_files = im.sort_iterable(input_files, sort_key=str.lower)
+	print('Number of inputs: {0}'.format(len(input_files)))
+
+	# Map input file paths to file basename without extension and MD5 file hash
+	input_file_ids = [(file, fo.file_basename(file, False)) for file in input_files]
 
 	# Gene prediction step
 	print(f'Predicting CDSs for {len(input_files)} inputs...')
-	pyrodigal_results = predict_genes(full_to_unique, training_file, translation_table,
-									  prodigal_mode, cpu_cores, pyrodigal_path, output_formats)
+	pyrodigal_results = predict_genes(input_file_ids, training_file, translation_table,
+									  prodigal_mode, cpu_cores, output_directory, output_formats)
 
 	# Dictionary with info about inputs for which gene prediction failed
 	# Total number of CDSs identified in the inputs
@@ -189,7 +194,7 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 
 	# Concatenate all TSV files with CDS coordinates
 	merged_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
-	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER+'\n')
+	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER)
 	fo.remove_files(files)
 	print(f'Extracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 

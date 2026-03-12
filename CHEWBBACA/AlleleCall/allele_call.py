@@ -31,6 +31,7 @@ try:
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
+	from PredictCDSs import predict_cdss
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
@@ -41,6 +42,7 @@ except ModuleNotFoundError:
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
+	from CHEWBBACA.PredictCDSs import predict_cdss
 
 
 def compute_loci_modes(loci_files, output_file):
@@ -1025,7 +1027,7 @@ def write_results_contigs(classification_files, input_identifiers,
 			coordinates = {}
 			if cds_coordinates_files is not None:
 				# Open file with loci coordinates
-				coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
+				coordinates = fo.pickle_loader(cds_coordinates_files[1][genome_id])[0]
 				# Start position is 0-based, stop position is upper-bound exclusive
 				# Convert to PAMA CDSs that matched multiple loci
 			cds_coordinates = []
@@ -1034,7 +1036,7 @@ def write_results_contigs(classification_files, input_identifiers,
 				# Contig identifier, start and stop positions and strand
 				# 1 for sense, -1 for reverse
 				coordinates_str = (c if current_coordinates in invalid_classes or isinstance(current_coordinates, list) is False
-								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[1:4], current_coordinates[5]))
+								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[3:6], current_coordinates[7]))
 				if c not in repeated_hashes:
 					cds_coordinates.append(coordinates_str)
 				else:
@@ -2002,15 +2004,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		# Run Pyrodigal to determine CDSs for all input genomes
 		print(f'\n {ct.CDS_PREDICTION} ')
 		print('='*(len(ct.CDS_PREDICTION)+2))
-
-		# Gene prediction step
-		print(f'Predicting CDSs for {len(fasta_files)} inputs...')
-		pyrodigal_results = cf.predict_genes(input_file_ids,
-											 config['Prodigal training file'],
-											 config['Translation table'],
-											 config['Prodigal mode'],
-											 config['CPU cores'],
-											 pyrodigal_path)
+		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, config['Prodigal training file'],
+											  config['Translation table'], config['Prodigal mode'], None,
+											  None, ['genes'], None, config['CPU cores'])
 
 		# Dictionary with info about inputs for which gene prediction failed
 		# Total number of CDSs identified in the inputs
@@ -2019,7 +2015,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		# Total number of CDSs identified per input
 		# Dictionary with info about the CDSs closer to contig tips per input
 		failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
-
 		if len(failed) > 0:
 			print(f'\nFailed to predict CDSs for {len(failed)} inputs.')
 			print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
@@ -2027,20 +2022,42 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		if len(cds_fastas) == 0:
 			sys.exit(f'{ct.CANNOT_PREDICT}')
 
-		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)-len(failed)} inputs.')
+		# Copy file with CDS coordinates to output directory
+		fo.move_file(cds_coordinates[0], os.path.dirname(temp_directory))
+
+		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
+		renaming_inputs = []
+		renamed_fastas = []
+		for i, file in enumerate(cds_fastas):
+			basename = fo.file_basename(file, False)
+			cds_prefix = f'{basename}-protein'
+			output_file = fo.join_paths(pyrodigal_path, [f'{basename}.fasta'])
+			renamed_fastas.append(output_file)
+			# This deletes the original file and creates a new one with the same name
+			renaming_inputs.append([file, output_file, 1, 50000,
+									cds_prefix, False, True, fao.integer_headers])
+
+		# Rename CDSs in files
+		renaming_results = mo.map_async_parallelizer(renaming_inputs,
+													 mo.function_helper,
+													 config['CPU cores'],
+													 show_progress=False)
+
+		# Delete folder which contained the original Pyrodigal FASTA files with the predicted CDSs
+		fo.delete_directory(os.path.dirname(cds_fastas[0]))
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers
 		print(f'\nRenaming CDSs for {len(input_file_ids)} input files...')
 
 		renaming_inputs = []
-		cds_fastas = []
+		renamed_fastas = []
 		for file in input_file_ids:
 			output_file = fo.join_paths(pyrodigal_path, [f'{file[1]}.fasta'])
 			cds_prefix = f'{file[1]}-protein'
 			renaming_inputs.append([file[0], output_file, 1, 50000,
-									cds_prefix, False, fao.integer_headers])
-			cds_fastas.append(output_file)
+									cds_prefix, False, False, fao.integer_headers])
+			renamed_fastas.append(output_file)
 
 		# Rename CDSs in files
 		renaming_results = mo.map_async_parallelizer(renaming_inputs,
@@ -2081,7 +2098,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
 	# Concatenate subgroups of FASTA files before deduplication
 	num_chunks = 20 if config['CPU cores'] <= 20 else config['CPU cores']
-	concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas, num_chunks)
+	concatenation_inputs = im.divide_list_into_n_chunks(renamed_fastas, num_chunks)
 	file_index = 1
 	cds_files = []
 	for group in concatenation_inputs:
@@ -3073,21 +3090,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
 		novel_files = [v[0] for v in updated_files.values()]
 		# Concatenate all FASTA files with inferred alleles
 		fo.concatenate_files(novel_files, novel_fasta)
-
-	# Create TSV file with CDS coordinates
-	# Will not be created if input files contain set of CDS instead of contigs
-	if config['CDS input'] is False:
-		print(f'Creating file with the coordinates of CDSs identified in inputs ({ct.CDS_COORDINATES_BASENAME})...')
-		files = []
-		for gid, file in results['cds_coordinates'].items():
-			tsv_file = fo.join_paths(os.path.dirname(file), [f'{gid}_coordinates.tsv'])
-			cf.write_coordinates_file(file, tsv_file)
-			files.append(tsv_file)
-		# Concatenate all TSV files with CDS coordinates
-		cds_coordinates = fo.join_paths(output_directory,
-										[ct.CDS_COORDINATES_BASENAME])
-		fo.concatenate_files(files, cds_coordinates,
-							 header=ct.CDS_TABLE_HEADER)
 
 	# Move file with list of excluded CDS
 	# File is not created if we only search for exact matches

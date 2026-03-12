@@ -28,6 +28,7 @@ try:
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
+	from PredictCDSs import predict_cdss
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
@@ -37,6 +38,7 @@ except ModuleNotFoundError:
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
+	from CHEWBBACA.PredictCDSs import predict_cdss
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
@@ -106,9 +108,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
 		# Gene prediction step
 		print(f'Predicting CDSs for {len(fasta_files)} inputs...')
-		pyrodigal_results = cf.predict_genes(input_file_ids, ptf_path,
-											 translation_table, prodigal_mode,
-											 cpu_cores, pyrodigal_path)
+		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, ptf_path,
+											  translation_table, prodigal_mode, None,
+											  None, ['genes'], None, cpu_cores)
 
 		# Dictionary with info about inputs for which gene prediction failed
 		# Total number of CDSs identified in the inputs
@@ -124,20 +126,42 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		if len(cds_fastas) == 0:
 			sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
-		print(f'\nExtracted a total of {total_extracted} CDSs from {len(fasta_files)} inputs.')
+		# Copy file with CDS coordinates to output directory
+		fo.move_file(cds_coordinates[0], output_directory)
+
+		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
+		renaming_inputs = []
+		renamed_fastas = []
+		for i, file in enumerate(cds_fastas):
+			basename = fo.file_basename(file, False)
+			cds_prefix = f'{basename}-protein'
+			output_file = fo.join_paths(pyrodigal_path, [f'{basename}.fasta'])
+			renamed_fastas.append(output_file)
+			# This deletes the original file and creates a new one with the same name
+			renaming_inputs.append([file, output_file, 1, 50000,
+									cds_prefix, False, True, fao.integer_headers])
+
+		# Rename CDSs in files
+		renaming_results = mo.map_async_parallelizer(renaming_inputs,
+													 mo.function_helper,
+													 cpu_cores,
+													 show_progress=False)
+
+		# Delete folder which contained the original Pyrodigal FASTA files with the predicted CDSs
+		fo.delete_directory(os.path.dirname(cds_fastas[0]))
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers
 		print(f'\nRenaming CDSs for {len(input_file_ids)} input files...')
 
 		renaming_inputs = []
-		cds_fastas = []
+		renamed_fastas = []
 		for file in input_file_ids:
 			output_file = fo.join_paths(pyrodigal_path, [f'{file[1]}.fasta'])
 			cds_prefix = f'{file[1]}-protein'
 			renaming_inputs.append([file[0], output_file, 1, 50000,
-									cds_prefix, False, fao.integer_headers])
-			cds_fastas.append(output_file)
+									cds_prefix, False, False, fao.integer_headers])
+			renamed_fastas.append(output_file)
 
 		# Rename CDSs in files
 		renaming_results = mo.map_async_parallelizer(renaming_inputs,
@@ -169,7 +193,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
 	# Concatenate subgroups of FASTA files before deduplication
 	num_chunks = 20 if cpu_cores <= 20 else cpu_cores
-	concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas, num_chunks)
+	concatenation_inputs = im.divide_list_into_n_chunks(renamed_fastas, num_chunks)
 	file_index = 1
 	cds_files = []
 	for group in concatenation_inputs:
@@ -430,21 +454,6 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 	print(f'Creating schema seed in {output_directory}')
 	schema_files = create_schema_structure(loci_representatives, output_directory,
 										   schema_name)
-
-	# Create file with CDS coordinates
-	# Will not be created if input files contain predicted CDSs
-	if cds_input is False:
-		print(f'Creating file with the coordinates of CDSs identified in inputs ({ct.CDS_COORDINATES_BASENAME})...')
-		files = []
-		for gid, file in cds_coordinates.items():
-			tsv_file = fo.join_paths(temp_directory, [f'{gid}.tsv'])
-			cf.write_coordinates_file(file, tsv_file)
-			files.append(tsv_file)
-		# Concatenate all TSV files with CDS coordinates
-		cds_coordinates = fo.join_paths(output_directory,
-										[ct.CDS_COORDINATES_BASENAME])
-		fo.concatenate_files(files, cds_coordinates,
-							 header=ct.CDS_TABLE_HEADER)
 
 	return [schema_files, temp_directory]
 

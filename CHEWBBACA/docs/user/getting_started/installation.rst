@@ -8,7 +8,7 @@ Install the latest released version using `conda <https://anaconda.org/bioconda/
 
 ::
 
-	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.5.3"
+	conda create -c bioconda -c conda-forge -n chewie "chewbbaca=3.6.0"
 
 If you're having issues installing chewBBACA through conda, please verify that you are using
 conda>=22.11, and enable the libmamba solver, which might speed up the installation process.
@@ -16,7 +16,7 @@ You can also install `mamba <https://mamba.readthedocs.io/en/latest/index.html>`
 
 ::
 
-	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.5.3"
+	mamba create -c bioconda -c conda-forge -n chewie "chewbbaca=3.6.0"
 
 After creating the environment, you can use chewBBACA by activating the environment with the following command:
 
@@ -48,7 +48,7 @@ Python dependencies
 * plotly>=6.3.1
 * SPARQLWrapper>=2.0.0
 * requests>=2.27.1
-* pandas==2.3.3
+* pandas>=2.3.3
 * pyrodigal>=3.0.0 (for chewBBACA>=3.3.0)
 
 .. note::

@@ -17,7 +17,7 @@ import argparse
 
 try:
 	from __init__ import __version__
-	from PredictCDSs import predict_cdss
+	from PredictGenes import predict_genes
 	from AlleleCall import allele_call
 	from CreateSchema import create_schema
 	from SchemaEvaluator import evaluate_schema
@@ -44,7 +44,7 @@ try:
 							  synchronize_schema, stats_requests)
 except ModuleNotFoundError:
 	from CHEWBBACA import __version__
-	from CHEWBBACA.PredictCDSs import predict_cdss
+	from CHEWBBACA.PredictGenes import predict_genes
 	from CHEWBBACA.AlleleCall import allele_call
 	from CHEWBBACA.CreateSchema import create_schema
 	from CHEWBBACA.SchemaEvaluator import evaluate_schema
@@ -72,22 +72,22 @@ except ModuleNotFoundError:
 
 
 @pdt.process_timer
-def run_predict_cdss():
-	"""Run the PredictCDSs module to predict coding sequences (CDSs)."""
+def run_predict_genes():
+	"""Run the PredictGenes module to predict coding sequences (CDSs) from input files."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py PredictCDSs --input-files <dir> --output-directory <dir> [options]'
+		usage_msg = 'chewBBACA.py PredictGenes --input-files <dir> --output-directory <dir> [options]'
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='PredictCDSs',
-									 description='Predict coding sequences (CDSs).',
+	parser = argparse.ArgumentParser(prog='PredictGenes',
+									 description='Predict coding sequences (CDSs) from input files.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictCDSs.html')
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictGenes.html')
 
-	parser.add_argument('PredictCDSs', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument('PredictGenes', nargs='+', help=argparse.SUPPRESS)
 
 	parser.add_argument('-i', '--input-files', type=str,
 						required=True, dest='input_files',
@@ -103,7 +103,7 @@ def run_predict_cdss():
 	parser.add_argument('--ptf', '--training-file', type=str,
 						required=False, dest='training_file',
 						help='Path to the Prodigal training file used by Pyrodigal '
-							 'to predict genes. The translation table used to create '
+							 'to predict CDSs. The translation table used to create '
 							 'this file overrides any value passed to `--t`, '
 							 '`--translation-table`.')
 
@@ -143,7 +143,7 @@ def run_predict_cdss():
 						help='Number of CPU cores that will be used to run the process (chewie resets to a lower value if it is equal to or exceeds the total number of available CPU cores).')
 
 	args = parser.parse_args()
-	del args.PredictCDSs
+	del args.PredictGenes
 
 	# Create output directory
 	created = fo.create_directory(args.output_directory)
@@ -191,7 +191,7 @@ def run_predict_cdss():
 	blank_spaces = pv.check_blanks(genome_list)
 
 	# Predict CDSs
-	predict_cdss.main(**vars(args))
+	predict_genes.main(**vars(args))
 
 	# Delete temporary file with paths to input genomes
 	fo.remove_files([genome_list])
@@ -1925,8 +1925,8 @@ def run_stats_requests():
 
 def main():
 
-	functions_info = {'PredictCDSs': ['Predict CDSs from input files.',
-									  run_predict_cdss],
+	functions_info = {'PredictGenes': ['Predict genes from input files.',
+									  run_predict_genes],
 					  'CreateSchema': ['Create a gene-by-gene schema based on '
 									   'a set of genome assemblies or coding sequences.',
 									   run_create_schema],

@@ -18,8 +18,8 @@ import argparse
 try:
 	from __init__ import __version__
 	from PredictGenes import predict_genes
-	from AlleleCall import allele_call
 	from CreateSchema import create_schema
+	from AlleleCall import allele_call
 	from SchemaEvaluator import evaluate_schema
 	from AlleleCallEvaluator import evaluate_calls
 	from PrepExternalSchema import adapt_schema
@@ -45,8 +45,8 @@ try:
 except ModuleNotFoundError:
 	from CHEWBBACA import __version__
 	from CHEWBBACA.PredictGenes import predict_genes
-	from CHEWBBACA.AlleleCall import allele_call
 	from CHEWBBACA.CreateSchema import create_schema
+	from CHEWBBACA.AlleleCall import allele_call
 	from CHEWBBACA.SchemaEvaluator import evaluate_schema
 	from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
 	from CHEWBBACA.PrepExternalSchema import adapt_schema
@@ -631,7 +631,6 @@ def run_allele_call():
 
 	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
 	genome_list, total_inputs = pv.check_input_type(args.input_files, genome_list)
-
 	# Detect if any input files share the same basename
 	repeated_prefixes = pv.check_unique_prefixes(genome_list)
 	# Detect if filenames include blank spaces
@@ -881,7 +880,7 @@ def run_evaluate_calls():
 
 @pdt.process_timer
 def run_determine_cgmlst():
-	"""Run the ExtractCgMLST module to determine the core-genome."""
+	"""Run the ExtractCgMLST module to determine the core genome."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]'
@@ -889,7 +888,7 @@ def run_determine_cgmlst():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ExtractCgMLST',
-									 description='Determine the set of loci that constitute the core genome.',
+									 description='Determine the set of loci that constitute the core genome based on allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -916,24 +915,31 @@ def run_determine_cgmlst():
 							 'values to compute the core genome for multiple '
 							 'threshold values.')
 
-	parser.add_argument('--s', '--step', type=int,
-						required=False, default=1,
-						dest='step',
+	parser.add_argument('--s', '--step', type=int, required=False,
+						default=1, dest='step',
 						help='The allele calling results are processed '
 							 'iteratively to evaluate the impact of '
 							 'adding subsets of the results in computing '
-							 'the core genome. The step value '
-							 'controls the number of profiles added in each '
+							 'the core genome. The step value controls '
+							 'the number of profiles added in each '
 							 'iteration until all profiles are included.')
 
-	parser.add_argument('--r', '--genes2remove', type=str,
-						required=False, default=False, dest='genes2remove',
-						help='Path to a file with a list of gene IDs to '
-							 'exclude from the analysis (one gene identifier '
+	parser.add_argument('--ca', '--compute-accessory', action='store_true', required=False,
+					    dest='compute_accessory',
+						help='Compute the results for the accessory genome.'
+							 'The accessory genome corresponds to all the '
+							 'loci not included in the core genome. The '
+							 'accessory genome is determined for each core '
+							 'genome threshold.')
+
+	parser.add_argument('--el', '--exclude-loci', type=str,
+						required=False, default=False, dest='exclude_loci',
+						help='Path to a file with a list of loci IDs to '
+							 'exclude from the analysis (one locus identifier '
 							 'per line).')
 
-	parser.add_argument('--g', '--genomes2remove', type=str,
-						required=False, default=False, dest='genomes2remove',
+	parser.add_argument('--eg', '--exclude-genomes', type=str,
+						required=False, default=False, dest='exclude_genomes',
 						help='Path to a file with a list of genome IDs to '
 							 'exclude from the analysis (one genome identifier '
 							 'per line).')
@@ -1297,8 +1303,8 @@ def run_adapt_schema():
 		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 	fo.create_directory(schema_short_path)
 
-	loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
 	# User provided a list of loci to adapt
+	loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
 	if args.genes_list is not False:
 		loci_list = pv.validate_loci_list(args.genes_list, loci_list,
 										  args.schema_directory)
@@ -1397,7 +1403,7 @@ def run_annotate_schema():
 							 'find annotations for (one per line, full '
 							 'paths or loci IDs).')
 
-	parser.add_argument('-t', '--protein-table', type=str,
+	parser.add_argument('--t', '--protein-table', type=str,
 						required=False, dest='protein_table',
 						help='Path to the TSV file with coding sequence (CDS) '
 							 'coordinate data, "cds_coordinates.tsv", created by '
@@ -1457,7 +1463,7 @@ def run_annotate_schema():
 
 @pdt.process_timer
 def run_compute_distances():
-	"""Run the ComputeDistances module to compute distance matrices based on allele calling results."""
+	"""Run the ComputeDistances module to compute pairwise distances based on allele calling results."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py ComputeDistances --input-file <file> --output-directory <dir> [options]'
@@ -1465,7 +1471,7 @@ def run_compute_distances():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ComputeDistances',
-									 description='Compute distance matrices based on allele calling results.',
+									 description='Compute pairwise distances based on allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '

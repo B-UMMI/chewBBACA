@@ -25,6 +25,7 @@ import statistics
 from collections import Counter
 
 try:
+	from ComputeMSA import compute_msa
 	from utils import (
 		constants as ct,
 		file_operations as fo,
@@ -32,8 +33,8 @@ try:
 		sequence_manipulation as sm,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
-	from ComputeMSA import compute_msa
 except ModuleNotFoundError:
+	from CHEWBBACA.ComputeMSA import compute_msa
 	from CHEWBBACA.utils import (
 		constants as ct,
 		file_operations as fo,
@@ -41,7 +42,6 @@ except ModuleNotFoundError:
 		sequence_manipulation as sm,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
-	from CHEWBBACA.ComputeMSA import compute_msa
 
 
 def compute_quartiles(values):

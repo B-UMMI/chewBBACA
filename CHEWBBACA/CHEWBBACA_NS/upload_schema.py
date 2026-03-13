@@ -781,7 +781,7 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	annotations : str
 		Path to a TSV file with loci annotations. The first column has
 		loci identifiers (w/o .fasta extension), the second has UniProt protein names,
-        the third has UniProt gene names, the fourth has UniProt URIs, the fifth has
+		the third has UniProt gene names, the fourth has UniProt URIs, the fifth has
 		user annotations, and the sixth has custom annotations.
 	cpu_cores : int
 		Number of CPU cores that will be used in the pre-processing steps.
@@ -791,7 +791,6 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 		If the process should check if the schema upload was interrupted
 		and try to resume it.
 	"""
-	
 	if 'tutorial' not in nomenclature_server:
 		token = cr.capture_login_credentials(nomenclature_server)
 	else:

@@ -21,6 +21,9 @@ import json
 import pandas as pd
 
 try:
+	from ComputeMSA import compute_msa
+	from ExtractCgMLST import determine_cgmlst
+	from ComputeDistances import compute_distances
 	from utils import (
 		constants as ct,
 		file_operations as fo,
@@ -29,10 +32,10 @@ try:
 		multiprocessing_operations as mo,
 		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
-	from ComputeMSA import compute_msa
-	from ExtractCgMLST import determine_cgmlst
-	from ComputeDistances import compute_distances
 except ModuleNotFoundError:
+	from CHEWBBACA.ComputeMSA import compute_msa
+	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.utils import (
 		constants as ct,
 		file_operations as fo,
@@ -41,9 +44,6 @@ except ModuleNotFoundError:
 		multiprocessing_operations as mo,
 		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
-	from CHEWBBACA.ComputeMSA import compute_msa
-	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
-	from CHEWBBACA.ComputeDistances import compute_distances
 
 
 def compute_sample_stats(sample_ids, total_loci, coordinates_file,
@@ -390,8 +390,8 @@ def main(input_files, schema_directory, output_directory, annotations,
 			if no_dm is False or no_tree is False or cg_alignment is True:
 				# Compute the cgMLST at 100%
 				print('Determining cgMLST loci...')
-				cgMLST_genes, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
-																  1, len(sample_ids))
+				cgMLST_genes, _, _, _ = determine_cgmlst.compute_cgMLST(pa_matrix, sample_ids,
+																  1, len(sample_ids), False)
 				cgMLST_genes = cgMLST_genes.tolist()
 				print('\n', f'cgMLST is composed of {len(cgMLST_genes)} loci.')
 				if len(cgMLST_genes) > 0:

@@ -20,6 +20,7 @@ import sys
 import math
 
 try:
+	from PredictGenes import predict_genes
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
 					   core_functions as cf,
@@ -28,8 +29,8 @@ try:
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
-	from PredictCDSs import predict_cdss
 except ModuleNotFoundError:
+	from CHEWBBACA.PredictGenes import predict_genes
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
 								 core_functions as cf,
@@ -38,7 +39,6 @@ except ModuleNotFoundError:
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
-	from CHEWBBACA.PredictCDSs import predict_cdss
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):

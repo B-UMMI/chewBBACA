@@ -1002,7 +1002,7 @@ def replace_chars(column, missing_char='0'):
 		Input column with cells that only contain
 		numeric characters.
 	"""
-	# Remove 'INF-' from inferred alleles
+	# Remove 'INF-' prefix from inferred alleles
 	replaced_inf = column.replace(to_replace='INF-', value='', regex=True)
 	# Replace '*' in novel alleles from schemas downloaded from Chewie-NS
 	# before replacing missing data cases to avoid replacing '*' with '0'
@@ -1021,5 +1021,4 @@ def inclusive_range(start, stop, step):
 		yield i
 		i += step
 	yield stop
-
 

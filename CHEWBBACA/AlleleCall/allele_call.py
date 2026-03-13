@@ -22,6 +22,7 @@ from collections import Counter
 import pandas as pd
 
 try:
+	from PredictGenes import predict_genes
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
 					   core_functions as cf,
@@ -31,8 +32,8 @@ try:
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
-	from PredictCDSs import predict_cdss
 except ModuleNotFoundError:
+	from CHEWBBACA.PredictGenes import predict_genes
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
 								 core_functions as cf,
@@ -42,7 +43,6 @@ except ModuleNotFoundError:
 								 sequence_manipulation as sm,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
-	from CHEWBBACA.PredictCDSs import predict_cdss
 
 
 def compute_loci_modes(loci_files, output_file):
@@ -1027,14 +1027,14 @@ def write_results_contigs(classification_files, input_identifiers,
 			coordinates = {}
 			if cds_coordinates_files is not None:
 				# Open file with loci coordinates
-				coordinates = fo.pickle_loader(cds_coordinates_files[1][genome_id])[0]
+				coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
 				# Start position is 0-based, stop position is upper-bound exclusive
 				# Convert to PAMA CDSs that matched multiple loci
 			cds_coordinates = []
 			for j, c in enumerate(l[1:]):
 				current_coordinates = coordinates.get(c, [c])[0]
 				# Contig identifier, start and stop positions and strand
-				# 1 for sense, -1 for reverse
+				# 1 for forward strand, -1 for reverse strand
 				coordinates_str = (c if current_coordinates in invalid_classes or isinstance(current_coordinates, list) is False
 								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[3:6], current_coordinates[7]))
 				if c not in repeated_hashes:
@@ -2737,7 +2737,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 			fo.create_directory(selection_dir)
 			blast_selection_dir = fo.join_paths(selection_dir, ['BLASTp_results'])
 			fo.create_directory(blast_selection_dir)
-
 			for k, v in representative_candidates.items():
 				current_candidates = {inverse_id_mapping[e[1]]: e[3] for e in v}
 				fasta_file = fo.join_paths(candidates_dir,
@@ -2802,7 +2801,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 			# Determine self-score for new reps
 			candidates_blast_dir = fo.join_paths(new_reps_directory, ['representatives_self_score'])
 			fo.create_directory(candidates_blast_dir)
-
 			new_self_scores = cf.determine_self_scores(concat_repy, candidates_blast_dir,
 													   makeblastdb_path, blastp_path,
 													   'prot', config['CPU cores'],
@@ -2926,7 +2924,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),
 											results['int_to_unique'],
 											output_directory,
-											results['cds_coordinates'],
+											results['cds_coordinates'][1],
 											classification_labels,
 											loci_finder)
 	outfile, repeated_info, repeated_counts = results_contigs
@@ -2970,6 +2968,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 			fo.pickle_dumper(current_novel, locus_novel[1])
 
 		reps_info = {}
+		representative_ids = set()
 		if config['Mode'] == 4:
 			print('Getting data for new representative alleles...')
 			# Get info for new representative alleles that must be added to files in the short directory
@@ -2983,6 +2982,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 						# We might have representatives that were converted to NIPH but still appear in the list
 						if len(allele_id) > 0:
 							reps_info.setdefault(locus_id, []).append(list(e)+allele_id)
+							representative_ids.add(f'{locus_id}_{allele_id[0]}')
 
 			if no_inferred is False:
 				self_score_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
@@ -3028,6 +3028,23 @@ def main(input_file, loci_list, schema_directory, output_directory,
 				print(f'Updating pre-computed hash tables in {pre_computed_dir}')
 				total_hashes = update_hash_tables(updated_novel, loci_to_call,
 								   config['Translation table'], pre_computed_dir)
+
+	# Create TSV with allele ID to CDS ID
+	# Get new allele IDs and CDS IDs
+	clines = []
+	for l in novel_alleles:
+		locus_id = fo.file_basename(l[0], False)
+		novel_data = fo.pickle_loader(l[1])
+		for l2 in novel_data:
+			allele_id = f'{locus_id}_{l2[1]}'
+			cds_id = l2[2]
+			rep = 'Y' if allele_id in representative_ids else 'N'
+			clines.append([allele_id, cds_id, rep])
+
+	clines = [im.join_list(l, '\t') for l in clines]
+	coutfile = fo.join_paths(output_directory, ['selected_ids.tsv'])
+	clines = [ct.ALLELE_TO_CDS_HEADER] + clines
+	fo.write_lines(clines, coutfile)
 
 	# Create file with allelic profiles
 	print(f'Creating file with the allelic profiles ({ct.RESULTS_ALLELES_BASENAME})...')

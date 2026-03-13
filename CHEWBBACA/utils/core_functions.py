@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 
 def predict_genes(fasta_files, ptf_path, translation_table,
 				  prodigal_mode, cpu_cores, output_directory):
-	"""Execute Prodigal to predict coding sequences from Fasta files.
+	"""Execute Pyrodigal to predict coding sequences from Fasta files.
 
 	Parameters
 	----------
@@ -760,7 +760,6 @@ def blast_clusters(clusters, sequences, id_mapping, output_directory,
 	# Distribute clusters per available cores
 	process_num = 20 if cpu_cores <= 20 else cpu_cores
 	splitted_seqids = mo.distribute_loci(seqids_to_blast, process_num, 'seqcount')
-
 	common_args = [sequences, blastp_results_dir, blastp_path,
 				   blast_db, blastdb_aliastool_path, only_rep, sc.cluster_blaster]
 	splitted_seqids = [[s, *common_args] for s in splitted_seqids]
@@ -969,21 +968,3 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 	self_scores = {id_mapping[k]: v for k, v in self_scores.items()}
 
 	return self_scores
-
-
-def write_coordinates_file(coordinates_file, output_file):
-	"""Write genome CDS coordinates to a TSV file.
-
-	Parameters
-	----------
-	coordinates_file : str
-		Path to the pickle file that contains data about
-		the CDSs coordinates.
-	output_file : str
-		Path to the output TSV file.
-	"""
-	data = fo.pickle_loader(coordinates_file)
-	lines = [coords for h, coords in data[0].items()]
-	lines = im.flatten_list(lines)
-	lines = ['\t'.join(line) for line in lines]
-	fo.write_lines(lines, output_file)

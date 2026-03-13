@@ -47,7 +47,7 @@ def get_locus_alleles(locus_id, allele_ids, locus_file, output_directory):
 	"""
 	# Import sequences
 	locus_alleles = fao.import_sequences(locus_file)
-	# Only keep allele ID, do not keep '*' added to new allele IDs in schemas downloaded from Chewie-NS
+	# Only keep the allele ID, do not keep '*' added to new allele IDs in schemas downloaded from Chewie-NS
 	locus_alleles = {(k.split('_')[-1]).replace('*', ''): v for k, v in locus_alleles.items()}
 	dataset_alleles = [(t, locus_alleles.get(t[1])) for t in allele_ids]
 	# Create records
@@ -58,7 +58,6 @@ def get_locus_alleles(locus_id, allele_ids, locus_file, output_directory):
 		else:
 			header = f'>{locus_id}_{a[0][1]}'
 		sequence = a[1]
-		################################
 		# Alleles must be in the schema!
 		try:
 			record = '\n'.join([header, sequence])

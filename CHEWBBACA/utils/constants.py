@@ -312,6 +312,12 @@ PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'
 # Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 
+GENOMES_MISSING_COLUMNS = ['Genome', 'missing', 'percentage']
+GENOMES_MISSING_BASENAME = 'genomes_missing_stats.tsv'
+LOCI_MISSING_COLUMNS = ['Locus', 'missing', 'percentage']
+LOCI_MISSING_BASENAME = 'loci_missing_stats.tsv'
+
+
 # HTML template to create Schema Report
 # need to include '.' at start to work properly when referencing local files
 SCHEMA_REPORT_HTML = ("""

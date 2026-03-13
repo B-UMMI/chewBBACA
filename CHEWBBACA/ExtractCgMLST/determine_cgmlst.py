@@ -231,26 +231,24 @@ def main(input_file, output_directory, threshold, step,
 	Parameters
 	----------
 	input_file : str
-		Path to a TSV file containing allelic profiles.
+		Path to the TSV file that contains the allelic 
+		profiles determined by the AlleleCall module.
 	output_directory : str
 		Path to the directory where the process will
 		store output files.
 	threshold : list
-		Loci presence threshold values used to determine the core genome.
+		Loci presence threshold values used to determine the set of core loci.
 	step : int
 		Number of genomes added to the core genome computation at
 		each step.
 	compute_accessory : bool
-		Compute the results for the accessory genome. The accessory
-		genome corresponds to all the loci not included in the core
-		genome. The accessory genome is determined for each core
-		genome threshold.
+		Determine the set of accessory loci. The accessory genome 
+		corresponds to all the loci not included in the core genome. 
+		The accessory genome is determined for each core genome threshold.
 	exclude_loci : str
-		Path to TXT file with a list of loci to exclude from
-		the analysis.
+		Path to TXT file with a list of loci to exclude from the analysis.
 	exclude_genomes : str
-		Path to TXT file with a list of genomes to exclude from
-		the analysis.
+		Path to TXT file with a list of genomes to exclude from the analysis.
 	"""
 	fo.create_directory(output_directory)
 
@@ -307,7 +305,7 @@ def main(input_file, output_directory, threshold, step,
 
 	# Sort based on decreasing number of special classifications
 	genome_mdata_df = genome_mdata_df.sort_values('missing', ascending=True)
-	sorted_genomes = genome_mdata_df['FILE'].tolist()
+	sorted_genomes = genome_mdata_df['Genome'].tolist()
 
 	# Write TSV with special classifications statistics
 	genome_mdata_path = os.path.join(output_directory, ct.GENOMES_MISSING_BASENAME)
@@ -406,14 +404,16 @@ def main(input_file, output_directory, threshold, step,
 					  xaxis_title='Number of genomes',
 					  yaxis_title='Number of loci',
 					  template='simple_white',
-					  hovermode='x')
-	fig.update_xaxes(range=[0, len(sorted_genomes)],
-					 tickfont=dict(size=18),
-					 titlefont=dict(size=20),
-					 showgrid=True)
-	fig.update_yaxes(tickfont=dict(size=18),
-					 titlefont=dict(size=20),
-					 showgrid=True)
+					  hovermode='x',
+					  yaxis=dict(title=dict(text='Number of loci', font=dict(size=20)),
+                                      tickfont=dict(size=18),
+                                      showgrid=True),
+					  xaxis=dict(title=dict(text='Number of genomes', font=dict(size=20)),
+                                      tickfont=dict(size=18),
+                                      showgrid=True,
+                                      range=[0, len(sorted_genomes)])
+	)
+
 	output_html_basename = 'cgMLST.html' if not compute_accessory else 'cgMLST_plus_agMLST.html'
 	output_html_path = os.path.join(output_directory, output_html_basename)
 	plot(fig, filename=output_html_path, auto_open=False)

@@ -880,7 +880,7 @@ def run_evaluate_calls():
 
 @pdt.process_timer
 def run_determine_cgmlst():
-	"""Run the ExtractCgMLST module to determine the core genome."""
+	"""Run the ExtractCgMLST module to determine the set of core loci based on allele calling results."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]'
@@ -888,7 +888,7 @@ def run_determine_cgmlst():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ExtractCgMLST',
-									 description='Determine the set of loci that constitute the core genome based on allele calling results.',
+									 description='Determine the set of core loci based on allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -921,12 +921,12 @@ def run_determine_cgmlst():
 							 'iteratively to evaluate the impact of '
 							 'adding subsets of the results in computing '
 							 'the core genome. The step value controls '
-							 'the number of profiles added in each '
+							 'the number of allelic profiles added in each '
 							 'iteration until all profiles are included.')
 
 	parser.add_argument('--ca', '--compute-accessory', action='store_true', required=False,
 					    dest='compute_accessory',
-						help='Compute the results for the accessory genome.'
+						help='Determine the set of accessory loci.'
 							 'The accessory genome corresponds to all the '
 							 'loci not included in the core genome. The '
 							 'accessory genome is determined for each core '
@@ -934,13 +934,13 @@ def run_determine_cgmlst():
 
 	parser.add_argument('--el', '--exclude-loci', type=str,
 						required=False, default=False, dest='exclude_loci',
-						help='Path to a file with a list of loci IDs to '
+						help='Path to a file with a list of loci identifiers to '
 							 'exclude from the analysis (one locus identifier '
 							 'per line).')
 
 	parser.add_argument('--eg', '--exclude-genomes', type=str,
 						required=False, default=False, dest='exclude_genomes',
-						help='Path to a file with a list of genome IDs to '
+						help='Path to a file with a list of genome identifiers to '
 							 'exclude from the analysis (one genome identifier '
 							 'per line).')
 

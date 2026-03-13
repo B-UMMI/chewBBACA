@@ -2,7 +2,21 @@
 
 ## 3.6.0 - 2026-03-
 
+This version adds multiple modules that perform operations that were previously integrated into other modules and could not be used separately. The new modules are the following:
 
+- **PredictGenes**: this module predicts genes from genome assemblies in FASTA format. In past versions, gene prediction was integrated into the CreateSchema and AlleleCall modules and could not be used separately to perform gene prediction and keep the FASTA files with the predicted CDSs. With this new module, users can predict genes for genomes of interest and provide the FASTA files for subsequent analyses with the CreateSchema and AlleleCall modules (through the `--cds-input` option) or to perform other analyses with external software. Performing gene prediciton with the PredictGenes module and storing the FASTA files also eliminates the need to perform gene prediction each time that dataset is analysed, reducing the runtime of the analyses.
+
+- **ComputeDistances**: this module computes pairwise distances based on the allelic profiles determined by the AlleleCall module. Previously, pairwise ditance computation was integrated into the AlleleCallEvalautor module. By creating a separte module for pairwise distance computation, users do not have to run the AlleleCallEvaluator module if all they want is a matrix with the pariwise distances. Creating a separate module also allowed to implement more functionalities, such as selecting between different types of distances (hamming, jaccard and loci (number of loci not shared)) and output file formats (upper- and lower-triangular matrices, symmetrice and table), and to provide the option to compute pairwise similarity instead of distance.
+
+- **HashProfiles**: the `--hash-profiles` option integrated into the AlleleCall module was isolated to implement the HashProfiles module. The HashProfiles module allows users to hash the allelic profiles by providing the `results_alleles.tsv` file created by the AlleleCall module. Previously, users had to run the AlleleCall module to get the hashed profiles, but with the HashProfiles module users can hash the allelic profiles from the latest or past runs.
+
+- **SubsetResults**: the SubsetResults module enables users to subset results based on loci and sample lists. The SubsetResults module superseeds the RemoveGenes module while also providing more options, such as excluding the list of loci and/or samples provided to keep only remaining loci and/or samples.
+
+- **MergeResults**: the MergeResults allows to merge allele calling results from different runs, superseeding the JoinProfiles module. It can merge results that were generated based on the same schema.
+
+Additional changes:
+
+- Added option to determine the set of loci that constitute the accessory genome to the ExtractCgMLST module.
 
 ## 3.5.3 - 2026-03-10
 

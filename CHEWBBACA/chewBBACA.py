@@ -952,7 +952,7 @@ def run_determine_cgmlst():
 
 @pdt.process_timer
 def run_subset_results():
-	"""Run the SubsetResults module to subset allele calling results based on loci and sample lists."""
+	"""Run the SubsetResults module to subsets results generated with chewBBACA based on loci and sample lists."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]'
@@ -960,7 +960,7 @@ def run_subset_results():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='SubsetResults',
-									 description='Subset allele calling results based on loci and sample lists.',
+									 description='Subset results based on loci and sample lists.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -970,11 +970,15 @@ def run_subset_results():
 
 	parser.add_argument('-i', '--input-file', type=str,
 						required=True, dest='input_file',
-						help='Path to a TSV file with allelic profiles determined by the AlleleCall process.')
+						help='Path to the input TSV file. The first column in the file must have sample '
+							 'identifiers and the remaining columns must have locus identifiers. Currently, '
+							 'the module can subset results from the `results_alleles.tsv` and `results_contigsInfo.tsv` '
+							 'files generated with the AlleleCall module and the `presence_absence.tsv` file generated '
+							 'with the ExtractCgMLST module.')
 
 	parser.add_argument('-o', '--output-file', type=str,
 						required=True, dest='output_file',
-						help='Path to the output file.')
+						help='Path to the output file used to save the subsetted results.')
 
 	parser.add_argument('-l', '--loci-list', type=str,
 						required=False, default=False, dest='loci_list',

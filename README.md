@@ -31,6 +31,16 @@ Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.
 
 ## Citation
 
-When using chewBBACA, please use the following citation:
+If you use chewBBACA, please cite the following publication:
 
-> Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [doi:10.1099/mgen.0.000166](doi:10.1099/mgen.0.000166)
+> Mamede R, Vila-Cerqueira P, Carriço JA, Ramirez M. 2026. chewBBACA 3: lowering the barrier for scalable and detailed whole- and core-genome multilocus sequence typing. Genome Med 18:51. [https://doi.org/10.1186/s13073-026-01625-x](https://doi.org/10.1186/s13073-026-01625-x)
+
+Other relevant citations:
+
+- chewBBACA's first publication (if using a version < 2.1.0):
+
+> Silva M, Machado MP, Silva DN, Rossi M, Moran-Gilad J, Santos S, Ramirez M, Carriço JA. 2018. chewBBACA: A complete suite for gene-by-gene schema creation and strain identification. Microb Genom 4:000166. [https://doi.org/10.1099/mgen.0.000166](https://doi.org/10.1099/mgen.0.000166)
+
+- Chewie-NS (if using any of the schemas deposited on Chewie-NS):
+
+> Mamede R, Vila-Cerqueira P, Silva M, Carriço JA, Ramirez M. 2021. Chewie Nomenclature Server (chewie-NS): a deployable nomenclature server for easy sharing of core and whole genome MLST schemas. Nucleic Acids Res 49:D660–D666. [https://doi.org/10.1093/nar/gkaa889](https://doi.org/10.1093/nar/gkaa889)

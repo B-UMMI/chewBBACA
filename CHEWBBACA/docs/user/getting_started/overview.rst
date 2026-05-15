@@ -57,7 +57,6 @@ Other relevant citations:
   </div>
 
 |
-
 - Chewie-NS (if using any of the schemas deposited on Chewie-NS):
 
 .. raw:: html
@@ -67,7 +66,6 @@ Other relevant citations:
   </div>
 
 |
-
 Please consider also citing the awesome software dependencies used by chewBBACA:
 
 - General dependencies:

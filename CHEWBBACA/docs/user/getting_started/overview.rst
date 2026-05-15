@@ -34,9 +34,9 @@ The main processes available in chewBBACA are represented in the following workf
 Citation
 --------
 
-.. admonition:: chewBBACA 3
-
+<div style="background-color: #f3f3f3; padding: 15px; border-radius: 5px; text-align: justify;">
   Mamede R, Vila-Cerqueira P, Carriço JA, Ramirez M. 2026. chewBBACA 3: lowering the barrier for scalable  and detailed whole- and core-genome multilocus sequence typing. Genome Med 18:51. `https://doi.org/10. 1186/s13073-026-01625-x <https://doi.org/10.1186/s13073-026-01625-x>`_.
+</div>
 
 The supplementary material for the publication is available on `Zenodo <https://doi.org/10.5281/zenodo.14637858>`_.
 

@@ -35,6 +35,8 @@ If you use chewBBACA, please cite the following publication:
 
 > Mamede R, Vila-Cerqueira P, Carriço JA, Ramirez M. 2026. chewBBACA 3: lowering the barrier for scalable and detailed whole- and core-genome multilocus sequence typing. Genome Med 18:51. [https://doi.org/10.1186/s13073-026-01625-x](https://doi.org/10.1186/s13073-026-01625-x)
 
+The supplementary material for the publication is available on [Zenodo](https://doi.org/10.5281/zenodo.14637858).
+
 Other relevant citations:
 
 - chewBBACA's first publication (if using a version < 2.1.0):

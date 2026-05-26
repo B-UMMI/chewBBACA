@@ -46,3 +46,5 @@ Other relevant citations:
 - Chewie-NS (if using any of the schemas deposited on Chewie-NS):
 
 > Mamede R, Vila-Cerqueira P, Silva M, Carriço JA, Ramirez M. 2021. Chewie Nomenclature Server (chewie-NS): a deployable nomenclature server for easy sharing of core and whole genome MLST schemas. Nucleic Acids Res 49:D660–D666. [https://doi.org/10.1093/nar/gkaa889](https://doi.org/10.1093/nar/gkaa889)
+
+Please consider also citing the awesome software dependencies used by chewBBACA. The full list of dependencies is available [here](https://chewbbaca.readthedocs.io/en/latest/user/getting_started/overview.html#citation).

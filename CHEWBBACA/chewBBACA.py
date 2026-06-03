@@ -418,7 +418,7 @@ def run_allele_call():
 	parser.add_argument('--hash-profiles', type=str, required=False,
 						dest='hash_profiles',
 						help='Create a TSV file with hashed allelic profiles. '
-							 'Profiles can be hashed with any of the hashing '
+							 'Profiles can be hashed using any of the hash '
 							 'algorithms implemented in the hashlib and zlib '
 							 'Python libraries.')
 

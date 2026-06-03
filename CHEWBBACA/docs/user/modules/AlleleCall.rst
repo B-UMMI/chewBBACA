@@ -114,8 +114,8 @@ Parameters
     --no-cleanup                (Optional) If provided, intermediate files generated during process execution are
                                 not removed at the end (default: False).
 
-    --hash-profile              (Optional) Create a TSV file with hashed allelic profiles. Profiles can be hashed
-                                with any of the hashing algorithms implemented in the hashlib and zlib Python libraries
+    --hash-profiles             (Optional) Create a TSV file with hashed allelic profiles. Profiles can be hashed
+                                using any of the hash algorithms implemented in the hashlib and zlib Python libraries
                                 (default: None).
 
     --force-continue            (Optional) If provided, chewie will not warn users and ask for permission to
@@ -263,7 +263,7 @@ Outputs
 
 - If the ``--output-masked`` parameter is provided, the process will create a TSV file, ``results_alleles_masked.tsv``, with the masked allelic profiles. The masking process removes the ``INF-`` prefix from inferred alleles and substitutes all special classes (NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5, LOTSC, PAMA) with ``0``.
 
-- If the ``--hash-profiles`` parameter is provided, the process will use the provided hash algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted by the hash of the DNA sequence).
+- If the ``--hash-profiles`` parameter is provided, the process will use the provided hash algorithm to create a TSV file, ``results_alleles_hashed.tsv``, with hashed profiles (each allele identifier is substituted by the hash of its DNA sequence). chewBBACA can use any of the hash algorithms implemented in the `zlib <https://docs.python.org/3/library/zlib.html>`_ and `hashlib <https://docs.python.org/3/library/hashlib.html>`_ libraries. Please check the documentation of those libraries to know which hash algorithms are available and select one (e.g., if using the `crc32 <https://docs.python.org/3/library/zlib.html#zlib.crc32>`_ algorithm implemented in zlib, include ``--hash-profiles crc32`` in your command).
 
 Workflow of the AlleleCall module
 :::::::::::::::::::::::::::::::::

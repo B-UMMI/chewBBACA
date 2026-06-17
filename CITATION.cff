@@ -7,8 +7,6 @@ authors:
     given-names: Rafael
   - family-names: Vila-Cerqueira
     given-names: Pedro
-  - family-names: Silva
-    given-names: Mickael
   - family-names: Carriço
     given-names: João
   - family-names: Ramirez
@@ -26,8 +24,8 @@ keywords:
   - bacterial strains
   - allele calling
 license: GPL-3.0
-doi: 10.1099/mgen.0.000166
+doi: 10.1186/s13073-026-01625-x
 repository-code: "https://github.com/B-UMMI/chewBBACA" 
 contact:
   - email: imm-bioinfo@medicina.ulisboa.pt
-    name: "Molecular Microbiology and Infection Unit (UMMI), Instituto de Medicina Molecular João Lobo Antunes, Faculdade de Medicina, Universidade de Lisboa"
+    name: "Molecular Microbiology and Infection Unit (UMMI), Faculdade de Medicina, Universidade de Lisboa"

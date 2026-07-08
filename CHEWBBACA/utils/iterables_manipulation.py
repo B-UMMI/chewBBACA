@@ -1006,9 +1006,9 @@ def replace_chars(column, missing_char='0'):
 	replaced_inf = column.replace(to_replace='INF-', value='', regex=True)
 	# Replace '*' in novel alleles from schemas downloaded from Chewie-NS
 	# before replacing missing data cases to avoid replacing '*' with '0'
-	replaced_ns = replaced_inf.replace(to_replace='\*', value='', regex=True)
+	replaced_ns = replaced_inf.replace(to_replace=r'\*', value='', regex=True)
 	# Replace special classifications with missing character
-	replaced_special = replaced_ns.replace(to_replace='\D+.*', value=missing_char, regex=True)
+	replaced_special = replaced_ns.replace(to_replace=r'\D+.*', value=missing_char, regex=True)
 
 	return replaced_special
 

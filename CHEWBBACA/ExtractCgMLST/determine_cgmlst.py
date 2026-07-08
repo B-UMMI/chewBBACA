@@ -16,6 +16,8 @@ import os
 
 import numpy as np
 import pandas as pd
+import plotly.colors as pc
+import plotly.express as px
 from plotly.offline import plot
 import plotly.graph_objects as go
 
@@ -155,15 +157,13 @@ def compute_cgMLST(matrix, sorted_genomes, threshold, step, compute_accessory):
 		# Get subdataframe for current genomes
 		current_df = matrix.loc[sorted_genomes[:i]]
 		pa_rows, _ = current_df.shape
-		is_above_threshold = current_df.apply(above_threshold,
-											  args=(pa_rows, threshold,))
+		is_above_threshold = current_df.apply(above_threshold, args=(pa_rows, threshold))
 		above = current_df.columns[is_above_threshold]
 		cgMLST_size[pa_rows] = len(above)
 		if compute_accessory:
 			# Compute accessory genome
 			below = current_df.columns[~is_above_threshold]
 			agMLST_size[pa_rows] = len(below)
-		print('\r', 'Computed for...{0} genomes.'.format(i), end='')
 
 	# Return list of genes in cgMLST and cgMLST count per step iteration
 	return [above, cgMLST_size, below, agMLST_size]
@@ -196,7 +196,7 @@ def compute_presence_absence(matrix, output_directory):
 	return [presence_absence, pa_outpath]
 
 
-def count_zeros(matrix, axis=1, column_names=None):
+def compute_stats(matrix, axis=1, column_names=None):
 	"""Count zeros per dataframe row.
 
 	Parameters
@@ -214,14 +214,64 @@ def count_zeros(matrix, axis=1, column_names=None):
 	nrows, ncols = matrix.shape
 	non_zeros = matrix.apply(np.count_nonzero, axis=axis)
 
-	zeros_data = [matrix.index if axis == 1 else matrix.columns,
-				  (ncols-non_zeros) if axis == 1 else (nrows-non_zeros),
-				  (1-(non_zeros/ncols))*100 if axis == 1 else (1-(non_zeros/nrows))*100]
+	zeros_data = [matrix.index if axis == 1 else matrix.columns, # labels used in the first column
+			   	  non_zeros, # Number of loci identified or samples with each locus
+				  (non_zeros/ncols) if axis == 1 else (non_zeros/nrows)] # Percentage of loci identified or samples with each locus 
 
-	zeros_df = pd.DataFrame(list(zip(*zeros_data)),
-							columns=column_names)
+	zeros_df = pd.DataFrame(list(zip(*zeros_data)), columns=column_names)
 
 	return zeros_df
+
+
+def plot_loci_presence(loci_presence_data, output_directory):
+	"""Plot the distribution of loci presence frequency percentages.
+
+	Parameters
+	----------
+	loci_presence_data : pandas.core.frame.DataFrame
+		Dataframe with the number and percentage of samples with each locus.
+	output_directory : str
+		Path to the directory where the HTML file with
+		the plot will be stored.
+
+	Returns
+	-------
+	output_html_path : str
+		Path to the output HTML file that contains the
+		plot with the distribution of loci presence frequency percentages.s
+	"""
+	fig = px.histogram(
+		loci_presence_data,
+		x='Sample presence proportion',
+		marginal="box",
+		nbins=200,
+		color_discrete_sequence=['#225ea8'],
+		hover_data=loci_presence_data.columns, # Set the hover data fr the points in the points above the histogram
+	)
+
+	fig.update_traces(boxpoints="all", jitter=1,
+					fillcolor="rgba(0,0,0,0)",
+					line_color="rgba(0,0,0,0)",
+					marker=dict(color="#225ea8", size=3),
+					selector=dict(type="box"))
+
+	fig.update_layout(title={'text': 'Loci presence proportion', 'font_size': 30},
+					template='simple_white',
+					yaxis=dict(title=dict(text='Count', font=dict(size=20)),
+									tickfont=dict(size=18), showgrid=True,
+									domain=[0, 0.90]),
+					xaxis=dict(title=dict(text='Locus presence proportion', font=dict(size=20)),
+									tickfont=dict(size=18), showgrid=True),
+					showlegend=False,
+					yaxis2=dict(domain=[0.93, 1.0], # Reduce the vertical space for the trace with the invisible boxplot
+					range=[-0.75, 0])
+	)
+
+	output_html_basename = 'loci_presence_proportion.html'
+	output_html_path = os.path.join(output_directory, output_html_basename)
+	plot(fig, filename=output_html_path, auto_open=False)
+
+	return output_html_path
 
 
 def main(input_file, output_directory, threshold, step,
@@ -258,100 +308,94 @@ def main(input_file, output_directory, threshold, step,
 
 	# Get number of genomes and loci
 	total_genomes, total_loci = profiles.shape
-	print('Input file has {0} profiles for {1} '
-		  'loci.'.format(total_genomes, total_loci))
+	print(f'Input file includes profiles for {total_genomes} samples and {total_loci} loci.')
 
 	cgMLST_thresholds = sorted(threshold)
-	print('Core genome thresholds: {0}'.format(', '.join(map(str, cgMLST_thresholds))))
-	
-	# Read lists of loci and genomes to exclude from the analysis
-	genomes_to_remove = []
+	print(f'Will compute the set of core loci based on the following loci presence thresholds: {", ".join(map(str, cgMLST_thresholds))}')
+
+	# Read list of samples to exclude from the analysis
 	if exclude_genomes:
 		genomes_to_remove = fo.read_lines(exclude_genomes)
-	print('{0} genomes to exclude.'.format(len(genomes_to_remove)))
-
-	# Remove genomes
-	if len(genomes_to_remove) > 0:
+		print(f'User provided list with {len(genomes_to_remove)} samples to exclude.')
+		print(f'List of genomes to exclude: {", ".join(genomes_to_remove)}')
 		profiles = remove_genomes(profiles, genomes_to_remove)
-		print('Excluded {0} genomes.'.format(total_genomes - profiles.shape[0]))
+		print(f'Excluded {total_genomes - profiles.shape[0]} genomes.')
 
-	loci_to_remove = []
 	if exclude_loci:
 		loci_to_remove = fo.read_lines(exclude_loci)
-	print('{0} loci to exclude.'.format(len(loci_to_remove)))
-
-	# Remove loci
-	if len(loci_to_remove) > 0:
+		print(f'User provided list with {len(loci_to_remove)} loci to exclude.')
 		profiles = remove_columns(profiles, loci_to_remove)
-		print('Excluded {0} loci.'.format(total_loci - profiles.shape[1]))
+		print(f'Excluded {total_loci - profiles.shape[1]} loci.')
 
-	total_genomes, total_loci = profiles.shape
-	print('Processed file has {0} profiles for {1} loci.'.format(total_genomes, total_loci))
+	if exclude_genomes or exclude_loci:
+		total_genomes, total_loci = profiles.shape
+		print(f'After excluding {len(genomes_to_remove)} sample profiles and {len(loci_to_remove)} '
+			  f'loci columns, the profiles to analyze include {total_genomes} samples and {total_loci} loci.')
 
 	# Mask special classifications and remove 'INF-' prefixes
 	print('Masking profiles...')
 	masked_profiles = profiles.apply(im.replace_chars)
-	print('Masked {0} profiles.'.format(total_genomes))
+	print(f'Masked {total_genomes} profiles.')
 
 	# Compute presence-absence matrix
 	print('Computing presence-absence matrix...')
 	pa_matrix, pa_outfile = compute_presence_absence(masked_profiles, output_directory)
-	print('Presence-absence matrix saved to {0}'.format(pa_outfile))
+	print(f'Presence-absence matrix saved to {pa_outfile}')
 
 	# Count number of special classifications per genome
-	print('Computing missing data per genome...')
-	genome_mdata_df = count_zeros(pa_matrix, column_names=ct.GENOMES_MISSING_COLUMNS)
-	genome_mdata_stats = genome_mdata_df['missing'].describe()
-
-	# Sort based on decreasing number of special classifications
-	genome_mdata_df = genome_mdata_df.sort_values('missing', ascending=True)
-	sorted_genomes = genome_mdata_df['Genome'].tolist()
-
-	# Write TSV with special classifications statistics
-	genome_mdata_path = os.path.join(output_directory, ct.GENOMES_MISSING_BASENAME)
-	genome_mdata_df.to_csv(genome_mdata_path, sep='\t', index=False)
-	print('Missing data per genome saved to {0}'.format(genome_mdata_path))
+	print('Computing the presence-absence statistics per sample...')
+	genome_mdata_df = compute_stats(pa_matrix, column_names=ct.GENOMES_MISSING_COLUMNS)
+	# Sort based on increasing number of special classifications
+	genome_mdata_df = genome_mdata_df.sort_values('Loci presence count', ascending=False)
+	sorted_genomes = genome_mdata_df['Sample'].tolist()
+	# Round percentage values to 2 decimal places
+	genome_mdata_df['Loci presence proportion'] = genome_mdata_df['Loci presence proportion'].round(3)
 
 	# Count number of special classifications per locus
-	print('Computing missing data per locus...')
-	loci_mdata_df = count_zeros(pa_matrix, axis=0, column_names=ct.LOCI_MISSING_COLUMNS)
-	loci_mdata_stats = loci_mdata_df['missing'].describe()
+	print('Computing the presence-absence statistics per locus...')
+	loci_mdata_df = compute_stats(pa_matrix, axis=0, column_names=ct.LOCI_MISSING_COLUMNS)
+	# Sort based on increasing number of special classifications
+	loci_mdata_df = loci_mdata_df.sort_values('Sample presence count', ascending=False)
+	# Round percentage values to 2 decimal places
+	loci_mdata_df['Sample presence proportion'] = loci_mdata_df['Sample presence proportion'].round(3)
 
-	# Sort based on decreasing number of special classifications
-	loci_mdata_df = loci_mdata_df.sort_values('missing', ascending=True)
-	sorted_loci = loci_mdata_df.index.tolist()
+	# Create custom color palette for line plots
+	# Select the color at the midpoint of the colorscale if only one threshold is provided, otherwise sample colors from the colorscale
+	# Providing a float value allows to get the color at a specific percentage mapping
+	# Providing 1 when there is a single threshold would lead to a ZeroDivisionError because it assumes we want to sample at least 2 colors
+	if len(cgMLST_thresholds) == 1:
+		midpoint_color = pc.sample_colorscale("Cividis", 0.5)[0]
+		custom_palette = [midpoint_color]
+	else:
+		custom_palette = pc.sample_colorscale("Cividis", len(cgMLST_thresholds))
 
-	# Write TSV with special classifications statistics
-	loci_mdata_path = os.path.join(output_directory, ct.LOCI_MISSING_BASENAME)
-	loci_mdata_df.to_csv(loci_mdata_path, sep='\t', index=False)
-	print('Missing data per locus saved to {0}'.format(loci_mdata_path))
-
-	trace_colors = ['#134130', '#4C825D', '#8CAE9E', '#8DC7DC',
-					'#508CA7', '#1A5270', '#0E2A4D']
 	# Compute the core genome for each threshold
 	cgMLST_traces = []
 	agMLST_traces = []
 	for i, t in enumerate(cgMLST_thresholds):
-		current_color = trace_colors[i] if i < len(trace_colors) else trace_colors[i%len(trace_colors)]
-		cgMLST_results = compute_cgMLST(pa_matrix, sorted_genomes,
-										t, step, compute_accessory)
-
+		print(f'Analyzing results for threshold {t}...')
+		current_color = custom_palette[i]
+		cgMLST_results = compute_cgMLST(pa_matrix, sorted_genomes, t, step, compute_accessory)
 		cgMLST_loci, cgMLST_counts, agMLST_loci, agMLST_counts = cgMLST_results
-
-		print('\nCore genome for locus presence threshold of {0} composed '
-			  'of {1}/{2} loci.'.format(t, len(cgMLST_loci), total_loci))
+		print(f'Based on the threshold of {t}, the core genome is composed of {len(cgMLST_loci)}/{total_loci} loci.')
 
 		# Write cgMLST matrix
 		# Get subset from masked matrix
 		cgMLST_matrix = masked_profiles[cgMLST_loci]
 		cgMLST_path = os.path.join(output_directory, 'cgMLST{0}.tsv'.format(int(t*100)))
 		cgMLST_matrix.to_csv(cgMLST_path, sep='\t')
-		print('cgMLST profiles for threshold {0} saved to {1}'.format(t, cgMLST_path))
+		print(f'cgMLST profiles for threshold {t} saved to {cgMLST_path}')
 
 		# Write list of cgMLST loci
 		cgMLST_loci_path = os.path.join(output_directory, 'cgMLSTschema{0}.txt'.format(int(t*100)))
 		fo.write_lines(list(cgMLST_loci), cgMLST_loci_path)
-		print('List of core loci for threshold {0} saved to {1}'.format(t, cgMLST_loci_path))
+		print(f'List of core loci for threshold {t} saved to {cgMLST_loci_path}')
+
+		# Determine the percentage of cgMLST loci present in each genome
+		# Get the values for each genome in the order of the sorted_genomes list, cast them to int32 and compute the percentage of core loci in each genome
+		cgMLST_sample_pct = [np.sum(cgMLST_matrix.loc[genome].astype(np.int32) > 0) / len(cgMLST_loci) for genome in sorted_genomes]
+		genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'] = cgMLST_sample_pct
+		genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'] = genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'].round(3)
 
 		# Create line plot for core genome values at each step value
 		trace = go.Scattergl(x=list(cgMLST_counts.keys()),
@@ -363,17 +407,18 @@ def main(input_file, output_directory, threshold, step,
 		cgMLST_traces.append(trace)
 
 		if compute_accessory:
+			print(f'Based on the threshold of {t}, the accessory genome is composed of {len(agMLST_loci)}/{total_loci} loci.')
 			# Write agMLST matrix
 			# Get subset from masked matrix
 			agMLST_matrix = masked_profiles[agMLST_loci]
 			agMLST_path = os.path.join(output_directory, 'agMLST{0}.tsv'.format(int(t*100)))
 			agMLST_matrix.to_csv(agMLST_path, sep='\t')
-			print('agMLST profiles for threshold {0} saved to {1}'.format(t, agMLST_path))
+			print(f'agMLST profiles for threshold {t} saved to {agMLST_path}')
 
 			# Write list of agMLST loci
 			agMLST_loci_path = os.path.join(output_directory, 'agMLSTschema{0}.txt'.format(int(t*100)))
 			fo.write_lines(list(agMLST_loci), agMLST_loci_path)
-			print('List of accessory loci for threshold {0} saved to {1}'.format(t, agMLST_loci_path))
+			print(f'List of accessory loci for threshold {t} saved to {agMLST_loci_path}')
 
 			# Create line plot for accessory genome values at each step value
 			trace = go.Scattergl(x=list(agMLST_counts.keys()),
@@ -384,31 +429,45 @@ def main(input_file, output_directory, threshold, step,
 								 hovertemplate=('%{y}'))
 			agMLST_traces.append(trace)
 
+	# Write TSV with presence-absence statistics per sample
+	genome_mdata_path = os.path.join(output_directory, ct.GENOMES_MISSING_BASENAME)
+	genome_mdata_df.to_csv(genome_mdata_path, sep='\t', index=False)
+	print(f'Saved presence-absence statistics per sample to {genome_mdata_path}')
+
+	# Write TSV with presence-absence statistics per locus
+	loci_mdata_path = os.path.join(output_directory, ct.LOCI_MISSING_BASENAME)
+	loci_mdata_df.to_csv(loci_mdata_path, sep='\t', index=False)
+	print(f'Saved presence-absence statistics per locus to {loci_mdata_path}')
+
+	# Plot loci presence frequency percentage
+	print('Creating plot with the distribution of loci presence values...')
+	output_html_path = plot_loci_presence(loci_mdata_df, output_directory)
+	print(f'Saved plot to {output_html_path}')
+
+	print('Creating line plots for each threshold and step value...')
 	# Create trace with present loci
-	present = [total_loci-i for i in genome_mdata_df['missing']]
+	present = genome_mdata_df['Loci presence count'].tolist()
 	genomes_index = list(range(1, len(present)+1))
 	miss_trace = go.Scattergl(x=genomes_index,
 							  y=present,
 							  mode='lines',
-							  name='Present in genome',
+							  name='No. of loci per sample',
 							  line=dict(dash='dot', color='#000000'),
 							  hovertemplate=('%{y}<br>'
-											 'Genome: %{text}<br>'),
+											 'Sample: %{text}<br>'),
 							  text=sorted_genomes)
 
 	traces = cgMLST_traces + agMLST_traces + [miss_trace]
 
 	fig = go.Figure(data=traces)
-	fig.update_layout(title={'text': 'Number of loci in core genome',
+	fig.update_layout(title={'text': 'Size of the core genome for each threshold and step value',
 							 'font_size': 30},
-					  xaxis_title='Number of genomes',
-					  yaxis_title='Number of loci',
 					  template='simple_white',
 					  hovermode='x',
 					  yaxis=dict(title=dict(text='Number of loci', font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True),
-					  xaxis=dict(title=dict(text='Number of genomes', font=dict(size=20)),
+					  xaxis=dict(title=dict(text='Number of samples', font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True,
                                       range=[0, len(sorted_genomes)])
@@ -417,4 +476,4 @@ def main(input_file, output_directory, threshold, step,
 	output_html_basename = 'cgMLST.html' if not compute_accessory else 'cgMLST_plus_agMLST.html'
 	output_html_path = os.path.join(output_directory, output_html_basename)
 	plot(fig, filename=output_html_path, auto_open=False)
-	print('Line plots for loci presence per threshold and step saved to {0}'.format(output_html_path))
+	print(f'Line plots saved to {output_html_path}')

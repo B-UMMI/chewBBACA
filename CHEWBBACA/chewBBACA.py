@@ -909,7 +909,7 @@ def run_determine_cgmlst():
 	parser.add_argument('--t', '--threshold', nargs='+', type=float,
 						required=False, default=ct.CGMLST_THRESHOLDS,
 						dest='threshold',
-						help='Genes that constitute the core genome '
+						help='Loci/genes that constitute the core genome '
 							 'must be in a proportion of genomes that is '
 							 'at least equal to this value. Provide multiple '
 							 'values to compute the core genome for multiple '
@@ -932,6 +932,30 @@ def run_determine_cgmlst():
 							 'accessory genome is determined for each core '
 							 'genome threshold.')
 
+	parser.add_argument('--ra', '--rarefaction-analysis', action='store_true', required=False,
+					    dest='rarefaction_analysis',
+						help='Perform rarefaction analysis to evaluate the stability of the core genome '
+							 'and the openness of the pangenome. For the rarefaction analysis, samples '
+							 'are randomly selected and the number of core loci (for the core genome) or '
+							 'total loci (for the pangenome) is computed for each subset from 1 to the '
+							 'total number of samples. The average number of core loci (for the core genome) '
+							 'or total loci (for the pangenome) is computed for each sample size subset '
+							 'using the values of all permutations to plot the rarefaction curve. The '
+							 'rarefaction analysis is performed for each threshold. A power law model '
+							 'is fitted to the rarefaction curve to estimate the stability of the core genome '
+							 'and the openness of the pangenome.')
+
+	parser.add_argument('--pn', '--permutation-number', type=int, required=False, default=100,
+					    dest='permutation_number',
+						help='Number of permutations for the rarefaction analysis. The rarefaction '
+							 'analysis is repeated a number of times equal to the value provided to this '
+							 'parameter.')
+
+	parser.add_argument('--ps', '--permutation-samples', type=int, required=False,
+					    dest='permutation_samples',
+						help='Number of samples randomly selected for each permutation. All '
+							 'samples will be used if this value is not provided.')
+
 	parser.add_argument('--el', '--exclude-loci', type=str,
 						required=False, default=False, dest='exclude_loci',
 						help='Path to a file with a list of loci identifiers to '
@@ -943,6 +967,13 @@ def run_determine_cgmlst():
 						help='Path to a file with a list of genome identifiers to '
 							 'exclude from the analysis (one genome identifier '
 							 'per line).')
+
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Maximum number of CPU cores/threads that will be '
+							 'used to run the process (chewie resets to a lower '
+							 'value if it is equal to or exceeds the total number '
+							 'of available CPU cores/threads).')
 
 	args = parser.parse_args()
 	del args.ExtractCgMLST

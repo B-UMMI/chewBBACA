@@ -30,8 +30,8 @@ try:
 	from GetAlleles import get_alleles
 	from ComputeDistances import compute_distances
 	from ComputeMSA import compute_msa
-	from utils import (join_profiles,
-					   gene_prediction as gp,
+	from MergeResults import merge_results
+	from utils import (gene_prediction as gp,
 					   # profiles_sqlitedb as ps,
 					   process_datetime as pdt,
 					   constants as ct,
@@ -57,8 +57,8 @@ except ModuleNotFoundError:
 	from CHEWBBACA.GetAlleles import get_alleles
 	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.ComputeMSA import compute_msa
-	from CHEWBBACA.utils import (join_profiles,
-								 gene_prediction as gp,
+	from CHEWBBACA.MergeResults import merge_results
+	from CHEWBBACA.utils import (gene_prediction as gp,
 								 # profiles_sqlitedb as ps,
 								 process_datetime as pdt,
 								 constants as ct,
@@ -1036,45 +1036,44 @@ def run_subset_results():
 
 
 @pdt.process_timer
-def run_join_profiles():
-	"""Run the JoinProfiles module to merge allele calling results."""
+def run_merge_results():
+	"""Run the MergeResults module to merge allele calling results."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py JoinProfiles --profiles <file> <file> ... --output-file <file> [options]'
+		usage_msg = 'chewBBACA.py MergeResults --input-directories <dir> <dir> ... --output-directory <dir> [options]'
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='JoinProfiles',
-									 description='Join allele calling results from different runs.',
+	parser = argparse.ArgumentParser(prog='MergeResults',
+									 description='Merge the results from multiple allele calling runs.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/JoinProfiles.html')
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeProfiles.html')
 
-	parser.add_argument('JoinProfiles', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument('MergeResults', nargs='+', help=argparse.SUPPRESS)
 
-	parser.add_argument('-p', '--profiles', nargs='+', type=str,
-						required=True, dest='profiles',
-						help='Paths to the files containing allelic profiles '
-							 'determined by the AlleleCall module. It is '
-							 'possible to provide any number of files. The '
+	parser.add_argument('-i', '--input-directories', nargs='+', type=str,
+						required=True, dest='input_directories',
+						help='Paths to the directories containing allele calling '
+							 'results determined with the AlleleCall module. The '
 							 'results must have been determined with the same '
 							 'schema and share all the loci or a subset of the '
 							 'loci if using the --common parameter.')
 
-	parser.add_argument('-o', '--output-file', type=str,
-						required=True, dest='output_file',
-						help='Path to the output file.')
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Path to the output directory.')
 
 	parser.add_argument('--common', action='store_true',
 						required=False, dest='common',
 						help='Merge the results based on the subset of '
-							 'loci shared between all files.')
+							 'loci shared between all inputs.')
 
 	args = parser.parse_args()
-	del args.JoinProfiles
+	del args.MergeResults
 
-	join_profiles.main(**vars(args))
+	merge_results.main(**vars(args))
 
 
 @pdt.process_timer
@@ -1987,8 +1986,8 @@ def main():
 										run_subset_results],
 					  'PrepExternalSchema': ['Adapt an external schema to be used with chewBBACA.',
 											 run_adapt_schema],
-					  'JoinProfiles': ['Join allele calling results from different runs.',
-									   run_join_profiles],
+					  'MergeResults': ['Merge the results from multiple allele calling runs.',
+									   run_merge_results],
 					  'HashProfiles': ['Hash allelic profiles.',
 					  					run_hash_profiles],
 					  'GetAlleles': ['Create FASTA files containing the alleles identified by the AlleleCall module.',

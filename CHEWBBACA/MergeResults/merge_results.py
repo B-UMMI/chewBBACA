@@ -60,21 +60,21 @@ def concatenate_profiles(files, loci_list, output_file):
 	return total_profiles
 
 
-def main(profiles, output_file, common):
+def main(input_directories, output_diretory, common):
 	"""Join files with allelic profiles.
 
 	Parameters
 	----------
-	profiles : list
-		List with paths to TSV files with allelic profiles.
-	output_file : str
-		Path to the output file.
+	input_directories : list
+		List with paths to directories containing allele calling results.
+	output_diretory : str
+		Path to the output directory.
 	common : bool
-		If the process should join profile data only for shared loci
-		when the profiles do not share the same loci sets.
+		If the process should join results data only for shared loci
+		when the results do not share the same loci sets.
 	"""
-	if len(profiles) == 1:
-		sys.exit('Provided a single file. Nothing to do.')
+	if len(input_directories) == 1:
+		sys.exit('Provided a single directory. Nothing to do.')
 
 	headers = []
 	for file in profiles:

@@ -318,3 +318,54 @@ SCHEMAEVALUATOR_TEST_SEVERAL_INVALID_ALLELES =  ['chewBBACA.py', 'SchemaEvaluato
                 								 '-g', 'data/schemaevaluator_data/several_invalid_alleles',
 												 '-o', 'schema_report',
 												 '--loci-reports', '--add-sequences']
+
+# SubsetResults
+# SubsetResults valid input - loci list
+SUBSETRESULTS_TEST_LOCI_LIST = ['chewBBACA.py', 'SubsetResults',
+                				'-i', 'data/subsetresults_data/input_data/valid_input',
+								'-o', 'test_results',
+								'-l', 'data/subsetresults_data/loci.txt']
+
+# SubsetResults valid input - sample list
+SUBSETRESULTS_TEST_SAMPLE_LIST = ['chewBBACA.py', 'SubsetResults',
+                				  '-i', 'data/subsetresults_data/input_data/valid_input',
+								  '-o', 'test_results',
+								  '-s', 'data/subsetresults_data/samples.txt']
+
+# SubsetResults valid input - loci and sample lists
+SUBSETRESULTS_TEST_LOCI_SAMPLE_LIST = ['chewBBACA.py', 'SubsetResults',
+                				  	   '-i', 'data/subsetresults_data/input_data/valid_input',
+								  	   '-o', 'test_results',
+								  	   '-l', 'data/subsetresults_data/loci.txt',
+									   '-s', 'data/subsetresults_data/samples.txt']
+
+# SubsetResults no loci and sample lists
+SUBSETRESULTS_TEST_MISSING_LISTS = ['chewBBACA.py', 'SubsetResults',
+                				  	'-i', 'data/subsetresults_data/input_data/valid_input',
+								  	'-o', 'test_results']
+
+# SubsetResults missing all results files
+SUBSETRESULTS_TEST_MISSING_FILES = ['chewBBACA.py', 'SubsetResults',
+                				  	'-i', 'data/subsetresults_data/input_data/missing_files',
+								  	'-o', 'test_results'
+									'-l', 'data/subsetresults_data/loci.txt',
+									'-s', 'data/subsetresults_data/samples.txt']
+
+# SubsetResults missing profiles
+SUBSETRESULTS_TEST_MISSING_PROFILES = ['chewBBACA.py', 'SubsetResults',
+                				  	   '-i', 'data/subsetresults_data/input_data/missing_profiles',
+								  	   '-o', 'test_results'
+									   '-l', 'data/subsetresults_data/loci.txt',
+									   '-s', 'data/subsetresults_data/samples.txt']
+
+# SubsetResults subset loci not in dataset
+SUBSETRESULTS_TEST_ABSENT_LOCI = ['chewBBACA.py', 'SubsetResults',
+                				  '-i', 'data/subsetresults_data/input_data/missing_profiles',
+								  '-o', 'test_results'
+								  '-l', 'data/subsetresults_data/loci_absent.txt']
+
+# SubsetResults subset samples not in dataset
+SUBSETRESULTS_TEST_ABSENT_SAMPLES = ['chewBBACA.py', 'SubsetResults',
+                				     '-i', 'data/subsetresults_data/input_data/missing_profiles',
+								     '-o', 'test_results'
+								     '-s', 'data/subsetresults_data/samples_absent.txt']

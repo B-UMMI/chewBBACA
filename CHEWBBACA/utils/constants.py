@@ -219,7 +219,7 @@ SCHEMA_CONFIG_BASENAME = '.schema_config'
 GENE_LIST_BASENAME = '.genes_list'
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
-					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal_CDS')
+					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal CDSs Classified')
 # Header for TSV file with information about extracted CDSs
 CDS_TABLE_HEADER = 'Pyrodigal_ID\tChewie_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\n'
 # Headers for TSV files with paralogous loci count and per genome
@@ -684,3 +684,31 @@ COMPUTEMSA_NO_SCHEMA = ('Schema directory must be provided when input is a TSV f
 # of the sequences when creating the database (e.g. when IDs are interpreted as PDB chain IDs)
 BLASTDB_LCL_PREFIX = 'lcl|SEQ'
 BLASTDB_SEQ_PREFIX = 'SEQ'
+
+# List of valid files for the MergeResults module
+# Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
+ALLELECALL_OUTFILES = ['results_alleles.tsv', 'results_contigsInfo.tsv',
+					   'results_statistics.tsv', 'loci_summary_stats.tsv',
+					   'invalid_cds.txt', 'cds_coordinates.tsv',
+					   'missing_classes.fasta', 'missing_classes.tsv',
+					   'unclassified_sequences.fasta', 'paralogous_counts.tsv',
+					   'paralogous_loci.tsv', 'novel_alleles.fasta',
+					   'presence_absence.tsv']
+
+SUBSETRESULTS_MISSING_LISTS_EXCEPTION = ('Did not provide a list of loci or samples. Please '
+										 'provide at least one of those lists to subset results.')
+
+SUBSETRESULTS_MISSING_FILES_EXCEPTION = ('Did not find any of the valid file types to subset. Please make '
+		   		 						 'sure that the input directory contains at least the file type '
+				 						 'created by chewBBACA to store the allelic profiles (the basename '
+				 						 'must be `results_alleles.tsv`).')
+
+SUBSETRESULTS_MISSING_PROFILES_EXCEPTION = ('Did not find the file type used by chewBBACA to store the allelic '
+		   		 						    'profiles (`results_alleles.tsv`). Please make sure that the input '
+				 						    'directory contains at least that file type.')
+
+SUBSETRESULTS_ABSENT_LOCI_EXCEPTION = ('Please make sure that all loci IDs in the list provided to '
+		 		  	 				   '`--loci-list` match loci IDs in the input results.')
+
+SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION = ('Please make sure that all sample IDs in the list provided to '
+				  	 					  '`--sample-list` match sample IDs in the input results.')

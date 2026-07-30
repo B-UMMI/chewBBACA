@@ -914,7 +914,7 @@ def write_results_statistics(classification_files, input_identifiers,
 		class_counts[i]['Classified_CDSs'] -= repeated_counts[i]
 		class_counts[i]['Invalid CDSs'] = 0 if invalid_data is None else invalid_data[1][i]
 	# Initialize with header line
-	header_line = ['FILE'] + classification_labels + ['Invalid CDSs', 'Classified_CDSs', 'Total_CDSs']
+	header_line = ['FILE'] + classification_labels + ['Invalid CDSs', 'Total CDSs Classified', 'Total_CDSs']
 	lines = [header_line]
 	for i, v in class_counts.items():
 		input_line = [i] + [str(v[c]) for c in header_line[1:]]

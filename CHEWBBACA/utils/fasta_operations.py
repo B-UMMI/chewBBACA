@@ -121,7 +121,7 @@ def count_sequences(fasta_file):
 	return total_seqs
 
 
-def write_records(records, output_file):
+def write_records(records, output_file, mode='w'):
 	"""Write FASTA records (BioPython SeqRecord) to a file.
 
 	Parameters

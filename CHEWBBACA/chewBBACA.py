@@ -983,7 +983,7 @@ def run_determine_cgmlst():
 
 @pdt.process_timer
 def run_subset_results():
-	"""Run the SubsetResults module to subsets results generated with chewBBACA based on loci and sample lists."""
+	"""Run the SubsetResults module to subset allele calling results generated with chewBBACA based on loci and sample lists."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]'
@@ -999,17 +999,14 @@ def run_subset_results():
 
 	parser.add_argument('SubsetResults', nargs='+', help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-file', type=str,
-						required=True, dest='input_file',
-						help='Path to the input TSV file. The first column in the file must have sample '
-							 'identifiers and the remaining columns must have locus identifiers. Currently, '
-							 'the module can subset results from the `results_alleles.tsv` and `results_contigsInfo.tsv` '
-							 'files generated with the AlleleCall module and the `presence_absence.tsv` file generated '
-							 'with the ExtractCgMLST module.')
+	parser.add_argument('-i', '--input-directory', type=str,
+						required=True, dest='input_directory',
+						help='Path to the directory containing allele calling '
+							 'results determined with the AlleleCall module.')
 
-	parser.add_argument('-o', '--output-file', type=str,
-						required=True, dest='output_file',
-						help='Path to the output file used to save the subsetted results.')
+	parser.add_argument('-o', '--output-directory', type=str,
+						required=True, dest='output_directory',
+						help='Path to the output directory.')
 
 	parser.add_argument('-l', '--loci-list', type=str,
 						required=False, default=False, dest='loci_list',
@@ -1049,12 +1046,12 @@ def run_merge_results():
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeProfiles.html')
+											'https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeResults.html')
 
 	parser.add_argument('MergeResults', nargs='+', help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-directories', nargs='+', type=str,
-						required=True, dest='input_directories',
+	parser.add_argument('-i', '--input-files', nargs='+', type=str,
+						required=True, dest='input_files',
 						help='Paths to the directories containing allele calling '
 							 'results determined with the AlleleCall module. The '
 							 'results must have been determined with the same '

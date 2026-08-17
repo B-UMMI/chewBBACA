@@ -983,7 +983,7 @@ def run_determine_cgmlst():
 
 @pdt.process_timer
 def run_subset_results():
-	"""Run the SubsetResults module to subset allele calling results generated with chewBBACA based on loci and sample lists."""
+	"""Run the SubsetResults module to subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]'
@@ -991,7 +991,7 @@ def run_subset_results():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='SubsetResults',
-									 description='Subset results based on loci and sample lists.',
+									 description='Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -1001,8 +1001,7 @@ def run_subset_results():
 
 	parser.add_argument('-i', '--input-directory', type=str,
 						required=True, dest='input_directory',
-						help='Path to the directory containing allele calling '
-							 'results determined with the AlleleCall module.')
+						help='Path to the directory containing the files to be subsetted.')
 
 	parser.add_argument('-o', '--output-directory', type=str,
 						required=True, dest='output_directory',
@@ -1979,7 +1978,7 @@ def main():
 										'core genome based on loci '
 										'presence thresholds.',
 										run_determine_cgmlst],
-					  'SubsetResults': ['Subset allele calling results.',
+					  'SubsetResults': ['Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
 										run_subset_results],
 					  'PrepExternalSchema': ['Adapt an external schema to be used with chewBBACA.',
 											 run_adapt_schema],

@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module subsets allele calling results generated with chewBBACA 
-based on loci and sample lists.
+This module subsets the data in files created by chewBBACA based on a list of loci and/or sample identifiers.
 
 Code documentation
 ------------------
@@ -28,12 +27,12 @@ except ModuleNotFoundError:
 
 
 def main(input_directory, output_directory, loci_list, sample_list, inverse_loci, inverse_samples):
-	"""Subset allele calling results generated with chewBBACA.
+	"""Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers
 
 	Parameters
 	----------
 	input_directory : str
-		Path to the directory containing allele calling results determined with the AlleleCall module.
+		Path to the directory containing the files to be subsetted.
 	output_directory : str
 		Path to the output directory.
 	loci_list : str
@@ -43,7 +42,7 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 	inverse_loci : bool
 		If provided, the process will select the loci that are not in the input loci list.
 	inverse_samples : bool
-		If provided, the process will select the samples that are not in the input samples list.
+		If provided, the process will select the samples that are not in the input sample list.
 	"""
 	# Do not proceed if user provided neither a list of loci nor of samples
 	if not loci_list and not sample_list:
@@ -195,7 +194,7 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 		elif ftype in ['unclassified_sequences.fasta']:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
-			# Filter based on loci and sample subsets
+			# Filter based on sample subset
 			filtered_recids = [recid for recid in records if sample_finder.search(recid)]
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
 			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
@@ -203,7 +202,7 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 		elif ftype in ['novel_alleles.fasta']:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
-			# Filter based on loci and sample subsets
+			# Filter based on loci subset
 			filtered_recids = [recid for recid in records if loci_finder.search(recid)]
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
 			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
@@ -221,7 +220,7 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 			header = fo.read_lines(fpath, num_lines=1)
 			fo.write_lines(header, output_file)
 			inlines = fo.read_lines(fpath)[1:]
-			# Filter based on sample subset
+			# Filter based on samples subset
 			if sample_list:
 				inlines = [line for line in inlines if sample_finder.search(line)]
 			fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
@@ -246,7 +245,7 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 			# Count the number of INFs and EXC
 			counts['EXC'] = (~profiles.isin(ct.ALLELECALL_CLASSIFICATIONS[2:])).sum(axis=0)
 			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=0)
-			# This value is 1 below the true value, why?
+			########### This value is 1 below the true value, why?
 			counts['EXC'] = counts['EXC'] - counts['INF']
 			for l in ct.ALLELECALL_CLASSIFICATIONS[2:]:
 				counts[l] = (profiles==l).sum(axis=0)

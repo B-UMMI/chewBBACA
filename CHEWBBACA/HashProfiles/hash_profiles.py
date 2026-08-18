@@ -129,15 +129,15 @@ def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_c
 	Parameters
 	----------
 	input_file : str
-		Path to the TSV file with allelic profiles.
+		Path to the TSV file that contains the allelic profiles determined by the AlleleCall module.
 	schema_directory : str
-		Path to the schema directory.
+		Path to the schema\'s directory to get the allele sequences and compute the hashes.
 	output_directory : str
 		Path to the output directory.
 	hash_type : str
-		Hashing algorithm to use. The module supports
-		all hashing algorithms implemented in the hashlib
-		and zlib Python libraries.
+		Hashing algorithm used to hash the profiles. The hashing
+		algorithms implemented in the hashlib and zlib Python
+		libraries are supported.
 	cpu_cores : int
 		Number of CPU cores used by the process.
 	nrows : int
@@ -185,9 +185,9 @@ def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_c
 							 output_directory, hash_profiles])
 
 	print('Hashing profiles...')
-	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, cpu_cores)
+	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, cpu_cores, show_progress=True)
 
-	print('Creating output file...')
+	print('\nCreating output file...')
 	# Create file with header
 	header_basename = fo.file_basename(input_file, False) + '_header.tsv'
 	header_file = fo.join_paths(output_directory, [header_basename])

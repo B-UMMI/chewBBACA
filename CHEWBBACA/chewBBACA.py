@@ -1095,7 +1095,7 @@ def run_hash_profiles():
 
 	parser.add_argument('-g', '--schema-directory', type=str,
 						required=True, dest='schema_directory',
-						help='Path to the schema\'s directory.')
+						help='Path to the schema\'s directory to get the allele sequences and compute the hashes.')
 
 	parser.add_argument('-o', '--output-directory', type=str,
 						required=True, dest='output_directory',
@@ -1103,10 +1103,10 @@ def run_hash_profiles():
 
 	parser.add_argument('--hash-type', type=str, required=False,
 						default='crc32', dest='hash_type',
-						help='Hashing algorithm to hash the profiles. The hashing '
+						help='Hashing algorithm used to hash the profiles. The hashing '
 							 'algorithms implemented in the hashlib and zlib Python '
 							 'libraries are supported.')
-	
+
 	parser.add_argument('--nrows', type=int, required=False,
 						default=100, dest='nrows',
 						help='Divide the input file into chunks of this many rows '

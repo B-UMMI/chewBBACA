@@ -4,10 +4,9 @@
 Purpose
 -------
 
-This module merges allele calling results from different runs. It can merge
-files with results for the same set of loci or identify the set of shared
-loci to create merged files containing the results only for the set fo shared
-loci.
+This module merges results files created with chewBBACA. It can merge files 
+with results for the same set of loci or identify the set of shared loci to 
+create merged files containing the results only for the set of shared loci.
 
 Code documentation
 ------------------
@@ -87,7 +86,7 @@ def main(input_files, output_directory, common):
 		sys.exit('Files have different sets of loci. Please provide '
 				 'files with the results for the same set of loci or '
 				 'provide the "--common" parameter to create merged files '
-				 'for the set loci shared by all results folders.')
+				 'for the set of loci shared by all results folders.')
 	# Work with the set of common loci if --common was provided
 	elif common:
 		if len(loci) == len(headers[0]):
@@ -104,11 +103,8 @@ def main(input_files, output_directory, common):
 				subset_results.main(d, subset_outdir, loci_list_outfile, None, None, None)
 				subsetted_inputs.append(subset_outdir)
 			input_files = subsetted_inputs
-
-##################################
-# Need to determine which files can be merged even if not present in all directories (e.g. novel_alleles.fasta, invalid_cds.txt)
-# And which need to be present in all directories (e.g. files that are always created by the AlleleCall module)
-# Add option to merge even if not all mandatory files are present?
+			# Delete the temporary loci list file
+			fo.remove_files([loci_list_outfile])
 
 	# Need to list the files in each directory and group them based on filename
 	file_list = {ftype: [] for ftype in ct.ALLELECALL_OUTFILES}
@@ -128,22 +124,35 @@ def main(input_files, output_directory, common):
 			print(f'Did not find matching files for the {ftype} file type.')
 			to_exclude.append(ftype)
 		elif len(paths) != len(input_files):
-			print(f'Will not merge files ending in {ftype} because their '
-				  f'number ({len(paths)}) is different than expected ({len(input_files)}).')
-			to_exclude.append(ftype)
+			# These file types are expected to have the same number of files as input folders.
+			# If absent, merging would just create incomplete results.
+			if ftype in ['results_alleles.tsv', 'results_contigsInfo.tsv',
+						 'presence_absence.tsv', 'loci_summary_stats.tsv',
+						 'results_statistics.tsv', 'cds_coordinates.tsv']:
+				print(f'Will not merge files ending in {ftype} because their '
+					f'number ({len(paths)}) is different than expected ({len(input_files)}).')
+				to_exclude.append(ftype)
+			# These file types may not always be present depending on the options used to run chewBBACA and merging them when some are missing is not critical.
+			elif ftype in ['paralogous_counts.tsv', 'paralogous_loci.tsv',
+				  		   'missing_classes.tsv', 'missing_classes.fasta',
+						   'novel_alleles.fasta', 'invalid_cds.txt',
+						   'unclassified_sequences.fasta']:
+				print(f'Found {len(paths)} files for the {ftype} file type.')
 		else:
-			print(f'Found {len(paths)} files for the {ftype} file type to merge.')
+			print(f'Found {len(paths)} files for the {ftype} file type.')
 
 	# Remove from the dictionary the file types without matching files or an unexpected number of files
 	for ftype in to_exclude:
 		del(file_list[ftype])
 
-	print(f'Will merge results for each file type (#loci={len(loci)}).')
+	print(f'Files in the input directories share results for {len(loci)} loci.')
+	print(f'Merging results for each file type.')
 
 	# Iterate over each file type to merge all
 	for ftype, fpaths in file_list.items():
 		# Define name for the output file with the merged results
 		output_file = fo.join_paths(output_directory, [ftype])
+		print(f'Merging {len(fpaths)} files for the {ftype} file type...')
 		# Merge TSV files with profiles
 		if ftype in ['results_alleles.tsv', 'results_contigsInfo.tsv', 'presence_absence.tsv']:
 			# Merge all files without duplicating the header
@@ -163,14 +172,7 @@ def main(input_files, output_directory, common):
 			merged_df = merged_df.reset_index().rename(columns={'index': 'Locus'})
 			# Save merged files
 			merged_df.to_csv(output_file, index=False, sep='\t')
-		elif ftype in ['results_statistics.tsv', 'missing_classes.tsv', 'paralogous_loci.tsv']:
-			# Get header and write it to output file
-			header = fo.read_lines(fpaths[0], num_lines=1)
-			fo.write_lines(header, output_file)
-			for p in fpaths:
-				inlines = fo.read_lines(p)[1:]
-				fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
-		elif ftype in ['cds_coordinates.tsv']:
+		elif ftype in ['results_statistics.tsv', 'missing_classes.tsv', 'paralogous_loci.tsv', 'cds_coordinates.tsv']:
 			# Get header and write it to output file
 			header = fo.read_lines(fpaths[0], num_lines=1)
 			fo.write_lines(header, output_file)
@@ -179,3 +181,12 @@ def main(input_files, output_directory, common):
 				fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
 		elif ftype in ['missing_classes.fasta', 'novel_alleles.fasta', 'invalid_cds.txt', 'unclassified_sequences.fasta']:
 			fo.concatenate_files(fpaths, output_file)
+
+		print(f'Saved merged results to {output_file}')
+
+	# Delete the temporary files created to subset the results if --common was provided
+	if common and len(loci) != len(headers[0]):
+		for d in input_files:
+			fo.delete_directory(d)
+
+	print(f'Done. Merged results available in {output_directory}')

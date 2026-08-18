@@ -245,7 +245,6 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 			# Count the number of INFs and EXC
 			counts['EXC'] = (~profiles.isin(ct.ALLELECALL_CLASSIFICATIONS[2:])).sum(axis=0)
 			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=0)
-			########### This value is 1 below the true value, why?
 			counts['EXC'] = counts['EXC'] - counts['INF']
 			for l in ct.ALLELECALL_CLASSIFICATIONS[2:]:
 				counts[l] = (profiles==l).sum(axis=0)
@@ -273,7 +272,6 @@ def main(input_directory, output_directory, loci_list, sample_list, inverse_loci
 			# Count the number of INFs and EXC
 			counts['EXC'] = (~profiles.isin(ct.ALLELECALL_CLASSIFICATIONS[2:])).sum(axis=1)
 			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=1)
-			# This value is 1 below the true value, why?
 			counts['EXC'] = counts['EXC'] - counts['INF']
 			for l in ct.ALLELECALL_CLASSIFICATIONS[2:]:
 				counts[l] = (profiles==l).sum(axis=1)

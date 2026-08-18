@@ -712,3 +712,12 @@ SUBSETRESULTS_ABSENT_LOCI_EXCEPTION = ('Please make sure that all loci IDs in th
 
 SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION = ('Please make sure that all sample IDs in the list provided to '
 				  	 					  '`--sample-list` match sample IDs in the input results.')
+
+MERGERESULTS_INPUTFILE_EXCEPTION = ('Input paths should all be folders. The following are not folders:\n{0}')
+
+MERGERESULTS_NOCOMMONLOCI_EXCEPTION = ('Results do not have loci in common.')
+
+MERGERESULTS_LOCIDIFFER_EXCEPTION = ('Files have different sets of loci. Please provide '
+				 					 'files with the results for the same set of loci or '
+				 					 'provide the "--common" parameter to create merged files '
+				 					 'for the set of loci shared by all results folders.')

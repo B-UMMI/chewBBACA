@@ -369,3 +369,30 @@ SUBSETRESULTS_TEST_ABSENT_SAMPLES = ['chewBBACA.py', 'SubsetResults',
                 				     '-i', 'data/subsetresults_data/input_data/missing_profiles',
 								     '-o', 'test_results'
 								     '-s', 'data/subsetresults_data/samples_absent.txt']
+
+# MergeResults
+# MergeResults valid input - default
+MERGERESULTS_TEST_DEFAULT = ['chewBBACA.py', 'MergeResults',
+							 '-i', 'data/mergeresults_data/input_data/default_input1', 'data/mergeresults_data/input_data/default_input2',
+							 '-o', 'test_default_results']
+
+# MergeResults valid input - common
+MERGERESULTS_TEST_COMMON = ['chewBBACA.py', 'MergeResults',
+							'-i', 'data/mergeresults_data/input_data/common_input1', 'data/mergeresults_data/input_data/common_input2',
+							'-o', 'test_common_results',
+							'--common']
+
+# MergeResults invalid input - input file
+MERGERESULTS_TEST_INPUT_FILE = ['chewBBACA.py', 'MergeResults',
+								'-i', 'data/mergeresults_data/input_data/default_input1', 'data/mergeresults_data/input_data/input_file.txt',
+								'-o', 'test_input_file_results']
+
+# MergeResults invalid input - no common loci
+MERGERESULTS_TEST_NOCOMMONLOCI = ['chewBBACA.py', 'MergeResults',
+								  '-i', 'data/mergeresults_data/input_data/nocommon_input1', 'data/mergeresults_data/input_data/nocommon_input2',
+								  '-o', 'test_nocommonloci_results']
+
+# MergeResults invalid input - different sets of loci
+MERGERESULTS_TEST_LOCIDIFFER = ['chewBBACA.py', 'MergeResults',
+								'-i', 'data/mergeresults_data/input_data/locidiffer_input1', 'data/mergeresults_data/input_data/locidiffer_input2',
+								'-o', 'test_locidiffer_results']

@@ -1,0 +1,6 @@
+Started script at: 17:38:17-29/07/2026
+Finished script at: 17:38:19-29/07/2026
+Number of inputs: 2
+Number of loci: 8
+Used this number of CPU cores: 4
+Used a BSR of: 0.6

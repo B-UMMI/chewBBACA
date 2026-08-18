@@ -59,7 +59,7 @@ def main(input_files, output_directory, common):
 
 	# Exit if any of the inputs is not a folder
 	if len(non_dirs) > 0:
-		sys.exit(f'Input paths should all be folders. The following are not folders:\n{"\n".join(non_dirs)}')
+		sys.exit(ct.MERGERESULTS_INPUTFILE_EXCEPTION.format("\n".join(non_dirs)))
 	else:
 		print(f'Received paths to {len(input_files)} folders:\n{"\n".join(input_files)}')
 
@@ -80,13 +80,10 @@ def main(input_files, output_directory, common):
 
 	# Exit if there are no common loci between all results
 	if len(loci) == 0:
-		sys.exit('Results do not have loci in common.')
+		sys.exit(ct.MERGERESULTS_NOCOMMONLOCI_EXCEPTION)
 	# Exit if results are not for the same set of loci
 	elif len(loci) != len(headers[0]) and not common:
-		sys.exit('Files have different sets of loci. Please provide '
-				 'files with the results for the same set of loci or '
-				 'provide the "--common" parameter to create merged files '
-				 'for the set of loci shared by all results folders.')
+		sys.exit(ct.MERGERESULTS_LOCIDIFFER_EXCEPTION)
 	# Work with the set of common loci if --common was provided
 	elif common:
 		if len(loci) == len(headers[0]):

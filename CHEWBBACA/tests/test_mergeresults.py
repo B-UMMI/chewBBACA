@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This script contains tests to verify that the SubsetResults module works as expected.
+This script contains tests to verify that the MergeResults module works as expected.
 """
 
 
@@ -14,6 +14,7 @@ import filecmp
 from CHEWBBACA import chewBBACA
 from CHEWBBACA.utils import constants as ct
 from CHEWBBACA.tests import test_arguments as ta
+from CHEWBBACA.utils import file_operations as fo
 
 
 # Use the tmp_path fixture to create a tmp directory for each test
@@ -31,13 +32,12 @@ def args_fixture(request, tmp_path):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-	 (ta.SUBSETRESULTS_TEST_LOCI_LIST, 'data/subsetresults_data/expected_results_loci'),
-     (ta.SUBSETRESULTS_TEST_SAMPLE_LIST, 'data/subsetresults_data/expected_results_samples'),
-	 (ta.SUBSETRESULTS_TEST_LOCI_SAMPLE_LIST, 'data/subsetresults_data/expected_results_loci_samples'),
+	 (ta.MERGERESULTS_TEST_DEFAULT, 'data/mergeresults_data/expected_results_default'),
+     (ta.MERGERESULTS_TEST_COMMON, 'data/mergeresults_data/expected_results_common'),
     ],
 	indirect=True
 )
-def test_subsetresults_valid_input(monkeypatch, args_fixture):
+def test_mergeresults_valid_input(monkeypatch, args_fixture):
     # Add args to sys.argv
 	with monkeypatch.context() as m:
 		m.setattr(sys, 'argv', args_fixture[0])
@@ -69,15 +69,13 @@ def test_subsetresults_valid_input(monkeypatch, args_fixture):
 @pytest.mark.parametrize(
     "args_fixture",
     [
-	 (ta.SUBSETRESULTS_TEST_MISSING_LISTS, ct.SUBSETRESULTS_MISSING_LISTS_EXCEPTION),
-     (ta.SUBSETRESULTS_TEST_MISSING_FILES, ct.SUBSETRESULTS_MISSING_FILES_EXCEPTION),
-	 (ta.SUBSETRESULTS_TEST_MISSING_PROFILES, ct.SUBSETRESULTS_MISSING_PROFILES_EXCEPTION),
-	 (ta.SUBSETRESULTS_TEST_ABSENT_LOCI, ct.SUBSETRESULTS_ABSENT_LOCI_EXCEPTION),
-	 (ta.SUBSETRESULTS_TEST_ABSENT_SAMPLES, ct.SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION)
+	 (ta.MERGERESULTS_TEST_INPUT_FILE, ct.MERGERESULTS_INPUTFILE_EXCEPTION[:33]),
+	 (ta.MERGERESULTS_TEST_NOCOMMONLOCI, ct.MERGERESULTS_NOCOMMONLOCI_EXCEPTION),
+	 (ta.MERGERESULTS_TEST_LOCIDIFFER, ct.MERGERESULTS_LOCIDIFFER_EXCEPTION),
     ],
 	indirect=True
 )
-def test_subsetresults_invalid_input(monkeypatch, args_fixture):
+def test_mergeresults_invalid_input(monkeypatch, args_fixture):
 	# Add args to sys.argv
 	with monkeypatch.context() as m:
 		m.setattr(sys, 'argv', args_fixture[0])

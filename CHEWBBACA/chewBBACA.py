@@ -1033,7 +1033,7 @@ def run_subset_results():
 
 @pdt.process_timer
 def run_merge_results():
-	"""Run the MergeResults module to merge allele calling results."""
+	"""Run the MergeResults module to merge results files created by chewBBACA."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py MergeResults --input-directories <dir> <dir> ... --output-directory <dir> [options]'
@@ -1041,7 +1041,7 @@ def run_merge_results():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='MergeResults',
-									 description='Merge the results from multiple allele calling runs.',
+									 description='Merge results files created by chewBBACA.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -1051,11 +1051,10 @@ def run_merge_results():
 
 	parser.add_argument('-i', '--input-files', nargs='+', type=str,
 						required=True, dest='input_files',
-						help='Paths to the directories containing allele calling '
-							 'results determined with the AlleleCall module. The '
-							 'results must have been determined with the same '
-							 'schema and share all the loci or a subset of the '
-							 'loci if using the --common parameter.')
+						help='Paths to the directories containing the results files '
+							 'created by chewBBACA. The results must have been '
+							 'determined with the same schema and share all the loci '
+							 'or a subset of the loci if using the --common parameter.')
 
 	parser.add_argument('-o', '--output-directory', type=str,
 						required=True, dest='output_directory',
@@ -1982,7 +1981,7 @@ def main():
 										run_subset_results],
 					  'PrepExternalSchema': ['Adapt an external schema to be used with chewBBACA.',
 											 run_adapt_schema],
-					  'MergeResults': ['Merge the results from multiple allele calling runs.',
+					  'MergeResults': ['Merge results files created by chewBBACA.',
 									   run_merge_results],
 					  'HashProfiles': ['Hash allelic profiles.',
 					  					run_hash_profiles],

@@ -4,7 +4,7 @@
 Purpose
 -------
 
-This module merges results files created with chewBBACA. It can merge files 
+This module merges results files created by chewBBACA. It can merge files 
 with results for the same set of loci or identify the set of shared loci to 
 create merged files containing the results only for the set of shared loci.
 
@@ -30,13 +30,12 @@ except ModuleNotFoundError:
 
 
 def main(input_files, output_directory, common):
-	"""Merge results files from multiple AlleleCall runs.
+	"""Merge results files created by chewBBACA.
 
 	Parameters
 	----------
 	input_files : list
-		List with paths to folders containing allele calling results
-		or to a set of TSV files of the same type.
+		List with paths to folders containing results files created by chewBBACA.
 	output_diretory : str
 		Path to the output directory.
 	common : bool

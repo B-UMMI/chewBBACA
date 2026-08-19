@@ -721,3 +721,7 @@ MERGERESULTS_LOCIDIFFER_EXCEPTION = ('Files have different sets of loci. Please 
 				 					 'files with the results for the same set of loci or '
 				 					 'provide the "--common" parameter to create merged files '
 				 					 'for the set of loci shared by all results folders.')
+
+HASHPROFILES_INVALID_HASHING = ('{0} hash function is not available in the hashlib '
+				 				'(https://docs.python.org/3/library/hashlib.html) and '
+				 				'zlib (https://docs.python.org/3/library/zlib.html) modules.')

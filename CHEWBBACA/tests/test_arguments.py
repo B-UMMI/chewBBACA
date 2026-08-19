@@ -396,3 +396,17 @@ MERGERESULTS_TEST_NOCOMMONLOCI = ['chewBBACA.py', 'MergeResults',
 MERGERESULTS_TEST_LOCIDIFFER = ['chewBBACA.py', 'MergeResults',
 								'-i', 'data/mergeresults_data/input_data/locidiffer_input1', 'data/mergeresults_data/input_data/locidiffer_input2',
 								'-o', 'test_locidiffer_results']
+
+# HashProfiles
+# HashProfiles valid input
+HASHPROFILES_TEST_VALID = ['chewBBACA.py', 'HashProfiles',
+						   '-i', 'data/hashprofiles_data/input_data/results_alleles.tsv',
+						   '-g', 'data/hashprofiles_data/input_data/sagalactiae_schema',
+						   '-o', 'test_hashprofiles_results']
+
+# HashProfiles invalid hashign algorithm
+HASHPROFILES_TEST_INVALID_HASH = ['chewBBACA.py', 'HashProfiles',
+						   		  '-i', 'data/hashprofiles_data/input_data/results_alleles.tsv',
+						   		  '-g', 'data/hashprofiles_data/input_data/sagalactiae_schema',
+						   		  '-o', 'test_hashprofiles_results',
+						   		  ' --hash-type', 'invalid']

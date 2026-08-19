@@ -17,12 +17,14 @@ import hashlib
 import pandas as pd
 
 try:
-	from utils import (file_operations as fo,
+	from utils import (constants as ct,
+					   file_operations as fo,
 					   fasta_operations as fao,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (file_operations as fo,
+	from CHEWBBACA.utils import (constants as ct,
+								 file_operations as fo,
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
@@ -149,9 +151,7 @@ def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_c
 		hashing_function = getattr(zlib, hash_type, None)
 
 	if hashing_function is None:
-		sys.exit('{0} hash function is not available in the hashlib '
-				 '(https://docs.python.org/3/library/hashlib.html) and '
-				 'zlib (https://docs.python.org/3/library/zlib.html) modules.'.format(hash_type))
+		sys.exit(ct.HASHPROFILES_INVALID_HASHING.format(hash_type))
 	else:
 		print(f'Hash function: {hash_type}')
 

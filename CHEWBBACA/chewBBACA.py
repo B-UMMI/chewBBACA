@@ -1500,7 +1500,7 @@ def run_compute_distances():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ComputeDistances',
-									 description='Compute pairwise distances based on allele calling results.',
+									 description='Compute pairwise distances based on allelic profiles determined by the AlleleCall module.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -1510,7 +1510,7 @@ def run_compute_distances():
 
 	parser.add_argument('-i', '--input-file', type=str,
 						required=True, dest='input_file',
-						help='Path to a TSV file containing allelic profiles.')
+						help='Path to a TSV file containing allelic profiles determined by the AlleleCall module.')
 
 	parser.add_argument('-o', '--output-directory', type=str,
 						required=True, dest='output_directory',
@@ -1520,21 +1520,23 @@ def run_compute_distances():
 	parser.add_argument('--m', '--method', type=str, required=False,
 						default='hamming', choices=['hamming', 'jaccard', 'loci'],
 						dest='method',
-						help='Distance method to compute the distance matrix. The module supports '
-							 'the Hamming, Jaccard and Loci (number of loci not shared) methods.')
+						help='Distance method used to compute the distance matrix. The module supports '
+							 'the hamming, jaccard and loci (number of loci not shared) methods.')
 
 	parser.add_argument('--outfmt', '--output-format', type=str, required=False,
-						default='upper_triangular', choices=['upper_triangular', 'lower_triangular', 'symmetric', 'table'],
+						choices=['upper_triangular', 'lower_triangular', 'symmetric', 'table'],
+						default='upper_triangular',
 						dest='output_format',
-						help='Output format for the distance matrix.')
+						help='Output format for the distance matrix (upper_triangular, lower_triangular, symmetric, table).')
 
 	parser.add_argument('--no-mask', action='store_true', required=False,
 						dest='no_mask',
-						help='Do not mask missing data when computing the distance matrix.')
+						help='Do not mask missing data when computing the distance matrix. '
+							 'This option is useful when the input profiles are already masked.')
 
 	parser.add_argument('--similarity', action='store_true', required=False,
 						dest='similarity',
-						help='Output a similarity matrix instead of a distance matrix.')
+						help='Compute similarity values instead of a distance values.')
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',

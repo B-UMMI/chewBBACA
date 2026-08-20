@@ -4,7 +4,7 @@
 Purpose
 -------
 
-Compute pairwise distances based on allelic profiles determined by the AlleleCall module.
+Compute pairwise distances based on allele calling results.
 
 Code documentation
 ------------------
@@ -376,7 +376,7 @@ def write_table(pickled_results, genome_ids, output_directory):
 
 
 def main(input_file, output_directory, method, output_format, no_mask, similarity, cpu_cores):
-	"""Compute pairwise distances based on allelic profiles determined by the AlleleCall module.
+	"""Compute pairwise distances based on allele calling results.
 
 	Parameters
 	----------
@@ -393,7 +393,7 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 		Do not mask missing data when computing the distance matrix. This option is useful when 
 		the input profiles are already masked.
 	similarity : bool
-		Compute similarity values instead of a distance values.
+		Compute similarity values instead of distance values.
 	cpu_cores : int
 		Number of CPU cores used to compute distances.
 

@@ -1500,7 +1500,7 @@ def run_compute_distances():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='ComputeDistances',
-									 description='Compute pairwise distances based on allelic profiles determined by the AlleleCall module.',
+									 description='Compute pairwise distances based on allele calling results.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -1536,7 +1536,7 @@ def run_compute_distances():
 
 	parser.add_argument('--similarity', action='store_true', required=False,
 						dest='similarity',
-						help='Compute similarity values instead of a distance values.')
+						help='Compute similarity values instead of distance values.')
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',
@@ -1991,7 +1991,7 @@ def main():
 					  				 run_get_alleles],
 					  'UniprotFinder': ['Retrieve annotations for loci in a schema.',
 										run_annotate_schema],
-					  'ComputeDistances': ['Compute distance matrices based on allele calling results.',
+					  'ComputeDistances': ['Compute pairwise distances based on allele calling results.',
 										  run_compute_distances],
 					  'ComputeMSA': ['Compute a Multiple Sequence Alignment based on allele calling results.',
 									 run_compute_msa],

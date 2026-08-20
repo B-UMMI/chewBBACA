@@ -410,3 +410,66 @@ HASHPROFILES_TEST_INVALID_HASH = ['chewBBACA.py', 'HashProfiles',
 						   		  '-g', 'data/hashprofiles_data/input_data/sagalactiae_schema',
 						   		  '-o', 'test_hashprofiles_results',
 						   		  ' --hash-type', 'invalid']
+
+# ComputeDistances
+# ComputeDistances valid inputs
+
+# ComputeDistances default
+COMPUTEDISTANCES_TEST_DEFAULT = ['chewBBACA.py', 'ComputeDistances',
+								 '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+								 '-o', 'data/computedistances_data/expected_results/default']
+
+# ComputeDistances --outfmt symmetric
+COMPUTEDISTANCES_TEST_DEFAULT_SYMMETRIC = ['chewBBACA.py', 'ComputeDistances',
+										   '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										   '-o', 'data/computedistances_data/expected_results/default',
+										   '--outfmt', 'symmetric']
+
+# ComputeDistances --similarity
+COMPUTEDISTANCES_TEST_DEFAULT_SIMILARITY = ['chewBBACA.py', 'ComputeDistances',
+											'-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+											'-o', 'data/computedistances_data/expected_results/default',
+											'--similarity']
+
+# ComputeDistances --outfmt symmetric and --similarity
+COMPUTEDISTANCES_TEST_DEFAULT_SYMMETRIC_SIMILARITY = ['chewBBACA.py', 'ComputeDistances',
+										   			  '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										   			  '-o', 'data/computedistances_data/expected_results/default',
+										   			  '--outfmt', 'symmetric',
+										   			  '--similarity']
+
+# ComputeDistances --outfmt table
+COMPUTEDISTANCES_TEST_DEFAULT_TABLE = ['chewBBACA.py', 'ComputeDistances',
+									   '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+									   '-o', 'data/computedistances_data/expected_results/default',
+									   '--outfmt', 'table']
+
+# ComputeDistances --m jaccard and --outfmt symmetric
+COMPUTEDISTANCES_TEST_JACCARD_SYMMETRIC = ['chewBBACA.py', 'ComputeDistances',
+										   '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										   '-o', 'data/computedistances_data/expected_results/default',
+										   '--m', 'jaccard',
+										   '--outfmt', 'symmetric']
+
+# ComputeDistances --m jaccard, --outfmt symmetric and --similarity
+COMPUTEDISTANCES_TEST_JACCARD_SYMMETRIC_SIMILARITY = ['chewBBACA.py', 'ComputeDistances',
+										   			  '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										   			  '-o', 'data/computedistances_data/expected_results/default',
+										   			  '--m', 'jaccard',
+										   			  '--outfmt', 'symmetric',
+										   			  '--similarity']
+
+# ComputeDistances --m loci and --outfmt symmetric
+COMPUTEDISTANCES_TEST_LOCI_SYMMETRIC = ['chewBBACA.py', 'ComputeDistances',
+										'-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										'-o', 'data/computedistances_data/expected_results/default',
+										'--m', 'loci',
+										'--outfmt', 'symmetric']
+
+# ComputeDistances --m loci, --outfmt symmetric and --similarity
+COMPUTEDISTANCES_TEST_LOCI_SYMMETRIC_SIMILARITY = ['chewBBACA.py', 'ComputeDistances',
+												   '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+												   '-o', 'data/computedistances_data/expected_results/default',
+												   '--m', 'loci',
+												   '--outfmt', 'symmetric',
+												   '--similarity']

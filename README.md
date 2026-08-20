@@ -17,7 +17,7 @@ BLAST Score Ratio as proposed by [Rasko DA et al.](http://bmcbioinformatics.biom
 
 ## News
 
-## 4.0.0 - 2026
+## 4.0.0-beta - 2026
 
 This version adds multiple modules that perform operations that were previously integrated into other modules and could not be used separately. The new modules are the following:
 
@@ -33,7 +33,8 @@ This version adds multiple modules that perform operations that were previously 
 
 Additional changes:
 
-- Added option to determine the set of loci that constitute the accessory genome to the ExtractCgMLST module.
+- Added the `--compute-accessory` option to the ExtractCgMLST module to determine the set of loci that constitute the accessory genome and output the list of accessory loci for all specified loci presence thresholds.
+- Added the `--rarefaction-analysis` option to the ExtractCgMLST module to perform rarefaction analysis to evaluate the stability of the core genome and the openness of the pangenome.
 
 Check our [Changelog](https://github.com/B-UMMI/chewBBACA/blob/master/CHANGELOG.md) to learn about the latest changes.
 

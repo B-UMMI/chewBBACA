@@ -34,7 +34,7 @@ except ModuleNotFoundError:
 
 def compute_hamming(current_row, permutation_rows, total_loci, similarity):
 	"""Compute pairwise Hamming distances or similarities.
-	
+
 	Parameters
 	----------
 	current_row : ndarray
@@ -109,15 +109,16 @@ def compute_jaccard(current_row, permutation_rows, total_loci, similarity):
 		return jaccard_similarity
 
 
-def compute_different_loci(current_row, permutation_rows, total_loci, similarity):
+def compute_loci(current_row, permutation_rows, total_loci, similarity):
 	"""Compute the number of shared or not shared loci.
-			
+
 	Parameters
 	----------
 	current_row : ndarray
 		Numpy array with dtype=int32 values for the allelic profile of the current genome.
 	permutation_rows : ndarray
-		Numpy array with dtype=int32 values for the allelic profiles of the genomes that will be compared against the current genome.
+		Numpy array with dtype=int32 values for the allelic profiles of the genomes that will 
+		be compared against the current genome.
 	total_loci : int
 		Total number of loci in the allelic profiles.
 	similarity : bool
@@ -137,6 +138,43 @@ def compute_different_loci(current_row, permutation_rows, total_loci, similarity
 	else:
 		shared_loci = shared_loci.astype('int32')
 		return shared_loci
+
+
+def compute_core(current_row, permutation_rows, similarity):
+	"""Compute the number of core loci and the number of different alleles for those core loci.
+
+	Parameters
+	----------
+	current_row : ndarray
+		Numpy array with dtype=int32 values for the allelic profile of the current genome.
+	permutation_rows : ndarray
+		Numpy array with dtype=int32 values for the allelic profiles of the genomes that will 
+		be compared against the current genome.
+	similarity : bool
+		Compute the number of shared alleles instead of the number of not shared alleles.
+
+	Returns
+	-------
+	ndarray, ndarray
+		Numpy array with dtype=int32 values for the number of core loci and the number of 
+		different alleles for those core loci, or the number of shared alleles if similarity is True.
+	"""
+	# Determine number of core loci per pair of samples
+	shared_loci = ((current_row!=0) & (permutation_rows!=0)).sum(1)
+	# Determine the number of shared alleles
+	# Determine shared values, including 0's
+	shared_values = np.count_nonzero(current_row==permutation_rows, axis=-1)
+	# Determine shared 0's
+	shared_zeros = ((current_row==0) & (permutation_rows==0)).sum(1)
+	# Determine shared alleles
+	shared_alleles = shared_values - shared_zeros
+	if not similarity:
+		not_shared_alleles = shared_loci - shared_alleles
+		not_shared_alleles = not_shared_alleles.astype('int32')
+		return not_shared_alleles, shared_loci
+	else:
+		shared_alleles = shared_alleles.astype('int32')
+		return shared_alleles, shared_loci
 
 
 def compute_distances(indexes, np_profiles, sample_ids, tmp_directory, method, similarity):
@@ -174,21 +212,30 @@ def compute_distances(indexes, np_profiles, sample_ids, tmp_directory, method, s
 		permutation_rows = np_profiles[i:, :]
 
 		if method == 'hamming':
-			distances = compute_hamming(current_row, permutation_rows, total_loci, similarity)
+			results = compute_hamming(current_row, permutation_rows, total_loci, similarity)
 		elif method == 'jaccard':
-			distances = compute_jaccard(current_row, permutation_rows, total_loci, similarity)
+			results = compute_jaccard(current_row, permutation_rows, total_loci, similarity)
 		elif method == 'loci':
-			distances = compute_different_loci(current_row, permutation_rows, total_loci, similarity)
+			results = compute_loci(current_row, permutation_rows, total_loci, similarity)
+		elif method == 'core':
+			results = compute_core(current_row, permutation_rows, similarity)
 
 		# Save computed distances for current genome
-		output_file = os.path.join(tmp_directory, current_genome)
-		fo.pickle_dumper(distances, output_file)
-		output_files[current_genome] = output_file
+		if len(results) > 1:
+			distances_outfile = fo.join_paths(tmp_directory, [f'{current_genome}_distances'])
+			fo.pickle_dumper(results[0], distances_outfile)
+			core_outfile = fo.join_paths(tmp_directory, [f'{current_genome}_loci'])
+			fo.pickle_dumper(results[1], core_outfile)
+			output_files[current_genome] = [distances_outfile, core_outfile]
+		else:
+			distances_outfile = fo.join_paths(tmp_directory, [f'{current_genome}_distances'])
+			fo.pickle_dumper(results, distances_outfile)
+			output_files[current_genome] = [distances_outfile]
 
 	return output_files
 
 
-def write_matrix(pickled_results, genome_ids, output_directory, col_ids, output_type):
+def write_matrix(pickled_results, genome_ids, output_directory, output_file_prefix, col_ids, output_type, data_index=0):
 	"""Write matrix with the computed distances.
 
 	Parameters
@@ -211,13 +258,13 @@ def write_matrix(pickled_results, genome_ids, output_directory, col_ids, output_
 		Path to the file with the distance matrix.
 	"""
 	# Default output is upper triangular matrix
-	upper_triangular = os.path.join(output_directory, 'distances_upper.tsv')
+	upper_triangular = fo.join_paths(output_directory, [f'{output_file_prefix}_upper.tsv'])
 	ad_lines = [col_ids]
 	# Limit the number of lines to write at once to avoid memory overflow
 	limit = 300
 	# Create based on genome order in input matrix
 	for g in genome_ids:
-		current_file = pickled_results[g]
+		current_file = pickled_results[g][data_index]
 		# Load data
 		data = fo.pickle_loader(current_file)
 		allele_diffs = list(data)
@@ -236,12 +283,13 @@ def write_matrix(pickled_results, genome_ids, output_directory, col_ids, output_
 	if output_type != 'upper_triangular':
 		# Transpose to get lower triangular matrix
 		print('Transposing upper triangular matrix...')
-		lower_triangular_outfile = fo.join_paths(output_directory, ['distances_lower.tsv'])
+		lower_triangular_outfile = fo.join_paths(output_directory, [f'{output_file_prefix}_lower.tsv'])
 		lower_triangular = transpose_matrix(upper_triangular, lower_triangular_outfile)
 		# Merge upper and lower triangular matrices to create a symmetric matrix
 		if output_type == 'symmetric':
 			print('Creating symmetric matrix...')
-			output_file = merge_triangular_matrices(upper_triangular, lower_triangular, output_directory, len(col_ids))
+			symmetric_outfile = fo.join_paths(output_directory, [f'{output_file_prefix}_symmetric.tsv'])
+			output_file = merge_triangular_matrices(upper_triangular, lower_triangular, symmetric_outfile, len(col_ids))
 			os.remove(lower_triangular)
 		else:
 			output_file = lower_triangular
@@ -297,7 +345,7 @@ def transpose_matrix(input_file, output_file):
 	return output_file
 
 
-def merge_triangular_matrices(upper_matrix, lower_matrix, output_directory, matrix_size):
+def merge_triangular_matrices(upper_matrix, lower_matrix, output_file, matrix_size):
 	"""Merge a upper and lower triangular matrices to create a symmetric matrix.
 
 	Parameters
@@ -316,7 +364,6 @@ def merge_triangular_matrices(upper_matrix, lower_matrix, output_directory, matr
 	output_file : str
 		Path to the file with the symmetric matrix.
 	"""
-	output_file = os.path.join(output_directory, 'distances_symmetric.tsv')
 	with open(upper_matrix, 'r') as upper_handle, open(lower_matrix, 'r') as lower_handle:
 		upper_reader = csv.reader(upper_handle, delimiter='\t')
 		lower_reader = csv.reader(lower_handle, delimiter='\t')
@@ -334,7 +381,7 @@ def merge_triangular_matrices(upper_matrix, lower_matrix, output_directory, matr
 	return output_file
 
 
-def write_table(pickled_results, genome_ids, output_directory):
+def write_table(pickled_results, genome_ids, output_file, data_index):
 	"""Write a TSV file with distance values.
 
 	Parameters
@@ -352,12 +399,11 @@ def write_table(pickled_results, genome_ids, output_directory):
 	output_file : str
 		Path to the output file with the distance values.
 	"""
-	output_file = os.path.join(output_directory, 'distances.tsv')
 	ad_lines = []
 	limit = 100000
 	# Create based on genome order in input matrix
 	for g in genome_ids:
-		current_file = pickled_results[g]
+		current_file = pickled_results[g][data_index]
 		# Load data
 		data = fo.pickle_loader(current_file)
 		allele_diffs = list(data)
@@ -419,7 +465,7 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 
 	# Mask matrix values
 	if no_mask is False:
-		output_masked = os.path.join(output_directory, ct.MASKED_PROFILES_BASENAME)
+		output_masked = fo.join_paths(output_directory, [ct.MASKED_PROFILES_BASENAME])
 		# Mask special classifications and remove 'INF-' prefixes
 		print('Masking profiles...')
 		masked_profiles = profiles.apply(im.replace_chars)
@@ -437,7 +483,7 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 		tmp_directory_basename = 'pairwise_distances'
 
 	# Create temp directory to store pairwise distances per genome
-	tmp_directory = os.path.join(output_directory, tmp_directory_basename)
+	tmp_directory = fo.join_paths(output_directory, [tmp_directory_basename])
 	fo.create_directory(tmp_directory)
 
 	# Convert to numpy array with int32 values to reduce memory usage and make it easier to compute distances
@@ -459,20 +505,23 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 	print()
 
 	merged = im.merge_dictionaries(results)
+	data_indexes = [0, 1] if method == 'core' else [0]
 
-	if output_format != 'table':
-		print('Creating output matrix...')
-		# Import arrays per genome and save to matrix file
-		col_ids = ['FILE'] + sample_ids
-		output_file = write_matrix(merged, sample_ids, output_directory, col_ids, output_format)
-	elif output_format == 'table':
-		print('Creating output table...')
-		# Write TSV with one pairwise distance per line
-		output_file = write_table(merged, sample_ids, output_directory)
+	print('Creating output files...')
+	for i in data_indexes:
+		output_file_prefix = 'distances' if i == 0 else 'loci'
+		if output_format != 'table':
+			# Import arrays per genome and save to matrix file
+			col_ids = ['FILE'] + sample_ids
+			write_matrix(merged, sample_ids, output_directory, output_file_prefix, col_ids, output_format, i)
+		elif output_format == 'table':
+			# Write TSV with one pairwise distance per line
+			output_file = fo.join_paths(output_directory, [f'{output_file_prefix}.tsv'])
+			write_table(merged, sample_ids, output_file, i)
 
 	print(f'Results available in {output_directory}')
 
 	# Delete folder with intermediate pickles
 	fo.delete_directory(tmp_directory)
 
-	return output_file
+	return output_directory

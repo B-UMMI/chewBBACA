@@ -1518,10 +1518,11 @@ def run_compute_distances():
 							 'store intermediate and final results.')
 
 	parser.add_argument('--m', '--method', type=str, required=False,
-						default='hamming', choices=['hamming', 'jaccard', 'loci'],
+						default='hamming', choices=['hamming', 'jaccard', 'loci', 'core'],
 						dest='method',
 						help='Distance method used to compute the distance matrix. The module supports '
-							 'the hamming, jaccard and loci (number of loci not shared) methods.')
+							 'the hamming, jaccard, loci (number of loci not shared), and core (number of '
+							 'different alleles for core loci) methods.')
 
 	parser.add_argument('--outfmt', '--output-format', type=str, required=False,
 						choices=['upper_triangular', 'lower_triangular', 'symmetric', 'table'],

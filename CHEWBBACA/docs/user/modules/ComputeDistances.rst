@@ -20,7 +20,8 @@ Parameters
     -o, --output-directory    (Required) Path to the output directory where the process will store intermediate and final results.
 
     --m, --method             (Optional) Distance method used to compute the distance matrix. The module supports the hamming, 
-                              jaccard and loci (number of loci not shared) methods (default: hamming).
+                              jaccard, loci (number of loci not shared), and core (number of different alleles for core loci) 
+                              methods. (default: hamming).
 
     --outfmt, --output-format (Optional) Output format for the distance matrix (upper_triangular, lower_triangular, symmetric, table) 
                               (default: upper_triangular).

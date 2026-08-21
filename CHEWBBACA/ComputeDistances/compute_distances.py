@@ -432,7 +432,8 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 		Path to the output directory where the process will store intermediate and final results.
 	method : str
 		Distance method used to compute the distance matrix. The module supports the hamming, 
-		jaccard and loci (number of loci not shared) methods.
+		jaccard, loci (number of loci not shared), and core (number of different alleles for 
+		core loci) methods.
 	output_format : str
 		Output format for the distance matrix (upper_triangular, lower_triangular, symmetric, table).
 	no_mask : bool

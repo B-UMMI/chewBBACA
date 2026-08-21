@@ -473,3 +473,18 @@ COMPUTEDISTANCES_TEST_LOCI_SYMMETRIC_SIMILARITY = ['chewBBACA.py', 'ComputeDista
 												   '--m', 'loci',
 												   '--outfmt', 'symmetric',
 												   '--similarity']
+
+# ComputeDistances --m core, --outfmt symmetric
+COMPUTEDISTANCES_TEST_CORE_SYMMETRIC = ['chewBBACA.py', 'ComputeDistances',
+										'-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+										'-o', 'data/computedistances_data/expected_results/default',
+										'--m', 'core',
+										'--outfmt', 'symmetric']
+
+# ComputeDistances --m core, --outfmt symmetric and --similarity
+COMPUTEDISTANCES_TEST_CORE_SYMMETRIC_SIMILARITY = ['chewBBACA.py', 'ComputeDistances',
+												   '-i', 'data/computedistances_data/input_data/results_alleles.tsv',
+												   '-o', 'data/computedistances_data/expected_results/default',
+												   '--m', 'core',
+												   '--outfmt', 'symmetric',
+												   '--similarity']

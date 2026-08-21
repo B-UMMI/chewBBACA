@@ -41,6 +41,8 @@ def args_fixture(request, tmp_path):
 	 (ta.COMPUTEDISTANCES_TEST_JACCARD_SYMMETRIC_SIMILARITY, 'data/computedistances_data/expected_results/jaccard_symmetric_similarity'),
 	 (ta.COMPUTEDISTANCES_TEST_LOCI_SYMMETRIC, 'data/computedistances_data/expected_results/loci_symmetric'),
 	 (ta.COMPUTEDISTANCES_TEST_LOCI_SYMMETRIC_SIMILARITY, 'data/computedistances_data/expected_results/loci_symmetric_similarity'),
+	 (ta.COMPUTEDISTANCES_TEST_CORE_SYMMETRIC, 'data/computedistances_data/expected_results/core_symmetric')
+	 (ta.COMPUTEDISTANCES_TEST_CORE_SYMMETRIC_SIMILARITY, 'data/computedistances_data/expected_results/core_symmetric_similarity')
     ],
 	indirect=True
 )

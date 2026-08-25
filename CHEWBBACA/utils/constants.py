@@ -214,14 +214,17 @@ MISSING_FASTA_BASENAME = 'missing_classes.fasta'
 MISSING_TSV_BASENAME = 'missing_classes.tsv'
 NOVEL_BASENAME = 'novel_alleles.fasta'
 CDS_COORDINATES_BASENAME = 'cds_coordinates.tsv'
+CDS_COORDINATES_EXCLUDED_BASENAME = 'cds_coordinates_excluded.tsv'
 INVALID_CDS_BASENAME = 'invalid_cds.txt'
 SCHEMA_CONFIG_BASENAME = '.schema_config'
 GENE_LIST_BASENAME = '.genes_list'
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
 					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal CDSs Classified')
+# Header for the file with the list of novel alleles
+NOVEL_ALLELES_LIST_HEADER = 'Allele ID\tCDS ID\tRepresentative'
 # Header for TSV file with information about extracted CDSs
-CDS_TABLE_HEADER = 'Pyrodigal_ID\tChewie_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\n'
+CDS_TABLE_HEADER = 'Pyrodigal_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\n'
 # Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
@@ -624,6 +627,9 @@ DIFFERENT_PTF_PROMPT = ('Prodigal training file is not the one '
 			  			'usage with Chewie-NS.\nContinue process?\n')
 MULTIPLE_PTF_PROMPT = ('Prodigal training file is not any of the {0} '
 					   'used in previous runs.\nContinue?\n')
+
+JUST_TRAINING = ('User specified that the process should only create a '
+				 'training file (--just-training). Exited.')
 
 ARGS_DIFFER = ('Provided argument values differ from the values '
 			   'used for schema creation:\n')

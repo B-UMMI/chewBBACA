@@ -914,7 +914,7 @@ def write_results_statistics(classification_files, input_identifiers,
 		class_counts[i]['Classified_CDSs'] -= repeated_counts[i]
 		class_counts[i]['Invalid CDSs'] = 0 if invalid_data is None else invalid_data[1][i]
 	# Initialize with header line
-	header_line = ['FILE'] + classification_labels + ['Invalid CDSs', 'Total CDSs Classified', 'Total_CDSs']
+	header_line = ['FILE'] + classification_labels + ['Invalid CDSs', 'Classified_CDSs', 'Total_CDSs']
 	lines = [header_line]
 	for i, v in class_counts.items():
 		input_line = [i] + [str(v[c]) for c in header_line[1:]]
@@ -2004,9 +2004,9 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		# Run Pyrodigal to determine CDSs for all input genomes
 		print(f'\n {ct.CDS_PREDICTION} ')
 		print('='*(len(ct.CDS_PREDICTION)+2))
-		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, config['Prodigal training file'],
-											  config['Translation table'], config['Prodigal mode'], None,
-											  None, ['genes'], None, config['CPU cores'])
+		print(f'Calling the PredictGenes module to predict genes for {len(fasta_files)} inputs...')
+		pyrodigal_results = predict_genes.main(fasta_files, pyrodigal_path, config['Pyrodigal training file'],
+											  config['Translation table'], config['Pyrodigal mode'], ['genes'], config['Pyrodigal minimum confidence'], config['CPU cores'])
 
 		# Dictionary with info about inputs for which gene prediction failed
 		# Total number of CDSs identified in the inputs
@@ -2014,7 +2014,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 		# Paths to files with the coordinates of the CDSs extracted for each input
 		# Total number of CDSs identified per input
 		# Dictionary with info about the CDSs closer to contig tips per input
-		failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
+		failed, _, cds_fastas, cds_coordinates, cds_counts, close_to_tip = pyrodigal_results
 		if len(failed) > 0:
 			print(f'\nFailed to predict CDSs for {len(failed)} inputs.')
 			print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
@@ -2077,7 +2077,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 	if len(failed) > 0:
 		# Exclude inputs that failed gene prediction
 		input_file_ids = [file for file in input_file_ids if file[0] not in failed]
-		# Write Prodigal stderr for inputs that failed gene prediction
+		# Write Pyrodigal stderr for inputs that failed gene prediction
 		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
 		failed_outfile = fo.join_paths(os.path.dirname(temp_directory),
 									   ['gene_prediction_failures.tsv'])
@@ -2832,10 +2832,10 @@ def main(input_file, loci_list, schema_directory, output_directory,
 	print(f' {ct.CONFIG_VALUES} ')
 	print('='*(len(ct.CONFIG_VALUES)+2))
 
-	if config['Prodigal mode'] == 'meta' and config['Prodigal training file'] is not None:
-		print('Prodigal mode is set to "meta". Will not use '
-			  f'the training file in {config["Prodigal training file"]}')
-		config['Prodigal training file'] = None
+	if config['Pyrodigal mode'] == 'meta' and config['Pyrodigal training file'] is not None:
+		print('Pyrodigal mode is set to "meta". Will not use '
+			  f'the training file in {config["Pyrodigal training file"]}')
+		config['Pyrodigal training file'] = None
 
 	# Print config parameters
 	for k, v in config.items():
@@ -2919,6 +2919,8 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
 	# Sort to get output order similar to chewBBACA v2
 	results['classification_files'] = dict(sorted(results['classification_files'].items()))
+
+### Cannot get results['cds_coordinates'][1] when running with --cds
 
 	print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),
@@ -3043,7 +3045,7 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
 	clines = [im.join_list(l, '\t') for l in clines]
 	coutfile = fo.join_paths(output_directory, ['selected_ids.tsv'])
-	clines = [ct.ALLELE_TO_CDS_HEADER] + clines
+	clines = [ct.NOVEL_ALLELES_LIST_HEADER] + clines
 	fo.write_lines(clines, coutfile)
 
 	# Create file with allelic profiles

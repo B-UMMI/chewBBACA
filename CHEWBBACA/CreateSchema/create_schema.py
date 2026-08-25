@@ -89,7 +89,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 					   blast_score_ratio, minimum_length, translation_table,
 					   size_threshold, word_size, window_size, clustering_sim,
 					   representative_filter, intra_filter, cpu_cores, blast_path,
-					   prodigal_mode, cds_input):
+					   pyrodigal_mode, pyrodigal_minimum_confidence, cds_input):
 	"""Create a schema seed based on a set of input FASTA files."""
 	# Map input file paths to file basename without extension and MD5 file hash
 	input_file_ids = [(file, fo.file_basename(file, False)) for file in fasta_files]
@@ -107,10 +107,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		print('='*(len(ct.CDS_PREDICTION)+2))
 
 		# Gene prediction step
-		print(f'Predicting CDSs for {len(fasta_files)} inputs...')
-		pyrodigal_results = predict_cdss.main(fasta_files, pyrodigal_path, ptf_path,
-											  translation_table, prodigal_mode, None,
-											  None, ['genes'], None, cpu_cores)
+		print(f'Calling the PredictGenes module to predict genes for {len(fasta_files)} inputs...')
+		pyrodigal_results = predict_genes.main(fasta_files, pyrodigal_path, ptf_path, translation_table,
+											   pyrodigal_mode, ['genes'], pyrodigal_minimum_confidence, cpu_cores)
 
 		# Dictionary with info about inputs for which gene prediction failed
 		# Total number of CDSs identified in the inputs
@@ -118,7 +117,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		# Paths to files with the coordinates of the CDSs extracted for each input
 		# Total number of CDSs identified per input
 		# Dictionary with info about the CDSs closer to contig tips per input
-		failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, _ = pyrodigal_results
+		failed, _, cds_fastas, cds_coordinates, _, _ = pyrodigal_results
 		if len(failed) > 0:
 			print(f'\nFailed to predict genes for {len(failed)} inputs')
 			print('Make sure that Prodigal runs in meta mode (--pm meta) '
@@ -462,7 +461,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
 		 blast_score_ratio, minimum_length, translation_table,
 		 size_threshold, word_size, window_size, clustering_sim,
 		 representative_filter, intra_filter, cpu_cores, blast_path,
-		 cds_input, prodigal_mode, no_cleanup):
+		 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input, no_cleanup):
 	"""Create a wgMLST schema seed.
 
 	Parameters
@@ -513,8 +512,8 @@ def main(input_files, output_directory, schema_name, ptf_path,
 	cds_input : bool
 		If provided, input is a single or several FASTA files with
 		coding sequences (skips gene prediction and CDS extraction).
-	prodigal_mode : str
-		Prodigal running mode ("single" or "meta").
+	pyrodigal_mode : str
+		Pyrodigal running mode ("single" or "meta").
 	no_cleanup : bool
 		If provided, intermediate files generated during process
 		execution are not removed at the end.
@@ -530,7 +529,7 @@ def main(input_files, output_directory, schema_name, ptf_path,
 								 translation_table, size_threshold, word_size,
 								 window_size, clustering_sim, representative_filter,
 								 intra_filter, cpu_cores, blast_path,
-								 prodigal_mode, cds_input)
+								 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input)
 
 	# Remove temporary files
 	if no_cleanup is False:

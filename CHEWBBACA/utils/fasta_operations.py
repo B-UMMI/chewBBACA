@@ -131,7 +131,7 @@ def write_records(records, output_file, mode='w'):
 	output_file : str
 		Path to the output file.
 	"""
-	with open(output_file, 'w') as output_handle:
+	with open(output_file, mode) as output_handle:
 		fasta_out = FastaIO.FastaWriter(output_handle, wrap=None)
 		fasta_out.write_file(records)
 
@@ -346,7 +346,7 @@ def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
 	total_selected : int
 		Total number of records written to the output file.
 	"""
-	# using a generator
+	# Using a generator
 	if type(sequences) == dict:
 		seqs = ((seqid, sequences[seqid]) for seqid in seqids)
 	else:

@@ -90,7 +90,7 @@ def run_predict_genes():
 	parser.add_argument('PredictGenes', nargs='+', help=argparse.SUPPRESS)
 
 	parser.add_argument('-i', '--input-files', type=str,
-						required=True, dest='input_files',
+						required=False, dest='input_files',
 						help='Path to the directory that contains the input '
 							 'files or to a file with a list of full paths to '
 							 'the input files, one per line. Input files can be '
@@ -100,47 +100,49 @@ def run_predict_genes():
 						required=True, dest='output_directory',
 						help='Path to the output directory where the process will store the files with the predicted CDSs.')
 
-	parser.add_argument('--ptf', '--training-file', type=str,
-						required=False, dest='training_file',
-						help='Path to the Prodigal training file used by Pyrodigal '
-							 'to predict CDSs. The translation table used to create '
-							 'this file overrides any value passed to `--t`, '
-							 '`--translation-table`.')
+	parser.add_argument('--ptf', '--pyrodigal-training-file', type=str,
+						required=False, dest='pyrodigal_training_file',
+						help='Path to the Pyrodigal training file used to predict '
+							 'CDSs. The translation table used to create this file '
+							 'overrides any value passed to `--t`, `--translation-table`.')
 
 	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
-						required=False, dest='translation_table',
-						help='Genetic code used for gene prediction. This value is ignored if a valid training file is passed to `--ptf`, `--training-file`.')
+						required=False, default=ct.GENETIC_CODES_DEFAULT, dest='translation_table',
+						help='Genetic code used for gene prediction. This value is ignored if a valid '
+							 'training file is passed to `--ptf`, `--training-file`.')
 
-	parser.add_argument('--pm', '--prodigal-mode', required=False,
+	parser.add_argument('--pm', '--pyrodigal-mode', required=False,
 						choices=['single', 'meta'],
-						default='single', dest='prodigal_mode',
-						help='Prodigal running mode ("single" for '
-							 'finished genomes, reasonable quality '
-							 'draft genomes and big viruses. "meta" '
-							 'for metagenomes, low quality draft '
-							 'genomes, small viruses, and small '
-						 	 'plasmids).')
+						default='single', dest='pyrodigal_mode',
+						help='Pyrodigal running mode ("single" for finished genomes, reasonable quality '
+							 'draft genomes and big viruses. "meta" for metagenomes, low quality draft '
+							 'genomes, small viruses, and small plasmids).')
 
 	parser.add_argument('--tr', '--training-reference', type=str,
 						required=False, dest='training_reference',
-						help='Path to a reference genome in FASTA format used to create a training file to predict CDSs.')
+						help='Path to a reference genome in FASTA format used to create a Pyrodigal training file to predict CDSs.')
 
 	parser.add_argument('--jt', '--just-training', action='store_true',
 						required=False, dest='just_training',
 						help='Create a training file based on the reference genome and exit.')
 
-	parser.add_argument('--of', '--output-formats', nargs='+', type=str,
+	parser.add_argument('--pof', '--pyrodigal-output-formats', nargs='+', type=str,
 						required=False, default=['genes'], choices=['genes', 'translations', 'gff', 'genbank', 'scores'],
-						dest='output_formats',
-						help='Output file formats. Default is `genes` (FASTA).')
+						dest='pyrodigal_output_formats',
+						help='Output file formats created by Pyrodigal. Users can select a single or multiple options from '
+							 '`genes` (CDSs in FASTA format), `translations` (translated CDSs in FASTA format), '
+							 '`gff` (GFF file format), `genbank` (GenBank file format), and `scores` (TSV file '
+							 'with the scores for all predicted CDSs). Default is `genes`.')
 
-	parser.add_argument('--mc', '--minimum-confidence', type=float,
-						required=False, dest='minimum_confidence',
-						help='Minimum confidence value for gene prediction. Predicted CDSs with a confidence score lower than this value are excluded.')
+	parser.add_argument('--pmc', '--pyrodigal-minimum-confidence', type=float,
+						required=False, dest='pyrodigal_minimum_confidence',
+						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
+							 'a confidence score lower than this value are excluded.')
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores that will be used to run the process (chewie resets to a lower value if it is equal to or exceeds the total number of available CPU cores).')
+						help='Number of CPU cores that will be used to run the process (chewie resets to a lower '
+							 'value if it is equal to or exceeds the total number of available CPU cores).')
 
 	args = parser.parse_args()
 	del args.PredictGenes
@@ -154,31 +156,37 @@ def run_predict_genes():
 	if args.training_reference:
 		print(f'Creating training file based on {args.training_reference}...')
 		training_file = gp.create_training_file(args.training_reference, args.output_directory, args.translation_table)
+		print(f'Training file saved to {training_file}')
 		if args.just_training:
 			sys.exit(ct.JUST_TRAINING)
 		else:
-			args.training_file = training_file
+			args.pyrodigal_training_file = training_file
+
+	# Delete training_reference and just_training arguments
+	# These arguments are no passed to the main script of the PredictGenes module
+	del args.training_reference
+	del args.just_training
 
 	# Check if user passed PTF
-	if args.training_file:
+	if args.pyrodigal_training_file:
 		# Check if PTF exists
-		if not os.path.isfile(args.training_file):
+		if not os.path.isfile(args.pyrodigal_training_file):
 			sys.exit(ct.INVALID_PTF_PATH)
 		else:
 			# Get translation table used to create training file
-			ptf_table = gp.read_training_file(args.training_file).translation_table
+			ptf_table = gp.read_training_file(args.pyrodigal_training_file).translation_table
 			args.translation_table = ptf_table
 	else:
 		if not args.translation_table:
 			args.translation_table = ct.GENETIC_CODES_DEFAULT
 			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
 
-	print(f'Prodigal training file: {args.training_file}')
+	print(f'Pyrodigal training file: {args.pyrodigal_training_file}')
 	print(f'Translation table: {args.translation_table}')
-	print(f'Prodigal mode: {args.prodigal_mode}')
-	if args.prodigal_mode == 'meta' and args.training_file is not None:
-		print('Prodigal mode is set to "meta". Will not use provided training file.')
-		args.training_file = None
+	print(f'Pyrodigal mode: {args.pyrodigal_mode}')
+	if args.pyrodigal_mode == 'meta' and args.pyrodigal_training_file is not None:
+		print('Pyrodigal mode is set to "meta". Will not use provided training file.')
+		args.pyrodigal_training_file = None
 
 	print(f'CPU cores: {args.cpu_cores}')
 
@@ -235,7 +243,7 @@ def run_create_schema():
 
 	parser.add_argument('--ptf', '--training-file', type=str,
 						required=False, dest='ptf_path',
-						help='Path to the Prodigal training file used by Pyrodigal '
+						help='Path to the Pyrodigal training file used by Pyrodigal '
 							 'to predict genes. The translation table used to create '
 							 'this file overrides any value passed to `--t`, '
 							 '`--translation-table`. This file is copied '
@@ -281,15 +289,20 @@ def run_create_schema():
 						help='Path to the directory that contains the '
 							 'BLAST executables.')
 
-	parser.add_argument('--pm', '--prodigal-mode', required=False,
+	parser.add_argument('--pm', '--pyrodigal-mode', required=False,
 						choices=['single', 'meta'],
-						default='single', dest='prodigal_mode',
-						help='Prodigal running mode ("single" for '
+						default='single', dest='pyrodigal_mode',
+						help='Pyrodigal running mode ("single" for '
 							 'finished genomes, reasonable quality '
 							 'draft genomes and big viruses. "meta" '
 							 'for metagenomes, low quality draft '
 							 'genomes, small viruses, and small '
 						 	 'plasmids).')
+
+	parser.add_argument('--pmc', '--pyrodigal-minimum-confidence', type=float,
+						required=False, dest='pyrodigal_minimum_confidence',
+						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
+							 'a confidence score lower than this value are excluded.')
 
 	parser.add_argument('--cds', '--cds-input', required=False,
 						action='store_true', dest='cds_input',
@@ -321,10 +334,10 @@ def run_create_schema():
 			args.translation_table = ct.GENETIC_CODES_DEFAULT
 			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
 
-	print(f'Prodigal training file: {args.ptf_path}')
-	print(f'Prodigal mode: {args.prodigal_mode}')
-	if args.prodigal_mode == 'meta' and args.ptf_path is not None:
-		print('Prodigal mode is set to "meta". Will add training file to '
+	print(f'Pyrodigal training file: {args.ptf_path}')
+	print(f'Pyrodigal mode: {args.pyrodigal_mode}')
+	if args.pyrodigal_mode == 'meta' and args.ptf_path is not None:
+		print('Pyrodigal mode is set to "meta". Will add training file to '
 			  'the schema, but will not use it for gene prediction during '
 			  'schema creation.')
 		args.ptf_path = None
@@ -369,13 +382,13 @@ def run_create_schema():
 	print(f'Created schema seed with {nloci} loci.')
 
 	schema_dir = os.path.join(args.output_directory, args.schema_name)
-	# Copy Prodigal Training File (PTF) to schema directory
+	# Copy Pyrodigal Training File (PTF) to schema directory
 	ptf_hash = None
 	if args.ptf_path is not None:
 		shutil.copy(args.ptf_path, schema_dir)
 		# Determine PTF checksum
 		ptf_hash = fo.hash_file(args.ptf_path, 'blake2b')
-		print(f'Copied Prodigal training file to {schema_dir}')
+		print(f'Copied Pyrodigal training file to {schema_dir}')
 
 	# Write schema config file
 	args.minimum_length = ct.MSL_MIN
@@ -434,7 +447,7 @@ def run_allele_call():
 
 	parser.add_argument('--ptf', '--training-file', type=str,
 						required=False, dest='ptf_path',
-						help='Path to the Prodigal training file used by Pyrodigal '
+						help='Path to the Pyrodigal training file used by Pyrodigal '
 							 'to predict genes. Default is to use the training file '
 							 'included in the schema\'s directory. The translation '
 							 'table used to create this file overrides any value '
@@ -487,15 +500,20 @@ def run_allele_call():
 						help='Path to the directory that contains the '
 							 'BLAST executables.')
 
-	parser.add_argument('--pm', '--prodigal-mode', type=str,
+	parser.add_argument('--pm', '--pyrodigal-mode', type=str,
 						required=False, choices=['single', 'meta'],
-						default='single', dest='prodigal_mode',
-						help='Prodigal running mode ("single" for '
+						default='single', dest='pyrodigal_mode',
+						help='Pyrodigal running mode ("single" for '
 							 'finished genomes, reasonable quality '
 							 'draft genomes and big viruses. "meta" '
 							 'for metagenomes, low quality draft '
 							 'genomes, small viruses, and small '
 							 'plasmids).')
+
+	parser.add_argument('--pmc', '--pyrodigal-minimum-confidence', type=float,
+						required=False, dest='pyrodigal_minimum_confidence',
+						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
+							 'a confidence score lower than this value are excluded.')
 
 	parser.add_argument('--cds', '--cds-input', action='store_true',
 						required=False, dest='cds_input',
@@ -658,11 +676,12 @@ def run_allele_call():
 				'Word size': args.word_size,
 				'Window size': args.window_size,
 				'Clustering similarity': args.clustering_sim,
-				'Prodigal training file': args.ptf_path,
+				'Pyrodigal training file': args.ptf_path,
 				'CPU cores': args.cpu_cores,
 				'BLAST path': args.blast_path,
 				'CDS input': args.cds_input,
-				'Prodigal mode': args.prodigal_mode,
+				'Pyrodigal mode': args.pyrodigal_mode,
+				'Pyrodigal minimum confidence': args.pyrodigal_minimum_confidence,
 				'Mode': args.mode}
 
 	allele_call.main(genome_list, loci_list, args.schema_directory,
@@ -1244,7 +1263,7 @@ def run_adapt_schema():
 
 	parser.add_argument('--ptf', '--training-file', type=str,
 						required=False, dest='ptf_path',
-						help='Path to the Prodigal training file that '
+						help='Path to the Pyrodigal training file that '
 							 'will be included in the directory of the '
 							 'adapted schema. The translation table used to create '
 							 'this file overrides any value passed to `--t`, '
@@ -1379,7 +1398,7 @@ def run_adapt_schema():
 		shutil.copy(args.ptf_path, schema_path)
 		# Determine PTF checksum
 		ptf_hash = fo.hash_file(args.ptf_path, 'blake2b')
-		print('Copied Prodigal training file to schema directory.')
+		print('Copied Pyrodigal training file to schema directory.')
 
 	# Write schema config file
 	args.ptf_path = ptf_hash

@@ -148,10 +148,9 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 		sequence = gene.sequence()
 		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
-		# Store CDS IDs used by Pyrodigal and chewBBACA to link the data in the output files
+		# Store CDS IDs used by Pyrodigal
 		pyrodigal_id = f'{genome_id}_{protid}'
-		chewie_id = f'{genome_id}-protein{protid}'
-		gene_info.append([sequence_hash, sequence, pyrodigal_id, chewie_id,
+		gene_info.append([sequence_hash, sequence, pyrodigal_id,
 						  genome_id, contig_id, str(gene.begin), str(gene.end),
 						  str(protid), str(gene.strand), str(confidence)])
 		protid += 1
@@ -234,19 +233,22 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 	# Extract data from Gene objects
 	protid = 1
 	gene_info = []
-	# Store data about first and last CDS in each sequence to speedup PLOT classification
+	# Store data about first and last CDSs in each sequence to speedup PLOT classification
 	close_to_tip = {genome_basename: {}}
 	for recid, genes in contig_genes.items():
+		# Get coordinate data for CDSs
 		data = get_gene_info(recid, genome_basename, protid, genes)
 		gene_info.extend(data[0])
+		# Get data for first and last CDS in the contig
 		if len(data[0]) > 0:
 			first_cds = data[0][0]
-			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[5]], int(first_cds[6]), int(first_cds[7]), first_cds[-1]))
+			close_to_tip[genome_basename].setdefault(first_cds[0], []).append((contig_sizes[first_cds[4]], int(first_cds[5]), int(first_cds[6]), first_cds[-1]))
 			if first_cds != data[0][-1]:
 				last_cds = data[0][-1]
-				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[5]], int(last_cds[6]), int(last_cds[7]), last_cds[-1]))
+				close_to_tip[genome_basename].setdefault(last_cds[0], []).append((contig_sizes[last_cds[4]], int(last_cds[5]), int(last_cds[6]), last_cds[-1]))
 		# Reset protid based on the number of CDSs predicted for the sequence
 		protid = data[1]
+
 	# Get total number of CDSs predicted
 	total_genome = len(gene_info)
 
@@ -260,10 +262,10 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 				for recid, genes in contig_genes.items():
 					# Use math.inf to write sequences in a single line
 					genes.write_genes(outfile, sequence_id=genome_basename, width=math.inf)
-			output_files[0] = fasta_outfile
+			output_files[0] = (fasta_outfile)
 
 		if 'translations' in output_formats:
-			translations_outfile = fo.join_paths(output_directory, ['translations', f'{genome_basename}.translations'])
+			translations_outfile = fo.join_paths(output_directory, ['translations', f'{genome_basename}_translated.fasta'])
 			with open(translations_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
 					genes.write_translations(outfile, sequence_id=genome_basename, width=math.inf, include_stop=False)
@@ -279,7 +281,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 			output_files[2] = gff_outfile
 
 		if 'genbank' in output_formats:
-			gbk_outfile = fo.join_paths(output_directory, ['gbk', f'{genome_basename}.gbk'])
+			gbk_outfile = fo.join_paths(output_directory, ['genbank', f'{genome_basename}.gbk'])
 			with open(gbk_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
 					genes.write_genbank(outfile, sequence_id=genome_basename)
@@ -293,8 +295,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 			output_files[4] = scores_outfile
 
 		# Save gene coordinates and contig sizes to pickle
-		coordinates_outfile = fo.join_paths(output_directory,
-											[f'{genome_basename}_coordinates'])
+		coordinates_outfile = fo.join_paths(output_directory, ['cds_coordinate', f'{genome_basename}_coordinates'])
 		write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
 		output_files[5] = coordinates_outfile
 

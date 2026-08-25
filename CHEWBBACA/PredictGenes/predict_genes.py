@@ -11,8 +11,8 @@ Code documentation
 
 
 import os
-
-import pandas as pd
+import sys
+import csv
 
 try:
 	from utils import (constants as ct,
@@ -50,9 +50,8 @@ def write_coordinates_file(coordinates_file, output_file):
 	fo.write_lines(lines, output_file)
 
 
-def predict_genes(fasta_files, ptf_path, translation_table,
-				  prodigal_mode, cpu_cores, output_directory,
-				  output_formats):
+def predict_genes(fasta_files, ptf_path, translation_table, pyrodigal_mode, cpu_cores,
+				  output_directory, output_formats):
 	"""Execute Prodigal to predict coding sequences from Fasta files.
 
 	Parameters
@@ -66,8 +65,8 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 	translation_table : int
 		Genetic code used to predict and translate
 		coding sequences.
-	prodigal_mode : str
-		Prodigal execution mode.
+	pyrodigal_mode : str
+		Pyrodigal execution mode.
 	cpu_cores : int
 		Number of processes that will run Prodigal in
 		parallel.
@@ -89,7 +88,7 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 		training_data = gp.read_training_file(ptf_path)
 		# Create GeneFinder object based on training data
 		gene_finder = gp.create_gene_finder(training_data, True, True, False)
-	elif ptf_path is None and prodigal_mode == 'meta':
+	elif ptf_path is None and pyrodigal_mode == 'meta':
 		# Create GeneFinder object to run in meta mode
 		gene_finder = gp.create_gene_finder(None, True, True, True)
 	else:
@@ -99,6 +98,9 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 
 	# Divide into equal number of sublists for maximum progress resolution
 	pyrodigal_inputs = im.divide_list_into_n_chunks(fasta_files, len(fasta_files))
+
+	# Create folder to store CDS coordinate data
+	fo.create_directory(fo.join_paths(output_directory, ['cds_coordinate']))
 
 	# Create subfolders to store each output format
 	for output_format in output_formats:
@@ -147,8 +149,30 @@ def predict_genes(fasta_files, ptf_path, translation_table,
 	return [failed, total_cds, cds_fastas, cds_hashes, cds_counts, close_to_tip]
 
 
-def main(input_files, output_directory, training_file, translation_table, prodigal_mode,
-		 training_reference, just_training, output_formats, minimum_confidence, cpu_cores):
+def exclude_records(input_file, input_id, records_ids, output_directory, delete_original=False):
+	"""
+	"""
+	records = fao.sequence_generator(input_file)
+	selected_records = []
+	excluded_records = []
+	for rec in records:
+		if rec.id not in records_ids:
+			selected_records.append(rec)
+		else:
+			excluded_records.append(rec)
+
+	selected_outfile = fo.join_paths(output_directory, [f'{input_id}.fasta'])
+	fao.write_records(selected_records, selected_outfile, mode='w')
+
+	if delete_original:
+		# Delete FASTA file with all CDSs to release disk space
+		fo.remove_files([input_file])
+
+	return excluded_records
+
+
+def main(input_files, output_directory, pyrodigal_training_file, translation_table, pyrodigal_mode,
+		 pyrodigal_output_formats, pyrodigal_minimum_confidence, cpu_cores):
 	# Read file with paths to input files
 	if isinstance(input_files, str):
 		input_files = fo.read_lines(input_files, strip=True)
@@ -165,8 +189,8 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 
 	# Gene prediction step
 	print(f'Predicting CDSs for {len(input_files)} inputs...')
-	pyrodigal_results = predict_genes(input_file_ids, training_file, translation_table,
-									  prodigal_mode, cpu_cores, output_directory, output_formats)
+	pyrodigal_results = predict_genes(input_file_ids, pyrodigal_training_file, translation_table,
+									  pyrodigal_mode, cpu_cores, output_directory, pyrodigal_output_formats)
 
 	# Dictionary with info about inputs for which gene prediction failed
 	# Total number of CDSs identified in the inputs
@@ -184,8 +208,10 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 	if len(cds_fastas) == 0:
 		sys.exit(f'{ct.CANNOT_PREDICT}')
 
+	print(f'Predicted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
+
 	# Create TSV file with CDS coordinates
-	print(f'Creating file with the coordinates of CDSs identified in inputs ({ct.CDS_COORDINATES_BASENAME})...')
+	print(f'Creating file with the coordinates of the CDSs identified in the inputs ({ct.CDS_COORDINATES_BASENAME})...')
 	files = []
 	for gid, file in cds_coordinates.items():
 		tsv_file = fo.join_paths(os.path.dirname(file), [f'{gid}_coordinates.tsv'])
@@ -196,7 +222,6 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 	merged_coordinates = fo.join_paths(output_directory, [ct.CDS_COORDINATES_BASENAME])
 	fo.concatenate_files(files, merged_coordinates, header=ct.CDS_TABLE_HEADER)
 	fo.remove_files(files)
-	print(f'Extracted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 
 	if len(failed) > 0:
 		# Write Prodigal stderr for inputs that failed gene prediction
@@ -204,5 +229,65 @@ def main(input_files, output_directory, training_file, translation_table, prodig
 		failed_outfile = fo.join_paths(os.path.dirname(output_directory),
 									   ['gene_prediction_failures.tsv'])
 		fo.write_lines(failed_lines, failed_outfile)
+
+	# Filter FASTA files based on confidence threshold
+	if 'genes' in pyrodigal_output_formats and pyrodigal_minimum_confidence:
+		print(f'Identifying the CDSs with a confidence score < {pyrodigal_minimum_confidence}...')
+		# Create folder to store FASTA files containing CDSs above confidence threshold
+		filtered_genes_outdir = fo.join_paths(output_directory, ['filtered_genes'])
+		fo.create_directory(filtered_genes_outdir)
+
+		# Read coordinate file to identify CDSs below confidence threshold
+		with open(merged_coordinates, 'r') as infile:
+			reader = csv.reader(infile, delimiter='\t')
+			header = next(reader, None)
+			# Get lines where the confidence value is below the threshold
+			below = [line for line in reader if float(line[-1]) < pyrodigal_minimum_confidence]
+
+		print(f'Identified {len(below)} CDSs with a confidence value < {pyrodigal_minimum_confidence}.')
+		# Save lines matching excluded CDSs to separate TSV file
+		below_outlines = ['\t'.join(line) for line in [header]+below]
+		below_lines_outfile = fo.join_paths(output_directory, [ct.CDS_COORDINATES_EXCLUDED_BASENAME])
+		fo.write_lines(below_outlines, below_lines_outfile)
+		print(f'Wrote CDS coordinates for the CDSs excluded based on the confidence threshold to {below_lines_outfile}')
+
+		print(f'Filtering FASTA records to create FASTA files containing only the CDSs with a confidence value < {pyrodigal_minimum_confidence}...')
+		# Group CDS IDs based on genome of origin
+		grouped = {}
+		for line in below:
+			grouped.setdefault(line[0].rsplit('_', 1)[0], []).append(line[0])
+
+		filtering_inputs = []
+		for gid in grouped:
+			filtering_inputs.append([fo.join_paths(output_directory, ['genes', f'{gid}.fasta']), gid, grouped[gid], filtered_genes_outdir, True])
+
+		# Add common arguments to all sublists
+		filtering_inputs = im.multiprocessing_inputs(filtering_inputs, [], exclude_records)
+
+		# Filter records
+		filtering_results = mo.map_async_parallelizer(filtering_inputs,
+													  mo.function_helper,
+													  cpu_cores,
+													  show_progress=True,
+													  pool_type='threadpool')
+		print()
+
+		# Save excluded records from all inputs to the same FASTA file
+		excluded_records = im.flatten_list(filtering_results)
+		excluded_outfile = fo.join_paths(output_directory, ['cds_excluded.fasta'])
+		fao.write_records(excluded_records, excluded_outfile, mode='w')
+
+		print(f'FASTA files with filtered records saved to {filtered_genes_outdir}')
+		print(f'FASTA file containing all excluded records saved to {excluded_outfile}')
+
+		# Delete folder that contained the FASTA files with all CDSs
+		fo.delete_directory(fo.join_paths(output_directory, ['genes']))
+
+		# Update data returned by the function to account for the CDSs excluded based on the confidence threshold
+		cds_fastas = fo.listdir_fullpath(filtered_genes_outdir)
+		for gid in grouped:
+			cds_counts[gid] = cds_counts[gid] - len(grouped[gid])
+
+	print(f'Gene prediction results available in {output_directory}')
 
 	return failed, total_extracted, cds_fastas, [merged_coordinates, cds_coordinates], cds_counts, close_to_tip

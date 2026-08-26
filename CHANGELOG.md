@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.6.0 - 2026-03-
+## 4.0.0-beta - 2026-09-
 
 This version adds multiple modules that perform operations that were previously integrated into other modules and could not be used separately. The new modules are the following:
 

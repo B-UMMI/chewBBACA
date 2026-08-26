@@ -22,12 +22,14 @@ Welcome to chewBBACA's documentation!
    user/modules/SchemaEvaluator
    user/modules/AlleleCallEvaluator
    user/modules/ExtractCgMLST
-   user/modules/RemoveGenes
    user/modules/PrepExternalSchema
    user/modules/GetAlleles
-   user/modules/JoinProfiles
+   user/modules/HashProfiles
    user/modules/UniprotFinder
+   user/modules/ComputeDistances
    user/modules/ComputeMSA
+   user/modules/SubsetResults
+   user/modules/MergeResults
    user/modules/DownloadSchema
    user/modules/LoadSchema
    user/modules/SyncSchema

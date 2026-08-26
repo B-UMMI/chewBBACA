@@ -949,8 +949,7 @@ def write_results_contigs(classification_files, input_identifiers,
 		be created.
 	cds_coordinates_files : dict
 		Dictionary with input string identifiers as keys
-		and paths to pickled files with coding sequence
-		coordinates as values.
+		and paths to pickled files with CDS coordinates as values.
 	classification_labels : list
 		List with the class labels attributed by chewBBACA.
 	loci_finder : re.Pattern
@@ -1036,7 +1035,7 @@ def write_results_contigs(classification_files, input_identifiers,
 				# Contig identifier, start and stop positions and strand
 				# 1 for forward strand, -1 for reverse strand
 				coordinates_str = (c if current_coordinates in invalid_classes or isinstance(current_coordinates, list) is False
-								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[3:6], current_coordinates[7]))
+								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[2:5], current_coordinates[6]))
 				if c not in repeated_hashes:
 					cds_coordinates.append(coordinates_str)
 				else:
@@ -2928,9 +2927,6 @@ def main(input_file, loci_list, schema_directory, output_directory,
 
 	# Sort to get output order similar to chewBBACA v2
 	results['classification_files'] = dict(sorted(results['classification_files'].items()))
-
-##### This seems to be working with --cds but the coordinates added to the file are not correct
-##### It is probably an issue with indices due to adding the confidence values to the file?
 
 	print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),

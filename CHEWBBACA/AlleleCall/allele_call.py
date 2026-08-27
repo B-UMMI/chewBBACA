@@ -19,6 +19,7 @@ import sys
 import math
 from collections import Counter
 
+import sqlite3
 import pandas as pd
 
 try:
@@ -927,9 +928,8 @@ def write_results_statistics(classification_files, input_identifiers,
 	return output_file
 
 
-def write_results_contigs(classification_files, input_identifiers,
-						  output_directory, cds_coordinates_files,
-						  classification_labels, loci_finder):
+def write_results_contigs(classification_files, input_identifiers, output_directory,
+						  cds_coordinates_db, classification_labels, loci_finder):
 	"""Write a TSV file with the CDS coordinates for each input.
 
 	Writes a TSV file with coding sequence coordinates (contig
@@ -977,7 +977,7 @@ def write_results_contigs(classification_files, input_identifiers,
 	# Limit the number of values to store in memory
 	values_limit = ct.RESULTS_MAXVALS
 	# Get hash if coordinates are available, seqid otherwise
-	id_index = 2 if cds_coordinates_files is not None else 1
+	id_index = 2 if cds_coordinates_db else 1
 	for i, file in enumerate(classification_files):
 		locus_id = loci_finder.search(file).group()
 		locus_results = fo.pickle_loader(file)
@@ -1021,28 +1021,30 @@ def write_results_contigs(classification_files, input_identifiers,
 		header = csv_reader.__next__()
 		output_lines = [header]
 		# Convert hashes to CDS coordinates
-		for i, l in enumerate(csv_reader):
-			genome_id = l[0]
-			coordinates = {}
-			if cds_coordinates_files is not None:
-				# Open file with loci coordinates
-				coordinates = fo.pickle_loader(cds_coordinates_files[genome_id])[0]
-				# Start position is 0-based, stop position is upper-bound exclusive
-				# Convert to PAMA CDSs that matched multiple loci
-			cds_coordinates = []
-			for j, c in enumerate(l[1:]):
-				current_coordinates = coordinates.get(c, [c])[0]
-				# Contig identifier, start and stop positions and strand
-				# 1 for forward strand, -1 for reverse strand
-				coordinates_str = (c if current_coordinates in invalid_classes or isinstance(current_coordinates, list) is False
-								   else '{0}&{1}-{2}&{3}'.format(*current_coordinates[2:5], current_coordinates[6]))
-				if c not in repeated_hashes:
-					cds_coordinates.append(coordinates_str)
-				else:
-					cds_coordinates.append(classification_labels[-2])
-					repeated_info.setdefault(c, []).append([genome_id, header[j+1], coordinates_str])
+		# Each line starts with the genome ID followed by hashes or special classifications
+		for i, line in enumerate(csv_reader):
+			genome_id = line[0]
+			# Get value pairs for EXC/INF- matches
+			value_pairs = [(genome_id, v, header[j+1]) for j, v in enumerate(line[1:]) if v not in ct.ALLELECALL_CLASSIFICATIONS[2:]]
+			# Get coordinate data for the EXC/INF- matches
+			matching_rows = fetch_sqldb_data(cds_coordinates_db, value_pairs, ['Genome', 'SHA256'])
+			# Create coordinate data strings to add to file
+			# Contig identifier, start and stop positions and strand
+			# 1 for forward strand, -1 for reverse strand
+			# Start position is 0-based, stop position is upper-bound exclusive
+			coordinate_strings = {r[-1]: f'{r[2]}&{r[3]}-{r[4]}&{r[6]}' for r in matching_rows}
+			matching_data = {v: coordinate_strings[v[1]] for v in value_pairs}
+			# Determine which CDSs matched multiple loci
+			for k, v in matching_data.items():
+				if k[1] in repeated_hashes:
+					# Save the ID of the genome with the PAMA match, the ID of the locus assigned that class and the coordinate string
+					repeated_info.setdefault(k[1], []).append([genome_id, k[2], v])
+					# Convert to PAMA CDSs that matched multiple loci
+					matching_data[k] = classification_labels[-2]
 
-			output_lines.append([genome_id]+cds_coordinates)
+			# Create list with row values
+			coordinate_line = [genome_id] + [matching_data.get((genome_id, v, header[j+1]), v) for j, v in enumerate(line[1:])]
+			output_lines.append(coordinate_line)
 
 			if (len(output_lines)*len(classification_files)) >= values_limit or (i+1) == len(input_identifiers):
 				output_lines = ['\t'.join(l) for l in output_lines]
@@ -1937,9 +1939,79 @@ def merge_blast_results(blast_outfiles, output_directory, loci_finder):
 	return concatenated_files
 
 
-def allele_calling(fasta_files, schema_directory, temp_directory,
-				   loci_modes, loci_files, config, pre_computed_dir,
-				   loci_finder):
+def tsv_sqlite_db(tsv_file, database_path, table_name, index_columns=None):
+	"""Build SQLite3 database from a TSV file.
+
+	Parameters
+	----------
+	tsv_file : str
+		Path to the TSV file used to build the database.
+	database_path : str
+		Path to the database file to create.
+	table_name : str
+		Name for the database table created to store the TSV data.
+	index_columns : list
+		List with the column/table headers to build index for to speedup queries.
+
+	Returns
+	-------
+	database_path : str
+		Path to the database file created.
+	"""
+	# Use context manager to avoid needing manual commit() and close()
+	with sqlite3.connect(database_path) as conn:
+		# Convert TSV data to indexed SQLite DB in chunks to avoid memory overload
+		# Define chunksize
+		chunksize = 100_000
+
+		# Read TSV in chunks
+		for i, chunk in enumerate(pd.read_csv(tsv_file, sep="\t", chunksize=chunksize)):
+			chunk.to_sql(table_name, conn, if_exists="append" if i > 0 else "replace", index=False)
+
+		# Build index based on specified columns
+		if index_columns:
+			cursor = conn.cursor()
+
+			index_query = f'CREATE INDEX IF NOT EXISTS idx_tsv ON {table_name}({", ".join(index_columns)});'
+			cursor.execute(index_query)
+
+	return database_path
+
+
+def fetch_sqldb_data(database_path, value_pairs, index_columns):
+	"""Query SQLite3 database created from a TSV file to retrieve data.
+
+	Parameters
+	----------
+	database_path : str
+		Path to the SQLite3 database file.
+	value_pairs : list
+		List of tuples with the value pairs to search for.
+	index_columns : list
+		List with the column/table headers the value pairs correspond to.
+
+	Returns
+	-------
+	matching_rows : list
+		List of tuples for all matching rows.
+	"""
+	with sqlite3.connect(database_path) as conn:
+		# Create placeholders to add to query string
+		placeholders = ", ".join(["(?, ?)"] * len(value_pairs))
+		sql_query = f'SELECT * FROM coordinates WHERE ({", ".join(index_columns)}) IN ({placeholders})'
+		# Only add the values for the index columns, do not additional values if the value pairs have more data
+		flat_params = [item for pair in value_pairs for item in pair[:len(index_columns)]]
+
+		# Get matchign rows
+		cursor = conn.cursor()
+		cursor.execute(sql_query, flat_params)
+		matching_rows = cursor.fetchall()
+
+	return matching_rows
+
+
+def allele_calling(fasta_files, schema_directory, temp_directory, loci_modes,
+				   loci_files, config, pre_computed_dir, loci_finder):
 	"""Perform allele calling for a set of inputs.
 
 	Parameters
@@ -2022,7 +2094,15 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 			sys.exit(f'{ct.CANNOT_PREDICT}')
 
 		# Copy file with CDS coordinates to output directory
-		fo.move_file(cds_coordinates[0], os.path.dirname(temp_directory))
+		destination = fo.join_paths(os.path.dirname(temp_directory), ['gene_coordinates.tsv'])
+		fo.copy_file(cds_coordinates, destination)
+		cds_coordinates = destination
+
+		# Copy file with assembly statistics to output directory
+		assembly_stats_file = fo.join_paths(pyrodigal_path, ['assembly_stats.tsv'])
+		if os.path.isfile(assembly_stats_file):
+			destination = fo.join_paths(os.path.dirname(temp_directory), ['assembly_stats.tsv'])
+			fo.copy_file(assembly_stats_file, destination)
 
 		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
 		renaming_inputs = []
@@ -2066,16 +2146,22 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 
 		# No inputs failed gene prediction
 		failed = []
-		# Try to get the pickled files with the CDS coordinates if the CDS sets were generated by the PredictGenes module
+		# Try to get the TSV file with the CDS coordinates if the CDS sets were created by the PredictGenes module
 		input_files_parent_dir = input_file_ids[0][0].rsplit('/', 2)[0]
-		coordinates_dir = fo.join_paths(input_files_parent_dir, ['cds_coordinate'])
-		if os.path.isdir(coordinates_dir):
-			coordinates_files = fo.listdir_fullpath(coordinates_dir)
-			coordinates_files = {fo.file_basename(file).split('_coordinates')[0]: file for file in coordinates_files}
-			cds_coordinates = [None, coordinates_files]
+		coordinates_file = fo.join_paths(input_files_parent_dir, ['gene_coordinates.tsv'])
+		if os.path.isfile(coordinates_file):
+			# Copy file with CDS coordinates to output directory
+			destination = fo.join_paths(os.path.dirname(temp_directory), ['gene_coordinates.tsv'])
+			fo.copy_file(coordinates_file, destination)
+			cds_coordinates = destination
 		# Cannot get CDS coordinates if skipping gene prediction
 		else:
-			cds_coordinates = [None, None]
+			cds_coordinates = None
+
+		assembly_stats_file = fo.join_paths(input_files_parent_dir, ['assembly_stats.tsv'])
+		if os.path.isfile(assembly_stats_file):
+			destination = fo.join_paths(os.path.dirname(temp_directory), ['assembly_stats.tsv'])
+			fo.copy_file(assembly_stats_file, destination)
 
 		close_to_tip = {}
 		cds_counts = {fo.file_basename(r[0], False): r[1] for r in renaming_results}
@@ -2091,7 +2177,7 @@ def allele_calling(fasta_files, schema_directory, temp_directory,
 									   ['gene_prediction_failures.tsv'])
 		fo.write_lines(failed_lines, failed_outfile)
 
-	template_dict['cds_coordinates'] = cds_coordinates[1]
+	template_dict['cds_coordinates'] = cds_coordinates
 
 	# Map input identifiers to integers
 	# Use the mapped integers to refer to each input
@@ -2928,11 +3014,20 @@ def main(input_file, loci_list, schema_directory, output_directory,
 	# Sort to get output order similar to chewBBACA v2
 	results['classification_files'] = dict(sorted(results['classification_files'].items()))
 
+	# Import data from gene_coordinates.tsv file into sqlite3 db to fetch coordinate data more efficiently
+	if results['cds_coordinates']:
+		print(f'Importing coordinate data into a SQLite3 database...')
+		database_path = fo.join_paths(temp_directory, ['gene_coordinates.db'])
+		tsv_sqlite_db(results['cds_coordinates'], database_path, 'coordinates', ['Genome', 'SHA256'])
+	else:
+		print('There is no CDS coordinate data. Will add CDS identifiers to results_contigsInfo.tsv.')
+		database_path = None
+
 	print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),
 											results['int_to_unique'],
 											output_directory,
-											results['cds_coordinates'],
+											database_path,
 											classification_labels,
 											loci_finder)
 	outfile, repeated_info, repeated_counts = results_contigs

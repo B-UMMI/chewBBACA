@@ -158,26 +158,7 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 	return gene_info, protid
 
 
-def write_coordinates_pickle(gene_info, contig_sizes, output_file):
-	"""Write gene coordinates to a pickle file.
-
-	Parameters
-	----------
-	gene_info : list
-		List with the data for the genes returned by `get_gene_info`.
-	contig_sizes : dict
-		Dictionary with contig/sequence identifiers as keys and
-		contig/sequence size as values.
-	output_file : str
-	Path to the output file.
-	"""
-	gene_coordinates = {}
-	for gene in gene_info:
-		gene_coordinates.setdefault(gene[0], []).append(gene[2:])
-	fo.pickle_dumper([gene_coordinates, contig_sizes], output_file)
-
-
-def predict_genome_genes(input_file, output_directory, gene_finder, translation_table, output_formats):
+def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene_finder, translation_table, output_formats):
 	"""Predict genes for sequences in a FASTA file.
 
 	Parameters
@@ -211,8 +192,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 	genome_basename = input_file[1]
 	records = fao.sequence_generator(input_file[0])
 	records = {rec.id: bytes(rec.seq) for rec in records}
-	contig_sizes = {recid: len(sequence)
-					for recid, sequence in records.items()}
+	contig_sizes = {recid: len(sequence) for recid, sequence in records.items()}
 
 	# Train based on input sequences
 	# Only train if there is no GeneFinder object
@@ -253,7 +233,7 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 	total_genome = len(gene_info)
 
 	# Save data if Pyrodigal was able to predict genes
-	output_files = [None, None, None, None, None, None]
+	output_files = [None, None, None, None, None]
 	if total_genome > 0:
 		if 'genes' in output_formats:
 			# Define path to output FASTA
@@ -294,9 +274,11 @@ def predict_genome_genes(input_file, output_directory, gene_finder, translation_
 					genes.write_scores(outfile, sequence_id=genome_basename)
 			output_files[4] = scores_outfile
 
-		# Save gene coordinates and contig sizes to pickle
-		coordinates_outfile = fo.join_paths(output_directory, ['cds_coordinate', f'{genome_basename}_coordinates'])
-		write_coordinates_pickle(gene_info, contig_sizes, coordinates_outfile)
-		output_files[5] = coordinates_outfile
+		# Save gene coordinates to process TSV file
+		coordinate_data = []
+		for gene in gene_info:
+			coordinate_data.append(gene[2:]+[gene[0]])
+		coordinate_outlines = ['\t'.join(l) for l in coordinate_data]
+		fo.write_lines(coordinate_outlines, coordinates_outfile, write_mode='a')
 
 	return [input_file, total_genome, close_to_tip, output_files]

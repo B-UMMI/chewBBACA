@@ -126,7 +126,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 			sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
 		# Copy file with CDS coordinates to output directory
-		fo.move_file(cds_coordinates[0], output_directory)
+		fo.move_file(cds_coordinates, output_directory)
 
 		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
 		renaming_inputs = []

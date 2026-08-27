@@ -73,7 +73,7 @@ except ModuleNotFoundError:
 
 @pdt.process_timer
 def run_predict_genes():
-	"""Run the PredictGenes module to predict coding sequences (CDSs) from input files."""
+	"""Run the PredictGenes module to predict genes from a set of input genome assemblies."""
 
 	def msg(name=None):
 		usage_msg = 'chewBBACA.py PredictGenes --input-files <dir> --output-directory <dir> [options]'
@@ -81,7 +81,7 @@ def run_predict_genes():
 		return usage_msg
 
 	parser = argparse.ArgumentParser(prog='PredictGenes',
-									 description='Predict coding sequences (CDSs) from input files.',
+									 description='Predict genes from a set of input genome assemblies.',
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
@@ -1982,7 +1982,7 @@ def run_stats_requests():
 
 def main():
 
-	functions_info = {'PredictGenes': ['Predict genes from input files.',
+	functions_info = {'PredictGenes': ['Predict genes from a set of input genome assemblies.',
 									  run_predict_genes],
 					  'CreateSchema': ['Create a gene-by-gene schema based on '
 									   'a set of genome assemblies or coding sequences.',

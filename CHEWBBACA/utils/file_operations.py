@@ -210,8 +210,7 @@ def listdir_fullpath(directory_path, substring_filter=False):
 		List containing the full path for every selected
 		file in the input directory.
 	"""
-	file_list = [os.path.join(directory_path, file)
-				 for file in os.listdir(directory_path)]
+	file_list = [os.path.join(directory_path, file) for file in os.listdir(directory_path)]
 
 	if substring_filter is not False:
 		suffixes = [substring_filter] if isinstance(substring_filter, str) else substring_filter
@@ -432,7 +431,7 @@ def concatenate_files(files, output_file, header=None):
 	return output_file
 
 
-def write_to_file(text, output_file, write_mode, end_char):
+def write_to_file(text, output_file, write_mode='w', end_char='\n'):
 	"""Write a single string to a file.
 
 	Parameters

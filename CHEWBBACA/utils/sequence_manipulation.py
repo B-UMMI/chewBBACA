@@ -424,7 +424,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
 			# Add CDS hash as key
 			# Add genome integer identifier and protein identifier to values list
 			# Genome identifier and protein identifier can be used to fetch sequences
-			genome_id, protid = seqid.split('-protein')
+			genome_id, protid = seqid.rsplit('_', 1)
 			genome_id = map_ids[genome_id]
 			duplicates.setdefault(seq_hash, []).extend([int(protid), int(genome_id)])
 		else:

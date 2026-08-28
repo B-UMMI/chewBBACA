@@ -136,9 +136,7 @@ def intra_cluster_sim(clusters, sequences, word_size, intra_filter):
 													  word_size, position=False)
 
 				# select sequences with same kmers
-				sims = select_representatives(query_kmers,
-											  kmers_mapping,
-											  intra_filter)
+				sims = select_representatives(query_kmers, kmers_mapping, intra_filter)
 
 				if len(sims) > 1:
 					# exclude current sequence
@@ -236,7 +234,6 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 			identifiers of sequences that contain that kmer
 			as values.
 	"""
-	# several = {}
 	for protid, protein in sorted_sequences.items():
 
 		minimizers = im.determine_minimizers(protein, window_size,
@@ -274,8 +271,6 @@ def minimizer_clustering(sorted_sequences, word_size, window_size, position,
 				clusters[protid] = [(protid, 1.0, len(protein),
 									len(minimizers), len(distinct_minimizers))]
 				reps_sequences[protid] = protein
-
-	# print(several)
 
 	return [clusters, reps_sequences, reps_groups]
 
@@ -368,14 +363,12 @@ def write_clusters(clusters, outfile):
 	for rep, seqids in clusters.items():
 		current_cluster = []
 		current_cluster.append('>{0}'.format(rep))
-		clustered = [', '.join(['{}']*len(s)).format(*s)
-					 for s in seqids]
+		clustered = [', '.join(['{}']*len(s)).format(*s) for s in seqids]
 		current_cluster.extend(clustered)
 		cluster_lines.append(current_cluster)
 
 	# sort by number of lines to get clusters with more sequences first
-	cluster_lines = im.sort_iterable(cluster_lines,
-									 sort_key=lambda x: len(x), reverse=True)
+	cluster_lines = im.sort_iterable(cluster_lines, sort_key=lambda x: len(x), reverse=True)
 	cluster_lines = im.flatten_list(cluster_lines)
 	cluster_text = im.join_list(cluster_lines, '\n')
 

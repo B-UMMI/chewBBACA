@@ -64,32 +64,36 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
 	schema_files : list
 		List with the paths to the FASTA files in the schema seed.
 	"""
-	schema_dir = fo.join_paths(output_directory, [schema_name])
-	fo.create_directory(schema_dir)
+	# Create folder to store schema files
+	schema_directory = fo.join_paths(output_directory, [schema_name])
+	fo.create_directory(schema_directory)
 
-	# add allele identifier to all sequences
-	schema_records = {im.replace_multiple_characters(rec.id, ct.CHAR_REPLACEMENTS): str(rec.seq)
-					  for rec in fao.sequence_generator(schema_seed_fasta)}
+	# Import schema representative alleles
+	schema_records = fao.import_sequences(schema_seed_fasta)
+	# Convert the CDS identifiers into allele identifiers (add "-protein")
+	# Sequence IDs may include multiple "-", so always split only based on the last one
+	schema_records = {f"{seqid.rsplit('_', 1)[0]}-protein{seqid.rsplit('_', 1)[1]}": seq for seqid, seq in schema_records.items()}
+	# Replace special chars
+	schema_records = {im.replace_multiple_characters(seqid, ct.CHAR_REPLACEMENTS): seq for seqid, seq in schema_records.items()}
 
-	loci_basenames = {k: k+'.fasta' for k in schema_records}
-	loci_paths = {k: fo.join_paths(schema_dir, [v])
-				  for k, v in loci_basenames.items()}
+	# Define basenames and paths for loci FASTA files (the file basename is used as locus ID)
+	loci_paths = {seqid: fo.join_paths(schema_directory, [seqid+'.fasta']) for seqid in schema_records}
+	# Create loci FASTA files
+	for seqid, seq in schema_records.items():
+		# Representative is the first allele, so it is necessary to add "_1" to the sequence ID
+		current_representative = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid+'_1', seq])
+		fo.write_to_file(current_representative, loci_paths[seqid])
 
-	for k, v in schema_records.items():
-		current_representative = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [k+'_1', v])
-		fo.write_to_file(current_representative, loci_paths[k], 'w', '\n')
-
-	# create 'short' directory
-	fo.create_short(loci_paths.values(), schema_dir)
+	# Create 'short' directory with the FASTA files that contain only the representative alleles
+	fo.create_short(loci_paths.values(), schema_directory)
 
 	return loci_paths
 
 
-def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
-					   blast_score_ratio, minimum_length, translation_table,
-					   size_threshold, word_size, window_size, clustering_sim,
-					   representative_filter, intra_filter, cpu_cores, blast_path,
-					   pyrodigal_mode, pyrodigal_minimum_confidence, cds_input):
+def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, blast_score_ratio,
+					   minimum_length, translation_table, size_threshold, word_size, window_size,
+					   clustering_sim, representative_filter, intra_filter, cpu_cores, blast_path,
+					   pyrodigal_mode, pyrodigal_minimum_confidence, cds_input, no_cds_renaming):
 	"""Create a schema seed based on a set of input FASTA files."""
 	# Map input file paths to file basename without extension and MD5 file hash
 	input_file_ids = [(file, fo.file_basename(file, False)) for file in fasta_files]
@@ -117,7 +121,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 		# Paths to files with the coordinates of the CDSs extracted for each input
 		# Total number of CDSs identified per input
 		# Dictionary with info about the CDSs closer to contig tips per input
-		failed, _, cds_fastas, cds_coordinates, _, _ = pyrodigal_results
+		failed, _, cds_fastas, cds_coordinates, assembly_statistics, _, _ = pyrodigal_results
 		if len(failed) > 0:
 			print(f'\nFailed to predict genes for {len(failed)} inputs')
 			print('Make sure that Prodigal runs in meta mode (--pm meta) '
@@ -126,52 +130,58 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 			sys.exit(f'\n{ct.CANNOT_PREDICT}')
 
 		# Copy file with CDS coordinates to output directory
-		fo.move_file(cds_coordinates, output_directory)
-
-		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
-		renaming_inputs = []
-		renamed_fastas = []
-		for i, file in enumerate(cds_fastas):
-			basename = fo.file_basename(file, False)
-			cds_prefix = f'{basename}-protein'
-			output_file = fo.join_paths(pyrodigal_path, [f'{basename}.fasta'])
-			renamed_fastas.append(output_file)
-			# This deletes the original file and creates a new one with the same name
-			renaming_inputs.append([file, output_file, 1, 50000,
-									cds_prefix, False, True, fao.integer_headers])
-
-		# Rename CDSs in files
-		renaming_results = mo.map_async_parallelizer(renaming_inputs,
-													 mo.function_helper,
-													 cpu_cores,
-													 show_progress=False)
-
-		# Delete folder which contained the original Pyrodigal FASTA files with the predicted CDSs
-		fo.delete_directory(os.path.dirname(cds_fastas[0]))
+		fo.copy_file(cds_coordinates, output_directory)
+		# Copy file with assembly statistics to output directory
+		fo.copy_file(assembly_statistics, output_directory)
 	# Inputs are Fasta files with the predicted CDSs
 	else:
-		# Rename the CDSs in each file based on the input unique identifiers
-		print(f'\nRenaming CDSs for {len(input_file_ids)} input files...')
+		if not no_cds_renaming:
+			# Rename the input CDSs based on the unique identifier for each input file
+			print(f'\nRenaming CDSs for {len(input_file_ids)} input files...')
+			renaming_inputs = []
+			cds_fastas = []
+			for file in input_file_ids:
+				output_file = fo.join_paths(pyrodigal_path, [f'{file[1]}.fasta'])
+				# Use the basename of each input file as unique identifier
+				cds_prefix = f'{file[1]}_'
+				renaming_inputs.append([file[0], output_file, 1, 50000,
+										cds_prefix, False, False, fao.integer_headers])
+				cds_fastas.append(output_file)
 
-		renaming_inputs = []
-		renamed_fastas = []
-		for file in input_file_ids:
-			output_file = fo.join_paths(pyrodigal_path, [f'{file[1]}.fasta'])
-			cds_prefix = f'{file[1]}-protein'
-			renaming_inputs.append([file[0], output_file, 1, 50000,
-									cds_prefix, False, False, fao.integer_headers])
-			renamed_fastas.append(output_file)
+			# Rename CDSs in files
+			renaming_results = mo.map_async_parallelizer(renaming_inputs,
+														mo.function_helper,
+														cpu_cores,
+														show_progress=False)
+		else:
+			print(f'User provided `--no-cds-renaming`. Will not rename CDS identifiers in input files. '
+		 		  'The process may not complete successfully if the CDS identifiers do not conform to the '
+				  'format used by chewBBACA.')
 
-		# Rename CDSs in files
-		renaming_results = mo.map_async_parallelizer(renaming_inputs,
-													 mo.function_helper,
-													 cpu_cores,
-													 show_progress=False)
+			cds_fastas = [file[0] for file in input_file_ids]
+
+			# Try to get the TSV file with the CDS coordinates if the CDS sets were created by the PredictGenes module
+			input_files_parent_dir = input_file_ids[0][0].rsplit('/', 2)[0]
+			coordinates_file = fo.join_paths(input_files_parent_dir, ['gene_coordinates.tsv'])
+			if os.path.isfile(coordinates_file):
+				print(f'Found a TSV file with CDS coordinate data in {coordinates_file}. Copying it to output directory.')
+				# Copy file with CDS coordinates to output directory
+				destination = fo.join_paths(os.path.dirname(temp_directory), ['gene_coordinates.tsv'])
+				fo.copy_file(coordinates_file, destination)
+				cds_coordinates = destination
+			# Cannot get CDS coordinates if skipping gene prediction
+			else:
+				cds_coordinates = None
+
+			# Try to get the TSV file with assembly statistics if the CDS sets were created by the PredictGenes module 
+			assembly_stats_file = fo.join_paths(input_files_parent_dir, ['assembly_stats.tsv'])
+			if os.path.isfile(assembly_stats_file):
+				print(f'Found a TSV file with assembly statistics in {assembly_stats_file}. Copying it to output directory.')
+				destination = fo.join_paths(os.path.dirname(temp_directory), ['assembly_stats.tsv'])
+				fo.copy_file(assembly_stats_file, destination)
 
 		# No inputs failed gene prediction
 		failed = []
-		# Cannot get CDS coordinates if skipping gene prediction
-		cds_coordinates = None
 		total_cdss = sum([r[1] for r in renaming_results])
 		print(f'Input files contain a total of {total_cdss} coding sequences.')
 
@@ -192,12 +202,11 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
 	# Concatenate subgroups of FASTA files before deduplication
 	num_chunks = 20 if cpu_cores <= 20 else cpu_cores
-	concatenation_inputs = im.divide_list_into_n_chunks(renamed_fastas, num_chunks)
+	concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas, num_chunks)
 	file_index = 1
 	cds_files = []
 	for group in concatenation_inputs:
-		output_file = fo.join_paths(pyrodigal_path,
-									['cds_{0}.fasta'.format(file_index)])
+		output_file = fo.join_paths(pyrodigal_path, ['cds_{0}.fasta'.format(file_index)])
 		fo.concatenate_files(group, output_file)
 		cds_files.append(output_file)
 		file_index += 1
@@ -297,9 +306,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 	rep_filter_dir = fo.join_paths(clustering_dir, ['representative_filter'])
 	fo.create_directory(rep_filter_dir)
 	print('Removing proteins highly similar to the cluster representative...')
-	cp_results = cf.cluster_representative_filter(cs_results,
-												  representative_filter,
-												  rep_filter_dir)
+	cp_results = cf.cluster_representative_filter(cs_results, representative_filter, rep_filter_dir)
 	clusters, excluded_seqids, singletons, clustered_sequences = cp_results
 	print(f'Removed {len(excluded_seqids)} sequences.')
 	print(f'Identified {len(singletons)} singletons.')
@@ -418,8 +425,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 	# Create directory to store results from final BLASTp
 	final_blastp_dir = fo.join_paths(final_blast_dir, ['BLAST_results'])
 	fo.create_directory(final_blastp_dir)
-	blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir,
-													fo.file_basename(i[0], False))
+	blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir, fo.file_basename(i[0], False))
 					 for i in splitted_fastas]
 
 	# Add common arguments to all sublists
@@ -451,17 +457,16 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path,
 
 	# Create schema directory and FASTA files
 	print(f'Creating schema seed in {output_directory}')
-	schema_files = create_schema_structure(loci_representatives, output_directory,
-										   schema_name)
+	schema_files = create_schema_structure(loci_representatives, output_directory, schema_name)
 
 	return [schema_files, temp_directory]
 
 
-def main(input_files, output_directory, schema_name, ptf_path,
-		 blast_score_ratio, minimum_length, translation_table,
-		 size_threshold, word_size, window_size, clustering_sim,
-		 representative_filter, intra_filter, cpu_cores, blast_path,
-		 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input, no_cleanup):
+def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio,
+		 minimum_length, translation_table, size_threshold, word_size, window_size,
+		 clustering_sim, representative_filter, intra_filter, cpu_cores, blast_path,
+		 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input, no_cds_renaming,
+		 no_cleanup):
 	"""Create a wgMLST schema seed.
 
 	Parameters
@@ -524,12 +529,12 @@ def main(input_files, output_directory, schema_name, ptf_path,
 	# Sort paths to FASTA files
 	input_files = im.sort_iterable(input_files, sort_key=lambda x: x.lower())
 
-	results = create_schema_seed(input_files, output_directory, schema_name,
-								 ptf_path, blast_score_ratio, minimum_length,
-								 translation_table, size_threshold, word_size,
-								 window_size, clustering_sim, representative_filter,
-								 intra_filter, cpu_cores, blast_path,
-								 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input)
+	results = create_schema_seed(input_files, output_directory, schema_name, ptf_path,
+							  	 blast_score_ratio, minimum_length, translation_table,
+								 size_threshold, word_size, window_size, clustering_sim,
+								 representative_filter, intra_filter, cpu_cores, blast_path,
+								 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input,
+								 no_cds_renaming)
 
 	# Remove temporary files
 	if no_cleanup is False:

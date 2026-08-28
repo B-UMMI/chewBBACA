@@ -2103,27 +2103,6 @@ def allele_calling(fasta_files, schema_directory, temp_directory, loci_modes,
 		if os.path.isfile(assembly_stats_file):
 			destination = fo.join_paths(os.path.dirname(temp_directory), ['assembly_stats.tsv'])
 			fo.copy_file(assembly_stats_file, destination)
-
-		# Convert sequence identifiers used by Pyrodigal to the format used by chewBBACA
-		renaming_inputs = []
-		renamed_fastas = []
-		for i, file in enumerate(cds_fastas):
-			basename = fo.file_basename(file, False)
-			cds_prefix = f'{basename}-protein'
-			output_file = fo.join_paths(pyrodigal_path, [f'{basename}.fasta'])
-			renamed_fastas.append(output_file)
-			# This deletes the original file and creates a new one with the same name
-			renaming_inputs.append([file, output_file, 1, 50000,
-									cds_prefix, False, True, fao.integer_headers])
-
-		# Rename CDSs in files
-		renaming_results = mo.map_async_parallelizer(renaming_inputs,
-													 mo.function_helper,
-													 config['CPU cores'],
-													 show_progress=False)
-
-		# Delete folder which contained the original Pyrodigal FASTA files with the predicted CDSs
-		fo.delete_directory(os.path.dirname(cds_fastas[0]))
 	# Inputs are Fasta files with the predicted CDSs
 	else:
 		# Rename the CDSs in each file based on the input unique identifiers

@@ -169,7 +169,7 @@ def merge_dna_dedup(dedup_files, ids_map):
 			# New distinct sequence
 			else:
 				# Choose first sequence seqid as representative
-				rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+				rep_seqid = '{0}_{1}'.format(ids_map[1][ids[1]], ids[0])
 				representative_seqids.append(rep_seqid)
 				new_ids = ids[0:2] + [ids[i] for i in range(3, len(ids), 2)]
 				# Do not count representative as duplicate
@@ -219,10 +219,10 @@ def merge_protein_dedup(dedup_files, ids_map):
 				stored_ids = im.polyline_decoding(stored_ids)
 				total_duplicated += (len(ids)/2)
 			else:
-				rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+				rep_seqid = '{0}_{1}'.format(ids_map[1][ids[1]], ids[0])
 				representative_seqids.append(rep_seqid)
 				total_duplicated += (len(ids)/2) - 1
-			
+
 			merged_results[hashid] = im.polyline_encoding(stored_ids+new_ids)
 
 	return [merged_results, total_duplicated, representative_seqids]
@@ -257,7 +257,7 @@ def merge_get_seqids(dedup_files, ids_map):
 		# Sequence hash and list with protid:inputID pairs
 		for hashid, ids in results.items():
 			if hashid not in representative_hashes:
-				rep_seqid = '{0}-protein{1}'.format(ids_map[1][ids[1]], ids[0])
+				rep_seqid = '{0}_{1}'.format(ids_map[1][ids[1]], ids[0])
 				representative_seqids.append(rep_seqid)
 				representative_hashes.add(hashid)
 				total_duplicated += (len(ids)/2) - 1
@@ -429,8 +429,7 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
 
 	# Create paths to files with protein sequences
 	protein_template = fo.join_paths(temp_directory, ['translated_{0}.fasta'])
-	protein_files = [protein_template.format(i+1)
-					 for i in range(len(translation_inputs))]
+	protein_files = [protein_template.format(i+1) for i in range(len(translation_inputs))]
 
 	# Add common args to sublists
 	common_args = [sequences_file, translation_table, minimum_length]
@@ -550,6 +549,10 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 	# from each cluster group were not compared
 	# No need to run this step if input sequences were not divided into smaller groups
 	# AlleleCall does not select new representatives, so this does not run
+
+######### Is this truly necessary for CreateSchema? The sequences were compared in the previous step?
+######### Carefully check this step.
+
 	if len(cluster_inputs) > 1 and len(rep_sequences) > 0:
 		# Cluster representatives
 		rep_clusters = sc.clusterer(rep_sequences, word_size,

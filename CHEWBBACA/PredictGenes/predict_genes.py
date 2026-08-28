@@ -306,4 +306,4 @@ def main(input_files, output_directory, pyrodigal_training_file, translation_tab
 
 	print(f'Gene prediction results available in {output_directory}')
 
-	return failed, total_extracted, cds_fastas, cds_coordinates, cds_counts, close_to_tip
+	return failed, total_extracted, cds_fastas, cds_coordinates, assembly_statistics_outfile, cds_counts, close_to_tip

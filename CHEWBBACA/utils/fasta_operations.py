@@ -358,8 +358,7 @@ def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
 	while exhausted is False:
 		record = next(seqs, None)
 		if record is not None:
-			record = fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
-									  [record[0], record[1]])
+			record = fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [record[0], record[1]])
 			records.append(record)
 		else:
 			exhausted = True

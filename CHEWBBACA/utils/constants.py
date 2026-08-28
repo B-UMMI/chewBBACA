@@ -228,7 +228,7 @@ ASSEMBLY_STATS_COLUMNS = ['FILE', 'Number of contigs', 'Average contig size',
 # Headers for the file with the list of novel alleles
 NOVEL_ALLELES_LIST_HEADER = 'Allele ID\tCDS ID\tRepresentative'
 # Header for TSV file with information about extracted CDSs
-GENE_TABLE_HEADER = 'Pyrodigal_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\tSHA256\n'
+GENE_TABLE_HEADER = 'CDS_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\tSHA256\n'
 # Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'

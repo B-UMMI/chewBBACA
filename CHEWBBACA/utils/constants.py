@@ -225,7 +225,8 @@ LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
 ASSEMBLY_STATS_COLUMNS = ['FILE', 'Number of contigs', 'Average contig size',
 						  'N50', 'Assembly size', 'GC content', 'Missing values (Ns)',
 						  'Total genes', 'Excluded genes']
-# Headers for the file with the list of novel alleles
+# Filename and Headers for the file with the list of novel alleles
+NOVEL_ALLELES_FILENAME = "new_alleles.tsv"
 NOVEL_ALLELES_LIST_HEADER = 'Allele ID\tCDS ID\tRepresentative'
 # Header for TSV file with information about extracted CDSs
 GENE_TABLE_HEADER = 'CDS_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\tSHA256\n'
@@ -262,7 +263,6 @@ RESULTS_MAXVALS = 300000
 
 # String template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
-FASTA_CDS_TEMPLATE = '>{0}-protein{1}\n{2}'
 
 DNA_BASES = 'AGCT'
 

@@ -121,7 +121,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, bla
 		# Paths to files with the coordinates of the CDSs extracted for each input
 		# Total number of CDSs identified per input
 		# Dictionary with info about the CDSs closer to contig tips per input
-		failed, _, cds_fastas, cds_coordinates, assembly_statistics, _, _ = pyrodigal_results
+		failed, _, cds_fastas, cds_coordinates, assembly_statistics, cds_counts, _ = pyrodigal_results
 		if len(failed) > 0:
 			print(f'\nFailed to predict genes for {len(failed)} inputs')
 			print('Make sure that Prodigal runs in meta mode (--pm meta) '
@@ -150,9 +150,9 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, bla
 
 			# Rename CDSs in files
 			renaming_results = mo.map_async_parallelizer(renaming_inputs,
-														mo.function_helper,
-														cpu_cores,
-														show_progress=False)
+														 mo.function_helper,
+														 cpu_cores,
+														 show_progress=False)
 		else:
 			print(f'User provided `--no-cds-renaming`. Will not rename CDS identifiers in input files. '
 		 		  'The process may not complete successfully if the CDS identifiers do not conform to the '
@@ -164,12 +164,12 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, bla
 			input_files_parent_dir = input_file_ids[0][0].rsplit('/', 2)[0]
 			coordinates_file = fo.join_paths(input_files_parent_dir, ['gene_coordinates.tsv'])
 			if os.path.isfile(coordinates_file):
-				print(f'Found a TSV file with CDS coordinate data in {coordinates_file}. Copying it to output directory.')
+				print(f'Found a TSV file with CDS coordinate data in {coordinates_file}. Copying it to the output directory.')
 				# Copy file with CDS coordinates to output directory
 				destination = fo.join_paths(os.path.dirname(temp_directory), ['gene_coordinates.tsv'])
 				fo.copy_file(coordinates_file, destination)
 				cds_coordinates = destination
-			# Cannot get CDS coordinates if skipping gene prediction
+			# Cannot find CDS coordinates
 			else:
 				cds_coordinates = None
 
@@ -182,16 +182,18 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, bla
 
 		# No inputs failed gene prediction
 		failed = []
-		total_cdss = sum([r[1] for r in renaming_results])
-		print(f'Input files contain a total of {total_cdss} coding sequences.')
+		# Need to count the number of CDSs in each input file to get total
+		cds_counts = {fo.file_basename(f[0], False): fao.count_sequences(f) for f in cds_fastas}
+
+	total_cdss = sum(cds_counts.values())
+	print(f'Total number of CDSs identified from all input files: {total_cdss}')
 
 	if len(failed) > 0:
 		# Exclude inputs that failed gene prediction
 		input_file_ids = [file for file in input_file_ids if file[0] not in failed]
 		# Write Prodigal stderr for inputs that failed gene prediction
 		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
-		failed_outfile = fo.join_paths(output_directory,
-									   ['gene_prediction_failures.tsv'])
+		failed_outfile = fo.join_paths(output_directory, ['gene_prediction_failures.tsv'])
 		fo.write_lines(failed_lines, failed_outfile)
 
 	# Map input identifiers to integers

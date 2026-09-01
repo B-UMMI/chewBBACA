@@ -46,6 +46,37 @@ NSSTATS_TEST_HELP = ['chewBBACA.py', 'NSStats', '--help']
 FAKEMODULE_TEST_H = ['chewBBACA.py', 'FakeModule', '-h']
 FAKEMODULE_TEST_HELP = ['chewBBACA.py', 'FakeModule', '--help']
 
+# PredictGenes
+# Valid inputs
+
+# Default
+PREDICTGENES_TEST_DEFAULT = ['chewBBACA.py', 'PredictGenes',
+				 			 '-i', 'data/createschema_data/mock_genome_dir',
+				 			 '-o', 'predictgenes_results']
+
+# Training File
+PREDICTGENES_TEST_TRAINING_FILE = ['chewBBACA.py', 'PredictGenes',
+								   '-i', 'data/createschema_data/mock_genome_dir',
+								   '-o', 'predictgenes_results',
+								   '--ptf', 'data/createschema_data/Streptococcus_agalactiae.trn']
+
+# Create training file and exit
+PREDICTGENES_TEST_JUST_TRAINING = ['chewBBACA.py', 'PredictGenes',
+								   '--tr', 'data/createschema_data/mock_genome_dir/GCA_000007265.1_ASM726v1_genomic.fna',
+								   '-o', 'predictgenes_results',
+								   '--just-training']
+
+# Multiple output file formats
+PREDICTGENES_TEST_MULTIPLE_OUTFORMATS = ['chewBBACA.py', 'PredictGenes',
+										 '-i', 'data/createschema_data/mock_genome_dir',
+										 '-o', 'predictgenes_results',
+										 '--pof', 'genes', 'translations', 'gff', 'genbank', 'scores']
+
+# FASTA file without CDSs
+PREDICTGENES_TEST_NO_CDS = ['chewBBACA.py', 'PredictGenes',
+							'-i', 'data/predictgenes_data/expected_results/test_no_cds',
+							'-o', 'predictgenes_results']
+
 # AlleleCall
 # AlleleCall template command
 ALLELECALL_TEST_GENOME_TEMPLATE = ['chewBBACA.py', 'AlleleCall',
@@ -118,23 +149,11 @@ ALLELECALL_TEST_BLANK_SPACE = ['chewBBACA.py', 'AlleleCall',
 		   					   '-g', 'data/allelecall_data/sagalactiae_schema',
 		   					   '-o', 'allelecall_results']
 
-# AlleleCall input file has unique prefix longer than 30 chars
-ALLELECALL_TEST_LONG_PREFIX = ['chewBBACA.py', 'AlleleCall',
-		   					   '-i', 'data/allelecall_data/test_invalid_input_names/long_prefix',
-		   					   '-g', 'data/allelecall_data/sagalactiae_schema',
-		   					   '-o', 'allelecall_results']
-
 # AlleleCall some input files have the same prefix
 ALLELECALL_TEST_SAME_PREFIX = ['chewBBACA.py', 'AlleleCall',
 		   					   '-i', 'data/allelecall_data/test_invalid_input_names/same_prefix',
 		   					   '-g', 'data/allelecall_data/sagalactiae_schema',
 		   					   '-o', 'allelecall_results']
-
-# AlleleCall input prefix interpreted as PDB chain ID
-ALLELECALL_TEST_PDB_CHAIN = ['chewBBACA.py', 'AlleleCall',
-							 '-i', 'data/allelecall_data/test_invalid_input_names/pdb_prefix',
-							 '-g', 'data/allelecall_data/sagalactiae_schema',
-							 '-o', 'allelecall_results']
 
 # CreateSchema template command
 CREATESCHEMA_TEST_GENOME_TEMPLATE = ['chewBBACA.py', 'CreateSchema',
@@ -404,7 +423,7 @@ HASHPROFILES_TEST_VALID = ['chewBBACA.py', 'HashProfiles',
 						   '-g', 'data/hashprofiles_data/input_data/sagalactiae_schema',
 						   '-o', 'test_hashprofiles_results']
 
-# HashProfiles invalid hashign algorithm
+# HashProfiles invalid hashing algorithm
 HASHPROFILES_TEST_INVALID_HASH = ['chewBBACA.py', 'HashProfiles',
 						   		  '-i', 'data/hashprofiles_data/input_data/results_alleles.tsv',
 						   		  '-g', 'data/hashprofiles_data/input_data/sagalactiae_schema',

@@ -216,8 +216,12 @@ def main(input_files, output_directory, pyrodigal_training_file, translation_tab
 
 	if len(failed) > 0:
 		print(f'Failed to predict CDSs for {len(failed)} inputs.')
-		print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
-				'if any input file has less than 100kbp.')
+		print('Make sure that Pyrodigal runs in meta mode (--pm meta) if any input file has less than 100kbp.')
+		# Write Pyrodigal stderr for inputs that failed gene prediction
+		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
+		failed_outfile = fo.join_paths(output_directory, ['gene_prediction_failures.tsv'])
+		fo.write_lines(failed_lines, failed_outfile)
+
 	if len(cds_fastas) == 0:
 		sys.exit(f'{ct.CANNOT_PREDICT}')
 
@@ -229,11 +233,6 @@ def main(input_files, output_directory, pyrodigal_training_file, translation_tab
 		# Add 0 if gene prediction failed or did not identify any genes
 		assembly_statistics[gid].append(cds_counts.get(gid, 0))
 
-	if len(failed) > 0:
-		# Write Pyrodigal stderr for inputs that failed gene prediction
-		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
-		failed_outfile = fo.join_paths(os.path.dirname(output_directory), ['gene_prediction_failures.tsv'])
-		fo.write_lines(failed_lines, failed_outfile)
 
 	# Filter FASTA files based on confidence threshold
 	grouped = {}

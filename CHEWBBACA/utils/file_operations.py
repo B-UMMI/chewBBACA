@@ -26,6 +26,7 @@ import zipfile
 import pathlib
 import hashlib
 import urllib.request
+from pathlib import Path
 from itertools import islice
 from collections import Counter
 from multiprocessing import TimeoutError
@@ -723,3 +724,25 @@ def count_repeated_matrix(matrix_file, ignore_values):
 			repeated_counts[genome_id] = sum((h[1]-1) for h in repeated_hashes)
 
 	return [repeated_values, repeated_counts]
+
+
+def list_files_recursively(input_dir):
+	"""List all files in a folder and its subfolders.
+
+	Parameters
+	----------
+	input_dir : str
+		Path to the folder with files to list.
+
+	Return
+	------
+	files : list
+		List with the full paths to all files found 
+		in the input folder and its subfolders.
+	"""
+	# Create Path object for output directory
+	input_dir_obj = Path(input_dir)
+	# List all output files in the output folder and subfolders
+	files = [p.resolve() for p in input_dir_obj.rglob("*") if p.is_file()]
+
+	return files

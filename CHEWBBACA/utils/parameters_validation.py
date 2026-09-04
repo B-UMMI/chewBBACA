@@ -24,19 +24,19 @@ import multiprocessing
 try:
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
-					   gene_prediction as gp,
 					   file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
-					   iterables_manipulation as im)
+					   iterables_manipulation as im,
+					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
-								 gene_prediction as gp,
 								 file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
-								 iterables_manipulation as im)
+								 iterables_manipulation as im,
+								 pyrodigal_gene_prediction as pgp)
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -531,46 +531,27 @@ def is_exe(fpath):
 	return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-def get_blast_path(blast_path):
-	"""Determines if BLAST is in PATH.
-
-	Parameters
-	----------
-	blast_path : str or NoneType
-		Path to the directory with the BLAST executables or
-		NoneType if user did not provide a value.
-
-	Returns
-	-------
-	blast_path : str or NoneType
-		Validated path to the directory that contains the BLAST
-		executables or NoneType if it was not possible to validate
-		the provided path or if the BLAST executables are not in PATH.
+def get_program_path(program_path, program_alias):
 	"""
-	# Search for BLAST in PATH
-	if not blast_path:
-		blastp_path = shutil.which(ct.BLASTP_ALIAS)
-		if blastp_path is not None:
-			blast_path = os.path.dirname(blastp_path)
-		else:
-			blast_path = None
-	# Validate user-provided path
+	"""
+	# Validate BLAST path provided by user by looking for BLASTp's executable
+	if program_path:
+		exe_path = fo.join_paths(program_path, [ct.BLASTP_ALIAS])
+		exe_path = exe_path if is_exe(exe_path) else None
+	# User did not provide a path, look for BLASTp based on its alias
 	else:
-		blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-		executable = is_exe(blastp_path)
-		if executable is False:
-			blast_path = None
+		exe_path = shutil.which(program_alias)
 
-	return blast_path
+	return exe_path
 
 
-def get_blast_version(blast_path):
+def get_blast_version(blastp_path):
 	"""Determines BLAST version.
 
 	Parameters
 	----------
-	blast_path : str
-		Path to the directory that contains the BLAST executables.
+	blastp_path : str
+		Path to the BLASTp executable.
 
 	Returns
 	-------
@@ -579,20 +560,21 @@ def get_blast_version(blast_path):
 		NoneType if it was not possible to determine the BLAST
 		version.
 	"""
-	blastp_path = fo.join_paths(blast_path, [ct.BLASTP_ALIAS])
-	# Check BLAST version
+	# Try to get BLAST version using BLASTp
 	try:
 		proc = subprocess.Popen([blastp_path, '-version'],
 								stdout=subprocess.PIPE,
 								stderr=subprocess.PIPE)
 		stdout, stderr = proc.communicate()
+		# Process the version string
 		version_string = stdout.decode('utf8')
 		version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
 		blast_version_pat = re.compile(version_pattern)
-
 		match = blast_version_pat.search(version_string)
+		# Got something
 		if match is not None:
 			version = {k: int(v) for k, v in match.groupdict().items()}
+		# No matches
 		else:
 			version = None
 	except:
@@ -601,14 +583,14 @@ def get_blast_version(blast_path):
 	return version
 
 
-def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
-	"""Determine if BLAST is installed and validates its version.
+def check_blast(blast_path, blastp_alias=ct.BLASTP_ALIAS, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
+	"""Validate and/or determine path to BLAST executables and its version.
 
 	Parameters
 	----------
 	blast_path : str or Nonetype
-		Path to the directory with BLAST executables or
-		NoneType if user did not provide a value.
+		Path to the directory with BLAST executables or NoneType 
+		if user did not provide a path.
 	major : int
 		BLAST minimun MAJOR version.
 	minor : int
@@ -617,34 +599,67 @@ def check_blast(blast_path, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
 	Returns
 	-------
 	blast_path : str
-		Path to the directory with BLAST executables.
+		Path to the directory containing the BLAST executables.
 
 	Raises
 	------
 	SystemExit
-		- If the user did not provide a value and BLAST is
-		not in PATH.
-		- If the user provided a value but that path does not
-		contain BLAST executables.
-		- If it is not possible to determine the BLAST
-		version or if it does not match minimum requirements.
+		- If the user did not provide a value and BLAST is not in PATH.
+		- If the user provided a path but it does not contain the BLAST executables.
+		- If it is not possible to determine the BLAST version or if it does not meet the minimum requirements.
 	"""
-	# Validate BLAST path
-	blast_path = get_blast_path(blast_path)
-	# Exit if it is not possible to get BLAST path
-	if blast_path is None:
+	# Validate BLAST path provided by user by looking for BLASTp's executable
+	blastp_path = get_program_path(blast_path, blastp_alias)
+
+	# Exit if it is not possible to get path to BLASTp executable
+	if not blastp_path:
 		sys.exit(ct.BLAST_NO_PATH)
+
 	# Get BLAST version
-	blast_version = get_blast_version(blast_path)
+	blast_version = get_blast_version(blastp_path)
 	# Exit if it is not possible to get BLAST version
 	if blast_version is None:
 		sys.exit(ct.BLAST_NO_VERSION.format(major, minor))
 	if blast_version['MAJOR'] < major or (blast_version['MAJOR'] >= major and blast_version['MINOR'] < minor):
-		sys.exit(ct.BLAST_UPDATE.format(blast_version['MAJOR'],
-										blast_version['MINOR'],
-				 						major, minor))
+		sys.exit(ct.BLAST_UPDATE.format(blast_version['MAJOR'], blast_version['MINOR'], major, minor))
+
+	# Return path to folder with all BLAST executables
+	blast_path = os.path.dirname(blastp_path)
 
 	return blast_path
+
+
+def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
+	"""Validate and/or determine path to AUGUSTUS executables.
+
+	Parameters
+	----------
+	augustus_path : str or Nonetype
+		Path to the directory with AUGUSTUS executables or NoneType 
+		if user did not provide a path.
+
+	Returns
+	-------
+	augustus_path : str
+		Path to the directory containing the AUGUSTUS executables.
+
+	Raises
+	------
+	SystemExit
+		- If the user did not provide a value and AUGUSTUS is not in PATH.
+		- If the user provided a value but that path does not contain AUGUSTUS executable.
+	"""
+	# Validate AUGUSTUS path provided by user by looking for its main executable
+	augustus_exe = get_program_path(augustus_path, augustus_alias)
+	
+	# Exit if it is not possible to get path to AUGUSTUS executable
+	if not augustus_exe:
+		sys.exit(ct.AUGUSTUS_NO_PATH)
+
+	# Return path to folder with all AUGUSTUS executables
+	augustus_path = os.path.dirname(augustus_exe)
+
+	return augustus_path
 
 
 def hash_ptf(ptf_path):
@@ -905,7 +920,7 @@ def solve_conflicting_arguments(schema_params, ptf_path, blast_score_ratio,
 	# Update translation table
 	if ptf_path:
 		# Get translation table used to create training file
-		ptf_table = gp.read_training_file(ptf_path).translation_table
+		ptf_table = pgp.read_training_file(ptf_path).translation_table
 		run_params['translation_table'] = ptf_table
 		if ptf_table not in schema_params['translation_table']:
 			schema_params['translation_table'].append(ptf_table)

@@ -4,9 +4,8 @@
 Purpose
 -------
 
-This is the main script of the chewBBACA suite.
-It parses the options and arguments provided through the command
-line and calls the specified module.
+This is the main script of the chewBBACA suite. It parses the options and 
+arguments provided through the command line and calls the specified module.
 """
 
 
@@ -31,9 +30,7 @@ try:
 	from ComputeDistances import compute_distances
 	from ComputeMSA import compute_msa
 	from MergeResults import merge_results
-	from utils import (gene_prediction as gp,
-					   # profiles_sqlitedb as ps,
-					   process_datetime as pdt,
+	from utils import (process_datetime as pdt,
 					   constants as ct,
 					   parameters_validation as pv,
 					   file_operations as fo)
@@ -58,9 +55,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.ComputeMSA import compute_msa
 	from CHEWBBACA.MergeResults import merge_results
-	from CHEWBBACA.utils import (gene_prediction as gp,
-								 # profiles_sqlitedb as ps,
-								 process_datetime as pdt,
+	from CHEWBBACA.utils import (process_datetime as pdt,
 								 constants as ct,
 								 parameters_validation as pv,
 								 file_operations as fo)
@@ -100,16 +95,22 @@ def run_predict_genes():
 						required=True, dest='output_directory',
 						help='Path to the output directory where the process will store the files with the predicted CDSs.')
 
-	parser.add_argument('--ptf', '--pyrodigal-training-file', type=str,
-						required=False, dest='pyrodigal_training_file',
-						help='Path to the Pyrodigal training file used to predict '
-							 'CDSs. The translation table used to create this file '
-							 'overrides any value passed to `--t`, `--translation-table`.')
+	parser.add_argument('-gp', '--gene-predictor', type=str,
+					 	required=False, default='pyrodigal', choices=['pyrodigal', 'augustus'],
+						dest='gene_predictor',
+						help='Specify which gene prediction software to use. Default is Pyrodigal to predict genes from '
+							 'prokaryotic genomes. AUGUSTUS can predict genes for prokaryotic and eukaryotic genomes.')
 
 	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
 						required=False, default=ct.GENETIC_CODES_DEFAULT, dest='translation_table',
 						help='Genetic code used for gene prediction. This value is ignored if a valid '
 							 'training file is passed to `--ptf`, `--training-file`.')
+
+	parser.add_argument('--ptf', '--pyrodigal-training-file', type=str,
+						required=False, dest='pyrodigal_training_file',
+						help='Path to the Pyrodigal training file used to predict '
+							 'CDSs. The translation table used to create this file '
+							 'overrides any value passed to `--t`, `--translation-table`.')
 
 	parser.add_argument('--pm', '--pyrodigal-mode', required=False,
 						choices=['single', 'meta'],
@@ -117,14 +118,6 @@ def run_predict_genes():
 						help='Pyrodigal running mode ("single" for finished genomes, reasonable quality '
 							 'draft genomes and big viruses. "meta" for metagenomes, low quality draft '
 							 'genomes, small viruses, and small plasmids).')
-
-	parser.add_argument('--tr', '--training-reference', type=str,
-						required=False, dest='training_reference',
-						help='Path to a reference genome in FASTA format used to create a Pyrodigal training file to predict CDSs.')
-
-	parser.add_argument('--jt', '--just-training', action='store_true',
-						required=False, dest='just_training',
-						help='Create a training file based on the reference genome and exit.')
 
 	parser.add_argument('--pof', '--pyrodigal-output-formats', nargs='+', type=str,
 						required=False, default=['genes'], choices=['genes', 'translations', 'gff', 'genbank', 'scores'],
@@ -138,6 +131,29 @@ def run_predict_genes():
 						required=False, dest='pyrodigal_minimum_confidence',
 						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
 							 'a confidence score lower than this value are excluded.')
+
+	parser.add_argument('--ptr', '--pyrodigal-training-reference', type=str,
+						required=False, dest='pyrodigal_training_reference',
+						help='Path to a reference genome in FASTA format used to create a Pyrodigal training file to predict CDSs.')
+
+	parser.add_argument('--pjt', '--pyrodigal-just-training', action='store_true',
+						required=False, dest='pyrodigal_just_training',
+						help='Create a training file based on the reference genome and exit.')
+
+	parser.add_argument('--as', '--augustus-species', type=str,
+					 	required=False, dest='augustus_species',
+						help="")
+
+	parser.add_argument('--aof', '--augustus-output-formats', nargs='+', type=str,
+						required=False, default=['genes'], choices=['genes', 'gff'],
+						dest='augustus_output_formats',
+						help='Output file formats created by AUGUSTUS. Users can select a single or multiple options from '
+								'`genes` (CDSs in FASTA format) and `gff` (GFF file format). Default is `genes`.')
+
+	# Default is None, chewie checks if it is in PATH
+	parser.add_argument('--ap', '--augustus-path', type=pv.check_augustus,
+					 	required=False, default='', dest='augustus_path', # Need to set deafult to '' or the type check will not run
+						help="Path to the AUGUSTUS executable.")
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',
@@ -153,40 +169,46 @@ def run_predict_genes():
 		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 	print(f'Output directory: {args.output_directory}')
 
-	if args.training_reference:
-		print(f'Creating training file based on {args.training_reference}...')
-		training_file = gp.create_training_file(args.training_reference, args.output_directory, args.translation_table)
-		print(f'Training file saved to {training_file}')
-		if args.just_training:
-			sys.exit(ct.JUST_TRAINING)
+	gene_predictor_parameters = {}
+	if args.gene_predictor == "pyrodigal":
+		# Create dictionarty to store args specific for Pyrodigal
+		if args.pyrodigal_training_reference:
+			print(f'Creating Pyrodigal training file based on {args.pyrodigal_training_reference}...')
+			training_file = pgp.create_training_file(args.pyrodigal_training_reference, args.output_directory, args.translation_table)
+			print(f'Training file saved to {training_file}')
+			if args.pyrodigal_just_training:
+				sys.exit(ct.JUST_TRAINING)
+			else:
+				gene_predictor_parameters["training_file"] = training_file
+
+		# Check if user passed PTF
+		if gene_predictor_parameters["training_file"]:
+			# Check if PTF exists
+			if not os.path.isfile(gene_predictor_parameters["training_file"]):
+				sys.exit(ct.INVALID_PTF_PATH)
+			else:
+				# Get translation table used to create training file
+				ptf_table = pgp.read_training_file(gene_predictor_parameters["training_file"]).translation_table
+				gene_predictor_parameters["translation_table"] = ptf_table
 		else:
-			args.pyrodigal_training_file = training_file
+			if not args.translation_table:
+				gene_predictor_parameters["translation_table"] = ct.GENETIC_CODES_DEFAULT
+				print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
 
-	# Delete training_reference and just_training arguments
-	# These arguments are no passed to the main script of the PredictGenes module
-	del args.training_reference
-	del args.just_training
+		gene_predictor_parameters["mode"] = args.pyrodigal_mode
+		gene_predictor_parameters["output_formats"] = args.pyrodigal_output_formats
+		gene_predictor_parameters["minimum_confidence"] = args.pyrodigal_minimum_confidence
 
-	# Check if user passed PTF
-	if args.pyrodigal_training_file:
-		# Check if PTF exists
-		if not os.path.isfile(args.pyrodigal_training_file):
-			sys.exit(ct.INVALID_PTF_PATH)
-		else:
-			# Get translation table used to create training file
-			ptf_table = gp.read_training_file(args.pyrodigal_training_file).translation_table
-			args.translation_table = ptf_table
-	else:
-		if not args.translation_table:
-			args.translation_table = ct.GENETIC_CODES_DEFAULT
-			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
-
-	print(f'Pyrodigal training file: {args.pyrodigal_training_file}')
-	print(f'Translation table: {args.translation_table}')
-	print(f'Pyrodigal mode: {args.pyrodigal_mode}')
-	if args.pyrodigal_mode == 'meta' and args.pyrodigal_training_file is not None:
-		print('Pyrodigal mode is set to "meta". Will not use provided training file.')
-		args.pyrodigal_training_file = None
+		print(f'Translation table: {gene_predictor_parameters["translation_table"]}')
+		print(f'Pyrodigal mode: {gene_predictor_parameters["mode"]}')
+		if gene_predictor_parameters["mode"] == 'meta' and gene_predictor_parameters["training_file"] is not None:
+			print('Pyrodigal mode is set to "meta". Will not use provided training file.')
+			gene_predictor_parameters["training_file"] = None
+		print(f'Pyrodigal training file: {gene_predictor_parameters["training_file"]}')
+	elif args.gene_predictor == "augustus":
+		gene_predictor_parameters["output_formats"] = args.augustus_output_formats
+		gene_predictor_parameters["augustus_path"] = args.augustus_path
+		gene_predictor_parameters["species"] = args.augustus_species
 
 	print(f'CPU cores: {args.cpu_cores}')
 
@@ -199,7 +221,7 @@ def run_predict_genes():
 	blank_spaces = pv.check_blanks(genome_list)
 
 	# Predict CDSs
-	predict_genes.main(**vars(args))
+	predict_genes.main(args.input_files, args.output_directory, args.gene_predictor, gene_predictor_parameters, args.cpu_cores)
 
 	# Delete temporary file with paths to input genomes
 	fo.remove_files([genome_list])
@@ -285,7 +307,7 @@ def run_create_schema():
 							 'CPU cores).')
 
 	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
-						required=False, default='', dest='blast_path',
+						required=False, dest='blast_path',
 						help='Path to the directory that contains the '
 							 'BLAST executables.')
 
@@ -334,7 +356,7 @@ def run_create_schema():
 			sys.exit(ct.INVALID_PTF_PATH)
 		else:
 			# Get translation table used to create training file
-			ptf_table = gp.read_training_file(args.ptf_path).translation_table
+			ptf_table = pgp.read_training_file(args.ptf_path).translation_table
 			args.translation_table = ptf_table
 			print('Provided training file. Using translation table used to create training file.')
 	else:
@@ -1350,7 +1372,7 @@ def run_adapt_schema():
 			sys.exit(ct.INVALID_PTF_PATH)
 		else:
 			# Get translation table used to create training file
-			ptf_table = gp.read_training_file(args.ptf_path).translation_table
+			ptf_table = pgp.read_training_file(args.ptf_path).translation_table
 			args.translation_table = ptf_table
 	else:
 		if not args.translation_table:

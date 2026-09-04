@@ -143,7 +143,7 @@ BLAST_MAJOR = 2
 BLAST_MINOR = 9
 
 # Paths to BLASTp and makeblastdb executables in Linux and Windows
-BLASTP_ALIAS = 'blastp.exe' if platform.system() == 'Windows' else shutil.which('blastp')
+BLASTP_ALIAS = 'blastp'
 MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else shutil.which('makeblastdb')
 BLASTDB_ALIASTOOL_ALIAS = 'blastdb_aliastool.exe' if platform.system() == 'Windows' else shutil.which('blastdb_aliastool')
 BLASTDBCMD_ALIAS = 'blastdbcmd.exe' if platform.system() == 'Windows' else shutil.which('blastdbcmd')
@@ -735,3 +735,9 @@ MERGERESULTS_LOCIDIFFER_EXCEPTION = ('Files have different sets of loci. Please 
 HASHPROFILES_INVALID_HASHING = ('{0} hash function is not available in the hashlib '
 				 				'(https://docs.python.org/3/library/hashlib.html) and '
 				 				'zlib (https://docs.python.org/3/library/zlib.html) modules.')
+
+AUGUSTUS_ALIAS = 'augustus'
+
+AUGUSTUS_NO_PATH = ('Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed and the executables were added to PATH.')
+
+AUGUSTUS_GFF_FILTERS = ["# start gene", "# coding sequence"]

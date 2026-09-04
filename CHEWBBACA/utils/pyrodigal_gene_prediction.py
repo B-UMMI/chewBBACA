@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module contains functions related to gene prediction
-with Pyrodigal.
+This module contains functions related to gene prediction with Pyrodigal.
 
 Code documentation
 ------------------
@@ -20,12 +19,14 @@ try:
 	from utils import (constants as ct,
 					   file_operations as fo,
 					   fasta_operations as fao,
-					   iterables_manipulation as im)
+					   iterables_manipulation as im,
+					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 								 file_operations as fo,
 								 fasta_operations as fao,
-								 iterables_manipulation as im)
+								 iterables_manipulation as im,
+								 multiprocessing_operations as mo)
 
 
 def create_gene_finder(training_data, closed, mask, meta):
@@ -105,7 +106,7 @@ def read_training_file(training_file):
 	training_data : pyrodigal.TrainingInfo
 		The deserialized training info.
 	"""
-	######### Need to improce training file type detection
+	######### Need to improve training file type detection
 	# Pyrodigal training file must be read like this if created with pickle
 	try:
 		training_data = fo.pickle_loader(training_file)
@@ -200,9 +201,7 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 		current_gene_finder = gene_finder
 	else:
 		current_gene_finder = create_gene_finder(None, True, True, False)
-		training_info = train_gene_finder(current_gene_finder,
-												records.values(),
-												translation_table)
+		training_info = train_gene_finder(current_gene_finder, records.values(), translation_table)
 
 	# Predict genes for all input contigs
 	contig_genes = {}
@@ -274,7 +273,7 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 					genes.write_scores(outfile, sequence_id=genome_basename)
 			output_files[4] = scores_outfile
 
-		# Save gene coordinates to process TSV file
+		# Append gene coordinates to process TSV file
 		coordinate_data = []
 		for gene in gene_info:
 			coordinate_data.append(gene[2:]+[gene[0]])
@@ -282,3 +281,120 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 		fo.write_lines(coordinate_outlines, coordinates_outfile, write_mode='a')
 
 	return [input_file, total_genome, close_to_tip, output_files]
+
+
+def write_coordinates_file(coordinates_file, output_file):
+	"""Write the coordinates of CDSs identified in a genome assembly to a TSV file.
+
+	Parameters
+	----------
+	coordinates_file : str
+		Path to the pickle file that contains data about
+		the CDSs coordinates.
+	output_file : str
+		Path to the output TSV file.
+	"""
+	data = fo.pickle_loader(coordinates_file)
+	lines = [coords for h, coords in data[0].items()]
+	lines = im.flatten_list(lines)
+	# Sort lines by genome and protein ID (converting to int ensures natural sort)
+	lines.sort(key=lambda x: (x[2], int(x[6])))
+	lines = ['\t'.join(line) for line in lines]
+	fo.write_lines(lines, output_file)
+
+
+def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu_cores):
+	"""Predict genes from a set of input genome assemblies.
+
+	Parameters
+	----------
+	fasta_files : list
+		List of paths to FASTA files with genomic
+		sequences.
+	ptf_path : str
+		Path to the Pyrodigal training file. Should
+		be NoneType if a training file is not provided.
+	translation_table : int
+		Genetic code used to predict and translate
+		coding sequences.
+	pyrodigal_mode : str
+		Pyrodigal execution mode.
+	cpu_cores : int
+		Number of processes that will run Pyrodigal in
+		parallel.
+	output_directory : str
+		Path to the directory where output files
+		with Pyrodigal's results will be stored in.
+
+	Returns
+	-------
+	failed_info : list
+		List that contains a list with the stderr for the
+		cases that Pyrodigal failed to predict genes for
+		and the path to the file with information about
+		failed cases. Returns NoneType if gene prediction
+		succeeded for all inputs.
+	"""
+	if gene_prediction_parameters["training_file"] is not None:
+		# Read training file to create GeneFinder object
+		training_data = read_training_file(gene_prediction_parameters["training_file"])
+		# Create GeneFinder object based on training data
+		gene_finder = create_gene_finder(training_data, True, True, False)
+	elif gene_prediction_parameters["training_file"] is None and gene_prediction_parameters["mode"] == 'meta':
+		# Create GeneFinder object to run in meta mode
+		gene_finder = create_gene_finder(None, True, True, True)
+	else:
+		gene_finder = None
+
+	pyrodigal_inputs = im.divide_list_into_n_chunks(fasta_files, len(fasta_files))
+	# Add path to TSV file to store CDS coordinate data per input subset
+	for i in range(len(pyrodigal_inputs)):
+		pyrodigal_inputs[i].append(fo.join_paths(output_directory, [f'gene_coordinates_{i}']))
+
+	# Create subfolders to store each output format
+	for output_format in gene_prediction_parameters["output_formats"]:
+		format_outdir = fo.join_paths(output_directory, [output_format])
+		fo.create_directory(format_outdir)
+
+	# Add common arguments to all sublists
+	common_args = [output_directory, gene_finder, gene_prediction_parameters["translation_table"], gene_prediction_parameters["output_formats"]]
+	pyrodigal_inputs = im.multiprocessing_inputs(pyrodigal_inputs, common_args, predict_genome_genes)
+
+	# Run Pyrodigal to predict genes
+	# Need to use ThreadPool. Pyrodigal might hang when using Pool
+	pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
+												  mo.function_helper,
+												  cpu_cores,
+												  show_progress=True,
+												  pool_type='threadpool')
+
+	# Get number of inputs for which gene prediction failed
+	# Inputs with 0 CDSs and inputs with error messages
+	failed = {line[0][0]: line[1]
+			  for line in pyrodigal_results
+			  if line[1] == 0
+			  or isinstance(line[1], str) is True}
+
+	# Get number of CDSs predicted per valid input
+	cds_counts = {line[0][1]: line[1]
+				  for line in pyrodigal_results
+				  if isinstance(line[1], int) is True}
+
+	# Get total number of CDSs predicted
+	total_cds = sum(cds_counts.values())
+
+	# Get paths to FASTA files with the extracted CDSs
+	cds_fastas = [line[-1][0] for line in pyrodigal_results if line[-1][0] is not None]
+
+	# Merge TSV files with CDS coordinates
+	coordinate_files = [i[1] for i in pyrodigal_inputs]
+	merged_coordinates = fo.join_paths(output_directory, ['gene_coordinates.tsv'])
+	fo.concatenate_files(coordinate_files, merged_coordinates, header=ct.GENE_TABLE_HEADER)
+	# Delete separate coordinate files
+	fo.remove_files(coordinate_files)
+
+	# Merge dictionaries with info about CDSs close to contig tips
+	close_to_tip = [line[2] for line in pyrodigal_results if len(line[2]) > 0]
+	close_to_tip = im.merge_dictionaries(close_to_tip)
+
+	return [failed, total_cds, cds_fastas, merged_coordinates, cds_counts, close_to_tip]

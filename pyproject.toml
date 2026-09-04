@@ -14,7 +14,8 @@ dependencies = [
     "SPARQLWrapper>=2.0.0",
     "requests>=2.27.1",
     "pandas>=2.3.3",
-    "pyrodigal>=3.0.0"
+    "pyrodigal>=3.0.0",
+    "gffutils>=0.13"
 ]
 authors = [
     {name = "Rafael Mamede"},

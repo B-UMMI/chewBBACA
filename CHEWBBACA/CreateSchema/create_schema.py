@@ -20,6 +20,7 @@ import sys
 import math
 
 try:
+	from __init__ import __version__
 	from PredictGenes import predict_genes
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
@@ -30,6 +31,7 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	from CHEWBBACA import __version__
 	from CHEWBBACA.PredictGenes import predict_genes
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
@@ -467,8 +469,7 @@ def create_schema_seed(fasta_files, output_directory, schema_name, ptf_path, bla
 def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio,
 		 minimum_length, translation_table, size_threshold, word_size, window_size,
 		 clustering_sim, representative_filter, intra_filter, cpu_cores, blast_path,
-		 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input, no_cds_renaming,
-		 no_cleanup):
+		 cds_input, no_cds_renaming, no_cleanup):
 	"""Create a wgMLST schema seed.
 
 	Parameters
@@ -537,6 +538,22 @@ def main(input_files, output_directory, schema_name, ptf_path, blast_score_ratio
 								 representative_filter, intra_filter, cpu_cores, blast_path,
 								 pyrodigal_mode, pyrodigal_minimum_confidence, cds_input,
 								 no_cds_renaming)
+
+	# Copy Pyrodigal Training File (PTF) to schema directory
+	schema_dir = os.path.join(args["output_directory"], args["schema_name"])
+	if args["pyrodigal_training_file"] is not None:
+		shutil.copy(args["pyrodigal_training_file"], schema_dir)
+		# Determine PTF checksum
+		ptf_hash = fo.hash_file(args["pyrodigal_training_file"], 'blake2b')
+		print(f'Copied Pyrodigal training file to {schema_dir}')
+
+	# Write schema config file
+	schema_config = pv.write_schema_config(args, __version__, schema_dir)
+	print(f'Wrote schema config values to {schema_config[1]}')
+
+	# Create the file with the list of genes/loci
+	pv.write_gene_list(schema_dir)
+	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.GENE_LIST_BASENAME)}')
 
 	# Remove temporary files
 	if no_cleanup is False:

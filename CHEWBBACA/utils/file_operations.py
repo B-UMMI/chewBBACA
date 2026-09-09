@@ -183,9 +183,9 @@ def create_directory(directory_path):
 	"""Create a diretory if it does not exist."""
 	if not os.path.exists(directory_path):
 		os.makedirs(directory_path)
-		return True
+		return True, directory_path
 	else:
-		return False
+		return False, directory_path
 
 
 def join_paths(parent_path, child_paths):
@@ -550,6 +550,26 @@ def input_timeout(prompt, timeout=30):
 		return answer.get(timeout=timeout)
 	except TimeoutError:
 		sys.exit('Timed out.')
+
+
+def is_file(file_path):
+	"""Check if a file exists."""
+	return os.path.isfile(file_path), file_path
+
+
+def is_directory(file_path):
+	"""Check if a directory exists."""
+	return os.path.isdir(file_path), file_path
+
+
+def exists(file_path):
+	""""""
+	return os.path.exists(file_path), file_path
+
+
+def get_parent_directory(file_path):
+	"""Get the parent directory of a file."""
+	return os.path.dirname(file_path)
 
 
 def is_file_empty(file_path):

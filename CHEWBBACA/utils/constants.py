@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module contains default values for chewBBACA's
-parameters.
+This module contains default argument values and messages used by chewBBACA's modules.
 
 Code documentation
 ------------------
@@ -14,7 +13,6 @@ Code documentation
 
 import sys
 import shutil
-import platform
 
 
 # BLAST Score Ratio default values
@@ -97,7 +95,7 @@ GENETIC_CODES = {1: 'The Standard Code',
 				 24: 'Rhabdopleuridae Mitochondrial Code',
 				 25: 'Candidate Division SR1 and Gracilibacteria Code'}
 
-GENETIC_CODES_DEFAULT = 11
+GENETIC_CODE_DEFAULT = 11
 
 # Proteins to cluster are divided into a maximum
 # of 40 smaller groups in CreateSchema
@@ -110,7 +108,7 @@ CREATESCHEMA_CLUSTERING_NGROUPS = 40
 FASTA_EXTENSIONS = ['.fasta', '.fna', '.ffn', '.fa', '.fas']
 
 # Chewie-NS related constants
-HEADERS_GET_ = {'Authorization': None,
+HEADERS_GET = {'Authorization': None,
 				'accept': 'application/octet-stream'}
 
 HEADERS_GET_JSON = {'Authorization': None,
@@ -144,9 +142,9 @@ BLAST_MINOR = 9
 
 # Paths to BLASTp and makeblastdb executables in Linux and Windows
 BLASTP_ALIAS = 'blastp'
-MAKEBLASTDB_ALIAS = 'makeblastdb.exe' if platform.system() == 'Windows' else shutil.which('makeblastdb')
-BLASTDB_ALIASTOOL_ALIAS = 'blastdb_aliastool.exe' if platform.system() == 'Windows' else shutil.which('blastdb_aliastool')
-BLASTDBCMD_ALIAS = 'blastdbcmd.exe' if platform.system() == 'Windows' else shutil.which('blastdbcmd')
+MAKEBLASTDB_ALIAS = shutil.which('makeblastdb')
+BLASTDB_ALIASTOOL_ALIAS = shutil.which('blastdb_aliastool')
+BLASTDBCMD_ALIAS = shutil.which('blastdbcmd')
 
 # Protein to create dummy FASTA records used to check if sequence IDs are interpreted as PDB IDs
 DUMMY_PROT = 'MKFFYRPTGLAISINDAYQKVNFSTDGSSLRVDNPTPYFITYDQIKINGKSVKNVDMVAPYSQQTYPFKGARANETVQWTVVNDYGGDQKGESILH'
@@ -159,6 +157,7 @@ DUMMY_BLASTDBCMD_FASTA = 'dummy_blastdbcmd.fasta'
 # This warning is raised in BLAST>=2.10 when passing a TXT file with sequence identifiers to -seqidlist
 # To avoid this warning the TXT file must be converted to binary with the blastdb_aliastool
 # Performance can be severely affected if the TXT is not converted to binary
+# Since the TXT file is converted with blastdb_aliastool, it is no longer necessary to ignore this warning
 IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
 				 'performance, please run blastdb_aliastool '
 				 '-seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
@@ -289,8 +288,8 @@ ALLELECALL_DICT = {'classification_files': None,
 				   'self_scores': None,
 				   'representatives': None}
 
-GENOME_LIST = 'listGenomes2Call.txt'
-LOCI_LIST = 'listGenes2Call.txt'
+GENOME_LIST = 'input_files.txt'
+LOCI_LIST = 'loci_list.txt'
 
 # Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
@@ -490,7 +489,7 @@ MISSING_INPUTS_EXCEPTION = ('Could not find some of the files provided in '
 							'files.\n{0}')
 
 # Files that do not have the expected format of a FASTA file
-NON_FASTA_EXCEPTION = ('The following input files are not in FASTA format:\n{0}')
+NON_FASTA_EXCEPTION = ('Some of the input files are not in FASTA format.')
 
 # Input directory does not contain FASTA files
 MISSING_FASTAS_EXCEPTION = ('Could not get input files. Please provide '
@@ -550,9 +549,6 @@ LOADSCHEMA_NO_PERMISSIONS = ('Current user has no Administrator or Contributor '
 LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes the '
 						  'Prodigal training file used to create the schema.')
 
-# Path for PTF does not exist
-INVALID_PTF_PATH = 'Invalid path for Prodigal training file.'
-
 # Could not predict CDSs for input FASTA files
 # e.g. files only contain sequence headers, contain invalid
 # sequences/chars or pyrodigal cannot predict any genes
@@ -570,27 +566,17 @@ INVALID_ST_TYPE = ('\nInvalid size threshold value used to create schema. Value 
 
 INVALID_GENETIC_CODE = ('\nInvalid genetic code value.\nValue must correspond to '
 				 		'one of the accepted genetic codes\n\nAccepted genetic '
-				 		'codes:\n{0}')
+				 		f'codes:\n{"\n".join([str(k)+": "+v for k, v in GENETIC_CODES.items()])}')
 
-INVALID_WS = ('\nWord size for the clustering step '
-					 'must be equal or greater than {0} and '
-					 'equal or smaller than {1}.')
-INVALID_WS_TYPE = ('\nSchema created with invalid clustering word size value.')
+INVALID_WORD_SIZE = ("Invalid clustering word size value.")
 
-INVALID_CS = ('\nClustering similarity threshold value '
-			  'must be contained in the [0.0, 1.0] '
-			  'interval.')
-INVALID_CS_TYPE = ('\nSchema created with invalid clustering threshold value.')
+INVALID_WINDOW_SIZE = ("Invalid clustering window size value.")
 
-INVALID_RF = ('\nRepresentative filter threshold value '
-			  'must be contained in the [0.0, 1.0] '
-			  'interval.')
-INVALID_RF_TYPE = ('\nSchema created with invalid representative filter value.')
+INVALID_CLUSTERING_SIMILARITY = ("Invalid clustering similarity threshold value.")
 
-INVALID_ICF = ('\nIntra-cluster filter value '
-			   'must be contained in the [0.0, 1.0] '
-			   'interval.')
-INVALID_ICF_TYPE = ('\nSchema created with invalid intra-cluster filter value.')
+INVALID_REPRESENTATIVE_FILTER = ("Invalid clustering representative filter threshold value.")
+
+INVALID_INTRA_CLUSTER_FILTER = ("Invalid clustering intra-cluster filter threshold value.")
 
 NS_CANNOT_CONNECT = ('Failed to establish a connection to the Chewie-NS instance at {0}.')
 
@@ -604,10 +590,10 @@ CPU_VALUE_WARNING = ('Warning! You have provided a CPU core count value '
 			  		 'machine ({0}/{1}). This may affect your system '
 			  		 'responsiveness.')
 
-BLAST_NO_PATH = ('Could not find BLAST executables.')
-BLAST_NO_VERSION = ('Could not determine BLAST version. Please make '
-				 	'sure that BLAST>={0}.{1} is installed.')
-BLAST_UPDATE = ('Found BLAST {0}.{1}. Please update BLAST to version >={2}.{3}')
+BLAST_MISSING = ("Could not find the BLAST executables. Please make sure that BLAST "
+				 "is installed and added to the PATH environment variable.")
+BLAST_INVALID_VERSION = ("Could not determine BLAST version or the version is not valid. Please make "
+				 		 f"sure that BLAST>={BLAST_MAJOR}.{BLAST_MINOR} is installed.")
 
 MULTIPLE_PTFS = ('Found more than one Prodigal training '
 				 'file in the schema directory.\nPlease maintain '
@@ -736,8 +722,45 @@ HASHPROFILES_INVALID_HASHING = ('{0} hash function is not available in the hashl
 				 				'(https://docs.python.org/3/library/hashlib.html) and '
 				 				'zlib (https://docs.python.org/3/library/zlib.html) modules.')
 
+GENE_PREDICTORS = ["pyrodigal", "augustus"]
+
+INVALID_GENE_PREDICTOR = ("Specified gene predictor is not valid.")
+
 AUGUSTUS_ALIAS = 'augustus'
 
-AUGUSTUS_NO_PATH = ('Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed and the executables were added to PATH.')
+AUGUSTUS_MISSING = ('Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed and the executables were added to PATH.')
+
+AUGUSTUS_INVALID_SPECIES = ("Specified species ID is not in the list of supported species for AUGUSTUS. Please provide a valid species ID.")
+
+AUGUSTUS_OUTFMTS = ['genes', 'gff']
+
+AUGUSTUS_INVALID_OUTFMT = ("Invalid output format specified for AUGUSTUS results.")
+
+INVALID_TREFERENCE_PATH = ("Invalid path for the FASTA file used as reference to create a Pyrodigal training file")
+
+PYRODIGAL_MODES = ["single", "meta"]
+PYRODIGAL_DEFAULT_MODE = "single"
+
+####
+PYRODIGAL_DEFAULT_ARGUMENTS = {"pyrodigal_training_file": }
+
+PYRODIGAL_OUTFMTS = ['genes', 'translations', 'gff', 'genbank', 'scores']
+
+PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results.")
+
+INVALID_PYRODIGAL_MODE = ("Invalid mode specified for Pyrodigal. Please provide a valid mode.")
+
+PYRODIGAL_MIN_CONFIDENCE = 0.0
+
+PYRODIGAL_MAX_CONFIDENCE = 100.0
+
+INVALID_PYRODIGAL_CONFIDENCE = ("Invalid confidence value specified for Pyrodigal. Please provide a value between 0.0 and 100.0.")
 
 AUGUSTUS_GFF_FILTERS = ["# start gene", "# coding sequence"]
+
+VALID_PARAMETERS = {"augustus": ["augustus_species", "augustus_output_formats", "augustus_path"],
+					"pyrodigal": ["pyrodigal_training_file", "pyrodigal_mode",
+							  	  "pyrodigal_output_formats", "pyrodigal_minimum_confidence",
+							  	  "pyrodigal_training_reference", "pyrodigal_just_training"]}
+
+MISSING_INPUTS = ("Some of the paths to input files are not valid.")

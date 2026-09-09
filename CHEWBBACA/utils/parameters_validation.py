@@ -23,16 +23,13 @@ import multiprocessing
 
 try:
 	from utils import (constants as ct,
-					   blast_wrapper as bw,
 					   file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
 					   iterables_manipulation as im,
 					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 blast_wrapper as bw,
-								 file_operations as fo,
+	from CHEWBBACA.utils import (file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
@@ -94,7 +91,7 @@ def arg_list(arg, arg_name):
 	return arg
 
 
-def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
+def bsr_type(arg, min_value, max_value):
 	"""Validate the BLAST Score Ratio (BSR) value passed to chewBBACA.
 
 	Parameters
@@ -117,21 +114,15 @@ def bsr_type(arg, min_value=ct.BSR_MIN, max_value=ct.BSR_MAX):
 		- If the BSR value cannot be converted to float type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'BLAST Score Ratio')
+	if arg >= min_value and arg <= max_value:
+		valid = True
+	elif arg < min_value or arg > max_value:
+		valid = False
 
-	try:
-		schema_bsr = float(arg)
-		if schema_bsr >= min_value and schema_bsr <= max_value:
-			valid = schema_bsr
-		elif schema_bsr < min_value or schema_bsr > max_value:
-			sys.exit(ct.INVALID_BSR)
-	except Exception:
-		sys.exit(ct.INVALID_BSR_TYPE.format(arg))
-
-	return valid
+	return valid, arg
 
 
-def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX):
+def minimum_sequence_length_type(arg, min_value, max_value):
 	"""Validate the minimum sequence length value (MSL) passed to chewBBACA.
 
 	Parameters
@@ -154,21 +145,15 @@ def minimum_sequence_length_type(arg, min_value=ct.MSL_MIN, max_value=ct.MSL_MAX
 		- If the MSL value cannot be converted to int type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'minimum sequence length')
+	if arg >= min_value and arg <= max_value:
+		valid = True
+	elif arg < min_value or arg > max_value:
+		valid = False
 
-	try:
-		schema_ml = int(arg)
-		if schema_ml >= min_value and schema_ml <= max_value:
-			valid = schema_ml
-		elif schema_ml < min_value or schema_ml > max_value:
-			sys.exit(ct.INVALID_MINLEN)
-	except Exception:
-		sys.exit(ct.INVALID_MINLEN_TYPE)
-
-	return valid
+	return valid, arg
 
 
-def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
+def size_threshold_type(arg, min_value, max_value):
 	"""Validate the size threshold value (ST) passed to chewBBACA.
 
 	Parameters
@@ -192,24 +177,22 @@ def size_threshold_type(arg, min_value=ct.ST_MIN, max_value=ct.ST_MAX):
 		- If the ST value cannot be converted to float type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'size threshold')
+	if arg >= min_value and arg <= max_value:
+		valid = True
+	elif arg < min_value or arg > max_value:
+		valid = False
 
-	try:
-		schema_st = float(arg)
-		if schema_st >= min_value and schema_st <= max_value:
-			valid = schema_st
-		elif schema_st < min_value or schema_st > max_value:
-			sys.exit(ct.INVALID_ST)
-	except Exception:
-		if arg in [None, 'None']:
-			valid = None
-		else:
-			sys.exit(ct.INVALID_ST_TYPE)
+	#### ST can also be None...
+	# except Exception:
+	# 	if arg in [None, 'None']:
+	# 		valid = None
+	# 	else:
+	# 		sys.exit(ct.INVALID_ST_TYPE)
 
-	return valid
+	return valid, arg
 
 
-def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
+def translation_table_type(arg, genetic_codes):
 	"""Validate the translation table value (TT) passed to chewBBACA.
 
 	Parameters
@@ -233,28 +216,14 @@ def translation_table_type(arg, genetic_codes=ct.GENETIC_CODES):
 		or if it does not match any of the acceptable genetic
 		codes.
 	"""
-	arg = arg_list(arg, 'translation table')
+	# Set to default value if user did not provide a value
+	arg = ct.GENETIC_CODE_DEFAULT if arg is None else arg
+	valid = True if arg in genetic_codes else False
 
-	try:
-		schema_gen_code = int(arg)
-		if schema_gen_code in genetic_codes:
-			valid = schema_gen_code
-		else:
-			valid = False
-	except Exception:
-		valid = False
-
-	if valid is False:
-		# Format available genetic codes into list
-		lines = ['\t{0}: {1}'.format(k, v) for k, v in genetic_codes.items()]
-		gc_table = '\n{0}\n'.format('\n'.join(lines))
-
-		sys.exit(ct.INVALID_GENETIC_CODE.format(gc_table))
-
-	return valid
+	return valid, arg
 
 
-def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
+def validate_clustering_arg(arg, min_value, max_value, default_value):
 	"""Validate the word size value (WS) passed to chewBBACA.
 
 	Parameters
@@ -265,6 +234,8 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
 		Minimum acceptable WS value.
 	max_value : float
 		Maximum acceptable WS value.
+	default_value : float
+		The default WS value to use if none is provided.
 
 	Returns
 	-------
@@ -277,66 +248,16 @@ def validate_ws(arg, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
 		- If the WS value cannot be converted to float type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'word size')
+	if arg is None:
+		arg = default_value
+		valid = True
+	elif arg < min_value or arg > max_value:
+		valid = False
 
-	try:
-		if arg is None:
-			valid = 'None'
-		else:
-			word_size = int(arg)
-			if word_size >= min_value and word_size <= max_value:
-				valid = word_size
-			else:
-				sys.exit(ct.INVALID_WS.format(min_value, max_value))
-	except Exception:
-		sys.exit(ct.INVALID_WS_TYPE)
-
-	return valid
+	return valid, arg
 
 
-def validate_cs(arg, min_value=ct.CLUSTERING_SIMILARITY_MIN,
-				max_value=ct.CLUSTERING_SIMILARITY_MAX):
-	"""Validate the clustering similarity value (CS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The CS value passed to chewBBACA. Must be of type float.
-	min_value : float
-		Minimum acceptable CS value.
-	max_value : float
-		Maximum acceptable CS value.
-
-	Returns
-	-------
-	valid : float
-		The CS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the CS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	arg = arg_list(arg, 'clustering similarity')
-
-	try:
-		if arg is None:
-			valid = 'None'
-		else:
-			cluster_sim = float(arg)
-			if cluster_sim >= min_value and cluster_sim <= max_value:
-				valid = cluster_sim
-			else:
-				sys.exit(ct.INVALID_CS)
-	except Exception:
-		sys.exit(ct.INVALID_CS_TYPE)
-
-	return valid
-
-
-def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
-				max_value=ct.REPRESENTATIVE_FILTER_MAX):
+def validate_rf(arg, min_value, max_value):
 	"""Validate the representative filter value (RF) passed to chewBBACA.
 
 	Parameters
@@ -359,25 +280,15 @@ def validate_rf(arg, min_value=ct.REPRESENTATIVE_FILTER_MIN,
 		- If the RF value cannot be converted to float type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'representative filter')
+	if arg >= min_value and arg <= max_value:
+		valid = True
+	else:
+		valid = False
 
-	try:
-		if arg is None:
-			valid = 'None'
-		else:
-			representative_filter = float(arg)
-			if representative_filter >= min_value and representative_filter <= max_value:
-				valid = representative_filter
-			else:
-				sys.exit(ct.INVALID_RF)
-	except Exception:
-		sys.exit(ct.INVALID_RF_TYPE)
-
-	return valid
+	return valid, arg
 
 
-def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
-				max_value=ct.INTRA_CLUSTER_MAX):
+def validate_if(arg, min_value, max_value):
 	"""Validate the intra-cluster filter value (IF) passed to chewBBACA.
 
 	Parameters
@@ -400,59 +311,50 @@ def validate_if(arg, min_value=ct.INTRA_CLUSTER_MIN,
 		- If the IF value cannot be converted to float type
 		or if it is not contained in the acceptable interval.
 	"""
-	arg = arg_list(arg, 'intra-cluster filter')
-
-	try:
-		if arg is None:
-			valid = 'None'
-		else:
-			intraCluster_filter = float(arg)
-			if intraCluster_filter >= min_value and intraCluster_filter <= max_value:
-				valid = intraCluster_filter
-			else:
-				sys.exit(ct.INVALID_ICF)
-	except Exception:
-		sys.exit(ct.INVALID_ICF_TYPE)
-
-	return valid
-
-
-def validate_ns_url(arg):
-	"""Verify if the Chewie-NS URL passed to chewBBACA is valid.
-
-	Parameters
-	----------
-	arg : str
-		Identifier of the Chewie-NS instance or the URL
-		to a instance of Chewie-NS.
-
-	Returns
-	-------
-	ns_url : str
-		URL to connect to the instance of Chewie-NS.
-
-	Raises
-	------
-	SystemExit
-		- If it is not possible to connect to the
-		chewie-NS instance.
-	"""
-	if arg in ct.HOST_NS:
-		ns_url = ct.HOST_NS[arg]
+	if arg >= min_value and arg <= max_value:
+		valid = True
 	else:
-		ns_url = arg
+		valid = False
 
-	# sync schema has None by default to get ns_url in schema URI
-	if ns_url is not None:
-		# check if server is up
-		conn = cr.check_connection(ns_url)
-		if conn is False:
-			sys.exit(ct.NS_CANNOT_CONNECT.format(ns_url))
-
-	return ns_url
+	return valid, arg
 
 
-def validate_python_version(minimum_version=ct.MIN_PYTHON):
+# def validate_ns_url(arg):
+# 	"""Verify if the Chewie-NS URL passed to chewBBACA is valid.
+
+# 	Parameters
+# 	----------
+# 	arg : str
+# 		Identifier of the Chewie-NS instance or the URL
+# 		to a instance of Chewie-NS.
+
+# 	Returns
+# 	-------
+# 	ns_url : str
+# 		URL to connect to the instance of Chewie-NS.
+
+# 	Raises
+# 	------
+# 	SystemExit
+# 		- If it is not possible to connect to the
+# 		chewie-NS instance.
+# 	"""
+# 	if arg in ct.HOST_NS:
+# 		ns_url = ct.HOST_NS[arg]
+# 	else:
+# 		ns_url = arg
+
+# 	# sync schema has None by default to get ns_url in schema URI
+# 	if ns_url is not None:
+# 		# check if server is up
+# 		conn = cr.check_connection(ns_url)
+# 		if conn is False:
+# 			sys.exit(ct.NS_CANNOT_CONNECT.format(ns_url))
+
+# 	return ns_url
+
+
+def validate_python_version(minimum_version):
 	"""Validate Python version used to run chewBBACA.
 
 	Parameters
@@ -473,17 +375,14 @@ def validate_python_version(minimum_version=ct.MIN_PYTHON):
 		- If the Python version does not meet minimum requirements
 		or it was not possible to determine/detect a version.
 	"""
-	python_version = platform.python_version()
+	version = platform.python_version()
 
-	try:
-		assert tuple(map(int, python_version.split('.'))) >= minimum_version[0]
-	except AssertionError:
-		sys.exit(ct.PYTHON_VERSION.formta(python_version, minimum_version[1]))
+	valid = tuple(map(int, version.split('.'))) >= minimum_version[0]
 
-	return python_version
+	return valid, version
 
 
-def verify_cpu_usage(cpu_to_use):
+def verify_cpu_usage(arg, min_value, max_value):
 	"""Verify if the cores/threads value does not exceed available resources.
 
 	Parameters
@@ -497,23 +396,12 @@ def verify_cpu_usage(cpu_to_use):
 		Value of CPU cores/threads that will be used after
 		determining if the provided value was safe.
 	"""
-	total_cpu = multiprocessing.cpu_count()
+	if arg >= min_value and arg <= max_value:
+		valid = True
+	else:
+		valid = False
 
-	cpu_to_use = int(cpu_to_use)
-
-	# Do not allow a value greater than the number of cores
-	if cpu_to_use >= total_cpu:
-		# Define a value that is safe according to the number of
-		# available cores/threads
-		if total_cpu > 2:
-			cpu_to_use = total_cpu - 2
-		elif total_cpu == 2:
-			cpu_to_use = 1
-		print(ct.CPU_RESET_WARNING.format(cpu_to_use))
-	elif cpu_to_use == (total_cpu - 1):
-		print(ct.CPU_VALUE_WARNING.format(cpu_to_use, total_cpu))
-
-	return cpu_to_use
+	return valid, arg
 
 
 def is_exe(fpath):
@@ -534,15 +422,14 @@ def is_exe(fpath):
 def get_program_path(program_path, program_alias):
 	"""
 	"""
-	# Validate BLAST path provided by user by looking for BLASTp's executable
-	if program_path:
-		exe_path = fo.join_paths(program_path, [ct.BLASTP_ALIAS])
-		exe_path = exe_path if is_exe(exe_path) else None
-	# User did not provide a path, look for BLASTp based on its alias
-	else:
-		exe_path = shutil.which(program_alias)
+	# User did not provide a path, look for the program based on its alias
+	if not program_path:
+		program_path = fo.get_parent_directory(shutil.which(program_alias))
 
-	return exe_path
+	# Verify that path exists
+	valid = fo.exists(program_path)
+
+	return valid, program_path
 
 
 def get_blast_version(blastp_path):
@@ -583,83 +470,19 @@ def get_blast_version(blastp_path):
 	return version
 
 
-def check_blast(blast_path, blastp_alias=ct.BLASTP_ALIAS, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
-	"""Validate and/or determine path to BLAST executables and its version.
-
-	Parameters
-	----------
-	blast_path : str or Nonetype
-		Path to the directory with BLAST executables or NoneType 
-		if user did not provide a path.
-	major : int
-		BLAST minimun MAJOR version.
-	minor : int
-		BLAST minimum MINOR version.
-
-	Returns
-	-------
-	blast_path : str
-		Path to the directory containing the BLAST executables.
-
-	Raises
-	------
-	SystemExit
-		- If the user did not provide a value and BLAST is not in PATH.
-		- If the user provided a path but it does not contain the BLAST executables.
-		- If it is not possible to determine the BLAST version or if it does not meet the minimum requirements.
+def check_blast_version(blast_path, blastp_alias, major, minor):
 	"""
-	# Validate BLAST path provided by user by looking for BLASTp's executable
-	blastp_path = get_program_path(blast_path, blastp_alias)
-
-	# Exit if it is not possible to get path to BLASTp executable
-	if not blastp_path:
-		sys.exit(ct.BLAST_NO_PATH)
-
+	"""
+	# Create path to BLASTp executable
+	blastp_path = fo.join_paths(blast_path, [blastp_alias])
 	# Get BLAST version
 	blast_version = get_blast_version(blastp_path)
-	# Exit if it is not possible to get BLAST version
-	if blast_version is None:
-		sys.exit(ct.BLAST_NO_VERSION.format(major, minor))
+	valid = True if blast_version is not None else False
+	# Determine if BLAST version meets minimum requirements
 	if blast_version['MAJOR'] < major or (blast_version['MAJOR'] >= major and blast_version['MINOR'] < minor):
-		sys.exit(ct.BLAST_UPDATE.format(blast_version['MAJOR'], blast_version['MINOR'], major, minor))
+		valid = False
 
-	# Return path to folder with all BLAST executables
-	blast_path = os.path.dirname(blastp_path)
-
-	return blast_path
-
-
-def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
-	"""Validate and/or determine path to AUGUSTUS executables.
-
-	Parameters
-	----------
-	augustus_path : str or Nonetype
-		Path to the directory with AUGUSTUS executables or NoneType 
-		if user did not provide a path.
-
-	Returns
-	-------
-	augustus_path : str
-		Path to the directory containing the AUGUSTUS executables.
-
-	Raises
-	------
-	SystemExit
-		- If the user did not provide a value and AUGUSTUS is not in PATH.
-		- If the user provided a value but that path does not contain AUGUSTUS executable.
-	"""
-	# Validate AUGUSTUS path provided by user by looking for its main executable
-	augustus_exe = get_program_path(augustus_path, augustus_alias)
-	
-	# Exit if it is not possible to get path to AUGUSTUS executable
-	if not augustus_exe:
-		sys.exit(ct.AUGUSTUS_NO_PATH)
-
-	# Return path to folder with all AUGUSTUS executables
-	augustus_path = os.path.dirname(augustus_exe)
-
-	return augustus_path
+	return valid, blast_path
 
 
 def hash_ptf(ptf_path):
@@ -684,51 +507,47 @@ def hash_ptf(ptf_path):
 	return ptf_hash
 
 
-def validate_ptf_path(ptf_path, schema_directory):
-	""" Determines if the path to the Prodigal training file
-		is valid. Gets the training file in the schema's
-		directory if the input path is of type NoneType.
+# def validate_ptf_path(ptf_path, schema_directory):
+# 	""" Determines if the path to the Prodigal training file
+# 		is valid. Gets the training file in the schema's
+# 		directory if the input path is of type NoneType.
 
-	Parameters
-	----------
-	ptf_path : str or NoneType
-		Path to the Prodigal training file or NoneType
-		if no value was provided.
-	schema_directory : str
-		Path to the schema's directory.
+# 	Parameters
+# 	----------
+# 	ptf_path : str or NoneType
+# 		Path to the Prodigal training file or NoneType
+# 		if no value was provided.
+# 	schema_directory : str
+# 		Path to the schema's directory.
 
-	Returns
-	-------
-	ptf_path : str or bool
-		Path to the Prodigal training file or False if
-		no training file should be used.
+# 	Returns
+# 	-------
+# 	ptf_path : str or bool
+# 		Path to the Prodigal training file or False if
+# 		no training file should be used.
 
-	Raises
-	------
-	SystemExit
-		- If there is more than one training file in
-		the schema's directory.
-		- If a path was provided and it is not valid.
-	"""
-	if ptf_path is None:
-		# Deal with multiple training files
-		schema_ptfs = [file
-					   for file in os.listdir(schema_directory)
-					   if file.endswith('.trn')]
-		if len(schema_ptfs) > 1:
-			sys.exit(ct.MULTIPLE_PTFS)
-		elif len(schema_ptfs) == 1:
-			if schema_ptfs[0] is not None:
-				ptf_path = os.path.join(schema_directory, schema_ptfs[0])
-			else:
-				print(ct.MISSING_PTF)
-				ptf_path = None
-	else:
-		if os.path.isfile(ptf_path) is False:
-			message = (ct.INVALID_PTF_PATH)
-			sys.exit(message)
+# 	Raises
+# 	------
+# 	SystemExit
+# 		- If there is more than one training file in
+# 		the schema's directory.
+# 		- If a path was provided and it is not valid.
+# 	"""
+# 	if ptf_path is None:
+# 		# Deal with multiple training files
+# 		schema_ptfs = [file
+# 					   for file in os.listdir(schema_directory)
+# 					   if file.endswith('.trn')]
+# 		if len(schema_ptfs) > 1:
+# 			sys.exit(ct.MULTIPLE_PTFS)
+# 		elif len(schema_ptfs) == 1:
+# 			if schema_ptfs[0] is not None:
+# 				ptf_path = os.path.join(schema_directory, schema_ptfs[0])
+# 			else:
+# 				print(ct.MISSING_PTF)
+# 				ptf_path = None
 
-	return ptf_path
+# 	return ptf_path
 
 
 def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
@@ -1041,144 +860,56 @@ def read_configs(schema_path, filename):
 	return configs
 
 
-def check_input_type(input_path, output_file):
-	"""Validate input and create list of files to use.
+def check_input_is_fasta(input_path):
+	""""""
+	# Check if it is a single FASTA file
+	valid = True
+	if fo.is_file(input_path)[0]:
+		if fao.validate_fasta(input_path):
+			valid = False
 
-	Parameters
-	----------
-	input_path : str
-		Path to a file or directory.
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
+	return valid, input_path
 
-	Returns
-	-------
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
 
-	Raises
-	------
-	SystemExit
-		- If the input path is not a valid path for a file or
-		  directory.
-	"""
-	# Input path is for a file
+def list_input_files(input_path):
+	""""""
 	if os.path.isfile(input_path):
-		output_file, total_inputs = validate_input_file(input_path, output_file)
+		# Read list of input files
+		files = [line[0] for line in fo.read_tabular(input_path)]
 	# Input path is for a directory
 	elif os.path.isdir(input_path):
-		output_file, total_inputs = validate_input_dir(input_path, output_file)
-	else:
-		sys.exit(ct.INVALID_INPUT_PATH)
+		# List absolute paths
+		# Only keep paths to files
+		files = [file for file in fo.listdir_fullpath(input_path) if os.path.isdir(file) is False]
 
-	return output_file, total_inputs
+	return True, files
 
 
-def validate_input_file(input_path, output_file):
-	"""Validate a file with a list of paths to input files.
+def filter_inputs_extension(input_files):
+	""""""
+	# Need to verify if files end with any of the accepted file extensions, not only '.fasta'
+	valid_extension, invalid_extension = fo.filter_by_extension(input_files, ct.FASTA_EXTENSIONS)
+	valid = True if len(invalid_extension) == 0 else False
 
-	Parameters
-	----------
-	input_path : str
-		Path to a file with a list of paths.
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
+	return valid, valid_extension
 
-	Returns
-	-------
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
 
-	Raises
-	------
-	SystemExit
-		- If the input path is for a FASTA file.
-		- If any of the provided paths does not exist.
-		- If any of the file basenames does not end with one of
-		  the accepted file extensions.
-		- If the format of any of the files is not FASTA.
-	"""
-	# Check if it is a single FASTA file
-	if fao.validate_fasta(input_path) is True:
-		# Exit if input is a single FASTA file
-		sys.exit(ct.FASTA_INPUT_EXCEPTION)
-
-	# Read list of input files
-	files = [line[0] for line in fo.read_tabular(input_path)]
-
-	invalid_files = []
-	# Need to verify if files end with any of the accepted file
-	# extensions, not only '.fasta'
-	valid_extension, invalid_extension = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
-	if len(invalid_extension) > 0:
-		invalid_files.append([invalid_extension, ct.INVALID_EXTENSION_EXCEPTION])
-
+def inputs_exist(input_files):
+	""""""
 	# Check that all files exist
-	missing = [file for file in files if os.path.exists(file) is False]
-	if len(missing) > 0:
-		invalid_files.append([missing, ct.MISSING_INPUTS_EXCEPTION])
+	missing = [file for file in input_files if fo.exists(file) is False]
+	valid = True if len(missing) == 0 else False
 
+	return valid, input_files
+
+
+def validate_inputs_fastas(input_files):
+	""""""
 	# Only keep files whose content is typical of a FASTA file
-	fasta_files, non_fasta = fao.filter_non_fasta(files)
-	if len(non_fasta) > 0:
-		invalid_files.append([non_fasta, ct.NON_FASTA_EXCEPTION])
+	fasta_files, non_fasta = fao.filter_non_fasta(input_files)
+	valid = True if len(non_fasta) == 0 else False
 
-	# Exit if list of input files contained invalid files
-	if len(invalid_files) > 0:
-		exception_messages = [e[1].format(im.join_list(e[0], '\n')) for e in invalid_files]
-		sys.exit(im.join_list(exception_messages, '\n'))
-	# Save file paths to output file
-	else:
-		fo.write_lines(files, output_file)
-
-	return output_file, len(files)
-
-
-def validate_input_dir(input_path, output_file):
-	"""List and validate input files in a directory.
-
-	Parameters
-	----------
-	input_path : str
-		Path to the directory that contains the input files.
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
-
-	Returns
-	-------
-	output_file : str
-		Path to the output file created to store the paths
-		to valid FASTA files.
-
-	Raises
-	------
-	SystemExit
-		- If there are no valid FASTA files in the input directory.
-	"""
-	# List absolute paths
-	# Only keep paths to files
-	files = [file for file in fo.listdir_fullpath(input_path)
-			 if os.path.isdir(file) is False]
-
-	# Filter based on file extension
-	valid_extension, invalid_extension = fo.filter_by_extension(files, ct.FASTA_EXTENSIONS)
-
-	# Only keep files whose content is typical of a FASTA file
-	fasta_files, non_fasta = fao.filter_non_fasta(valid_extension)
-
-	# If there are FASTA files
-	if len(fasta_files) > 0:
-		# Save file paths to output file
-		fo.write_lines(fasta_files, output_file)
-	else:
-		sys.exit(ct.MISSING_FASTAS_EXCEPTION)
-
-	return output_file, len(files)
+	return valid, input_files
 
 
 def validate_loci_list(input_path, output_file, parent_dir=None):
@@ -1278,7 +1009,8 @@ def get_file_prefixes(path_list):
 
 	return basename_counts
 
-def check_unique_prefixes(input_list):
+
+def check_unique_prefixes(input_files):
 	"""Check if all input files have an unique identifier.
 
 	Parameters
@@ -1295,19 +1027,17 @@ def check_unique_prefixes(input_list):
 	SystemExit
 		- If there are multiple files sharing the same prefix.
 	"""
-	input_paths = fo.read_lines(input_list)
-	prefixes = get_file_prefixes(input_paths)
-
+	prefixes = get_file_prefixes(input_files)
 	# Detect if some inputs share the same unique prefix
-	if len(set(prefixes)) < len(input_paths):
+	if len(set(prefixes)) < len(input_files):
 		repeated_basenames = [f'{k}: {", ".join(v)}' for k, v in prefixes.items() if len(v) > 1]
 		repeated_basenames = [','.join(l) for l in repeated_basenames]
 		sys.exit(ct.INPUTS_SHARE_PREFIX.format('\n'.join(repeated_basenames)))
 
-	return False
+	return True, input_files
 
 
-def check_blanks(input_list):
+def check_blanks(input_files):
 	"""Check if input files do not include blank spaces in the filename.
 
 	Parameters
@@ -1324,11 +1054,283 @@ def check_blanks(input_list):
 	SystemExit
 		- If there are blank spaces in any of the filenames.
 	"""
-	input_paths = fo.read_lines(input_list)
-	basenames = [fo.file_basename(file) for file in input_paths]
+	basenames = [fo.file_basename(file) for file in input_files]
 	include_blanks = [name for name in basenames if ' ' in name]
 
 	if len(include_blanks) > 0:
 		sys.exit(ct.INPUTS_INCLUDE_BLANKS.format('\n'.join(include_blanks)))
 
-	return False
+	return True, input_files
+
+
+def parse_parameter_string(input_string, parameter_types):
+	"""
+	"""
+	valid = True
+	gene_prediction_config = {}
+	if input_string is not None:
+		for v in input_string:
+			parameter, argument = v.split("=")
+			parameter = parameter.replace("-", "_")
+			if parameter in parameter_types:
+				arg_multiplicity, arg_type = parameter_types[parameter]
+				if arg_multiplicity:
+					# Split argument value in by "," to get multiple values
+					argument = argument.split(",")
+				# Convert to correct type
+				if arg_type:
+					argument = list(map(arg_type, argument)) if len(argument) > 1 else arg_type(argument)
+				# Add parameter name and argument value to config dictionary
+				gene_prediction_config[parameter] = argument
+			else:
+				print(f"{v} is not a valid parameter=argument pair to configure gene prediction.")
+				valid = False
+
+	return valid, gene_prediction_config
+
+
+def get_augustus_species_list(augustus_alias):
+	"""Get the list of species' models supported by AUGUSTUS.
+
+	Parameters
+	----------
+	augustus_alias : str
+		Alias used to call AUGUSTUS.
+
+	Returns
+	-------
+	version : str
+	"""
+	# Try to get the list os species' models supported by AUGUSTUS'
+	proc = subprocess.Popen([augustus_alias, '--species=help'],
+							stdout=subprocess.PIPE,
+							stderr=subprocess.PIPE,
+							text=True)
+	stdout, stderr = proc.communicate()
+	# Process the list of species printed to stdout
+	species_list = {}
+	# List of species is printed to stderr
+	for line in stderr.split("\n"):
+		if "|" in line:
+			species_id, species_name = line.split("|")
+			species_id = species_id.strip()
+			species_name = species_name.strip()
+			species_list[species_name] = species_id
+
+	return species_list
+
+
+def validate_augustus_species(species_id, augustus_alias):
+	""""""
+	species_list = get_augustus_species_list(augustus_alias)
+
+	valid = True if species_id in species_list.values() else False
+
+	return valid, species_id
+
+
+def validate_augustus_outfmt(outfmt, valid_outfmts):
+	""""""
+	valid = True if outfmt in validate_augustus_outfmt else False
+
+	return valid, outfmt
+
+
+def validate_gene_predictor(gene_predictor, valid_gene_predictors):
+	""""""
+	valid = True if gene_predictor in valid_gene_predictors else False
+
+	return valid, gene_predictor
+
+
+def validate_pyrodigal_mode(mode, valid_modes, default_mode):
+	""""""
+	valid = True
+	if mode is None:
+		mode = default_mode
+	elif mode not in valid_modes:
+		valid = False
+
+	return valid, mode
+
+
+def validate_pyrodigal_outfmt(outfmt, valid_outfmts):
+	""""""
+	valid = True if all([of in valid_outfmts for of in outfmt]) else False
+
+	return valid, outfmt
+
+
+def validate_pyrodigal_minimum_confidence(confidence, min_value, max_value):
+	""""""
+	valid = True if confidence >= min_value and confidence <= max_value else False
+
+	return valid, confidence
+
+
+def add_ptf_genetic_code(ptf_path):
+	"""
+	"""
+	# Get translation table used to create training file
+	ptf_genetic_code = pgp.read_training_file(ptf_path).translation_table
+	print("Provided training file. Using genetic code used to create training file ({ptf_genetic_code}).")
+
+	return True, ptf_genetic_code
+
+
+def check_meta(pyrodigal_mode):
+	"""
+	"""
+	valid = True if pyrodigal_mode == 'meta' else False
+
+	return valid, None
+
+
+# Define the multiplicity of values and expected types for the argument values used to configure the gene prediction
+GENE_PREDICTION_ARGUMENT_TYPES = {"augustus_species": (False, None),
+				  "augustus_output_formats": (True, None),
+				  "augustus_path": (False, None),
+				  "pyrodigal_training_file": (False, None),
+				  "pyrodigal_mode": (False, None),
+				  "pyrodigal_output_formats": (True, None),
+				  "pyrodigal_minimum_confidence": (False, float),
+				  "pyrodigal_training_reference": (False, None),
+				  "pyrodigal_just_training": (False, bool)
+				 }
+
+CLUSTERING_ARGUMENT_TYPES = {"word_size": (False, int),
+							 "window_size": (False, int),
+							 "clustering_sim": (False, float),
+							 "representative_filter": (False, float),
+							 "intra_filter": (False, float)
+							 }
+
+# Since v3.5.1, it is not mandatory for basenames to be shorter than 30 chars
+# This means that the loci IDs defined by the CreateSchema module can be longer
+# than the ones defined by previous versions if users provide input files with
+# long basenames
+
+# Define dictionaries with argument types for CreateSchema
+### Do not forget to order dict elements by validation priority
+CREATESCHEMA_ARGUMENTS = {
+	"output_directory": 
+		([fo.create_directory],
+		[None],
+		[ct.OUTPUT_DIRECTORY_EXISTS],
+		[None]),
+	"input_files": 
+		([fo.exists, check_input_is_fasta, list_input_files, filter_inputs_extension, inputs_exist, validate_inputs_fastas, check_unique_prefixes, check_blanks],
+		[None, None, None, None, None, None, None, None],
+		[ct.INVALID_INPUT_PATH, ct.FASTA_INPUT_EXCEPTION, None, ct.INVALID_EXTENSION_EXCEPTION, ct.MISSING_INPUTS, ct.NON_FASTA_EXCEPTION, None, None],
+		[None, None, None, None, None, None, None, None]),
+	"blast_score_ratio": 
+		([bsr_type],
+		[[ct.BSR_MIN, ct.BSR_MAX]],
+		[ct.INVALID_BSR_TYPE],
+		[None]),
+	"minimum_length": 
+		([minimum_sequence_length_type],
+		[[ct.MSL_MIN, ct.MSL_MAX]],
+		[ct.INVALID_MINLEN_TYPE],
+		[None]),
+	"translation_table": 
+		([translation_table_type],
+		[[ct.GENETIC_CODES]],
+		[ct.INVALID_GENETIC_CODE],
+		[None]),
+	"size_threshold": 
+		([size_threshold_type],
+		[[ct.ST_MIN, ct.ST_MAX]],
+		[ct.INVALID_ST_TYPE],
+		[None]),
+	"blast_path": 
+		([get_program_path, check_blast_version],
+		[[ct.BLASTP_ALIAS], [ct.BLASTP_ALIAS, ct.BLAST_MAJOR, ct.BLAST_MINOR]],
+		[ct.BLAST_MISSING, ct.BLAST_INVALID_VERSION],
+		[None, None]),
+	"gene_predictor": 
+		([validate_gene_predictor],
+   		[[ct.GENE_PREDICTORS]],
+		[ct.INVALID_GENE_PREDICTOR],
+		[None]),
+	"gene_prediction_arguments": 
+		([parse_parameter_string],
+   		[[GENE_PREDICTION_ARGUMENT_TYPES]],
+		[None],
+		[None]),
+	"augustus_path": 
+		([get_program_path],
+   		[[ct.AUGUSTUS_ALIAS]],
+		[ct.AUGUSTUS_MISSING],
+		[None]),
+	"augustus_species": 
+		([validate_augustus_species],
+   		[[ct.AUGUSTUS_ALIAS]],
+		[ct.AUGUSTUS_INVALID_SPECIES],
+		[None]),
+	"augustus_output_formats": 
+		([validate_augustus_outfmt],
+   		[[ct.AUGUSTUS_OUTFMTS]],
+		[ct.AUGUSTUS_INVALID_OUTFMT],
+		[None]),
+	"pyrodigal_training_file": 
+		([fo.is_file, add_ptf_genetic_code],
+   		[[None], [None]],
+		[ct.INVALID_PTF_PATH, None],
+		[None, "translation_table"]),
+	"pyrodigal_mode": 
+		([validate_pyrodigal_mode, check_meta],
+   		[[ct.PYRODIGAL_MODES, ct.PYRODIGAL_DEFAULT_MODE], [None]],
+		[ct.INVALID_PYRODIGAL_MODE, None],
+		[None, "pyrodigal_training_file"]),
+	"pyrodigal_output_formats": 
+		([validate_pyrodigal_outfmt],
+		[[ct.PYRODIGAL_OUTFMTS]],
+		[[ct.PYRODIGAL_INVALID_OUTFMT]],
+		[None]),
+	"pyrodigal_minimum_confidence": 
+		([validate_pyrodigal_minimum_confidence],
+   		[[ct.PYRODIGAL_MIN_CONFIDENCE, ct.PYRODIGAL_MAX_CONFIDENCE]],
+		[ct.INVALID_PYRODIGAL_CONFIDENCE],
+		[None]),
+	"pyrodigal_training_reference": 
+		([fo.is_file],
+   		[[None]],
+		[ct.INVALID_TREFERENCE_PATH],
+		[None]),
+	"cpu_cores": 
+		([verify_cpu_usage],
+   		[[1, multiprocessing.cpu_count()]],
+		[ct.CPU_VALUE_WARNING],
+		[None]),
+	"clustering_parameters": 
+		([parse_parameter_string],
+   		[[CLUSTERING_ARGUMENT_TYPES]],
+		[None],
+		[None]),
+	"word_size": 
+		([validate_clustering_arg],
+   		[[ct.WORD_SIZE_MIN, ct.WORD_SIZE_MAX, ct.WORD_SIZE_DEFAULT]],
+		[ct.INVALID_WORD_SIZE],
+		[None]),
+	"window_size": 
+		([validate_clustering_arg],
+   		[[ct.WINDOW_SIZE_MIN, ct.WINDOW_SIZE_MAX, ct.WINDOW_SIZE_DEFAULT]],
+		[ct.INVALID_WINDOW_SIZE],
+		[None]),
+	"clustering_sim": 
+		([validate_clustering_arg],
+   		[[ct.CLUSTERING_SIMILARITY_MIN, ct.CLUSTERING_SIMILARITY_MAX, ct.CLUSTERING_SIMILARITY_DEFAULT]],
+		[ct.INVALID_CLUSTERING_SIMILARITY],
+		[None]),
+	"representative_filter": 
+		([validate_clustering_arg],
+		[[ct.REPRESENTATIVE_FILTER_MIN, ct.REPRESENTATIVE_FILTER_MAX, ct.REPRESENTATIVE_FILTER_DEFAULT]],
+		[ct.INVALID_REPRESENTATIVE_FILTER],
+		[None]),
+	"intra_filter": 
+		([validate_clustering_arg],
+   		[[ct.INTRA_CLUSTER_MIN, ct.INTRA_CLUSTER_MAX, ct.INTRA_CLUSTER_DEFAULT]],
+		[ct.INVALID_INTRA_CLUSTER_FILTER],
+		[None]),
+}

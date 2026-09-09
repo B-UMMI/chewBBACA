@@ -30,15 +30,14 @@ try:
 	from ComputeDistances import compute_distances
 	from ComputeMSA import compute_msa
 	from MergeResults import merge_results
+	from CHEWBBACA_NS import (download_schema, upload_schema,
+							  synchronize_schema, stats_requests)
 	from utils import (process_datetime as pdt,
 					   constants as ct,
 					   parameters_validation as pv,
-					   file_operations as fo)
-
-	from utils.parameters_validation import ModifiedHelpFormatter
-
-	from CHEWBBACA_NS import (download_schema, upload_schema,
-							  synchronize_schema, stats_requests)
+					   file_operations as fo,
+					   iterables_manipulation as im,
+					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
 	from CHEWBBACA import __version__
 	from CHEWBBACA.PredictGenes import predict_genes
@@ -55,15 +54,53 @@ except ModuleNotFoundError:
 	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.ComputeMSA import compute_msa
 	from CHEWBBACA.MergeResults import merge_results
+	from CHEWBBACA.CHEWBBACA_NS import (download_schema, upload_schema,
+										synchronize_schema, stats_requests)
 	from CHEWBBACA.utils import (process_datetime as pdt,
 								 constants as ct,
 								 parameters_validation as pv,
-								 file_operations as fo)
+								 file_operations as fo,
+								 iterables_manipulation as im,
+								 pyrodigal_gene_prediction as pgp)
 
-	from CHEWBBACA.utils.parameters_validation import ModifiedHelpFormatter
 
-	from CHEWBBACA.CHEWBBACA_NS import (download_schema, upload_schema,
-										synchronize_schema, stats_requests)
+def validate_arguments(args):
+	""""""
+	createschema_validation = pv.CREATESCHEMA_ARGUMENTS
+	for parameter, validation_data in createschema_validation.items():
+		# Only check argument values for the parameters being used
+		if parameter in args:
+			current_arg = args[parameter]
+			functions, function_inputs, exceptions, to_change = validation_data
+			for i, func in enumerate(functions):
+				current_input = function_inputs[i]
+				if function_inputs[i] is not None:
+					valid, current_arg = func(current_arg, *current_input)
+				else:
+					valid, current_arg = func(current_arg)
+
+				if not valid:
+					# Delete output directory since arguments were not valid
+					fo.delete_directory(args["output_directory"])
+					sys.exit(exceptions[i])
+				else:
+					if to_change[i] is not None:
+						args[to_change[i]] = current_arg
+					else:
+						if type(current_arg) == dict:
+							args = im.merge_dictionaries([args, current_arg])
+							del args[parameter]
+						else:
+							args[parameter] = current_arg
+
+	return args
+
+
+def print_arguments(args):
+	""""""
+	for parameter, argument in args.items():
+		parameter_str = parameter.replace("_").title()
+		print(f"{parameter_str}: {argument}")
 
 
 @pdt.process_timer
@@ -78,7 +115,7 @@ def run_predict_genes():
 	parser = argparse.ArgumentParser(prog='PredictGenes',
 									 description='Predict genes from a set of input genome assemblies.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictGenes.html')
 
@@ -120,7 +157,7 @@ def run_predict_genes():
 							 'genomes, small viruses, and small plasmids).')
 
 	parser.add_argument('--pof', '--pyrodigal-output-formats', nargs='+', type=str,
-						required=False, default=['genes'], choices=['genes', 'translations', 'gff', 'genbank', 'scores'],
+						required=False, default=['genes'], choices=ct.PYRODIGAL_OUTFMTS,
 						dest='pyrodigal_output_formats',
 						help='Output file formats created by Pyrodigal. Users can select a single or multiple options from '
 							 '`genes` (CDSs in FASTA format), `translations` (translated CDSs in FASTA format), '
@@ -145,14 +182,14 @@ def run_predict_genes():
 						help="")
 
 	parser.add_argument('--aof', '--augustus-output-formats', nargs='+', type=str,
-						required=False, default=['genes'], choices=['genes', 'gff'],
+						required=False, default=['genes'], choices=ct.AUGUSTUS_OUTFMTS,
 						dest='augustus_output_formats',
 						help='Output file formats created by AUGUSTUS. Users can select a single or multiple options from '
-								'`genes` (CDSs in FASTA format) and `gff` (GFF file format). Default is `genes`.')
+							 '`genes` (CDSs in FASTA format) and `gff` (GFF file format). Default is `genes`.')
 
 	# Default is None, chewie checks if it is in PATH
 	parser.add_argument('--ap', '--augustus-path', type=pv.check_augustus,
-					 	required=False, default='', dest='augustus_path', # Need to set deafult to '' or the type check will not run
+					 	required=False, default='', dest='augustus_path', # Need to set default to '' or the type check will not run
 						help="Path to the AUGUSTUS executable.")
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
@@ -239,7 +276,7 @@ def run_create_schema():
 	parser = argparse.ArgumentParser(prog='CreateSchema',
 									 description='Create a schema seed.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='It is strongly advised to provide a training file to '
 											'create a schema. Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html')
@@ -263,15 +300,7 @@ def run_create_schema():
 						dest='schema_name',
 						help='Name given to the schema folder.')
 
-	parser.add_argument('--ptf', '--training-file', type=str,
-						required=False, dest='ptf_path',
-						help='Path to the Pyrodigal training file used by Pyrodigal '
-							 'to predict genes. The translation table used to create '
-							 'this file overrides any value passed to `--t`, '
-							 '`--translation-table`. This file is copied '
-							 'to the schema folder to be used for allele calling.')
-
-	parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
+	parser.add_argument('--bsr', '--blast-score-ratio', type=float,
 						required=False, default=ct.DEFAULT_BSR,
 						dest='blast_score_ratio',
 						help='BLAST Score Ratio (BSR) value. The BSR is computed '
@@ -279,52 +308,56 @@ def run_create_schema():
 							 'a BSR >= than the defined value are considered to be '
 							 'alleles of the same gene.')
 
-	parser.add_argument('--l', '--minimum-length', type=pv.minimum_sequence_length_type,
+	parser.add_argument('--l', '--minimum-length', type=int,
 						required=False, default=201, dest='minimum_length',
 						help='Minimum sequence length value. Predicted coding '
 							 'sequences (CDSs) shorter than this value are excluded.')
 
-	parser.add_argument('--t', '--translation-table', type=pv.translation_table_type,
+	parser.add_argument('--t', '--translation-table', type=int,
 						required=False, dest='translation_table',
 						help='Genetic code used to predict genes and'
 							 ' to translate coding DNA sequences (CDSs). '
 							 'This value is ignored if a valid training file '
-							 'is passed to `--ptf`, `--training-file`.')
+							 'is passed to `--gpa`.')
 
-	parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
+	parser.add_argument('--st', '--size-threshold', type=float,
 						required=False, default=0.2, dest='size_threshold',
 						help='Coding sequence (CDS) size variation threshold. '
 							 'Added to the schema\'s config file to identify '
 							 'alleles with a size that deviates from the locus '
 							 'length mode during the allele calling process.')
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores that will be '
-							 'used to run the process (chewie '
-							 'resets to a lower value if it is equal to '
-							 'or exceeds the total number of available '
-							 'CPU cores).')
+	parser.add_argument('-gp', '--gene-predictor', type=str,
+					 	required=False, default='pyrodigal', choices=['pyrodigal', 'augustus'],
+						dest='gene_predictor',
+						help='Specify which gene prediction software to use. Default is Pyrodigal to predict genes from '
+							 'prokaryotic genomes. AUGUSTUS can predict genes for prokaryotic and eukaryotic genomes.')	
 
-	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
+#### Need to add a default to this! Add a list with the default parameter=argument pairs
+#### Compare with values provided by user and substitute only the ones that were provided
+#### Leaving the default for everything else
+
+	parser.add_argument('--gpa', '--gene-prediction-arguments', type=str, nargs="+",
+					 	required=False, dest="gene_prediction_arguments",
+						help="List of arguments passed to configure the gene prediction. "
+							 "When providing genome assemblies in FASTA format, the "
+							 "list of arguments for each parameter used to configure "
+							 "the gene prediction can be passed as the long format of the "
+							 "parameter name followed by the argument value (e.g., "
+							 "pyrodigal-training-file=/path/to/file).")
+
+	parser.add_argument('--cp', '--clustering-parameters', type=str, nargs="+",
+					 	required=False, dest="clustering_parameters",
+						help="List of arguments passed to configure the clustering of "
+							 "predicted coding sequences (CDSs). The list of arguments "
+							 "for each parameter used to configure the clustering can be "
+							 "passed as the long format of the parameter name followed by "
+							 "the argument value (e.g., word-size=).")
+
+	parser.add_argument('--b', '--blast-path', type=str,
 						required=False, dest='blast_path',
 						help='Path to the directory that contains the '
 							 'BLAST executables.')
-
-	parser.add_argument('--pm', '--pyrodigal-mode', required=False,
-						choices=['single', 'meta'],
-						default='single', dest='pyrodigal_mode',
-						help='Pyrodigal running mode ("single" for '
-							 'finished genomes, reasonable quality '
-							 'draft genomes and big viruses. "meta" '
-							 'for metagenomes, low quality draft '
-							 'genomes, small viruses, and small '
-						 	 'plasmids).')
-
-	parser.add_argument('--pmc', '--pyrodigal-minimum-confidence', type=float,
-						required=False, dest='pyrodigal_minimum_confidence',
-						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
-							 'a confidence score lower than this value are excluded.')
 
 	parser.add_argument('--cds', '--cds-input', required=False,
 						action='store_true', dest='cds_input',
@@ -340,6 +373,14 @@ def run_create_schema():
 							 'the CDS identifiers conform to the format used by chewBBACA (the input '
 							 'file basename and an integer joined by "_").')
 
+	parser.add_argument('--cpu', '--cpu-cores', type=int,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores that will be '
+							 'used to run the process (chewie '
+							 'resets to a lower value if it is equal to '
+							 'or exceeds the total number of available '
+							 'CPU cores).')
+
 	parser.add_argument('--no-cleanup', required=False, action='store_true',
 						dest='no_cleanup',
 						help='If provided, intermediate files generated '
@@ -348,90 +389,28 @@ def run_create_schema():
 
 	args = parser.parse_args()
 	del args.CreateSchema
+	# Convert args object into a dictionary
+	args = vars(args)
 
-	# Check if user passed PTF
-	if args.ptf_path:
-		# Check if PTF exists
-		if not os.path.isfile(args.ptf_path):
-			sys.exit(ct.INVALID_PTF_PATH)
-		else:
-			# Get translation table used to create training file
-			ptf_table = pgp.read_training_file(args.ptf_path).translation_table
-			args.translation_table = ptf_table
-			print('Provided training file. Using translation table used to create training file.')
-	else:
-		if not args.translation_table:
-			args.translation_table = ct.GENETIC_CODES_DEFAULT
-			print(f'Did not provide training file and translation table. Using default translation table ({ct.GENETIC_CODES_DEFAULT})')
+	# Validate argument values
+	args = validate_arguments(args)
+	print(args)
 
-	print(f'Pyrodigal training file: {args.ptf_path}')
-	print(f'Pyrodigal mode: {args.pyrodigal_mode}')
-	if args.pyrodigal_mode == 'meta' and args.ptf_path is not None:
-		print('Pyrodigal mode is set to "meta". Will add training file to '
-			  'the schema, but will not use it for gene prediction during '
-			  'schema creation.')
-		args.ptf_path = None
+	if args["gene_predictor"] == "pyrodigal":
+		if args["pyrodigal_mode"] == 'meta' and args["pyrodigal_training_file"] is not None:
+			print('Pyrodigal mode is set to "meta". Will add training file to '
+				'the schema, but will not use it for gene prediction during '
+				'schema creation.')
+			args["pyrodigal_training_file"] = None
 
-	# Check if translation table is supported
-	pv.translation_table_type([args.translation_table])
-	print(f'Translation table: {args.translation_table}')
+	# Print parameter:argument pairs
+	print_arguments(args)
 
-	print(f'CPU cores: {args.cpu_cores}')
-	print(f'BLAST Score Ratio: {args.blast_score_ratio}')
-	print(f'Minimum sequence length: {args.minimum_length}')
-	print(f'Size threshold: {args.size_threshold}')
-
-	# Create output directory
-	created = fo.create_directory(args.output_directory)
-	if created is False:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
-	print(f'Output directory: {args.output_directory}')
-
-	genome_list = fo.join_paths(args.output_directory, [ct.GENOME_LIST])
-	args.input_files, total_inputs = pv.check_input_type(args.input_files, genome_list)
-	# Detect if any input files share the same basename
-	repeated_prefixes = pv.check_unique_prefixes(genome_list)
-	# Detect if filenames include blank spaces
-	blank_spaces = pv.check_blanks(genome_list)
-	# Since v3.5.1, it is not mandatory for basenames to be shorter than 30 chars
-	# This means that the loci IDs defined by the CreateSchema module can be longer
-	# than the ones defined by previous versions if users provide input files with
-	# long basenames
-
-	print(f'Number of inputs: {total_inputs}')
-
-	# Add clustering parameters
-	args.word_size = ct.WORD_SIZE_DEFAULT
-	args.window_size = ct.WINDOW_SIZE_DEFAULT
-	args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
-	args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
-	args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
+	sys.exit()
 
 	# Run the CreateSchema process
 	nloci = create_schema.main(**vars(args))
 	print(f'Created schema seed with {nloci} loci.')
-
-	schema_dir = os.path.join(args.output_directory, args.schema_name)
-	# Copy Pyrodigal Training File (PTF) to schema directory
-	ptf_hash = None
-	if args.ptf_path is not None:
-		shutil.copy(args.ptf_path, schema_dir)
-		# Determine PTF checksum
-		ptf_hash = fo.hash_file(args.ptf_path, 'blake2b')
-		print(f'Copied Pyrodigal training file to {schema_dir}')
-
-	# Write schema config file
-	args.minimum_length = ct.MSL_MIN
-	args.ptf_path = ptf_hash
-	schema_config = pv.write_schema_config(vars(args), __version__, schema_dir)
-	print(f'Wrote schema config values to {schema_config[1]}')
-
-	# Create the file with the list of genes/loci
-	pv.write_gene_list(schema_dir)
-	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.GENE_LIST_BASENAME)}')
-
-	# Remove temporary file with paths to input genomes
-	fo.remove_files([genome_list])
 
 
 @pdt.process_timer
@@ -446,7 +425,7 @@ def run_allele_call():
 	parser = argparse.ArgumentParser(prog='AlleleCall',
 									 description='Determine the allelic profiles of a set of genomes.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='It is strongly advised to perform allele calling '
 											'with the default schema parameters to ensure '
 											'more consistent results. Module documentation available at '
@@ -454,7 +433,7 @@ def run_allele_call():
 
 	parser.add_argument('AlleleCall', nargs='+', help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-files', nargs='?', type=str,
+	parser.add_argument('-i', '--input-files', type=str,
 						required=True, dest='input_files',
 						help='Path to the directory that contains the input '
 							 'FASTA files or to a file with a list of full '
@@ -474,14 +453,6 @@ def run_allele_call():
 							 'intermediate files and allele calling results '
 							 '(will create a subdirectory named "results_<TIMESTAMP>" '
 							 'if the path passed by the user already exists).')
-
-	parser.add_argument('--ptf', '--training-file', type=str,
-						required=False, dest='ptf_path',
-						help='Path to the Pyrodigal training file used by Pyrodigal '
-							 'to predict genes. Default is to use the training file '
-							 'included in the schema\'s directory. The translation '
-							 'table used to create this file overrides any value '
-							 'passed to `--t`, `--translation-table`.')
 
 	parser.add_argument('--gl', '--genes-list', type=str,
 						required=False, default=False, dest='genes_list',
@@ -517,33 +488,25 @@ def run_allele_call():
 							 'deviates +-20 percent from the locus length mode '
 							 'are classified as ASM/ALM.')
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores that will be '
-							 'used to run the process (chewie '
-							 'resets to a lower value if it is equal to '
-							 'or exceeds the total number of available '
-							 'CPU cores).')
+	parser.add_argument('-gp', '--gene-predictor', type=str,
+					 	required=False, default='pyrodigal', choices=['pyrodigal', 'augustus'],
+						dest='gene_predictor',
+						help='Specify which gene prediction software to use. Default is Pyrodigal to predict genes from '
+							 'prokaryotic genomes. AUGUSTUS can predict genes for prokaryotic and eukaryotic genomes.')	
+
+	parser.add_argument('--gpa', '--gene-prediction-arguments', type=str, nargs="+",
+					 	required=False, dest="gene_prediction_arguments",
+						help="List of arguments passed to configure the gene prediction. "
+							 "When providing genome assemblies in FASTA format, the "
+							 "list of arguments for each parameter used to configure "
+							 "the gene prediction can be passed as the long format of the "
+							 "parameter name followed by the argument value (e.g., "
+							 "pyrodigal-training-file=/path/to/file).")
 
 	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
 						required=False, default='', dest='blast_path',
 						help='Path to the directory that contains the '
 							 'BLAST executables.')
-
-	parser.add_argument('--pm', '--pyrodigal-mode', type=str,
-						required=False, choices=['single', 'meta'],
-						default='single', dest='pyrodigal_mode',
-						help='Pyrodigal running mode ("single" for '
-							 'finished genomes, reasonable quality '
-							 'draft genomes and big viruses. "meta" '
-							 'for metagenomes, low quality draft '
-							 'genomes, small viruses, and small '
-							 'plasmids).')
-
-	parser.add_argument('--pmc', '--pyrodigal-minimum-confidence', type=float,
-						required=False, dest='pyrodigal_minimum_confidence',
-						help='Minimum confidence value for CDSs predicted with Pyrodigal. Predicted CDSs with '
-							 'a confidence score lower than this value are excluded.')
 
 	parser.add_argument('--cds', '--cds-input', action='store_true',
 						required=False, dest='cds_input',
@@ -589,18 +552,6 @@ def run_allele_call():
 							 '(NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5, LOTSC, PAMA) '
 							 'with `0`.')
 
-	parser.add_argument('--no-cleanup', required=False,
-						action='store_true', dest='no_cleanup',
-						help='If provided, intermediate files generated '
-							 'during process execution are not removed at '
-							 'the end.')
-
-	# parser.add_argument('--db', '--store-profiles', required=False,
-	#                     action='store_true', dest='store_profiles',
-	#                     help='If the profiles in the output matrix '
-	#                          'should be stored in the local SQLite '
-	#                          'database.')
-
 	parser.add_argument('--no-cds-renaming', required=False, action='store_true',
 						dest='no_cds_renaming',
 						help='Do not rename the sequence/CDS identifiers when using the `--cds` '
@@ -627,7 +578,27 @@ def run_allele_call():
 							 'BSR value, including the determination of new '
 							 'representative alleles to add to the schema).')
 
+	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
+						required=False, default=1, dest='cpu_cores',
+						help='Number of CPU cores that will be '
+							 'used to run the process (chewie '
+							 'resets to a lower value if it is equal to '
+							 'or exceeds the total number of available '
+							 'CPU cores).')
+
+	parser.add_argument('--no-cleanup', required=False,
+						action='store_true', dest='no_cleanup',
+						help='If provided, intermediate files generated '
+							 'during process execution are not removed at '
+							 'the end.')
+
 	args = parser.parse_args()
+
+	# Identify gene predictor to use and argument values to pass to the PredictGenes module
+	# Do not do this if input are FASTA files containing CDSs
+	gene_prediction_config = {}
+	if not args.cds_input and args.gene_prediction_arguments:
+		gene_prediction_config = pv.parse_gene_prediction_args(args.gene_prediction_arguments, args.gene_predictor)
 
 	# Check if input schema path exists
 	if not os.path.exists(args.schema_directory):
@@ -728,9 +699,6 @@ def run_allele_call():
 					 args.output_novel, args.output_masked,
 					 args.no_cleanup, args.no_cds_renaming, args.ns, config)
 
-	# if args.store_profiles is True:
-	#     updated = ps.store_allelecall_results(args.output_directory, args.schema_directory)
-
 	# Remove temporary files with paths to input genomes and schema files
 	fo.remove_files([loci_list])
 	fo.remove_files([genome_list])
@@ -748,7 +716,7 @@ def run_evaluate_schema():
 	parser = argparse.ArgumentParser(prog='SchemaEvaluator',
 									 description='Build an interactive report for schema evaluation.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='The module can evaluate schemas created with chewBBACA or other external MLST platforms. Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html')
 
@@ -865,7 +833,7 @@ def run_evaluate_calls():
 	parser = argparse.ArgumentParser(prog='AlleleCallEvaluator',
 									 description='Build an interactive report for allele calling results evaluation.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCallEvaluator.html')
 
@@ -947,7 +915,7 @@ def run_determine_cgmlst():
 	parser = argparse.ArgumentParser(prog='ExtractCgMLST',
 									 description='Determine the set of core loci based on allele calling results.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ExtractCgMLST.html')
 
@@ -1050,7 +1018,7 @@ def run_subset_results():
 	parser = argparse.ArgumentParser(prog='SubsetResults',
 									 description='Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SubsetResults.html')
 
@@ -1100,7 +1068,7 @@ def run_merge_results():
 	parser = argparse.ArgumentParser(prog='MergeResults',
 									 description='Merge results files created by chewBBACA.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeResults.html')
 
@@ -1140,7 +1108,7 @@ def run_hash_profiles():
 	parser = argparse.ArgumentParser(prog='HashProfiles',
 									 description='Hash allelic profiles.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/HashProfiles.html')
 
@@ -1194,7 +1162,7 @@ def run_get_alleles():
 	parser = argparse.ArgumentParser(prog='GetAlleles',
 									 description='Create FASTA files containing the alleles identified by the AlleleCall module.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/GetAlleles.html')
 
@@ -1277,7 +1245,7 @@ def run_adapt_schema():
 	parser = argparse.ArgumentParser(prog='PrepExternalSchema',
 									 description='Adapt an external schema to be used with chewBBACA.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/PrepExternalSchema.html')
 
@@ -1466,7 +1434,7 @@ def run_annotate_schema():
 	parser = argparse.ArgumentParser(prog='UniprotFinder',
 									 description='Retrieve annotations for loci in a schema.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/UniprotFinder.html')
 
@@ -1559,7 +1527,7 @@ def run_compute_distances():
 	parser = argparse.ArgumentParser(prog='ComputeDistances',
 									 description='Compute pairwise distances based on allele calling results.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeDistances.html')
 
@@ -1621,7 +1589,7 @@ def run_compute_msa():
 	parser = argparse.ArgumentParser(prog='ComputeMSA',
 									 description='Compute a Multiple Sequence Alignment based on allele calling results.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeMSA.html')
 
@@ -1743,7 +1711,7 @@ def run_download_schema():
 	parser = argparse.ArgumentParser(prog='DownloadSchema',
 									 description='Download a schema from Chewie-NS.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/DownloadSchema.html')
 
@@ -1818,7 +1786,7 @@ def run_upload_schema():
 	parser = argparse.ArgumentParser(prog='LoadSchema',
 									 description='Upload a schema to Chewie-NS.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/LoadSchema.html')
 
@@ -1906,7 +1874,7 @@ def run_synchronize_schema():
 	parser = argparse.ArgumentParser(prog='SyncSchema',
 									 description='Synchronize a schema with its remote version in Chewie-NS.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SyncSchema.html')
 
@@ -1978,7 +1946,7 @@ def run_stats_requests():
 	parser = argparse.ArgumentParser(prog='NSStats',
 									 description='Retrieve basic information about the species and schemas in Chewie-NS.',
 									 usage=msg(),
-									 formatter_class=ModifiedHelpFormatter,
+									 formatter_class=pv.ModifiedHelpFormatter,
 									 epilog='Module documentation available at '
 											'https://chewbbaca.readthedocs.io/en/latest/user/modules/NSStats.html')
 
@@ -2090,7 +2058,9 @@ def main():
 		sys.exit(exit_code)
 
 	# Check python version
-	python_version = pv.validate_python_version()
+	python_uptodate, python_version = pv.validate_python_version(ct.MIN_PYTHON)
+	if not python_uptodate:
+		sys.exit(ct.PYTHON_VERSION.format(python_version, ct.MIN_PYTHON))
 
 	# Trigger module help message if no arguments are provided
 	if len(sys.argv) == 2 and sys.argv[1] in functions_info:

@@ -34,6 +34,79 @@ except ModuleNotFoundError:
 								 multiprocessing_operations as mo)
 
 
+def write_gene_list(schema_dir):
+	"""Save list of loci in a schema to the '.genes_list' file.
+
+	Parameters
+	----------
+	schema_dir : str
+		Path to the schema directory.
+
+	Returns
+	-------
+	A list with two elements. A boolean value that
+	is True if the file with the list of genes was
+	created, False otherwise. The second element
+	is the path to the created file.
+	"""
+	# Loci FASTA files must end with ".fasta" extension
+	schema_files = fo.listdir_fullpath(schema_dir, substring_filter='.fasta')
+	output_file = fo.join_paths(schema_dir, [ct.GENE_LIST_BASENAME])
+	fo.pickle_dumper(schema_files, output_file)
+
+	return [os.path.isfile(output_file), output_file]
+
+
+def write_schema_config(args, chewie_version, output_directory):
+	""" Writes chewBBACA's parameter values used to create
+		a schema to a file.
+
+	Parameters
+	----------
+	args : dict
+		Dictionary with the parameter values to store in the
+		schema config file.
+	chewie_version : str
+		Version of the chewBBACA suite used to create
+		the schema.
+	output_directory : str
+		Path to the output directory where the file with
+		schema parameters values will be created.
+
+	Returns
+	-------
+	A list with two elements. A boolean value that
+	is True if the file with the parameters values was
+	created and False otherwise. The second element
+	is the path to the created file.
+	"""
+
+	# Deal with multiple names for the same parameter
+	size_threshold = None if args['size_threshold'] in [None, 'None'] else float(args['size_threshold'])
+	bsr = float(args.get('blast_score_ratio')) if 'blast_score_ratio' in args else float(args['bsr'])
+	minimum_locus_length = int(args.get('minimum_length')) if 'minimum_length' in args else int(args['minimum_locus_length'])
+	cluster_sim = args.get('clustering_sim') if 'clustering_sim' in args else args['cluster_sim']
+	intraCluster_filter = args.get('intra_filter') if 'intra_filter' in args else args['intraCluster_filter']
+
+	params = {}
+	params['bsr'] = [bsr]
+	params['prodigal_training_file'] = [args['ptf_path']]
+	params['translation_table'] = [int(args['translation_table'])]
+	params['minimum_locus_length'] = [minimum_locus_length]
+	params['chewBBACA_version'] = [chewie_version]
+	params['size_threshold'] = [size_threshold]
+	params['word_size'] = [args['word_size']]
+	params['window_size'] = [args['window_size']]
+	params['cluster_sim'] = [cluster_sim]
+	params['representative_filter'] = [args['representative_filter']]
+	params['intraCluster_filter'] = [intraCluster_filter]
+
+	config_file = os.path.join(output_directory, ct.SCHEMA_CONFIG_BASENAME)
+	fo.pickle_dumper(params, config_file)
+
+	return [os.path.isfile(config_file), config_file]
+
+
 def merge_dna_dedup(dedup_files, ids_map):
 	"""Select distinct DNA sequences based on sequence deduplication results.
 

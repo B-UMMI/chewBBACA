@@ -19,14 +19,14 @@ import shutil
 # Value must be contained in the [0.0,1.0] interval
 BSR_MIN = 0.0
 BSR_MAX = 1.0
-DEFAULT_BSR = 0.6
+BSR_DEFAULT = 0.6
 
 # Minimum sequence length defaults
 MSL_MIN = 0
 # Large value to ensure that all sequences above minimum value are accepted
 MSL_MAX = sys.maxsize
 # Default minimum sequence length value of 201 nucleotides (67 aminoacids)
-MINIMUM_LENGTH_DEFAULT = 201
+MSL_DEFAULT = 201
 
 # Size variation threshold defaults
 ST_MIN = 0.0
@@ -35,7 +35,7 @@ ST_MAX = 1.0
 # not deviate more than this value from the locus sequence
 # length mode
 # ASM if below threshold and ALM if above
-SIZE_THRESHOLD_DEFAULT = 0.2
+ST_DEFAULT = 0.2
 
 # Word size/k value used for minimizer clustering
 # this value should not be modified
@@ -582,13 +582,9 @@ NS_CANNOT_CONNECT = ('Failed to establish a connection to the Chewie-NS instance
 
 PYTHON_VERSION = ('Python version found: {0}\nPlease use Python >= {1}')
 
-CPU_RESET_WARNING = ('Warning! You have provided a CPU core count value '
-			 		 'that is equal to or exceeds the number of CPU '
-			 		 'cores in your system! Resetting to: {0}')
-CPU_VALUE_WARNING = ('Warning! You have provided a CPU core count value '
-			  		 'that is close to the maximum core count of your '
-			  		 'machine ({0}/{1}). This may affect your system '
-			  		 'responsiveness.')
+CPU_VALUE_WARNING = ('You have provided a CPU core count value that is equal to the '
+					 'number of CPU cores in your system! This may affect your system '
+					 'responsiveness.')
 
 BLAST_MISSING = ("Could not find the BLAST executables. Please make sure that BLAST "
 				 "is installed and added to the PATH environment variable.")
@@ -669,6 +665,8 @@ MISSING_ALLELES = ('\nCould not create the FASTA files for {0} loci.'
 				   'added to the schema if the allele calling process did not '
 				   'complete successfully or if the --no-inferred option is used.')
 
+MISSING_LOCI_LIST = ("Path for the loci list is invalid.")
+
 ALM_MSG = ('allele greater than {0}% locus length mode ({1}>{2})')
 ASM_MSG = ('allele smaller than {0}% locus length mode ({1}<{2})')
 
@@ -734,25 +732,43 @@ AUGUSTUS_INVALID_SPECIES = ("Specified species ID is not in the list of supporte
 
 AUGUSTUS_OUTFMTS = ['genes', 'gff']
 
+AUGUSTUS_OUTFMT_DEFAULT = "genes"
+
 AUGUSTUS_INVALID_OUTFMT = ("Invalid output format specified for AUGUSTUS results.")
 
-INVALID_TREFERENCE_PATH = ("Invalid path for the FASTA file used as reference to create a Pyrodigal training file")
-
 PYRODIGAL_MODES = ["single", "meta"]
-PYRODIGAL_DEFAULT_MODE = "single"
 
-####
-PYRODIGAL_DEFAULT_ARGUMENTS = {"pyrodigal_training_file": }
+PYRODIGAL_DEFAULT_MODE = "single"
 
 PYRODIGAL_OUTFMTS = ['genes', 'translations', 'gff', 'genbank', 'scores']
 
-PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results.")
-
-INVALID_PYRODIGAL_MODE = ("Invalid mode specified for Pyrodigal. Please provide a valid mode.")
+PYRODIGAL_DEFAULT_OUTFMT = ['genes']
 
 PYRODIGAL_MIN_CONFIDENCE = 0.0
 
 PYRODIGAL_MAX_CONFIDENCE = 100.0
+
+GENE_PREDICTOR_DEFAULT = "pyrodigal"
+
+GENE_PREDICTION_DEFAULT_ARGUMENTS = {"pyrodigal_training_file": None,
+									 "pyrodigal_mode": PYRODIGAL_DEFAULT_MODE,
+									 "pyrodigal_output_formats": PYRODIGAL_DEFAULT_OUTFMT,
+									 "pyrodigal_minimum_confidence": None,
+									 "pyrodigal_training_reference": None,
+									 "pyrodigal_just_training": False,
+									 "augustus_species": None,
+							  		 "augustus_output_formats": ["genes"],
+							  		 "augustus_path": None}
+
+CLUSTERING_DEFAULT_ARGUMENTS = {"word_size": WORD_SIZE_DEFAULT,
+								"window_size": WINDOW_SIZE_DEFAULT,
+								"clustering_sim": CLUSTERING_SIMILARITY_DEFAULT,
+								"representative_filter": REPRESENTATIVE_FILTER_DEFAULT,
+								"intra_filter": INTRA_CLUSTER_DEFAULT}
+
+PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results.")
+
+INVALID_PYRODIGAL_MODE = ("Invalid mode specified for Pyrodigal. Please provide a valid mode.")
 
 INVALID_PYRODIGAL_CONFIDENCE = ("Invalid confidence value specified for Pyrodigal. Please provide a value between 0.0 and 100.0.")
 
@@ -764,3 +780,95 @@ VALID_PARAMETERS = {"augustus": ["augustus_species", "augustus_output_formats", 
 							  	  "pyrodigal_training_reference", "pyrodigal_just_training"]}
 
 MISSING_INPUTS = ("Some of the paths to input files are not valid.")
+
+CPU_CORES_DEFAULT = 1
+CPU_CORES_MIN = 1
+
+INPUT_FILES_ARGNAME = "input_files"
+OUTPUT_DIRECTORY_ARGNAME = "output_directory"
+SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
+SCHEMA_NAME_ARGNAME = "schema_name"
+LOCI_LIST_ARGNAME = "loci_list"
+BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
+MINIMUM_LENGTH_ARGNAME = "minimum_length"
+GENETIC_CODE_ARGNAME = "translation_table"
+SIZE_THRESHOLD_ARGNAME = "size_threshold"
+BLAST_PATH_ARGNAME = "blast_path"
+CDS_INPUT_ARGNAME = "cds_input"
+NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
+CPU_CORES_ARGNAME = "cpu_cores"
+NO_CLEANUP_ARGNAME = "no_cleanup"
+AUGUSTUS_PATH_ARGNAME = "augustus_path"
+PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
+PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
+CLUSTERING_WORD_ARGNAME = "word_size"
+CLUSTERING_WINDOW_ARGNAME = "window_size"
+CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
+CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
+CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
+GENE_PREDICTOR_ARGNAME = "gene_predictor"
+GENE_PREDICTION_STR_ARGNAME = "gene_prediction_arguments"
+CLUSTERING_STR_ARGNAME = "clustering_parameters"
+NO_INFERRED_ARGNAME = "no_inferred"
+OUTPUT_UNCLASSIFIED_ARGNAME = "output_unclassified"
+OUTPUT_MISSING_ARGNAME = "output_missing"
+OUTPUT_NOVEL_ARGNAME = "output_novel"
+OUTPUT_MASKED_ARGNAME = "output_masked"
+FORCE_CONTINUE_ARGNAME = "force_continue"
+ALLELECALL_MODE_ARGNAME = "mode"
+
+INVALID_GENEPREDICTOR_PARAMETER = ("{0} is not a valid parameter=argument pair used to configure gene prediction with {1}.")
+INVALID_PARAMETER_STR = ("{0} is not a valid parameter=argument pair.")
+
+PYRODIGAL_META_NOPTF = ("Cannot use a training file when running Pyrodigal in meta mode. "
+						"Please do not provide a training file if setting Pyrodigal's running mode to meta.")
+
+# Define expected types for the arguments
+ARGUMENT_TYPES = {
+	"input_files": str,
+	"output_directory": str,
+	"schema_name": str,
+	"blast_score_ratio": float,
+	"minimum_length": int,
+	"translation_table": int,
+	"size_threshold": float,
+	"gene_predictor": str,
+	"gene_prediction_arguments": str,
+	"clustering_parameters": str,
+	"blast_path": str,
+	"cds_input": bool,
+	"no_cds_renaming": bool,
+	"cpu_cores": int,
+	"no_cleanup": bool,
+	"augustus_species": str,
+	"augustus_output_formats": str,
+	"augustus_path": str,
+	"pyrodigal_training_file": str,
+	"pyrodigal_mode": str,
+	"pyrodigal_output_formats": str,
+	"pyrodigal_minimum_confidence": float,
+	"pyrodigal_training_reference": str,
+	"pyrodigal_just_training": bool,
+	"word_size": int,
+	"window_size": int,
+	"clustering_sim": float,
+	"representative_filter": float,
+	"intra_filter": float
+}
+
+CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a training file and a training reference "
+							   "to create a training file. Please provide either a training "
+							   "file or a training reference to create a new training file, "
+							   "not both.")
+
+SCHEMA_NAME_DEFAULT = "schema_seed"
+
+# Links to Documentation pages
+PredictGenesDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictGenes.html"
+CreateSchemaDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html"
+AlleleCallDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCall.html"
+
+ALLELECALL_MODES = [1, 2, 3, 4]
+ALLELECALL_DEFAULT_MODE = 1
+
+INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling.")

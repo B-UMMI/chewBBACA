@@ -419,10 +419,6 @@ def run_allele_call():
 
 	sys.exit()
 
-	# Determine if schema was downloaded from Chewie-NS
-	ns_config = fo.join_paths(args.schema_directory, ['.ns_config'])
-	args.ns = os.path.isfile(ns_config)
-
 	# Single dictionary with most arguments
 	config = {'Minimum sequence length': args.minimum_length,
 			  'Size threshold': args.size_threshold,
@@ -451,116 +447,87 @@ def run_evaluate_schema():
 	"""Run the SchemaEvaluator module to evaluate a typing schema."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py SchemaEvaluator --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py SchemaEvaluator --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='SchemaEvaluator',
-									 description='Build an interactive report for schema evaluation.',
+	parser = argparse.ArgumentParser(prog="SchemaEvaluator",
+									 description="Build an interactive report for schema evaluation.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='The module can evaluate schemas created with chewBBACA or other external MLST platforms. Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html')
+									 epilog="The module can evaluate schemas created with chewBBACA or from external platforms. "
+									 		"Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/SchemaEvaluator.html")
 
-	parser.add_argument('SchemaEvaluator', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("SchemaEvaluator", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-g', '--schema-directory', type=str, required=True,
-						dest='schema_directory',
-						help='Path to the schema\'s directory.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+					 	required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema's directory.")
 
-	parser.add_argument('-o', '--output-directory', type=str, required=True,
-						dest='output_directory',
-						help='Path to the output directory where the report '
-							 'HTML files will be created.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+					 	required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the report HTML files will be created.")
 
-	parser.add_argument('--gl', '--genes-list', type=str,
-						required=False, default=False, dest='genes_list',
-						help='Path to a file with the list of loci '
-							 'in the schema that the process should '
-							 'analyse (one per line, full paths or loci IDs).')
+	parser.add_argument("--ll", "--loci-list", type=ct.ARGUMENT_TYPES[ct.LOCI_LIST_ARGNAME],
+						required=False, dest=ct.LOCI_LIST_ARGNAME,
+						help="Path to a file with the list of loci in the schema that the process "
+							 "should analyse (one per line, full paths or loci IDs).")
 
-	parser.add_argument('-a', '--annotations', type=str, required=False,
-						dest='annotations',
-						help='Path to the TSV file created by the '
-							 'UniprotFinder module. The annotation data '
-							 'is included in a table component.')
+	parser.add_argument("-a", "--annotations", type=ct.ARGUMENT_TYPES[ct.ANNOTATIONS_ARGNAME],
+					 	required=False, dest=ct.ANNOTATIONS_ARGNAME,
+						help="Path to the TSV file created by the UniprotFinder module. The "
+							 "annotation data is included in a table component.")
 
-	parser.add_argument('--ta', '--translation-table',
-						type=pv.translation_table_type, required=False,
-						dest='translation_table',
-						help='Genetic code used to translate coding '
-							 'sequences (CDSs).')
+	parser.add_argument("--ta", "--translation-table", type=ct.ARGUMENT_TYPES[ct.GENETIC_CODE_ARGNAME],
+						required=False, dest=ct.GENETIC_CODE_ARGNAME,
+						help="Genetic code used to translate coding sequences (CDSs).")
 
-	parser.add_argument('--st', '--size-threshold',
-						type=pv.size_threshold_type,
-						required=False, dest='size_threshold',
-						help='Coding sequence (CDS) size variation threshold. '
-							 'The module identifies the alleles with size '
-							 'that deviates from the locus length mode +- '
-							 'the size threshold.')
+	parser.add_argument("--st", "--size-threshold", type=ct.ARGUMENT_TYPES[ct.SIZE_THRESHOLD_ARGNAME],
+						required=False, dest=ct.SIZE_THRESHOLD_ARGNAME,
+						help="Coding sequence (CDS) size variation threshold. The module identifies "
+							 "the alleles with size that deviates from the locus length mode +- the "
+							 "size threshold.")
 
-	parser.add_argument('--ml', '--minimum-length',
-						type=pv.minimum_sequence_length_type,
-						required=False, dest='minimum_length',
-						help='Minimum sequence length value. The module '
-							 'identifies alleles shorter than this value.')
+	parser.add_argument("--ml", "--minimum-length", type=ct.ARGUMENT_TYPES[ct.MINIMUM_LENGTH_ARGNAME],
+						required=False, dest=ct.MINIMUM_LENGTH_ARGNAME,
+						help="Minimum sequence length value. The module identifies alleles shorter "
+							 "than this value.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process '
-							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
 
-	parser.add_argument('--loci-reports', required=False,
-						action='store_true', dest='loci_reports',
-						help='Create a detailed report page for each locus. '
-							 'The locus report includes components with '
-							 'relevant data and analysis results, such as '
-							 'allele diversity charts, a MSA for the alignment '
-							 'of the distinct translated alleles and a tree '
-							 'drawn with Phylocanvas based on the MAFFT guide tree.')
+	parser.add_argument("--loci-reports", action="store_true",
+					 	required=False, dest=ct.LOCI_REPORTS_ARGNAME,
+						help="Create a detailed report page for each locus. The locus report "
+							 "includes components with relevant data and analysis results, such "
+							 "as allele diversity charts, a MSA for the alignment of the distinct "
+							 "translated alleles and a tree drawn with Phylocanvas based on the "
+							 "MAFFT guide tree.")
 
-	parser.add_argument('--light', action='store_true', required=False,
-						dest='light',
-						help='Skips MSA computation with MAFFT and does not add '
-							 'the Phylogenetic Tree and MSA components to the loci reports.')
+	parser.add_argument("--light", action="store_true",
+					 	required=False, dest=ct.LIGTH_ARGNAME,
+						help="Skips MSA computation with MAFFT and does not add the Phylogenetic "
+							 "Tree and MSA components to the loci reports.")
 
-	parser.add_argument('--add-sequences', required=False,
-						action='store_true', dest='add_sequences',
-						help='Adds Code Editor components with the DNA and Protein '
-							 'sequences to the loci reports. The Code Editor '
-							 'is in readonly mode (allows to search for '
-							 'and copy text).')
+	parser.add_argument("--add-sequences", action="store_true",
+					 	required=False, dest=ct.ADD_SEQUENCES_ARGNAME,
+						help="Adds Code Editor components with the DNA and Protein sequences to "
+							 "the loci reports. The Code Editor is in readonly mode (allows to "
+							 "search for and copy text).")
 
 	args = parser.parse_args()
-	del args.SchemaEvaluator
 
-	# Check if input schema path exists
-	if not os.path.exists(args.schema_directory):
-		sys.exit(ct.SCHEMA_PATH_MISSING)
+	# Use Pydantic model to validate argument values
+	args = pv.SchemaEvaluatorValidator(**vars(args))
+	print(args)
 
-	# Create output directory
-	created = fo.create_directory(args.output_directory)
-	if created is False:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+	sys.exit()
 
-	loci_list = fo.join_paths(args.output_directory, [ct.LOCI_LIST])
-	# User provided a loci subset to analyse
-	if args.genes_list is not False:
-		loci_list = pv.validate_loci_list(args.genes_list, loci_list,
-										  args.schema_directory)
-	# Working with the whole schema
-	else:
-		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
-
-	args.genes_list = loci_list
 
 	evaluate_schema.main(**vars(args))
-
-	# Delete file with list of loci that were evaluated
-	fo.remove_files([loci_list])
 
 
 @pdt.process_timer
@@ -568,79 +535,71 @@ def run_evaluate_calls():
 	"""Run the AlleleCallEvaluator module to evaluate allele calling results."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py AlleleCallEvaluator --input-files <dir> --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py AlleleCallEvaluator --input-files <dir> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='AlleleCallEvaluator',
-									 description='Build an interactive report for allele calling results evaluation.',
+	parser = argparse.ArgumentParser(prog="AlleleCallEvaluator",
+									 description="Build an interactive report for allele calling results evaluation.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCallEvaluator.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCallEvaluator.html")
 
-	parser.add_argument('AlleleCallEvaluator', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("AlleleCallEvaluator", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-files', type=str, required=True,
-						dest='input_files',
-						help='Path to the directory that contains the allele '
-							 'calling results generated by the AlleleCall module.')
+	parser.add_argument("-r", "--results-files", type=ct.ARGUMENT_TYPES[ct.INPUT_FILES_ARGNAME],
+					 	required=True, dest=ct.INPUT_FILES_ARGNAME,
+						help="Path to the directory that contains the allele calling results "
+							 "generated by the AlleleCall module.")
 
-	parser.add_argument('-g', '--schema-directory', type=str, required=True,
-						dest='schema_directory',
-						help='Path to the schema\'s directory.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+					 	required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema's directory.")
 
-	parser.add_argument('-o', '--output-directory', type=str, required=True,
-						dest='output_directory',
-						help='Path to the output directory where the module will '
-							 'store intermediate files and create the report HTML files.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+					 	required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the module will store intermediate "
+							 "files and create the report HTML files.")
 
-	parser.add_argument('-a', '--annotations', type=str, required=False,
-						dest='annotations',
-						help='Path to the TSV file created by the '
-							 'UniprotFinder module.')
+	parser.add_argument("-a", "--annotations", type=ct.ARGUMENT_TYPES[ct.ANNOTATIONS_ARGNAME],
+					 	required=False, dest=ct.ANNOTATIONS_ARGNAME,
+						help="Path to the TSV file created by the UniprotFinder module.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process '
-							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
 
-	parser.add_argument('--light', action='store_true', required=False,
-						dest='light',
-						help='Do not compute the presence-absence matrix, '
-							 'the distance matrix and the Neighbor-Joining tree.')
+	parser.add_argument("--light", action="store_true",
+					 	required=False, dest=ct.LIGTH_ARGNAME,
+						help="Do not compute the presence-absence matrix, the distance matrix "
+							 "and the Neighbor-Joining tree.")
 
-	parser.add_argument('--no-pa', action='store_true', required=False,
-						dest='no_pa',
-						help='Do not compute the presence-absence matrix.')
+	parser.add_argument("--no-pa", action="store_true",
+					 	required=False, dest=ct.NO_PA_ARGNAME,
+						help="Do not compute the presence-absence matrix.")
 
-	parser.add_argument('--no-dm', action='store_true', required=False,
-						dest='no_dm',
-						help='Do not compute the distance matrix.')
+	parser.add_argument("--no-dm", action='store_true',
+					 	required=False, dest=ct.NO_DM_ARGNAME,
+						help="Do not compute the distance matrix.")
 
-	parser.add_argument('--no-tree', action='store_true', required=False,
-						dest='no_tree',
-						help='Do not compute the Neighbor-Joining tree.')
+	parser.add_argument("--no-tree", action="store_true",
+					 	required=False, dest=ct.NO_TREE_ARGNAME,
+						help="Do not compute the Neighbor-Joining tree.")
 
-	parser.add_argument('--cg-alignment', action='store_true', required=False,
-						dest='cg_alignment',
-						help='Compute the MSA of the core genome loci, even '
-							 'if `--no-tree` is provided.')
+	parser.add_argument("--cg-alignment", action="store_true",
+					 	required=False, dest=ct.CG_ALIGNMENT_ARGNAME,
+						help="Compute the MSA of the core genome loci, even if `--no-tree` "
+							 "is provided.")
 
 	args = parser.parse_args()
-	del args.AlleleCallEvaluator
 
-	# Check if path to input files exists
-	if not os.path.exists(args.input_files):
-		sys.exit(ct.MISSING_INPUT_ARG)
+	# Use Pydantic model to validate argument values
+	args = pv.AlleleCallEvaluatorValidator(**vars(args))
+	print(args)
 
-	# Create output directory
-	created = fo.create_directory(args.output_directory)
-	if created is False:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+	sys.exit()
 
 	evaluate_calls.main(**vars(args))
 
@@ -650,100 +609,89 @@ def run_determine_cgmlst():
 	"""Run the ExtractCgMLST module to determine the set of core loci based on allele calling results."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='ExtractCgMLST',
-									 description='Determine the set of core loci based on allele calling results.',
+	parser = argparse.ArgumentParser(prog="ExtractCgMLST",
+									 description="Determine the set of core loci based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ExtractCgMLST.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/ExtractCgMLST.html")
 
-	parser.add_argument('ExtractCgMLST', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("ExtractCgMLST", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-file', type=str,
-						required=True, dest='input_file',
-						help='Path to the TSV file that contains the allelic '
-							 'profiles determined by the AlleleCall module.')
+	parser.add_argument("-r", "--results-files", type=ct.ARGUMENT_TYPES[ct.RESULTS_FILES_ARGNAME],
+						required=True, dest=ct.RESULTS_FILES_ARGNAME,
+						help="Path to the TSV file that contains the allelic profiles determined by "
+							 "the AlleleCall module.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the directory where the process '
-							 'will store the output files.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the directory where the process will store the output files.")
 
-	parser.add_argument('--t', '--threshold', nargs='+', type=float,
-						required=False, default=ct.CGMLST_THRESHOLDS,
-						dest='threshold',
-						help='Loci/genes that constitute the core genome '
-							 'must be in a proportion of genomes that is '
-							 'at least equal to this value. Provide multiple '
-							 'values to compute the core genome for multiple '
-							 'threshold values.')
+	parser.add_argument("--t", "--threshold", type=float, nargs="+",
+						required=False, dest=ct.THRESHOLD_ARGNAME,
+						help="Loci/genes that constitute the core genome must be in a proportion of "
+							 "genomes that is at least equal to this value. Provide multiple values "
+							 "to compute the core genome for multiple threshold values.")
 
-	parser.add_argument('--s', '--step', type=int, required=False,
-						default=1, dest='step',
-						help='The allele calling results are processed '
-							 'iteratively to evaluate the impact of '
-							 'adding subsets of the results in computing '
-							 'the core genome. The step value controls '
-							 'the number of allelic profiles added in each '
-							 'iteration until all profiles are included.')
+	parser.add_argument("--s", "--step", type=ct.ARGUMENT_TYPES[ct.STEP_ARGNAME],
+					 	required=False, dest=ct.STEP_ARGNAME,
+						help="The allele calling results are processed iteratively to evaluate the "
+							 "impact of adding subsets of the results in computing the core genome. "
+							 "The step value controls the number of allelic profiles added in each "
+							 "iteration until all profiles are included.")
 
-	parser.add_argument('--ca', '--compute-accessory', action='store_true', required=False,
-					    dest='compute_accessory',
-						help='Determine the set of accessory loci.'
-							 'The accessory genome corresponds to all the '
-							 'loci not included in the core genome. The '
-							 'accessory genome is determined for each core '
-							 'genome threshold.')
+	parser.add_argument("--ca", "--compute-accessory", action="store_true",
+					 	required=False, dest=ct.COMPUTE_ACCESSORY_ARGNAME,
+						help="Determine the set of accessory loci. The accessory genome corresponds "
+							 "to all the loci not included in the core genome. The accessory genome "
+							 "is determined for each core genome threshold.")
 
-	parser.add_argument('--ra', '--rarefaction-analysis', action='store_true', required=False,
-					    dest='rarefaction_analysis',
-						help='Perform rarefaction analysis to evaluate the stability of the core genome '
-							 'and the openness of the pangenome. For the rarefaction analysis, samples '
-							 'are randomly selected and the number of core loci (for the core genome) or '
-							 'total loci (for the pangenome) is computed for each subset from 1 to the '
-							 'total number of samples. The average number of core loci (for the core genome) '
-							 'or total loci (for the pangenome) is computed for each sample size subset '
-							 'using the values of all permutations to plot the rarefaction curve. The '
-							 'rarefaction analysis is performed for each threshold. A power law model '
-							 'is fitted to the rarefaction curve to estimate the stability of the core genome '
-							 'and the openness of the pangenome.')
+	parser.add_argument("--ra", "--rarefaction-analysis", action="store_true",
+					 	required=False, dest=ct.RAREFACTION_ANALYSIS_ARGNAME,
+						help="Perform rarefaction analysis to evaluate the stability of the core genome "
+							 "are randomly selected and the number of core loci (for the core genome) or "
+							 "total loci (for the pangenome) is computed for each subset from 1 to the "
+							 "total number of samples. The average number of core loci (for the core genome) "
+							 "or total loci (for the pangenome) is computed for each sample size subset "
+							 "using the values of all permutations to plot the rarefaction curve. The "
+							 "rarefaction analysis is performed for each threshold. A power law model "
+							 "is fitted to the rarefaction curve to estimate the stability of the core genome "
+							 "and the openness of the pangenome.")
 
-	parser.add_argument('--pn', '--permutation-number', type=int, required=False, default=100,
-					    dest='permutation_number',
-						help='Number of permutations for the rarefaction analysis. The rarefaction '
-							 'analysis is repeated a number of times equal to the value provided to this '
-							 'parameter.')
+	parser.add_argument("--pn", "--permutation-number", type=ct.ARGUMENT_TYPES[ct.PERMUTATION_NUMBER_ARGNAME],
+					 	required=False, dest=ct.PERMUTATION_NUMBER_ARGNAME,
+						help="Number of permutations for the rarefaction analysis. The rarefaction analysis "
+							 "is repeated a number of times equal to the value provided to this parameter.")
 
-	parser.add_argument('--ps', '--permutation-samples', type=int, required=False,
-					    dest='permutation_samples',
-						help='Number of samples randomly selected for each permutation. All '
-							 'samples will be used if this value is not provided.')
+	parser.add_argument("--ps", "--permutation-samples", type=ct.ARGUMENT_TYPES[ct.PERMUTATION_SAMPLES_ARGNAME],
+					 	required=False, dest=ct.PERMUTATION_SAMPLES_ARGNAME,
+						help="Number of samples randomly selected for each permutation. All samples will be "
+							 "used if this value is not provided.")
 
-	parser.add_argument('--el', '--exclude-loci', type=str,
-						required=False, default=False, dest='exclude_loci',
-						help='Path to a file with a list of loci identifiers to '
-							 'exclude from the analysis (one locus identifier '
-							 'per line).')
+	parser.add_argument("--el", "--exclude-loci", type=ct.ARGUMENT_TYPES[ct.EXCLUDE_LOCI_ARGNAME],
+						required=False, dest=ct.EXCLUDE_LOCI_ARGNAME,
+						help="Path to a file with a list of loci identifiers to exclude from the analysis "
+							 "(one locus identifier per line).")
 
-	parser.add_argument('--eg', '--exclude-genomes', type=str,
-						required=False, default=False, dest='exclude_genomes',
-						help='Path to a file with a list of genome identifiers to '
-							 'exclude from the analysis (one genome identifier '
-							 'per line).')
+	parser.add_argument("--eg", "--exclude-genomes", type=ct.ARGUMENT_TYPES[ct.EXCLUDE_GENOMES_ARGNAME],
+						required=False, dest=ct.EXCLUDE_GENOMES_ARGNAME,
+						help="Path to a file with a list of genome identifiers to exclude from the analysis "
+							 "(one genome identifier per line).")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Maximum number of CPU cores/threads that will be '
-							 'used to run the process (chewie resets to a lower '
-							 'value if it is equal to or exceeds the total number '
-							 'of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Maximum number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the total "
+							 "number of available CPU cores/threads).")
 
 	args = parser.parse_args()
-	del args.ExtractCgMLST
+	args = pv.ExtractCgMLSTValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	determine_cgmlst.main(**vars(args))
 
@@ -753,47 +701,51 @@ def run_subset_results():
 	"""Run the SubsetResults module to subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]'
+		usage_msg = "chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='SubsetResults',
-									 description='Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
+	parser = argparse.ArgumentParser(prog="SubsetResults",
+									 description="Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/SubsetResults.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/SubsetResults.html")
 
-	parser.add_argument('SubsetResults', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("SubsetResults", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-directory', type=str,
-						required=True, dest='input_directory',
-						help='Path to the directory containing the files to be subsetted.')
+	parser.add_argument("-r", "--results-files", type=ct.ARGUMENT_TYPES[ct.RESULTS_FILES_ARGNAME],
+						required=True, dest=ct.RESULTS_FILES_ARGNAME,
+						help="Path to the directory containing the files to be subsetted.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory.")
 
-	parser.add_argument('-l', '--loci-list', type=str,
-						required=False, default=False, dest='loci_list',
-						help='Path to a TXT/TSV file containing a list of loci to select, one locus identifier per '
-							 'line. If the file contains multiple columns, the loci identifiers must be in the first column.')
+	parser.add_argument("-l", "--loci-list", type=ct.ARGUMENT_TYPES[ct.LOCI_LIST_ARGNAME],
+						required=False, dest=ct.LOCI_LIST_ARGNAME,
+						help="Path to a TXT/TSV file containing a list of loci to select, one locus identifier "
+							 "per line. If the file contains multiple columns, the loci identifiers must be in "
+							 "the first column.")
 
-	parser.add_argument('-s', '--sample-list', type=str,
-						required=False, default=False, dest='sample_list',
-						help='Path to a TXT/TSV file containing a list of samples to select, one sample identifier '
-							 'per line. If the file contains multiple columns, the sample identifiers must be in the first column.')
+	parser.add_argument("-s", "--sample-list", type=ct.ARGUMENT_TYPES[ct.SAMPLE_LIST_ARGNAME],
+						required=False, dest=ct.SAMPLE_LIST_ARGNAME,
+						help="Path to a TXT/TSV file containing a list of samples to select, one sample identifier "
+							 "per line. If the file contains multiple columns, the sample identifiers must be in "
+							 "the first column.")
 
-	parser.add_argument('--inverse-loci', action='store_true',
-						required=False, dest='inverse_loci',
-						help='If provided, the process will select the loci that are not in the input loci list.')
+	parser.add_argument("--inverse-loci", action="store_true",
+						required=False, dest=ct.INVERSE_LOCI_ARGNAME,
+						help="If provided, the process will select the loci that are not in the input loci list.")
 
-	parser.add_argument('--inverse-samples', action='store_true',
-						required=False, dest='inverse_samples',
-						help='If provided, the process will select the samples that are not in the input samples list.')
+	parser.add_argument("--inverse-samples", action="store_true",
+						required=False, dest=ct.INVERSE_SAMPLES_ARGNAME,
+						help="If provided, the process will select the samples that are not in the input samples list.")
 
 	args = parser.parse_args()
-	del args.SubsetResults
+	args = pv.SubsetResultsValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	subset_results.main(**vars(args))
 
@@ -803,37 +755,37 @@ def run_merge_results():
 	"""Run the MergeResults module to merge results files created by chewBBACA."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py MergeResults --input-directories <dir> <dir> ... --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py MergeResults --input-directories <dir> <dir> ... --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='MergeResults',
-									 description='Merge results files created by chewBBACA.',
+	parser = argparse.ArgumentParser(prog="MergeResults",
+									 description="Merge results files created by chewBBACA.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeResults.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/MergeResults.html")
 
-	parser.add_argument('MergeResults', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("MergeResults", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-files', nargs='+', type=str,
-						required=True, dest='input_files',
-						help='Paths to the directories containing the results files '
-							 'created by chewBBACA. The results must have been '
-							 'determined with the same schema and share all the loci '
-							 'or a subset of the loci if using the --common parameter.')
+	parser.add_argument("-r", "--results-files", nargs="+", type=ct.ARGUMENT_TYPES[ct.RESULTS_FILES_ARGNAME],
+						required=True, dest=ct.RESULTS_FILES_ARGNAME,
+						help="Paths to the directories containing the results files created by chewBBACA. The "
+							 "results must have been determined with the same schema and share all the loci "
+							 "or a subset of the loci if using the --common parameter.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory.")
 
-	parser.add_argument('--common', action='store_true',
-						required=False, dest='common',
-						help='Merge the results based on the subset of '
-							 'loci shared between all inputs.')
+	parser.add_argument("--common", action="store_true",
+						required=False, dest=ct.COMMON_ARGNAME,
+						help="Merge the results based on the subset of loci shared between all inputs.")
 
 	args = parser.parse_args()
-	del args.MergeResults
+	args = pv.MergeResults(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	merge_results.main(**vars(args))
 
@@ -843,51 +795,52 @@ def run_hash_profiles():
 	"""Run the HashProfiles module to hash allelic profiles."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py HashProfiles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py HashProfiles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='HashProfiles',
-									 description='Hash allelic profiles.',
+	parser = argparse.ArgumentParser(prog="HashProfiles",
+									 description="Hash allelic profiles.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/HashProfiles.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/HashProfiles.html")
 
-	parser.add_argument('HashProfiles', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("HashProfiles", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-file', type=str,
-						required=True, dest='input_file',
-						help='Path to the TSV file that contains the allelic profiles determined by the AlleleCall module.')
+	parser.add_argument("-a", "--allelic-profiles", type=ct.ARGUMENT_TYPES[ct.ALLELIC_PROFILES_ARGNAME],
+						required=True, dest=ct.ALLELIC_PROFILES_ARGNAME,
+						help="Path to the TSV file that contains the allelic profiles determined by "
+							 "the AlleleCall module.")
 
-	parser.add_argument('-g', '--schema-directory', type=str,
-						required=True, dest='schema_directory',
-						help='Path to the schema\'s directory to get the allele sequences and compute the hashes.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema's directory to get the allele sequences and compute the hashes.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory.")
 
-	parser.add_argument('--hash-type', type=str, required=False,
-						default='crc32', dest='hash_type',
-						help='Hashing algorithm used to hash the profiles. The hashing '
-							 'algorithms implemented in the hashlib and zlib Python '
-							 'libraries are supported.')
+	parser.add_argument("--hash-type", type=ct.ARGUMENT_TYPES[ct.HASH_TYPE_ARGNAME],
+					 	required=False, dest=ct.HASH_TYPE_ARGNAME,
+						help="Hashing algorithm used to hash the profiles. The hashing algorithms implemented "
+							 "in the hashlib and zlib Python libraries are supported.")
 
-	parser.add_argument('--nrows', type=int, required=False,
-						default=100, dest='nrows',
-						help='Divide the input file into chunks of this many rows '
-							 'to process larger files more efficiently.')
+	parser.add_argument("--nrows", type=ct.ARGUMENT_TYPES[ct.NROWS_ARGNAME],
+					 	required=False, dest=ct.NROWS_ARGNAME,
+						help="Divide the input file into chunks of this many rows to process larger files"
+						 	 " more efficiently.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process (chewie resets to a '
-							 'lower value if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process (chewie "
+							 "resets to a lower value if it is equal to or exceeds the total number of "
+							 "available CPU cores/threads).")
 
 	args = parser.parse_args()
-	del args.HashProfiles
+	args = pv.HashProfilesValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	hash_profiles.main(**vars(args))
 
@@ -897,80 +850,62 @@ def run_get_alleles():
 	"""Run the GetAlleles module to create FASTA files containing the alleles identified by the AlleleCall module."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py GetAlleles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py GetAlleles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='GetAlleles',
-									 description='Create FASTA files containing the alleles identified by the AlleleCall module.',
+	parser = argparse.ArgumentParser(prog="GetAlleles",
+									 description="Create FASTA files containing the alleles identified by the AlleleCall module.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/GetAlleles.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/GetAlleles.html")
 
-	parser.add_argument('GetAlleles', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("GetAlleles", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-file', type=str,
-						required=True, dest='input_file',
-						help='Path to the TSV file containing the allelic profiles.')
+	parser.add_argument("-a", "--allelic-profiles", type=ct.ARGUMENT_TYPES[ct.ALLELIC_PROFILES_ARGNAME],
+						required=True, dest=ct.ALLELIC_PROFILES_ARGNAME,
+						help="Path to the TSV file containing the allelic profiles.")
 
-	parser.add_argument('-g', '--schema-directory', type=str,
-						required=True, dest='schema_directory',
-						help='Path to the schema directory.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema directory.")
 
-	parser.add_argument('--gl', '--genes-list', type=str,
-						required=False, dest='genes_list',
-						help='Path to a file with the list of genes/loci to '
-							 'create FASTA files for. The file must include '
-							 'the identifiers of the loci, one per line, '
-							 'without the .fasta extension.')
+	parser.add_argument("-l", "--loci-list", type=ct.ARGUMENT_TYPES[ct.LOCI_LIST_ARGNAME],
+						required=False, dest=ct.LOCI_LIST_ARGNAME,
+						help="Path to a file with the list of genes/loci to create FASTA files for. The "
+							 "file must include the identifiers of the loci, one per line, without the "
+							 ".fasta extension.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process (chewie resets to a '
-							 'lower value if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process (chewie "
+							 "resets to a lower value if it is equal to or exceeds the total number of "
+							 "available CPU cores/threads).")
 
-	parser.add_argument('--distinct', action='store_true',
-						required=False, dest='distinct',
-						help='Only get distinct alleles.')
+	parser.add_argument("--distinct", action="store_true",
+						required=False, dest=ct.DISTINCT_ARGNAME,
+						help="Only get distinct alleles.")
 
-	parser.add_argument('--translate', action='store_true',
-						required=False, dest='translate',
-						help='Create FASTA files with the translated alleles.')
+	parser.add_argument("--translate", action="store_true",
+						required=False, dest=ct.TRANSLATE_ARGNAME,
+						help="Create FASTA files with the translated alleles.")
 
-	parser.add_argument('--ta', '--translation-table',
-						type=pv.translation_table_type, required=False,
-						dest='translation_table',
-						help='Genetic code used to translate coding DNA'
-							 'sequences (CDSs). If no value is specified, the '
-							 'process tries to get the value stored in the '
-							 'schema config file. If the schema does not '
-							 'include a config file, the process uses the '
-							 'default translation table (11).')
+	parser.add_argument("--ta", "--translation-table", type=ct.GENETIC_CODE_ARGNAME,
+					 	required=False, dest=ct.GENETIC_CODE_ARGNAME,
+						help="Genetic code used to translate coding DNA sequences (CDSs). If no value"
+							 " is specified, the process tries to get the value stored in the schema "
+							 "config file. If the schema does not include a config file, the process "
+							 "uses the default translation table (11).")
 
 	args = parser.parse_args()
-	del args.GetAlleles
+	args = pv.GetAllelesValidator(**vars(args))
+	print(args)
 
-	if args.translate and not args.translation_table:
-		# Check if schema includes config file
-		config_file = os.path.join(args.schema_directory, ct.SCHEMA_CONFIG_BASENAME)
-		if os.path.isfile(config_file):
-			schema_params = fo.pickle_loader(config_file)
-			args.translation_table = schema_params['translation_table'][0]
-		else:
-			# Use default translation table
-			args.translation_table = ct.GENETIC_CODES_DEFAULT
-
-	# Create output directory
-	created = fo.create_directory(args.output_directory)
-	if created is False:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+	sys.exit(0)
 
 	get_alleles.main(**vars(args))
 
@@ -980,113 +915,91 @@ def run_adapt_schema():
 	"""Run the PrepExternalSchema module to adapt a typing schema."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py PrepExternalSchema --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py PrepExternalSchema --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='PrepExternalSchema',
-									 description='Adapt an external schema to be used with chewBBACA.',
+	parser = argparse.ArgumentParser(prog="PrepExternalSchema",
+									 description="Adapt an external schema to be used with chewBBACA.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/PrepExternalSchema.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/PrepExternalSchema.html")
 
-	parser.add_argument('PrepExternalSchema', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("PrepExternalSchema", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-g', '--schema-directory', type=str,
-						required=True, dest='schema_directory',
-						help='Path to the directory of the schema to adapt. '
-							 'The schema must contain one FASTA file per gene/locus.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the directory of the schema to adapt. The schema must contain one "
+							 "FASTA file per gene/locus.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory where the adapted schema will '
-							 'be created.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the adapted schema will be created.")
 
-	parser.add_argument('--gl', '--genes-list', type=str,
-						required=False, default=False, dest='genes_list',
-						help='Path to a file with the list of loci '
-							 'in the schema that the process should '
-							 'adapt (one per line, full paths or loci IDs).')
+	parser.add_argument("--l", "--loci-list", type=ct.ARGUMENT_TYPES[ct.LOCI_LIST_ARGNAME],
+						required=False, dest=ct.LOCI_LIST_ARGNAME,
+						help="Path to a file with the list of loci in the schema that the process should "
+							 "adapt (one per line, full paths or loci IDs).")
 
-	parser.add_argument('--ptf', '--training-file', type=str,
-						required=False, dest='ptf_path',
-						help='Path to the Pyrodigal training file that '
-							 'will be included in the directory of the '
-							 'adapted schema. The translation table used to create '
-							 'this file overrides any value passed to `--t`, '
-							 '`--translation-table`.')
+	parser.add_argument("-gp", "--gene-predictor", type=ct.ARGUMENT_TYPES[ct.GENE_PREDICTOR_ARGNAME],
+							required=False, dest=ct.GENE_PREDICTOR_ARGNAME,
+							help="Specify which gene prediction software to use. Default is Pyrodigal "
+								 "to predict genes from prokaryotic genomes. AUGUSTUS can predict genes "
+								 "for prokaryotic and eukaryotic genomes.")
+	
+	parser.add_argument("--gpa", "--gene-prediction-arguments", type=ct.ARGUMENT_TYPES[ct.GENE_PREDICTION_STR_ARGNAME],
+						nargs="+", required=False, dest=ct.GENE_PREDICTION_STR_ARGNAME,
+						help="List of arguments passed to configure the gene prediction. When providing "
+							 "genome assemblies in FASTA format, the list of arguments for each parameter "
+							 "used to configure the gene prediction can be passed as the long format of "
+							 "the parameter name followed by the argument value (e.g., pyrodigal-training"
+							 "-file=/path/to/file).")
 
-	parser.add_argument('--bsr', '--blast-score-ratio', type=pv.bsr_type,
-						required=False, default=ct.BSR_DEFAULT,
-						dest='blast_score_ratio',
-						help='BLAST Score Ratio (BSR) value. The process '
-							 'selects representative alleles for each locus '
-							 'based on this value. Representative alleles '
-							 'are selected until all alleles in a locus align '
-							 'against one of the representatives with a BSR '
-							 '>= than the specified value.')
+	parser.add_argument("--bsr", "--blast-score-ratio", type=ct.ARGUMENT_TYPES[ct.BLAST_SCORE_RATIO_ARGNAME],
+						required=False, dest=ct.BLAST_SCORE_RATIO_ARGNAME,
+						help="BLAST Score Ratio (BSR) value. The process selects representative alleles "
+							 "for each locus based on this value. Representative alleles are selected "
+							 "until all alleles in a locus align against one of the representatives "
+							 "with a BSR >= than the specified value.")
 
-	parser.add_argument('--l', '--minimum-length',
-						type=pv.minimum_sequence_length_type, required=False,
-						default=ct.MSL_MIN, dest='minimum_length',
-						help='Minimum sequence length value stored in the '
-							 'schema config file. The schema adaptation '
-							 'process will only discard sequences smaller '
-							 'than this value if the --size-filter parameter '
-							 'is provided.')
+	parser.add_argument("--l", "--minimum-length", type=ct.ARGUMENT_TYPES[ct.MINIMUM_LENGTH_ARGNAME],
+						required=False, dest=ct.MINIMUM_LENGTH_ARGNAME,
+						help="Minimum sequence length value stored in the schema config file. The "
+							 "schema adaptation process will only discard sequences smaller than "
+							 "this value if the --size-filter parameter is provided.")
 
-	parser.add_argument('--t', '--translation-table',
-						type=pv.translation_table_type, required=False,
-						dest='translation_table',
-						help='Genetic code used for allele translation. This '
-							 'value is ignored if a valid training file '
-							 'is passed to `--ptf`, `--training-file`.')
+	parser.add_argument("--t", "--translation-table", type=ct.ARGUMENT_TYPES[ct.GENETIC_CODE_ARGNAME],
+					 	required=False, dest=ct.GENETIC_CODE_ARGNAME,
+						help="Genetic code used for allele translation. This value is ignored if "
+							 "a valid training file is passed to `--ptf`, `--training-file`.")
 
-	parser.add_argument('--st', '--size-threshold', type=pv.size_threshold_type,
-						required=False, default=ct.SIZE_THRESHOLD_DEFAULT,
-						dest='size_threshold',
-						help='Allele size variation threshold value stored in '
-							 'the schema config file. The schema adaptation '
-							 'process will only discard alleles with a size '
-							 'that deviates from the locus length mode +- the '
-							 'size theshold value if the --size-filter parameter '
-							 'is provided.')
+	parser.add_argument("--st", "--size-threshold", type=ct.ARGUMENT_TYPES[ct.SIZE_THRESHOLD_ARGNAME],
+						required=False, dest=ct.SIZE_THRESHOLD_ARGNAME,
+						help="Allele size variation threshold value stored in the schema config "
+							 "file. The schema adaptation process will only discard alleles with "
+							 "a size that deviates from the locus length mode +- the size theshold "
+							 "value if the --size-filter parameter is provided.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process '
-							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
 
-	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
-						required=False, default='', dest='blast_path',
-						help='Path to the directory that contains the '
-							 'BLAST executables.')
+	parser.add_argument("--b", "--blast-path", type=ct.ARGUMENT_TYPES[ct.BLAST_PATH_ARGNAME],
+						required=False, dest=ct.BLAST_PATH_ARGNAME,
+						help="Path to the directory that contains the BLAST executables.")
 
-	parser.add_argument('--size-filter', action='store_true',
-						required=False, dest='size_filter',
-						help='Apply the minimum length and size threshold'
-							 ' values to filter out alleles during schema '
-							 'adaptation.')
+	parser.add_argument("--size-filter", action="store_true",
+						required=False, dest=ct.SIZE_FILTER_ARGNAME,
+						help="Apply the minimum length and size threshold values to filter out "
+							 "alleles during schema adaptation.")
 
 	args = parser.parse_args()
-	del args.PrepExternalSchema
+	args = pv.PrepExternalSchemaValidator(**vars(args))
+	print(args)
 
-	# Check if user passed PTF
-	if args.ptf_path:
-		# Check if PTF exists
-		if not os.path.isfile(args.ptf_path):
-			sys.exit(ct.INVALID_PTF_PATH)
-		else:
-			# Get translation table used to create training file
-			ptf_table = pgp.read_training_file(args.ptf_path).translation_table
-			args.translation_table = ptf_table
-	else:
-		if not args.translation_table:
-			args.translation_table = ct.GENETIC_CODES_DEFAULT
+	sys.exit(0)
 
 	# Define output paths
 	schema_path = os.path.abspath(args.output_directory)
@@ -1098,35 +1011,6 @@ def run_adapt_schema():
 	if schema_path_exists is False:
 		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
 	fo.create_directory(schema_short_path)
-
-	# User provided a list of loci to adapt
-	loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
-	if args.genes_list is not False:
-		loci_list = pv.validate_loci_list(args.genes_list, loci_list,
-										  args.schema_directory)
-	# Working with the whole schema
-	else:
-		loci_list, total_loci = pv.check_input_type(args.schema_directory, loci_list)
-
-	# Detect if any input files share the same basename
-	repeated_prefixes = pv.check_unique_prefixes(loci_list)
-	# Detect if filenames include blank spaces
-	blank_spaces = pv.check_blanks(loci_list)
-	# Since v3.5.1, there is no limitation for the length of the loci basenames
-	# This means that chewBBACA can adapt schemas with longer loci IDs
-
-	print(f'Number of cores: {args.cpu_cores}')
-	print(f'BLAST Score Ratio: {args.blast_score_ratio}')
-	print(f'Translation table: {args.translation_table}')
-
-	# Only apply minimum length and size threshold during schema
-	# adaptation if --size-filter parameter is True
-	if args.size_filter:
-		adaptation_st = args.size_threshold
-		adaptation_ml = args.minimum_length
-	else:
-		adaptation_st = None
-		adaptation_ml = 0
 
 	print(f'Using a minimum length value of {adaptation_ml} for schema '
 		  f'adaptation and {args.minimum_length} to store in the schema '
@@ -1160,99 +1044,86 @@ def run_adapt_schema():
 	# Create hidden file with list of loci
 	genes_list_file = pv.write_gene_list(schema_path)
 
-	# Delete file with list of loci to adapt
-	os.remove(loci_list)
-
 
 @pdt.process_timer
 def run_annotate_schema():
 	"""Run the UniprotFinder module to annotate loci in a schema."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py UniprotFinder --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py UniprotFinder --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='UniprotFinder',
-									 description='Retrieve annotations for loci in a schema.',
+	parser = argparse.ArgumentParser(prog="UniprotFinder",
+									 description="Retrieve annotations for loci in a schema.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/UniprotFinder.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/UniprotFinder.html")
 
-	parser.add_argument('UniprotFinder', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("UniprotFinder", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-g', '--schema-directory', type=str,
-						required=True, dest='schema_directory',
-						help='Path to the schema\'s directory.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema's directory.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory where the process will '
-							 'store intermediate files and save the final '
-							 'TSV file with the loci annotations.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the process will store intermediate "
+							 "files and save the final TSV file with the loci annotations.")
 
-	parser.add_argument('--gl', '--genes-list', type=str,
-						required=False, default=False, dest='genes_list',
-						help='Path to a file with the list of loci '
-							 'in the schema that the process should '
-							 'find annotations for (one per line, full '
-							 'paths or loci IDs).')
+	parser.add_argument("--l", "--loci-list", type=ct.ARGUMENT_TYPES[ct.LOCI_LIST_ARGNAME],
+						required=False, dest=ct.LOCI_LIST_ARGNAME,
+						help="Path to a file with the list of loci in the schema that the process "
+							 "should find annotations for (one per line, full paths or loci IDs).")
 
-	parser.add_argument('--t', '--protein-table', type=str,
-						required=False, dest='protein_table',
-						help='Path to the TSV file with coding sequence (CDS) '
-							 'coordinate data, "cds_coordinates.tsv", created by '
-							 'the CreateSchema process.')
+	parser.add_argument("--t", "--protein-table", type=ct.ARGUMENT_TYPES[ct.PROTEIN_TABLE_ARGNAME],
+						required=False, dest=ct.PROTEIN_TABLE_ARGNAME,
+						help="Path to the TSV file with coding sequence (CDS) coordinate data, "
+							 "`cds_coordinates.tsv`, created by the CreateSchema process.")
 
-	parser.add_argument('--bsr', type=float, required=False,
-						dest='blast_score_ratio',
-						default=0.6,
-						help='BLAST Score Ratio value. The BSR is only '
-							 'used when taxa names are provided to the --taxa '
-							 'parameter and local sequences are aligned against '
-							 'reference proteomes downloaded from UniProt. Annotations '
-							 'are selected based on a BSR >= than the specified value.')
+	parser.add_argument("--bsr", type=ct.ARGUMENT_TYPES[ct.BLAST_SCORE_RATIO_ARGNAME],
+					 	required=False, dest=ct.BLAST_SCORE_RATIO_ARGNAME,
+						help="BLAST Score Ratio value. The BSR is only used when taxa names are "
+							 "provided to the --taxa parameter and local sequences are aligned "
+							 "against reference proteomes downloaded from UniProt. Annotations "
+							 "are selected based on a BSR >= than the specified value.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process '
-							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
 
-	parser.add_argument('--taxa', nargs='+', type=str,
-						required=False, dest='taxa',
-						help='List of scientific names for a set of taxa. The '
-							 'process will download reference proteomes from UniProt '
-							 'associated to taxa names that contain any of the '
-							 'provided terms. The schema representative alleles are '
-							 'aligned against the reference proteomes to assign '
-							 'annotations based on high-BSR matches.')
+	parser.add_argument("--taxa", nargs="+", type=ct.ARGUMENT_TYPES[ct.TAXA_ARGNAME],
+						required=False, dest=ct.TAXA_ARGNAME,
+						help="List of scientific names for a set of taxa. The process will download "
+							 "reference proteomes from UniProt associated to taxa names that contain "
+							 "any of the provided terms. The schema representative alleles are aligned "
+							 "against the reference proteomes to assign annotations based on high-BSR "
+							 "matches.")
 
-	parser.add_argument('--pm', type=int, required=False,
-						default=1, dest='proteome_matches',
-						help='Maximum number of proteome matches to report.')
+	parser.add_argument("--pm", type=ct.ARGUMENT_TYPES[ct.PROTEOME_MATCHES_ARGNAME],
+					 	required=False, dest=ct.PROTEOME_MATCHES_ARGNAME,
+						help="Maximum number of proteome matches to report.")
 
-	parser.add_argument('--no-sparql', action='store_true',
-						required=False, dest='no_sparql',
-						help='Do not search for annotations through '
-							 'the UniProt SPARQL endpoint.')
+	parser.add_argument("--no-sparql", action="store_true",
+						required=False, dest=ct.NO_SPARQL_ARGNAME,
+						help="Do not search for annotations through the UniProt SPARQL endpoint.")
 
-	parser.add_argument('--no-cleanup', action='store_true',
-						required=False, dest='no_cleanup',
-						help='If provided, intermediate files generated '
-							 'during process execution are not removed '
-							 'at the end.')
+	parser.add_argument("--no-cleanup", action="store_true",
+						required=False, dest=ct.NO_CLEANUP_ARGNAME,
+						help="If provided, intermediate files generated during process execution "
+							 "are not removed at the end.")
 
-	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
-						required=False, default='', dest='blast_path',
-						help='Path to the directory that contains the '
-							 'BLAST executables.')
+	parser.add_argument("--b", "--blast-path", type=ct.ARGUMENT_TYPES[ct.BLAST_PATH_ARGNAME],
+						required=False, default='', dest=ct.BLAST_PATH_ARGNAME,
+						help="Path to the directory that contains the BLAST executables.")
 
 	args = parser.parse_args()
-	del args.UniprotFinder
+	args = pv.UniprotFinderValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	annotate_schema.main(**vars(args))
 
@@ -1262,49 +1133,47 @@ def run_compute_distances():
 	"""Run the ComputeDistances module to compute pairwise distances based on allele calling results."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py ComputeDistances --input-file <file> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py ComputeDistances --input-file <file> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='ComputeDistances',
-									 description='Compute pairwise distances based on allele calling results.',
+	parser = argparse.ArgumentParser(prog="ComputeDistances",
+									 description="Compute pairwise distances based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeDistances.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeDistances.html")
 
-	parser.add_argument('ComputeDistances', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("ComputeDistances", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-file', type=str,
-						required=True, dest='input_file',
-						help='Path to a TSV file containing allelic profiles determined by the AlleleCall module.')
+	parser.add_argument("-a", "--allelic-profiles", type=ct.ARGUMENT_TYPES[ct.ALLELIC_PROFILES_ARGNAME],
+						required=True, dest=ct.ALLELIC_PROFILES_ARGNAME,
+						help="Path to a TSV file containing allelic profiles determined by the AlleleCall "
+							 "module.")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory where the process will '
-							 'store intermediate and final results.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the process will store intermediate "
+							 "and final results.")
 
-	parser.add_argument('--m', '--method', type=str, required=False,
-						default='hamming', choices=['hamming', 'jaccard', 'loci', 'core'],
-						dest='method',
-						help='Distance method used to compute the distance matrix. The module supports '
-							 'the hamming, jaccard, loci (number of loci not shared), and core (number of '
-							 'different alleles for core loci) methods.')
+	parser.add_argument("--m", "--method", type=ct.ARGUMENT_TYPES[ct.METHOD_ARGNAME],
+					 	required=False, dest=ct.METHOD_ARGNAME,
+						help="Distance method used to compute the distance matrix. The module supports "
+							 "the hamming, jaccard, loci (number of loci not shared), and core (number of "
+							 "different alleles for core loci) methods.")
 
-	parser.add_argument('--outfmt', '--output-format', type=str, required=False,
-						choices=['upper_triangular', 'lower_triangular', 'symmetric', 'table'],
-						default='upper_triangular',
-						dest='output_format',
-						help='Output format for the distance matrix (upper_triangular, lower_triangular, symmetric, table).')
+	parser.add_argument('--outfmt', '--output-format', type=ct.ARGUMENT_TYPES[ct.OUTPUT_FORMAT_ARGNAME],
+					 	required=False, dest=ct.OUTPUT_FORMAT_ARGNAME,
+						help="Output format for the distance matrix (upper_triangular, lower_triangular, "
+							 "symmetric, table).")
 
-	parser.add_argument('--no-mask', action='store_true', required=False,
-						dest='no_mask',
-						help='Do not mask missing data when computing the distance matrix. '
-							 'This option is useful when the input profiles are already masked.')
+	parser.add_argument("--no-mask", action="store_true",
+					 	required=False, dest=ct.NO_MASK_ARGNAME,
+						help="Do not mask missing data when computing the distance matrix. This option "
+							 "is useful when the input profiles are already masked.")
 
-	parser.add_argument('--similarity', action='store_true', required=False,
-						dest='similarity',
-						help='Compute similarity values instead of distance values.')
+	parser.add_argument("--similarity", action="store_true",
+					 	required=False, dest=ct.SIMILARITY_ARGNAME,
+						help="Compute similarity values instead of distance values.")
 
 	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
 						required=False, default=1, dest='cpu_cores',
@@ -1314,7 +1183,9 @@ def run_compute_distances():
 							 'number of available CPU cores/threads).')
 
 	args = parser.parse_args()
-	del args.ComputeDistances
+	args = pv.ComputeDistancesValidator(**vars(args))
+	print(args)
+	sys.exit(0)
 
 	compute_distances.main(**vars(args))
 
@@ -1324,119 +1195,110 @@ def run_compute_msa():
 	"""Run the ComputeMSA module to compute a Multiple Sequence Alignment based on allele calling results."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py ComputeMSA --input-file <file> --schema-directory <dir> --output-directory <dir> [options]'
+		usage_msg = "chewBBACA.py ComputeMSA --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='ComputeMSA',
-									 description='Compute a Multiple Sequence Alignment based on allele calling results.',
+	parser = argparse.ArgumentParser(prog="ComputeMSA",
+									 description="Compute a Multiple Sequence Alignment based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeMSA.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeMSA.html")
 
-	parser.add_argument('ComputeMSA', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("ComputeMSA", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-i', '--input-path', type=str,
-						required=True, dest='input_path',
-						help='Path to a TSV file containing allelic profiles or '
-							 'to a folder containing FASTA files. If a TSV file '
-							 'containing allelic profiles is provided, it is necessary '
-							 'to provide the path to the schema to the `--schema-directory` '
-							 'parameter. The module will create a FASTA file with the alleles '
-							 'identified in the samples for each schema locus and compute a MSA. '
-							 'The loci MSAs are joined to create the complete MSA based on the '
-							 'allele calling results. If a path to a folder is provided, the '
-							 'module computes a MSA for each FASTA file in the folder, but will '
-							 'not attempt to join the MSAs as it does not have the sample '
-							 'information (in this case, it is not necessary to pass the schema '
-							 'path).')
+	parser.add_argument("-i", "--input-path", type=ct.ARGUMENT_TYPES[ct.INPUT_PATH_ARGNAME],
+						required=True, dest=ct.INPUT_PATH_ARGNAME,
+						help="Path to a TSV file containing allelic profiles or to a folder containing "
+							 "FASTA files. If a TSV file containing allelic profiles is provided, it is "
+							 "necessary to provide the path to the schema to the `--schema-directory` "
+							 "parameter. The module will create a FASTA file with the alleles identified "
+							 "in the samples for each schema locus and compute a MSA. The loci MSAs are "
+							 "joined to create the complete MSA based on the allele calling results. If "
+							 "a path to a folder is provided, the module computes a MSA for each FASTA "
+							 "file in the folder, but will not attempt to join the MSAs as it does not "
+							 "have the sample information (in this case, it is not necessary to pass the "
+							 "schema path).")
 
-	parser.add_argument('-o', '--output-directory', type=str,
-						required=True, dest='output_directory',
-						help='Path to the output directory where the process will '
-							 'store intermediate and final results.')
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Path to the output directory where the process will store intermediate and "
+							 "final results.")
 
-	parser.add_argument('-g', '--schema-directory', type=str,
-						required=False, dest='schema_directory',
-						help='Path to the schema\'s directory. This parameter is '
-							 'only required if the input is a TSV file with allelic '
-							 'profiles.')
+	parser.add_argument("-g", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
+						required=False, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
+						help="Path to the schema\'s directory. This parameter is only required if the "
+							 "input is a TSV file with allelic profiles.")
 
-	parser.add_argument('--dna-msa', action='store_true',
-						required=False, dest='dna_msa',
-						help='Converts the protein MSA back to DNA to create an additional '
-							 'output file with the DNA MSA.')
+	parser.add_argument("--dna-msa", action="store_true",
+						required=False, dest=ct.DNA_MSA_ARGNAME,
+						help="Converts the protein MSA back to DNA to create an additional output file "
+							 "with the DNA MSA.")
 
-	parser.add_argument('--output-variable', action='store_true',
-					 	required=False, dest='output_variable',
-						help='Output a reduced MSA including only the variable '
-							 'positions. If the `--dna-msa` parameter is provided, the '
-							 'process will output a reduced MSA for both the protein '
-							 'and DNA MSAs.')
+	parser.add_argument("--output-variable", action="store_true",
+					 	required=False, dest=ct.OUTPUT_VARIABLE_ARGNAME,
+						help="Output a reduced MSA including only the variable positions. If the "
+							 "`--dna-msa` parameter is provided, the process will output a reduced MSA "
+							 "for both the protein and DNA MSAs.")
 
-	parser.add_argument('--t', '--translation-table', type=int,
-						required=False, default=11, dest='translation_table',
-						help='Genetic code used for sequence translation.')
+	parser.add_argument("--t", "--translation-table", type=ct.ARGUMENT_TYPES[ct.GENETIC_CODE_ARGNAME],
+						required=False, dest=ct.GENETIC_CODE_ARGNAME,
+						help="Genetic code used for sequence translation.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process (chewie resets to a '
-							 'lower value if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads).')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process (chewie "
+							 "resets to a lower value if it is equal to or exceeds the total number of "
+							 "available CPU cores/threads).")
 
-	parser.add_argument('--only-loci-msas', action='store_true',
-						required=False, dest='only_loci_msas',
-						help='Do not compute the full MSA when the input file is a '
-							 'TSV file containing allelic profiles (this is already '
-							 'the default when the input is a path to a folder with '
-							 'FASTA files).')
+	parser.add_argument("--only-loci-msas", action="store_true",
+						required=False, dest=ct.ONLY_LOCI_MSAS_ARGNAME,
+						help="Do not compute the full MSA when the input file is a TSV file containing "
+							 "allelic profiles (this is already the default when the input is a path to "
+							 "a folder with FASTA files).")
 
-	parser.add_argument('--gaps', type=str, choices=['ignore', 'exclude'],
-						required=False, default='exclude', dest='gaps',
-						help='How to treat gaps when determining the reduced MSA '
-							 'for the variable positions. The default value, '
-							 '"exclude", removes variable positions if any of the '
-							 'aligned sequences contain a gap. The "ignore" option '
-							 'allows to consider variable positions that include '
-							 'gaps in some sequences as long as other sequences '
-							 'include variable non-gap characters. The character '
-							 'used to represent gaps is "-".')
+	parser.add_argument("--gaps", type=ct.ARGUMENT_TYPES[ct.GAPS_ARGNAME],
+						required=False, dest=ct.GAPS_ARGNAME,
+						help="How to treat gaps when determining the reduced MSA for the variable "
+							 "positions. The default value, `exclude`, removes variable positions if "
+							 "any of the aligned sequences contain a gap. The `ignore` option allows "
+							 "to consider variable positions that include gaps in some sequences as "
+							 "long as other sequences include variable non-gap characters. The character "
+							 "used to represent gaps is `-`.")
 
-	parser.add_argument('--ambiguous', type=str, choices=['ignore', 'exclude'],
-						required=False, default='exclude', dest='ambiguous',
-						help='How to treat ambiguous amino acids or nucleotides '
-							 'when determining the reduced MSA for the variable '
-							 'positions. The default value, "exclude", removes '
-							 'variable positions if any of the aligned sequences '
-							 'contain an ambiguous amino acid or nucleotide. The '
-							 '"ignore" option allows to consider variable positions '
-							 'that include ambiguous amino acids or nucleotides in '
-							 'some sequences as long as other sequences include '
-							 'variable non-ambiguous characters. The characters '
-							 'interpreted as ambiguous amino acids are [B, Z, X, J].'
-							 ' The characters interpreted as ambiguous nucleotides are'
-                             ' [R, Y, S, W, K, M, B, D, H, V, N]')
+	parser.add_argument("--ambiguous", type=ct.ARGUMENT_TYPES[ct.AMBIGUOUS_ARGNAME],
+						required=False, dest=ct.DEFAULT_AMBIGUOUS,
+						help="How to treat ambiguous amino acids or nucleotides when determining the "
+							 "reduced MSA for the variable positions. The default value, `exclude`, "
+							 "removes variable positions if any of the aligned sequences contain an "
+							 "ambiguous amino acid or nucleotide. The `ignore` option allows to consider "
+							 "variable positions that include ambiguous amino acids or nucleotides in "
+							 "some sequences as long as other sequences include variable non-ambiguous "
+							 "characters. The characters interpreted as ambiguous amino acids are "
+							 "[B, Z, X, J]. The characters interpreted as ambiguous nucleotides are"
+                             " [R, Y, S, W, K, M, B, D, H, V, N].")
 
-	parser.add_argument('--custom-mafft-params', type=str,
-						required=False, dest='custom_mafft_params',
-						help='Custom parameters to pass to MAFFT when computing '
-							 'the loci MSAs. The value must be a single string with all '
-							 'parameters enclosed in quotes (e.g. "--retree 1 --maxiterate 0").')
+	parser.add_argument("--custom-mafft-params", type=ct.ARGUMENT_TYPES[ct.CUSTOM_MAFFT_PARAMETERS_ARGNAME],
+						required=False, dest=ct.CUSTOM_MAFFT_PARAMETERS_ARGNAME,
+						help="Custom parameters to pass to MAFFT when computing the loci MSAs. The "
+							 "value must be a single string with all parameters enclosed in quotes "
+							 "(e.g. `--retree 1 --maxiterate 0`).")
 
-	parser.add_argument('--protein-input', action='store_true',
-						required=False, dest='protein_input',
-						help='Input files contain protein sequences. This option is only valid '
-							 'for cases when users provide a path to a directory containing FASTA files.')
+	parser.add_argument("--protein-input", action="store_true",
+						required=False, dest=ct.PROTEIN_INPUT_ARGNAME,
+						help="Input files contain protein sequences. This option is only valid for "
+							 "cases when users provide a path to a directory containing FASTA files.")
 
-	parser.add_argument('--no-cleanup', action='store_true',
-						required=False, dest='no_cleanup',
-						help='Keep intermediate files with locus/file MSAs and sample MSAs '
-							 'if input is a TSV file containing allelic profiles.')
+	parser.add_argument("--no-cleanup", action="store_true",
+						required=False, dest=ct.NO_CLEANUP_ARGNAME,
+						help="Keep intermediate files with locus/file MSAs and sample MSAs if input "
+							 "is a TSV file containing allelic profiles.")
 
 	args = parser.parse_args()
-	del args.ComputeMSA
+	args = pv.ComputeMSAValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	compute_msa.main(**vars(args))
 
@@ -1446,72 +1308,65 @@ def run_download_schema():
 	"""Run the DownloadSchema module to download a schema from Chewie-NS."""
 
 	def msg(name=None):
-		usage_msg = 'chewBBACA.py DownloadSchema --species-id <id> --schema-id <id> --download-folder <dir> [options]'
+		usage_msg = "chewBBACA.py DownloadSchema --species-id <id> --schema-id <id> --download-folder <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog='DownloadSchema',
-									 description='Download a schema from Chewie-NS.',
+	parser = argparse.ArgumentParser(prog="DownloadSchema",
+									 description="Download a schema from Chewie-NS.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog='Module documentation available at '
-											'https://chewbbaca.readthedocs.io/en/latest/user/modules/DownloadSchema.html')
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/DownloadSchema.html")
 
-	parser.add_argument('DownloadSchema', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("DownloadSchema", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument('-sp', '--species-id', type=str,
-						required=True, dest='species_id',
-						help='The integer identifier or name of the species '
-							 'that the schema is associated to in Chewie-NS.')
+	parser.add_argument("-sp", "--species-id", type=ct.ARGUMENT_TYPES[ct.SPECIES_ID_ARGNAME],
+						required=True, dest=ct.SPECIES_ID_ARGNAME,
+						help="The integer identifier or name of the species that the schema is "
+							 "associated to in Chewie-NS.")
 
-	parser.add_argument('-sc', '--schema-id', type=str,
-						required=True, dest='schema_id',
-						help='The URI, integer identifier or name of '
-							 'the schema to download from Chewie-NS.')
+	parser.add_argument("-sc", "--schema-id", type=ct.ARGUMENT_TYPES[ct.SCHEMA_ID_ARGNAME],
+						required=True, dest=ct.SCHEMA_ID_ARGNAME,
+						help="The URI, integer identifier or name of the schema to download from "
+							 "Chewie-NS.")
 
-	parser.add_argument('-o', '--download-folder', type=str,
-						required=True, dest='download_folder',
-						help='Output folder to which the schema will '
-							 'be saved.')
+	parser.add_argument("-o", "--download-folder", type=ct.ARGUMENT_TYPES[ct.DOWNLOAD_FOLDER_ARGNAME],
+						required=True, dest=ct.DOWNLOAD_FOLDER_ARGNAME,
+						help="Output folder to which the schema will be saved.")
 
-	parser.add_argument('--cpu', '--cpu-cores', type=pv.verify_cpu_usage,
-						required=False, default=1, dest='cpu_cores',
-						help='Number of CPU cores/threads that will be '
-							 'used to run the process '
-							 '(chewie resets to a lower value '
-							 'if it is equal to or exceeds the total '
-							 'number of available CPU cores/threads). '
-							 'This value is only used if it is '
-							 'necessary to construct the schema locally.')
+	parser.add_argument("--cpu", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CDS_INPUT_ARGNAME],
+						required=False, dest=ct.CPU_CORES_ARGNAME,
+						help="Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the total "
+							 "number of available CPU cores/threads). This value is only used if it is "
+							 "necessary to construct the schema locally.")
 
-	parser.add_argument('--ns', '--nomenclature-server', type=pv.validate_ns_url,
-						required=False, default='main', dest='nomenclature_server',
-						help='The base URL for the Chewie-NS instance. '
-							 'The default value, "main", will establish a '
-							 'connection to "https://chewbbaca.online/", '
-							 '"tutorial" to "https://tutorial.chewbbaca.online/" '
-							 'and "local" to "http://127.0.0.1:5000/NS/api/" (localhost). '
-							 'Users may also provide the IP address to other '
-							 'Chewie-NS instances.')
+	parser.add_argument("--ns", "--nomenclature-server", type=ct.ARGUMENT_TYPES[ct.NOMENCLATURE_SERVER_ARGNAME],
+						required=False, dest=ct.NOMENCLATURE_SERVER_ARGNAME,
+						help="The base URL for the Chewie-NS instance. The default value, `main`, will "
+							 "establish a connection to `https://chewbbaca.online/`, `tutorial` to `https://"
+							 "tutorial.chewbbaca.online/` and `local` to `http://127.0.0.1:5000/NS/api/` "
+							 "(localhost). Users may also provide the IP address to other Chewie-NS instances.")
 
-	parser.add_argument('--b', '--blast-path', type=pv.check_blast,
-						required=False, default='', dest='blast_path',
-						help='Path to the directory that contains the '
-							 'BLAST executables.')
+	parser.add_argument("--b", "--blast-path", type=ct.ARGUMENT_TYPES[ct.BLAST_PATH_ARGNAME],
+						required=False, dest=ct.BLAST_PATH_ARGNAME,
+						help="Path to the directory that contains the BLAST executables.")
 
-	parser.add_argument('--d', '--date', type=str,
-						required=False, default=None, dest='date',
-						help='Download schema with state from specified date. '
-							 'Must be in the format "Y-m-dTH:M:S".')
+	parser.add_argument("--d", "--date", type=ct.ARGUMENT_TYPES[ct.DATE_ARGNAME],
+						required=False, dest=ct.DATE_ARGNAME,
+						help="Download schema with state from specified date. Must be in the format "
+							 "`Y-m-dTH:M:S`.")
 
-	parser.add_argument('--latest', action='store_true',
-						required=False, dest='latest',
-						help='If the compressed version that is available is '
-							 'not the latest, downloads all loci FASTA files '
-							 'and constructs schema locally.')
+	parser.add_argument("--latest", action="store_true",
+						required=False, dest=ct.LATEST_ARGNAME,
+						help="If the compressed version that is available is not the latest, downloads "
+							 "all loci FASTA files and constructs schema locally.")
 
 	args = parser.parse_args()
-	del args.DownloadSchema
+	args = pv.DownloadSchemaValidator(**vars(args))
+	print(args)
+
+	sys.exit(0)
 
 	download_schema.main(**vars(args))
 
@@ -1664,11 +1519,6 @@ def run_synchronize_schema():
 							 'in the local schema and send them to the '
 							 'Chewie-NS instance. (only authorized users can submit '
 							 'new alleles).')
-
-	# parser.add_argument('--update-profiles', required=False,
-	#                     action='store_true', dest='update_profiles',
-	#                     help='If the process should update local profiles '
-	#                          'stored in the SQLite database.')
 
 	args = parser.parse_args()
 	del args.SyncSchema

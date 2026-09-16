@@ -216,7 +216,9 @@ GENE_COORDINATES_BASENAME = 'gene_coordinates.tsv'
 GENE_COORDINATES_EXCLUDED_BASENAME = 'gene_coordinates_excluded.tsv'
 INVALID_CDS_BASENAME = 'invalid_cds.txt'
 SCHEMA_CONFIG_BASENAME = '.schema_config'
+NS_CONFIG_BASENAME = ".ns_config"
 GENE_LIST_BASENAME = '.genes_list'
+
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
 					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal CDSs Classified')
@@ -317,6 +319,8 @@ PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'
 
 # Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
+CGMLST_THRESHOLD_MIN = 0
+CGMLST_THRESHOLD_MAX = 1
 
 GENOMES_MISSING_COLUMNS = ['Sample', 'Loci presence count', 'Loci presence proportion']
 GENOMES_MISSING_BASENAME = 'sample_presence_stats.tsv'
@@ -497,6 +501,10 @@ MISSING_FASTAS_EXCEPTION = ('Could not get input files. Please provide '
 							'the list of full paths to the FASTA files '
 							'and ensure that filenames end with one of '
 							f'the following extensions: {FASTA_EXTENSIONS}.')
+
+MISSING_SCHEMA_FASTAS = ("Input path does not include FASTA files. Please provide "
+						 "a valid path for a folder containing only FASTA files ending "
+						 f"in one of the following file extensions: {FASTA_EXTENSIONS}")
 
 # Input path is neither a file nor a directory
 INVALID_INPUT_PATH = ('Input argument is not a valid directory or '
@@ -816,6 +824,74 @@ OUTPUT_NOVEL_ARGNAME = "output_novel"
 OUTPUT_MASKED_ARGNAME = "output_masked"
 FORCE_CONTINUE_ARGNAME = "force_continue"
 ALLELECALL_MODE_ARGNAME = "mode"
+ANNOTATIONS_ARGNAME = "annotations"
+LOCI_REPORTS_ARGNAME = "loci_reports"
+LIGTH_ARGNAME = "light"
+ADD_SEQUENCES_ARGNAME = "add_sequences"
+NO_PA_ARGNAME = "no_pa"
+NO_DM_ARGNAME = "no_dm"
+NO_TREE_ARGNAME = "no_tree"
+CG_ALIGNMENT_ARGNAME = "cg_alignment"
+RESULTS_FILES_ARGNAME = "results_files"
+THRESHOLD_ARGNAME = "threshold"
+STEP_ARGNAME = "step"
+COMPUTE_ACCESSORY_ARGNAME = "compute_accessory"
+RAREFACTION_ANALYSIS_ARGNAME = "rarefaction_analysis"
+PERMUTATION_NUMBER_ARGNAME = "permutation_number"
+PERMUTATION_SAMPLES_ARGNAME = "permutation_samples"
+EXCLUDE_LOCI_ARGNAME = "exclude_loci"
+EXCLUDE_GENOMES_ARGNAME = "exclude_genomes"
+SAMPLE_LIST_ARGNAME = "sample_list"
+INVERSE_LOCI_ARGNAME = "inverse_loci"
+INVERSE_SAMPLES_ARGNAME = "inverse_samples"
+COMMON_ARGNAME = "common"
+ALLELIC_PROFILES_ARGNAME = "allelic_profiles"
+HASH_TYPE_ARGNAME = "hash_type"
+NROWS_ARGNAME = "nrows"
+DISTINCT_ARGNAME = "distinct"
+TRANSLATE_ARGNAME = "translate"
+SIZE_FILTER_ARGNAME = "size_filter"
+PROTEIN_TABLE_ARGNAME = "protein_table"
+TAXA_ARGNAME = "taxa"
+PROTEOME_MATCHES_ARGNAME = "proteome_matches"
+NO_SPARQL_ARGNAME = "no_sparql"
+METHOD_ARGNAME = "method"
+OUTPUT_FORMAT_ARGNAME = "output_format"
+NO_MASK_ARGNAME = "no_mask"
+SIMILARITY_ARGNAME = "similarity"
+INPUT_PATH_ARGNAME = "input_path"
+DNA_MSA_ARGNAME = "dna_msa"
+OUTPUT_VARIABLE_ARGNAME = 'output_variable'
+ONLY_LOCI_MSAS_ARGNAME = "only_loci_msas"
+GAPS_ARGNAME = "gaps"
+AMBIGUOUS_ARGNAME = "ambiguous"
+CUSTOM_MAFFT_PARAMETERS_ARGNAME = "custom_mafft_params"
+PROTEIN_INPUT_ARGNAME = "protein_input"
+SPECIES_ID_ARGNAME = "species_id"
+SCHEMA_ID_ARGNAME = "schema_id"
+DOWNLOAD_FOLDER_ARGNAME = "download_folder"
+NOMENCLATURE_SERVER_ARGNAME = "nomenclature_server"
+DATE_ARGNAME = "date"
+LATEST_ARGNAME = "latest"
+
+DEFAULT_NOMENCLATURE_SERVER = "main"
+
+DEFAULT_GAPS = "exclude"
+GAPS_CHOICES = ['ignore', 'exclude']
+
+DEFAULT_AMBIGUOUS = "exclude"
+AMBIGUOUS_CHOICES = ['ignore', 'exclude']
+
+DEFAULT_DISTANCE_METHOD = "hamming"
+DISTANCE_METHODS = ['hamming', 'jaccard', 'loci', 'core']
+INVALID_DISTANCE_METHOD = ("Invalid distance method specified.")
+
+DEFAULT_OUTPUT_FORMAT = "upper_triangular"
+OUTPUT_FORMATS = ['upper_triangular', 'lower_triangular', 'symmetric', 'table']
+INVALID_OUTPUT_FORMAT = ("Invalid output format specified.")
+
+PERMUTATION_NUMBER_DEFAULT = 100
+PERMUTATION_SAMPLES_DEFAULT = None
 
 INVALID_GENEPREDICTOR_PARAMETER = ("{0} is not a valid parameter=argument pair used to configure gene prediction with {1}.")
 INVALID_PARAMETER_STR = ("{0} is not a valid parameter=argument pair.")
@@ -853,7 +929,21 @@ ARGUMENT_TYPES = {
 	"window_size": int,
 	"clustering_sim": float,
 	"representative_filter": float,
-	"intra_filter": float
+	"intra_filter": float,
+	"annotations": str,
+	"threshold": float,
+	"step":int,
+	"exclude_loci": str,
+	"exclude_genomes": str,
+	"allelic_profiles": str,
+	"hash_type": str,
+	"size_filter": bool,
+	"protein_table": str,
+	"taxa":str,
+	"proteome_matches": int,
+	"no_sparql": bool,
+	"output_format": str,
+	'output_variable': bool,
 }
 
 CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a training file and a training reference "
@@ -872,3 +962,5 @@ ALLELECALL_MODES = [1, 2, 3, 4]
 ALLELECALL_DEFAULT_MODE = 1
 
 INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling.")
+
+MISSING_RESULTS_ALLELES = (f"Input directory with results data does not include the {RESULTS_ALLELES_BASENAME} file.")

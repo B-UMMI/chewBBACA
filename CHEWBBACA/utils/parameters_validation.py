@@ -473,49 +473,44 @@ def input_is_fasta(input_path):
 
 def list_input_files(input_path):
 	""""""
-	input_files = None
-	if input_path:
-		if os.path.isfile(input_path):
-			# Read list of input files
-			input_files = [line[0] for line in fo.read_tabular(input_path)]
-		# Input path is for a directory
-		elif os.path.isdir(input_path):
-			# List absolute paths
-			# Only keep paths to files
-			input_files = [file for file in fo.listdir_fullpath(input_path) if os.path.isdir(file) is False]
+	if os.path.isfile(input_path):
+		# Read list of input files
+		input_files = [line[0] for line in fo.read_tabular(input_path)]
+	# Input path is for a directory
+	elif os.path.isdir(input_path):
+		# List absolute paths
+		# Only keep paths to files
+		input_files = [file for file in fo.listdir_fullpath(input_path) if os.path.isdir(file) is False]
 
 	return input_files
 
 
 def filter_inputs_extension(input_files, extensions=ct.FASTA_EXTENSIONS):
 	""""""
-	if input_files:
-		# Need to verify if files end with any of the accepted file extensions
-		valid_extension, invalid_extension = fo.filter_by_extension(input_files, extensions)
-		if len(invalid_extension) > 0:
-			sys.exit(ct.INVALID_EXTENSION_EXCEPTION)
+	# Need to verify if files end with any of the accepted file extensions
+	valid_extension, invalid_extension = fo.filter_by_extension(input_files, extensions)
+	if len(invalid_extension) > 0:
+		sys.exit(ct.INVALID_EXTENSION_EXCEPTION)
 
 	return input_files
 
 
 def inputs_exist(input_files):
 	""""""
-	if input_files:
-		# Check that all files exist
-		missing_inputs = [file for file in input_files if fo.exists(file) is False]
-		if len(missing_inputs) > 0:
-			sys.exit(ct.MISSING_INPUTS)
+	# Check that all files exist
+	missing_inputs = [file for file in input_files if fo.exists(file) is False]
+	if len(missing_inputs) > 0:
+		sys.exit(ct.MISSING_INPUTS)
 
 	return input_files
 
 
 def validate_inputs_fastas(input_files):
 	""""""
-	if input_files:
-		# Input files must be vaid FASTA files
-		fasta, non_fasta = fao.filter_non_fasta(input_files)
-		if len(non_fasta) > 0:
-			sys.exit(ct.NON_FASTA_EXCEPTION)
+	# Input files must be vaid FASTA files
+	fasta, non_fasta = fao.filter_non_fasta(input_files)
+	if len(non_fasta) > 0:
+		sys.exit(ct.NON_FASTA_EXCEPTION)
 
 	return input_files
 
@@ -997,16 +992,24 @@ def validate_allelecall_mode(mode, valid_modes):
 	return mode
 
 
+def schema_includes_fasta(schema_directory):
+	""""""
+	schema_files = os.listdir(schema_directory)
+	# Check if the folder includes FASTA files
+	fasta_extension, _ = fo.filter_by_extension(schema_files, ct.FASTA_EXTENSIONS)
+	if len(fasta_extension) == 0:
+		sys.exit(ct.MISSING_SCHEMA_FASTAS)
+
+	return schema_directory
+
+
 def check_schema(schema_directory):
 	""""""
 	schema_files = os.listdir(schema_directory)
 	# Check if the "short" directory exists
 	if "short" not in schema_files:
 		sys.exit(ct.SCHEMA_INVALID_PATH)
-	# Check if the folder includes FASTA files
-	if len(fo.filter_by_extension(schema_files, [".fasta"])[0]) == 0:
-		sys.exit(ct.SCHEMA_INVALID_PATH)
-	# Check if schema includes .schema_config file
+	# Check if schema includes the .schema_config file
 	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
 	if not fo.is_file(config_file)[0]:
 		sys.exit(ct.ADAPT_LEGACY_SCHEMA)
@@ -1089,8 +1092,42 @@ def check_ptf_conflict(user_ptf, translation_table, schema_config, force_continu
 			# Add genetic code to schema config if it was never used
 			if translation_table not in schema_config["translation_table"]:
 				schema_config["translation_table"].append(translation_table)
-	
+
 		return user_ptf, translation_table, schema_config
+
+
+def contains_results(results_directory):
+	""""""
+	# List files in input direcoty
+	results_files = os.listdir(results_directory)
+	# Check if folder includes the results_alleles.tsv file with allelic profiles
+	if ct.RESULTS_ALLELES_BASENAME not in results_files:
+		sys.exit(ct.MISSING_RESULTS_ALLELES)
+
+
+def validate_cgmlst_thresholds(threshold_values):
+	""""""
+	for t in threshold_values:
+		if t < ct.CGMLST_THRESHOLD_MIN or t > ct.CGMLST_THRESHOLD_MAX:
+			sys.exit("Invalid loci presence threshold.")
+
+	return threshold_values
+
+
+def validate_distance_method(method, valid_methods=ct.DISTANCE_METHODS):
+	""""""
+	if method not in valid_methods:
+		sys.exit(ct.INVALID_DISTANCE_METHOD)
+
+	return method
+
+
+def validate_output_format(output_format, valid_output_formats=ct.OUTPUT_FORMATS):
+	""""""
+	if output_format not in valid_output_formats:
+		sys.exit(ct.INVALID_OUTPUT_FORMAT)
+
+	return output_format
 
 
 from pathlib import Path
@@ -1116,7 +1153,7 @@ InputFiles = Annotated[str,
 
 SchemaDirectory = Annotated[str,
 							AfterValidator(input_path_exists),
-							AfterValidator(check_schema)]
+							AfterValidator(schema_includes_fasta)]
 
 LociList = Annotated[str, 
 					 AfterValidator(input_path_exists),
@@ -1206,6 +1243,9 @@ RepresentativeFilter = Annotated[float,
 IntraFilter = Annotated[float,
 						Field(default=(ct.INTRA_CLUSTER_DEFAULT)),
 						AfterValidator(validate_intra_filter)]
+
+Annotations = Annotated[str,
+						AfterValidator(input_path_exists)]
 
 
 class PyrodigalArgs(BaseModel):
@@ -1350,7 +1390,7 @@ class AlleleCallValidator(BaseModel):
 	output_directory: OutputDirectory
 	input_files: InputFiles
 	schema_directory: SchemaDirectory
-	# Do not run validation of loci_list is None
+	# Do not run validation if loci_list is None
 	loci_list: LociList | None = None
 	blast_score_ratio: BLASTScoreRatio
 	minimum_length: MinimumLength
@@ -1373,6 +1413,7 @@ class AlleleCallValidator(BaseModel):
 	mode: Annotated[int, Field(default=ct.ALLELECALL_DEFAULT_MODE), AfterValidator(partial(validate_allelecall_mode, ct.ALLELECALL_MODES))]
 	cpu_cores: CPUCores
 	no_cleanup: bool
+	ns_config: Annotated[bool, Field(default=False)]
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")
@@ -1403,6 +1444,11 @@ class AlleleCallValidator(BaseModel):
 		return self
 
 	@model_validator(mode="after")
+	def validate_schema(self):
+		# Check that the schema includes the short directory and the .schema_config file necessary for allele calling
+		self.schema_directory = check_schema(self.schema_directory)
+
+	@model_validator(mode="after")
 	def list_schema_loci(self):
 		# List all loci FASTA files in the schema if no loci list was provided
 		if not self.loci_list:
@@ -1428,3 +1474,162 @@ class AlleleCallValidator(BaseModel):
 		fo.pickle_dumper(config, config_file)
 
 		return self
+
+	@model_validator
+	def check_ns_config(self):
+		ns_config = fo.join_paths(self.output_directory, [ct.NS_CONFIG_BASENAME])
+		if fo.is_file(ns_config)[0]:
+			self.ns_config = True
+
+
+class SchemaEvaluatorValidator(BaseModel):
+	output_directory: OutputDirectory
+	schema_directory: SchemaDirectory
+	loci_list: LociList | None = None
+	annotations: Annotations | None = None
+	translation_table: TranslationTable
+	size_threshold: SizeThreshold
+	minimum_length: MinimumLength
+	cpu_cores: CPUCores
+	loci_reports: Annotated[bool, Field(default=False)]
+	light: Annotated[bool, Field(default=False)]
+	add_sequences: Annotated[bool, Field(default=False)]
+
+
+class AlleleCallEvaluatorValidator(BaseModel):
+	output_directory: OutputDirectory
+	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	schema_directory: SchemaDirectory
+	annotations: Annotations | None = None
+	cpu_cores: CPUCores
+	light: Annotated[bool, Field(default=False)]
+	no_pa: Annotated[bool, Field(default=False)]
+	no_dm: Annotated[bool, Field(default=False)]
+	no_tree: Annotated[bool, Field(default=False)]
+	cg_alignment: Annotated[bool, Field(default=False)]
+
+
+class ExtractCgMLSTValidator(BaseModel):
+	output_directory: OutputDirectory
+	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	threshold: Annotated[list, Field(default=ct.CGMLST_THRESHOLDS), AfterValidator(validate_cgmlst_thresholds)]
+	step: Annotated[int, Field(default=1)]
+	compute_accessory: Annotated[bool, Field(default=False)]
+	rarefaction_analysis: Annotated[bool, Field(default=False)]
+	permutation_number: Annotated[int, Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
+	permutation_samples: int | None = None
+	exclude_loci: Annotated[str, AfterValidator(input_path_exists)] | None = None
+	exclude_genomes: Annotated[str, AfterValidator(input_path_exists)] | None = None
+	cpu_cores: CPUCores
+
+
+class SubsetResultsValidator(BaseModel):
+	output_directory: OutputDirectory
+	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	loci_list: LociList | None = None
+	sample_list: Annotated[str, AfterValidator(input_path_exists)] | None = None
+	inverse_loci: Annotated[bool, Field(default=False)]
+	inverse_samples: Annotated[bool, Field(default=False)]
+
+
+class MergeResults(BaseModel):
+	output_directory: OutputDirectory
+	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	common: Annotated[bool, Field(default=False)]
+
+
+class HashProfilesValidator(BaseModel):
+	output_directory: OutputDirectory
+	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	schema_directory: SchemaDirectory
+	hash_type: Annotated[str, Field(default="crc32")]
+	nrows: Annotated[int, Field(default=100)]
+	cpu_cores: CPUCores
+
+
+class GetAllelesValidator(BaseModel):
+	output_directory: OutputDirectory
+	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	schema_directory: SchemaDirectory
+	loci_list: LociList | None = None
+	cpu_cores: CPUCores
+	distinct: Annotated[bool, Field(default=False)]
+	translate: Annotated[bool, Field(default=False)]
+	translation_table: TranslationTable
+
+	@model_validator(mode="after")
+	def get_ptf_genetic_code(self):
+		self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table)
+
+		return self
+
+
+class PrepExternalSchemaValidator(BaseModel):
+	output_directory: OutputDirectory
+	schema_directory: SchemaDirectory
+	loci_list: LociList | None = None
+	gene_predictor: GenePredictor
+	gene_prediction_arguments: GenePredictionArguments
+	validated_gene_prediction_arguments: ValidatedGenePredictionArguments
+	blast_score_ratio: BLASTScoreRatio
+	minimum_length: MinimumLength
+	adaptation_minimum_length: Annotated[int, Field(default=0)]
+	translation_table: TranslationTable
+	size_threshold: SizeThreshold
+	adaptation_size_threshold: Annotated[float, Field(default=None)]
+	cpu_cores: CPUCores
+	blast_path : BLASTPath
+	size_filter: Annotated[bool, Field(default=False)]
+
+	@model_validator(mode="after")
+	def apply_size_filter(self):
+		if self.size_filter:
+			self.adaptation_minimum_length = self.minimum_length
+			self.adaptation_size_threshold = self.size_threshold
+
+
+class UniprotFinderValidator(BaseModel):
+	output_directory: OutputDirectory
+	schema_directory: SchemaDirectory
+	loci_list: LociList | None = None
+	protein_table: Annotated[str, AfterValidator(input_path_exists)]
+	blast_score_ratio: BLASTScoreRatio
+	cpu_cores: CPUCores
+	taxa: Annotated[str, Field(default=None)]
+	proteome_matches: Annotated[int, Field(default=1)]
+	no_sparql: Annotated[bool, Field(default=False)]
+	no_cleanup: Annotated[bool, Field(default=False)]
+	no_cleanup: bool
+
+
+class ComputeDistancesValidator(BaseModel):
+	output_directory: OutputDirectory
+	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	method: Annotated[str, Field(default=ct.DEFAULT_DISTANCE_METHOD), AfterValidator(validate_distance_method)]
+	outfmt: Annotated[str, Field(default=ct.DEFAULT_OUTPUT_FORMAT), AfterValidator(validate_output_format)]
+	no_mask: Annotated[bool, Field(default=False)]
+	similarity: Annotated[bool, Field(default=False)]
+	cpu_cores: CPUCores
+
+
+class ComputeMSAValidator(BaseModel):
+	output_directory: OutputDirectory
+	input_path: Annotated[str, AfterValidator(input_path_exists)]
+	schema_directory: SchemaDirectory
+	dna_msa: Annotated[bool, Field(default=False)]
+	output_variable: Annotated[bool, Field(default=0)]
+	translation_table: TranslationTable
+	cpu_cores: CPUCores
+	only_loci_msas: Annotated[bool, Field(default=False)]
+	gaps: Annotated[str, Field(default=ct.DEFAULT_GAPS), AfterValidator(validate_choice)]
+	ambiguous: Annotated[str, Field(default=ct.DEFAULT_AMBIGUOUS), AfterValidator(validate_choice)]
+	custom_mafft_parameters: Annotated[str, AfterValidator()]
+	protein_input: Annotated[bool, Field(default=False)]
+	no_cleanup: Annotated[bool, Field(default=False)]
+
+
+class DownloadSchemaValidator(BaseModel):
+
+
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+

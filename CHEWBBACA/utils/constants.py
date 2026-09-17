@@ -792,49 +792,42 @@ MISSING_INPUTS = ("Some of the paths to input files are not valid.")
 CPU_CORES_DEFAULT = 1
 CPU_CORES_MIN = 1
 
+# List of parameter names used by chewBBACA
 INPUT_FILES_ARGNAME = "input_files"
 OUTPUT_DIRECTORY_ARGNAME = "output_directory"
-SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
+GENE_PREDICTOR_ARGNAME = "gene_predictor"
+GENE_PREDICTION_OPTIONS_ARGNAME = "gene_prediction_options"
+TRANSLATION_TABLE_ARGNAME = "translation_table"
+CPU_CORES_ARGNAME = "cpu_cores"
 SCHEMA_NAME_ARGNAME = "schema_name"
-LOCI_LIST_ARGNAME = "loci_list"
 BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
 MINIMUM_LENGTH_ARGNAME = "minimum_length"
-GENETIC_CODE_ARGNAME = "translation_table"
 SIZE_THRESHOLD_ARGNAME = "size_threshold"
+CLUSTERING_OPTIONS_ARGNAME = "clustering_options"
 BLAST_PATH_ARGNAME = "blast_path"
 CDS_INPUT_ARGNAME = "cds_input"
 NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
-CPU_CORES_ARGNAME = "cpu_cores"
 NO_CLEANUP_ARGNAME = "no_cleanup"
-AUGUSTUS_PATH_ARGNAME = "augustus_path"
-PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
-PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
-CLUSTERING_WORD_ARGNAME = "word_size"
-CLUSTERING_WINDOW_ARGNAME = "window_size"
-CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
-CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
-CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
-GENE_PREDICTOR_ARGNAME = "gene_predictor"
-GENE_PREDICTION_STR_ARGNAME = "gene_prediction_arguments"
-CLUSTERING_STR_ARGNAME = "clustering_parameters"
+SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
+LOCI_LIST_ARGNAME = "loci_list"
 NO_INFERRED_ARGNAME = "no_inferred"
 OUTPUT_UNCLASSIFIED_ARGNAME = "output_unclassified"
 OUTPUT_MISSING_ARGNAME = "output_missing"
 OUTPUT_NOVEL_ARGNAME = "output_novel"
 OUTPUT_MASKED_ARGNAME = "output_masked"
 FORCE_CONTINUE_ARGNAME = "force_continue"
-ALLELECALL_MODE_ARGNAME = "mode"
-ANNOTATIONS_ARGNAME = "annotations"
+EXECUTION_MODE_ARGNAME = "execution_mode"
+ANNOTATIONS_FILE_ARGNAME = "annotations_file"
 LOCI_REPORTS_ARGNAME = "loci_reports"
 LIGTH_ARGNAME = "light"
 ADD_SEQUENCES_ARGNAME = "add_sequences"
-NO_PA_ARGNAME = "no_pa"
-NO_DM_ARGNAME = "no_dm"
-NO_TREE_ARGNAME = "no_tree"
-CG_ALIGNMENT_ARGNAME = "cg_alignment"
 RESULTS_FILES_ARGNAME = "results_files"
-THRESHOLD_ARGNAME = "threshold"
-STEP_ARGNAME = "step"
+NO_PRESENCE_ABSENCE_ARGNAME = "no_presence_absence"
+NO_DISTANCE_MATRIX_ARGNAME = "no_distance_matrix"
+NO_NEIGHBOR_JOINING_ARGNAME = "no_neighbor_joining"
+FORCE_CORE_MSA_ARGNAME = "force_core_msa"
+LOCI_PRESENCE_THRESHOLD_ARGNAME = "loci_presence_threshold"
+SAMPLE_STEP_ARGNAME = "sample_step"
 COMPUTE_ACCESSORY_ARGNAME = "compute_accessory"
 RAREFACTION_ANALYSIS_ARGNAME = "rarefaction_analysis"
 PERMUTATION_NUMBER_ARGNAME = "permutation_number"
@@ -842,37 +835,54 @@ PERMUTATION_SAMPLES_ARGNAME = "permutation_samples"
 EXCLUDE_LOCI_ARGNAME = "exclude_loci"
 EXCLUDE_GENOMES_ARGNAME = "exclude_genomes"
 SAMPLE_LIST_ARGNAME = "sample_list"
-INVERSE_LOCI_ARGNAME = "inverse_loci"
-INVERSE_SAMPLES_ARGNAME = "inverse_samples"
+INVERT_LOCI_ARGNAME = "invert_loci"
+INVERT_SAMPLES_ARGNAME = "invert_samples"
 COMMON_ARGNAME = "common"
 ALLELIC_PROFILES_ARGNAME = "allelic_profiles"
-HASH_TYPE_ARGNAME = "hash_type"
-NROWS_ARGNAME = "nrows"
+HASHING_ALGO_ARGNAME = "hashing_algo"
+NROW_CHUNK_ARGNAME = "nrow_chunk"
+TRANSLATE_ALLELES_ARGNAME = "translate_alleles"
 DISTINCT_ARGNAME = "distinct"
-TRANSLATE_ARGNAME = "translate"
 SIZE_FILTER_ARGNAME = "size_filter"
 PROTEIN_TABLE_ARGNAME = "protein_table"
-TAXA_ARGNAME = "taxa"
+PROTEOME_TAXA_ARGNAME = "proteome_taxa"
 PROTEOME_MATCHES_ARGNAME = "proteome_matches"
 NO_SPARQL_ARGNAME = "no_sparql"
-METHOD_ARGNAME = "method"
+DISTANCE_COMPUTATION_METHOD_ARGNAME = "distance_computation_method"
 OUTPUT_FORMAT_ARGNAME = "output_format"
+COMPUTE_SIMILARITY_ARGNAME = "compute_similarity"
 NO_MASK_ARGNAME = "no_mask"
-SIMILARITY_ARGNAME = "similarity"
-INPUT_PATH_ARGNAME = "input_path"
 DNA_MSA_ARGNAME = "dna_msa"
 OUTPUT_VARIABLE_ARGNAME = 'output_variable'
-ONLY_LOCI_MSAS_ARGNAME = "only_loci_msas"
 GAPS_ARGNAME = "gaps"
 AMBIGUOUS_ARGNAME = "ambiguous"
-CUSTOM_MAFFT_PARAMETERS_ARGNAME = "custom_mafft_params"
+ONLY_LOCI_MSAS_ARGNAME = "only_loci_msas"
+CUSTOM_MAFFT_OPTIONS_ARGNAME = "custom_mafft_options"
 PROTEIN_INPUT_ARGNAME = "protein_input"
 SPECIES_ID_ARGNAME = "species_id"
 SCHEMA_ID_ARGNAME = "schema_id"
 DOWNLOAD_FOLDER_ARGNAME = "download_folder"
-NOMENCLATURE_SERVER_ARGNAME = "nomenclature_server"
-DATE_ARGNAME = "date"
-LATEST_ARGNAME = "latest"
+NOMENCLATURE_SERVER_INSTANCE_ARGNAME = "nomenclature_server_instance"
+SCHEMA_DATE_ARGNAME = "schema_date"
+LATEST_VERSION_ARGNAME = "latest_version"
+LOCI_PREFIX_ARGNAME = "loci_prefix"
+DESCRIPTION_FILE_ARGNAME = "description_file"
+CONTINUE_UPLOAD_ARGNAME = "continue_upload"
+SUBMIT_ALLELES_ARGNAME = "submit_alleles"
+STATS_MODE_ARGNAME = "stats_mode"
+
+# List of argument default values
+
+PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
+PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
+AUGUSTUS_PATH_ARGNAME = "augustus_path"
+CLUSTERING_WORD_ARGNAME = "word_size"
+CLUSTERING_WINDOW_ARGNAME = "window_size"
+CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
+CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
+CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
+
+NSSTATS_MODE_CHOICES = ['species', 'schemas']
 
 DEFAULT_NOMENCLATURE_SERVER = "main"
 
@@ -903,18 +913,19 @@ PYRODIGAL_META_NOPTF = ("Cannot use a training file when running Pyrodigal in me
 ARGUMENT_TYPES = {
 	"input_files": str,
 	"output_directory": str,
+	"gene_predictor": str,
+	"gene_prediction_options": str,
+	"translation_table": int,
+	"cpu_cores": int,
 	"schema_name": str,
 	"blast_score_ratio": float,
+
 	"minimum_length": int,
-	"translation_table": int,
 	"size_threshold": float,
-	"gene_predictor": str,
-	"gene_prediction_arguments": str,
 	"clustering_parameters": str,
 	"blast_path": str,
 	"cds_input": bool,
 	"no_cds_renaming": bool,
-	"cpu_cores": int,
 	"no_cleanup": bool,
 	"augustus_species": str,
 	"augustus_output_formats": str,

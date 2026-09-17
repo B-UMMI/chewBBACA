@@ -20,19 +20,25 @@ import argparse
 import platform
 import subprocess
 import multiprocessing
+from typing import Annotated
+from functools import partial
+
+from pydantic import (BaseModel,
+					  Field,
+					  ConfigDict,
+					  AfterValidator,
+					  model_validator)
 
 try:
 	from utils import (constants as ct,
 					   file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
-					   iterables_manipulation as im,
 					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
-								 iterables_manipulation as im,
 								 pyrodigal_gene_prediction as pgp)
 
 
@@ -175,71 +181,6 @@ def get_blast_version(blastp_path):
 	return version
 
 
-def hash_ptf(ptf_path):
-	"""Determine hash value for a Prodigal training file.
-
-	Parameters
-	----------
-	ptf_path : str or None
-		Path to the Prodigal training file or None if no
-		training file will be used.
-
-	Returns
-	-------
-	ptf_hash : str
-		Blake2b hash computed from file content.
-	"""
-	if ptf_path is not None:
-		ptf_hash = fo.hash_file(ptf_path, 'blake2b')
-	else:
-		ptf_hash = None
-
-	return ptf_hash
-
-
-# def validate_ptf_path(ptf_path, schema_directory):
-# 	""" Determines if the path to the Prodigal training file
-# 		is valid. Gets the training file in the schema's
-# 		directory if the input path is of type NoneType.
-
-# 	Parameters
-# 	----------
-# 	ptf_path : str or NoneType
-# 		Path to the Prodigal training file or NoneType
-# 		if no value was provided.
-# 	schema_directory : str
-# 		Path to the schema's directory.
-
-# 	Returns
-# 	-------
-# 	ptf_path : str or bool
-# 		Path to the Prodigal training file or False if
-# 		no training file should be used.
-
-# 	Raises
-# 	------
-# 	SystemExit
-# 		- If there is more than one training file in
-# 		the schema's directory.
-# 		- If a path was provided and it is not valid.
-# 	"""
-# 	if ptf_path is None:
-# 		# Deal with multiple training files
-# 		schema_ptfs = [file
-# 					   for file in os.listdir(schema_directory)
-# 					   if file.endswith('.trn')]
-# 		if len(schema_ptfs) > 1:
-# 			sys.exit(ct.MULTIPLE_PTFS)
-# 		elif len(schema_ptfs) == 1:
-# 			if schema_ptfs[0] is not None:
-# 				ptf_path = os.path.join(schema_directory, schema_ptfs[0])
-# 			else:
-# 				print(ct.MISSING_PTF)
-# 				ptf_path = None
-
-# 	return ptf_path
-
-
 def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
 	""" Determines if the hash for the Prodigal training
 		file matches any of the hashes from training files
@@ -329,113 +270,13 @@ def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
 
 	# Determine PTF checksum
 	if ptf_path is not None:
-		ptf_hash = hash_ptf(ptf_path)
+		ptf_hash = fo.hash_file(ptf_path, 'blake2b')
 	else:
 		ptf_hash = None
 
 	unmatch = validate_ptf_hash(ptf_hash, schema_ptfs, force_continue)
 
 	return [ptf_path, ptf_hash, unmatch]
-
-
-def read_configs(schema_path, filename):
-	""" Reads file with schema config values.
-
-	Parameters
-	----------
-	schema_path : str
-		Path to the schema's directory.
-	filename : str
-		Name of the file that contains the config values.
-
-	Returns
-	-------
-	configs : dict
-		Dictionary with config names as keys and config
-		values as values.
-	"""
-
-	config_file = os.path.join(schema_path, filename)
-	if os.path.isfile(config_file):
-		# Load configs dictionary
-		configs = fo.pickle_loader(config_file)
-	else:
-		sys.exit(ct.MISSING_CONFIG)
-
-	return configs
-
-
-def validate_loci_list(input_path, output_file, parent_dir=None):
-	"""Validate a list of paths to loci FASTA files or loci IDs.
-
-	Parameters
-	----------
-	input_path : str
-		Path to a file with a list of paths.
-	output_file : str
-		Path to the output file created to store the paths
-		to valid loci FASTA files.
-	parent_dir : str
-		Parent directory to add to construct paths
-		to input files when users provide a file
-		with file names.
-
-	Returns
-	-------
-	Path to the output file created to store the paths
-	to valid loci FASTA files.
-
-	Raises
-	------
-	SystemExit
-		- If the input path is for a FASTA file.
-		- If any of the provided paths does not exist.
-		- If the format of any of the files is not FASTA.
-	"""
-	# Check if it is a single FASTA file
-	if fao.validate_fasta(input_path) is True:
-		# Exit if input is a single FASTA file
-		sys.exit(ct.FASTA_LOCI_LIST_EXCEPTION)
-
-	# Read list of input files
-	files = [line[0] for line in fo.read_tabular(input_path)]
-
-	# List must have full paths
-	if parent_dir is not None:
-		# Add parent directory path if necessary
-		files = [os.path.join(parent_dir, fo.file_basename(file))
-				 if parent_dir not in file
-				 else file
-				 for file in files]
-
-	# Add '.fasta' extension if it is missing from IDs
-	# Loci files use the '.fasta' extension, anything else might
-	# mean there is an issue with the schema or it is an external schema
-	files = [file+'.fasta'
-			 if any([file.endswith(ext) for ext in ct.FASTA_EXTENSIONS]) is False
-			 else file
-			 for file in files]
-
-	# Check that all files exist
-	invalid_files = []
-	missing = [file for file in files if os.path.exists(file) is False]
-	if len(missing) > 0:
-		invalid_files.append([missing, ct.MISSING_LOCI_EXCEPTION])
-
-	# Only keep files whose content is typical of a FASTA file
-	fasta_files, non_fasta = fao.filter_non_fasta(files)
-	if len(non_fasta) > 0:
-		invalid_files.append([non_fasta, ct.NON_FASTA_LOCI_EXCEPTION])
-
-	# Exit if list of input files contained invalid files
-	if len(invalid_files) > 0:
-		exception_messages = [e[1].format(im.join_list(e[0], '\n')) for e in invalid_files]
-		sys.exit(im.join_list(exception_messages, '\n'))
-	# Save file paths to output file
-	else:
-		fo.write_lines(files, output_file)
-
-	return output_file
 
 
 def get_file_prefixes(path_list):
@@ -1073,7 +914,7 @@ def check_st_conflict(user_st, schema_config, force_continue):
 
 def check_ptf_conflict(user_ptf, translation_table, schema_config, force_continue):
 	""""""
-	user_ptf_hash = hash_ptf(user_ptf)
+	user_ptf_hash = fo.hash_file(user_ptf, 'blake2b')
 	if user_ptf_hash not in schema_config["prodigal_training_file"]:
 		print("The Pyrodigal training file provided does not match "
 				f"any of the training files used with the schema ({schema_config["prodigal_training_file"]}).")
@@ -1128,13 +969,6 @@ def validate_output_format(output_format, valid_output_formats=ct.OUTPUT_FORMATS
 		sys.exit(ct.INVALID_OUTPUT_FORMAT)
 
 	return output_format
-
-
-from pathlib import Path
-from functools import partial
-from typing import Annotated, Literal
-from pydantic import BaseModel, ConfigDict, BeforeValidator, AfterValidator, DirectoryPath, FilePath, Field, ValidationError, field_validator, model_validator
-
 
 # Define reusable fields
 OutputDirectory = Annotated[str,
@@ -1286,6 +1120,11 @@ class ClusteringArgs(BaseModel):
 
 
 class PredictGenesValidator(BaseModel):
+	# Use `from_attributes=True` to inspect the attributes of the 
+	# argparse.Namespace object directly without having to convert to a dictionary
+	model_config = ConfigDict(from_attributes=True)
+
+	# Field order is preserved when serializing with model_dump()
 	output_directory: OutputDirectory
 	input_files: InputFiles
 	gene_predictor: GenePredictor
@@ -1330,6 +1169,8 @@ class PredictGenesValidator(BaseModel):
 # I can use reusable fields like this one
 # custom_option = Annotated[str, AfterValidator(validation_function)]
 class CreateSchemaValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	input_files: InputFiles
 	schema_name: Annotated[str, Field(default=ct.SCHEMA_NAME_DEFAULT)]
@@ -1387,6 +1228,8 @@ class CreateSchemaValidator(BaseModel):
 
 
 class AlleleCallValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	input_files: InputFiles
 	schema_directory: SchemaDirectory
@@ -1483,6 +1326,8 @@ class AlleleCallValidator(BaseModel):
 
 
 class SchemaEvaluatorValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
@@ -1497,6 +1342,8 @@ class SchemaEvaluatorValidator(BaseModel):
 
 
 class AlleleCallEvaluatorValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
 	schema_directory: SchemaDirectory
@@ -1510,6 +1357,8 @@ class AlleleCallEvaluatorValidator(BaseModel):
 
 
 class ExtractCgMLSTValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
 	threshold: Annotated[list, Field(default=ct.CGMLST_THRESHOLDS), AfterValidator(validate_cgmlst_thresholds)]
@@ -1524,6 +1373,8 @@ class ExtractCgMLSTValidator(BaseModel):
 
 
 class SubsetResultsValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
 	loci_list: LociList | None = None
@@ -1533,12 +1384,16 @@ class SubsetResultsValidator(BaseModel):
 
 
 class MergeResults(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
 	common: Annotated[bool, Field(default=False)]
 
 
 class HashProfilesValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
 	schema_directory: SchemaDirectory
@@ -1548,6 +1403,8 @@ class HashProfilesValidator(BaseModel):
 
 
 class GetAllelesValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
 	schema_directory: SchemaDirectory
@@ -1565,6 +1422,8 @@ class GetAllelesValidator(BaseModel):
 
 
 class PrepExternalSchemaValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
@@ -1589,6 +1448,8 @@ class PrepExternalSchemaValidator(BaseModel):
 
 
 class UniprotFinderValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+	
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
@@ -1603,6 +1464,8 @@ class UniprotFinderValidator(BaseModel):
 
 
 class ComputeDistancesValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
 	method: Annotated[str, Field(default=ct.DEFAULT_DISTANCE_METHOD), AfterValidator(validate_distance_method)]
@@ -1613,6 +1476,8 @@ class ComputeDistancesValidator(BaseModel):
 
 
 class ComputeMSAValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
 	input_path: Annotated[str, AfterValidator(input_path_exists)]
 	schema_directory: SchemaDirectory
@@ -1629,7 +1494,46 @@ class ComputeMSAValidator(BaseModel):
 
 
 class DownloadSchemaValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
 
-
+	species_id: Annotated[str, AfterValidator()]
+	schema_id: Annotated[str, AfterValidator()]
+	download_folder: Annotated[str, AfterValidator(input_path_exists)]
+	cpu_cores: CPUCores
 	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	blast_path : BLASTPath
+	date: Annotated[str, AfterValidator()] | None = None
+	latest: Annotated[bool, Field(default=False)]
 
+
+class UploadSchemaValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	schema_directory: SchemaDirectory
+	species_id: Annotated[str, AfterValidator()]
+	schema_name: Annotated[str, AfterValidator()]
+	loci_prefix: Annotated[str, AfterValidator()]
+	description_file: Annotated[str, AfterValidator(input_path_exists)]
+	annotations: Annotations | None = None
+	cpu_cores: CPUCores
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	continue_up: Annotated[bool, Field(default=False)]
+
+
+class SynchronizeSchemaValidator():
+	model_config = ConfigDict(from_attributes=True)
+
+	schema_directory: SchemaDirectory
+	cpu_cores: CPUCores
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	blast_path : BLASTPath
+	submit: Annotated[bool, Field(default=False)]
+
+
+class NSStatsValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	mode: Annotated[str, AfterValidator(validate_choice)]
+	species_id:
+	schema_id:
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]

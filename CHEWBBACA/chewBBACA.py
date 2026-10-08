@@ -120,20 +120,13 @@ def run_predict_genes():
 							 "available CPU cores).")
 
 	args = parser.parse_args()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.PredictGenesValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
-
-	print(validated_args)
-	sys.exit()
-
-	# Exit if user only requested to create training file
-	if validated_args.validated_gene_prediction_arguments.just_training:
-		sys.exit(ct.JUST_TRAINING)
+	validated_args = pv.PredictGenesValidator.model_validate(clean_args)
 
 	# Predict CDSs
-	predict_genes.main(args.input_files, args.output_directory, args.gene_predictor, gene_predictor_parameters, args.cpu_cores)
+	predict_genes.main(validated_args)
 
 
 @pdt.process_timer
@@ -152,7 +145,7 @@ def run_create_schema():
 									 epilog="It is strongly advised to provide a training file to create a schema. "
 											f"Module documentation available at {ct.CreateSchemaDocs}")
 
-	parser.add_argument('CreateSchema', nargs='+', help=argparse.SUPPRESS)
+	parser.add_argument("CreateSchema", nargs="+", help=argparse.SUPPRESS)
 
 	parser.add_argument("-i", "--input-files", type=ct.ARGUMENT_TYPES[ct.INPUT_FILES_ARGNAME],
 						required=True, dest=ct.INPUT_FILES_ARGNAME,
@@ -190,7 +183,7 @@ def run_create_schema():
 						required=False, dest=ct.SIZE_THRESHOLD_ARGNAME,
 						help="CDS size variation threshold. This value is used to define how much allele "
 							 "size can vary for each locus (e.g. setting this value to 0.2 will define a "
-							 "threshold that limits allele size variation to +/-20% the allele size mode "
+							 "threshold that limits allele size variation to +/-20%% the allele size mode "
 							 "for each locus). This value is not used in the CreateSchema process, but is "
 							 "added to the schema's config file to be used during allele calling to check "
 							 "if the sequence size of the potential new alleles is within the defined size "
@@ -210,8 +203,8 @@ def run_create_schema():
 							 "passed as the long format of the parameter name followed by the "
 							 "argument value (e.g., pyrodigal-training-file=/path/to/file).")
 
-	parser.add_argument("--co", "--clustering-options", type=ct.ARGUMENT_TYPES[ct.CLUSTERING_STR_ARGNAME],
-					 	nargs="+", required=False, dest=ct.CLUSTERING_STR_ARGNAME,
+	parser.add_argument("--co", "--clustering-options", type=ct.ARGUMENT_TYPES[ct.CLUSTERING_OPTIONS_ARGNAME],
+					 	nargs="+", required=False, dest=ct.CLUSTERING_OPTIONS_ARGNAME,
 						help="List of arguments passed to configure the clustering of predicted "
 							 "coding sequences (CDSs). The list of arguments for each parameter "
 							 "used to configure the clustering can be passed as the long format "
@@ -246,16 +239,13 @@ def run_create_schema():
 							 "are not deleted at the end.")
 
 	args = parser.parse_args()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.CreateSchemaValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
-
-	print(validated_args)
-	sys.exit()
+	validated_args = pv.CreateSchemaValidator.model_validate(clean_args)
 
 	# Run the CreateSchema process
-	nloci = create_schema.main(**vars(args))
+	nloci = create_schema.main(validated_args)
 	print(f'Created schema seed with {nloci} loci.')
 
 
@@ -381,7 +371,7 @@ def run_allele_call():
 							 "allele identifiers attributed by chewBBACA based on the "
 							 "allele calling results.")
 
-	parser.add_argument("--om", "--output-masked", action="store_true",
+	parser.add_argument("--omp", "--output-masked-profiles", action="store_true",
 						required=False, dest=ct.OUTPUT_MASKED_ARGNAME,
 						help="Create a TSV file with the masked allelic profiles. The "
 							 "masking process removes the `INF-` prefix from inferred "
@@ -425,35 +415,13 @@ def run_allele_call():
 							 "are not removed at the end.")
 
 	args = parser.parse_args()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.AlleleCallValidator.model_valdiate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	validated_args = pv.AlleleCallValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	# Single dictionary with most arguments
-	config = {'Minimum sequence length': args.minimum_length,
-			  'Size threshold': args.size_threshold,
-			  'Translation table': args.translation_table,
-			  'BLAST Score Ratio': args.blast_score_ratio,
-			  'Word size': args.word_size,
-			  'Window size': args.window_size,
-			  'Clustering similarity': args.clustering_sim,
-			  'Pyrodigal training file': args.ptf_path,
-			  'CPU cores': args.cpu_cores,
-			  'BLAST path': args.blast_path,
-			  'CDS input': args.cds_input,
-			  'Pyrodigal mode': args.pyrodigal_mode,
-			  'Pyrodigal minimum confidence': args.pyrodigal_minimum_confidence,
-			  'Mode': args.mode}
-
-	allele_call.main(genome_list, loci_list, args.schema_directory,
-					 args.output_directory, args.no_inferred,
-					 args.output_unclassified, args.output_missing,
-					 args.output_novel, args.output_masked,
-					 args.no_cleanup, args.no_cds_renaming, args.ns, config)
+	# Run the AlleleCall process
+	allele_call.main(validated_args)
 
 
 @pdt.process_timer
@@ -1598,7 +1566,7 @@ def main():
 
 	functions_info = {'PredictGenes': ['Predict genes from a set of input genome assemblies.',
 									  run_predict_genes],
-					  'CreateSchema': ['Create a gene-by-gene schema based on a set of genome assemblies or coding sequences.',
+					  'CreateSchema': ["Create a gene-by-gene schema based on a set of FASTA files with genome assemblies or coding sequences.",
 									   run_create_schema],
 					  'AlleleCall': ['Determine the allelic profiles of a set of bacterial genomes based on a schema.',
 									 run_allele_call],
@@ -1650,10 +1618,10 @@ def main():
 		exit_code = 0
 		# Detect if user passed module name that does not exist
 		if len(sys.argv) > 1 and sys.argv[1] not in help_triggers:
-			print(f'No module named {sys.argv[1]}.\n')
+			print(f"No module named {sys.argv[1]}.\n")
 			exit_code = 1
-		print('USAGE: chewBBACA.py [module] -h, --help\n')
-		print('Select one of the following modules:')
+		print("USAGE: chewBBACA.py [module] -h, --help\n")
+		print("Select one of the following modules:")
 		for f in functions_info:
 			print('{0}: {1}'.format(f, functions_info[f][0]))
 		sys.exit(exit_code)
@@ -1665,7 +1633,7 @@ def main():
 
 	# Trigger module help message if no arguments are provided
 	if len(sys.argv) == 2 and sys.argv[1] in functions_info:
-		sys.argv.append('-h')
+		sys.argv.append("-h")
 
 	process = sys.argv[1]
 	functions_info[process][1]()

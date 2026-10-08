@@ -144,8 +144,7 @@ def filter_by_substring(files, suffixes, reverse=False):
 	filtered : list
 		List with files that passed filtering.
 	"""
-	filtered = [file for file in files
-				if any([suffix in file for suffix in suffixes])]
+	filtered = [file for file in files if any([suffix in file for suffix in suffixes])]
 
 	if reverse is True:
 		filtered = list(set(files)-set(filtered))
@@ -172,8 +171,7 @@ def filter_by_extension(files, extensions):
 		List with files that do not end with one of the provided
 		file extensions.
 	"""
-	has_extension = [file for file in files
-					 if any([file.endswith(ext) for ext in extensions])]
+	has_extension = [file for file in files if any([file.endswith(ext) for ext in extensions])]
 	no_extension = list(set(files)-set(has_extension))
 
 	return has_extension, no_extension
@@ -195,15 +193,13 @@ def join_paths(parent_path, child_paths):
 	return joined_paths
 
 
-def listdir_fullpath(directory_path, substring_filter=False):
+def listdir(directory_path, full_path=False):
 	"""Get the full path for all files in a directory.
 
 	Parameters
 	----------
 	directory_path : str
 		Path to a directory.
-	substring_filter : str
-		Only list files that contain this substring.
 
 	Returns
 	-------
@@ -211,11 +207,10 @@ def listdir_fullpath(directory_path, substring_filter=False):
 		List containing the full path for every selected
 		file in the input directory.
 	"""
-	file_list = [os.path.join(directory_path, file) for file in os.listdir(directory_path)]
-
-	if substring_filter is not False:
-		suffixes = [substring_filter] if isinstance(substring_filter, str) else substring_filter
-		file_list = filter_by_substring(file_list, suffixes)
+	if full_path:
+		file_list = [os.path.join(directory_path, file) for file in os.listdir(directory_path)]
+	else:
+		file_list = os.listdir(directory_path)
 
 	return file_list
 
@@ -564,7 +559,7 @@ def is_directory(file_path):
 
 def exists(file_path):
 	""""""
-	return os.path.exists(file_path), file_path
+	return os.path.exists(file_path)
 
 
 def get_parent_directory(file_path):

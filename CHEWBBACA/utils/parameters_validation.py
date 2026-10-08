@@ -27,6 +27,7 @@ from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
 					  AfterValidator,
+					  BeforeValidator,
 					  model_validator)
 
 try:
@@ -34,11 +35,14 @@ try:
 					   file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
+					   iterables_manipulation as im,
 					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (file_operations as fo,
+	from CHEWBBACA.utils import (constants as ct,
+	                             file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
+								 iterables_manipulation as im,
 								 pyrodigal_gene_prediction as pgp)
 
 
@@ -304,14 +308,6 @@ def get_file_prefixes(path_list):
 	return basename_counts
 
 
-def input_is_fasta(input_path):
-	""""""
-	# Check if input is a single FASTA file
-	if fo.is_file(input_path)[0]:
-		if fao.validate_fasta(input_path):
-			sys.exit(ct.FASTA_INPUT_EXCEPTION)
-
-
 def list_input_files(input_path):
 	""""""
 	if os.path.isfile(input_path):
@@ -321,7 +317,7 @@ def list_input_files(input_path):
 	elif os.path.isdir(input_path):
 		# List absolute paths
 		# Only keep paths to files
-		input_files = [file for file in fo.listdir_fullpath(input_path) if os.path.isdir(file) is False]
+		input_files = [file for file in fo.listdir(input_path, full_path=True) if os.path.isdir(file) is False]
 
 	return input_files
 
@@ -331,7 +327,9 @@ def filter_inputs_extension(input_files, extensions=ct.FASTA_EXTENSIONS):
 	# Need to verify if files end with any of the accepted file extensions
 	valid_extension, invalid_extension = fo.filter_by_extension(input_files, extensions)
 	if len(invalid_extension) > 0:
-		sys.exit(ct.INVALID_EXTENSION_EXCEPTION)
+		# Join list of files with non-supported file extensions
+		invalid_joined = "\n".join(invalid_extension)
+		sys.exit(ct.INVALID_EXTENSION_EXCEPTION.format(invalid_joined, extensions))
 
 	return input_files
 
@@ -341,17 +339,20 @@ def inputs_exist(input_files):
 	# Check that all files exist
 	missing_inputs = [file for file in input_files if fo.exists(file) is False]
 	if len(missing_inputs) > 0:
-		sys.exit(ct.MISSING_INPUTS)
+		missing_joined = "\n".join(missing_inputs)
+		sys.exit(ct.MISSMISSING_INPUTS_EXCEPTIONING_INPUTS.format(missing_joined))
 
 	return input_files
 
 
 def validate_inputs_fastas(input_files):
 	""""""
-	# Input files must be vaid FASTA files
+	# Input FASTA files must have a valid format
 	fasta, non_fasta = fao.filter_non_fasta(input_files)
 	if len(non_fasta) > 0:
-		sys.exit(ct.NON_FASTA_EXCEPTION)
+		# Join files that are not in a valid FASTA format
+		non_fasta_joined = "\n".join(non_fasta)
+		sys.exit(ct.NON_FASTA_EXCEPTION.format(non_fasta_joined))
 
 	return input_files
 
@@ -376,9 +377,10 @@ def check_unique_prefixes(input_files):
 	prefixes = get_file_prefixes(input_files)
 	# Detect if some inputs share the same unique prefix
 	if len(set(prefixes)) < len(input_files):
-		repeated_basenames = [f'{k}: {", ".join(v)}' for k, v in prefixes.items() if len(v) > 1]
-		repeated_basenames = [','.join(l) for l in repeated_basenames]
-		sys.exit(ct.INPUTS_SHARE_PREFIX.format('\n'.join(repeated_basenames)))
+		repeated_basenames = [f"{k}: {', '.join(v)}" for k, v in prefixes.items() if len(v) > 1]
+		repeated_basenames = [",".join(l) for l in repeated_basenames]
+		repeated_basenames = "\n".join(repeated_basenames)
+		sys.exit(ct.INPUTS_SHARE_PREFIX.format(repeated_basenames))
 
 	return input_files
 
@@ -403,40 +405,10 @@ def check_blanks(input_files):
 	basenames = [fo.file_basename(file) for file in input_files]
 	include_blanks = [name for name in basenames if ' ' in name]
 	if len(include_blanks) > 0:
-		sys.exit(ct.INPUTS_INCLUDE_BLANKS.format('\n'.join(include_blanks)))
+		include_blanks_joined = "\n".join(include_blanks)
+		sys.exit(ct.INPUTS_INCLUDE_BLANKS.format(include_blanks_joined))
 
 	return input_files
-
-
-def translation_table_type(genetic_code, valid_genetic_codes):
-	"""Validate the translation table value (TT) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : int
-		The TT value passed to chewBBACA. Must be of type int
-		and match the identifier of one of the genetic codes.
-	genetic_codes : dict
-		Dictionary with genetic codes identifiers as keys and
-		descriptions as values.
-
-	Returns
-	-------
-	valid : int
-		The TT value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the TT value cannot be converted to int type
-		or if it does not match any of the acceptable genetic
-		codes.
-	"""
-	# Set to default value if user did not provide a value
-	if genetic_code not in valid_genetic_codes:
-		sys.exit(ct.INVALID_GENETIC_CODE)
-
-	return genetic_code
 
 
 def check_blast(blast_path, blastp_alias=ct.BLASTP_ALIAS):
@@ -500,12 +472,16 @@ def get_augustus_species_list(augustus_exe):
 	# Process the list of species printed to stdout
 	species_list = {}
 	# List of species is printed to stderr
+	i = 0
 	for line in stderr.split("\n"):
 		if "|" in line:
-			species_id, species_name = line.split("|")
-			species_id = species_id.strip()
-			species_name = species_name.strip()
-			species_list[species_name] = species_id
+			i += 1
+			# Skip the table header and separator
+			if i > 2:
+				species_id, species_name = line.split("|")
+				species_id = species_id.strip()
+				species_name = species_name.strip()
+				species_list[species_name] = species_id
 
 	return species_list
 
@@ -516,17 +492,12 @@ def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUS
 	species_list = get_augustus_species_list(augustus_exe)
 
 	if species_id not in species_list.values():
-		sys.exit(ct.AUGUSTUS_INVALID_SPECIES)
+		# Create string with list of options
+		species_list_str = [": ".join([k, v]) for k, v in species_list.items()]
+		species_list_str = "\n".join(species_list_str)
+		sys.exit(ct.AUGUSTUS_INVALID_SPECIES.format(species_list_str))
 
 	return species_id
-
-
-def validate_augustus_outfmt(outfmt, valid_outfmts=ct.AUGUSTUS_OUTFMTS):
-	""""""
-	if outfmt not in valid_outfmts:
-		sys.exit(ct.AUGUSTUS_INVALID_OUTFMT)
-
-	return outfmt
 
 
 def input_is_fasta(input_path):
@@ -534,7 +505,7 @@ def input_is_fasta(input_path):
 	# Check if input is a single FASTA file
 	if fo.is_file(input_path)[0]:
 		if fao.validate_fasta(input_path):
-			sys.exit(ct.FASTA_INPUT_EXCEPTION)
+			sys.exit(ct.FASTA_INPUT_EXCEPTION.format(input_path))
 
 	return input_path
 
@@ -542,22 +513,15 @@ def input_is_fasta(input_path):
 def add_ptf_genetic_code(ptf_path, genetic_code):
 	"""
 	"""
-	if ptf_path:
-		print(f"Provided training file. Ignoring the translation table "
-			  "value previously set ({genetic_code}) and using the genetic "
-			  "code defined in the training file ({genetic_code}).")
-		# Get translation table used to create training file
-		genetic_code = pgp.read_training_file(ptf_path).translation_table
+	# Get translation table used to create training file
+	ptf_genetic_code = pgp.read_training_file(ptf_path).translation_table
+	if ptf_genetic_code != genetic_code:
+		print("Provided a Pyrodigal training file. Ignoring the translation table "
+				f"value previously set ({genetic_code}) and using the genetic "
+				f"code defined in the training file ({ptf_genetic_code}).")
+		genetic_code = ptf_genetic_code
 
 	return genetic_code
-
-
-def validate_pyrodigal_mode(mode, valid_modes=ct.PYRODIGAL_MODES):
-	""""""
-	if mode not in valid_modes:
-		sys.exit(ct.INVALID_PYRODIGAL_MODE)
-
-	return mode
 
 
 def check_meta(pyrodigal_mode, pyrodigal_training_file):
@@ -569,21 +533,12 @@ def check_meta(pyrodigal_mode, pyrodigal_training_file):
 	return pyrodigal_mode
 
 
-def validate_pyrodigal_outfmt(outfmt, valid_outfmts=ct.PYRODIGAL_OUTFMTS):
+def validate_multiple_choices(choices, valid_options, exception_str):
 	""""""
-	if not all([of in valid_outfmts for of in outfmt]):
-		sys.exit(ct.PYRODIGAL_INVALID_OUTFMT)
+	if not all([option in valid_options for option in choices]):
+		sys.exit(exception_str.format(valid_options))
 
-	return outfmt
-
-
-def validate_pyrodigal_minimum_confidence(confidence, min_value=ct.PYRODIGAL_MIN_CONFIDENCE, max_value=ct.PYRODIGAL_MAX_CONFIDENCE):
-	""""""
-	if confidence:
-		if confidence < min_value or confidence > max_value:
-			sys.exit(ct.INVALID_PYRODIGAL_CONFIDENCE)
-
-	return confidence
+	return choices
 
 
 def verify_cpu_usage(arg):
@@ -600,199 +555,35 @@ def verify_cpu_usage(arg):
 		Value of CPU cores/threads that will be used after
 		determining if the provided value was safe.
 	"""
-	if arg == multiprocessing.cpu_count():
-		print(ct.CPU_VALUE_WARNING)
+	system_ncores = multiprocessing.cpu_count()
+	if arg == system_ncores:
+		print(ct.CPU_VALUE_WARNING.format(system_ncores))
 
 	return arg
-
-
-def validate_word_size(word_size, min_value=ct.WORD_SIZE_MIN, max_value=ct.WORD_SIZE_MAX):
-	"""Validate the word size value (WS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The WS value passed to chewBBACA.
-	min_value : float
-		Minimum acceptable WS value.
-	max_value : float
-		Maximum acceptable WS value.
-	default_value : float
-		The default WS value to use if none is provided.
-
-	Returns
-	-------
-	valid : float
-		The WS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the WS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	if word_size < min_value or word_size > max_value:
-		sys.exit(ct.INVALID_WORD_SIZE)
-
-	return word_size
-
-
-def validate_window_size(window_size, min_value=ct.WINDOW_SIZE_MIN, max_value=ct.WINDOW_SIZE_MAX):
-	"""Validate the window size value (WS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The WS value passed to chewBBACA.
-	min_value : float
-		Minimum acceptable WS value.
-	max_value : float
-		Maximum acceptable WS value.
-	default_value : float
-		The default WS value to use if none is provided.
-
-	Returns
-	-------
-	valid : float
-		The WS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the WS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	if window_size < min_value or window_size > max_value:
-		sys.exit(ct.INVALID_WINDOW_SIZE)
-
-	return window_size
-
-
-def validate_clustering_similarity(clustering_similarity, min_value=ct.CLUSTERING_SIMILARITY_MIN, max_value=ct.CLUSTERING_SIMILARITY_MAX):
-	"""Validate the clustering similarity value (WS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The WS value passed to chewBBACA.
-	min_value : float
-		Minimum acceptable WS value.
-	max_value : float
-		Maximum acceptable WS value.
-	default_value : float
-		The default WS value to use if none is provided.
-
-	Returns
-	-------
-	valid : float
-		The WS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the WS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	if clustering_similarity < min_value or clustering_similarity > max_value:
-		sys.exit(ct.INVALID_CLUSTERING_SIMILARITY)
-
-	return clustering_similarity
-
-
-def validate_representative_filter(representative_filter, min_value=ct.REPRESENTATIVE_FILTER_MIN, max_value=ct.REPRESENTATIVE_FILTER_MAX):
-	"""Validate the representative filter value (WS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The WS value passed to chewBBACA.
-	min_value : float
-		Minimum acceptable WS value.
-	max_value : float
-		Maximum acceptable WS value.
-	default_value : float
-		The default WS value to use if none is provided.
-
-	Returns
-	-------
-	valid : float
-		The WS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the WS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	if representative_filter < min_value or representative_filter > max_value:
-		sys.exit(ct.INVALID_REPRESENTATIVE_FILTER)
-
-	return representative_filter
-
-
-def validate_intra_filter(intra_cluster, min_value=ct.INTRA_CLUSTER_MIN, max_value=ct.INTRA_CLUSTER_MAX):
-	"""Validate the intra filter value (WS) passed to chewBBACA.
-
-	Parameters
-	----------
-	arg : float
-		The WS value passed to chewBBACA.
-	min_value : float
-		Minimum acceptable WS value.
-	max_value : float
-		Maximum acceptable WS value.
-	default_value : float
-		The default WS value to use if none is provided.
-
-	Returns
-	-------
-	valid : float
-		The WS value passed to chewBBACA, if it is valid.
-
-	Raises
-	------
-	SystemExit
-		- If the WS value cannot be converted to float type
-		or if it is not contained in the acceptable interval.
-	"""
-	if intra_cluster < min_value or intra_cluster > max_value:
-		sys.exit(ct.INVALID_INTRA_CLUSTER_FILTER)
-
-	return intra_cluster
 
 
 def parse_parameter_string(input_string):
 	"""
 	"""
 	config_args = {}
-	if input_string is not None:
-		for v in input_string:
-			parameter, argument = v.split("=")
-			parameter = parameter.replace("-", "_")
-			# Split argument value in by "," to get multiple values
-			if "," in argument:
-				argument = argument.split(",")
-			# Add parameter name and argument value to config dictionary
-			config_args[parameter] = argument
+	for v in input_string:
+		parameter, argument = v.split("=")
+		parameter = parameter.replace("-", "_")
+		# Split argument value in by "," to get multiple values
+		if "," in argument:
+			argument = argument.split(",")
+		# Add parameter name and argument value to config dictionary
+		config_args[parameter] = argument
 
 	return config_args
 
 
-def training_file_exists(training_file_path):
+def validate_choice(choice, valid_options, exception_str):
 	""""""
-	if training_file_path:
-		if not fo.exists(training_file_path):
-			sys.exit(ct.INVALID_INPUT_PATH)
+	if choice not in valid_options:
+		sys.exit(exception_str)
 
-	return training_file_path
-
-
-def validate_gene_predictor(gene_predictor, valid_gene_predictors=ct.GENE_PREDICTORS):
-	""""""
-	if gene_predictor not in valid_gene_predictors:
-		sys.exit(ct.INVALID_GENE_PREDICTOR)
-
-	return gene_predictor
+	return choice
 
 
 # Check if parent directory for the provided output_dir exists
@@ -804,9 +595,9 @@ def parentdir_exists(input_path):
 	return input_path
 
 
-def input_path_exists(input_path):
+def input_path_exists(input_path, exception_str):
 	if not fo.exists(input_path):
-		sys.exit(f"Input path '{input_path}' does not exist.")
+		sys.exit(exception_str.format(input_path))
 	return input_path
 
 
@@ -825,17 +616,9 @@ def check_ptf_tref_conflict(training_file, training_reference):
 		sys.exit(ct.CANNOT_PROVIDE_PTF_AND_TREF)
 
 
-def validate_allelecall_mode(mode, valid_modes):
-	""""""
-	if mode not in valid_modes:
-		sys.exit(ct.INVALID_ALLELECALL_MODE)
-
-	return mode
-
-
 def schema_includes_fasta(schema_directory):
 	""""""
-	schema_files = os.listdir(schema_directory)
+	schema_files = fo.listdir(schema_directory)
 	# Check if the folder includes FASTA files
 	fasta_extension, _ = fo.filter_by_extension(schema_files, ct.FASTA_EXTENSIONS)
 	if len(fasta_extension) == 0:
@@ -844,103 +627,68 @@ def schema_includes_fasta(schema_directory):
 	return schema_directory
 
 
-def check_schema(schema_directory):
+def schema_check_genes_list(schema_directory):
 	""""""
-	schema_files = os.listdir(schema_directory)
-	# Check if the "short" directory exists
-	if "short" not in schema_files:
-		sys.exit(ct.SCHEMA_INVALID_PATH)
-	# Check if schema includes the .schema_config file
-	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
-	if not fo.is_file(config_file)[0]:
-		sys.exit(ct.ADAPT_LEGACY_SCHEMA)
+	schema_files = fo.listdir(schema_directory)
+	# Check if schema includes the .genes_list file
+	if ct.GENE_LIST_BASENAME not in schema_files:
+		sys.exit(ct.MISSING_GENE_LIST)
+
+	# Verify that loci FASTA files match list of loci in the .genes_list file
+	schema_files_fasta = fo.filter_by_extension(schema_files, [".fasta"])[0]
+	schema_files_basenames = [fo.file_basename(file, False) for file in schema_files_fasta]
+	loci_list = fo.pickle_loader(fo.join_paths(schema_directory, [ct.GENE_LIST_BASENAME]))
+
+	# Determine if the schema or the list of loci have different sets of loci IDs
+	schema_exclusive = set(schema_files_basenames) - set(loci_list)
+	loci_list_exclusive = set(loci_list) - set(schema_files_basenames)
+	if len(schema_exclusive) > 0 or len(loci_list_exclusive) > 0:
+		sys.exit(ct.SCHEMA_LOCI_GENE_LIST_NOMATCH.format(len(schema_exclusive), im.join_list(schema_exclusive, ", "), len(loci_list_exclusive), im.join_list(loci_list_exclusive, ", ")))
 
 	return schema_directory
 
 
-def check_bsr_conflict(user_bsr, schema_config, force_continue):
+def schema_check_config(schema_directory):
 	""""""
-	if user_bsr not in schema_config["bsr"]:
-		print("The value provided for the BLAST Score Ratio does not match "
-			  f"any of the values used with the schema ({schema_config["bsr"]}).")
-		if not force_continue:
-			proceed = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
-		else:
-			params_answer = 'yes'
+	schema_files = fo.listdir(schema_directory)
+	# Check if schema includes the .schema_config file
+	if ct.SCHEMA_CONFIG_BASENAME not in schema_files:
+		sys.exit(ct.SCHEMA_MISSING_FILES.format(ct.SCHEMA_CONFIG_BASENAME))
 
-		if params_answer.lower() not in ['y', 'yes']:
+	return schema_directory
+
+
+def schema_check_short(schema_directory):
+	""""""
+	schema_files = fo.listdir(schema_directory)
+	# Check if the "short" directory exists
+	if "short" not in schema_files:
+		sys.exit(ct.SCHEMA_MISSING_FILES.format("short"))
+
+	return schema_directory
+
+
+def check_argument_conflict(arg_name, arg_value, schema_config, force_continue):
+	""""""
+	if arg_value not in schema_config[arg_name]:
+		print(ct.CONFLICTING_ARGUMENTS.format(arg_name, schema_config[arg_name]))
+		if not force_continue:
+			answer = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
+		else:
+			answer = 'yes'
+
+		if answer.lower() not in ['y', 'yes']:
 			sys.exit('Exited.')
 		else:
-			schema_config["minimum_locus_bsrlength"].append(user_bsr)
+			schema_config[arg_name].append(arg_value)
 
-	return user_bsr, schema_config
-
-
-def check_ml_conflict(user_ml, schema_config, force_continue):
-	""""""
-	if user_ml not in schema_config["minimum_locus_length"]:
-		print("The value provided for the minimum locus length does not match "
-			  f"any of the values used with the schema ({schema_config["minimum_locus_length"]}).")
-		if not force_continue:
-			proceed = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
-		else:
-			params_answer = 'yes'
-
-		if params_answer.lower() not in ['y', 'yes']:
-			sys.exit('Exited.')
-		else:
-			schema_config["minimum_locus_length"].append(user_ml)
-
-	return user_ml, schema_config
-
-
-def check_st_conflict(user_st, schema_config, force_continue):
-	""""""
-	if user_st not in schema_config["size_threshold"]:
-		print("The value provided for the size threshold does not match "
-			  f"any of the values used with the schema ({schema_config["size_threshold"]}).")
-		if not force_continue:
-			proceed = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
-		else:
-			params_answer = 'yes'
-
-		if params_answer.lower() not in ['y', 'yes']:
-			sys.exit('Exited.')
-		else:
-			schema_config["size_threshold"].append(user_st)
-
-	return user_st, schema_config
-
-
-def check_ptf_conflict(user_ptf, translation_table, schema_config, force_continue):
-	""""""
-	user_ptf_hash = fo.hash_file(user_ptf, 'blake2b')
-	if user_ptf_hash not in schema_config["prodigal_training_file"]:
-		print("The Pyrodigal training file provided does not match "
-				f"any of the training files used with the schema ({schema_config["prodigal_training_file"]}).")
-		if not force_continue:
-			proceed = fo.input_timeout(ct.ARGS_DIFFER_PROMPT, ct.PROMPT_TIMEOUT)
-		else:
-			params_answer = 'yes'
-
-		if params_answer.lower() not in ['y', 'yes']:
-			sys.exit('Exited.')
-		else:
-			schema_config["prodigal_training_file"].append(user_ptf_hash)
-			# Get genetic code used with the training file
-			genetic_code = pgp.read_training_file(user_ptf).translation_table
-			translation_table = genetic_code
-			# Add genetic code to schema config if it was never used
-			if translation_table not in schema_config["translation_table"]:
-				schema_config["translation_table"].append(translation_table)
-
-		return user_ptf, translation_table, schema_config
+	return arg_value, schema_config
 
 
 def contains_results(results_directory):
 	""""""
 	# List files in input direcoty
-	results_files = os.listdir(results_directory)
+	results_files = fo.listdir(results_directory)
 	# Check if folder includes the results_alleles.tsv file with allelic profiles
 	if ct.RESULTS_ALLELES_BASENAME not in results_files:
 		sys.exit(ct.MISSING_RESULTS_ALLELES)
@@ -970,13 +718,22 @@ def validate_output_format(output_format, valid_output_formats=ct.OUTPUT_FORMATS
 
 	return output_format
 
+
+def ensure_list(input_val):
+	"""
+	"""
+	if isinstance(input_val, str):
+		return [input_val]
+	return input_val
+
+
 # Define reusable fields
 OutputDirectory = Annotated[str,
 							AfterValidator(parentdir_exists),
 							AfterValidator(create_output_directory)]
 
 InputFiles = Annotated[str,
-					   AfterValidator(input_path_exists),
+					   AfterValidator(partial(input_path_exists, exception_str=ct.MISSING_INPUT_ARG)),
 					   AfterValidator(input_is_fasta),
 					   AfterValidator(list_input_files),
 					   AfterValidator(filter_inputs_extension),
@@ -986,102 +743,129 @@ InputFiles = Annotated[str,
 					   AfterValidator(check_blanks)]
 
 SchemaDirectory = Annotated[str,
-							AfterValidator(input_path_exists),
-							AfterValidator(schema_includes_fasta)]
+							AfterValidator(partial(input_path_exists, exception_str=ct.SCHEMA_PATH_MISSING)),
+							AfterValidator(schema_includes_fasta),
+							AfterValidator(schema_check_genes_list),
+							AfterValidator(schema_check_config),
+							AfterValidator(schema_check_short)]
 
-LociList = Annotated[str, 
-					 AfterValidator(input_path_exists),
+LociList = Annotated[str,
+					 AfterValidator(partial(input_path_exists, exception_str=ct.MISSING_LOCI_LIST)),
 					 AfterValidator(input_is_fasta),
-					 AfterValidator(list_input_files),
-					 AfterValidator(filter_inputs_extension),
-					 AfterValidator(inputs_exist),
-					 AfterValidator(validate_inputs_fastas)]
+					 AfterValidator(list_input_files)]
 
 BLASTScoreRatio = Annotated[float,
-							Field(default=ct.BSR_DEFAULT, ge=ct.BSR_MIN, le=ct.BSR_MAX)]
+							Field(default=ct.BSR_DEFAULT,
+							      ge=ct.BSR_MIN,
+								  le=ct.BSR_MAX)]
 
 MinimumLength = Annotated[int,
-						  Field(default=ct.MSL_DEFAULT, ge=ct.MSL_MIN, le=ct.MSL_MAX)]
+						  Field(default=ct.MSL_DEFAULT,
+						        ge=ct.MSL_MIN,
+								le=ct.MSL_MAX)]
 
 TranslationTable = Annotated[int,
 							 Field(default=ct.GENETIC_CODE_DEFAULT),
-							 AfterValidator(partial(translation_table_type, valid_genetic_codes=ct.GENETIC_CODES))]
+							 AfterValidator(partial(validate_choice, valid_options=ct.GENETIC_CODES, exception_str=ct.INVALID_GENETIC_CODE))]
 
 SizeThreshold = Annotated[float | None,
-						  Field(default=ct.ST_DEFAULT, ge=ct.ST_MIN, le=ct.ST_MAX)]
+						  Field(default=ct.ST_DEFAULT,
+						        ge=ct.ST_MIN,
+								le=ct.ST_MAX)]
 
 GenePredictor = Annotated[str,
 						  Field(default=ct.GENE_PREDICTOR_DEFAULT),
-						  AfterValidator(partial(validate_gene_predictor, valid_gene_predictors=ct.GENE_PREDICTORS))]
+						  AfterValidator(partial(validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.INVALID_GENE_PREDICTOR))]
 
-GenePredictionArguments = Annotated[str | None,
-									AfterValidator(partial(parse_parameter_string, parameter_types=ct.ARGUMENT_TYPES))]
+# Validate if input is str, not if it is None
+GenePredictionOptions = Annotated[list,
+                                  Field(default={}),
+                                  AfterValidator(parse_parameter_string)]
 
-ValidatedGenePredictionArguments = Annotated[PyrodigalArgs | AugustusArgs | None,
-											 Field(default=None)]
+ClusteringOptions = Annotated[str,
+                              Field(default={}),
+                              AfterValidator(parse_parameter_string)]
 
-ClusteringArguments = Annotated[str | None, 
-								AfterValidator(partial(parse_parameter_string, parameter_types=ct.ARGUMENT_TYPES))]
-
-ValidatedClusteringArguments = Annotated[ClusteringArgs | None,
-										 Field(default=None)]
-
-BLASTPath = Annotated[str | None,
+BLASTPath = Annotated[str | None, # Need to specify that the argument value may not be provided
+                      Field(default=None, # Need to set default to None to really set arg value as None
+							validate_default=True), # Needs to be validated even if it is None
 					  AfterValidator(check_blast),
 					  AfterValidator(check_blast_version)]
 
 CPUCores = Annotated[int,
-					 Field(default=ct.CPU_CORES_DEFAULT, ge=ct.CPU_CORES_MIN, le=multiprocessing.cpu_count()),
+					 Field(default=ct.CPU_CORES_DEFAULT,
+					       ge=ct.CPU_CORES_MIN,
+						   le=multiprocessing.cpu_count()),
 					 AfterValidator(verify_cpu_usage)]
 
-PyrodigalTrainingFile = Annotated[str | None,
-								  AfterValidator(training_file_exists)]
+PyrodigalTrainingFile = Annotated[str,
+                                  Field(default=None),
+                                  AfterValidator(partial(input_path_exists, exception_str=ct.INVALID_PTF_PATH))]
 
 PyrodigalMode = Annotated[str,
 						  Field(default=ct.PYRODIGAL_DEFAULT_MODE),
-						  AfterValidator(partial(validate_pyrodigal_mode, valid_modes=ct.PYRODIGAL_MODES))]
+						  AfterValidator(partial(validate_choice, valid_options=ct.PYRODIGAL_MODES, exception_str=ct.INVALID_PYRODIGAL_MODE))]
 
-PyrodigalOutputFormats = Annotated[str,
-								   Field(default=ct.PYRODIGAL_DEFAULT_OUTFMT),
-								   AfterValidator(partial(validate_pyrodigal_outfmt, valid_outfmts=ct.PYRODIGAL_OUTFMTS))]
+PyrodigalOutputFormats = Annotated[list,
+								   Field(default=ct.PYRODIGAL_DEFAULT_OUTFMTS),
+								   BeforeValidator(ensure_list),
+								   AfterValidator(partial(validate_multiple_choices, valid_options=ct.PYRODIGAL_OUTFMTS, exception_str=ct.PYRODIGAL_INVALID_OUTFMT))]
 
-PyrodigalMinimumConfidence = Annotated[float | None,
-									   AfterValidator(validate_pyrodigal_minimum_confidence)]
+PyrodigalMinimumConfidence = Annotated[float,
+                                       Field(default=None,
+                                             ge=ct.PYRODIGAL_MIN_CONFIDENCE,
+											 le=ct.PYRODIGAL_MAX_CONFIDENCE)]
 
-PyrodigalTrainingReference = Annotated[str | None,
-									   AfterValidator(training_file_exists)]
+PyrodigalTrainingReference = Annotated[str,
+                                       Field(default=None),
+                                       AfterValidator(partial(input_path_exists, exception_str=ct.INVALID_PTF_PATH))]
+
+PyrodigalJustTraining = Annotated[bool,
+                                  Field(default=False)]
 
 AugustusPath = Annotated[str | None,
+                         Field(default=None,
+                               validate_default=True),
 						 AfterValidator(check_augustus)]
 
-AugustusOutputFormats = Annotated[str,
-								  Field(default=ct.AUGUSTUS_OUTFMT_DEFAULT),
-								  AfterValidator(partial(validate_augustus_outfmt, valid_gene_predictors=ct.GENE_PREDICTORS))]
+AugustusSpecies = Annotated[str,
+                            Field(default=None)]
+
+AugustusOutputFormat = Annotated[list,
+								 Field(default=ct.AUGUSTUS_OUTFMT_DEFAULT),
+								 BeforeValidator(ensure_list),
+								 AfterValidator(partial(validate_multiple_choices, valid_options=ct.AUGUSTUS_OUTFMTS, exception_str=ct.AUGUSTUS_INVALID_OUTFMT))]
 
 WordSize = Annotated[int,
-					 Field(default=ct.WORD_SIZE_DEFAULT),
-					 AfterValidator(validate_word_size)]
+					 Field(default=ct.WORD_SIZE_DEFAULT,
+					       ge=ct.WORD_SIZE_MIN,
+						   le=ct.WORD_SIZE_MAX)]
 
 WindowSize = Annotated[int,
-					   Field(default=ct.WORD_SIZE_DEFAULT),
-					   AfterValidator(validate_window_size)]
+					   Field(default=ct.WORD_SIZE_DEFAULT,
+					         ge=ct.WINDOW_SIZE_MIN,
+							 le=ct.WINDOW_SIZE_MAX)]
 
 ClusteringSimilarity = Annotated[float,
-								 Field(default=ct.CLUSTERING_SIMILARITY_DEFAULT),
-								 AfterValidator(validate_clustering_similarity)]
+								 Field(default=ct.CLUSTERING_SIMILARITY_DEFAULT,
+								       ge=ct.CLUSTERING_SIMILARITY_MIN,
+									   le=ct.CLUSTERING_SIMILARITY_MAX)]
 
 RepresentativeFilter = Annotated[float,
-								 Field(default=ct.REPRESENTATIVE_FILTER_DEFAULT),
-								 AfterValidator(validate_representative_filter)]
+								 Field(default=ct.REPRESENTATIVE_FILTER_DEFAULT,
+								       ge=ct.REPRESENTATIVE_FILTER_MIN,
+									   le=ct.REPRESENTATIVE_FILTER_MAX)]
 
 IntraFilter = Annotated[float,
-						Field(default=(ct.INTRA_CLUSTER_DEFAULT)),
-						AfterValidator(validate_intra_filter)]
+						Field(default=(ct.INTRA_CLUSTER_DEFAULT),
+						      ge=ct.INTRA_CLUSTER_MIN,
+							  le=ct.INTRA_CLUSTER_MAX)]
 
 Annotations = Annotated[str,
-						AfterValidator(input_path_exists)]
+                        AfterValidator(partial(input_path_exists, exception_str="test"))]
 
 
+# Use separate models to validate Pyrodigal and AUGUSTUS arguments, since they have different fields and validation requirements
 class PyrodigalArgs(BaseModel):
 	# Enforce strict field checking
 	model_config = ConfigDict(extra="forbid")
@@ -1091,6 +875,7 @@ class PyrodigalArgs(BaseModel):
 	pyrodigal_output_formats: PyrodigalOutputFormats
 	pyrodigal_minimum_confidence: PyrodigalMinimumConfidence
 	pyrodigal_training_reference: PyrodigalTrainingReference
+	pyrodigal_just_training: PyrodigalJustTraining
 
 
 class AugustusArgs(BaseModel):
@@ -1098,8 +883,8 @@ class AugustusArgs(BaseModel):
 	model_config = ConfigDict(extra="forbid")
 
 	augustus_path: AugustusPath
-	augustus_species: str | None
-	augustus_output_formats: AugustusOutputFormats
+	augustus_species: AugustusSpecies
+	augustus_output_format: AugustusOutputFormat
 
 	@model_validator(mode="after")
 	def validate_species(self):
@@ -1108,6 +893,11 @@ class AugustusArgs(BaseModel):
 		return self
 
 
+# Field definition for the validated gene prediction arguments
+ValidatedGenePredictionOptions = Annotated[PyrodigalArgs | AugustusArgs | None, Field(default=None)]
+
+
+# Use a separate model to validate clustering arguments passed to modules that use clustering
 class ClusteringArgs(BaseModel):
 	# Enforce strict field checking
 	model_config = ConfigDict(extra="forbid")
@@ -1119,17 +909,21 @@ class ClusteringArgs(BaseModel):
 	intra_filter: IntraFilter
 
 
+ValidatedClusteringOptions = Annotated[ClusteringArgs | None, Field(default=None)]
+
+
 class PredictGenesValidator(BaseModel):
 	# Use `from_attributes=True` to inspect the attributes of the 
 	# argparse.Namespace object directly without having to convert to a dictionary
+	# Do not use `extra="forbid"` so that it accepts the arg with the module name without having to remove it explicitly
 	model_config = ConfigDict(from_attributes=True)
 
 	# Field order is preserved when serializing with model_dump()
 	output_directory: OutputDirectory
 	input_files: InputFiles
 	gene_predictor: GenePredictor
-	gene_prediction_arguments: GenePredictionArguments
-	validated_gene_prediction_arguments: ValidatedGenePredictionArguments
+	gene_prediction_options: GenePredictionOptions
+	validated_gene_prediction_options: ValidatedGenePredictionOptions
 	translation_table: TranslationTable
 	cpu_cores: CPUCores
 
@@ -1137,52 +931,62 @@ class PredictGenesValidator(BaseModel):
 	@model_validator(mode="after")
 	def validate_gene_prediction_arguments(self):
 		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_arguments = PyrodigalArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = PyrodigalArgs(**self.gene_prediction_options)
 		elif self.gene_predictor == "augustus":
-			self.validated_gene_prediction_arguments = AugustusArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = AugustusArgs(**self.gene_prediction_options)
 
 		return self
 
 	# Need to get genetic code from training file
 	@model_validator(mode="after")
 	def get_ptf_genetic_code(self):
-		self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table)
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
 
 		return self
 
 	@model_validator(mode="after")
 	def mode_and_ptf(self):
-		self.validated_gene_prediction_arguments.pyrodigal_mode = check_meta(self.validated_gene_prediction_arguments.pyrodigal_mode, self.validated_gene_prediction_arguments.pyrodigal_training_file)
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options.pyrodigal_mode = check_meta(self.validated_gene_prediction_options.pyrodigal_mode, self.validated_gene_prediction_options.pyrodigal_training_file)
 
 		return self
 
 	@model_validator(mode="after")
 	def ptf_and_reference(self):
-		# Check if user provided path to Pyrodigal training file and to a training reference, which is not allowed
-		check_ptf_tref_conflict(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.validated_gene_prediction_arguments.training_reference)
-		# Create training file based on training reference
-		print(f'Creating Pyrodigal training file based on {self.validated_gene_prediction_arguments.training_reference}...')
-		self.validated_gene_prediction_arguments.pyrodigal_training_file = pgp.create_training_file(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.validated_gene_prediction_arguments.training_reference, self.output_directory, self.translation_table)
-		print(f'Training file saved to {self.validated_gene_prediction_arguments.pyrodigal_training_file}')
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_reference:
+			# Check if user provided path to Pyrodigal training file and to a training reference, which is not allowed
+			check_ptf_tref_conflict(self.validated_gene_prediction_options.pyrodigal_training_file, self.validated_gene_prediction_options.pyrodigal_training_reference)
+			# Create training file based on training reference
+			print(f'Creating Pyrodigal training file based on {self.validated_gene_prediction_options.pyrodigal_training_reference}...')
+			self.validated_gene_prediction_options.pyrodigal_training_file = pgp.create_training_file(self.validated_gene_prediction_options.pyrodigal_training_reference, self.output_directory, self.translation_table)
+			print(f'Training file saved to {self.validated_gene_prediction_options.pyrodigal_training_file}')
+			# Exit if user only requested to create training file
+			if self.validated_gene_prediction_options.pyrodigal_just_training:
+				sys.exit(ct.JUST_TRAINING)
+
+		return self
 
 
-# I can use reusable fields like this one
-# custom_option = Annotated[str, AfterValidator(validation_function)]
+SchemaName = Annotated[str,
+                       Field(default=ct.SCHEMA_NAME_DEFAULT)]
+
+
 class CreateSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
 	input_files: InputFiles
-	schema_name: Annotated[str, Field(default=ct.SCHEMA_NAME_DEFAULT)]
+	schema_name: SchemaName
 	blast_score_ratio: BLASTScoreRatio
 	minimum_length: MinimumLength
 	translation_table: TranslationTable
 	size_threshold: SizeThreshold
 	gene_predictor : GenePredictor
-	gene_prediction_arguments: GenePredictionArguments
-	validated_gene_prediction_arguments: ValidatedGenePredictionArguments
-	clustering_parameters: ClusteringArguments
-	validated_clustering_arguments: ValidatedClusteringArguments
+	gene_prediction_options: GenePredictionOptions
+	validated_gene_prediction_options: ValidatedGenePredictionOptions
+	clustering_options: ClusteringOptions
+	validated_clustering_options: ValidatedClusteringOptions
 	blast_path : BLASTPath
 	cds_input: bool
 	no_cds_renaming: bool
@@ -1193,38 +997,56 @@ class CreateSchemaValidator(BaseModel):
 	@model_validator(mode="after")
 	def validate_gene_prediction_arguments(self):
 		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_arguments = PyrodigalArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = PyrodigalArgs(**self.gene_prediction_options)
 		elif self.gene_predictor == "augustus":
-			self.validated_gene_prediction_arguments = AugustusArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = AugustusArgs(**self.gene_prediction_options)
 
 		return self
 
 	# Further validation for clustering arguments
 	@model_validator(mode="after")
 	def validate_clustering_arguments(self):
-		self.validated_clustering_arguments = ClusteringArgs(**self.clustering_parameters)
+		self.validated_clustering_options = ClusteringArgs(**self.clustering_options)
+
+		return self
 
 	# Need to get genetic code from training file
 	@model_validator(mode="after")
 	def get_ptf_genetic_code(self):
-		self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table)
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
 
 		return self
 
 	@model_validator(mode="after")
 	def mode_and_ptf(self):
-		self.validated_gene_prediction_arguments.pyrodigal_mode = check_meta(self.validated_gene_prediction_arguments.pyrodigal_mode, self.validated_gene_prediction_arguments.pyrodigal_training_file)
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options.pyrodigal_mode = check_meta(self.validated_gene_prediction_options.pyrodigal_mode, self.validated_gene_prediction_options.pyrodigal_training_file)
 
 		return self
 
 	@model_validator(mode="after")
 	def ptf_and_reference(self):
-		# Check if user provided path to Pyrodigal training file and to a training reference, which is not allowed
-		check_ptf_tref_conflict(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.validated_gene_prediction_arguments.training_reference)
-		# Create training file based on training reference
-		print(f'Creating Pyrodigal training file based on {self.validated_gene_prediction_arguments.training_reference}...')
-		self.validated_gene_prediction_arguments.pyrodigal_training_file = pgp.create_training_file(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.validated_gene_prediction_arguments.training_reference, self.output_directory, self.translation_table)
-		print(f'Training file saved to {self.validated_gene_prediction_arguments.pyrodigal_training_file}')
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_reference:
+			# Check if user provided path to Pyrodigal training file and to a training reference, which is not allowed
+			check_ptf_tref_conflict(self.validated_gene_prediction_options.pyrodigal_training_file, self.validated_gene_prediction_options.pyrodigal_training_reference)
+			# Create training file based on training reference
+			print(f'Creating Pyrodigal training file based on {self.validated_gene_prediction_options.pyrodigal_training_reference}...')
+			self.validated_gene_prediction_options.pyrodigal_training_file = pgp.create_training_file(self.validated_gene_prediction_options.pyrodigal_training_file, self.validated_gene_prediction_options.pyrodigal_training_reference, self.output_directory, self.translation_table)
+			print(f'Training file saved to {self.validated_gene_prediction_options.pyrodigal_training_file}')
+			# Exit if user only requested to create training file
+			if self.validated_gene_prediction_options.pyrodigal_just_training:
+				sys.exit(ct.JUST_TRAINING)
+
+		return self
+
+
+AllelecallMode = Annotated[int,
+                           Field(default=ct.ALLELECALL_DEFAULT_MODE),
+						   AfterValidator(partial(validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.INVALID_ALLELECALL_MODE))]
+
+NSCONFIG = Annotated[bool,
+                     Field(default=False)]
 
 
 class AlleleCallValidator(BaseModel):
@@ -1240,93 +1062,110 @@ class AlleleCallValidator(BaseModel):
 	translation_table: TranslationTable
 	size_threshold: SizeThreshold
 	gene_predictor : GenePredictor
-	gene_prediction_arguments: GenePredictionArguments
-	validated_gene_prediction_arguments: ValidatedGenePredictionArguments
-	clustering_parameters: ClusteringArguments
-	validated_clustering_arguments: ValidatedClusteringArguments
+	gene_prediction_options: GenePredictionOptions
+	validated_gene_prediction_options: ValidatedGenePredictionOptions
+	clustering_options: ClusteringOptions
+	validated_clustering_options: ValidatedClusteringOptions
 	blast_path : BLASTPath
 	cds_input: bool
 	no_inferred: bool
 	output_unclassified: bool
 	output_missing: bool
 	output_novel: bool
-	output_masked: bool
+	output_masked_profiles: bool
 	no_cds_renaming: bool
 	force_continue: bool
-	mode: Annotated[int, Field(default=ct.ALLELECALL_DEFAULT_MODE), AfterValidator(partial(validate_allelecall_mode, ct.ALLELECALL_MODES))]
+	mode: AllelecallMode
 	cpu_cores: CPUCores
 	no_cleanup: bool
-	ns_config: Annotated[bool, Field(default=False)]
+	ns_config: NSCONFIG
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")
 	def validate_gene_prediction_arguments(self):
 		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_arguments = PyrodigalArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = PyrodigalArgs(**self.gene_prediction_options)
 		elif self.gene_predictor == "augustus":
-			self.validated_gene_prediction_arguments = AugustusArgs(**self.gene_prediction_arguments)
+			self.validated_gene_prediction_options = AugustusArgs(**self.gene_prediction_options)
 
 		return self
 
 	# Further validation for clustering arguments
 	@model_validator(mode="after")
 	def validate_clustering_arguments(self):
-		self.validated_clustering_arguments = ClusteringArgs(**self.clustering_parameters)
-
-	# Need to get genetic code from training file
-	@model_validator(mode="after")
-	def get_ptf_genetic_code(self):
-		self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table)
+		self.validated_clustering_options = ClusteringArgs(**self.clustering_options)
 
 		return self
 
+	# Verify that the schema contains FASTA files for all loci in the list of loci
 	@model_validator(mode="after")
-	def mode_and_ptf(self):
-		self.validated_gene_prediction_arguments.pyrodigal_mode = check_meta(self.validated_gene_prediction_arguments.pyrodigal_mode, self.validated_gene_prediction_arguments.pyrodigal_training_file)
+	def loci_list_in_schema(self):
+		if self.loci_list:
+			# Compare list of loci IDs
+			schema_files = fo.listdir(self.schema_directory)
+			schema_loci = fo.filter_by_extension(schema_files, [".fasta"])
+			schema_loci = [fo.file_basename(file, False) for file in schema_files]
+			absent_files = set(self.loci_list) - set(schema_loci)
+			if len(absent_files) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(absent_files, ", ")))
 
 		return self
 
-	@model_validator(mode="after")
-	def validate_schema(self):
-		# Check that the schema includes the short directory and the .schema_config file necessary for allele calling
-		self.schema_directory = check_schema(self.schema_directory)
-
+	# List all loci FASTA files in the schema and add it to the loci_list arg
 	@model_validator(mode="after")
 	def list_schema_loci(self):
-		# List all loci FASTA files in the schema if no loci list was provided
+		schema_files = fo.listdir(self.schema_directory, full_path=True)
+		schema_loci = fo.filter_by_substring(schema_files, [".fasta"])
 		if not self.loci_list:
-			self.loci_list = fo.listdir_fullpath(self.schema_directory, substring_filter=".fasta")
+			self.loci_list = [schema_loci, schema_loci]
+		else:
+			self.loci_list = [self.loci_list, schema_loci]
 
 		return self
 
-	@model_validator
+	@model_validator(mode="after")
 	def solve_conflicting_arguments(self):
 		config_file = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
 		config = fo.pickle_loader(config_file)
 		# BLAST Score Ratio
-		self.blast_score_ratio, config = check_bsr_conflict(self.blast_score_ratio, config, self.force_continue)
+		self.blast_score_ratio, config = check_argument_conflict(ct.BLAST_SCORE_RATIO_ARGNAME, self.blast_score_ratio, config, self.force_continue)
 		# Minimum length
-		self.minimum_length, config = check_ml_conflict(self.minimum_length, config, self.force_continue)
+		self.minimum_length, config = check_argument_conflict(ct.MINIMUM_LENGTH_ARGNAME, self.minimum_length, config, self.force_continue)
 		# Size threshold
-		self.size_threshold, config = check_st_conflict(self.size_threshold, config, self.force_continue)
+		self.size_threshold, config = check_argument_conflict(ct.SIZE_THRESHOLD_ARGNAME, self.size_threshold, config, self.force_continue)
 		# Pyrodigal training file
-		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table, config = check_ptf_conflict(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table, config, self.force_continue)
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			self.validated_gene_prediction_options.pyrodigal_training_file, config = check_argument_conflict(ct.PYRODIGAL_TRAININGFILE_ARGNAME, self.validated_gene_prediction_options.pyrodigal_training_file, config, self.force_continue)
+			# Compare current value for the translation table and the one in the training file
+			self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
+			# Add translation table to config if it is different than the ones previously used
+			if self.translation_table not in config[ct.TRANSLATION_TABLE_ARGNAME]:
+				config[ct.TRANSLATION_TABLE_ARGNAME].append(self.translation_table)
 
 		# Update schema config file
 		fo.pickle_dumper(config, config_file)
 
 		return self
 
-	@model_validator
+	@model_validator(mode="after")
+	def mode_and_ptf(self):
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options.pyrodigal_mode = check_meta(self.validated_gene_prediction_options.pyrodigal_mode, self.validated_gene_prediction_options.pyrodigal_training_file)
+
+		return self
+
+	# Check if schema was downloaded from Chewie-NS
+	@model_validator(mode="after")
 	def check_ns_config(self):
 		ns_config = fo.join_paths(self.output_directory, [ct.NS_CONFIG_BASENAME])
 		if fo.is_file(ns_config)[0]:
 			self.ns_config = True
 
+		return self
+
 
 class SchemaEvaluatorValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
@@ -1342,10 +1181,10 @@ class SchemaEvaluatorValidator(BaseModel):
 
 
 class AlleleCallEvaluatorValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
 	schema_directory: SchemaDirectory
 	annotations: Annotations | None = None
 	cpu_cores: CPUCores
@@ -1357,45 +1196,45 @@ class AlleleCallEvaluatorValidator(BaseModel):
 
 
 class ExtractCgMLSTValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
 	threshold: Annotated[list, Field(default=ct.CGMLST_THRESHOLDS), AfterValidator(validate_cgmlst_thresholds)]
 	step: Annotated[int, Field(default=1)]
 	compute_accessory: Annotated[bool, Field(default=False)]
 	rarefaction_analysis: Annotated[bool, Field(default=False)]
 	permutation_number: Annotated[int, Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
 	permutation_samples: int | None = None
-	exclude_loci: Annotated[str, AfterValidator(input_path_exists)] | None = None
-	exclude_genomes: Annotated[str, AfterValidator(input_path_exists)] | None = None
+	exclude_loci: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
+	exclude_genomes: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
 	cpu_cores: CPUCores
 
 
 class SubsetResultsValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
 	loci_list: LociList | None = None
-	sample_list: Annotated[str, AfterValidator(input_path_exists)] | None = None
+	sample_list: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
 	inverse_loci: Annotated[bool, Field(default=False)]
 	inverse_samples: Annotated[bool, Field(default=False)]
 
 
 class MergeResults(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(input_path_exists), AfterValidator(contains_results)]
+	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
 	common: Annotated[bool, Field(default=False)]
 
 
 class HashProfilesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	schema_directory: SchemaDirectory
 	hash_type: Annotated[str, Field(default="crc32")]
 	nrows: Annotated[int, Field(default=100)]
@@ -1403,10 +1242,10 @@ class HashProfilesValidator(BaseModel):
 
 
 class GetAllelesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
 	cpu_cores: CPUCores
@@ -1416,20 +1255,21 @@ class GetAllelesValidator(BaseModel):
 
 	@model_validator(mode="after")
 	def get_ptf_genetic_code(self):
-		self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_arguments.pyrodigal_training_file, self.translation_table)
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
 
 		return self
 
 
 class PrepExternalSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
 	gene_predictor: GenePredictor
-	gene_prediction_arguments: GenePredictionArguments
-	validated_gene_prediction_arguments: ValidatedGenePredictionArguments
+	gene_prediction_options: GenePredictionOptions
+	validated_gene_prediction_options: ValidatedGenePredictionOptions
 	blast_score_ratio: BLASTScoreRatio
 	minimum_length: MinimumLength
 	adaptation_minimum_length: Annotated[int, Field(default=0)]
@@ -1448,12 +1288,12 @@ class PrepExternalSchemaValidator(BaseModel):
 
 
 class UniprotFinderValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 	
 	output_directory: OutputDirectory
 	schema_directory: SchemaDirectory
 	loci_list: LociList | None = None
-	protein_table: Annotated[str, AfterValidator(input_path_exists)]
+	protein_table: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	blast_score_ratio: BLASTScoreRatio
 	cpu_cores: CPUCores
 	taxa: Annotated[str, Field(default=None)]
@@ -1464,10 +1304,10 @@ class UniprotFinderValidator(BaseModel):
 
 
 class ComputeDistancesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(input_path_exists)]
+	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	method: Annotated[str, Field(default=ct.DEFAULT_DISTANCE_METHOD), AfterValidator(validate_distance_method)]
 	outfmt: Annotated[str, Field(default=ct.DEFAULT_OUTPUT_FORMAT), AfterValidator(validate_output_format)]
 	no_mask: Annotated[bool, Field(default=False)]
@@ -1476,64 +1316,64 @@ class ComputeDistancesValidator(BaseModel):
 
 
 class ComputeMSAValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	output_directory: OutputDirectory
-	input_path: Annotated[str, AfterValidator(input_path_exists)]
+	input_path: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	schema_directory: SchemaDirectory
 	dna_msa: Annotated[bool, Field(default=False)]
 	output_variable: Annotated[bool, Field(default=0)]
 	translation_table: TranslationTable
 	cpu_cores: CPUCores
 	only_loci_msas: Annotated[bool, Field(default=False)]
-	gaps: Annotated[str, Field(default=ct.DEFAULT_GAPS), AfterValidator(validate_choice)]
-	ambiguous: Annotated[str, Field(default=ct.DEFAULT_AMBIGUOUS), AfterValidator(validate_choice)]
-	custom_mafft_parameters: Annotated[str, AfterValidator()]
+	gaps: Annotated[str, Field(default=ct.DEFAULT_GAPS)]
+	ambiguous: Annotated[str, Field(default=ct.DEFAULT_AMBIGUOUS)]
+	custom_mafft_parameters: Annotated[str, Field(default=None)]
 	protein_input: Annotated[bool, Field(default=False)]
 	no_cleanup: Annotated[bool, Field(default=False)]
 
 
 class DownloadSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
-	species_id: Annotated[str, AfterValidator()]
-	schema_id: Annotated[str, AfterValidator()]
-	download_folder: Annotated[str, AfterValidator(input_path_exists)]
+	species_id: Annotated[str, Field(default=None)]
+	schema_id: Annotated[str, Field(default=None)]
+	download_folder: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
 	blast_path : BLASTPath
-	date: Annotated[str, AfterValidator()] | None = None
+	date: str | None = None
 	latest: Annotated[bool, Field(default=False)]
 
 
 class UploadSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	schema_directory: SchemaDirectory
-	species_id: Annotated[str, AfterValidator()]
-	schema_name: Annotated[str, AfterValidator()]
-	loci_prefix: Annotated[str, AfterValidator()]
-	description_file: Annotated[str, AfterValidator(input_path_exists)]
+	species_id: Annotated[str, Field(default=None)]
+	schema_name: Annotated[str, Field(default=None)]
+	loci_prefix: Annotated[str, Field(default=None)]
+	description_file: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
 	annotations: Annotations | None = None
 	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
 	continue_up: Annotated[bool, Field(default=False)]
 
 
 class SynchronizeSchemaValidator():
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 	schema_directory: SchemaDirectory
 	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
 	blast_path : BLASTPath
 	submit: Annotated[bool, Field(default=False)]
 
 
 class NSStatsValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
+	model_config = ConfigDict(from_attributes=True, extra="forbid")
 
-	mode: Annotated[str, AfterValidator(validate_choice)]
-	species_id:
-	schema_id:
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER), AfterValidator(validate_choice)]
+	mode: Annotated[str, Field(default=None)]
+	species_id: str
+	schema_id: str
+	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]

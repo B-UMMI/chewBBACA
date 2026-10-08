@@ -49,15 +49,18 @@ def write_gene_list(schema_dir):
 	created, False otherwise. The second element
 	is the path to the created file.
 	"""
+	schema_files = fo.listdir(schema_dir)
 	# Loci FASTA files must end with ".fasta" extension
-	schema_files = fo.listdir_fullpath(schema_dir, substring_filter='.fasta')
+	schema_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+	# Remove file extension
+	schema_files = [fo.file_basename(file, False) for file in schema_files]
 	output_file = fo.join_paths(schema_dir, [ct.GENE_LIST_BASENAME])
 	fo.pickle_dumper(schema_files, output_file)
 
 	return [os.path.isfile(output_file), output_file]
 
 
-def write_schema_config(args, chewie_version, output_directory):
+def write_schema_config(config, ptf_hash, chewie_version, output_directory):
 	""" Writes chewBBACA's parameter values used to create
 		a schema to a file.
 
@@ -80,26 +83,18 @@ def write_schema_config(args, chewie_version, output_directory):
 	created and False otherwise. The second element
 	is the path to the created file.
 	"""
-
-	# Deal with multiple names for the same parameter
-	size_threshold = None if args['size_threshold'] in [None, 'None'] else float(args['size_threshold'])
-	bsr = float(args.get('blast_score_ratio')) if 'blast_score_ratio' in args else float(args['bsr'])
-	minimum_locus_length = int(args.get('minimum_length')) if 'minimum_length' in args else int(args['minimum_locus_length'])
-	cluster_sim = args.get('clustering_sim') if 'clustering_sim' in args else args['cluster_sim']
-	intraCluster_filter = args.get('intra_filter') if 'intra_filter' in args else args['intraCluster_filter']
-
 	params = {}
-	params['bsr'] = [bsr]
-	params['prodigal_training_file'] = [args['ptf_path']]
-	params['translation_table'] = [int(args['translation_table'])]
-	params['minimum_locus_length'] = [minimum_locus_length]
+	params['blast_score_ratio'] = [config.blast_score_ratio]
+	params['pyrodigal_training_file'] = [ptf_hash]
+	params['translation_table'] = [config.translation_table]
+	params['minimum_length'] = [config.minimum_length]
 	params['chewBBACA_version'] = [chewie_version]
-	params['size_threshold'] = [size_threshold]
-	params['word_size'] = [args['word_size']]
-	params['window_size'] = [args['window_size']]
-	params['cluster_sim'] = [cluster_sim]
-	params['representative_filter'] = [args['representative_filter']]
-	params['intraCluster_filter'] = [intraCluster_filter]
+	params['size_threshold'] = [config.size_threshold]
+	params['word_size'] = [config.validated_clustering_options.word_size]
+	params['window_size'] = [config.validated_clustering_options.window_size]
+	params['clustering_similarity'] = [config.validated_clustering_options.clustering_similarity]
+	params['representative_filter'] = [config.validated_clustering_options.representative_filter]
+	params['intra_filter'] = [config.validated_clustering_options.intra_filter]
 
 	config_file = os.path.join(output_directory, ct.SCHEMA_CONFIG_BASENAME)
 	fo.pickle_dumper(params, config_file)

@@ -303,7 +303,7 @@ def write_coordinates_file(coordinates_file, output_file):
 	fo.write_lines(lines, output_file)
 
 
-def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu_cores):
+def predict_genes(fasta_files, output_directory, gene_prediction_parameters, translation_table, cpu_cores):
 	"""Predict genes from a set of input genome assemblies.
 
 	Parameters
@@ -335,12 +335,12 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu
 		failed cases. Returns NoneType if gene prediction
 		succeeded for all inputs.
 	"""
-	if gene_prediction_parameters["training_file"] is not None:
+	if gene_prediction_parameters.pyrodigal_training_file is not None:
 		# Read training file to create GeneFinder object
-		training_data = read_training_file(gene_prediction_parameters["training_file"])
+		training_data = read_training_file(gene_prediction_parameters.pyrodigal_training_file)
 		# Create GeneFinder object based on training data
 		gene_finder = create_gene_finder(training_data, True, True, False)
-	elif gene_prediction_parameters["training_file"] is None and gene_prediction_parameters["mode"] == 'meta':
+	elif gene_prediction_parameters.pyrodigal_training_file is None and gene_prediction_parameters.pyrodigal_mode == 'meta':
 		# Create GeneFinder object to run in meta mode
 		gene_finder = create_gene_finder(None, True, True, True)
 	else:
@@ -352,12 +352,12 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu
 		pyrodigal_inputs[i].append(fo.join_paths(output_directory, [f'gene_coordinates_{i}']))
 
 	# Create subfolders to store each output format
-	for output_format in gene_prediction_parameters["output_formats"]:
+	for output_format in gene_prediction_parameters.pyrodigal_output_formats:
 		format_outdir = fo.join_paths(output_directory, [output_format])
 		fo.create_directory(format_outdir)
 
 	# Add common arguments to all sublists
-	common_args = [output_directory, gene_finder, gene_prediction_parameters["translation_table"], gene_prediction_parameters["output_formats"]]
+	common_args = [output_directory, gene_finder, translation_table, gene_prediction_parameters.pyrodigal_output_formats]
 	pyrodigal_inputs = im.multiprocessing_inputs(pyrodigal_inputs, common_args, predict_genome_genes)
 
 	# Run Pyrodigal to predict genes

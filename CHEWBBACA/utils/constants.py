@@ -216,8 +216,19 @@ GENE_COORDINATES_BASENAME = 'gene_coordinates.tsv'
 GENE_COORDINATES_EXCLUDED_BASENAME = 'gene_coordinates_excluded.tsv'
 INVALID_CDS_BASENAME = 'invalid_cds.txt'
 SCHEMA_CONFIG_BASENAME = '.schema_config'
+GENE_LIST_BASENAME = ".genes_list"
 NS_CONFIG_BASENAME = ".ns_config"
-GENE_LIST_BASENAME = '.genes_list'
+
+MISSING_GENE_LIST = ("Could not find the `.genes_list` file in the schema's directory.")
+
+SCHEMA_LOCI_GENE_LIST_NOMATCH = ("The identifiers of the loci FASTA files in the schema do "
+                                 "not match the loci identifiers stored in the `.genes_list` file. "
+								 "The schema includes {0} exclusive loci IDs ({1}) and the `.genes_list` "
+								 "file includes {2} exclusive loci IDs ({3}).")
+
+LOCI_LIST_SCHEMA_LOCI_NOMATCH = ("The file containing the list of loci includes loci IDs that are not in the "
+                                 "schema. Please ensure that all loci IDs in the file match IDs of loci in the "
+								 "schema. The following loci are not in the schema: {0}.")
 
 # Header for TSV file with loci stats
 LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
@@ -475,25 +486,22 @@ SUMMARY_STATS_COLUMNS = ['Total Samples', 'Total Loci', 'Total CDSs',
 
 # Input file is a FASTA file but chewBBACA expects a file with a list of
 # file paths
-FASTA_INPUT_EXCEPTION = ('Input file is a FASTA file. Please provide '
-						 'the path to the parent directory that contains '
-						 'the FASTA files or a file with the list of full '
-						 'paths to the FASTA files (one per line).')
+FASTA_INPUT_EXCEPTION = ("Input path {0} points to a FASTA file. Please provide a path to "
+                         "a folder that contains FASTA files or a file with the list of "
+						 "full paths to the FASTA files (one per line).")
 
 # Some input files have an invalid file extension
-INVALID_EXTENSION_EXCEPTION = ('The following input files do not have a '
-							   'valid file extension:\n{0}\nPlease ensure '
-							   'that the filenames end with one of the '
-							   f'following extensions: {FASTA_EXTENSIONS}.')
+INVALID_EXTENSION_EXCEPTION = ("The following input files do not have any of the supported "
+                               " file extensions:\n{0}\nPlease provide FASTA files with one "
+							   "of the following file extensions: {1}.")
 
 # Some of the file paths provided do not exist
-MISSING_INPUTS_EXCEPTION = ('Could not find some of the files provided in '
-							'the input list. Please verify that you\'ve '
-							'provided valid paths to the following input '
-							'files.\n{0}')
+MISSING_INPUTS_EXCEPTION = ("Could not find the following input files:\n{0}\n"
+                            "Please verify that all input paths exist.")
 
 # Files that do not have the expected format of a FASTA file
-NON_FASTA_EXCEPTION = ('Some of the input files are not in FASTA format.')
+NON_FASTA_EXCEPTION = ("The following input files are not vlida FASTA files:\n{0}\n."
+                       "Please make sure that all provided input files are valid FASTA files.")
 
 # Input directory does not contain FASTA files
 MISSING_FASTAS_EXCEPTION = ('Could not get input files. Please provide '
@@ -515,24 +523,17 @@ INVALID_INPUT_PATH = ('Input argument is not a valid directory or '
 					  f'following file extensions: {FASTA_EXTENSIONS}).')
 
 # Path to schema does not exist
-SCHEMA_PATH_MISSING = ('Path to input schema does not exist. Please provide '
-					   'a valid path.')
-
-# Path to schema does not include expected files
-SCHEMA_INVALID_PATH = ('Provided path does not include all the necessary '
-					   'schema files. Please verify that you have passed '
-					   'the correct path to the schema.')
+SCHEMA_PATH_MISSING = ("Path to input schema does not exist. Please provide a valid path.")
 
 # User provided legacy schema. Tell user to adapt with the PrepExternalSchema module
-ADAPT_LEGACY_SCHEMA = ('Schema does not include a config file or includes files that'
-					   ' are no longer used or supported. Please use the PrepExternalSchema '
-					   'module to adapt the schema and make it compatible with chewBBACA\'s '
-					   'latest version.')
+SCHEMA_MISSING_FILES = ("Schema does not include a `{0}` file. Please ensure that "
+					    "the path to the schema is correct and that it includes all mandatory "
+					    "files. If the schema was not created by chewBBACA, you can adapt it "
+					    "to make it compatible with chewBBACA using the PrepExternalSchema module.")
 
 # Output directory exists
-OUTPUT_DIRECTORY_EXISTS = ('Output directory already exists. Please '
-						   'provide a path to a directory that will be '
-						   'created to store the results.')
+OUTPUT_DIRECTORY_EXISTS = ("Output directory already exists. Please provide a non-existent path "
+                           "to create a new directory where results will be stored.")
 
 # Input file is a FASTA file but chewBBACA expects a file with a list of
 # loci file paths
@@ -572,9 +573,8 @@ INVALID_MINLEN_TYPE = ('\nInvalid minimum sequence length value. Value must be a
 INVALID_ST = ('\nInvalid size threshold value. Must be contained in the [0.0, 1.0] interval.')
 INVALID_ST_TYPE = ('\nInvalid size threshold value used to create schema. Value must be None or a positive float in the [0.0, 1.0] interval.')
 
-INVALID_GENETIC_CODE = ('\nInvalid genetic code value.\nValue must correspond to '
-				 		'one of the accepted genetic codes\n\nAccepted genetic '
-				 		f'codes:\n{"\n".join([str(k)+": "+v for k, v in GENETIC_CODES.items()])}')
+INVALID_GENETIC_CODE = ("Invalid genetic code value. Value must match one of the following accepted genetic codes"
+                        f"codes:\n{'\n'.join([str(k)+': '+v for k, v in GENETIC_CODES.items()])}")
 
 INVALID_WORD_SIZE = ("Invalid clustering word size value.")
 
@@ -590,9 +590,8 @@ NS_CANNOT_CONNECT = ('Failed to establish a connection to the Chewie-NS instance
 
 PYTHON_VERSION = ('Python version found: {0}\nPlease use Python >= {1}')
 
-CPU_VALUE_WARNING = ('You have provided a CPU core count value that is equal to the '
-					 'number of CPU cores in your system! This may affect your system '
-					 'responsiveness.')
+CPU_VALUE_WARNING = ("Provided a CPU core count value that is equal to the number of CPU cores "
+                     "in the system {0}. This may affect system responsiveness.")
 
 BLAST_MISSING = ("Could not find the BLAST executables. Please make sure that BLAST "
 				 "is installed and added to the PATH environment variable.")
@@ -603,16 +602,11 @@ MULTIPLE_PTFS = ('Found more than one Prodigal training '
 				 'file in the schema directory.\nPlease maintain '
 				 'only the training file used in the schema '
 				 'creation process.')
+
 MISSING_PTF = ('Could not find a Prodigal training file in the schema directory.')
 
-INVALID_PTF_PATH = ('Cannot find specified Prodigal training file.'
-					'\nPlease provide a valid training file.\nYou '
-					'can create a training file for a species of '
-					'interest with the following command:\n\n  prodigal '
-					'-i <reference_genome> -t <training_file.trn> -p '
-					'single\n\nIt is strongly advised to provide a '
-					'high-quality and closed genome for the training '
-					'process.')
+INVALID_PTF_PATH = ("Cannot find the specified Prodigal training file in {0}."
+					"\nPlease provide a path to a valid training file.")
 
 DIFFERENT_PTF_PROMPT = ('Prodigal training file is not the one '
 			  			'used to create the schema. Using this training '
@@ -637,19 +631,15 @@ ARGS_DIFFER_PROMPT = ('\nContinuing might lead to results not '
 
 MISSING_CONFIG = ('Could not find a valid config file.')
 
-INPUTS_SHARE_PREFIX = ('The following input files share the same filename prefix '
-					   '(substring before the first "." in the filename):\n{0}\n'
-					   'Please ensure that every input file has a unique '
-					   'filename prefix. This is necessary to unambiguously '
-					   'identify each input during intermediate steps and in '
-					   'output files.')
+INPUTS_SHARE_PREFIX = ("The following input files share the same unique filename prefix:\n{0}\n"
+                       "Please ensure that every input file has a unique filename prefix. This "
+					   "is necessary to unambiguously identify each input during intermediate "
+					   "steps and in the output files.")
 
-INPUTS_INCLUDE_BLANKS = ('The following input files include blank spaces '
-						 'in the filename:\n{0}\nPlease ensure that filenames '
-						 'do not include blank spaces or special characters '
-						 '(e.g. !@#?$^*()+). This is necessarry to avoid issues '
-						 'related to how these characters are recognized by '
-						 'chewBBACA and its dependencies.')
+INPUTS_INCLUDE_BLANKS = ("The following input files include blank spaces in the filename:\n{0}\n"
+                         "Please ensure that filenames do not include blank spaces or special "
+						 "characters (e.g. !@#?$^*()+). This is necessary to avoid issues related "
+						 "to how these characters are recognized by chewBBACA and its dependencies.")
 
 INPUTS_LONG_PREFIX = ('The following input files have a prefix longer than '
 					  '30 characters:\n{0}\nPlease make sure that input '
@@ -666,14 +656,14 @@ INPUTS_PDB_PREFIX = ('The following input files have prefixes that are interpret
 					 'IDs in the results. Please ensure that the file prefixes (substring '
 					 'before the first "." in the filename) cannot be interpreted as chain PDB IDs.')
 
-MISSING_INPUT_ARG = ('Path to input files does not exist. Please provide a valid path.')
+MISSING_INPUT_ARG = ("Input path '{0}' does not exist. Please provide a valid path.")
 
 MISSING_ALLELES = ('\nCould not create the FASTA files for {0} loci.'
 				   'Some alleles are not in the schema\'s FASTA files. Alleles are not '
 				   'added to the schema if the allele calling process did not '
 				   'complete successfully or if the --no-inferred option is used.')
 
-MISSING_LOCI_LIST = ("Path for the loci list is invalid.")
+MISSING_LOCI_LIST = ("Path to the file containing the loci list is invalid.")
 
 ALM_MSG = ('allele greater than {0}% locus length mode ({1}>{2})')
 ASM_MSG = ('allele smaller than {0}% locus length mode ({1}<{2})')
@@ -696,6 +686,8 @@ ALLELECALL_OUTFILES = ['results_alleles.tsv', 'results_contigsInfo.tsv',
 					   'unclassified_sequences.fasta', 'paralogous_counts.tsv',
 					   'paralogous_loci.tsv', 'novel_alleles.fasta',
 					   'presence_absence.tsv']
+
+CONFLICTING_ARGUMENTS = ("The value provided for the {0} does not match any of the values used with the schema ({1}).")
 
 SUBSETRESULTS_MISSING_LISTS_EXCEPTION = ('Did not provide a list of loci or samples. Please '
 										 'provide at least one of those lists to subset results.')
@@ -730,19 +722,23 @@ HASHPROFILES_INVALID_HASHING = ('{0} hash function is not available in the hashl
 
 GENE_PREDICTORS = ["pyrodigal", "augustus"]
 
-INVALID_GENE_PREDICTOR = ("Specified gene predictor is not valid.")
+INVALID_GENE_PREDICTOR = ("Specified gene predictor is not valid. Please provide one of the following "
+                          f"supported gene predictors: {', '.join(GENE_PREDICTORS)}.")
 
 AUGUSTUS_ALIAS = 'augustus'
 
-AUGUSTUS_MISSING = ('Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed and the executables were added to PATH.')
+AUGUSTUS_MISSING = ("Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed "
+                    "and added to the PATH environment variable.")
 
-AUGUSTUS_INVALID_SPECIES = ("Specified species ID is not in the list of supported species for AUGUSTUS. Please provide a valid species ID.")
+AUGUSTUS_INVALID_SPECIES = ("Specified species ID is not in the list of supported species for "
+                            "AUGUSTUS. Please provide one of the following supported species IDs:\n{0}.")
 
 AUGUSTUS_OUTFMTS = ['genes', 'gff']
 
-AUGUSTUS_OUTFMT_DEFAULT = "genes"
+AUGUSTUS_OUTFMT_DEFAULT = ["genes"]
 
-AUGUSTUS_INVALID_OUTFMT = ("Invalid output format specified for AUGUSTUS results.")
+AUGUSTUS_INVALID_OUTFMT = ("Invalid output format specified for AUGUSTUS results. Please select a single "
+                            "or multiple of the following supported output formats: {0}")
 
 PYRODIGAL_MODES = ["single", "meta"]
 
@@ -750,7 +746,7 @@ PYRODIGAL_DEFAULT_MODE = "single"
 
 PYRODIGAL_OUTFMTS = ['genes', 'translations', 'gff', 'genbank', 'scores']
 
-PYRODIGAL_DEFAULT_OUTFMT = ['genes']
+PYRODIGAL_DEFAULT_OUTFMTS = ['genes']
 
 PYRODIGAL_MIN_CONFIDENCE = 0.0
 
@@ -758,27 +754,11 @@ PYRODIGAL_MAX_CONFIDENCE = 100.0
 
 GENE_PREDICTOR_DEFAULT = "pyrodigal"
 
-GENE_PREDICTION_DEFAULT_ARGUMENTS = {"pyrodigal_training_file": None,
-									 "pyrodigal_mode": PYRODIGAL_DEFAULT_MODE,
-									 "pyrodigal_output_formats": PYRODIGAL_DEFAULT_OUTFMT,
-									 "pyrodigal_minimum_confidence": None,
-									 "pyrodigal_training_reference": None,
-									 "pyrodigal_just_training": False,
-									 "augustus_species": None,
-							  		 "augustus_output_formats": ["genes"],
-							  		 "augustus_path": None}
+PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results. Please select a single "
+                            "or multiple of the following supported output formats: {0}")
 
-CLUSTERING_DEFAULT_ARGUMENTS = {"word_size": WORD_SIZE_DEFAULT,
-								"window_size": WINDOW_SIZE_DEFAULT,
-								"clustering_sim": CLUSTERING_SIMILARITY_DEFAULT,
-								"representative_filter": REPRESENTATIVE_FILTER_DEFAULT,
-								"intra_filter": INTRA_CLUSTER_DEFAULT}
-
-PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results.")
-
-INVALID_PYRODIGAL_MODE = ("Invalid mode specified for Pyrodigal. Please provide a valid mode.")
-
-INVALID_PYRODIGAL_CONFIDENCE = ("Invalid confidence value specified for Pyrodigal. Please provide a value between 0.0 and 100.0.")
+INVALID_PYRODIGAL_MODE = ("Invalid execution mode specified for Pyrodigal. Please choose one of the "
+                          f"following supported execution modes: {PYRODIGAL_MODES}.")
 
 AUGUSTUS_GFF_FILTERS = ["# start gene", "# coding sequence"]
 
@@ -814,7 +794,7 @@ NO_INFERRED_ARGNAME = "no_inferred"
 OUTPUT_UNCLASSIFIED_ARGNAME = "output_unclassified"
 OUTPUT_MISSING_ARGNAME = "output_missing"
 OUTPUT_NOVEL_ARGNAME = "output_novel"
-OUTPUT_MASKED_ARGNAME = "output_masked"
+OUTPUT_MASKED_ARGNAME = "output_masked_profiles"
 FORCE_CONTINUE_ARGNAME = "force_continue"
 EXECUTION_MODE_ARGNAME = "execution_mode"
 ANNOTATIONS_FILE_ARGNAME = "annotations_file"
@@ -906,23 +886,24 @@ PERMUTATION_SAMPLES_DEFAULT = None
 INVALID_GENEPREDICTOR_PARAMETER = ("{0} is not a valid parameter=argument pair used to configure gene prediction with {1}.")
 INVALID_PARAMETER_STR = ("{0} is not a valid parameter=argument pair.")
 
-PYRODIGAL_META_NOPTF = ("Cannot use a training file when running Pyrodigal in meta mode. "
-						"Please do not provide a training file if setting Pyrodigal's running mode to meta.")
+PYRODIGAL_META_NOPTF = ("Cannot use a training file when running Pyrodigal in `meta` mode. "
+						"Please do not provide a training file if setting Pyrodigal's running mode to `meta`.")
 
 # Define expected types for the arguments
 ARGUMENT_TYPES = {
 	"input_files": str,
 	"output_directory": str,
+	"schema_directory": str,
+	"loci_list": str,
 	"gene_predictor": str,
 	"gene_prediction_options": str,
 	"translation_table": int,
 	"cpu_cores": int,
 	"schema_name": str,
 	"blast_score_ratio": float,
-
 	"minimum_length": int,
 	"size_threshold": float,
-	"clustering_parameters": str,
+	"clustering_options": str,
 	"blast_path": str,
 	"cds_input": bool,
 	"no_cds_renaming": bool,
@@ -954,10 +935,11 @@ ARGUMENT_TYPES = {
 	"proteome_matches": int,
 	"no_sparql": bool,
 	"output_format": str,
-	'output_variable': bool,
+	"output_variable": bool,
+	"execution_mode": int,
 }
 
-CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a training file and a training reference "
+CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a Pyrodigal training file and a training reference "
 							   "to create a training file. Please provide either a training "
 							   "file or a training reference to create a new training file, "
 							   "not both.")
@@ -969,9 +951,14 @@ PredictGenesDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/Pred
 CreateSchemaDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html"
 AlleleCallDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCall.html"
 
-ALLELECALL_MODES = [1, 2, 3, 4]
-ALLELECALL_DEFAULT_MODE = 1
+ALLELECALL_MODES = {1: "Searches for exact matches at the DNA level between the schema alleles and the input CDSs.",
+                    2: "Searches for exact matches at the DNA and protein levels between the schema alleles and the input CDSs.",
+					3: "Searches for exact matches at the DNA and protein levels and clusters CDSs against all representative alleles followed by intracluster BLASTp.",
+					4: "The default mode. Runs the whole process (exact matching, clustering followed by intracluster BLASTp, and a final all-vs-all BLASTp between all representative alleles and the remaining unclassified CDSs)."}
 
-INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling.")
+ALLELECALL_DEFAULT_MODE = 4
+
+INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling. Please provide one of the "
+                           f"following supported modes: {'\n'.join([str(k)+': '+v for k, v in ALLELECALL_MODES.items()])}")
 
 MISSING_RESULTS_ALLELES = (f"Input directory with results data does not include the {RESULTS_ALLELES_BASENAME} file.")

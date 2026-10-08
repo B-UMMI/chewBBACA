@@ -135,7 +135,7 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, augu
 	return [input_file, total_genome, close_to_tip, output_files]
 
 
-def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu_cores):
+def predict_genes(fasta_files, output_directory, gene_prediction_parameters, translation_table, cpu_cores):
 	"""
 	"""
 	augustus_inputs = im.divide_list_into_n_chunks(fasta_files, len(fasta_files))
@@ -144,14 +144,14 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, cpu
 		augustus_inputs[i].append(fo.join_paths(output_directory, [f'gene_coordinates_{i}']))
 
 	# Create subfolders to store each output format
-	for output_format in gene_prediction_parameters["output_formats"]:
+	for output_format in gene_prediction_parameters.augustus_output_format:
 		format_outdir = fo.join_paths(output_directory, [output_format])
 		fo.create_directory(format_outdir)
 
 	# Add common arguments to all sublists
-	augustus_exe = fo.join_paths(gene_prediction_parameters["augustus_path"], [ct.AUGUSTUS_ALIAS])
+	augustus_exe = fo.join_paths(gene_prediction_parameters.augustus_path, [ct.AUGUSTUS_ALIAS])
 	common_args = [output_directory, augustus_exe,
-				   gene_prediction_parameters["species"], gene_prediction_parameters["output_formats"]]
+				   gene_prediction_parameters.augustus_species, gene_prediction_parameters.augustus_output_format]
 	augustus_inputs = im.multiprocessing_inputs(augustus_inputs, common_args, predict_genome_genes)
 
 	# Run Pyrodigal to predict genes

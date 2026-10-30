@@ -201,8 +201,7 @@ def distribute_loci(inputs, cores, method):
 	return splitted_ids
 
 
-def parallelize_function(function, inputs, common_args=None,
-						 cpu_cores=1, show_progress=False):
+def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_progress=False):
 	"""Create list of inputs and parallelize function calls.
 
 	Parameters

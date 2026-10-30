@@ -20,16 +20,20 @@ import itertools
 import multiprocessing
 
 try:
+	from __init__ import __version__
 	from utils import (constants as ct,
 					   blast_wrapper as bw,
+					   core_functions as cf,
 					   file_operations as fo,
 					   fasta_operations as fao,
 					   sequence_manipulation as sm,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	from CHEWBBACA import __version__
 	from CHEWBBACA.utils import (constants as ct,
 								 blast_wrapper as bw,
+								 core_functions as cf,
 								 file_operations as fo,
 								 fasta_operations as fao,
 								 sequence_manipulation as sm,
@@ -459,8 +463,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 	return [invalid_alleles, invalid_loci, summary_stats]
 
 
-def main(input_files, output_directories, cpu_cores, blast_score_ratio,
-		 minimum_length, translation_table, size_threshold, blast_path):
+def main(config):
 	"""
 	Adapt a schema to be used with chewBBACA.
 
@@ -491,43 +494,39 @@ def main(input_files, output_directories, cpu_cores, blast_score_ratio,
 	blast_path : str
 		Path to the directory that contains the BLAST executables.
 	"""
-	schema_path, schema_short_path = output_directories
+	schema_path = config.output_directory
+	# Create the "short" directory to store the FASTA files with representative alleles
+	schema_short_path = fo.join_paths(schema_path, ["short"])
+	fo.create_directory(schema_short_path)
 
-	# Import list of loci to adapt
-	genes_list = fo.read_lines(input_files, strip=True)
-
-	print('Number of loci to adapt: {0}\n'.format(len(genes_list)))
+	print('Number of loci to adapt: {0}\n'.format(len(config.loci_list[0])))
 	print('Determining the total number of alleles and '
 		  'allele mean length per gene...\n'.format())
 
 	# Count number of sequences and mean length per locus
 	loci_info = []
-	loci_pools = multiprocessing.Pool(processes=cpu_cores)
-	gp = loci_pools.map_async(fao.fasta_stats, genes_list,
-							  callback=loci_info.extend)
+	loci_pools = multiprocessing.Pool(processes=config.cpu_cores)
+	gp = loci_pools.map_async(fao.fasta_stats, config.loci_list[1], callback=loci_info.extend)
 	gp.wait()
 
-	# split files according to number of sequences and sequence mean length
+	# Split files according to number of sequences and sequence mean length
 	# in each file to pass even groups of sequences to all cores
 	# divide into 100 input sets to get 1% progress resolution
 	even_loci_groups = mo.distribute_loci(loci_info, 100, 'seqcount')
 	# with few inputs, some sublists might be empty
 	even_loci_groups = [i for i in even_loci_groups if len(i) > 0]
 	# Add common arguments
-	blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-	makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-	blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+	blastp_path = os.path.join(config.blast_path, ct.BLASTP_ALIAS)
+	makeblastdb_path = os.path.join(config.blast_path, ct.MAKEBLASTDB_ALIAS)
+	blastdb_aliastool_path = fo.join_paths(config.blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
 	even_loci_groups = [[i, schema_path, schema_short_path,
-						 blast_score_ratio, minimum_length,
-						 translation_table, size_threshold,
+						 config.blast_score_ratio, config.adaptation_minimum_length,
+						 config.translation_table, config.adaptation_size_threshold,
 						 blastp_path, makeblastdb_path, blastdb_aliastool_path,
 						 adapt_loci] for i in even_loci_groups]
 
-	print('Adapting {0} loci...\n'.format(len(genes_list)))
-	invalid_data = mo.map_async_parallelizer(even_loci_groups,
-											 mo.function_helper,
-											 cpu_cores,
-											 show_progress=True)
+	print('Adapting {0} loci...\n'.format(len(config.loci_list[0])))
+	invalid_data = mo.map_async_parallelizer(even_loci_groups, mo.function_helper, config.cpu_cores, show_progress=True)
 
 	# Write files with list of invalid alleles and invalid loci
 	schema_basename = fo.file_basename(schema_path.rstrip('/'))
@@ -565,5 +564,17 @@ def main(input_files, output_directories, cpu_cores, blast_score_ratio,
 	print(f'Wrote file with summary statistics to {stats_loci_file}')
 
 	print('\nSuccessfully adapted {0}/{1} loci present in the '
-		  'input schema.'.format(len(genes_list)-len(invalid_loci),
-								 len(genes_list)))
+		  'input schema.'.format(len(config.loci_list[0])-len(invalid_loci), len(config.loci_list[0])))
+
+	# Copy Pyrodigal Training File (PTF) to schema directory
+	if config.gene_predictor == "pyrodigal" and config.validated_gene_prediction_options.pyrodigal_training_file is not None:
+		fo.copy_file(config.validated_gene_prediction_options.pyrodigal_training_file, schema_path)
+		print(f'Copied Pyrodigal training file to {schema_path}')
+
+	# Write schema config file
+	schema_config = cf.write_schema_config(config, __version__, schema_path)
+	print(f'Wrote schema config values to {schema_config[1]}')
+
+	# Create the file with the list of genes/loci
+	cf.write_gene_list(schema_path)
+	print(f'Wrote list of loci to {os.path.join(schema_path, ct.GENE_LIST_BASENAME)}')

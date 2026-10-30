@@ -13,8 +13,11 @@ Code documentation
 
 
 import time
+import hashlib
+import requests
+from urllib3.util import Retry
 from urllib.request import urlopen
-from SPARQLWrapper import SPARQLWrapper, JSON
+from requests.adapters import HTTPAdapter
 
 try:
 	from utils import (constants as ct,
@@ -26,9 +29,6 @@ except ModuleNotFoundError:
 								 file_operations as fo,
 								 fasta_operations as fao,
 								 sequence_manipulation as sm)
-
-
-UNIPROT_SERVER = SPARQLWrapper(ct.UNIPROT_SPARQL)
 
 
 def website_availability(url):
@@ -51,150 +51,6 @@ def website_availability(url):
 		response = e
 
 	return response
-
-
-def select_name(result):
-	"""Extract an annotation from the result of a query to UniProt.
-
-	Parameters
-	----------
-	result : dict
-		A dictionary with the results from querying
-		the UniProt SPARQL endpoint.
-
-	Returns
-	-------
-	A list with the following elements:
-		selected_name : str
-			The annotation description.
-		selected_url : str
-			The URL to the UniProt page about the protein record.
-		selected_label : str
-			A label that has descriptive value.
-	"""
-	url = ''
-	name = ''
-	label = ''
-	selected_name = ''
-	selected_url = ''
-	selected_label = ''
-
-	i = 0
-	found = False
-	# Get the entries with results
-	try:
-		aux = result['results']['bindings']
-	# Response does not contain annotation data
-	except Exception as e:
-		aux = {}
-
-	# only check results that are not empty
-	if len(aux) > 0:
-		# iterate over all results to find suitable
-		while found is False:
-			current_res = aux[i]
-			res_keys = aux[i].keys()
-
-			# annotation name can be associated
-			# to different keys
-			if 'fname' in res_keys:
-				name = str(current_res['fname']['value'])
-			elif 'sname2' in res_keys:
-				name = str(current_res['sname2']['value'])
-			elif 'label' in res_keys:
-				name = str(current_res['label']['value'])
-
-			if 'label' in res_keys:
-				label = str(current_res['label']['value'])
-			else:
-				label = name
-
-			# get UniProt URL
-			if 'uri' in res_keys:
-				url = str(current_res['seq']['value'])
-			elif 'seq' in res_keys:
-				url = str(current_res['seq']['value'])
-
-			if any([term in name for term in ct.UNIPROT_UNINFORMATIVE]) is False:
-				selected_name = name
-				selected_url = url
-				selected_label = label
-				found = True
-			else:
-				if selected_name == '':
-					selected_name = name
-					selected_url = url
-					selected_label = label
-
-			i += 1
-			if i == len(aux):
-				found = True
-
-	return [selected_name, selected_url, selected_label]
-
-
-def uniprot_query(sequence):
-	"""Construct a SPARQL query to search for exact matches in UniProt.
-
-	Parameters
-	----------
-	sequence : str
-		The Protein sequence that will be added to
-		the query/searched for.
-
-	Returns
-	-------
-	query : str
-		The SPARQL query that will allow to search for
-		exact matches in the UniProt database.
-	"""
-	query = ('PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>  '
-			 'PREFIX up: <http://purl.uniprot.org/core/> '
-			 'select ?seq ?fname ?sname2 ?label  where {'
-			 '{?b a up:Simple_Sequence; rdf:value '
-			 '"'+sequence+'". ?seq up:sequence ?b. '
-			 'OPTIONAL{?seq up:submittedName ?sname. ?sname up:fullName ?sname2} '
-			 'OPTIONAL{?seq up:recommendedName ?rname.?rname up:fullName ?fname} }'
-			 'UNION{?seq a up:Sequence; rdf:value "'+sequence+'"; '
-			 'rdfs:label ?label. }}')
-
-	return query
-
-
-def get_data(sparql_query):
-	"""Send requests to query UniProts's SPARQL endpoint.
-
-	Parameters
-	----------
-	sparql_query : str
-		SPARQL query.
-
-	Returns
-	-------
-	result : dict
-		Dictionary with data retrieved from UniProt.
-	"""
-	tries = 0
-	failed = []
-	max_tries = ct.MAX_RETRIES
-	success = False
-	while success is False and tries < max_tries:
-		try:
-			UNIPROT_SERVER.setQuery(sparql_query)
-			UNIPROT_SERVER.setReturnFormat(JSON)
-			UNIPROT_SERVER.setTimeout(60)
-			result = UNIPROT_SERVER.query().convert()
-			success = True
-		# Might fail if sequence is too long for GET method(URITooLong)
-		except Exception as e:
-			failed.append(e)
-			tries += 1
-			time.sleep(1)
-
-	if success is False:
-		result = {}
-
-	return [result, failed]
 
 
 def get_proteomes(proteome_ids, output_dir):
@@ -235,12 +91,51 @@ def get_proteomes(proteome_ids, output_dir):
 	return proteomes_files
 
 
-def get_annotation(gene, translation_table):
+def create_requests_session(retries, backoff_factor, status_forcelist):
+	""""""
+	session = requests.Session()
+	# Configure retry strategy
+	retry_config = Retry(total=retries, # Total number of retries
+	                     backoff_factor=backoff_factor, # Delay between retries {backoff_factor} * (2 ** (number of previous retries))
+						 status_forcelist=status_forcelist, # Retry on these HTTP status codes
+						 raise_on_status=False, # Return final response instead of raising exception if request fails
+						 allowed_methods=["GET"] # Restrict to specific HTTP methods
+						)
+
+	adapter = HTTPAdapter(max_retries=retry_config)
+
+	# Mount adapter to both HTTP and HTTPS protocols
+	session.mount("http://", adapter)
+	session.mount("https://", adapter)
+
+	return session
+
+
+def send_request(session, url, params, headers):
+	""""""
+	try:
+		response = session.get(url,
+		                       params=params,
+		                       headers=headers,
+		                       # Set timeout to connect to server and to return response
+							   timeout=(ct.UNIPROT_RESTAPI_SERVER_TIMEOUT, ct.UNIPROT_RESTAPI_RESPONSE_TIMEOUT)
+							)
+		response.raise_for_status()
+		return response
+	except requests.exceptions.RetryError:
+		return "Maximum retries exceeded."
+	except requests.exceptions.Timeout:
+		return "The request timed out."
+	except requests.exceptions.HTTPError as err:
+		return f"HTTP error occurred {err}"
+
+
+def get_annotation(input_file, translation_table, maximum_matches):
 	"""Retrieve and select best annotation for a locus.
 
 	Parameters
 	----------
-	gene : str
+	input_file : str
 		Path to a FASTA file with the DNA sequences for
 		the alleles of the locus.
 	translation_table : int
@@ -256,37 +151,55 @@ def get_annotation(gene, translation_table):
 	selected_url : str
 		URL for the page with information about the selected terms.
 	"""
-	selected_url = ''
-	selected_name = ''
-	# Import locus alleles
-	sequences = fao.import_sequences(gene)
 	queried = []
+	exceptions = []
+	accession = None
+	# Import locus alleles
+	sequences = fao.import_sequences(input_file)
+	annotations = []
+	# Create session object to perform requests
+	session = create_requests_session(ct.UNIPROT_RESTAPI_MAX_RETRIES, ct.UNIPROT_RESTAPI_RETRY_SLEEP, ct.UNIPROT_RESTAPI_STATUS_FORCELIST)
 	for seqid, sequence in sequences.items():
-		# Translate allele
-		protein_sequence = str(sm.translate_sequence(sequence,
-													 table_id=translation_table))
+		# Translate allele and determine MD5 hash
+		protein_sequence = str(sm.translate_sequence(sequence, table_id=translation_table))
+		md5_hash = hashlib.md5(protein_sequence.encode("utf-8")).hexdigest()
+		# Do not query UniProt if another allele encoding the same protein has already been seen
+		if md5_hash not in queried:
+			params = {"md5": md5_hash}
+			response = send_request(session, ct.UNIPROT_PROTEINS_API, params=params, headers=ct.UNIPROT_PROTEINS_API_HEADERS)
+			# Extract results if request was successful
+			if response.status_code == 200:
+				data = response.json()
+				if len(data) > 0:
+					# Extract annotation terms
+					for i in range(min(maximum_matches, len(data))):
+						current_data = data[i]
+						# Get UniProt accession number
+						accession = current_data.get("accession", "")
+						# Get the source of the record (TrEMBL or Swiss-Prot)
+						source = current_data.get("info", {}).get("type", "")
+						# Get the taxonomic identifier of the organism the protein was identified in
+						taxid = str(current_data.get("organism", {}).get("taxonomy", ""))
+						# Get teh scientific name of the organism
+						taxon = current_data.get("organism", {}).get("names", [{}])[0].get("value", "")
+						# Get the protein name/product
+						protein_name = current_data.get("protein", {}).get("recommendedName", {}).get("fullName", {}).get("value", "")
+						# Get the name of the gene encoding the protein
+						gene_name = current_data.get("gene", [{}])[0].get("name", {}).get("value", "")
+						# Construct the link to the record's page on UniProt
+						gene_url = ct.UNIPROT_ENTRY_URL.format(accession)
 
-		if protein_sequence not in queried:
-			query = uniprot_query(protein_sequence)
-			result, failed = get_data(query)
-			queried.append(protein_sequence)
-			if len(result) > 0:
-				name, url, label = select_name(result)
+						annotations.append([accession, source, taxid, taxon, protein_name, gene_name, gene_url])
 
-				lowercase_name = name.lower()
-				if any([term in lowercase_name for term in ct.UNIPROT_UNINFORMATIVE]) is True:
-					if selected_name == '':
-						selected_name = name
-						selected_url = url
-					continue
-				elif name == '':
-					continue
-				else:
-					selected_name = name
-					selected_url = url
-					break
+				queried.append(md5_hash)
+			else:
+				exceptions.append(response)
 
-	return [gene, selected_name, selected_url, failed]
+		# Stop iterating when one sequence matched a record on UniProt
+		if accession:
+			return [input_file, annotations]
+
+	return [input_file, []]
 
 
 def extract_proteome_terms(header_items):

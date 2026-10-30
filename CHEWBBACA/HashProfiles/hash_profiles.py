@@ -10,10 +10,6 @@ Code documentation
 """
 
 
-import sys
-import zlib
-import hashlib
-
 import pandas as pd
 
 try:
@@ -125,7 +121,7 @@ def hash_profiles(input_file, loci_ids, loci_files, hashing_function,
 	return output_file
 
 
-def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_cores):
+def main(config):
 	"""Hash allele identifiers in a matrix of allelic profiles.
 
 	Parameters
@@ -145,59 +141,46 @@ def main(input_file, schema_directory, output_directory, hash_type, nrows, cpu_c
 	nrows : int
 		Divide input file into subsets to process more efficiently.
 	"""
-	# Get hash function
-	hashing_function = getattr(hashlib, hash_type, None)
-	if hashing_function is None:
-		hashing_function = getattr(zlib, hash_type, None)
-
-	if hashing_function is None:
-		sys.exit(ct.HASHPROFILES_INVALID_HASHING.format(hash_type))
-	else:
-		print(f'Hash function: {hash_type}')
+	print(f"Hash function: {config.hashing_algo[0]}")
 
 	# Get loci identifiers
-	with open(input_file, 'r') as infile:
-		header = infile.readline()
-		loci_ids = header.split()[1:]
-	print(f'Total loci: {len(loci_ids)}')
+	# Read loci IDs in profiles file
+	profiles_header = fo.read_lines(config.allelic_profiles, strip=True, num_lines=1)
+	loci_ids = profiles_header[0].split("\t")[1:]
+	print(f"Total loci: {len(loci_ids)}")
 
 	# Get input/sample identifiers
-	sample_ids = pd.read_csv(input_file, delimiter='\t',
-							 dtype=str, usecols=['FILE'])
+	sample_ids = pd.read_csv(config.allelic_profiles, delimiter="\t", dtype=str, usecols=["FILE"])
 	sample_ids = sample_ids['FILE'].tolist()
-	print(f'Total samples: {len(sample_ids)}')
+	print(f"Total samples: {len(sample_ids)}")
 
-	print(f'Dividing input file into subsets of {nrows} rows to process more efficiently...')
+	print(f"Dividing input file into subsets of {config.nrow_chunk} rows to process more efficiently...")
 	loci_files = {}
 	for locus in loci_ids:
-		locus_file = fo.join_paths(schema_directory, [locus])
-		# Add .fasta extension if file headers did not include it
-		if locus_file.endswith('.fasta') is False:
-			locus_file += '.fasta'
-		loci_files[locus] = locus_file
+		loci_files[locus] = fo.join_paths(config.schema_directory, [locus+".fasta"])
 
 	# Create multiprocessing inputs
 	multi_inputs = []
 	# Divide and process by row chunks
-	for i in range(0, len(sample_ids), nrows):
-		multi_inputs.append([input_file, loci_ids, loci_files,
-							 hashing_function, nrows, range(1, i+1),
-							 output_directory, hash_profiles])
+	for i in range(0, len(sample_ids), config.nrow_chunk):
+		multi_inputs.append([config.allelic_profiles, loci_ids, loci_files,
+							 config.hashing_algo[1], config.nrow_chunk, range(1, i+1),
+							 config.output_directory, hash_profiles])
 
-	print('Hashing profiles...')
-	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, cpu_cores, show_progress=True)
+	print("Hashing profiles...")
+	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, config.cpu_cores, show_progress=True)
 
-	print('\nCreating output file...')
+	print("\nCreating output file...")
 	# Create file with header
-	header_basename = fo.file_basename(input_file, False) + '_header.tsv'
-	header_file = fo.join_paths(output_directory, [header_basename])
-	fo.write_to_file(header, header_file, 'w', '')
+	header_basename = fo.file_basename(config.allelic_profiles, False) + "_header.tsv"
+	header_file = fo.join_paths(config.output_directory, [header_basename])
+	fo.write_to_file(profiles_header, header_file, "w", "\n")
 	# Concatenate all files
-	output_basename = fo.file_basename(input_file) + '_hashed.tsv'
-	output_file = fo.join_paths(output_directory, [output_basename])
+	output_basename = fo.file_basename(config.allelic_profiles) + "_hashed.tsv"
+	output_file = fo.join_paths(config.output_directory, [output_basename])
 	fo.concatenate_files([header_file]+hashed_files, output_file)
 
 	# Delete intermediate dataframes
-	print('Removing intermediate files...')
+	print("Removing intermediate files...")
 	fo.remove_files([header_file]+hashed_files)
-	print(f'Hashed profiles saved to {output_file}')
+	print(f"Hashed profiles saved to {output_file}")

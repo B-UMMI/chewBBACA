@@ -20,7 +20,6 @@ import os
 import math
 import json
 import shutil
-import pickle
 import statistics
 from collections import Counter
 
@@ -333,7 +332,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 		distinct_records = [[v[0], k]
 							for k, v in distinct_proteins.items()]
 		distinct_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, distinct_records)
-		distinct_file = fo.join_paths(distinct_dir, [f'{locus_id}_distinct.fasta'])
+		distinct_file = fo.join_paths(distinct_dir, [f"{locus_id}_distinct.fasta"])
 		fo.write_lines(distinct_lines, distinct_file)
 		distinct_ids = [[get_alleleID(i) for i in v]
 						for k, v in distinct_proteins.items()]
@@ -370,8 +369,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 														   allele_lengths)
 
 	# Add info about short alleles
-	short_category = f'Alleles < {minimum_length}bp'
-	short_description = 'Sequence shorter than {0}bp ({1}bp);'
+	short_category = f"Alleles < {minimum_length}bp"
+	short_description = "Sequence shorter than {0}bp ({1}bp);"
 	for i in short_ids:
 		if str(i[0]) in formatted_exceptions:
 			formatted_exceptions[str(i[0])].append(short_description.format(minimum_length, i[1]))
@@ -381,8 +380,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 											   short_description.format(minimum_length, i[1])]
 
 	# Add info about alleles above threshold
-	above_category = 'Alleles above size threshold'
-	above_description = 'Sequence above size threshold ({0}bp)'
+	above_category = "Alleles above size threshold"
+	above_description = "Sequence above size threshold ({0}bp)"
 	for i in above_threshold:
 		if str(i[0]) in formatted_exceptions:
 			formatted_exceptions[str(i[0])].append(above_description.format(i[1]))
@@ -392,8 +391,8 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 											   above_description.format(i[1])]
 
 	# Add info about alleles below threshold
-	below_category = 'Alleles below size threshold'
-	below_description = 'Sequence below size threshold ({0}bp)'
+	below_category = "Alleles below size threshold"
+	below_description = "Sequence below size threshold ({0}bp)"
 	for i in below_threshold:
 		if str(i[0]) in formatted_exceptions:
 			formatted_exceptions[str(i[0])].append(below_description.format(i[1]))
@@ -561,9 +560,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
 	return locus_html_file
 
 
-def main(schema_directory, output_directory, genes_list, annotations,
-		 translation_table, size_threshold, minimum_length,
-		 cpu_cores, loci_reports, light, add_sequences):
+def main(config):
 	"""Evaluate a schema and create a HTML report.
 
 	Parameters
@@ -596,113 +593,68 @@ def main(schema_directory, output_directory, genes_list, annotations,
 		protein sequences.
 	"""
 	# Create directory to store intermediate files
-	temp_directory = fo.join_paths(output_directory, ['temp'])
+	temp_directory = fo.join_paths(config.output_directory, ["temp"])
 	fo.create_directory(temp_directory)
 
-	schema_files = fo.read_lines(genes_list)
-	# Sort based on locus name
-	schema_files = sorted(schema_files)
+	# Sort list of schema loci
+	schema_files = sorted(config.loci_list[1])
 	# Map basename to full path
-	loci_basenames = {fo.file_basename(file, False): file
-					  for file in schema_files}
+	loci_basenames = {fo.file_basename(file, False): file for file in config.loci_list[0]}
 
 	# Check if the schema was created with chewBBACA
-	config_file = fo.join_paths(schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
-	if os.path.exists(config_file):
-		# get the schema configs
-		with open(config_file, "rb") as cf:
-			chewie_config = pickle.load(cf)
-		chewie_version = (chewie_config["chewBBACA_version"][0]).replace('chewBBACA ', '')
-		print("The schema was created with chewBBACA v{0}.".format(chewie_version))
+	if config.chewie_schema is not False:
+		print("The schema was created with chewBBACA v{0}.".format(config.chewie_schema))
 		# Message displayed in the Schema Creation Alert
-		creation_message = ('Schema created with chewBBACA '
-							f'v{chewie_version}, '
-							'BLAST Score Ratio of '
-							f'{chewie_config.get("bsr")[0]}, '
-							'minimum length of '
-							f'{chewie_config.get("minimum_locus_length")[0]},'
-							' size threshold of '
-							f'{chewie_config.get("size_threshold")[0]}, '
-							'and translation table '
-							f'{chewie_config.get("translation_table")[0]}.')
-		# check if schema has a Prodigal training file
-		if chewie_config.get("prodigal_training_file")[0] is not None:
-			creation_message += (' A Prodigal training file was used for '
-								 'gene prediction.')
-		else:
-			creation_message += (' No Prodigal training file used for gene '
-								 'prediction.')
+		creation_message = (f"Created with chewBBACA v{config.chewie_schema}\n"
+							f"BLAST Score Ratio: {', '.join(map(str, config.blast_score_ratio_values))}\n"
+							f"Minimum length: {', '.join(map(str, config.minimum_length_values))}\n"
+							f"Size threshold: {', '.join(map(str, config.size_threshold_values))}\n"
+							f"Translation table: {', '.join(map(str, config.translation_table_values))}\n"
+							f"Training file: {config.training_file}")
 	else:
-		chewie_config = {}
 		# Message displayed in the Schema Creation Alert
-		creation_message = ('Did not find information about config values '
-							'used to create the schema.')
-
-	# Use schema config values if user did not provide values
-	# Use default values defined in constants if there are no chewie config
-	if minimum_length is None:
-		minimum_length = chewie_config.get("minimum_locus_length",
-										   [ct.MINIMUM_LENGTH_DEFAULT])[0]
-
-	if size_threshold is None:
-		size_threshold = chewie_config.get("size_threshold",
-										   [ct.SIZE_THRESHOLD_DEFAULT])[0]
-
-	if translation_table is None:
-		translation_table = chewie_config.get("translation_table",
-											  [ct.GENETIC_CODES_DEFAULT])[0]
+		creation_message = ("Could not find a config file. Evaluated as external schema.")
 
 	# Message displayed in the Schema Evaluation Alert
-	evaluation_message = ('Schema evaluated with minimum length of '
-						  f'{minimum_length}, size threshold of '
-						  f'{size_threshold}, and translation table '
-						  f'{translation_table}.')
+	evaluation_message = (f"Schema evaluated with minimum length of {config.minimum_length}, "
+	                      f"size threshold of {config.size_threshold}, and translation table "
+						  f"{config.translation_table}.")
 
-	# Create temporary directory to store translated alleles
-	translation_dir = fo.join_paths(temp_directory, ['translated_loci'])
-	fo.create_directory(translation_dir)
-	# Create directory to store FASTA files with distinct proteins
-	distinct_dir = fo.join_paths(translation_dir, ['distinct_proteins'])
+	# Create temporary directory to store translated alleles and distinct proteins
+	translation_dir = fo.join_paths(temp_directory, ["translated_loci"])
+	distinct_dir = fo.join_paths(translation_dir, ["distinct_proteins"])
 	fo.create_directory(distinct_dir)
 
 	# Calculate the summary statistics and other information about each locus.
 	inputs = im.divide_list_into_n_chunks(schema_files, len(schema_files))
 
-	common_args = [translation_table, minimum_length,
-				   size_threshold, translation_dir, distinct_dir]
+	common_args = [config.translation_table, config.minimum_length, config.size_threshold, translation_dir, distinct_dir]
 
 	# Add common arguments to all sublists
-	inputs = im.multiprocessing_inputs(inputs,
-									   common_args,
-									   compute_locus_statistics)
+	inputs = im.multiprocessing_inputs(inputs, common_args, compute_locus_statistics)
 
 	# Compute loci statistics
-	print('Computing loci statistics...')
-	results = mo.map_async_parallelizer(inputs,
-										mo.function_helper,
-										cpu_cores,
-										show_progress=True)
+	print("Computing loci statistics...")
+	results = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores, show_progress=True)
 
 	# Group values for the same statistic
 	data = list(zip(*results))
 
 	# Read loci annotations from TSV file
 	annotation_values = [[], []]
-	if annotations is not None:
-		annotation_lines = fo.read_tabular(annotations)
+	if config.annotations_file is not None:
+		annotation_lines = fo.read_tabular(config.annotations_file)
 		# Add file columns
 		annotation_values[0].extend(annotation_lines[0])
 		# Add sublists with lines
 		# Only keep lines for loci in the schema
-		loci_annotations = [line for line in annotation_lines[1:]
-							if line[0] in loci_basenames]
+		loci_annotations = [line for line in annotation_lines[1:] if line[0] in loci_basenames]
 		annotation_values[1].extend(loci_annotations)
 
-	print(f'\nProvided annotations for {len(annotation_values[1])} '
-		  'loci in the schema.')
+	print(f"\nProvided annotations for {len(annotation_values[1])} loci in the schema.")
 
 	# Columns for the Summary Data Table in the Schema Report
-	summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(minimum_length)
+	summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(config.minimum_length)
 	summary_columns = summary_columns.split('\t')
 
 	# Get total number of alleles with a length value not multiple of 3
@@ -735,18 +687,16 @@ def main(schema_directory, output_directory, genes_list, annotations,
 					above_sum]
 
 	# Columns for the Allele Analysis Table component
-	analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(minimum_length)
-	analysis_columns = analysis_columns.split('\t')
+	analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(config.minimum_length)
+	analysis_columns = analysis_columns.split("\t")
 	analysis_rows = list(data[13])
 
 	# Message displayed if schema was downloaded from Chewie-NS
 	ns_schema = []
-	ns_config = os.path.join(schema_directory, '.ns_config')
-	if os.path.exists(ns_config):
+	if config.ns_config:
 		total_ns = sum([len(subdata) for subdata in data[21]])
-		ns_schema.append('This schema was downloaded from Chewie-NS and '
-						 f'contains {total_ns} alleles added since the last '
-						 'synchronization with the remote schema.')
+		ns_schema.append(f"This schema was downloaded from Chewie-NS and contains {total_ns} "
+		                 "alleles added since the last synchronization with the remote schema.")
 
 	# Data in the Schema Report HTML
 	schema_data = {"summaryData": [{"columns": summary_columns},
@@ -763,7 +713,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
 								   {"rows": annotation_values[1]}],
 				   "analysis": [{"columns": analysis_columns},
 								{"rows": analysis_rows}],
-				   "lociReports": 1 if loci_reports else 0,
+				   "lociReports": 1 if config.loci_reports else 0,
 				   "evaluationConfig": evaluation_message,
 				   "creationConfig": creation_message,
 				   "nsSchema": ns_schema}
@@ -771,19 +721,19 @@ def main(schema_directory, output_directory, genes_list, annotations,
 	# Write Schema Report HTML file
 	schema_html = ct.SCHEMA_REPORT_HTML
 	schema_html = schema_html.format(json.dumps(schema_data))
-	schema_html_file = fo.join_paths(output_directory, [ct.SCHEMA_REPORT_BASENAME])
+	schema_html_file = fo.join_paths(config.output_directory, [ct.SCHEMA_REPORT_BASENAME])
 	fo.write_to_file(schema_html, schema_html_file, 'w', '\n')
 
 	# Compute data for loci reports
-	if loci_reports is True:
-		# create mapping between locus ID and annotations
-		if annotations is not None:
+	if config.loci_reports is True:
+		# Create mapping between locus ID and annotations
+		if config.annotations_file is not None:
 			annotations_dict = {a[0]: a for a in annotation_values[1]}
 		else:
 			annotations_dict = {}
 
 		# Create directory to store loci HTML reports
-		html_dir = fo.join_paths(output_directory, ['loci_reports'])
+		html_dir = fo.join_paths(config.output_directory, ['loci_reports'])
 		fo.create_directory(html_dir)
 
 		# Previous data includes values per locus
@@ -792,18 +742,19 @@ def main(schema_directory, output_directory, genes_list, annotations,
 		# Call the ComputeMSA module to compute the loci MSAs
 		protein_files_dir = distinct_dir
 		# Check if there are any protein files to compute MSAs for before calling the ComputeMSA module
-		if len(os.listdir(protein_files_dir)) > 0:
+		if len(fo.listdir(protein_files_dir)) > 0:
 			# Need to pass complete MAFFT default parameters defined in constants.py to create tree output
-			print('Calling the ComputeMSA module to compute the loci MSAs...')
+			print("Calling the ComputeMSA module to compute the loci MSAs...")
 			msa_files_dir = compute_msa.main(protein_files_dir, temp_directory, None, False, False,
-						translation_table, cpu_cores, False, 'exclude', 'exclude', ' '.join(ct.MAFFT_DEFAULT_PARAMETERS), True, True)
-			msa_files_dir = fo.join_paths(msa_files_dir, ['protein'])
-			msa_files = fo.listdir_fullpath(msa_files_dir)
-			msa_files_dict = {fo.file_basename(f, False).replace('_distinct', ''): f for f in msa_files}
+						config.translation_table, config.cpu_cores, False, "exclude", "exclude", ' '.join(ct.MAFFT_DEFAULT_PARAMETERS), True, True)
+			msa_files_dir = fo.join_paths(msa_files_dir, ["protein"])
+			msa_files = fo.listdir(msa_files_dir, full_path=True)
+			msa_files_dict = {fo.file_basename(f, False).replace("_distinct", ''): f for f in msa_files}
 
 			# Copy tree files to diretory with MSA files
-			tree_files_dir = fo.join_paths(temp_directory, ['input_files'])
-			tree_files = fo.listdir_fullpath(tree_files_dir, '.tree')
+			tree_files_dir = fo.join_paths(temp_directory, ["input_files"])
+			tree_files = fo.listdir(tree_files_dir, full_path=True)
+			tree_files = fo.filter_by_extension(tree_files, [".tree"])[0]
 			for tf in tree_files:
 				shutil.copy(tf, msa_files_dir)
 
@@ -818,7 +769,7 @@ def main(schema_directory, output_directory, genes_list, annotations,
 				   annotations_dict.get(d[0], []),
 				   msa_files_dict.get(d[0], None)] for d in loci_data]
 
-		common_args = [html_dir, minimum_length, light, add_sequences]
+		common_args = [html_dir, config.minimum_length, config.light, config.add_sequences]
 
 		# Add common arguments to all sublists
 		inputs = im.multiprocessing_inputs(inputs, common_args, locus_report)
@@ -826,10 +777,10 @@ def main(schema_directory, output_directory, genes_list, annotations,
 		# Create loci reports
 		# Compute MSA and NJ tree if --light is not True
 		# Add DNA and Protein sequences if --add-sequences is provided
-		print('Creating loci reports...')
+		print("Creating loci reports...")
 		loci_htmls = mo.map_async_parallelizer(inputs,
 											   mo.function_helper,
-											   cpu_cores,
+											   config.cpu_cores,
 											   show_progress=True)
 
 	# Copy the JS bundle files to the respective directories
@@ -837,17 +788,15 @@ def main(schema_directory, output_directory, genes_list, annotations,
 	# When chewBBACA is installed
 	script_path = os.path.dirname(os.path.abspath(__file__))
 	# For development
-	if script_path.endswith('CHEWBBACA') is False:
+	if script_path.endswith("CHEWBBACA") is False:
 		script_path = os.path.dirname(script_path)
 
-	shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_SCHEMA_BUNDLE]),
-				output_directory)
+	shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_SCHEMA_BUNDLE]), config.output_directory)
 
-	if loci_reports is True:
-		shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_LOCI_BUNDLE]),
-					html_dir)
+	if config.loci_reports is True:
+		shutil.copy(fo.join_paths(script_path, [ct.SCHEMA_EVALUATOR_LOCI_BUNDLE]), html_dir)
 
 	# Delete all temporary files
 	fo.delete_directory(temp_directory)
 
-	print(f'\nResults available in {os.path.abspath(output_directory)}.')
+	print(f'\nResults available in {os.path.abspath(config.output_directory)}.')

@@ -334,13 +334,11 @@ def perform_rarefaction_analysis(permutation_i, pa_matrix, sample_ids, n_samples
 
 	return rarefaction_values
 
-	
 
-	return X, Y_mean, Y_std, Y_predicted, alpha, alpha_error
+#	return X, Y_mean, Y_std, Y_predicted, alpha, alpha_error
 
 
-def main(input_file, output_directory, threshold, step, compute_accessory, rarefaction_analysis,
-		 permutation_number, permutation_samples, exclude_loci, exclude_genomes, cpu_cores):
+def main(config):
 	"""Determine the cgMLST based on allele calling results.
 
 	Parameters
@@ -365,37 +363,31 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 	exclude_genomes : str
 		Path to TXT file with a list of genomes to exclude from the analysis.
 	"""
-	outdir_created = fo.create_directory(output_directory)
-	if not outdir_created:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
-
 	# Import allelic profiles
-	profiles = pd.read_csv(input_file, header=0, index_col=0, sep='\t', low_memory=False)
+	profiles = pd.read_csv(config.profiles, header=0, index_col=0, sep='\t', low_memory=False)
 
 	# Get number of genomes and loci
 	total_genomes, total_loci = profiles.shape
 	print(f'Input file includes profiles for {total_genomes} samples and {total_loci} loci.')
 
-	cgMLST_thresholds = sorted(threshold)
+	cgMLST_thresholds = sorted(config.loci_presence_threshold)
 	print(f'Will compute the set of core loci based on the following loci presence thresholds: {", ".join(map(str, cgMLST_thresholds))}')
 
 	# Read list of samples to exclude from the analysis
-	if exclude_genomes:
-		genomes_to_remove = fo.read_lines(exclude_genomes)
-		print(f'User provided list with {len(genomes_to_remove)} samples to exclude.')
-		print(f'List of genomes to exclude: {", ".join(genomes_to_remove)}')
-		profiles = remove_genomes(profiles, genomes_to_remove)
+	if config.exclude_genomes:
+		print(f'User provided list with {len(config.exclude_genomes)} samples to exclude.')
+		print(f'List of genomes to exclude: {", ".join(config.exclude_genomes)}')
+		profiles = remove_genomes(profiles, config.exclude_genomes)
 		print(f'Excluded {total_genomes - profiles.shape[0]} genomes.')
 
-	if exclude_loci:
-		loci_to_remove = fo.read_lines(exclude_loci)
-		print(f'User provided list with {len(loci_to_remove)} loci to exclude.')
-		profiles = remove_columns(profiles, loci_to_remove)
+	if config.exclude_loci:
+		print(f'User provided list with {len(config.exclude_loci)} loci to exclude.')
+		profiles = remove_columns(profiles, config.exclude_loci)
 		print(f'Excluded {total_loci - profiles.shape[1]} loci.')
 
-	if exclude_genomes or exclude_loci:
+	if config.exclude_genomes or config.exclude_loci:
 		total_genomes, total_loci = profiles.shape
-		print(f'After excluding {len(genomes_to_remove)} sample profiles and {len(loci_to_remove)} '
+		print(f'After excluding {len(config.exclude_genomes)} sample profiles and {len(config.exclude_loci)} '
 			  f'loci columns, the profiles to analyze include {total_genomes} samples and {total_loci} loci.')
 
 	# Mask special classifications and remove 'INF-' prefixes
@@ -405,7 +397,7 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 
 	# Compute presence-absence matrix
 	print('Computing presence-absence matrix...')
-	pa_matrix, pa_outfile = compute_presence_absence(masked_profiles, output_directory)
+	pa_matrix, pa_outfile = compute_presence_absence(masked_profiles, config.output_directory)
 	print(f'Presence-absence matrix saved to {pa_outfile}')
 
 	# Count number of special classifications per genome
@@ -441,11 +433,11 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 	for i, t in enumerate(cgMLST_thresholds):
 		print(f'Analyzing results for threshold {t}...')
 		# Use multiprocessing to determine set of core loci for each step in parallel
-		step_ranges = [[step_i] for step_i in im.inclusive_range(1, len(sorted_genomes), step)]
+		step_ranges = [[step_i] for step_i in im.inclusive_range(1, len(sorted_genomes), config.sample_step)]
 		# Define the chunk size so that it creates groups of inputs instead of treating each input as a separate group which can be inefficient
-		chunk_size = math.ceil(len(step_ranges)/cpu_cores)
-		cgMLST_inputs = im.multiprocessing_inputs(step_ranges, [pa_matrix, sorted_genomes, t, compute_accessory], compute_cgMLST)
-		cgMLST_results = mo.map_async_parallelizer(cgMLST_inputs, mo.function_helper, cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+		chunk_size = math.ceil(len(step_ranges)/config.cpu_cores)
+		cgMLST_inputs = im.multiprocessing_inputs(step_ranges, [pa_matrix, sorted_genomes, t, config.compute_accessory], compute_cgMLST)
+		cgMLST_results = mo.map_async_parallelizer(cgMLST_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
 
 		# The set of core loci are determined on the last step value
 		cgMLST_loci = cgMLST_results[-1][0]
@@ -456,12 +448,12 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 		# Write cgMLST matrix
 		# Get subset from masked matrix
 		cgMLST_matrix = masked_profiles[cgMLST_loci]
-		cgMLST_path = os.path.join(output_directory, 'cgMLST{0}.tsv'.format(int(t*100)))
+		cgMLST_path = os.path.join(config.output_directory, 'cgMLST{0}.tsv'.format(int(t*100)))
 		cgMLST_matrix.to_csv(cgMLST_path, sep='\t')
 		print(f'cgMLST profiles for threshold {t} saved to {cgMLST_path}')
 
 		# Write list of cgMLST loci
-		cgMLST_loci_path = os.path.join(output_directory, 'cgMLSTschema{0}.txt'.format(int(t*100)))
+		cgMLST_loci_path = os.path.join(config.output_directory, 'cgMLSTschema{0}.txt'.format(int(t*100)))
 		fo.write_lines(list(cgMLST_loci), cgMLST_loci_path)
 		print(f'List of core loci for threshold {t} saved to {cgMLST_loci_path}')
 
@@ -481,7 +473,7 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 							 hovertemplate=('%{y}'))
 		cgMLST_traces.append(trace)
 
-		if compute_accessory:
+		if config.compute_accessory:
 			# Get list of accessory loci
 			agMLST_loci = cgMLST_results[-1][2]
 			# Get size of accessory genome per step value
@@ -490,12 +482,12 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 			# Write agMLST matrix
 			# Get subset from masked matrix
 			agMLST_matrix = masked_profiles[agMLST_loci]
-			agMLST_path = os.path.join(output_directory, 'agMLST{0}.tsv'.format(int(t*100)))
+			agMLST_path = os.path.join(config.output_directory, 'agMLST{0}.tsv'.format(int(t*100)))
 			agMLST_matrix.to_csv(agMLST_path, sep='\t')
 			print(f'agMLST profiles for threshold {t} saved to {agMLST_path}')
 
 			# Write list of agMLST loci
-			agMLST_loci_path = os.path.join(output_directory, 'agMLSTschema{0}.txt'.format(int(t*100)))
+			agMLST_loci_path = os.path.join(config.output_directory, 'agMLSTschema{0}.txt'.format(int(t*100)))
 			fo.write_lines(list(agMLST_loci), agMLST_loci_path)
 			print(f'List of accessory loci for threshold {t} saved to {agMLST_loci_path}')
 
@@ -509,18 +501,18 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 			agMLST_traces.append(trace)
 
 	# Write TSV with presence-absence statistics per sample
-	genome_mdata_path = os.path.join(output_directory, ct.GENOMES_MISSING_BASENAME)
+	genome_mdata_path = os.path.join(config.output_directory, ct.GENOMES_MISSING_BASENAME)
 	genome_mdata_df.to_csv(genome_mdata_path, sep='\t', index=False)
 	print(f'Saved presence-absence statistics per sample to {genome_mdata_path}')
 
 	# Write TSV with presence-absence statistics per locus
-	loci_mdata_path = os.path.join(output_directory, ct.LOCI_MISSING_BASENAME)
+	loci_mdata_path = os.path.join(config.output_directory, ct.LOCI_MISSING_BASENAME)
 	loci_mdata_df.to_csv(loci_mdata_path, sep='\t', index=False)
 	print(f'Saved presence-absence statistics per locus to {loci_mdata_path}')
 
 	# Plot loci presence frequency percentage
 	print('Creating plot with the distribution of loci presence values...')
-	output_html_path = plot_loci_presence(loci_mdata_df, output_directory)
+	output_html_path = plot_loci_presence(loci_mdata_df, config.output_directory)
 	print(f'Saved plot to {output_html_path}')
 
 	print('Creating line plots for each threshold and step value...')
@@ -552,20 +544,20 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
                                       range=[0, len(sorted_genomes)])
 	)
 
-	output_html_basename = 'cgMLST.html' if not compute_accessory else 'cgMLST_plus_agMLST.html'
-	output_html_path = os.path.join(output_directory, output_html_basename)
+	output_html_basename = 'cgMLST.html' if not config.compute_accessory else 'cgMLST_plus_agMLST.html'
+	output_html_path = os.path.join(config.output_directory, output_html_basename)
 	plot(fig, filename=output_html_path, auto_open=False)
 	print(f'Line plots saved to {output_html_path}')
 
 	# Use rarefaction analysis to determine if the core stabilizes
-	if rarefaction_analysis:
-		if permutation_samples:
-			n_samples = permutation_samples
+	if config.rarefaction_analysis:
+		if config.permutation_samples:
+			n_samples = config.permutation_samples
 		else:
 			n_samples = total_genomes
 		n_loci = total_loci
 
-		n_permutations = permutation_number
+		n_permutations = config.permutation_number
 		sample_ids = pa_matrix.index.tolist()
 		rarefaction_traces = []
 		analysis_type = 'core'
@@ -573,10 +565,10 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 			print(f'Performing rarefaction analysis to measure core genome stability for threshold {t}...')
 			print(f'Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.')
 
-			chunk_size = math.ceil(n_permutations/cpu_cores)
+			chunk_size = math.ceil(n_permutations/config.cpu_cores)
 			permutations = [[perm_i] for perm_i in list(range(n_permutations))]
 			rarefaction_inputs = im.multiprocessing_inputs(permutations, [pa_matrix, sample_ids, n_samples, n_loci, t, analysis_type], perform_rarefaction_analysis)
-			rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+			rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
 
 			# Concatenate the results for all permutations
 			rarefaction_perms = np.vstack(rarefaction_results)
@@ -644,10 +636,10 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 		print(f'Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.')
 
 		analysis_type = 'pangenome'
-		chunk_size = math.ceil(n_permutations/cpu_cores)
+		chunk_size = math.ceil(n_permutations/config.cpu_cores)
 		permutations = [[perm_i] for perm_i in list(range(n_permutations))]
 		rarefaction_inputs = im.multiprocessing_inputs(permutations, [pa_matrix, sample_ids, n_samples, n_loci, t, analysis_type], perform_rarefaction_analysis)
-		rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+		rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
 
 		# Concatenate the results for all permutations
 		rarefaction_perms = np.vstack(rarefaction_results)
@@ -722,6 +714,6 @@ def main(input_file, output_directory, threshold, step, compute_accessory, raref
 		)
 
 		output_html_basename = 'rarefaction_analysis.html'
-		output_html_path = os.path.join(output_directory, output_html_basename)
+		output_html_path = os.path.join(config.output_directory, output_html_basename)
 		plot(fig, filename=output_html_path, auto_open=False)
 		print(f'Line plots for the rarefaction analysis saved to {output_html_path}')

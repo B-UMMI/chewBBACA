@@ -187,8 +187,7 @@ def precompute_hash_tables(output_directory, loci_files, translation_table,
 	return hash_tables
 
 
-def update_hash_tables(loci_files, loci_to_call, translation_table,
-					   pre_computed_dir):
+def update_hash_tables(loci_files, loci_to_call, translation_table, pre_computed_dir):
 	"""Update pre-computed hash tables.
 
 	Parameters
@@ -362,8 +361,7 @@ def count_global_classifications(classification_files, classification_labels):
 	return [classification_counts, total_cds]
 
 
-def dna_exact_matches(table_file, cds_hashtable, loci_files,
-					  classification_files, input_ids):
+def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_files, input_ids):
 	"""Find exact matches at DNA level.
 
 	Parameters
@@ -2018,7 +2016,6 @@ def fetch_sqldb_data(database_path, value_pairs, index_columns):
 	return matching_rows
 
 
-# Why am I using a loci ID to loci index mapping?
 def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_modes, loci_finder):
 	"""Perform allele calling for a set of inputs.
 
@@ -2381,11 +2378,11 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	# Create protein file index
 	protein_index = fao.index_fasta(representative_pfasta)
 	# Create Fasta file without the protein that matched
-	unique_pfasta = fo.join_paths(protein_exact_outdir, ['distinct_proteins.fasta'])
+	unique_pfasta = fo.join_paths(protein_exact_outdir, ["distinct_proteins.fasta"])
 	unclassified_seqids = im.filter_list(representative_pseqids, matched_seqids)
 	total_selected = fao.get_sequences_by_id(protein_index, unclassified_seqids, unique_pfasta)
 
-	print(f'Unclassified proteins: {total_selected}')
+	print(f"Unclassified proteins: {total_selected}")
 
 	# User only wanted DNA and Protein exact matches or all sequences were classified
 	if config.mode == 2 or len(unclassified_seqids) == 0:
@@ -2928,7 +2925,9 @@ def main(config):
 	loci_ids = [fo.file_basename(file, False) for file in loci_to_call]
 	# Sort to find longest first
 	loci_ids = sorted(loci_ids, key=lambda x: len(x), reverse=True)
+
 	# Create regex object to search for loci identifiers in paths/strings
+	# Sorted by longest ID to avoid matching shorter IDs that are part of longer IDs (e.g. locus1 and locus10)
 	loci_finder = re.compile('|'.join(loci_ids))
 
 	# Create directory to store intermediate files

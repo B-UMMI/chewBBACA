@@ -60,7 +60,7 @@ def write_gene_list(schema_dir):
 	return [os.path.isfile(output_file), output_file]
 
 
-def write_schema_config(config, ptf_hash, chewie_version, output_directory):
+def write_schema_config(config, chewie_version, output_directory):
 	""" Writes chewBBACA's parameter values used to create
 		a schema to a file.
 
@@ -84,17 +84,20 @@ def write_schema_config(config, ptf_hash, chewie_version, output_directory):
 	is the path to the created file.
 	"""
 	params = {}
-	params['blast_score_ratio'] = [config.blast_score_ratio]
-	params['pyrodigal_training_file'] = [ptf_hash]
-	params['translation_table'] = [config.translation_table]
-	params['minimum_length'] = [config.minimum_length]
-	params['chewBBACA_version'] = [chewie_version]
-	params['size_threshold'] = [config.size_threshold]
-	params['word_size'] = [config.validated_clustering_options.word_size]
-	params['window_size'] = [config.validated_clustering_options.window_size]
-	params['clustering_similarity'] = [config.validated_clustering_options.clustering_similarity]
-	params['representative_filter'] = [config.validated_clustering_options.representative_filter]
-	params['intra_filter'] = [config.validated_clustering_options.intra_filter]
+	params[ct.BLAST_SCORE_RATIO_ARGNAME] = [config.blast_score_ratio]
+	params[ct.TRANSLATION_TABLE_ARGNAME] = [config.translation_table]
+	params[ct.MINIMUM_LENGTH_ARGNAME] = [config.minimum_length]
+	params[ct.CHEWIE_VERSION_ARGNAME] = [chewie_version]
+	params[ct.SIZE_THRESHOLD_ARGNAME] = [config.size_threshold]
+	params[ct.CLUSTERING_WORD_ARGNAME] = [config.validated_clustering_options.word_size]
+	params[ct.CLUSTERING_WINDOW_ARGNAME] = [config.validated_clustering_options.window_size]
+	params[ct.CLUSTERING_SIMILARITY_ARGNAME] = [config.validated_clustering_options.clustering_similarity]
+	params[ct.CLUSTERING_REPRESENTATIVEFILTER_ARGNAME] = [config.validated_clustering_options.representative_filter]
+	params[ct.CLUSTERING_INTRAFILTER_ARGNAME] = [config.validated_clustering_options.intra_filter]
+	if config.gene_predictor == 'pyrodigal':
+		# Determine PTF checksum
+		ptf_hash = fo.hash_file(config.validated_gene_prediction_options.pyrodigal_training_file, 'blake2b')
+		params[ct.PYRODIGAL_TRAININGFILE_ARGNAME] = [ptf_hash]
 
 	config_file = os.path.join(output_directory, ct.SCHEMA_CONFIG_BASENAME)
 	fo.pickle_dumper(params, config_file)

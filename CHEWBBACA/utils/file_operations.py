@@ -470,7 +470,7 @@ def write_lines(lines, output_file, joiner='\n', write_mode='w'):
 	write_to_file(joined_lines, output_file, write_mode, '\n')
 
 
-def read_tabular(input_file, delimiter='\t'):
+def read_tabular(input_file, delimiter="\t", num_lines=None):
 	"""Read a tabular (TSV) file.
 
 	Parameters
@@ -487,14 +487,26 @@ def read_tabular(input_file, delimiter='\t'):
 		Each sublist has the fields that were separated by
 		the defined delimiter.
 	"""
-	with open(input_file, 'r') as infile:
+	with open(input_file, "r") as infile:
 		reader = csv.reader(infile, delimiter=delimiter)
-		lines = [line for line in reader]
+		if num_lines is not None:
+			lines = list(islice(reader, num_lines))
+		else:
+			lines = list(reader)
 
 	return lines
 
 
-def extract_column(input_file, delimiter='\t', column_index=0):
+def read_tabular_lazy(input_file, delimiter="\t"):
+	"""
+	"""
+	with open(input_file, "r") as infile:
+		reader = csv.reader(infile, delimiter=delimiter)
+		for line in reader:
+			yield line
+
+
+def extract_column(input_file, delimiter="\t", column_index=0):
 	"""Extract the values of a column from a file.
 
 	Parameters

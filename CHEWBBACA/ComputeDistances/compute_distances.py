@@ -61,11 +61,11 @@ def compute_hamming(current_row, permutation_rows, total_loci, similarity):
 	shared_alleles = shared_values - shared_zeros
 	if similarity:
 		shared_alleles = shared_alleles.astype('int32')
-		return shared_alleles
+		return [shared_alleles]
 	else:
 		allelic_distances = total_loci - (shared_alleles+shared_zeros)
 		allelic_distances = allelic_distances.astype('int32')
-		return allelic_distances
+		return [allelic_distances]
 
 
 def compute_jaccard(current_row, permutation_rows, total_loci, similarity):
@@ -103,10 +103,10 @@ def compute_jaccard(current_row, permutation_rows, total_loci, similarity):
 		# Change values to dtype=float16
 		# Reduces output string size and is precise enough
 		jaccard_distances = jaccard_distances.astype('float16')
-		return jaccard_distances
+		return [jaccard_distances]
 	else:
 		jaccard_similarity = jaccard_similarity.astype('float16')
-		return jaccard_similarity
+		return [jaccard_similarity]
 
 
 def compute_loci(current_row, permutation_rows, total_loci, similarity):
@@ -134,10 +134,10 @@ def compute_loci(current_row, permutation_rows, total_loci, similarity):
 		shared_zeros = ((current_row==0) & (permutation_rows==0)).sum(1)
 		not_shared = total_loci - (shared_loci+shared_zeros)
 		not_shared = not_shared.astype('int32')
-		return not_shared
+		return [not_shared]
 	else:
 		shared_loci = shared_loci.astype('int32')
-		return shared_loci
+		return [shared_loci]
 
 
 def compute_core(current_row, permutation_rows, similarity):
@@ -171,10 +171,10 @@ def compute_core(current_row, permutation_rows, similarity):
 	if not similarity:
 		not_shared_alleles = shared_loci - shared_alleles
 		not_shared_alleles = not_shared_alleles.astype('int32')
-		return not_shared_alleles, shared_loci
+		return [not_shared_alleles, shared_loci]
 	else:
 		shared_alleles = shared_alleles.astype('int32')
-		return shared_alleles, shared_loci
+		return [shared_alleles, shared_loci]
 
 
 def compute_distances(indexes, np_profiles, sample_ids, tmp_directory, method, similarity):
@@ -229,7 +229,7 @@ def compute_distances(indexes, np_profiles, sample_ids, tmp_directory, method, s
 			output_files[current_genome] = [distances_outfile, core_outfile]
 		else:
 			distances_outfile = fo.join_paths(tmp_directory, [f'{current_genome}_distances'])
-			fo.pickle_dumper(results, distances_outfile)
+			fo.pickle_dumper(results[0], distances_outfile)
 			output_files[current_genome] = [distances_outfile]
 
 	return output_files
@@ -421,7 +421,7 @@ def write_table(pickled_results, genome_ids, output_file, data_index):
 	return output_file
 
 
-def main(input_file, output_directory, method, output_format, no_mask, similarity, cpu_cores):
+def main(config):
 	"""Compute pairwise distances based on allele calling results.
 
 	Parameters
@@ -450,13 +450,13 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 		Path to the output file containing the distance or similarity values.
 	"""
 	# Create output directory
-	fo.create_directory(output_directory)
+	fo.create_directory(config.output_directory)
 
-	print(f'Distance method: {method}')
-	print(f'Output format: {output_format}')
+	print(f'Distance method: {config.distance_computation_method}')
+	print(f'Output format: {config.output_format}')
 	# Import profiles
 	print('Reading input file...')
-	profiles = pd.read_csv(input_file, sep='\t', dtype=str, index_col=0)
+	profiles = pd.read_csv(config.allelic_profiles, sep='\t', dtype=str, index_col=0)
 	# Get sample identifiers
 	sample_ids = profiles.index.tolist()
 	total_samples = len(sample_ids)
@@ -465,8 +465,8 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 	print(f'Total loci: {total_loci}')
 
 	# Mask matrix values
-	if no_mask is False:
-		output_masked = fo.join_paths(output_directory, [ct.MASKED_PROFILES_BASENAME])
+	if config.no_mask is False:
+		output_masked = fo.join_paths(config.output_directory, [ct.MASKED_PROFILES_BASENAME])
 		# Mask special classifications and remove 'INF-' prefixes
 		print('Masking profiles...')
 		masked_profiles = profiles.apply(im.replace_chars)
@@ -476,7 +476,7 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 	else:
 		masked_profiles = profiles
 
-	if similarity:
+	if config.compute_similarity:
 		print('Computing pairwise similarities...')
 		tmp_directory_basename = 'pairwise_similarities'
 	else:
@@ -484,7 +484,7 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 		tmp_directory_basename = 'pairwise_distances'
 
 	# Create temp directory to store pairwise distances per genome
-	tmp_directory = fo.join_paths(output_directory, [tmp_directory_basename])
+	tmp_directory = fo.join_paths(config.output_directory, [tmp_directory_basename])
 	fo.create_directory(tmp_directory)
 
 	# Convert to numpy array with int32 values to reduce memory usage and make it easier to compute distances
@@ -496,33 +496,33 @@ def main(input_file, output_directory, method, output_format, no_mask, similarit
 	parallel_inputs = im.divide_list_into_n_chunks(rows_indexes, 20)
 
 	# Create common arguments for parallel processing
-	common_args = [[l, np_profiles, sample_ids, tmp_directory, method, similarity, compute_distances] for l in parallel_inputs]
+	common_args = [[l, np_profiles, sample_ids, tmp_directory, config.distance_computation_method, config.compute_similarity, compute_distances] for l in parallel_inputs]
 
 	# Increasing cpu cores can greatly increase memory usage
 	results = mo.map_async_parallelizer(common_args,
 										mo.function_helper,
-										cpu_cores,
+										config.cpu_cores,
 										show_progress=True)
 	print()
 
 	merged = im.merge_dictionaries(results)
-	data_indexes = [0, 1] if method == 'core' else [0]
+	data_indexes = [0, 1] if config.distance_computation_method == 'core' else [0]
 
 	print('Creating output files...')
 	for i in data_indexes:
 		output_file_prefix = 'distances' if i == 0 else 'loci'
-		if output_format != 'table':
+		if config.output_format != 'table':
 			# Import arrays per genome and save to matrix file
 			col_ids = ['FILE'] + sample_ids
-			write_matrix(merged, sample_ids, output_directory, output_file_prefix, col_ids, output_format, i)
-		elif output_format == 'table':
+			write_matrix(merged, sample_ids, config.output_directory, output_file_prefix, col_ids, config.output_format, i)
+		elif config.output_format == 'table':
 			# Write TSV with one pairwise distance per line
-			output_file = fo.join_paths(output_directory, [f'{output_file_prefix}.tsv'])
+			output_file = fo.join_paths(config.output_directory, [f'{output_file_prefix}.tsv'])
 			write_table(merged, sample_ids, output_file, i)
 
-	print(f'Results available in {output_directory}')
+	print(f'Results available in {config.output_directory}')
 
 	# Delete folder with intermediate pickles
 	fo.delete_directory(tmp_directory)
 
-	return output_directory
+	return config.output_directory

@@ -9,9 +9,7 @@ arguments provided through the command line and calls the specified module.
 """
 
 
-import os
 import sys
-import shutil
 import argparse
 
 try:
@@ -22,7 +20,7 @@ try:
 	from SchemaEvaluator import evaluate_schema
 	from AlleleCallEvaluator import evaluate_calls
 	from PrepExternalSchema import adapt_schema
-	from UniprotFinder import annotate_schema
+	from AnnotateSchema import annotate_schema
 	from ExtractCgMLST import determine_cgmlst
 	from SubsetResults import subset_results
 	from HashProfiles import hash_profiles
@@ -46,7 +44,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.SchemaEvaluator import evaluate_schema
 	from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
 	from CHEWBBACA.PrepExternalSchema import adapt_schema
-	from CHEWBBACA.UniprotFinder import annotate_schema
+	from CHEWBBACA.AnnotateSchema import annotate_schema
 	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
 	from CHEWBBACA.SubsetResults import subset_results
 	from CHEWBBACA.HashProfiles import hash_profiles
@@ -501,16 +499,12 @@ def run_evaluate_schema():
 							 "search for and copy text).")
 
 	args = parser.parse_args()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.SchemaEvaluatorValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	validated_args = pv.SchemaEvaluatorValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-
-	evaluate_schema.main(**vars(args))
+	evaluate_schema.main(validated_args)
 
 
 @pdt.process_timer
@@ -577,16 +571,12 @@ def run_evaluate_calls():
 							 "the Neighbor-Joining tree.")
 
 	args = parser.parse_args()
-
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.AlleleCallEvaluatorValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	validated_args = pv.AlleleCallEvaluatorValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	evaluate_calls.main(**vars(args))
+	evaluate_calls.main(validated_args)
 
 
 @pdt.process_timer
@@ -606,8 +596,8 @@ def run_determine_cgmlst():
 
 	parser.add_argument("ExtractCgMLST", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument("-r", "--results-files", type=ct.ARGUMENT_TYPES[ct.RESULTS_FILES_ARGNAME],
-						required=True, dest=ct.RESULTS_FILES_ARGNAME,
+	parser.add_argument("-p", "--profiles", type=ct.ARGUMENT_TYPES[ct.PROFILES_ARGNAME],
+						required=True, dest=ct.PROFILES_ARGNAME,
 						help="Path to the TSV file that contains the allelic profiles determined by "
 							 "the AlleleCall module.")
 
@@ -615,7 +605,7 @@ def run_determine_cgmlst():
 						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
 						help="Path to the directory where the process will store the output files.")
 
-	parser.add_argument("--lpt", "--loci-presence-threshold", type=float, nargs="+",
+	parser.add_argument("--lpt", "--loci-presence-threshold", type=ct.ARGUMENT_TYPES[ct.LOCI_PRESENCE_THRESHOLD_ARGNAME], nargs="+",
 						required=False, dest=ct.LOCI_PRESENCE_THRESHOLD_ARGNAME,
 						help="Loci/genes that constitute the core genome must be in a proportion of "
 							 "genomes that is at least equal to this value. Provide multiple values "
@@ -673,14 +663,12 @@ def run_determine_cgmlst():
 							 "(one genome identifier per line).")
 
 	args = parser.parse_args()
-	validated_args = pv.ExtractCgMLSTValidator(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.ExtractCgMLSTValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	determine_cgmlst.main(**vars(args))
+	determine_cgmlst.main(validated_args)
 
 
 @pdt.process_timer
@@ -714,7 +702,7 @@ def run_subset_results():
 							 "per line. If the file contains multiple columns, the loci identifiers must be in "
 							 "the first column.")
 
-	parser.add_argument("-ls", "--sample-list", type=ct.ARGUMENT_TYPES[ct.SAMPLE_LIST_ARGNAME],
+	parser.add_argument("--sl", "--sample-list", type=ct.ARGUMENT_TYPES[ct.SAMPLE_LIST_ARGNAME],
 						required=False, dest=ct.SAMPLE_LIST_ARGNAME,
 						help="Path to a TXT/TSV file containing a list of samples to select, one sample identifier "
 							 "per line. If the file contains multiple columns, the sample identifiers must be in "
@@ -729,14 +717,12 @@ def run_subset_results():
 						help="If provided, the process will select the samples that are not in the input samples list.")
 
 	args = parser.parse_args()
-	args = pv.SubsetResultsValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.SubsetResultsValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	subset_results.main(**vars(args))
+	subset_results.main(validated_args)
 
 
 @pdt.process_timer
@@ -744,7 +730,7 @@ def run_merge_results():
 	"""Run the MergeResults module to merge results files created by chewBBACA."""
 
 	def msg(name=None):
-		usage_msg = "chewBBACA.py MergeResults --input-directories <dir> <dir> ... --output-directory <dir> [options]"
+		usage_msg = "chewBBACA.py MergeResults --results-directories <dir> <dir> ... --output-directory <dir> [options]"
 
 		return usage_msg
 
@@ -756,8 +742,8 @@ def run_merge_results():
 
 	parser.add_argument("MergeResults", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument("-r", "--results-files", nargs="+", type=ct.ARGUMENT_TYPES[ct.RESULTS_FILES_ARGNAME],
-						required=True, dest=ct.RESULTS_FILES_ARGNAME,
+	parser.add_argument("-r", "--results-directories", nargs="+", type=ct.ARGUMENT_TYPES[ct.RESULTS_DIRECTORIES_ARGNAME],
+						required=True, dest=ct.RESULTS_DIRECTORIES_ARGNAME,
 						help="Paths to the directories containing the results files created by chewBBACA. The "
 							 "results must have been determined with the same schema and share all the loci "
 							 "or a subset of the loci if using the --common parameter.")
@@ -771,14 +757,12 @@ def run_merge_results():
 						help="Merge the results based on the subset of loci shared between all inputs.")
 
 	args = parser.parse_args()
-	validated_args = pv.MergeResults.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.MergeResults.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	merge_results.main(**vars(args))
+	merge_results.main(validated_args)
 
 
 @pdt.process_timer
@@ -816,8 +800,8 @@ def run_hash_profiles():
 						help="Hashing algorithm used to hash the allele sequences. The hashing algorithms "
 							 "implemented in the hashlib and zlib Python libraries are supported.")
 
-	parser.add_argument("--nc", "--nrow-chunk", type=ct.ARGUMENT_TYPES[ct.NROWS_ARGNAME],
-					 	required=False, dest=ct.NROWS_ARGNAME,
+	parser.add_argument("--nc", "--nrow-chunk", type=ct.ARGUMENT_TYPES[ct.NROW_CHUNK_ARGNAME],
+					 	required=False, dest=ct.NROW_CHUNK_ARGNAME,
 						help="Divide the input file into chunks of this many rows to process larger files"
 						 	 " more efficiently.")
 
@@ -828,14 +812,12 @@ def run_hash_profiles():
 							 "available CPU cores/threads).")
 
 	args = parser.parse_args()
-	validated_args = pv.HashProfilesValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.HashProfilesValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	hash_profiles.main(**vars(args))
+	hash_profiles.main(validated_args)
 
 
 @pdt.process_timer
@@ -879,7 +861,7 @@ def run_get_alleles():
 							 "resets to a lower value if it is equal to or exceeds the total number of "
 							 "available CPU cores/threads).")
 
-	parser.add_argument("--tt", "--translation-table", type=ct.TRANSLATION_TABLE_ARGNAME,
+	parser.add_argument("--tt", "--translation-table", type=ct.ARGUMENT_TYPES[ct.TRANSLATION_TABLE_ARGNAME],
 					 	required=False, dest=ct.TRANSLATION_TABLE_ARGNAME,
 						help="Genetic code used to translate coding DNA sequences (CDSs). If no value"
 							 " is specified, the process tries to get the value stored in the schema "
@@ -895,14 +877,12 @@ def run_get_alleles():
 						help="Only include the distinct alleles in the output FASTA files.")
 
 	args = parser.parse_args()
-	validated_args = pv.GetAllelesValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.GetAllelesValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	get_alleles.main(**vars(args))
+	get_alleles.main(validated_args)
 
 
 @pdt.process_timer
@@ -950,6 +930,13 @@ def run_adapt_schema():
 							 "the parameter name followed by the argument value (e.g., pyrodigal-training"
 							 "-file=/path/to/file).")
 
+	parser.add_argument("--co", "--clustering-options", type=ct.ARGUMENT_TYPES[ct.CLUSTERING_OPTIONS_ARGNAME],
+						nargs="+", required=False, dest=ct.CLUSTERING_OPTIONS_ARGNAME,
+						help="List of arguments passed to configure the clustering of predicted "
+								"coding sequences (CDSs). The list of arguments for each parameter "
+								"used to configure the clustering can be passed as the long format "
+								"of the parameter name followed by the argument value (e.g., word-size=).")
+
 	parser.add_argument("--bsr", "--blast-score-ratio", type=ct.ARGUMENT_TYPES[ct.BLAST_SCORE_RATIO_ARGNAME],
 						required=False, dest=ct.BLAST_SCORE_RATIO_ARGNAME,
 						help="BLAST Score Ratio (BSR) value. The process selects representative alleles "
@@ -991,73 +978,30 @@ def run_adapt_schema():
 							 "alleles during schema adaptation.")
 
 	args = parser.parse_args()
-	validated_args = pv.PrepExternalSchemaValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.PrepExternalSchemaValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	# Define output paths
-	schema_path = os.path.abspath(args.output_directory)
-	schema_short_path = fo.join_paths(schema_path, ['short'])
-	output_dirs = [schema_path, schema_short_path]
-
-	# Create output directories
-	schema_path_exists = fo.create_directory(schema_path)
-	if schema_path_exists is False:
-		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
-	fo.create_directory(schema_short_path)
-
-	print(f'Using a minimum length value of {adaptation_ml} for schema '
-		  f'adaptation and {args.minimum_length} to store in the schema '
-		  'config file.')
-	print(f'Using a size threshold value of {adaptation_st} for schema '
-		  f'adaptation and {args.size_threshold} to store in the schema '
-		  'config file.')
-
-	adapt_schema.main(loci_list, output_dirs,
-					  args.cpu_cores, args.blast_score_ratio,
-					  adaptation_ml, args.translation_table,
-					  adaptation_st, args.blast_path)
-
-	# Copy training file to schema directory
-	ptf_hash = None
-	if args.ptf_path is not None:
-		shutil.copy(args.ptf_path, schema_path)
-		# Determine PTF checksum
-		ptf_hash = fo.hash_file(args.ptf_path, 'blake2b')
-		print('Copied Pyrodigal training file to schema directory.')
-
-	# Write schema config file
-	args.ptf_path = ptf_hash
-	args.word_size = ct.WORD_SIZE_DEFAULT
-	args.window_size = ct.WINDOW_SIZE_DEFAULT
-	args.clustering_sim = ct.CLUSTERING_SIMILARITY_DEFAULT
-	args.representative_filter = ct.REPRESENTATIVE_FILTER_DEFAULT
-	args.intra_filter = ct.INTRA_CLUSTER_DEFAULT
-	schema_config = pv.write_schema_config(vars(args), __version__, schema_path)
-
-	# Create hidden file with list of loci
-	genes_list_file = pv.write_gene_list(schema_path)
+	adapt_schema.main(validated_args)
 
 
 @pdt.process_timer
 def run_annotate_schema():
-	"""Run the UniprotFinder module to annotate loci in a schema."""
+	"""Run the AnnotateSchema module to annotate loci in a schema."""
 
 	def msg(name=None):
-		usage_msg = "chewBBACA.py UniprotFinder --schema-directory <dir> --output-directory <dir> [options]"
+		usage_msg = "chewBBACA.py AnnotateSchema --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="UniprotFinder",
+	parser = argparse.ArgumentParser(prog="AnnotateSchema",
 									 description="Retrieve annotations for loci in a schema.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/UniprotFinder.html")
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/AnnotateSchema.html")
 
-	parser.add_argument("UniprotFinder", nargs="+", help=argparse.SUPPRESS)
+	parser.add_argument("AnnotateSchema", nargs="+", help=argparse.SUPPRESS)
 
 	parser.add_argument("-s", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
@@ -1078,12 +1022,19 @@ def run_annotate_schema():
 						help="Path to the TSV file with coding sequence (CDS) coordinate data, "
 							 "`cds_coordinates.tsv`, created by the CreateSchema process.")
 
-	parser.add_argument("--bsr", type=ct.ARGUMENT_TYPES[ct.BLAST_SCORE_RATIO_ARGNAME],
+	parser.add_argument("--bsr", "--blast-score-ratio", type=ct.ARGUMENT_TYPES[ct.BLAST_SCORE_RATIO_ARGNAME],
 					 	required=False, dest=ct.BLAST_SCORE_RATIO_ARGNAME,
 						help="BLAST Score Ratio value. The BSR is only used when taxa names are "
 							 "provided to the --taxa parameter and local sequences are aligned "
 							 "against reference proteomes downloaded from UniProt. Annotations "
 							 "are selected based on a BSR >= than the specified value.")
+
+	parser.add_argument("--tt", "--translation-table", type=ct.ARGUMENT_TYPES[ct.TRANSLATION_TABLE_ARGNAME],
+					 	required=False, dest=ct.TRANSLATION_TABLE_ARGNAME,
+						help="Genetic code used to translate coding DNA sequences (CDSs). If no value"
+							 " is specified, the process tries to get the value stored in the schema "
+							 "config file. If the schema does not include a config file, the process "
+							 "uses the default translation table (11).")
 
 	parser.add_argument("--cc", "--cpu-cores", type=ct.ARGUMENT_TYPES[ct.CPU_CORES_ARGNAME],
 						required=False, dest=ct.CPU_CORES_ARGNAME,
@@ -1091,8 +1042,8 @@ def run_annotate_schema():
 							 "(chewie resets to a lower value if it is equal to or exceeds the "
 							 "total number of available CPU cores/threads).")
 
-	parser.add_argument("--ptax", "--proteome-taxa", nargs="+", type=ct.ARGUMENT_TYPES[ct.TAXA_ARGNAME],
-						required=False, dest=ct.TAXA_ARGNAME,
+	parser.add_argument("--ptax", "--proteome-taxa", nargs="+", type=ct.ARGUMENT_TYPES[ct.PROTEOME_TAXA_ARGNAME],
+						required=False, dest=ct.PROTEOME_TAXA_ARGNAME,
 						help="List of scientific names for a set of taxa. The process will download "
 							 "reference proteomes from UniProt associated to taxa names that contain "
 							 "any of the provided terms. The schema representative alleles are aligned "
@@ -1107,9 +1058,13 @@ def run_annotate_schema():
 						required=False, default='', dest=ct.BLAST_PATH_ARGNAME,
 						help="Path to the directory that contains the BLAST executables.")
 
-	parser.add_argument("--no-sparql", action="store_true",
-						required=False, dest=ct.NO_SPARQL_ARGNAME,
-						help="Do not search for annotations through the UniProt SPARQL endpoint.")
+	parser.add_argument("--rapi", "--rest-api", action="store_true",
+	                    required=False, dest=ct.UNIPROT_REST_API_ARGNAME,
+						help="Search for annotations using UniProt's Proteins API.")
+
+	parser.add_argument("--rm", "--rest-api-matches", type=ct.ARGUMENT_TYPES[ct.UNIPROT_REST_API_MATCHES_ARGNAME],
+					 	required=False, dest=ct.UNIPROT_REST_API_MATCHES_ARGNAME,
+						help="Maximum number of matches retrieved from UniProt's Proteins API to report.")
 
 	parser.add_argument("--no-cleanup", action="store_true",
 						required=False, dest=ct.NO_CLEANUP_ARGNAME,
@@ -1117,14 +1072,12 @@ def run_annotate_schema():
 							 "are not removed at the end.")
 
 	args = parser.parse_args()
-	validated_args = pv.UniprotFinderValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.AnnotateSchemaValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	annotate_schema.main(**vars(args))
+	annotate_schema.main(validated_args)
 
 
 @pdt.process_timer
@@ -1182,14 +1135,12 @@ def run_compute_distances():
 							 'number of available CPU cores/threads).')
 
 	args = parser.parse_args()
-	validated_args = pv.ComputeDistancesValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.ComputeDistancesValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	compute_distances.main(**vars(args))
+	compute_distances.main(validated_args)
 
 
 @pdt.process_timer
@@ -1209,7 +1160,7 @@ def run_compute_msa():
 
 	parser.add_argument("ComputeMSA", nargs="+", help=argparse.SUPPRESS)
 
-	parser.add_argument("-i", "--input-files", type=ct.ARGUMENT_TYPES[ct.INPUT_FILES_ARGNAME],
+	parser.add_argument("-i", "--input-path", type=ct.ARGUMENT_TYPES[ct.INPUT_FILES_ARGNAME],
 						required=True, dest=ct.INPUT_FILES_ARGNAME,
 						help="Path to a TSV file containing allelic profiles or to a folder containing "
 							 "FASTA files. If a TSV file containing allelic profiles is provided, it is "
@@ -1257,7 +1208,7 @@ def run_compute_msa():
 							 "used to represent gaps is `-`.")
 
 	parser.add_argument("--ambiguous", type=ct.ARGUMENT_TYPES[ct.AMBIGUOUS_ARGNAME],
-						required=False, dest=ct.DEFAULT_AMBIGUOUS,
+						required=False, dest=ct.AMBIGUOUS_ARGNAME,
 						help="How to treat ambiguous amino acids or nucleotides when determining the "
 							 "reduced MSA for the variable positions. The default value, `exclude`, "
 							 "removes variable positions if any of the aligned sequences contain an "
@@ -1278,7 +1229,7 @@ def run_compute_msa():
 						required=False, dest=ct.CUSTOM_MAFFT_OPTIONS_ARGNAME,
 						help="Custom parameters to pass to MAFFT when computing the loci MSAs. The "
 							 "value must be a single string with all parameters enclosed in quotes "
-							 "(e.g. `--retree 1 --maxiterate 0`).")
+							 "(e.g. '--retree 1 --maxiterate 0').")
 
 	parser.add_argument("--pi", "--protein-input", action="store_true",
 						required=False, dest=ct.PROTEIN_INPUT_ARGNAME,
@@ -1298,14 +1249,12 @@ def run_compute_msa():
 							 "available CPU cores/threads).")
 
 	args = parser.parse_args()
-	validated_args = pv.ComputeMSAValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.ComputeMSAValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	compute_msa.main(**vars(args))
+	compute_msa.main(validated_args)
 
 
 @pdt.process_timer
@@ -1586,8 +1535,8 @@ def main():
 					  					run_hash_profiles],
 					  'GetAlleles': ['Create FASTA files containing the alleles identified by the AlleleCall module.',
 					  				 run_get_alleles],
-					  'UniprotFinder': ['Retrieve annotations for loci in a schema.',
-										run_annotate_schema],
+					  'AnnotateSchema': ['Retrieve annotations for loci in a schema.',
+										 run_annotate_schema],
 					  'ComputeDistances': ['Compute pairwise distances based on allele calling results.',
 										  run_compute_distances],
 					  'ComputeMSA': ['Compute a Multiple Sequence Alignment based on allele calling results.',

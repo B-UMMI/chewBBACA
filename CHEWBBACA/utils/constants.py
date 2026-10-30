@@ -177,22 +177,29 @@ CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
 # Minimum Python version
 MIN_PYTHON = [(3, 6, 0), '3.6.0']
 
-# UniProt SPARQL endpoint
-UNIPROT_SPARQL = 'https://sparql.uniprot.org/sparql'
-UNIPROT_SPARQL_THREADS = 4
-# Maximum number of retries if querying the SPARQL endpoint fails
-MAX_RETRIES = 2
-# Maximum number of sequences used to query the SPARQL endpoint
-MAX_QUERIES = 20
+# UniProt Proteins API URL
+UNIPROT_PROTEINS_API = "https://www.ebi.ac.uk/proteins/api/proteins"
+# Headers to query UniProt Proteins API
+UNIPROT_PROTEINS_API_HEADERS = { "Accept" : "application/json"}
+# UniProt entry template URL
+UNIPROT_ENTRY_URL = "https://www.uniprot.org/uniprotkb/{0}/entry"
+
+# Querying UniProt
+UNIPROT_REST_API_THREADS = 4
+UNIPROT_RESTAPI_MAX_RETRIES = 3
+# Time allowed to establish TCP connection
+# Set to 3.05 based on the standard practices to set slightly greater than TCP packet retransmission cycles
+UNIPROT_RESTAPI_SERVER_TIMEOUT = 3.05
+UNIPROT_RESTAPI_RESPONSE_TIMEOUT = 5
+UNIPROT_RESTAPI_RETRY_SLEEP = 1
+# Define list of status codes after which is allowed to retry
+UNIPROT_RESTAPI_STATUS_FORCELIST = [500, 502, 503, 504]
 
 # FTP to get UniProt's reference proteomes
-UNIPROT_PROTEOMES_FTP = ('https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/')
-
-# List of UniProt's uninformative terms
-UNIPROT_UNINFORMATIVE = ['uncharacterized', 'hypothetical', 'duf']
+UNIPROT_PROTEOMES_FTP = ("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/")
 
 # AlleleCall logfile basename and content template
-LOGFILE_BASENAME = 'logging_info.txt'
+LOGFILE_BASENAME = 'log.txt'
 LOGFILE_TEMPLATE = ('Started script at: {0}\n'
 					'Finished script at: {1}\n'
 					'Number of inputs: {2}\n'
@@ -206,7 +213,7 @@ PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
 PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
 RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
 RESULTS_ALLELES_MASKED_BASENAME = 'results_alleles_masked.tsv'
-RESULTS_STATISTICS_BASENAME = 'results_statistics.tsv'
+RESULTS_STATISTICS_BASENAME = 'sample_summary_stats.tsv'
 LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
 UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
 MISSING_FASTA_BASENAME = 'missing_classes.fasta'
@@ -241,7 +248,8 @@ ASSEMBLY_STATS_COLUMNS = ['FILE', 'Number of contigs', 'Average contig size',
 NOVEL_ALLELES_FILENAME = "new_alleles.tsv"
 NOVEL_ALLELES_LIST_HEADER = 'Allele ID\tCDS ID\tRepresentative'
 # Header for TSV file with information about extracted CDSs
-GENE_TABLE_HEADER = 'CDS_ID\tGenome\tContig\tStart\tStop\tProtein_ID\tCoding_Strand\tConfidence\tSHA256\n'
+GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
+                      "Coding_Strand", "Confidence", "SHA256"]
 # Headers for TSV files with paralogous loci count and per genome
 PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
 PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
@@ -427,11 +435,9 @@ ALLELECALL_EVALUATOR_BUNDLE = 'report_template_components/src/bundles/AlleleCall
 # might not refer to the current process (returning an incorrect value).
 
 # Table header for the Schema report summary data
-SCHEMA_SUMMARY_TABLE_HEADERS = ('Loci\tAlleles\tValid Alleles\tInvalid '
-								'alleles\tIncomplete ORF\tAmbiguous Bases\t'
-								'Missing Start/Stop Codon\tIn-frame Stop '
-								'Codon\tAlleles < {0}bp\tAlleles below '
-								'threshold\tAlleles above threshold')
+SCHEMA_SUMMARY_TABLE_HEADERS = ("Loci\tAlleles\tValid Alleles\tInvalid alleles\tIncomplete ORF\tAmbiguous Bases\t"
+								"Missing Start/Stop Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tAlleles below "
+								"threshold\tAlleles above threshold")
 
 # Column headers for the Loci Analysis Table in the Schema report
 LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
@@ -707,7 +713,7 @@ SUBSETRESULTS_ABSENT_LOCI_EXCEPTION = ('Please make sure that all loci IDs in th
 SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION = ('Please make sure that all sample IDs in the list provided to '
 				  	 					  '`--sample-list` match sample IDs in the input results.')
 
-MERGERESULTS_INPUTFILE_EXCEPTION = ('Input paths should all be folders. The following are not folders:\n{0}')
+MERGERESULTS_INPUTFILE_EXCEPTION = ("Input paths should all be folders. The following are not folders:\n{0}")
 
 MERGERESULTS_NOCOMMONLOCI_EXCEPTION = ('Results do not have loci in common.')
 
@@ -773,7 +779,7 @@ CPU_CORES_DEFAULT = 1
 CPU_CORES_MIN = 1
 
 # List of parameter names used by chewBBACA
-INPUT_FILES_ARGNAME = "input_files"
+INPUT_FILES_ARGNAME = "input_path"
 OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 GENE_PREDICTOR_ARGNAME = "gene_predictor"
 GENE_PREDICTION_OPTIONS_ARGNAME = "gene_prediction_options"
@@ -802,10 +808,12 @@ LOCI_REPORTS_ARGNAME = "loci_reports"
 LIGTH_ARGNAME = "light"
 ADD_SEQUENCES_ARGNAME = "add_sequences"
 RESULTS_FILES_ARGNAME = "results_files"
+RESULTS_DIRECTORIES_ARGNAME = "results_directories"
 NO_PRESENCE_ABSENCE_ARGNAME = "no_presence_absence"
 NO_DISTANCE_MATRIX_ARGNAME = "no_distance_matrix"
 NO_NEIGHBOR_JOINING_ARGNAME = "no_neighbor_joining"
 FORCE_CORE_MSA_ARGNAME = "force_core_msa"
+PROFILES_ARGNAME = "profiles"
 LOCI_PRESENCE_THRESHOLD_ARGNAME = "loci_presence_threshold"
 SAMPLE_STEP_ARGNAME = "sample_step"
 COMPUTE_ACCESSORY_ARGNAME = "compute_accessory"
@@ -850,9 +858,7 @@ DESCRIPTION_FILE_ARGNAME = "description_file"
 CONTINUE_UPLOAD_ARGNAME = "continue_upload"
 SUBMIT_ALLELES_ARGNAME = "submit_alleles"
 STATS_MODE_ARGNAME = "stats_mode"
-
-# List of argument default values
-
+CHEWIE_VERSION_ARGNAME = "chewie_version"
 PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
 PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
 AUGUSTUS_PATH_ARGNAME = "augustus_path"
@@ -861,22 +867,24 @@ CLUSTERING_WINDOW_ARGNAME = "window_size"
 CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
 CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
 CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
+UNIPROT_REST_API_ARGNAME = "rest_api"
+UNIPROT_REST_API_MATCHES_ARGNAME = "rest_api_matches"
 
 NSSTATS_MODE_CHOICES = ['species', 'schemas']
 
 DEFAULT_NOMENCLATURE_SERVER = "main"
 
 DEFAULT_GAPS = "exclude"
-GAPS_CHOICES = ['ignore', 'exclude']
+GAPS_CHOICES = ["ignore", "exclude"]
 
 DEFAULT_AMBIGUOUS = "exclude"
-AMBIGUOUS_CHOICES = ['ignore', 'exclude']
+AMBIGUOUS_CHOICES = ["ignore", "exclude"]
 
 DEFAULT_DISTANCE_METHOD = "hamming"
 DISTANCE_METHODS = ['hamming', 'jaccard', 'loci', 'core']
 INVALID_DISTANCE_METHOD = ("Invalid distance method specified.")
 
-DEFAULT_OUTPUT_FORMAT = "upper_triangular"
+DEFAULT_OUTPUT_FORMAT = "lower_triangular"
 OUTPUT_FORMATS = ['upper_triangular', 'lower_triangular', 'symmetric', 'table']
 INVALID_OUTPUT_FORMAT = ("Invalid output format specified.")
 
@@ -922,11 +930,17 @@ ARGUMENT_TYPES = {
 	"clustering_sim": float,
 	"representative_filter": float,
 	"intra_filter": float,
-	"annotations": str,
-	"threshold": float,
-	"step":int,
+	"annotations_file": str,
+	"results_files": str,
+	"results_directories": str,
+	"profiles": str,
+	"loci_presence_threshold": float,
+	"sample_step": int,
+	"permutation_number": int,
+	"permutation_samples": int,
 	"exclude_loci": str,
 	"exclude_genomes": str,
+	"sample_list": str,
 	"allelic_profiles": str,
 	"hash_type": str,
 	"size_filter": bool,
@@ -937,6 +951,16 @@ ARGUMENT_TYPES = {
 	"output_format": str,
 	"output_variable": bool,
 	"execution_mode": int,
+	"hashing_algo": str,
+	"nrow_chunk": int,
+	"proteome_taxa": str,
+	"rest_api": bool,
+	"rest_api_matches": int,
+	"distance_computation_method": str,
+	"input_path": str,
+	"gaps": str,
+	"ambiguous": str,
+	"custom_mafft_options":str,
 }
 
 CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a Pyrodigal training file and a training reference "
@@ -962,3 +986,56 @@ INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling. Please pr
                            f"following supported modes: {'\n'.join([str(k)+': '+v for k, v in ALLELECALL_MODES.items()])}")
 
 MISSING_RESULTS_ALLELES = (f"Input directory with results data does not include the {RESULTS_ALLELES_BASENAME} file.")
+
+MISSING_ANNOTATIONS_FILE = ("Path provided for the annotations file {0} is not valid.")
+
+MISSING_RESULTS = ("Path provided for the folder with the allele calling results is not valid.")
+
+MISSING_EXCLUDE_LOCI = ("Path to file with list of loci is not valid.")
+
+MISSING_EXCLUDE_GENOMES = ("Path to file with list of genomes is not valid.")
+
+INVALID_EXCLUDE_LOCI = ("The following loci IDs in the list provided to `--exclude-loci` do not match "
+                        "any of the loci IDs in the input results:\n{0}\nPlease ensure that all loci "
+						"IDs in the input list match loci IDs in the profiles.")
+
+INVALID_EXCLUDE_SAMPLES = ("The following sample IDs in the list provided to `--exclude-samples` do not match "
+                           "any of the sample IDs in the input results:\n{0}\nPlease ensure that all loci "
+						   "IDs in the input list match loci IDs in the profiles.")
+
+PROFILES_FILE_MISSING = ("The path provided to the TSV file with allelic profiles is not valid.")
+
+HASHPROFILES_DEFAULT_HASH_ALGO = "crc32"
+
+MISSING_PROTEIN_TABLE = ("Path for protein table is not valid.")
+
+UNIPROT_QUERY_TEMPLATE = """
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX up: <http://purl.uniprot.org/core/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?protein ?productName ?geneName
+WHERE {{
+  ?seqObj a up:Simple_Sequence ;
+          up:md5Checksum "{0}" .
+
+  ?protein up:sequence ?seqObj .
+
+  OPTIONAL {{ ?protein up:recommendedName/up:fullName ?productName . }}
+  OPTIONAL {{
+    ?protein up:encodedBy ?gene .
+    ?gene skos:prefLabel ?geneName .
+  }}
+}}
+"""
+
+ANNOTATE_SCHEMA_FIRST_COLUMN = "Locus"
+ANNOTATE_SCHEMA_PROTEOME_COLUMNS = ["Proteome_ID", "Proteome_Product", "Proteome_Gene_Name", "Proteome_Species", "Proteome_BSR"]
+ANNOTATE_SCHEMA_RESTAPI_COLUMNS = ["RestAPI_Accession", "RestAPI_Source", "RestAPI_TaxID", "RestAPI_Taxon", "RestAPI_Protein_Name", "RestAPI_Gene_Name", "RestAPI_URL"]
+ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD = ("No annotation method was specified. Please provide either a single "
+                                        "or multiple taxon names to '--ptax, --proteome-taxa' or '--rapi, "
+										"--rest-api' to query UniProt's Proteins API or both options.")
+
+
+COMPUTEMSA_INVALID_GAPS_OPTION = (f"Invalid option provided to '--gaps'. Please provide one of the following option: {DEFAULT_GAPS}")
+COMPUTEMSA_INVALID_AMBIGUOUS_OPTION = (f"Invalid option provided to '--ambiguous'. Please provide one of the following options: {DEFAULT_AMBIGUOUS}")

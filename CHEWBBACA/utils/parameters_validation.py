@@ -15,7 +15,9 @@ Code documentation
 import os
 import re
 import sys
+import zlib
 import shutil
+import hashlib
 import argparse
 import platform
 import subprocess
@@ -23,6 +25,7 @@ import multiprocessing
 from typing import Annotated
 from functools import partial
 
+import pandas as pd
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
@@ -595,9 +598,12 @@ def parentdir_exists(input_path):
 	return input_path
 
 
-def input_path_exists(input_path, exception_str):
-	if not fo.exists(input_path):
-		sys.exit(exception_str.format(input_path))
+def input_path_exists(input_path, function, exception_str):
+	# Convert into list if it is a single path/str
+	path_list = input_path if type(input_path) is list else [input_path]
+	for path in path_list:
+		if not function(path):
+			sys.exit(exception_str.format(path))
 	return input_path
 
 
@@ -693,30 +699,7 @@ def contains_results(results_directory):
 	if ct.RESULTS_ALLELES_BASENAME not in results_files:
 		sys.exit(ct.MISSING_RESULTS_ALLELES)
 
-
-def validate_cgmlst_thresholds(threshold_values):
-	""""""
-	for t in threshold_values:
-		if t < ct.CGMLST_THRESHOLD_MIN or t > ct.CGMLST_THRESHOLD_MAX:
-			sys.exit("Invalid loci presence threshold.")
-
-	return threshold_values
-
-
-def validate_distance_method(method, valid_methods=ct.DISTANCE_METHODS):
-	""""""
-	if method not in valid_methods:
-		sys.exit(ct.INVALID_DISTANCE_METHOD)
-
-	return method
-
-
-def validate_output_format(output_format, valid_output_formats=ct.OUTPUT_FORMATS):
-	""""""
-	if output_format not in valid_output_formats:
-		sys.exit(ct.INVALID_OUTPUT_FORMAT)
-
-	return output_format
+	return results_directory
 
 
 def ensure_list(input_val):
@@ -733,7 +716,7 @@ OutputDirectory = Annotated[str,
 							AfterValidator(create_output_directory)]
 
 InputFiles = Annotated[str,
-					   AfterValidator(partial(input_path_exists, exception_str=ct.MISSING_INPUT_ARG)),
+					   AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_INPUT_ARG)),
 					   AfterValidator(input_is_fasta),
 					   AfterValidator(list_input_files),
 					   AfterValidator(filter_inputs_extension),
@@ -742,15 +725,19 @@ InputFiles = Annotated[str,
 					   AfterValidator(check_unique_prefixes),
 					   AfterValidator(check_blanks)]
 
-SchemaDirectory = Annotated[str,
-							AfterValidator(partial(input_path_exists, exception_str=ct.SCHEMA_PATH_MISSING)),
-							AfterValidator(schema_includes_fasta),
-							AfterValidator(schema_check_genes_list),
-							AfterValidator(schema_check_config),
-							AfterValidator(schema_check_short)]
+ChewieSchema = Annotated[str,
+						 AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(schema_includes_fasta),
+						 AfterValidator(schema_check_genes_list),
+						 AfterValidator(schema_check_config),
+						 AfterValidator(schema_check_short)]
+
+ExternalSchema = Annotated[str,
+							AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
+							AfterValidator(schema_includes_fasta)]
 
 LociList = Annotated[str,
-					 AfterValidator(partial(input_path_exists, exception_str=ct.MISSING_LOCI_LIST)),
+					 AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_LOCI_LIST)),
 					 AfterValidator(input_is_fasta),
 					 AfterValidator(list_input_files)]
 
@@ -800,7 +787,7 @@ CPUCores = Annotated[int,
 
 PyrodigalTrainingFile = Annotated[str,
                                   Field(default=None),
-                                  AfterValidator(partial(input_path_exists, exception_str=ct.INVALID_PTF_PATH))]
+                                  AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
 
 PyrodigalMode = Annotated[str,
 						  Field(default=ct.PYRODIGAL_DEFAULT_MODE),
@@ -818,7 +805,7 @@ PyrodigalMinimumConfidence = Annotated[float,
 
 PyrodigalTrainingReference = Annotated[str,
                                        Field(default=None),
-                                       AfterValidator(partial(input_path_exists, exception_str=ct.INVALID_PTF_PATH))]
+                                       AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
 
 PyrodigalJustTraining = Annotated[bool,
                                   Field(default=False)]
@@ -862,7 +849,11 @@ IntraFilter = Annotated[float,
 							  le=ct.INTRA_CLUSTER_MAX)]
 
 Annotations = Annotated[str,
-                        AfterValidator(partial(input_path_exists, exception_str="test"))]
+                        AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_ANNOTATIONS_FILE))]
+
+
+BooleanFlag = Annotated[bool,
+                        Field(default=False)]
 
 
 # Use separate models to validate Pyrodigal and AUGUSTUS arguments, since they have different fields and validation requirements
@@ -988,10 +979,10 @@ class CreateSchemaValidator(BaseModel):
 	clustering_options: ClusteringOptions
 	validated_clustering_options: ValidatedClusteringOptions
 	blast_path : BLASTPath
-	cds_input: bool
-	no_cds_renaming: bool
+	cds_input: BooleanFlag
+	no_cds_renaming: BooleanFlag
 	cpu_cores: CPUCores
-	no_cleanup: bool
+	no_cleanup: BooleanFlag
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")
@@ -1054,7 +1045,7 @@ class AlleleCallValidator(BaseModel):
 
 	output_directory: OutputDirectory
 	input_files: InputFiles
-	schema_directory: SchemaDirectory
+	schema_directory: ChewieSchema
 	# Do not run validation if loci_list is None
 	loci_list: LociList | None = None
 	blast_score_ratio: BLASTScoreRatio
@@ -1067,17 +1058,17 @@ class AlleleCallValidator(BaseModel):
 	clustering_options: ClusteringOptions
 	validated_clustering_options: ValidatedClusteringOptions
 	blast_path : BLASTPath
-	cds_input: bool
-	no_inferred: bool
-	output_unclassified: bool
-	output_missing: bool
-	output_novel: bool
-	output_masked_profiles: bool
-	no_cds_renaming: bool
-	force_continue: bool
+	cds_input: BooleanFlag
+	no_inferred: BooleanFlag
+	output_unclassified: BooleanFlag
+	output_missing: BooleanFlag
+	output_novel: BooleanFlag
+	output_masked_profiles: BooleanFlag
+	no_cds_renaming: BooleanFlag
+	force_continue: BooleanFlag
 	mode: AllelecallMode
 	cpu_cores: CPUCores
-	no_cleanup: bool
+	no_cleanup: BooleanFlag
 	ns_config: NSCONFIG
 
 	# Further validation for gene prediction arguments
@@ -1103,11 +1094,14 @@ class AlleleCallValidator(BaseModel):
 		if self.loci_list:
 			# Compare list of loci IDs
 			schema_files = fo.listdir(self.schema_directory)
-			schema_loci = fo.filter_by_extension(schema_files, [".fasta"])
-			schema_loci = [fo.file_basename(file, False) for file in schema_files]
-			absent_files = set(self.loci_list) - set(schema_loci)
-			if len(absent_files) > 0:
-				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(absent_files, ", ")))
+			loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_ids = [fo.file_basename(file, False) for file in loci_files]
+			extra_loci = set(self.loci_list) - set(loci_ids)
+			if len(extra_loci) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(extra_loci, ", ")))
+			else:
+				loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in self.loci_list]
+				self.loci_list = [self.loci_list, loci_fpaths]
 
 		return self
 
@@ -1115,11 +1109,9 @@ class AlleleCallValidator(BaseModel):
 	@model_validator(mode="after")
 	def list_schema_loci(self):
 		schema_files = fo.listdir(self.schema_directory, full_path=True)
-		schema_loci = fo.filter_by_substring(schema_files, [".fasta"])
-		if not self.loci_list:
-			self.loci_list = [schema_loci, schema_loci]
-		else:
-			self.loci_list = [self.loci_list, schema_loci]
+		loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+		loci_ids = [fo.file_basename(file, False) for file in loci_files]
+		self.loci_list = [loci_ids, loci_files]
 
 		return self
 
@@ -1157,7 +1149,7 @@ class AlleleCallValidator(BaseModel):
 	# Check if schema was downloaded from Chewie-NS
 	@model_validator(mode="after")
 	def check_ns_config(self):
-		ns_config = fo.join_paths(self.output_directory, [ct.NS_CONFIG_BASENAME])
+		ns_config = fo.join_paths(self.schema_directory, [ct.NS_CONFIG_BASENAME])
 		if fo.is_file(ns_config)[0]:
 			self.ns_config = True
 
@@ -1165,111 +1157,528 @@ class AlleleCallValidator(BaseModel):
 
 
 class SchemaEvaluatorValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	schema_directory: SchemaDirectory
+	schema_directory: ChewieSchema
 	loci_list: LociList | None = None
-	annotations: Annotations | None = None
+	annotations_file: Annotations | None = None
 	translation_table: TranslationTable
 	size_threshold: SizeThreshold
 	minimum_length: MinimumLength
 	cpu_cores: CPUCores
-	loci_reports: Annotated[bool, Field(default=False)]
-	light: Annotated[bool, Field(default=False)]
-	add_sequences: Annotated[bool, Field(default=False)]
+	loci_reports: BooleanFlag
+	light: BooleanFlag
+	add_sequences: BooleanFlag
+	chewie_schema: BooleanFlag
+	minimum_length_values: Annotated[list, Field(default=[])]
+	size_threshold_values: Annotated[list, Field(default=[])]
+	translation_table_values: Annotated[list, Field(default=[])]
+	blast_score_ratio_values: Annotated[list, Field(default=[])]
+	training_file: BooleanFlag
+	ns_config: NSCONFIG
+
+	# Verify that the schema contains FASTA files for all loci in the list of loci
+	@model_validator(mode="after")
+	def loci_list_in_schema(self):
+		if self.loci_list:
+			# Compare list of loci IDs
+			schema_files = fo.listdir(self.schema_directory)
+			loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_ids = [fo.file_basename(file, False) for file in loci_files]
+			extra_loci = set(self.loci_list) - set(loci_ids)
+			if len(extra_loci) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(extra_loci, ", ")))
+			else:
+				loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in self.loci_list]
+				self.loci_list = [self.loci_list, loci_fpaths]
+
+		return self
+
+	# List all loci FASTA files in the schema and add it to the loci_list arg
+	@model_validator(mode="after")
+	def list_schema_loci(self):
+		if not self.loci_list:
+			schema_files = fo.listdir(self.schema_directory, full_path=True)
+			loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_ids = [fo.file_basename(file, False) for file in loci_files]
+			self.loci_list = [loci_ids, loci_files]
+
+		return self
+
+	@model_validator(mode="after")
+	def set_schema_origin(self):
+		schema_files = fo.listdir(self.schema_directory, full_path=False)
+		# Schema was created with chewBBACA
+		if ct.SCHEMA_CONFIG_BASENAME in schema_files:
+			config_file  = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+			config_values = fo.pickle_loader(config_file)
+			# Set the argument that indicates that the schema was created with chewBBACA to True
+			self.chewie_schema = config_values.get(ct.CHEWIE_VERSION_ARGNAME)[0]
+		else:
+			self.chewie_schema = False
+
+		return self
+
+	# Use the values stored in the schema config if it is a chewBBACA schema
+	@model_validator(mode="after")
+	def force_schema_args(self):
+		if self.chewie_schema:
+			print("Schema was created with chewBBACA. Using the values stored in the schema "
+			      "config file for the minimum length, size threshold, and translation table.")
+			config_file  = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+			config_values = fo.pickle_loader(config_file)
+			# Get the first minimum_length, size_threshold, and translation_table values used with the schema
+			self.minimum_length = config_values.get(ct.MINIMUM_LENGTH_ARGNAME)[0]
+			self.size_threshold = config_values.get(ct.SIZE_THRESHOLD_ARGNAME)[0]
+			self.translation_table = config_values.get(ct.TRANSLATION_TABLE_ARGNAME)[0]
+
+		return self
+
+	@model_validator(mode="after")
+	def set_schema_args(self):
+		if self.chewie_schema:
+			config_file  = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+			config_values = fo.pickle_loader(config_file)
+			# Get the first minimum_length, size_threshold, and translation_table values used with the schema
+			self.minimum_length_values = config_values.get(ct.MINIMUM_LENGTH_ARGNAME)
+			self.size_threshold_values = config_values.get(ct.SIZE_THRESHOLD_ARGNAME)
+			self.translation_table_values = config_values.get(ct.TRANSLATION_TABLE_ARGNAME)
+			self.blast_score_ratio_values = config_values.get(ct.BLAST_SCORE_RATIO_ARGNAME)
+			self.training_file = True if config_values.get(ct.PYRODIGAL_TRAININGFILE_ARGNAME)[0] else False
+
+		return self
+
+	# Check if schema was downloaded from Chewie-NS
+	@model_validator(mode="after")
+	def check_ns_config(self):
+		ns_config = fo.join_paths(self.schema_directory, [ct.NS_CONFIG_BASENAME])
+		if fo.is_file(ns_config)[0]:
+			self.ns_config = True
+
+		return self
+
+
+# Nedd to add a AfterValidator to get and validate results files
+ResultsFiles = Annotated[str,
+                         AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_RESULTS)),
+						 AfterValidator(contains_results)]
 
 
 class AlleleCallEvaluatorValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
+	translation_table: TranslationTable
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
-	schema_directory: SchemaDirectory
-	annotations: Annotations | None = None
+	schema_directory: ChewieSchema
+	results_files: ResultsFiles
+	annotations_file: Annotations | None = None
 	cpu_cores: CPUCores
-	light: Annotated[bool, Field(default=False)]
-	no_pa: Annotated[bool, Field(default=False)]
-	no_dm: Annotated[bool, Field(default=False)]
-	no_tree: Annotated[bool, Field(default=False)]
-	cg_alignment: Annotated[bool, Field(default=False)]
+	light: BooleanFlag
+	no_pa: BooleanFlag
+	no_dm: BooleanFlag
+	no_tree: BooleanFlag
+	cg_alignment: BooleanFlag
+
+	@model_validator(mode="after")
+	def get_translation_table(self):
+		config_file = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+		if fo.exists(config_file):
+			config_values = fo.pickle_loader(config_file)
+			self.translation_table = config_values[ct.TRANSLATION_TABLE_ARGNAME][0]
+
+		return self
+
+
+Profiles = Annotated[str,
+                     AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI))]
+
+LociPresenceThreshold = Annotated[list,
+                            Field(default=ct.CGMLST_THRESHOLDS,
+                                  ge=ct.CGMLST_THRESHOLD_MIN,
+								  le=ct.CGMLST_THRESHOLD_MAX)]
+
+SampleStep = Annotated[int,
+                 Field(default=1)]
+
+Permutation = Annotated[int,
+                        Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
+
+ExcludeLoci = Annotated[str,
+                        AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI)),
+						AfterValidator(input_is_fasta),
+						AfterValidator(list_input_files)]
+
+ExcludeGenomes = Annotated[str,
+                           AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+						   AfterValidator(input_is_fasta),
+						   AfterValidator(list_input_files)]
 
 
 class ExtractCgMLSTValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
-	threshold: Annotated[list, Field(default=ct.CGMLST_THRESHOLDS), AfterValidator(validate_cgmlst_thresholds)]
-	step: Annotated[int, Field(default=1)]
-	compute_accessory: Annotated[bool, Field(default=False)]
-	rarefaction_analysis: Annotated[bool, Field(default=False)]
-	permutation_number: Annotated[int, Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
+	# Need to validate the profiles (header starting with FILE followed by loci IDs, header line followed by profiles, etc?)
+	profiles: Profiles
+	loci_presence_threshold: LociPresenceThreshold
+	sample_step: SampleStep
+	compute_accessory: BooleanFlag
+	rarefaction_analysis: BooleanFlag
+	permutation_number: Permutation
 	permutation_samples: int | None = None
-	exclude_loci: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
-	exclude_genomes: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
 	cpu_cores: CPUCores
+	exclude_loci: ExcludeLoci | None = None
+	exclude_genomes: ExcludeGenomes | None = None
+
+	@model_validator(mode="after")
+	def check_exclude_loci(self):
+		if self.exclude_loci:
+			# Read list of loci in the profiles file
+			results_loci = fo.read_lines(self.profiles, strip=True, num_lines=1)
+			results_loci = results_loci[0].split("\t")[1:]
+			extra_loci = set(self.exclude_loci) - set(results_loci)
+			if len(extra_loci) > 0:
+				print(ct.INVALID_EXCLUDE_LOCI.format("\n".join(extra_loci)))
+
+		return self
+
+	@model_validator(mode="after")
+	def check_exclude_genomes(self):
+		if self.exclude_genomes:
+			# Read list of samples in the profiles file
+			results_samples = fo.extract_column(self.profiles)
+			extra_samples = set(self.exclude_genomes) - set(results_samples)
+			if len(extra_samples) > 0:
+				print(ct.INVALID_EXCLUDE_SAMPLES.format("\n".join(extra_samples)))
+
+		return self
+
+
+SampleList = Annotated[str,
+                       AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+					   AfterValidator(input_is_fasta),
+					   AfterValidator(list_input_files)]
 
 
 class SubsetResultsValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
+	results_files: ResultsFiles
 	loci_list: LociList | None = None
-	sample_list: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))] | None = None
-	inverse_loci: Annotated[bool, Field(default=False)]
-	inverse_samples: Annotated[bool, Field(default=False)]
+	sample_list: SampleList | None = None
+	inverse_loci: BooleanFlag
+	inverse_samples: BooleanFlag
+
+	@model_validator(mode="after")
+	def check_lists(self):
+		# Do not proceed if user provided neither a list of loci nor of samples
+		if not self.loci_list and not self.sample_list:
+			sys.exit(ct.SUBSETRESULTS_MISSING_LISTS_EXCEPTION)
+
+		return self
+
+	@model_validator(mode="after")
+	def check_files(self):
+		# Do not proceed if the input folder does not include any of the supported output files
+		input_files = fo.listdir(self.results_files)
+		if len(set(ct.ALLELECALL_OUTFILES)-set(input_files)) == len(ct.ALLELECALL_OUTFILES):
+			sys.exit("Input directory does not include any of the supported output files that can be subsetted."
+			         "Please ensure that the input directory includes at least one of the following files:\n"
+					 f"{'\n'.join(ct.ALLELECALL_OUTFILES)}")
+
+	# Check if the loci IDs in the input list are all in the results
+	@model_validator(mode="after")
+	def check_loci(self):
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		if self.loci_list:
+			for fname in file_types:
+				# Determine if file exists in the input directory
+				file_path = fo.join_paths(self.results_files, [fname])
+				if fo.is_file(file_path)[0]:
+					if fname in file_types[:3]:
+						results_loci = fo.read_lines(file_path, strip=True, num_lines=1)
+						results_loci = results_loci[0].split("\t")[1:]
+					elif fname in file_types[3:]:
+						results_loci = pd.read_csv(file_path, usecols=["Locus"], sep="\t", dtype=str)
+						results_loci = results_loci["Locus"].tolist()
+
+					non_matching = set(self.loci_list) - set(results_loci)
+					if len(non_matching) > 0:
+						sys.exit(f"The following loci IDs in the input loci list do not match "
+							     f"loci IDs in the results files:\n{'\n'.join(non_matching)}\n"
+								 "Please ensure that all loci IDs in the input loci list match "
+								 "loci IDs in the resutls files.")
+			# It is possible that the input directory does not include any of the files containing the loci IDs
+			if not fo.is_file(file_path)[0]:
+				print(f"Could not get the list of loci IDs from the results files in the input directory "
+				      "to validate the loci IDs in the input loci list.")
+
+		return self
+
+	# Check if the sample IDs in the input list are all in the results
+	@model_validator(mode="after")
+	def check_samples(self):
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		if self.sample_list:
+			for fname in file_types:
+				file_path = fo.join_paths(self.results_files, [fname])
+				if fo.is_file(file_path)[0]:
+					results_samples = pd.read_csv(file_path, usecols=["FILE"], sep="\t", dtype=str)
+					results_samples = results_samples["FILE"].tolist()
+					non_matching = set(self.sample_list) - set(results_samples)
+					if len(non_matching) > 0:
+						sys.exit(f"The following sample IDs in the input sample list do not match "
+							  	 f"sample IDs in the results files:\n{'\n'.join(non_matching)}\n"
+							  	 "Please ensure that all sample IDs in the input sample list match "
+							  	 "sample IDs in the resutls files.")
+			if not fo.is_file(file_path)[0]:
+				print(f"Could not get the list of sample IDs from the results files in the input directory "
+				      "to validate the sample IDs in the input loci list.")
+
+		return self
+
+
+ResultsDirectories = Annotated[list,
+								AfterValidator(partial(input_path_exists,
+								                       function=fo.is_directory,
+													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
 
 
 class MergeResults(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	results_files: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test")), AfterValidator(contains_results)]
-	common: Annotated[bool, Field(default=False)]
+	results_directories: ResultsDirectories
+	common: BooleanFlag
+
+	# Determine if user passed more than one input path
+	@model_validator(mode="after")
+	def check_multiple_input_folders(self):
+		if len(self.results_directories) <= 1:
+			sys.exit("Provided a single input path. Need multiple input paths to merge results files from different folders.")
+
+		return self
+
+	# Check if results have loci in common
+	@model_validator(mode="after")
+	def validate_loci(self):
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		results_files = {fname: [] for fname in file_types}
+		for folder in self.results_directories:
+			# List files in folder
+			current_files = fo.listdir(folder)
+			for fname, files in results_files.items():
+				if fname in current_files:
+					results_files[fname].append(fo.join_paths(folder, [fname]))
+
+		for fname, files in results_files.items():
+			if len(files) != len(self.results_directories):
+				print(f"Cannot determine the set of shared loci based on the {fname} "
+				      "file type because it is not present in all input directories.")
+			# All input directories contain the file type
+			# Can use the file type to check if results have common loci
+			else:
+				headers = []
+				for f in files:
+					if fname in file_types[:3]:
+						header = fo.read_lines(f, strip=True, num_lines=1)
+						results_loci = header[0].split("\t")[1:]
+					elif fname in file_types[3:]:
+						results_loci = pd.read_csv(f, usecols=["Locus"], sep="\t", dtype=str)
+						results_loci = results_loci["Locus"].tolist()
+					headers.append(results_loci)
+	
+				loci = set(headers[0])
+				for h in headers[1:]:
+					# Determine common loci ordered based on headers in first file
+					loci = loci.intersection(set(h))
+
+				# Sort list of common loci
+				loci = sorted(list(loci))
+
+				# Exit if there are no common loci between all results
+				if len(loci) == 0:
+					sys.exit(ct.MERGERESULTS_NOCOMMONLOCI_EXCEPTION)
+				# Exit if results are not for the same set of loci
+				elif len(loci) != len(headers[0]) and not self.common:
+					sys.exit(ct.MERGERESULTS_LOCIDIFFER_EXCEPTION)
+
+				self.common = [self.common, loci, len(headers[0])]
+
+				# No need to check based on other file type
+				break
+
+			# Exit if it was not possible to determine if results have loci IDs in common
+			if type(self.common) == bool:
+				sys.exit("Could not determine if the results files included in the input "
+				         "directories share loci IDs. Will not attempt to merge the results."
+						 "Please make sure that all input directories include at least one "
+						 f"of the following file types: {'\n'.join(file_types)}")
+
+		return self
+
+
+# Should implement a validator for the profile filr format
+AllelicProfiles = Annotated[str,
+                            AfterValidator(partial(input_path_exists,
+                                                   function=fo.exists,
+												   exception_str=ct.PROFILES_FILE_MISSING))]
+
+
+def validate_hashing_algo(hashing_algo):
+	""""""
+	# Get hash function
+	hashing_function = getattr(hashlib, hashing_algo, None)
+	if hashing_function is None:
+		hashing_function = getattr(zlib, hashing_algo, None)
+
+	if hashing_function is None:
+		sys.exit(ct.HASHPROFILES_INVALID_HASHING.format(hashing_algo))
+
+	return [hashing_algo, hashing_function]
+
+
+HashingAlgo = Annotated[str,
+                        Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
+                              validate_default=True),
+						AfterValidator(validate_hashing_algo)]
+
+NrowChunk = Annotated[int,
+                      Field(default=100)]
 
 
 class HashProfilesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
-	schema_directory: SchemaDirectory
-	hash_type: Annotated[str, Field(default="crc32")]
-	nrows: Annotated[int, Field(default=100)]
+	allelic_profiles: AllelicProfiles
+	schema_directory: ChewieSchema
+	hashing_algo: HashingAlgo
+	nrow_chunk: NrowChunk
 	cpu_cores: CPUCores
+
+	# Determine if all loci IDs in the profiles are in the schema
+	@model_validator(mode="after")
+	def profiles_loci_in_schema(self):
+		# Read loci IDs in profiles file
+		profiles_header = fo.read_lines(self.allelic_profiles, strip=True, num_lines=1)
+		profiles_loci = profiles_header[0].split("\t")[1:]
+		# Get list of loci in the schema
+		schema_files = fo.listdir(self.schema_directory)
+		schema_loci = fo.filter_by_extension(schema_files, [".fasta"])[0]
+		schema_loci = [fo.file_basename(file, False) for file in schema_loci]
+
+		extra_loci = set(profiles_loci) - set(schema_loci)
+		if len(extra_loci) > 0:
+			sys.exit("The following loci IDs in the input profiles are not in the schema:\n"
+					 f"{'\n'.join(extra_loci)}\nPlease ensure that all loci IDs in the input profiles "
+					 "are in the schema.")
+
+		return self
 
 
 class GetAllelesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
-	schema_directory: SchemaDirectory
+	allelic_profiles: AllelicProfiles
+	schema_directory: ChewieSchema
 	loci_list: LociList | None = None
 	cpu_cores: CPUCores
-	distinct: Annotated[bool, Field(default=False)]
-	translate: Annotated[bool, Field(default=False)]
+	translate_alleles: BooleanFlag
 	translation_table: TranslationTable
+	distinct: BooleanFlag
 
+	# Use translation table defined in training file
 	@model_validator(mode="after")
 	def get_ptf_genetic_code(self):
-		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
-			self.translation_table = add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
+		# Determine if schema includes a training file
+		schema_files = fo.listdir(self.schema_directory, full_path=True)
+		training_file = fo.filter_by_extension(schema_files, [".trn"])[0]
+		if len(training_file) > 0:
+			self.translation_table = add_ptf_genetic_code(training_file[0], self.translation_table)
+
+		return self
+
+	# Determine if all loci IDs in the profiles are in the schema
+	@model_validator(mode="after")
+	def profiles_loci_in_schema(self):
+		# Read loci IDs in profiles file
+		profiles_header = fo.read_lines(self.allelic_profiles, strip=True, num_lines=1)
+		profiles_loci = profiles_header[0].split("\t")[1:]
+		# Get list of loci in the schema
+		schema_files = fo.listdir(self.schema_directory)
+		schema_loci = fo.filter_by_extension(schema_files, [".fasta"])[0]
+		schema_loci = [fo.file_basename(file, False) for file in schema_loci]
+
+		extra_loci = set(profiles_loci) - set(schema_loci)
+		if len(extra_loci) > 0:
+			sys.exit("The following loci IDs in the input profiles are not in the schema:\n"
+				     f"{'\n'.join(extra_loci)}\nPlease ensure that all loci IDs in the input profiles "
+					 "are in the schema.")
+
+		return self
+
+	# Verify that the profiles include the loci IDs in the list of loci
+	@model_validator(mode="after")
+	def loci_list_in_profiles(self):
+		if self.loci_list:
+			# Read loci IDs in profiles file
+			profiles_header = fo.read_lines(self.allelic_profiles, strip=True, num_lines=1)
+			profiles_loci = profiles_header[0].split("\t")[1:]
+			extra_loci = set(self.loci_list)-set(profiles_loci)
+			if len(extra_loci) > 0:
+				sys.exit("The following loci IDs in the input loci list are not in the allelic profiles:\n"
+				         f"{'\n'.join(extra_loci)}\nPlease ensure that are all loci IDs in the input loci "
+						 "list are in the allelic profiles.")
+
+		return self
+
+	# Verify that the schema contains FASTA files for all loci in the list of loci
+	@model_validator(mode="after")
+	def loci_list_in_schema(self):
+		if self.loci_list:
+			# Compare list of loci IDs
+			schema_files = fo.listdir(self.schema_directory)
+			schema_loci = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			schema_loci = [fo.file_basename(file, False) for file in schema_loci]
+			extra_loci = set(self.loci_list) - set(schema_loci)
+			if len(extra_loci) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(extra_loci, ", ")))
+			# Get full paths
+			else:
+				loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in self.loci_list]
+				self.loci_list = [self.loci_list, loci_fpaths]
+
+		return self
+
+	# Simply get the list of loci in the profiles if no loci list is provided
+	@model_validator(mode="after")
+	def get_profiles_loci(self):
+		if not self.loci_list:
+			# Read loci IDs in profiles file
+			profiles_header = fo.read_lines(self.allelic_profiles, strip=True, num_lines=1)
+			profiles_loci = profiles_header[0].split("\t")[1:]
+			# Get full paths
+			loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in profiles_loci]
+			self.loci_list = [profiles_loci, loci_fpaths]
 
 		return self
 
 
 class PrepExternalSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	schema_directory: SchemaDirectory
+	schema_directory: ExternalSchema
 	loci_list: LociList | None = None
 	gene_predictor: GenePredictor
 	gene_prediction_options: GenePredictionOptions
 	validated_gene_prediction_options: ValidatedGenePredictionOptions
+	clustering_options: ClusteringOptions
+	validated_clustering_options: ValidatedClusteringOptions
 	blast_score_ratio: BLASTScoreRatio
 	minimum_length: MinimumLength
 	adaptation_minimum_length: Annotated[int, Field(default=0)]
@@ -1278,100 +1687,257 @@ class PrepExternalSchemaValidator(BaseModel):
 	adaptation_size_threshold: Annotated[float, Field(default=None)]
 	cpu_cores: CPUCores
 	blast_path : BLASTPath
-	size_filter: Annotated[bool, Field(default=False)]
+	size_filter: BooleanFlag
+
+	# Further validation for gene prediction arguments
+	@model_validator(mode="after")
+	def validate_gene_prediction_arguments(self):
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options = PyrodigalArgs(**self.gene_prediction_options)
+		elif self.gene_predictor == "augustus":
+			self.validated_gene_prediction_options = AugustusArgs(**self.gene_prediction_options)
+
+		return self
+
+	# Further validation for clustering arguments
+	@model_validator(mode="after")
+	def validate_clustering_arguments(self):
+		self.validated_clustering_options = ClusteringArgs(**self.clustering_options)
+
+		return self
+
+	# Verify that the schema contains FASTA files for all loci in the list of loci
+	@model_validator(mode="after")
+	def loci_list_in_schema(self):
+		if self.loci_list:
+			# Compare list of loci IDs
+			schema_files = fo.listdir(self.schema_directory)
+			schema_loci = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			schema_loci = [fo.file_basename(file, False) for file in schema_loci]
+			absent_files = set(self.loci_list) - set(schema_loci)
+			if len(absent_files) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(absent_files, ", ")))
+			# Get full paths
+			else:
+				loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in self.loci_list]
+				self.loci_list = [self.loci_list, loci_fpaths]
+
+		return self
+
+	@model_validator(mode="after")
+	def get_schema_loci(self):
+		if not self.loci_list:
+			# Get full paths
+			schema_files = fo.listdir(self.schema_directory, full_path=True)
+			loci_fpaths = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_basenames = [fo.file_basename(file, False) for file in loci_fpaths]
+			self.loci_list = [loci_basenames, loci_fpaths]
+
+		return self
 
 	@model_validator(mode="after")
 	def apply_size_filter(self):
 		if self.size_filter:
 			self.adaptation_minimum_length = self.minimum_length
+			print(f"Using a minimum length value of {self.adaptation_minimum_length} for schema "
+				  f"adaptation and {self.minimum_length} to store in the schema "
+				  "config file.")
 			self.adaptation_size_threshold = self.size_threshold
+			print(f"Using a size threshold value of {self.adaptation_size_threshold} for schema "
+		    	  f"adaptation and {self.size_threshold} to store in the schema "
+		    	  "config file.")
+
+		return self
 
 
-class UniprotFinderValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
-	
+ProteinTable = Annotated[str,
+                         Field(default=None),
+                         AfterValidator(partial(input_path_exists,
+                                                function=fo.exists,
+												exception_str=ct.MISSING_PROTEIN_TABLE))]
+
+Taxa = Annotated[list,
+                 Field(default=None)]
+
+ProteomeMatches = Annotated[int,
+                            Field(default=1, ge=1)]
+
+RestApiMatches = Annotated[int,
+                           Field(default=1, ge=1)]
+
+
+class AnnotateSchemaValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	output_directory: OutputDirectory
-	schema_directory: SchemaDirectory
+	schema_directory: ExternalSchema
 	loci_list: LociList | None = None
-	protein_table: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
+	protein_table: ProteinTable
 	blast_score_ratio: BLASTScoreRatio
+	translation_table: TranslationTable
 	cpu_cores: CPUCores
-	taxa: Annotated[str, Field(default=None)]
-	proteome_matches: Annotated[int, Field(default=1)]
-	no_sparql: Annotated[bool, Field(default=False)]
-	no_cleanup: Annotated[bool, Field(default=False)]
-	no_cleanup: bool
+	proteome_taxa: Taxa
+	proteome_matches: ProteomeMatches
+	blast_path: BLASTPath
+	rest_api: BooleanFlag
+	rest_api_matches: RestApiMatches
+	no_cleanup: BooleanFlag
+
+	# User must specify that loci should be annotated based on either proteomes or requests to UniProt's Proteins API or both
+	@model_validator(mode="after")
+	def check_annotation_method(self):
+		if not self.proteome_taxa and not self.rest_api:
+			sys.exit(ct.ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD)
+
+		return self
+
+	# Verify that the schema contains FASTA files for all loci in the list of loci
+	@model_validator(mode="after")
+	def loci_list_in_schema(self):
+		if self.loci_list:
+			# Compare list of loci IDs
+			schema_files = fo.listdir(self.schema_directory)
+			loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_ids = [fo.file_basename(file, False) for file in loci_files]
+			extra_loci = set(self.loci_list) - set(loci_ids)
+			if len(extra_loci) > 0:
+				sys.exit(ct.LOCI_LIST_SCHEMA_LOCI_NOMATCH.format(im.join_list(extra_loci, ", ")))
+			# Get full paths
+			else:
+				loci_fpaths = [fo.join_paths(self.schema_directory, [locus_id+".fasta"]) for locus_id in self.loci_list]
+				self.loci_list = [self.loci_list, loci_fpaths]
+
+		return self
+
+	# Annotate all loci if user did not provide a list of loci
+	@model_validator(mode="after")
+	def get_schema_loci(self):
+		if not self.loci_list:
+			# Get full paths
+			schema_files = fo.listdir(self.schema_directory, full_path=True)
+			loci_fpaths = fo.filter_by_extension(schema_files, [".fasta"])[0]
+			loci_basenames = [fo.file_basename(file, False) for file in loci_fpaths]
+			self.loci_list = [loci_basenames, loci_fpaths]
+
+		return self
+
+	# Use translation table stored in schema config file if it is a chewie schema
+	@model_validator(mode="after")
+	def get_translation_table(self):
+		config_file = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+		if fo.exists(config_file):
+			config_values = fo.pickle_loader(config_file)
+			self.translation_table = config_values[ct.TRANSLATION_TABLE_ARGNAME][0]
+
+		return self
+
+
+DistanceComputationMethod = Annotated[str,
+                   					  Field(default=ct.DEFAULT_DISTANCE_METHOD),
+                   					  AfterValidator(partial(validate_choice, valid_options=ct.DISTANCE_METHODS, exception_str=ct.INVALID_DISTANCE_METHOD))]
+
+OutputFormat = Annotated[str,
+                   Field(default=ct.DEFAULT_OUTPUT_FORMAT),
+				   AfterValidator(partial(validate_choice, valid_options=ct.OUTPUT_FORMATS, exception_str=ct.INVALID_OUTPUT_FORMAT))]
 
 
 class ComputeDistancesValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	allelic_profiles: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
-	method: Annotated[str, Field(default=ct.DEFAULT_DISTANCE_METHOD), AfterValidator(validate_distance_method)]
-	outfmt: Annotated[str, Field(default=ct.DEFAULT_OUTPUT_FORMAT), AfterValidator(validate_output_format)]
-	no_mask: Annotated[bool, Field(default=False)]
-	similarity: Annotated[bool, Field(default=False)]
+	allelic_profiles: AllelicProfiles
+	distance_computation_method: DistanceComputationMethod
+	output_format: OutputFormat
+	compute_similarity: BooleanFlag
+	no_mask: BooleanFlag
 	cpu_cores: CPUCores
 
+
+MSAInput = Annotated[str,
+					 AfterValidator(partial(input_path_exists,
+								    function=fo.exists,
+									exception_str=ct.MISSING_INPUT_ARG))]
+
+Gaps = Annotated[str,
+                 Field(default=ct.DEFAULT_GAPS),
+				 AfterValidator(partial(validate_choice, valid_options=ct.GAPS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_GAPS_OPTION))]
+
+Ambiguous = Annotated[str,
+                      Field(default=ct.DEFAULT_AMBIGUOUS),
+					  AfterValidator(partial(validate_choice, valid_options=ct.AMBIGUOUS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_AMBIGUOUS_OPTION))]
+
+CustomMafftOptions = Annotated[str,
+                               Field(default=None)]
 
 class ComputeMSAValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
-	input_path: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
-	schema_directory: SchemaDirectory
-	dna_msa: Annotated[bool, Field(default=False)]
-	output_variable: Annotated[bool, Field(default=0)]
+	input_path: MSAInput
+	schema_directory: ExternalSchema
+	dna_msa: BooleanFlag
+	output_variable: BooleanFlag
 	translation_table: TranslationTable
 	cpu_cores: CPUCores
-	only_loci_msas: Annotated[bool, Field(default=False)]
-	gaps: Annotated[str, Field(default=ct.DEFAULT_GAPS)]
-	ambiguous: Annotated[str, Field(default=ct.DEFAULT_AMBIGUOUS)]
-	custom_mafft_parameters: Annotated[str, Field(default=None)]
-	protein_input: Annotated[bool, Field(default=False)]
-	no_cleanup: Annotated[bool, Field(default=False)]
+	only_loci_msas: BooleanFlag
+	gaps: Gaps
+	ambiguous: Ambiguous
+	custom_mafft_options: CustomMafftOptions
+	protein_input: BooleanFlag
+	no_cleanup: BooleanFlag
+
+	# Use the translation table defined in the training file if main input is a matrix with allelic profiles
+	@model_validator(mode="after")
+	def get_translation_table(self):
+		if self.schema_directory:
+			config_file = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+			# Allow for schemas that were not created with chewBBACA
+			if fo.exists(config_file):
+				config_values = fo.pickle_loader(config_file)
+				self.translation_table = config_values[ct.TRANSLATION_TABLE_ARGNAME][0]
+
+		return self
 
 
 class DownloadSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	species_id: Annotated[str, Field(default=None)]
 	schema_id: Annotated[str, Field(default=None)]
-	download_folder: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
+	download_folder: Annotated[str, AfterValidator(partial(input_path_exists, function=fo.exists, exception_str="test"))]
 	cpu_cores: CPUCores
 	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
 	blast_path : BLASTPath
 	date: str | None = None
-	latest: Annotated[bool, Field(default=False)]
+	latest: BooleanFlag
 
 
 class UploadSchemaValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
-	schema_directory: SchemaDirectory
+	schema_directory: ChewieSchema
 	species_id: Annotated[str, Field(default=None)]
 	schema_name: Annotated[str, Field(default=None)]
 	loci_prefix: Annotated[str, Field(default=None)]
-	description_file: Annotated[str, AfterValidator(partial(input_path_exists, exception_str="test"))]
+	description_file: Annotated[str, AfterValidator(partial(input_path_exists, function=fo.exists, exception_str="test"))]
 	annotations: Annotations | None = None
 	cpu_cores: CPUCores
 	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
-	continue_up: Annotated[bool, Field(default=False)]
+	continue_up: BooleanFlag
 
 
 class SynchronizeSchemaValidator():
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
-	schema_directory: SchemaDirectory
+	schema_directory: ChewieSchema
 	cpu_cores: CPUCores
 	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
 	blast_path : BLASTPath
-	submit: Annotated[bool, Field(default=False)]
+	submit: BooleanFlag
 
 
 class NSStatsValidator(BaseModel):
-	model_config = ConfigDict(from_attributes=True, extra="forbid")
+	model_config = ConfigDict(from_attributes=True)
 
 	mode: Annotated[str, Field(default=None)]
 	species_id: str

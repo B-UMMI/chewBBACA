@@ -528,14 +528,12 @@ def main(config):
 
 	# Copy Pyrodigal Training File (PTF) to schema directory
 	schema_dir = os.path.join(config.output_directory, config.schema_name)
-	if config.validated_gene_prediction_options.pyrodigal_training_file is not None:
+	if config.gene_predictor == "pyrodigal" and config.validated_gene_prediction_options.pyrodigal_training_file is not None:
 		fo.copy_file(config.validated_gene_prediction_options.pyrodigal_training_file, schema_dir)
-		# Determine PTF checksum
-		ptf_hash = fo.hash_file(config.validated_gene_prediction_options.pyrodigal_training_file, 'blake2b')
 		print(f'Copied Pyrodigal training file to {schema_dir}')
 
 	# Write schema config file
-	schema_config = cf.write_schema_config(config, ptf_hash, __version__, schema_dir)
+	schema_config = cf.write_schema_config(config, __version__, schema_dir)
 	print(f'Wrote schema config values to {schema_config[1]}')
 
 	# Create the file with the list of genes/loci

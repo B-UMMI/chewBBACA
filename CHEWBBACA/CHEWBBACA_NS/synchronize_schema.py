@@ -711,20 +711,18 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
     return [new_alleles, server_time, count]
 
 
-def main(schema_directory, cpu_cores, nomenclature_server,
-         submit, blast_path):  # update_profiles):
+def main(config):
 
     # Get ns configs
-    local_date, schema_uri = pv.read_configs(schema_directory, '.ns_config')
+    ns_config_file = fo.join_paths(config.schema_directory, [ct.NS_CONFIG_BASENAME])
+    local_date, schema_uri = fo.pickle_loader(ns_config_file)
     # Get schema and species identifiers
-    schema_id = schema_uri.split('/')[-1]
-    species_id = schema_uri.split('/')[-3]
-    if nomenclature_server is None:
-        nomenclature_server = schema_uri.split('species/')[0]
+    schema_id = schema_uri.split("/")[-1]
+    species_id = schema_uri.split("/")[-3]
 
-    if submit is True and 'tutorial' not in nomenclature_server:
+    if config.submit_alleles is True and config.nomenclature_server_instance != ct.HOST_NS["tutorial"]:
         print('\nOnly authorized registered users may submit new alleles.')
-        token = cr.capture_login_credentials(nomenclature_server)
+        token = cr.capture_login_credentials(config.nomenclature_server_instance)
     else:
         token = ''
 
@@ -733,10 +731,10 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
-    if submit is True and 'tutorial' not in nomenclature_server:
-        user_id, user_role, user_auth = cr.user_info(nomenclature_server, headers_get)
+    if config.submit_alleles is True and 'tutorial' not in config.nomenclature_server_instance:
+        user_id, user_role, user_auth = cr.user_info(config.nomenclature_server_instance, headers_get)
         # verify if user has authorization to submit
-        url = cr.make_url(nomenclature_server, 'auth', 'check')
+        url = cr.make_url(config.nomenclature_server_instance, 'auth', 'check')
         response = cr.simple_get_request(url, headers_get)[1]
         if response.status_code == 200:
             user_auth = True
@@ -750,7 +748,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     else:
         user_id = ''
         user_role = ''
-        user_auth = True if 'tutorial' in nomenclature_server else False
+        user_auth = True if 'tutorial' in config.nomenclature_server_instance else False
 
     # POST requests headers
     headers_post = ct.HEADERS_POST_JSON
@@ -761,7 +759,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
 
-    schema_params = pv.read_configs(schema_directory, ct.SCHEMA_CONFIG_BASENAME)
+    schema_params = pv.read_configs(config.schema_directory, ct.SCHEMA_CONFIG_BASENAME)
 
     # verify that local configs have a single value per parameter
     if all([len(schema_params[k]) == 1
@@ -772,7 +770,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     # check if schema exists in Chewie-NS
     schema_name, ns_params = cr.get_species_schemas(schema_id,
                                                     species_id,
-                                                    nomenclature_server,
+                                                    config.nomenclature_server_instance,
                                                     headers_get)[2:]
 
     # verify that local configs match NS configs
@@ -783,7 +781,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     # Get the name of the species from the provided id
     # or vice-versa
-    species_id, species_name = cr.species_ids(species_id, nomenclature_server,
+    species_id, species_name = cr.species_ids(species_id, config.nomenclature_server_instance,
                                               headers_get)
 
     print('Schema id: {0}'.format(schema_id))
@@ -800,12 +798,12 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     # exit if remote schema has not been updated since last
     # sync date and current user does not wish to submit new alleles
-    if local_date == ns_date and submit is False:
+    if local_date == ns_date and config.submit_alleles is False:
         sys.exit('\nRemote schema has not been updated since last sync '
                  'process. Local schema is up-to-date.')
 
     # Create a temporary dir for the new alleles
-    temp_dir = fo.join_paths(os.path.dirname(schema_directory), ['temp'])
+    temp_dir = fo.join_paths(os.path.dirname(config.schema_directory), ['temp'])
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
@@ -819,12 +817,12 @@ def main(schema_directory, cpu_cores, nomenclature_server,
           ''.format(count, len(loci_alleles)))
 
     # Get schema files from genes list file
-    genes_list = fo.join_paths(schema_directory, [ct.GENE_LIST_BASENAME])
+    genes_list = fo.join_paths(config.schema_directory, [ct.GENE_LIST_BASENAME])
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure
     not_in_ns, pickled_loci, rearranged = update_loci_files(loci_alleles, genes,
-                                                            schema_directory, temp_dir)
+                                                            config.schema_directory, temp_dir)
 
     total_local = sum([len(v[0]) for k, v in not_in_ns.items()])
     print('Local schema has {0} novel alleles for {1} '
@@ -838,9 +836,9 @@ def main(schema_directory, cpu_cores, nomenclature_server,
 
     results = {}
     attributed = 0
-    if submit is True and user_auth is True and len(not_in_ns) > 0:
+    if config.submit_alleles is True and user_auth is True and len(not_in_ns) > 0:
         # Attempt to lock schema
-        lock_res = cr.simple_post_request(nomenclature_server, headers_post,
+        lock_res = cr.simple_post_request(config.nomenclature_server_instance, headers_post,
                                           ['species', species_id,
                                            'schemas', schema_id,
                                            'lock'],
@@ -855,7 +853,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                   'retrieved from the Chewie-NS.')
         else:
             # after locking, check if date matches ns_date
-            date_res = cr.simple_get_request(nomenclature_server, headers_get,
+            date_res = cr.simple_get_request(config.nomenclature_server_instance, headers_get,
                                              ['species', species_id, 'schemas',
                                               schema_id, 'modified'])[1]
 
@@ -871,14 +869,14 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                       'from the Chewie-NS.')
 
                 # unlock schema
-                lock_res = cr.simple_post_request(nomenclature_server, headers_post,
+                lock_res = cr.simple_post_request(config.nomenclature_server_instance, headers_post,
                                                   ['species', species_id, 'schemas',
                                                    schema_id, 'lock'],
                                                   data=json.dumps({'action': 'unlock'}))[1]
             else:
                 print('Collecting data and creating files to submit local alleles...')
                 # get list of loci for schema in the NS
-                loci_res = cr.simple_get_request(nomenclature_server, headers_get,
+                loci_res = cr.simple_get_request(config.nomenclature_server_instance, headers_get,
                                                  ['species', species_id, 'schemas',
                                                   schema_id, 'loci'])[1]
                 # get loci files names from response
@@ -894,7 +892,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                 # create new alleles data
                 alleles_files, \
                     loci_ids, \
-                    loci_names = create_alleles_files(not_in_ns, nomenclature_server,
+                    loci_names = create_alleles_files(not_in_ns, config.nomenclature_server_instance,
                                                       user_id, species_name,
                                                       species_id, schema_id,
                                                       temp_dir)
@@ -907,7 +905,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                 print('Sending and inserting new alleles...')
                 failed, \
                     start_count = upload_alleles_data(alleles_data, length_files,
-                                                      nomenclature_server, headers_post,
+                                                      config.nomenclature_server_instance, headers_post,
                                                       headers_post_bytes, species_id,
                                                       schema_id)
 
@@ -919,7 +917,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
                 status = 'Updating'
                 start_count = int(start_count.json()['nr_alleles'])
                 while status != 'Complete' and (current_time < time_limit):
-                    insertion_status = cr.simple_get_request(nomenclature_server,
+                    insertion_status = cr.simple_get_request(config.nomenclature_server_instance,
                                                              headers_get,
                                                              ['species', species_id,
                                                               'schemas', schema_id,
@@ -959,42 +957,23 @@ def main(schema_directory, cpu_cores, nomenclature_server,
         rearranged = pickle_to_fasta(locus, pick, temp_dir, results,
                                      rearranged)
 
-    # update pre-computed tables
-    # pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
-    # if os.path.isdir(pre_computed_dir):
-    #     schema_loci_fullpath = [fo.join_paths(schema_directory, [file])
-    #                             for file in genes]
-    #     loci_to_call = {file: schema_loci_fullpath.index(file)
-    #                     for file in schema_loci_fullpath}
-    #     update_hash_tables(rearranged, loci_files, loci_to_call,
-    #                        schema_params['translation_table'][0],
-    #                        pre_computed_dir)
     # Delete pre-computed directory
     # Future versions will change the pre-computed hash tables
-    pre_computed_dir = fo.join_paths(schema_directory, ['pre_computed'])
+    pre_computed_dir = fo.join_paths(config.schema_directory, ['pre_computed'])
     if os.path.isdir(pre_computed_dir):
         fo.delete_directory(pre_computed_dir)
 
-    # change identifiers in SQLite DB
-    # if len(rearranged) > 0 and update_profiles is True:
-    #     print('\nUpdating local allele identifiers...')
-    #     altered = ps.update_profiles(schema_directory, rearranged)
-    #     if altered is not None:
-    #         print('Updated {0} profiles.\n'.format(altered))
-    #     else:
-    #         print('Could not find local SQLite database to upload profiles.\n')
-
     # Re-determine the representative sequences
-    schema_short_directory = fo.join_paths(schema_directory, ['short'])
+    schema_short_directory = fo.join_paths(config.schema_directory, ['short'])
     if attributed > 0 or count > 0:
-        loci_list = fo.join_paths(schema_directory, [ct.LOCI_LIST])
+        loci_list = fo.join_paths(config.schema_directory, [ct.LOCI_LIST])
         loci_list, total_loci = pv.check_input_type(temp_dir, loci_list)
-        adapt_schema.main(loci_list, [schema_directory, schema_short_directory],
-                          cpu_cores, float(schema_params['bsr'][0]),
-                          0, 11, None, blast_path)
+        adapt_schema.main(loci_list, [config.schema_directory, schema_short_directory],
+                          config.cpu_cores, float(schema_params['bsr'][0]),
+                          0, 11, None, config.blast_path)
 
         # Delete invalid alleles and genes files
-        parent_dir = os.path.dirname(schema_directory)
+        parent_dir = os.path.dirname(config.schema_directory)
         files = [fo.join_paths(parent_dir, [file])
                  for file in os.listdir(parent_dir)
                  if 'invalid' in file]
@@ -1002,7 +981,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
         fo.remove_files(files)
 
         # get last modification date
-        last_modified = cr.simple_get_request(nomenclature_server, headers_get,
+        last_modified = cr.simple_get_request(config.nomenclature_server_instance, headers_get,
                                               ['species', species_id,
                                                'schemas', schema_id,
                                                'modified'])[1]
@@ -1010,7 +989,7 @@ def main(schema_directory, cpu_cores, nomenclature_server,
         server_time = last_modified
 
         # update NS config file with latest server time
-        ns_configs = fo.join_paths(schema_directory, ['.ns_config'])
+        ns_configs = fo.join_paths(config.schema_directory, ['.ns_config'])
         fo.pickle_dumper([server_time, schema_uri], ns_configs)
 
         # Delete file with list of loci to adapt
@@ -1024,10 +1003,10 @@ def main(schema_directory, cpu_cores, nomenclature_server,
     shutil.rmtree(temp_dir)
 
     # delete pre-computed loci mode values
-    mode_file = fo.join_paths(schema_directory, ['loci_modes'])
+    mode_file = fo.join_paths(config.schema_directory, ['loci_modes'])
     fo.remove_files([mode_file])
 
     # delete pre-computed BSR values from 'short' directory
     # representatives might have changed and BSR values are outdated
-    bsr_file = fo.join_paths(schema_directory, ['short', 'self_scores'])
+    bsr_file = fo.join_paths(config.schema_directory, ['short', 'self_scores'])
     fo.remove_files([bsr_file])

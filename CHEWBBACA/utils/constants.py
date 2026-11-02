@@ -127,6 +127,8 @@ HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
 		   'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
 		   'local': 'http://127.0.0.1:5000/NS/api/'}
 
+DEFAULT_NOMENCLATURE_SERVER = "main"
+
 # Authors, GitHub repository, documentation, tutorial and contacts
 AUTHORS = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
 REPOSITORY = 'https://github.com/B-UMMI/chewBBACA'
@@ -560,10 +562,6 @@ NON_FASTA_LOCI_EXCEPTION = ('The following loci files are not in FASTA format:\n
 LOADSCHEMA_NO_PERMISSIONS = ('Current user has no Administrator or Contributor '
 							 'permissions.\nNot allowed to upload schemas.')
 
-# PTF is missing from schema's directory
-LOADSCHEMA_MISSING_PTF = ('Please ensure that the schema\'s directory includes the '
-						  'Prodigal training file used to create the schema.')
-
 # Could not predict CDSs for input FASTA files
 # e.g. files only contain sequence headers, contain invalid
 # sequences/chars or pyrodigal cannot predict any genes
@@ -849,7 +847,6 @@ CUSTOM_MAFFT_OPTIONS_ARGNAME = "custom_mafft_options"
 PROTEIN_INPUT_ARGNAME = "protein_input"
 SPECIES_ID_ARGNAME = "species_id"
 SCHEMA_ID_ARGNAME = "schema_id"
-DOWNLOAD_FOLDER_ARGNAME = "download_folder"
 NOMENCLATURE_SERVER_INSTANCE_ARGNAME = "nomenclature_server_instance"
 SCHEMA_DATE_ARGNAME = "schema_date"
 LATEST_VERSION_ARGNAME = "latest_version"
@@ -871,8 +868,6 @@ UNIPROT_REST_API_ARGNAME = "rest_api"
 UNIPROT_REST_API_MATCHES_ARGNAME = "rest_api_matches"
 
 NSSTATS_MODE_CHOICES = ['species', 'schemas']
-
-DEFAULT_NOMENCLATURE_SERVER = "main"
 
 DEFAULT_GAPS = "exclude"
 GAPS_CHOICES = ["ignore", "exclude"]
@@ -961,6 +956,15 @@ ARGUMENT_TYPES = {
 	"gaps": str,
 	"ambiguous": str,
 	"custom_mafft_options":str,
+	"species_id": str,
+	"schema_id": str,
+	"nomenclature_server_instance": str,
+	"schema_date": str,
+	"latest_version": bool,
+	"loci_prefix": str,
+	"description_file": str,
+	"continue_upload": bool,
+	"stats_mode": str,
 }
 
 CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a Pyrodigal training file and a training reference "
@@ -1036,6 +1040,7 @@ ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD = ("No annotation method was specified. Ple
                                         "or multiple taxon names to '--ptax, --proteome-taxa' or '--rapi, "
 										"--rest-api' to query UniProt's Proteins API or both options.")
 
-
 COMPUTEMSA_INVALID_GAPS_OPTION = (f"Invalid option provided to '--gaps'. Please provide one of the following option: {DEFAULT_GAPS}")
 COMPUTEMSA_INVALID_AMBIGUOUS_OPTION = (f"Invalid option provided to '--ambiguous'. Please provide one of the following options: {DEFAULT_AMBIGUOUS}")
+
+NS_STATS_INVALID_MODE = (f"Invalid value passed to '--sm, --stats-mode'. Please select one of the following options: {NSSTATS_MODE_CHOICES}")

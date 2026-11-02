@@ -347,7 +347,7 @@ def single_schema(species_id, schema_id, base_url, headers_get):
     return schema_info
 
 
-def main(mode, nomenclature_server, species_id, schema_id):
+def main(config):
     """Get species and sschema statistics from a Chewie-NS instance.
 
     Parameters
@@ -367,21 +367,18 @@ def main(mode, nomenclature_server, species_id, schema_id):
     """
     headers_get = ct.HEADERS_GET_JSON
 
-    print('\nRetrieving data...')
-    if mode == 'species':
-        stats = species_stats(nomenclature_server, headers_get)
-    elif mode == 'schemas':
-        if species_id is not None:
-            if schema_id is not None:
-                stats = single_schema(species_id, schema_id,
-                                      nomenclature_server, headers_get)
+    print("\nRetrieving data...")
+    if config.stats_mode == "species":
+        stats = species_stats(config.nomenclature_server_instance, headers_get)
+    elif config.stats_mode == "schemas":
+        if config.species_id is not None:
+            if config.schema_id is not None:
+                stats = single_schema(config.species_id, config.schema_id, config.nomenclature_server_instance, headers_get)
             else:
-                stats = single_species(species_id, nomenclature_server,
-                                       headers_get)
+                stats = single_species(config.species_id, config.nomenclature_server_instance, headers_get)
         else:
-            sys.exit('\nPlease provide a valid species identifier '
-                     'to get the list of available schemas.\n')
+            sys.exit("\nPlease provide a valid species identifier to get the list of available schemas.\n")
 
     # Print stats
-    stats_text = '\n'.join(stats)
-    print('\n{0}\n'.format(stats_text))
+    stats_text = "\n".join(stats)
+    print("\n{0}\n".format(stats_text))

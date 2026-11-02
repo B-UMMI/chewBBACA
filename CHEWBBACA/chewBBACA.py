@@ -1274,6 +1274,10 @@ def run_download_schema():
 
 	parser.add_argument("DownloadSchema", nargs="+", help=argparse.SUPPRESS)
 
+	parser.add_argument("-o", "--output-directory", type=ct.ARGUMENT_TYPES[ct.OUTPUT_DIRECTORY_ARGNAME],
+						required=True, dest=ct.OUTPUT_DIRECTORY_ARGNAME,
+						help="Output folder to which the schema will be saved.")
+
 	parser.add_argument("--spi", "--species-id", type=ct.ARGUMENT_TYPES[ct.SPECIES_ID_ARGNAME],
 						required=True, dest=ct.SPECIES_ID_ARGNAME,
 						help="The integer identifier or name of the species that the schema is "
@@ -1283,10 +1287,6 @@ def run_download_schema():
 						required=True, dest=ct.SCHEMA_ID_ARGNAME,
 						help="The URI, integer identifier or name of the schema to download from "
 							 "Chewie-NS.")
-
-	parser.add_argument("-df", "--download-folder", type=ct.ARGUMENT_TYPES[ct.DOWNLOAD_FOLDER_ARGNAME],
-						required=True, dest=ct.DOWNLOAD_FOLDER_ARGNAME,
-						help="Output folder to which the schema will be saved.")
 
 	parser.add_argument("--nsi", "--nomenclature-server-instance", type=ct.ARGUMENT_TYPES[ct.NOMENCLATURE_SERVER_INSTANCE_ARGNAME],
 						required=False, dest=ct.NOMENCLATURE_SERVER_INSTANCE_ARGNAME,
@@ -1301,7 +1301,7 @@ def run_download_schema():
 							 "`Y-m-dTH:M:S`.")
 
 	parser.add_argument("--lv", "--latest-version", action="store_true",
-						required=False, dest=ct.LATEST_ARGNAME,
+						required=False, dest=ct.LATEST_VERSION_ARGNAME,
 						help="If the compressed version that is available is not the latest, downloads "
 							 "all loci FASTA files and constructs schema locally using the PrepExternalSchema module.")
 
@@ -1317,14 +1317,12 @@ def run_download_schema():
 							 "necessary to construct the schema locally.")
 
 	args = parser.parse_args()
-	validated_args = pv.DownloadSchemaValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.DownloadSchemaValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	download_schema.main(**vars(args))
+	download_schema.main(validated_args)
 
 
 @pdt.process_timer
@@ -1395,14 +1393,12 @@ def run_upload_schema():
 							 "control step that checks all alleles in the schema.")
 
 	args = parser.parse_args()
-	validated_args = pv.UploadSchemaValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.UploadSchemaValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	upload_schema.main(**vars(args))
+	upload_schema.main(validated_args)
 
 
 @pdt.process_timer
@@ -1453,14 +1449,12 @@ def run_synchronize_schema():
 							 "representative alleles for the local schema.")
 
 	args = parser.parse_args()
-	validated_args = pv.SynchronizeSchemaValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.SynchronizeSchemaValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	synchronize_schema.main(**vars(args))
+	synchronize_schema.main(validated_args)
 
 
 @pdt.process_timer
@@ -1501,14 +1495,12 @@ def run_stats_requests():
 							 "(localhost). Users may also provide the IP address to other Chewie-NS instances.")
 
 	args = parser.parse_args()
-	validated_args = pv.NSStatsValidator.model_validate(args)
-	# Serialize model instance
-	validated_args = validated_args.model_dump()
+	# Strip out None values so Pydantic defaults take effect
+	clean_args = {k: v for k, v in vars(args).items() if v is not None}
+	# Use Pydantic model to validate argument values
+	validated_args = pv.NSStatsValidator.model_validate(clean_args)
 
-	print(validated_args)
-	sys.exit()
-
-	stats_requests.main(**vars(args))
+	stats_requests.main(validated_args)
 
 
 def main():

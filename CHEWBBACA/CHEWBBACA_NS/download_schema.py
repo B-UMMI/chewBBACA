@@ -141,22 +141,20 @@ def download_date(user_date, zip_date, latest, insertion_date,
                                              '%Y-%m-%dT%H:%M:%S.%f')
         modification_date_obj = pd.datetime_obj(modification_date,
                                                 '%Y-%m-%dT%H:%M:%S.%f')
-        # determine if date given by user is valid
-        user_date_obj = pd.validate_date(user_date)
 
-        if user_date_obj is False:
+        if user_date is False:
             sys.exit('Provided date is invalid. Please provide a date '
                      'in the format "%Y-%m-%dT%H:%M:%S" or '
                      '"%Y-%m-%dT%H:%M:%S.%f"')
-        if user_date_obj >= insertion_date_obj and \
-           user_date_obj <= modification_date_obj:
-            schema_date = pd.datetime_str(user_date_obj,
+        if user_date >= insertion_date_obj and \
+           user_date <= modification_date_obj:
+            schema_date = pd.datetime_str(user_date,
                                           '%Y-%m-%dT%H:%M:%S.%f')
-        elif user_date_obj < insertion_date_obj:
+        elif user_date < insertion_date_obj:
             sys.exit('Provided date is prior to the date of schema '
                      'insertion. Please provide a date later than '
                      'schema insertion date ({0}).'.format(insertion_date))
-        elif user_date_obj > modification_date_obj:
+        elif user_date > modification_date_obj:
             sys.exit('Provided date is greater than the last '
                      'modification date. Please provide a date '
                      'equal or prior to the schema modification '
@@ -416,91 +414,51 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     return ptf_file
 
 
-def main(species_id, schema_id, download_folder, cpu_cores,
-         nomenclature_server, date, latest, blast_path):
-
+def main(config):
     # GET request headers
     headers_get = ct.HEADERS_GET_JSON
 
-    # Get the name of the species from the provided id
-    # or vice-versa
-    species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
-    if isinstance(species_info, list):
-        species_id, species_name = species_info
-    else:
-        sys.exit('There is no species with the provided '
-                 'identifier in the Chewie-NS.')
-
-    # Check if user provided schema identifier or schema description
-    # Get info about all the species schemas
-    schema_id, schema_uri,\
-        schema_name, schema_params = cr.get_species_schemas(schema_id,
-                                                            species_id,
-                                                            nomenclature_server,
-                                                            headers_get)
-
-    print('Schema id: {0}'.format(schema_id))
-    print('Schema name: {0}'.format(schema_name))
-    print("Schema's species: {0} "
-          "(id={1})".format(species_name, species_id))
+    print(f"Schema id: {config.schema_id[0]}")
+    print(f"Schema name: {config.schema_id[2]["name"]}")
+    print(f"Schema's species: {config.species_id[1]} (id={config.species_id[0]})")
 
     # Assign name to local schema
-    schema_basename = '_'.join(species_name.split(' '))
-    schema_basename = f'{schema_basename}_{schema_name}'
-
-    # Create parameters dict
-    schema_params_dict = {k: schema_params[k]['value']
-                          for k in schema_params.keys()
-                          if k != 'name'}
+    schema_basename = "_".join(config.species_id[1].split(" "))
+    schema_basename = f"{schema_basename}_{config.schema_id[2]["name"]}"
 
     # Check if schema is locked
-    lock_status = schema_params_dict['Schema_lock']
-    if lock_status != 'Unlocked':
-        sys.exit('Schema is locked. This might be because it '
-                 'is being uploaded, updated or compressed.'
-                 ' Please try again later and contact the Administrator '
-                 'if the schema stays locked for a long period of time.')
+    lock_status = config.schema_id[2]["Schema_lock"]
+    if lock_status != "Unlocked":
+        sys.exit("Schema is locked. This might be because it is being uploaded, updated or compressed."
+                 " Please try again later and contact the Administrator if the schema stays locked for "
+                 "a long period of time.")
 
     # Get zip information
-    zip_uri, zip_date = check_compressed(schema_uri, headers_get)
+    zip_uri, zip_date = check_compressed(config.schema_id[1], headers_get)
 
-    schema_date = download_date(date, zip_date, latest,
-                                schema_params_dict['dateEntered'],
-                                schema_params_dict['last_modified'])
-
-    # Check output folder
-    if not os.path.exists(download_folder):
-        os.mkdir(download_folder)
-    else:
-        # Verify that folder is empty and abort if it is not
-        download_folder_files = os.listdir(download_folder)
-        if len(download_folder_files) > 0:
-            sys.exit('Download folder is not empty. Please ensure '
-                     'that folder is empty to guarantee proper '
-                     'schema creation or provide a valid path for '
-                     'a new folder that will be created.')
+    schema_date = download_date(config.schema_date, zip_date, config.latest_version,
+                                config.schema_id[2]["dateEntered"],
+                                config.schema_id[2]["last_modified"])
 
     if schema_date == zip_date:
-        print('\nDownloading compressed version...')
+        print("\nDownloading compressed version...")
         # Chewie-NS does not add clustering parameters to config, change that
-        schema_path = download_compressed(zip_uri, schema_basename,
-                                          download_folder, headers_get)
+        schema_path = download_compressed(zip_uri, schema_basename, config.output_directory, headers_get)
     else:
-        print('\nDownloading schema FASTA files...')
+        print("\nDownloading schema FASTA files...")
         # Download loci FASTA files
-        loci = schema_loci(schema_uri, headers_get)
-        ns_files = download_fastas(loci, download_folder, headers_get,
-                                   schema_date)
+        loci = schema_loci(config.schema_id[1], headers_get)
+        ns_files = download_fastas(loci, config.output_directory, headers_get, schema_date)
 
         # Download Prodigal training file
-        ptf_hash = schema_params_dict['prodigal_training_file']
-        ptf_file = download_ptf(ptf_hash, download_folder, schema_id,
-                                species_id, species_name, headers_get,
-                                nomenclature_server)
+        ptf_hash = config.schema_id[2]["prodigal_training_file"]
+        ptf_file = download_ptf(ptf_hash, config.output_directory, config.schema_id[0],
+                                config.species_id[0], config.species_id[1], headers_get,
+                                config.nomenclature_server_instance)
 
         # Use PrepExternalSchema to determine representatives
-        schema_path = fo.join_paths(download_folder, [schema_basename])
-        schema_path_short = fo.join_paths(schema_path, ['short'])
+        schema_path = fo.join_paths(config.output_directory, [schema_basename])
+        schema_path_short = fo.join_paths(schema_path, ["short"])
         # Create output directories
         schema_path_exists = fo.create_directory(schema_path)
         if schema_path_exists is False:
@@ -508,18 +466,18 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         fo.create_directory(schema_path_short)
 
         loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
-        loci_list, total_loci = pv.check_input_type(download_folder, loci_list)
+        loci_list, total_loci = pv.check_input_type(config.output_directory, loci_list)
 
         # Determine representatives and create schema
         # Do not apply minimum length and size threshold values
         adapt_schema.main(loci_list,
                           [schema_path, schema_path_short],
-                          cpu_cores,
-                          float(schema_params_dict['bsr']),
+                          config.cpu_cores,
+                          float(config.schema_id[2]["bsr"]),
                           0,
-                          int(schema_params_dict['translation_table']),
+                          int(config.schema_id[2]["translation_table"]),
                           None,
-                          blast_path)
+                          config.blast_path)
 
         # Copy Prodigal training file to schema directory
         shutil.copy(ptf_file, schema_path)
@@ -529,15 +487,15 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         fo.remove_files(ns_files)
 
         # Write hidden schema config file
-        schema_params_dict['ptf_path'] = ptf_hash
-        schema_params_dict['window_size'] = schema_params_dict.get('window_size', None)
-        schema_config = pv.write_schema_config(schema_params_dict,
-                                               schema_params_dict['chewBBACA_version'],
+        config.schema_id[2]["ptf_path"] = ptf_hash
+        config.schema_id[2]["window_size"] = config.schema_id[2].get("window_size", None)
+        schema_config = pv.write_schema_config(config.schema_id[2],
+                                               config.schema_id[2]["chewBBACA_version"],
                                                schema_path)
 
         # Create ns_config file
-        ns_config = os.path.join(schema_path, '.ns_config')
-        download_info = [schema_date, schema_uri]
+        ns_config = os.path.join(schema_path, ".ns_config")
+        download_info = [schema_date, config.schema_id[1]]
         if not os.path.exists(ns_config):
             fo.pickle_dumper(download_info, ns_config)
 
@@ -546,4 +504,4 @@ def main(species_id, schema_id, download_folder, cpu_cores,
         # Delete file with list of loci to adapt
         os.remove(loci_list)
 
-    print('Schema is now available at: {0}'.format(schema_path))
+    print(f"Schema is now available at: {schema_path}")

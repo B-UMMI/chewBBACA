@@ -29,6 +29,7 @@ import pandas as pd
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
+					  TypeAdapter,
 					  AfterValidator,
 					  BeforeValidator,
 					  model_validator)
@@ -36,15 +37,17 @@ from pydantic import (BaseModel,
 try:
 	from utils import (constants as ct,
 					   file_operations as fo,
-					   chewiens_requests as cr,
+					   process_datetime as pd,
 					   fasta_operations as fao,
+					   chewiens_requests as cr,
 					   iterables_manipulation as im,
 					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
 	                             file_operations as fo,
-								 chewiens_requests as cr,
+	                             process_datetime as pd,
 								 fasta_operations as fao,
+								 chewiens_requests as cr,
 								 iterables_manipulation as im,
 								 pyrodigal_gene_prediction as pgp)
 
@@ -186,104 +189,6 @@ def get_blast_version(blastp_path):
 		version = None
 
 	return version
-
-
-def validate_ptf_hash(ptf_hash, schema_ptfs, force_continue):
-	""" Determines if the hash for the Prodigal training
-		file matches any of the hashes from training files
-		that have been used with the schema.
-
-	Paramters
-	---------
-	ptf_hash : str
-		BLAKE2b hash computed based on the contents of
-		the training file.
-	schema_ptfs : list
-		List with the hashes of all training files that
-		have been used with the schema.
-	force_continue : bool
-		True if the hash should be added to the list with
-		all hashes from training files used with the
-		schema without prompting the user. False otherwise.
-
-	Returns
-	-------
-	unmatch : bool
-		True if the hash is not in the list with all hashes
-		from all training files used with the schema. False
-		otherwise.
-
-	Raises
-	------
-	SystemExit
-		- If the user does not agree to add the hash from a
-		new training file to the list with all hashes for
-		training files that have been used with the schema.
-	"""
-	unmatch = False
-	if ptf_hash not in schema_ptfs:
-		ptf_num = len(schema_ptfs)
-		if force_continue is False:
-			if ptf_num == 1:
-				ptf_answer = fo.input_timeout(ct.DIFFERENT_PTF_PROMPT, ct.PROMPT_TIMEOUT)
-			if ptf_num > 1:
-				ptf_answer = fo.input_timeout(ct.MULTIPLE_PTF_PROMPT.format(ptf_num), ct.PROMPT_TIMEOUT)
-		else:
-			ptf_answer = 'yes'
-
-		if ptf_answer.lower() not in ['y', 'yes']:
-			sys.exit('Exited.')
-		else:
-			unmatch = True
-
-	return unmatch
-
-
-def validate_ptf(ptf_path, schema_directory, schema_ptfs, force_continue):
-	""" Validates the path to the Prodigal training file and
-		its hash value.
-
-	Parameters
-	----------
-	ptf_path : str or NoneType
-		Path to the Prodigal training file or NoneType
-		if no value was provided.
-	schema_directory : str
-		Path to the schema's directory.
-	schema_ptfs : list
-		List with the hashes of all training files that
-		have been used with the schema.
-	force_continue : bool
-		True if the path and hash of the training file
-		should be validated without prompting the user.
-		False otherwise.
-
-	Returns
-	-------
-	ptf_path : str or bool
-		Path to the training file if the user provided a
-		valid path or if no value was provided and the
-		schema has a training file. False if the user
-		passed 'False' or if no value was passed and the
-		schema has no training file.
-	ptf_hash : str
-		BLAKE2b hash computed based on the contents of
-		the training file.
-	unmatch : bool
-		True if the training file does not match any of
-		the training files previously used with the schema.
-	"""
-	ptf_path = validate_ptf_path(ptf_path, schema_directory)
-
-	# Determine PTF checksum
-	if ptf_path is not None:
-		ptf_hash = fo.hash_file(ptf_path, 'blake2b')
-	else:
-		ptf_hash = None
-
-	unmatch = validate_ptf_hash(ptf_hash, schema_ptfs, force_continue)
-
-	return [ptf_path, ptf_hash, unmatch]
 
 
 def get_file_prefixes(path_list):
@@ -1899,47 +1804,201 @@ class ComputeMSAValidator(BaseModel):
 		return self
 
 
+SpeciesId = Annotated[str,
+                      Field(default=None)]
+
+SchemaId = Annotated[str,
+                     Field(default=None)]
+
+NomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER])]
+
+
+SchemaDate = Annotated[str,
+                       Field(default=None),
+					   AfterValidator(pd.validate_date)] # Determine if user date is in a valid format
+
+
 class DownloadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	species_id: Annotated[str, Field(default=None)]
-	schema_id: Annotated[str, Field(default=None)]
-	download_folder: Annotated[str, AfterValidator(partial(input_path_exists, function=fo.exists, exception_str="test"))]
-	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
+	output_directory: OutputDirectory
+	species_id: SpeciesId
+	schema_id: SchemaId
+	nomenclature_server_instance: NomenclatureServerInstance
+	schema_date: SchemaDate
+	latest_version: BooleanFlag
 	blast_path : BLASTPath
-	date: str | None = None
-	latest: BooleanFlag
+	cpu_cores: CPUCores
+
+	# Check that it is possible to connect Chewie-NS
+	@model_validator(mode="after")
+	def check_chewiens_connection(self):
+		connection = cr.check_connection(self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if not connection:
+			sys.exit(f"Could not connect to the Chewie-NS instance at {self.nomenclature_server_instance} (returned status code {connection[1]}).")
+
+		return self
+
+	# Check if user provided a valid integer identifier or species name
+	@model_validator(mode="after")
+	def validate_species_id(self):
+		species_info = cr.species_ids(self.species_id, self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if isinstance(species_info, list):
+			self.species_id = species_info
+		else:
+			sys.exit(f"There is no species with the identifier {self.species_id} in the specified "
+			         f"Chewie-NS instance ({self.nomenclature_server_instance}).")
+
+		return self
+
+	@model_validator(mode="after")
+	def validate_schema_id(self):
+		# The function return a list with the schema ID, the schema URI, the schema name, and the schema parameteres
+		schema_info = cr.get_species_schemas(self.schema_id, self.species_id, self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		self.schema_id = schema_info
+
+		return self
+
+
+DescriptionFile = Annotated[str,
+                            Field(default=None),
+                            AfterValidator(partial(input_path_exists,
+                                                   function=fo.exists,
+												   exception_str=ct.MISSING_INPUTS_EXCEPTION))]
 
 
 class UploadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	schema_directory: ChewieSchema
-	species_id: Annotated[str, Field(default=None)]
-	schema_name: Annotated[str, Field(default=None)]
-	loci_prefix: Annotated[str, Field(default=None)]
-	description_file: Annotated[str, AfterValidator(partial(input_path_exists, function=fo.exists, exception_str="test"))]
-	annotations: Annotations | None = None
-	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
+	species_id: SpeciesId
+	schema_name: str
+	loci_prefix: str
+	description_file: DescriptionFile
+	annotations_file: Annotations | None = None
+	nomenclature_server_instance: NomenclatureServerInstance
 	continue_up: BooleanFlag
+	cpu_cores: CPUCores
+
+	# Check that it is possible to connect Chewie-NS
+	@model_validator(mode="after")
+	def check_chewiens_connection(self):
+		connection = cr.check_connection(self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if not connection:
+			sys.exit(f"Could not connect to the Chewie-NS instance at {self.nomenclature_server_instance} (returned status code {connection[1]}).")
+
+		return self
+
+	# Check if user provided a valid integer identifier or species name
+	@model_validator(mode="after")
+	def validate_species_id(self):
+		species_info = cr.species_ids(self.species_id, self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if isinstance(species_info, list):
+			self.species_id = species_info
+		else:
+			sys.exit(f"There is no species with the identifier {self.species_id} in the specified "
+			         f"Chewie-NS instance ({self.nomenclature_server_instance}).")
+
+		return self
+
+	# Read config file and validate values
+	@model_validator(mode="after")
+	def validate_schema_config(self):
+		print("Validating the argument values stored in the schema config...")
+		config_file = fo.join_paths(self.schema_directory, [ct.SCHEMA_CONFIG_BASENAME])
+		config_values = fo.pickle_loader(config_file)
+		if any([len(v) > 1 for k, v in config_values.items()]):
+			sys.exit("Schemas can only be uploaded to Chewie-NS if they were used with a "
+			         "single argument per parameter defined in the '.schema_config file'.")
+		# Validate arguments if there is a single value per parameter
+		# Pyrodigal training file
+		ptf_hash = config_values["pyrodigal_training_file"][0]
+		schema_files = fo.listdir(self.schema_directory, full_path=True)
+		ptf_paths = fo.filter_by_extension(schema_files, [".trn"])[0]
+		if len(ptf_paths) > 1:
+			sys.exit(f"Schema includes multiple training files. Please ensure that the schema includes a single training file.")
+
+		if fo.hash_file(ptf_paths[0], "blake2b") != ptf_hash:
+			sys.exit(f"Training file in schema's directory does not match the one in the config file.")
+
+		# Validate remaining argument values using Pydantic's TypeAdapter
+		bsr_adapter = TypeAdapter(BLASTScoreRatio).validate_python(config_values["blast_score_ratio"][0])
+		ml_adapter = TypeAdapter(MinimumLength).validate_python(config_values["minimum_length"][0])
+		st_adapter = TypeAdapter(SizeThreshold).validate_python(config_values["size_threshold"][0])
+		tt_adapter = TypeAdapter(TranslationTable).validate_python(config_values["translation_table"][0])
+		wos_adapter = TypeAdapter(WordSize).validate_python(config_values["word_size"][0])
+		win_adapter = TypeAdapter(WindowSize).validate_python(config_values["window_size"][0])
+		cs_adapter = TypeAdapter(ClusteringSimilarity).validate_python(config_values["clustering_sim"][0])
+		rf_adapter = TypeAdapter(RepresentativeFilter).validate_python(config_values["representative_filter"][0])
+		if_adapter = TypeAdapter(IntraFilter).validate_python(config_values["intra_filter"][0])
+
+		validated_config = {
+			"bsr": config_values["blast_score_ratio"][0],
+			"minimum_locus_length": config_values["minimum_length"][0],
+			"size_threshold": config_values["size_threshold"][0],
+			"translation_table": config_values["translation_table"][0],
+			"prodigal_training_file": [ptf_paths[0], ptf_hash],
+			"word_size": config_values["word_size"][0],
+			"cluster_sim": config_values["clustering_sim"][0],
+			"representative_filter": config_values["representative_filter"][0],
+			"intraCluster_filter": config_values["intra_filter"][0],
+			"chewBBACA_version": f"chewBBACA {config_values['chewie_version'][0]}"
+		}
+
+		self.schema_directory = [self.schema_directory, validated_config]
+
+		return self
 
 
-class SynchronizeSchemaValidator():
+class SynchronizeSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	schema_directory: ChewieSchema
-	cpu_cores: CPUCores
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
+	nomenclature_server_instance: NomenclatureServerInstance
+	submit_alleles: BooleanFlag
 	blast_path : BLASTPath
-	submit: BooleanFlag
+	cpu_cores: CPUCores
+
+	# Check that it is possible to connect Chewie-NS
+	@model_validator(mode="after")
+	def check_chewiens_connection(self):
+		connection = cr.check_connection(self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if not connection:
+			sys.exit(f"Could not connect to the Chewie-NS instance at {self.nomenclature_server_instance} (returned status code {connection[1]}).")
+
+		return self
+
+	# Check if schema was downloaded from Chewie-NS
+	@model_validator(mode="after")
+	def check_ns_config(self):
+		ns_config = fo.join_paths(self.schema_directory, [ct.NS_CONFIG_BASENAME])
+		if not fo.is_file(ns_config)[0]:
+			sys.exit("Schema does not contain the '.ns_config' file.")
+
+		return self
+
+
+StatsMode = Annotated[str,
+                      Field(default=None),
+					  AfterValidator(partial(validate_choice,
+					                         valid_options=ct.NSSTATS_MODE_CHOICES,
+											 exception_str=ct.NS_STATS_INVALID_MODE))]
 
 
 class NSStatsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	mode: Annotated[str, Field(default=None)]
-	species_id: str
-	schema_id: str
-	nomenclature_server: Annotated[str, Field(default=ct.DEFAULT_NOMENCLATURE_SERVER)]
+	stats_mode: StatsMode
+	species_id: SpeciesId
+	schema_id: SchemaId
+	nomenclature_server_instance: NomenclatureServerInstance
+
+	# Check that it is possible to connect Chewie-NS
+	@model_validator(mode="after")
+	def check_chewiens_connection(self):
+		connection = cr.check_connection(self.nomenclature_server_instance, ct.HEADERS_GET_JSON)
+		if not connection:
+			sys.exit(f"Could not connect to the Chewie-NS instance at {self.nomenclature_server_instance} (returned status code {connection[1]}).")
+
+		return self

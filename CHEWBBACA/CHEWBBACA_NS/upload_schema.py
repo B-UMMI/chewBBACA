@@ -755,9 +755,7 @@ def upload_alleles_data(alleles_data, length_files, base_url,
 	return failed
 
 
-def main(schema_directory, species_id, schema_name, loci_prefix,
-		 description_file, annotations, cpu_cores,
-		 nomenclature_server, continue_up):
+def main(config):
 	"""Upload a schema to a Chewie-NS module.
 
 	Parameters
@@ -791,26 +789,26 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 		If the process should check if the schema upload was interrupted
 		and try to resume it.
 	"""
-	if 'tutorial' not in nomenclature_server:
-		token = cr.capture_login_credentials(nomenclature_server)
+	if config.nomenclature_server_instance != ct.HOST_NS["tutorial"]:
+		token = cr.capture_login_credentials(config.nomenclature_server_instance)
 	else:
-		token = ''
+		token = ""
 
 	# Verify user
-	print('-- User Permissions --')
+	print("-- User Permissions --")
 	# GET request headers
 	headers_get = ct.HEADERS_GET_JSON
-	headers_get['Authorization'] = token
+	headers_get["Authorization"] = token
 
 	# Determine current user ID and Role
-	if 'tutorial' not in nomenclature_server:
-		user_id, user_role, user_auth = cr.user_info(nomenclature_server, headers_get)
+	if "tutorial" not in config.nomenclature_server_instance:
+		user_id, user_role, user_auth = cr.user_info(config.nomenclature_server_instance, headers_get)
 	else:
-		user_id, user_role, user_auth = ['', '', True]
+		user_id, user_role, user_auth = ["", "", True]
 
-	print('User id: {0}'.format(user_id))
-	print('User role: {0}'.format(user_role))
-	print('Authorized: {0}\n'.format(user_auth))
+	print(f"User id: {user_id}")
+	print(f"User role: {user_role}")
+	print(f"Authorized: {user_auth}\n")
 
 	# Only Admin or Contributor type users can upload schemas
 	if not user_auth:
@@ -818,20 +816,20 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 
 	# POST requests headers
 	headers_post = ct.HEADERS_POST_JSON
-	headers_post['Authorization'] = token
-	headers_post['user_id'] = user_id
+	headers_post["Authorization"] = token
+	headers_post["user_id"] = user_id
 	# POST headers to send binary data
 	headers_post_bytes = ct.HEADERS_POST
-	headers_post_bytes['Authorization'] = token
-	headers_post_bytes['user_id'] = user_id
+	headers_post_bytes["Authorization"] = token
+	headers_post_bytes["user_id"] = user_id
 
-	print('-- Parameters Validation --')
-	print('Local schema: {0}'.format(schema_directory))
+	print("-- Parameters Validation --")
+	print(f"Local schema: {config.schema_directory[0]}")
 
 	# Get schema files from genes list file
-	genes_list = fo.join_paths(schema_directory, [ct.GENE_LIST_BASENAME])
+	genes_list = fo.join_paths(config.schema_directory[0], [ct.GENE_LIST_BASENAME])
 	genes = fo.pickle_loader(genes_list)
-	fasta_paths = [os.path.join(schema_directory, file) for file in genes]
+	fasta_paths = [os.path.join(config.schema_directory[0], file) for file in genes]
 	fasta_paths.sort()
 
 	# Total number of loci
@@ -839,131 +837,83 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	# Total number of alelles
 	total_alleles = sum(list(map(fao.count_sequences, fasta_paths)))
 
-	# Get the name of the species from the provided id or vice-versa
-	species_info = cr.species_ids(species_id, nomenclature_server, headers_get)
-	if isinstance(species_info, list):
-		species_id, species_name = species_info
-		print("Schema's species: {0} (id={1})".format(species_name, species_id))
-	else:
-		sys.exit('There is no species with the provided identifier in the NS.')
+	print(f"Number of loci: {total_loci}")
+	print(f"Number of alleles: {total_alleles}\n")
 
-	print('Number of loci: {0}'.format(total_loci))
-	print('Number of alleles: {0}\n'.format(total_alleles))
-
-	# Verify schema config
-	print('Verifying schema configs...')
-	# Load schema config file
-	configs = pv.read_configs(schema_directory, ct.SCHEMA_CONFIG_BASENAME)
-
-	# Validate arguments values
-	schema_ptfs = configs['prodigal_training_file']
-	ptf_info = pv.validate_ptf(None, schema_directory, schema_ptfs, True)
-	if ptf_info[0] is None or ptf_info[2] is True:
-		sys.exit(ct.LOADSCHEMA_MISSING_PTF)
-
-	bsr_val = pv.bsr_type(configs.get('bsr', ''))
-	msl_val = pv.minimum_sequence_length_type(configs.get('minimum_locus_length', ''))
-	tt_val = pv.translation_table_type(configs.get('translation_table', ''))
-	st_val = pv.size_threshold_type(configs.get('size_threshold', ''))
-	cv_val = configs.get('chewBBACA_version', '')[0]
-	# Add window size
-	ws_val = pv.validate_ws(configs.get('word_size', None))
-	cs_val = pv.validate_cs(configs.get('cluster_sim', None))
-	rf_val = pv.validate_rf(configs.get('representative_filter', None))
-	if_val = pv.validate_if(configs.get('intraCluster_filter', None))
-
-	# Dictionary with schema parameters values to send to the NS
-	params = {'bsr': bsr_val, 'prodigal_training_file': ptf_info[1],
-			  'translation_table': tt_val, 'minimum_locus_length': msl_val,
-			  'chewBBACA_version': 'chewBBACA {0}'.format(cv_val),
-			  'size_threshold': st_val, 'word_size': ws_val,
-			  'cluster_sim': cs_val, 'representative_filter': rf_val,
-			  'intraCluster_filter': if_val}
-
-	params_values = list(params.values())
-
-	if '' in params_values:
-		sys.exit('Found invalid parameters values and exited.')
-	else:
-		params_lines = ['  {0}: {1}'.format(k, str(v))
-						for k, v in params.items()
-						if k not in ['prodigal_training_file', 'name']]
-		params_text = '\n'.join(params_lines)
-		print(params_text)
-		print('All configurations successfully validated.\n')
-		params['name'] = schema_name
-		ptf_file = ptf_info[0]
-		ptf_hash = ptf_info[1]
+	# Add name of the schema to the schema config
+	params = config.schema_directory[1]
+	params["name"] = config.schema_name
+	# Print list of schema config
+	params_lines = [f"{k}: {str(v)}" for k, v in params.items()]
+	params_text = "\n".join(params_lines)
+	print(params_text)
 
 	# Determine schema status
-	upload_type = schema_status(nomenclature_server, headers_get,
-								schema_name, species_id,
-								continue_up)
+	upload_type = schema_status(config.nomenclature_server_instance, headers_get,
+	                            config.schema_name, config.species_id[0], config.continue_up)
 
-	if upload_type[0] == 'novel':
-		print('New schema name: "{0}" '.format(schema_name))
+	if upload_type[0] == "novel":
+		print('New schema name: "{0}" '.format(config.schema_name))
 	else:
-		schema_url = '{0}species/{1}/schemas/{2}'.format(nomenclature_server,
-														 species_id,
+		schema_url = "{0}species/{1}/schemas/{2}".format(config.nomenclature_server_instance,
+														 config.species_id[0],
 														 upload_type[1])
-		schema_id = schema_url.split('/')[-1]
-		print('Schema exists and is incomplete '
-			  '("{0}", id={1})'.format(schema_name, schema_id))
+		schema_id = schema_url.split("/")[-1]
+		print(f"Schema exists and upload was not completed ({config.schema_name}, id={schema_id}).")
 
 	# Create folder to store temporary files
-	upload_temp_dir = os.path.join(schema_directory, 'upload_temp')
+	upload_temp_dir = os.path.join(config.schema_directory[0], "upload_temp")
 	fo.create_directory(upload_temp_dir)
 
 	# Get schema description
-	if continue_up is False:
+	if config.continue_up is False:
 		if description_file is not None and os.path.isfile(description_file) is True:
 			# Determine file hash
-			description_hash = fo.hash_file(description_file, 'blake2b')
-			print('Schema description: {0}'.format(description_file))
+			description_hash = fo.hash_file(description_file, "blake2b")
+			print("Schema description: {0}".format(description_file))
 		else:
-			print('Could not get a description from a file. '
-				  'Will use the name of the schema as description.')
-			description_file = fo.join_paths(upload_temp_dir, ['schema_description.txt'])
-			with open(description_file, 'w') as sd:
-				sd.write(schema_name)
-			description_hash = fo.hash_file(description_file, 'blake2b')
+			print("Could not get a description from a file. Will use the name of the schema as description.")
+			description_file = fo.join_paths(upload_temp_dir, ["schema_description.txt"])
+			with open(description_file, "w") as sd:
+				sd.write(config.schema_name)
+			description_hash = fo.hash_file(description_file, "blake2b")
 
-		params['SchemaDescription'] = description_hash
+		params["SchemaDescription"] = description_hash
 
-	print('\n-- Schema Pre-processing --')
+	print("\n-- Schema Pre-processing --")
 
 	# Hash schema files to get unique identifiers based on content
-	hashed_files = {fo.hash_file(file, 'blake2b'): file for file in fasta_paths}
-	print('Determining data to upload...')
+	hashed_files = {fo.hash_file(file, "blake2b"): file for file in fasta_paths}
+	print("Determining data to upload...")
 	absent_loci = fasta_paths
-	if upload_type[0] == 'incomplete':
-		loci_info, absent_loci, fasta_paths = schema_completedness(nomenclature_server, species_id,
-																   upload_type[1], headers_get,
+	if upload_type[0] == "incomplete":
+		loci_info, absent_loci, fasta_paths = schema_completedness(config.nomenclature_server_instance,
+		                                                           config.species_id[0],
+																   upload_type[1],
+																   headers_get,
 																   hashed_files)
 
-	print('  Loci to create and associate with species '
-		  'and schema: {0}'.format(len(absent_loci)))
-	print('  Loci without the full set of alleles: '
-		  '{0}\n'.format(len(fasta_paths)))
+	print(f"  Loci to create and associate with species and schema: {len(absent_loci)}")
+	print(f"  Loci without the full set of alleles: {len(fasta_paths)}\n")
 
 	# Create temporary directory to store FASTA files containing only the DNA dna protein sequences for the valid alleles
-	valid_fasta_dir = os.path.join(upload_temp_dir, 'valid_fasta')
+	valid_fasta_dir = os.path.join(upload_temp_dir, "valid_fasta")
 	fo.create_directory(valid_fasta_dir)
-	translated_dir = os.path.join(upload_temp_dir, 'translated_fasta')
+	translated_dir = os.path.join(upload_temp_dir, "translated_fasta")
 	fo.create_directory(translated_dir)
 
 	# Create inputs for QC step
 	inputs = [(file,
-			   file.split('/')[-1].split('.fasta')[0],
+			   file.split("/")[-1].split(".fasta")[0],
 			   [valid_fasta_dir, translated_dir],
-			   int(params['translation_table']),
+			   int(params["translation_table"]),
 			   0,
 			   None) for file in fasta_paths]
 
 	# Validate schema data and create files with translated sequences
-	print('Translating sequences based on schema configs...')
+	print("Translating sequences based on schema configs...")
 	qc_results = []
-	genes_pools = multiprocessing.Pool(processes=cpu_cores)
+	genes_pools = multiprocessing.Pool(processes=config.cpu_cores)
 	rawr = genes_pools.map_async(quality_control, inputs,
 								 callback=qc_results.extend)
 	rawr.wait()
@@ -973,26 +923,26 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
 	invalid_identifiers = set([r[0] for r in invalid_alleles])
 
-	print('Found a total of {0} invalid alleles.\n'.format(len(invalid_identifiers)))
+	print(f"Found a total of {len(invalid_identifiers)} invalid alleles.\n")
 
 	# List translated sequences files
 	dna_files = [r[0] for r in qc_results]
 	prot_files = [r[1] for r in qc_results]
 
 	# Determine loci missing annotations
-	miss_annotation = [os.path.basename(pf.split('_protein')[0]) for pf in prot_files
-					   if pf.split('_protein')[0] + '.fasta' in absent_loci]
+	miss_annotation = [os.path.basename(pf.split("_protein")[0]) for pf in prot_files
+					   if pf.split("_protein")[0] + ".fasta" in absent_loci]
 
-	print('Missing annotations for {0} loci'.format(len(miss_annotation)))
+	print(f"Missing annotations for {len(miss_annotation)} loci")
 
 	if len(miss_annotation) > 0:
 		# Get locus annotations
 		loci_annotations = {locus_id: [] for locus_id in miss_annotation}
 		# Import user-provided annotations
-		if os.path.isfile(str(annotations)) is True:
-			user_annotations = import_annotations(annotations)
+		if os.path.isfile(str(config.annotations_file)) is True:
+			user_annotations = import_annotations(config.annotations_file)
 		else:
-			if annotations is None:
+			if config.annotations_file is None:
 				print('\nUser did not provide a path to a file with annotations.')
 			else:
 				# Value passed by user is not a valid file path
@@ -1010,19 +960,19 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 
 	# Convert parameters to string type because Chewie-NS expects strings
 	params = {k: str(v) for k, v in params.items()}
-	params['schema_hashes'] = list(hashed_files.keys())
+	params["schema_hashes"] = list(hashed_files.keys())
 
 	# start sending data
 	print('\n-- Schema Upload --')
 	# Build the new schema URL and POST to NS
-	if continue_up is False:
-		schema_url, schema_id = create_schema(nomenclature_server,
+	if config.continue_up is False:
+		schema_url, schema_id = create_schema(config.nomenclature_server_instance,
 											  headers_post,
-											  species_id,
+											  config.species_id[0],
 											  params)
 		# Send file with description
-		description_uri = cr.make_url(nomenclature_server, 'species',
-									  species_id, 'schemas', schema_id,
+		description_uri = cr.make_url(config.nomenclature_server_instance, 'species',
+									  config.species_id[0], 'schemas', schema_id,
 									  'description')
 
 		desc_res = cr.upload_file(description_file, description_hash,
@@ -1030,10 +980,10 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 								  False)
 
 		print('Created schema with name {0} '
-			  '(id={1}).\n'.format(schema_name, schema_id))
+			  '(id={1}).\n'.format(config.schema_name, schema_id))
 	else:
 		print('Continuing upload of schema with '
-			  'name {0} (id={1})\n'.format(schema_name, schema_id))
+			  'name {0} (id={1})\n'.format(config.schema_name, schema_id))
 
 	# Start creating new loci and adding/linking alleles
 	print('Loci data:')
@@ -1047,12 +997,12 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 			loci_data_dir = os.path.join(upload_temp_dir, 'loci_data')
 			print('  Collecting loci data...')
 			loci_file = create_loci_file(dna_files, loci_data_dir, loci_annotations,
-										 schema_directory, species_id,
-										 schema_id, loci_prefix,
+										 config.schema_directory[0], config.species_id[0],
+										 schema_id, config.loci_prefix,
 										 absent_loci)
 			print('  Sending data to chewie-NS...')
-			absent_data = upload_loci_data(loci_file, nomenclature_server,
-										   species_id, schema_id,
+			absent_data = upload_loci_data(loci_file, config.nomenclature_server_instance,
+										   config.species_id[0], schema_id,
 										   headers_post_bytes, headers_get,
 										   hashed_files)
 			response_data = {k: [v[0], True, True, True, v[3]]
@@ -1066,11 +1016,11 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 		fo.create_directory(loci_data_dir)
 		print('  Collecting loci data...')
 		loci_file = create_loci_file(dna_files, loci_data_dir, loci_annotations,
-									 schema_directory, species_id,
-									 schema_id, loci_prefix)
+									 config.schema_directory[0], config.species_id[0],
+									 schema_id, config.loci_prefix)
 		print('  Sending data to chewie-NS...')
-		response_data = upload_loci_data(loci_file, nomenclature_server,
-										 species_id, schema_id,
+		response_data = upload_loci_data(loci_file, config.nomenclature_server_instance,
+										 config.species_id[0], schema_id,
 										 headers_post_bytes, headers_get,
 										 hashed_files)
 
@@ -1084,8 +1034,8 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	print('  Collecting alleles data...')
 	(alleles_files, loci_ids, loci_hashes,
 	 loci_names) = create_alleles_files(dna_files, allele_data_dir, response_data,
-										invalid_identifiers, species_name,
-										nomenclature_server, species_id,
+										invalid_identifiers, config.species_id[1],
+										config.nomenclature_server_instance, config.species_id[0],
 										schema_id, user_id)
 	# Determine length of all alleles per locus
 	length_files = create_lengths_files(dna_files, allele_data_dir)
@@ -1099,8 +1049,8 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	print('  Sending alleles data to chewie-NS...')
 	# send POST with file contents and process each file in the NS
 	failed = upload_alleles_data(alleles_data, length_files,
-								 nomenclature_server, headers_post,
-								 headers_post_bytes, species_id,
+								 config.nomenclature_server_instance, headers_post,
+								 headers_post_bytes, config.species_id[0],
 								 schema_id)
 
 	if len(failed) > 0:
@@ -1111,9 +1061,9 @@ def main(schema_directory, species_id, schema_name, loci_prefix,
 	else:
 		# Upload training file to Chewie-NS
 		print('\n\nUploading Prodigal training file...')
-		ptf_url = cr.make_url(nomenclature_server, 'species', species_id,
+		ptf_url = cr.make_url(config.nomenclature_server_instance, 'species', config.species_id[0],
 							  'schemas', schema_id, 'ptf')
-		ptf_res = cr.upload_file(ptf_file, ptf_hash,
+		ptf_res = cr.upload_file(params["prodigal_training_file"][0], params["prodigal_training_file"][1],
 								 ptf_url, headers_post_bytes,
 								 False)
 		print(list(ptf_res.json().values())[0])

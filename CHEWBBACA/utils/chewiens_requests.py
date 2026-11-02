@@ -136,14 +136,14 @@ def check_connection(url, headers=ct.HEADERS_GET_JSON):
 		code 200 or 201), False otherwise.
 	"""
 	try:
-		url, res = simple_get_request(url, headers, ['stats', 'summary'])
+		url, res = simple_get_request(url, headers, ["stats", "summary"])
 		server_status = res.status_code
 		if server_status in [200, 201]:
 			connection = True
 		else:
-			connection = False
+			connection = [False, server_status]
 	except Exception:
-		connection = False
+		connection = [False, "UNDEFINED"]
 
 	return connection
 
@@ -205,23 +205,22 @@ def species_ids(species_id, base_url, headers_get):
 	was not found.
 	"""
 	try:
-		# check if species unique integer identifier was provided
+		# Check if user provided an integer identifier
 		int(species_id)
-		species_url, species_info = simple_get_request(base_url, headers_get,
-													   ['species', species_id])
+		species_url, species_info = simple_get_request(base_url, headers_get, ["species", species_id])
 		if species_info.status_code in [200, 201]:
-			species_name = species_info.json()[0]['name']['value']
+			species_name = species_info.json()[0]["name"]["value"]
 			return [species_id, species_name]
 		else:
 			return 404
 	except ValueError:
-		# check if the scientific name for species was provided
+		# Check if the user provided the species scientific name
 		species_name = species_id
-		# get the list of species added to Chewie-NS
-		ns_species = species_list(base_url, headers_get, ['species', 'list'])
-		# try to get the species unique integer identifier
-		species_id = ns_species.get(species_name, 'not_found')
-		if species_id != 'not_found':
+		# Get the list of species added to Chewie-NS
+		ns_species = species_list(base_url, headers_get, ["species", "list"])
+		# Try to get the species unique integer identifier
+		species_id = ns_species.get(species_name, "not_found")
+		if species_id != "not_found":
 			return [species_id, species_name]
 		else:
 			return 404
@@ -435,33 +434,31 @@ def get_species_schemas(schema_id, species_id, base_url, headers_get):
 	"""
 	# get the list of schemas for the species
 	schemas_url, schema_get = simple_get_request(base_url, headers_get,
-												 ['species', species_id,
-												  'schemas'])
+												 ["species", species_id[0], "schemas"])
 	schema_get_status = schema_get.status_code
 	if schema_get_status in [200, 201]:
 		species_schemas = schema_get.json()
-
-		# extract schemas identifiers, URIs and names from response
+		# Extract schema identifiers, URIs and names from response
 		schemas_info = []
 		for s in species_schemas:
-			schema_uri = s['schemas']['value']
-			scid = schema_uri.split('/')[-1]
-			schema_name = s['name']['value']
-			schemas_info.append([scid, schema_uri, schema_name])
+			schema_uri = s["schemas"]["value"]
+			scid = schema_uri.split("/")[-1]
+			schemas_info.append([scid, schema_uri])
 
-		# select schema with specified identifier
+		# Select schema with specified identifier
 		schema = [s for s in schemas_info if schema_id in s]
 		if len(schema) > 0:
-			# get schema parameters
+			# Get schema parameters
 			schema = schema[0]
 			url, schema_params = simple_get_request(schema[1], headers_get)
 			schema_params = schema_params.json()[0]
-			schema.append(schema_params)
+			schema_params_dict = {k: schema_params[k]["value"] for k in schema_params.keys()}
+			schema.append(schema_params_dict)
 			return schema
 		else:
-			sys.exit('Could not find a schema with provided identifier.')
+			sys.exit(f"Could not find a schema with identifier {schema_id} in the specified Chewie-NS instance {base_url}.")
 	else:
-		sys.exit('Could not retrieve schemas for current species.')
+		sys.exit(f"Could not retrieve schemas for species with identifier {species_id[0]}.")
 
 
 def upload_file(file, filename, url, headers, verify_ssl):

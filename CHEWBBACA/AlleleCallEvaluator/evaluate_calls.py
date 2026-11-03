@@ -352,7 +352,7 @@ def main(config):
 			# Mask missing data
 			print("Masking profile matrix...", end="")
 			masked_profiles = profiles_matrix.apply(im.replace_chars)
-			output_masked = os.path.join(config.output_directory, ct.MASKED_PROFILES_BASENAME)
+			output_masked = os.path.join(config.output_directory, ct.ALLELIC_PROFILES_MASKED_BASENAME)
 			masked_profiles.to_csv(output_masked, sep='\t')
 			print("done.")
 			# Compute Presence-Absence matrix

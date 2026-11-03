@@ -713,54 +713,6 @@ def write_loci_summary(classification_files, output_directory, total_inputs,
 	return output_file
 
 
-def write_logfile(start_time, end_time, total_inputs,
-				  total_loci, cpu_cores, blast_score_ratio,
-				  output_directory):
-	"""Write the log file.
-
-	Parameters
-	----------
-	start_time : datetime.datetime
-		Datetime object with the date and hour
-		determined when the process started running.
-	end_time : datetime.datetime
-		Datetime object with the date and hour
-		determined when the process concluded.
-	total_inputs : int
-		Number of inputs passed to the process.
-	total_loci : int
-		Number of schema loci used for allele calling.
-	cpu_cores : int
-		Number of CPU cores/threads used by the
-		process.
-	blast_score_ratio : float
-		BLAST Score Ratio value used by the
-		process.
-	output_directory : str
-		Path to the output directory where the
-		log file will be created.
-
-	Returns
-	-------
-	log_outfile : str
-		Path to the log file.
-	"""
-	start_time_str = pdt.datetime_str(start_time,
-									  date_format='%H:%M:%S-%d/%m/%Y')
-
-	end_time_str = pdt.datetime_str(end_time,
-									date_format='%H:%M:%S-%d/%m/%Y')
-
-	log_outfile = fo.join_paths(output_directory, [ct.LOGFILE_BASENAME])
-	logfile_text = ct.LOGFILE_TEMPLATE.format(start_time_str, end_time_str,
-											  total_inputs, total_loci,
-											  cpu_cores, blast_score_ratio)
-
-	fo.write_to_file(logfile_text, log_outfile, 'w', '')
-
-	return log_outfile
-
-
 def write_results_alleles(classification_files, input_identifiers,
 						  output_directory, missing_class, loci_finder):
 	"""Write a TSV file with the allelic profiles for the input samples.
@@ -785,7 +737,7 @@ def write_results_alleles(classification_files, input_identifiers,
 		Path to the output file.
 	"""
 	# Limit the number of values to store in memory
-	values_limit = ct.RESULTS_MAXVALS
+	values_limit = ct.MAX_STORED_VALUES
 	# Define intermediate file path
 	intermediate_file = fo.join_paths(output_directory,
 									  ['inter_results_alleles.tsv'])
@@ -974,7 +926,7 @@ def write_results_contigs(classification_files, input_identifiers, output_direct
 	intermediate_file = fo.join_paths(output_directory, ['inter_results_contigsInfo.tsv'])
 	columns = [['FILE'] + list(input_identifiers.values())]
 	# Limit the number of values to store in memory
-	values_limit = ct.RESULTS_MAXVALS
+	values_limit = ct.MAX_STORED_VALUES
 	# Get hash if coordinates are available, seqid otherwise
 	id_index = 2 if cds_coordinates_db else 1
 	for i, file in enumerate(classification_files):
@@ -2216,7 +2168,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	fo.remove_files(cds_files)
 
 	# Get mapping between locus file path and locus identifier
-	loci_basenames = im.mapping_function(config.loci_list[0], fo.file_basename, [False])
+	loci_basenames = im.mapping_function(config.loci_list[0][1], fo.file_basename, [False])
 
 	# Create directory to store files with classification results
 	classification_dir = fo.join_paths(temp_directory, ['classification_files'])
@@ -2224,7 +2176,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	# Create files with empty dict to store results per locus
 	empty_results = {}
 	classification_files = {}
-	for file in config.loci_list[0]:
+	for file in config.loci_list[0][1]:
 		file_path = fo.join_paths(classification_dir, [f'{loci_basenames[file]}_results'])
 		fo.pickle_dumper(empty_results, file_path)
 		classification_files[file] = file_path
@@ -2450,7 +2402,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	# Create Kmer index for representatives
 	print('Creating minimizer index for representative alleles...')
 	representatives = im.kmer_index(concat_reps, 5)
-	print(f'Created index with {len(representatives)} distinct minimizers for {len(config.loci_list[0])} loci.')
+	print(f'Created index with {len(representatives)} distinct minimizers for {len(config.loci_list[0][0])} loci.')
 
 	# Import unclassified proteins
 	proteins = fao.import_sequences(unique_pfasta)
@@ -2915,16 +2867,15 @@ def main(config):
 	print(f"Number of inputs: {len(config.input_files)}")
 
 	# Get list of schema loci
-	loci_to_call = config.loci_list[0]
-	schema_loci = config.loci_list[1]
+	loci_to_call = config.loci_list[0][1]
+	schema_loci = config.loci_list[1][1]
 	loci_to_call = {file: schema_loci.index(file) for file in loci_to_call}
 	print(f"Number of loci in the schema: {len(schema_loci)}")
 	print(f"Number of loci to use for allele calling: {len(loci_to_call)}")
 
 	# Create regex compiler to find longest locus identifier in paths/strings
-	loci_ids = [fo.file_basename(file, False) for file in loci_to_call]
 	# Sort to find longest first
-	loci_ids = sorted(loci_ids, key=lambda x: len(x), reverse=True)
+	loci_ids = sorted(config.loci_list[0][0], key=lambda x: len(x), reverse=True)
 
 	# Create regex object to search for loci identifiers in paths/strings
 	# Sorted by longest ID to avoid matching shorter IDs that are part of longer IDs (e.g. locus1 and locus10)
@@ -3213,15 +3164,5 @@ def main(config):
 		fo.delete_directory(temp_directory)
 
 	end_time = pdt.get_datetime()
-
-	# Create basic log file
-	print(f'Creating log file ({ct.LOGFILE_BASENAME})...')
-	logfile_path = write_logfile(start_time,
-								 end_time,
-								 len(results['int_to_unique']),
-								 len(results['classification_files']),
-								 config.cpu_cores,
-								 config.blast_score_ratio,
-								 config.output_directory)
 
 	print(f'\nResults available in {config.output_directory}')

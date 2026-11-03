@@ -289,60 +289,44 @@ def single_schema(species_id, schema_id, base_url, headers_get):
     """
     # get all schemas for species
     species = species_schemas(species_id, base_url, headers_get)
-    if 'NOT FOUND' in species:
-        sys.exit('Could not find information about a species with '
-                 'provided identifier (id={0}).'.format(species_id))
-    species_name = species[0]['name']['value']
+    if "NOT FOUND" in species:
+        sys.exit("Could not find information about a species with "
+                 f"provided identifier (id={species_id}).")
+    species_name = species[0]["name"]["value"]
 
     schemas = schema_stats(species_id, base_url, headers_get)
 
     if schemas is None:
-        sys.exit('Could not retrieve schemas for {0} '
-                 '(id={1}).'.format(species_name, species_id))
+        sys.exit(f"Could not retrieve schemas for {species_name} (id={species_id}).")
     else:
-        schema = [s for s in schemas if s['uri'].split('/')[-1] == schema_id]
+        schema = [s for s in schemas if s["uri"].split("/")[-1] == schema_id]
 
     if len(schema) == 0:
-        sys.exit('Could not find information about schema with '
-                 'specified identifier (id={0}).'.format(schema_id))
+        sys.exit(f"Could not find information about schema with specified identifier (id={schema_id}).")
 
     schema = schema[0]
     schema_info = []
-    line_length = len(species_name)+len(schema['name'])+3
-    schema_info.append('-'*line_length)
-    schema_info.append('{0} - {1}'.format(species_name, schema['name']))
-    schema_info.append('-'*line_length)
+    line_length = len(species_name)+len(schema["name"])+3
+    schema_info.append("-"*line_length)
+    schema_info.append(f"{species_name} - {schema['name']}")
+    schema_info.append("-"*line_length)
 
-    schema_info.append('\nID: {0}'
-                       ''.format(schema['uri'].split('/')[-1]))
-    schema_info.append('Created by: {0}'
-                       ''.format(schema['user']))
-    schema_info.append('Total loci: {0}'
-                       ''.format(schema['nr_loci']))
-    schema_info.append('Total alleles: {0}'
-                       ''.format(schema['nr_alleles']))
-    schema_info.append('BLAST Score Ratio: {0}'
-                       ''.format(schema['bsr']))
-    schema_info.append('chewBBACA version: {0}'
-                       ''.format(schema['chewBBACA_version']))
-    schema_info.append('Genetic code: {0}'
-                       ''.format(schema['translation_table']))
-    schema_info.append('Minimum sequence length: {0}'
-                       ''.format(schema['minimum_locus_length']))
-    schema_info.append('Sequence length variation threshold: {0}'
-                       ''.format(schema['size_threshold']))
-    schema_info.append('Clustering word size: {0}'
-                       ''.format(schema['word_size']))
-    schema_info.append('Clustering similarity: {0}'
-                       ''.format(schema['cluster_sim']))
-    schema_info.append('Representative similarity filter: {0}'
-                       ''.format(schema['representative_filter']))
-    schema_info.append('Intracluster similarity filter: {0}'
-                       ''.format(schema['intraCluster_filter']))
-    schema_info.append('Creation date: {0}'
-                       ''.format(schema['dateEntered']))
-    schema_info.append('Last modified: {0}'
-                       ''.format(schema['last_modified']))
+    schema_id = schema["uri"].split("/")[-1]
+    schema_info.append(f"Schema ID: {schema_id}")
+    schema_info.append(f"Created by: {schema['user']}")
+    schema_info.append(f"Total loci: {schema['nr_loci']}")
+    schema_info.append(f"Total alleles: {schema['nr_alleles']}")
+    schema_info.append(f"BLAST Score Ratio: {schema['bsr']}")
+    schema_info.append(f"chewBBACA version: {schema['chewBBACA_version']}")
+    schema_info.append(f"Genetic code: {schema['translation_table']}")
+    schema_info.append(f"Minimum sequence length: {schema['minimum_locus_length']}")
+    schema_info.append(f"Sequence length variation threshold: {schema['size_threshold']}")
+    schema_info.append(f"Clustering word size: {schema['word_size']}")
+    schema_info.append(f"Clustering similarity: {schema['cluster_sim']}")
+    schema_info.append(f"Representative similarity filter: {schema['representative_filter']}")
+    schema_info.append(f"Intracluster similarity filter: {schema['intraCluster_filter']}")
+    schema_info.append(f"Creation date: {schema['dateEntered']}")
+    schema_info.append(f"Last modified: {schema['last_modified']}")
 
     return schema_info
 
@@ -367,7 +351,7 @@ def main(config):
     """
     headers_get = ct.HEADERS_GET_JSON
 
-    print("\nRetrieving data...")
+    print("Retrieving data...")
     if config.stats_mode == "species":
         stats = species_stats(config.nomenclature_server_instance, headers_get)
     elif config.stats_mode == "schemas":
@@ -377,8 +361,8 @@ def main(config):
             else:
                 stats = single_species(config.species_id, config.nomenclature_server_instance, headers_get)
         else:
-            sys.exit("\nPlease provide a valid species identifier to get the list of available schemas.\n")
+            sys.exit("Please provide a valid species identifier to get the list of available schemas.\n")
 
     # Print stats
     stats_text = "\n".join(stats)
-    print("\n{0}\n".format(stats_text))
+    print("{0}".format(stats_text))

@@ -62,7 +62,7 @@ def main(config):
 		input_files = config.results_directories
 
 	# Need to list the files in each directory and group them based on filename
-	file_list = {ftype: [] for ftype in ct.ALLELECALL_OUTFILES}
+	file_list = {ftype: [] for ftype in ct.SUPPORTED_RESULTS_FILES}
 	for d in input_files:
 		# List all files in the folder
 		files = fo.listdir(d, full_path=True)

@@ -465,7 +465,7 @@ def main(config):
             sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
         fo.create_directory(schema_path_short)
 
-        loci_list = fo.join_paths(schema_path, [ct.LOCI_LIST])
+        loci_list = fo.join_paths(schema_path, [ct.LOCI_TO_ADAPT_BASENAME])
         loci_list, total_loci = pv.check_input_type(config.output_directory, loci_list)
 
         # Determine representatives and create schema

@@ -26,6 +26,41 @@ except ModuleNotFoundError:
 								 multiprocessing_operations as mo)
 
 
+def get_augustus_species_list(augustus_exe):
+	"""Get the list of species' models supported by AUGUSTUS.
+
+	Parameters
+	----------
+	augustus_alias : str
+		Alias used to call AUGUSTUS.
+
+	Returns
+	-------
+	version : str
+	"""
+	# Try to get the list os species' models supported by AUGUSTUS'
+	proc = subprocess.Popen([augustus_exe, '--species=help'],
+							stdout=subprocess.PIPE,
+							stderr=subprocess.PIPE,
+							text=True)
+	stdout, stderr = proc.communicate()
+	# Process the list of species printed to stdout
+	species_list = {}
+	# List of species is printed to stderr
+	i = 0
+	for line in stderr.split("\n"):
+		if "|" in line:
+			i += 1
+			# Skip the table header and separator
+			if i > 2:
+				species_id, species_name = line.split("|")
+				species_id = species_id.strip()
+				species_name = species_name.strip()
+				species_list[species_name] = species_id
+
+	return species_list
+
+
 def parse_augustus_gff(augustus_gff, genome_basename):
 	"""
 	"""

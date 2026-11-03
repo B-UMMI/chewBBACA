@@ -605,6 +605,21 @@ def is_file_empty_3(file_name):
 	return False
 
 
+def is_exe(fpath):
+	"""Determine if a path points to a file and if the file is an executable.
+
+	Parameters
+	----------
+	fpath : str
+		Path to a file.
+
+	Returns
+	-------
+	True if the file exists and is an executable, False otherwise.
+	"""
+	return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+
 def create_short(schema_files, schema_dir):
 	"""Create the 'short' directory for a chewBBACA schema.
 
@@ -751,6 +766,57 @@ def count_repeated_matrix(matrix_file, ignore_values):
 			repeated_counts[genome_id] = sum((h[1]-1) for h in repeated_hashes)
 
 	return [repeated_values, repeated_counts]
+
+
+def get_file_prefixes(path_list):
+	"""Determine the file prefix for each file in a list of file paths.
+
+	Parameters
+	----------
+	path_list : list
+		List with file paths.
+
+	Returns
+	-------
+	file_prefixes :  dict
+		Dictionary with file prefixes as keys and file basenames without 
+		the file extension as values.
+	"""
+	basenames = {file_basename(file, False): file for file in path_list}
+	file_prefixes = {}
+	for k, v in basenames.items():
+		if k not in file_prefixes:
+			file_prefixes[k] = [v]
+		else:
+			file_prefixes[k].append(v)
+
+	return file_prefixes
+
+
+def list_input_files(input_path):
+	"""Read or list file paths in a file or folder, respectively.
+
+	Parameters
+	----------
+	input_path : str
+		Path to a file or to a folder.
+
+	Returns
+	-------
+	input_files : list
+		List with the file paths listed in the input file or folder.
+	"""
+	if os.path.isfile(input_path):
+		# Read list of input files
+		input_files = [line[0] for line in fo.read_tabular(input_path)]
+	# Input path is for a directory
+	elif os.path.isdir(input_path):
+		# List absolute paths
+		# Only keep paths to files
+		input_files = [file for file in fo.listdir(input_path, full_path=True)
+		               if os.path.isdir(file) is False]
+
+	return input_files
 
 
 def list_files_recursively(input_dir):

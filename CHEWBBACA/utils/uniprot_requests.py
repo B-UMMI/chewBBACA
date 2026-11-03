@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module contains functions to perform requests to
-UniProt's SPARQL endpoint and process retrieved data.
+This module contains functions to perform requests to UniProt.
 
 Code documentation
 ------------------
@@ -166,7 +165,7 @@ def get_annotation(input_file, translation_table, maximum_matches):
 		# Do not query UniProt if another allele encoding the same protein has already been seen
 		if md5_hash not in queried:
 			params = {"md5": md5_hash}
-			response = send_request(session, ct.UNIPROT_PROTEINS_API, params=params, headers=ct.UNIPROT_PROTEINS_API_HEADERS)
+			response = send_request(session, ct.UNIPROT_PROTEINS_API, params=params, headers=ct.HEADERS_GET_JSON)
 			# Extract results if request was successful
 			if response.status_code == 200:
 				data = response.json()

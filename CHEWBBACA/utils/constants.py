@@ -15,8 +15,186 @@ import sys
 import shutil
 
 
+# List of parameter names used by chewBBACA
+INPUT_FILES_ARGNAME = "input_path"
+OUTPUT_DIRECTORY_ARGNAME = "output_directory"
+GENE_PREDICTOR_ARGNAME = "gene_predictor"
+GENE_PREDICTION_OPTIONS_ARGNAME = "gene_prediction_options"
+TRANSLATION_TABLE_ARGNAME = "translation_table"
+CPU_CORES_ARGNAME = "cpu_cores"
+SCHEMA_NAME_ARGNAME = "schema_name"
+BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
+MINIMUM_LENGTH_ARGNAME = "minimum_length"
+SIZE_THRESHOLD_ARGNAME = "size_threshold"
+CLUSTERING_OPTIONS_ARGNAME = "clustering_options"
+BLAST_PATH_ARGNAME = "blast_path"
+CDS_INPUT_ARGNAME = "cds_input"
+NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
+NO_CLEANUP_ARGNAME = "no_cleanup"
+SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
+LOCI_LIST_ARGNAME = "loci_list"
+NO_INFERRED_ARGNAME = "no_inferred"
+OUTPUT_UNCLASSIFIED_ARGNAME = "output_unclassified"
+OUTPUT_MISSING_ARGNAME = "output_missing"
+OUTPUT_NOVEL_ARGNAME = "output_novel"
+OUTPUT_MASKED_ARGNAME = "output_masked_profiles"
+FORCE_CONTINUE_ARGNAME = "force_continue"
+EXECUTION_MODE_ARGNAME = "execution_mode"
+ANNOTATIONS_FILE_ARGNAME = "annotations_file"
+LOCI_REPORTS_ARGNAME = "loci_reports"
+LIGTH_ARGNAME = "light"
+ADD_SEQUENCES_ARGNAME = "add_sequences"
+RESULTS_FILES_ARGNAME = "results_files"
+RESULTS_DIRECTORIES_ARGNAME = "results_directories"
+NO_PRESENCE_ABSENCE_ARGNAME = "no_presence_absence"
+NO_DISTANCE_MATRIX_ARGNAME = "no_distance_matrix"
+NO_NEIGHBOR_JOINING_ARGNAME = "no_neighbor_joining"
+FORCE_CORE_MSA_ARGNAME = "force_core_msa"
+PROFILES_ARGNAME = "profiles"
+LOCI_PRESENCE_THRESHOLD_ARGNAME = "loci_presence_threshold"
+SAMPLE_STEP_ARGNAME = "sample_step"
+COMPUTE_ACCESSORY_ARGNAME = "compute_accessory"
+RAREFACTION_ANALYSIS_ARGNAME = "rarefaction_analysis"
+PERMUTATION_NUMBER_ARGNAME = "permutation_number"
+PERMUTATION_SAMPLES_ARGNAME = "permutation_samples"
+EXCLUDE_LOCI_ARGNAME = "exclude_loci"
+EXCLUDE_GENOMES_ARGNAME = "exclude_genomes"
+SAMPLE_LIST_ARGNAME = "sample_list"
+INVERT_LOCI_ARGNAME = "invert_loci"
+INVERT_SAMPLES_ARGNAME = "invert_samples"
+COMMON_ARGNAME = "common"
+ALLELIC_PROFILES_ARGNAME = "allelic_profiles"
+HASHING_ALGO_ARGNAME = "hashing_algo"
+NROW_CHUNK_ARGNAME = "nrow_chunk"
+TRANSLATE_ALLELES_ARGNAME = "translate_alleles"
+DISTINCT_ARGNAME = "distinct"
+SIZE_FILTER_ARGNAME = "size_filter"
+PROTEIN_TABLE_ARGNAME = "protein_table"
+PROTEOME_TAXA_ARGNAME = "proteome_taxa"
+PROTEOME_MATCHES_ARGNAME = "proteome_matches"
+NO_SPARQL_ARGNAME = "no_sparql"
+DISTANCE_COMPUTATION_METHOD_ARGNAME = "distance_computation_method"
+OUTPUT_FORMAT_ARGNAME = "output_format"
+COMPUTE_SIMILARITY_ARGNAME = "compute_similarity"
+NO_MASK_ARGNAME = "no_mask"
+DNA_MSA_ARGNAME = "dna_msa"
+OUTPUT_VARIABLE_ARGNAME = 'output_variable'
+GAPS_ARGNAME = "gaps"
+AMBIGUOUS_ARGNAME = "ambiguous"
+ONLY_LOCI_MSAS_ARGNAME = "only_loci_msas"
+CUSTOM_MAFFT_OPTIONS_ARGNAME = "custom_mafft_options"
+PROTEIN_INPUT_ARGNAME = "protein_input"
+SPECIES_ID_ARGNAME = "species_id"
+SCHEMA_ID_ARGNAME = "schema_id"
+NOMENCLATURE_SERVER_INSTANCE_ARGNAME = "nomenclature_server_instance"
+SCHEMA_DATE_ARGNAME = "schema_date"
+LATEST_VERSION_ARGNAME = "latest_version"
+LOCI_PREFIX_ARGNAME = "loci_prefix"
+DESCRIPTION_FILE_ARGNAME = "description_file"
+CONTINUE_UPLOAD_ARGNAME = "continue_upload"
+SUBMIT_ALLELES_ARGNAME = "submit_alleles"
+STATS_MODE_ARGNAME = "stats_mode"
+CHEWIE_VERSION_ARGNAME = "chewie_version"
+PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
+PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
+AUGUSTUS_PATH_ARGNAME = "augustus_path"
+CLUSTERING_WORD_ARGNAME = "word_size"
+CLUSTERING_WINDOW_ARGNAME = "window_size"
+CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
+CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
+CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
+UNIPROT_REST_API_ARGNAME = "rest_api"
+UNIPROT_REST_API_MATCHES_ARGNAME = "rest_api_matches"
+
+# Define expected types for the arguments
+ARGUMENT_TYPES = {
+	"input_files": str,
+	"output_directory": str,
+	"schema_directory": str,
+	"loci_list": str,
+	"gene_predictor": str,
+	"gene_prediction_options": str,
+	"translation_table": int,
+	"cpu_cores": int,
+	"schema_name": str,
+	"blast_score_ratio": float,
+	"minimum_length": int,
+	"size_threshold": float,
+	"clustering_options": str,
+	"blast_path": str,
+	"cds_input": bool,
+	"no_cds_renaming": bool,
+	"no_cleanup": bool,
+	"augustus_species": str,
+	"augustus_output_formats": str,
+	"augustus_path": str,
+	"pyrodigal_training_file": str,
+	"pyrodigal_mode": str,
+	"pyrodigal_output_formats": str,
+	"pyrodigal_minimum_confidence": float,
+	"pyrodigal_training_reference": str,
+	"pyrodigal_just_training": bool,
+	"word_size": int,
+	"window_size": int,
+	"clustering_sim": float,
+	"representative_filter": float,
+	"intra_filter": float,
+	"annotations_file": str,
+	"results_files": str,
+	"results_directories": str,
+	"profiles": str,
+	"loci_presence_threshold": float,
+	"sample_step": int,
+	"permutation_number": int,
+	"permutation_samples": int,
+	"exclude_loci": str,
+	"exclude_genomes": str,
+	"sample_list": str,
+	"allelic_profiles": str,
+	"hash_type": str,
+	"size_filter": bool,
+	"protein_table": str,
+	"taxa":str,
+	"proteome_matches": int,
+	"no_sparql": bool,
+	"output_format": str,
+	"output_variable": bool,
+	"execution_mode": int,
+	"hashing_algo": str,
+	"nrow_chunk": int,
+	"proteome_taxa": str,
+	"rest_api": bool,
+	"rest_api_matches": int,
+	"distance_computation_method": str,
+	"input_path": str,
+	"gaps": str,
+	"ambiguous": str,
+	"custom_mafft_options":str,
+	"species_id": str,
+	"schema_id": str,
+	"nomenclature_server_instance": str,
+	"schema_date": str,
+	"latest_version": bool,
+	"loci_prefix": str,
+	"description_file": str,
+	"continue_upload": bool,
+	"stats_mode": str,
+}
+
+##########################################
+## Minimum, Maximum, and Default values ##
+##########################################
+
+## Multiple modules
+
+# Authors, GitHub repository, documentation, tutorial and contacts
+AUTHORS = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
+REPOSITORY = 'https://github.com/B-UMMI/chewBBACA'
+DOCUMENTATION = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
+CONTACTS = 'imm-bioinfo@medicina.ulisboa.pt'
+
 # BLAST Score Ratio default values
-# Value must be contained in the [0.0,1.0] interval
+# Value must be contained in the [0.0, 1.0] interval
 BSR_MIN = 0.0
 BSR_MAX = 1.0
 BSR_DEFAULT = 0.6
@@ -28,328 +206,260 @@ MSL_MAX = sys.maxsize
 # Default minimum sequence length value of 201 nucleotides (67 aminoacids)
 MSL_DEFAULT = 201
 
-# Size variation threshold defaults
+# Allele size variation threshold defaults
 ST_MIN = 0.0
 ST_MAX = 1.0
-# New alleles are inferred if their length value does
-# not deviate more than this value from the locus sequence
-# length mode
-# ASM if below threshold and ALM if above
+# New alleles are inferred if their length value does not deviate more than 
+# this value from the locus sequence length mode
+# CDSs are classified as ASM or ALM if their length value is below or above
+# the computed threshold values, respectively
 ST_DEFAULT = 0.2
 
-# Word size/k value used for minimizer clustering
-# this value should not be modified
+# Word size/k-mer size value used for minimizer clustering
 WORD_SIZE_MIN = 5
 WORD_SIZE_MAX = 5
 WORD_SIZE_DEFAULT = 5
 
-# Number of adjacent kmers to consider when selecting minimizers
-# this value should not be modified
+# Number of adjacent k-mers to consider when selecting minimizers
 WINDOW_SIZE_MIN = 5
 WINDOW_SIZE_MAX = 5
 WINDOW_SIZE_DEFAULT = 5
 
-# Minimum decimal proportion of shared distinct minimizers for
-# a sequence to be added to a cluster
-# this value should not be modified
+# Minimum decimal proportion of shared distinct minimizers for a sequence to be added to a cluster
 CLUSTERING_SIMILARITY_MIN = 0.20
 CLUSTERING_SIMILARITY_MAX = 0.20
 CLUSTERING_SIMILARITY_DEFAULT = 0.20
 
-# Decimal proportion of shared distinct minimizers with cluster
-# representative
+# Decimal proportion of shared distinct minimizers with cluster representative
 REPRESENTATIVE_FILTER_MIN = 0.9
 REPRESENTATIVE_FILTER_MAX = 0.9
-# In the CreateSchema process, clustered sequences are excluded
-# if they share this proportion of distinct minimizers with the
-# cluster representative
+# In the CreateSchema process, clustered sequences are excluded if they share
+# this proportion of distinct minimizers with the cluster representative
+# This value is not used in the AlleleCall module
 REPRESENTATIVE_FILTER_DEFAULT = 0.9
 
-# Decimal proportion of shared distinct minimizers with other
-# clustered sequences
+# Decimal proportion of shared distinct minimizers with other clustered sequences
 INTRA_CLUSTER_MIN = 0.9
 INTRA_CLUSTER_MAX = 0.9
-# In the CreateSchema process, clustered sequences are excluded
-# if they share this proportion of distinct minimizers with another
-# clustered sequence of equal or greater length
+# In the CreateSchema process, clustered sequences are excluded if they share
+# this proportion of distinct minimizers with another clustered sequence of
+# equal or greater length
+# This value is not used in the AlleleCall module
 INTRA_CLUSTER_DEFAULT = 0.9
 
 # Genetic codes/translation tables
-GENETIC_CODES = {1: 'The Standard Code',
-				 2: 'The Vertebrate Mitochondrial Code',
-				 3: 'The Yeast Mitochondrial Code',
-				 4: 'The Mold, Protozoan, and Coelenterate Mitochondrial Code and the Mycoplasma/Spiroplasma Code',
-				 5: 'The Invertebrate Mitochondrial Code',
-				 6: 'The Ciliate, Dasycladacean and Hexamita Nuclear Code',
-				 9: 'The Echinoderm and Flatworm Mitochondrial Code',
-				 10: 'The Euplotid Nuclear Code',
-				 11: 'The Bacterial, Archaeal and Plant Plastid Code',
-				 12: 'The Alternative Yeast Nuclear Code',
-				 13: 'The Ascidian Mitochondrial Code',
-				 14: 'The Alternative Flatworm Mitochondrial Code',
-				 15: 'Blepharisma Nuclear Code',
-				 16: 'Chlorophycean Mitochondrial Code',
-				 21: 'Trematode Mitochondrial Code',
-				 22: 'Scenedesmus obliquus Mitochondrial Code',
-				 23: 'Thraustochytrium Mitochondrial Code',
-				 24: 'Rhabdopleuridae Mitochondrial Code',
-				 25: 'Candidate Division SR1 and Gracilibacteria Code'}
+GENETIC_CODES = {1: "The Standard Code",
+				 2: "The Vertebrate Mitochondrial Code",
+				 3: "The Yeast Mitochondrial Code",
+				 4: "The Mold, Protozoan, and Coelenterate Mitochondrial Code and the Mycoplasma/Spiroplasma Code",
+				 5: "The Invertebrate Mitochondrial Code",
+				 6: "The Ciliate, Dasycladacean and Hexamita Nuclear Code",
+				 9: "The Echinoderm and Flatworm Mitochondrial Code",
+				 10: "The Euplotid Nuclear Code",
+				 11: "The Bacterial, Archaeal and Plant Plastid Code",
+				 12: "The Alternative Yeast Nuclear Code",
+				 13: "The Ascidian Mitochondrial Code",
+				 14: "The Alternative Flatworm Mitochondrial Code",
+				 15: "Blepharisma Nuclear Code",
+				 16: "Chlorophycean Mitochondrial Code",
+				 21: "Trematode Mitochondrial Code",
+				 22: "Scenedesmus obliquus Mitochondrial Code",
+				 23: "Thraustochytrium Mitochondrial Code",
+				 24: "Rhabdopleuridae Mitochondrial Code",
+				 25: "Candidate Division SR1 and Gracilibacteria Code"}
 
 GENETIC_CODE_DEFAULT = 11
 
-# Proteins to cluster are divided into a maximum
-# of 40 smaller groups in CreateSchema
-# Dividing based on the number of CPU cores can lead to
-# variable results because we do not have pre-defined clusters
-# in CreateSchema.
-CREATESCHEMA_CLUSTERING_NGROUPS = 40
+CPU_CORES_DEFAULT = 1
+CPU_CORES_MIN = 1
 
 # Valid FASTA file extensions
-FASTA_EXTENSIONS = ['.fasta', '.fna', '.ffn', '.fa', '.fas']
+FASTA_EXTENSIONS = [".fasta", ".fna", ".ffn", ".fa", ".fas"]
+
+# Character replacements for genome and loci identifiers
+CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""), (")", ""), ("'", ""), ("\"", ""), (":", "")]
+
+# Minimum Python version
+MIN_PYTHON = [(3, 10, 0), "3.10.0"]
+
+## GET and POST requests
 
 # Chewie-NS related constants
-HEADERS_GET = {'Authorization': None,
-				'accept': 'application/octet-stream'}
+HEADERS_GET = {"Authorization": None,
+			   "accept": "application/octet-stream"}
 
-HEADERS_GET_JSON = {'Authorization': None,
-					'accept': 'application/json'}
+HEADERS_GET_JSON = {"Authorization": None,
+					"accept": "application/json"}
 
-HEADERS_POST = {'Authorization': None,
-				'user_id': None}
+HEADERS_POST = {"Authorization": None,
+				"user_id": None}
 
-HEADERS_POST_JSON = {'Authorization': None,
-					 'Content-type': 'application/json',
-					 'accept': 'application/json',
-					 'user_id': None}
-
-# List of Chewie-NS instance identifiers and URLs
-HOST_NS = {'main': 'https://chewbbaca.online/api/NS/api/',
-		   'tutorial': 'https://tutorial.chewbbaca.online/api/NS/api/',
-		   'local': 'http://127.0.0.1:5000/NS/api/'}
-
-DEFAULT_NOMENCLATURE_SERVER = "main"
-
-# Authors, GitHub repository, documentation, tutorial and contacts
-AUTHORS = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
-REPOSITORY = 'https://github.com/B-UMMI/chewBBACA'
-DOCUMENTATION = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
-CONTACTS = 'imm-bioinfo@medicina.ulisboa.pt'
+HEADERS_POST_JSON = {"Authorization": None,
+					 "Content-type": "application/json",
+					 "accept": "application/json",
+					 "user_id": None}
 
 # Timeout, in seconds, to wait for user input
 PROMPT_TIMEOUT = 30
 
-# Minimum MAJOR and MINOR BLAST versions
-BLAST_MAJOR = 2
-BLAST_MINOR = 9
-
-# Paths to BLASTp and makeblastdb executables in Linux and Windows
-BLASTP_ALIAS = 'blastp'
-MAKEBLASTDB_ALIAS = shutil.which('makeblastdb')
-BLASTDB_ALIASTOOL_ALIAS = shutil.which('blastdb_aliastool')
-BLASTDBCMD_ALIAS = shutil.which('blastdbcmd')
-
-# Protein to create dummy FASTA records used to check if sequence IDs are interpreted as PDB IDs
-DUMMY_PROT = 'MKFFYRPTGLAISINDAYQKVNFSTDGSSLRVDNPTPYFITYDQIKINGKSVKNVDMVAPYSQQTYPFKGARANETVQWTVVNDYGGDQKGESILH'
-DUMMY_FASTA = 'dummy.fasta'
-DUMMY_BLASTDB = 'dummy_db'
-DUMMY_DIR = 'dummy_dir'
-DUMMY_BLASTDBCMD_FASTA = 'dummy_blastdbcmd.fasta'
-
-# BLAST warnings to be ignored
-# This warning is raised in BLAST>=2.10 when passing a TXT file with sequence identifiers to -seqidlist
-# To avoid this warning the TXT file must be converted to binary with the blastdb_aliastool
-# Performance can be severely affected if the TXT is not converted to binary
-# Since the TXT file is converted with blastdb_aliastool, it is no longer necessary to ignore this warning
-IGNORE_RAISED = ['Warning: [blastp] To obtain better run time '
-				 'performance, please run blastdb_aliastool '
-				 '-seqid_file_in <INPUT_FILE_NAME> -seqid_file_out '
-				 '<OUT_FILE_NAME> and use <OUT_FILE_NAME> as the '
-				 'argument to -seqidlist']
-
-# Path to MAFFT executable
-MAFFT_ALIAS = shutil.which('mafft')
-# MAFFT default parameters
-MAFFT_DEFAULT_PARAMETERS = ['--thread', '1', '--retree', '1', '--maxiterate', '0', '--treeout']
-
-# Replacements for genome and loci identifiers
-CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""),
-					 (")", ""), ("'", ""), ("\"", ""),
-					 (":", "")]
-
-# Minimum Python version
-MIN_PYTHON = [(3, 6, 0), '3.6.0']
-
-# UniProt Proteins API URL
-UNIPROT_PROTEINS_API = "https://www.ebi.ac.uk/proteins/api/proteins"
-# Headers to query UniProt Proteins API
-UNIPROT_PROTEINS_API_HEADERS = { "Accept" : "application/json"}
-# UniProt entry template URL
-UNIPROT_ENTRY_URL = "https://www.uniprot.org/uniprotkb/{0}/entry"
-
-# Querying UniProt
-UNIPROT_REST_API_THREADS = 4
-UNIPROT_RESTAPI_MAX_RETRIES = 3
-# Time allowed to establish TCP connection
-# Set to 3.05 based on the standard practices to set slightly greater than TCP packet retransmission cycles
-UNIPROT_RESTAPI_SERVER_TIMEOUT = 3.05
-UNIPROT_RESTAPI_RESPONSE_TIMEOUT = 5
-UNIPROT_RESTAPI_RETRY_SLEEP = 1
-# Define list of status codes after which is allowed to retry
-UNIPROT_RESTAPI_STATUS_FORCELIST = [500, 502, 503, 504]
-
-# FTP to get UniProt's reference proteomes
-UNIPROT_PROTEOMES_FTP = ("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/")
-
-# AlleleCall logfile basename and content template
-LOGFILE_BASENAME = 'log.txt'
-LOGFILE_TEMPLATE = ('Started script at: {0}\n'
-					'Finished script at: {1}\n'
-					'Number of inputs: {2}\n'
-					'Number of loci: {3}\n'
-					'Used this number of CPU cores: {4}\n'
-					'Used a BSR of: {5}\n')
-
-# Basename for files created by the AlleleCall module
-RESULTS_COORDINATES_BASENAME = 'results_contigsInfo.tsv'
-PARALOGOUS_COUNTS_BASENAME = 'paralogous_counts.tsv'
-PARALOGOUS_LOCI_BASENAME = 'paralogous_loci.tsv'
-RESULTS_ALLELES_BASENAME = 'results_alleles.tsv'
-RESULTS_ALLELES_MASKED_BASENAME = 'results_alleles_masked.tsv'
-RESULTS_STATISTICS_BASENAME = 'sample_summary_stats.tsv'
-LOCI_STATS_BASENAME = 'loci_summary_stats.tsv'
-UNCLASSIFIED_BASENAME = 'unclassified_sequences.fasta'
-MISSING_FASTA_BASENAME = 'missing_classes.fasta'
-MISSING_TSV_BASENAME = 'missing_classes.tsv'
-NOVEL_BASENAME = 'novel_alleles.fasta'
-GENE_COORDINATES_BASENAME = 'gene_coordinates.tsv'
-GENE_COORDINATES_EXCLUDED_BASENAME = 'gene_coordinates_excluded.tsv'
-INVALID_CDS_BASENAME = 'invalid_cds.txt'
-SCHEMA_CONFIG_BASENAME = '.schema_config'
-GENE_LIST_BASENAME = ".genes_list"
-NS_CONFIG_BASENAME = ".ns_config"
-
-MISSING_GENE_LIST = ("Could not find the `.genes_list` file in the schema's directory.")
-
-SCHEMA_LOCI_GENE_LIST_NOMATCH = ("The identifiers of the loci FASTA files in the schema do "
-                                 "not match the loci identifiers stored in the `.genes_list` file. "
-								 "The schema includes {0} exclusive loci IDs ({1}) and the `.genes_list` "
-								 "file includes {2} exclusive loci IDs ({3}).")
-
-LOCI_LIST_SCHEMA_LOCI_NOMATCH = ("The file containing the list of loci includes loci IDs that are not in the "
-                                 "schema. Please ensure that all loci IDs in the file match IDs of loci in the "
-								 "schema. The following loci are not in the schema: {0}.")
-
-# Header for TSV file with loci stats
-LOCI_STATS_HEADER = ('Locus\tEXC\tINF\tPLOT3\tPLOT5\tLOTSC\tNIPH\t'
-					 'NIPHEM\tALM\tASM\tPAMA\tLNF\tTotal CDSs Classified')
-# COLUMNS for the DataFrame with assembly statistics created by the PredictGenes module
-ASSEMBLY_STATS_COLUMNS = ['FILE', 'Number of contigs', 'Average contig size',
-						  'N50', 'Assembly size', 'GC content', 'Missing values (Ns)',
-						  'Total genes', 'Excluded genes']
-# Filename and Headers for the file with the list of novel alleles
-NOVEL_ALLELES_FILENAME = "new_alleles.tsv"
-NOVEL_ALLELES_LIST_HEADER = 'Allele ID\tCDS ID\tRepresentative'
-# Header for TSV file with information about extracted CDSs
-GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
-                      "Coding_Strand", "Confidence", "SHA256"]
-# Headers for TSV files with paralogous loci count and per genome
-PARALOGOUS_COUNTS_HEADER = 'Locus\tCount'
-PARALOGOUS_LIST_HEADER = 'Genome\tLoci\tCDS'
-# Header for TSV file with information about CDSs classified as ambiguous
-MISSING_HEADER = 'Index\tGenome\tLocus\tLocus_classification\tCDS\tCDS_classification'
-# Header for TSV file created by the GetAlleles module
-GETALLELES_LOCI_STATS_HEADER = 'Locus\tTotal alleles in schema\tSamples with locus\tDistinct alleles in dataset'
-# Filenames for the files created by the ComputeMSA module
-COMPUTEMSA_PROTEIN_CONCAT = 'protein_concat.fasta'
-COMPUTEMSA_DNA_CONCAT = 'dna_concat.fasta'
-COMPUTEMSA_PROTEIN_MSA = 'protein_msa.fasta'
-COMPUTEMSA_PROTEIN_MSA_VARIABLE = 'protein_msa_variable.fasta'
-COMPUTEMSA_DNA_MSA = 'dna_msa.fasta'
-COMPUTEMSA_DNA_MSA_VARIABLE = 'dna_msa_variable.fasta'
 # Ambiguous characters for DNA and protein sequences
 PROTEIN_AMBIGUOUS_CHARS = ['B', 'Z', 'X', 'J']
 DNA_AMBIGUOUS_CHARS = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
-# Gap character used in MSAs
-GAP_CHAR = '-'
 
-# Allele calling classifications
-ALLELECALL_CLASSIFICATIONS = ['EXC', 'INF', 'PLOT3', 'PLOT5',
-							  'LOTSC', 'NIPH', 'NIPHEM', 'ALM',
-							  'ASM', 'PAMA', 'LNF']
+INVALID_CDS_BASENAME = "invalid_cds.txt" # TXT file with the list of invalid CDSs
+SCHEMA_CONFIG_BASENAME = ".schema_config" # Pickle file containing schema config values
+GENE_LIST_BASENAME = ".genes_list" # Pickle file containing the list of genes in a schema
+NS_CONFIG_BASENAME = ".ns_config" # Pickle file added to schemas downloaded to Chewie-NS
 
-# PLNF classificaton for modes {1,2,3}
-PROBABLE_LNF = 'PLNF'
-
-# Maximum number of values stored while creating the 'results_contigsInfo.tsv' file
-RESULTS_MAXVALS = 300000
+# Allele classes
+ALLELE_CLASSES = ["EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"]
+# PLNF class for modes {1,2,3}
+PROBABLE_LNF = "PLNF"
 
 # String template for a standard single line FASTA record
-FASTA_RECORD_TEMPLATE = '>{0}\n{1}'
+FASTA_RECORD_TEMPLATE = ">{0}\n{1}"
 
-DNA_BASES = 'AGCT'
+NUCLEOTIDES = "AGCT"
 
-# Define default BLASTp task
-BLAST_TASK_THRESHOLD = {'blastn': 50, 'blastp': 30}
+# --> PredictGenes module
 
-# BLAST outfmt
-BLAST_DEFAULT_OUTFMT = '6 qseqid qstart qend qlen sseqid slen score'
+GENE_PREDICTORS = ["pyrodigal", "augustus"]
 
-# Input file prefix maximum length
-PREFIX_MAXLEN = 30
+GENE_PREDICTOR_DEFAULT = "pyrodigal"
 
-# Dictionary template to map variables returned by AlleleCall
-ALLELECALL_DICT = {'classification_files': None,
-				   'basename_map': None,
-				   'cds_coordinates': None,
-				   'cds_counts': None,
-				   'dna_fasta': None,
-				   'protein_fasta': None,
-				   'dna_hashtable': None,
-				   'protein_hashtable': None,
-				   'invalid_alleles': None,
-				   'unclassified_ids': None,
-				   'self_scores': None,
-				   'representatives': None}
+VALID_PARAMETERS = {"augustus": ["augustus_species", "augustus_output_formats", "augustus_path"],
+					"pyrodigal": ["pyrodigal_training_file", "pyrodigal_mode",
+							  	  "pyrodigal_output_formats", "pyrodigal_minimum_confidence",
+							  	  "pyrodigal_training_reference", "pyrodigal_just_training"]}
 
-GENOME_LIST = 'input_files.txt'
-LOCI_LIST = 'loci_list.txt'
+PYRODIGAL_MODES = ["single", "meta"]
+
+PYRODIGAL_OUTFMTS = ["genes", "translations", "gff", "genbank", "scores"]
+
+PYRODIGAL_DEFAULT_OUTFMTS = ["genes"]
+
+PYRODIGAL_MIN_CONFIDENCE = 0.0
+
+PYRODIGAL_MAX_CONFIDENCE = 100.0
+
+PYRODIGAL_DEFAULT_MODE = "single"
+
+AUGUSTUS_ALIAS = "augustus"
+
+AUGUSTUS_OUTFMTS = ["genes", "gff"]
+
+AUGUSTUS_OUTFMT_DEFAULT = ["genes"]
+
+AUGUSTUS_GFF_FILTERS = ["# start gene", "# coding sequence"]
+
+GENE_COORDINATES_BASENAME = "gene_coordinates.tsv" # TSV file containing the coordinates of predicted CDSs
+GENE_COORDINATES_EXCLUDED_BASENAME = "gene_coordinates_excluded.tsv" # TSV file containing the list of predicted CDSs that were excluded
+
+# COLUMNS for the DataFrame with assembly statistics created by the PredictGenes module
+ASSEMBLY_STATS_COLUMNS = ["FILE", "Number of contigs", "Average contig size",
+						  "N50", "Assembly size", "GC content", "Missing values (Ns)",
+						  "Total genes", "Excluded genes"]
+
+GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
+                      "Coding_Strand", "Confidence", "SHA256"]
+
+# Links to Documentation pages
+PredictGenesDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictGenes.html"
+CreateSchemaDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html"
+AlleleCallDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCall.html"
+
+# <-- PredictGenes module
+
+# --> CreateSchema module
+
+# Proteins to cluster are divided into a maximum of 40 smaller groups in CreateSchema
+# Since we do not have pre-defined clusters during schema creation, dividing based on
+# the number of CPU cores would lead to variable results. Therefore, we use a fixed
+# number of groups to divide the proteins to ensure results are consistent across
+# different runs
+CREATESCHEMA_CLUSTERING_NGROUPS = 40
+
+# CreateSchema exclusive section headers
+FINAL_BLASTp = "Final BLASTp"
+
+SCHEMA_NAME_DEFAULT = "schema_seed"
+
+# <-- CreateSchema module
+
+# --> AlleleCall module
+
+# Basenames for the output files
+ALLELIC_PROFILES_BASENAME = "allelic_profiles.tsv" # TSV file containing the allelic profiles
+COORDINATES_PROFILES_BASENAME = "coordinates_profiles.tsv" # TSV file containing the allele genomic coordinates
+PARALOGOUS_COUNTS_BASENAME = "paralogous_counts.tsv" # TSV file containing the list and count per paralogous locus
+PARALOGOUS_TABLE_BASENAME = "paralogous_loci.tsv" # TSV file containing each ocurrence of a paralogous locus
+ALLELIC_PROFILES_MASKED_BASENAME = "allelic_profiles_masked.tsv" # Masked allelic profiles where all special classes are converted to '0'
+SAMPLE_STATISTICS_BASENAME = "sample_stats.tsv" # TSV file containing sample summary statistics
+LOCI_STATS_BASENAME = "loci_stats.tsv" # TSV file containing loci summary statistics
+UNCLASSIFIED_BASENAME = "unclassified.fasta" # FASTA file containing the unclassified CDSs
+MISSING_FASTA_BASENAME = "missing_classes.fasta" # FASTA file containing the CDSs/loci assigned special classifications
+MISSING_TSV_BASENAME = "missing_classes.tsv" # TSV file containing information about the CDSs/loci assigned special classifications
+INFERRED_ALLELES_BASENAME = "inferred_alleles.fasta" # FASTA file containing the alleles inferred through allele calling
+INFERRED_ALLELES_TABLE_BASENAME = "inferred_alleles.tsv" # TSV file containing data about the inferred alleles
+
+# Headers used in output files
+# Headers for TSV files with paralogous loci count and per genome
+PARALOGOUS_COUNTS_HEADER = ["Locus", "Count"]
+PARALOGOUS_TABLE_HEADER = ["Genome", "Loci", "CDS"]
+# Header for TSV file with loci stats
+LOCI_STATS_HEADER = ["Locus", "EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH",
+					 "NIPHEM", "ALM", "ASM", "PAMA", "LNF", "Total CDSs Classified"]
+INFERRED_ALLELES_TABLE_HEADER = ["Allele ID", "CDS ID", "Representative"]
+# Header for TSV file with information about CDSs classified as ambiguous
+MISSING_TSV_HEADER = ["Index", "Genome", "Locus", "Locus_classification", "CDS", "CDS_classification"]
+
+# Maximum number of values stored while creating the 'allelic_profiles.tsv' and 'coordinates_profiles.tsv' files
+MAX_STORED_VALUES = 300000
 
 # Maximum number of allele hashes per pre-computed file
 HASH_TABLE_MAXIMUM_ALLELES = 200000
 
+# Dictionary template to map variables returned by the AlleleCall module
+ALLELECALL_DICT = {"classification_files": None,
+				   "basename_map": None,
+				   "cds_coordinates": None,
+				   "cds_counts": None,
+				   "dna_fasta": None,
+				   "protein_fasta": None,
+				   "dna_hashtable": None,
+				   "protein_hashtable": None,
+				   "invalid_alleles": None,
+				   "unclassified_ids": None,
+				   "self_scores": None,
+				   "representatives": None}
+
 # AlleleCall section headers
-CONFIG_VALUES = 'Configuration values'
-PRECOMPUTED_DATA = 'Pre-computed data'
-CDS_PREDICTION = 'CDS prediction'
-CDS_DEDUPLICATION = 'CDS deduplication'
-CDS_EXACT = 'CDS exact matching'
-CDS_TRANSLATION = 'CDS translation'
-PROTEIN_DEDUPLICATION = 'Protein deduplication'
-PROTEIN_EXACT = 'Protein exact matching'
-PROTEIN_CLUSTERING = 'Protein clustering'
-REPRESENTATIVE_DETERMINATION = 'Representative determination'
-WRAPPING_UP = 'Wrapping up'
+PRECOMPUTED_DATA = "Pre-computed data"
+CDS_PREDICTION = "CDS prediction"
+CDS_DEDUPLICATION = "CDS deduplication"
+CDS_EXACT = "CDS exact matching"
+CDS_TRANSLATION = "CDS translation"
+PROTEIN_DEDUPLICATION = "Protein deduplication"
+PROTEIN_EXACT = "Protein exact matching"
+PROTEIN_CLUSTERING = "Protein clustering"
+REPRESENTATIVE_DETERMINATION = "Representative determination"
+WRAPPING_UP = "Wrapping up"
 
-# CreateSchema exclusive section headers
-EXCLUDE_SMALL = 'Short CDS removal'
-FINAL_BLASTp = 'Final BLASTp'
+ALLELECALL_MODES = {1: "Searches for exact matches at the DNA level between the schema alleles and the input CDSs.",
+                    2: "Searches for exact matches at the DNA and protein levels between the schema alleles and the input CDSs.",
+					3: "Searches for exact matches at the DNA and protein levels and clusters CDSs against all representative alleles followed by intracluster BLASTp.",
+					4: "The default mode. Runs the whole process (exact matching, clustering followed by intracluster BLASTp, and a final all-vs-all BLASTp between all representative alleles and the remaining unclassified CDSs)."}
 
-# File header for file with summary statistics created by PrepExternalSchema
-PREPEXTERNAL_SUMMARY_STATS_HEADER = ('Gene\tTotal_alleles\tValid_alleles\t'
-									 'Number_representatives')
+ALLELECALL_DEFAULT_MODE = 4
 
-# Default loci presence thresholds used to compute the cgMLST
-CGMLST_THRESHOLDS = [0.95, 0.99, 1]
-CGMLST_THRESHOLD_MIN = 0
-CGMLST_THRESHOLD_MAX = 1
+# <-- AlleleCall module
 
-GENOMES_MISSING_COLUMNS = ['Sample', 'Loci presence count', 'Loci presence proportion']
-GENOMES_MISSING_BASENAME = 'sample_presence_stats.tsv'
-LOCI_MISSING_COLUMNS = ['Locus', 'Sample presence count', 'Sample presence proportion']
-LOCI_MISSING_BASENAME = 'loci_presence_stats.tsv'
+# --> SchemaEvaluator module
+
+SCHEMA_REPORT_BASENAME = "schema_report.html"
 
 # HTML template to create Schema Report
-# need to include '.' at start to work properly when referencing local files
+# Need to include "./" at start of file paths to work properly when referencing local files
 SCHEMA_REPORT_HTML = ("""
 <!DOCTYPE html>
 <html lang="en">
@@ -368,7 +478,7 @@ SCHEMA_REPORT_HTML = ("""
 """)
 
 # HTML template to create Loci Reports
-# need to include '.' at start to work properly when referencing local files
+# need to include '.' at start of file paths to work properly when referencing local files
 LOCUS_REPORT_HTML = ("""
 <!DOCTYPE html>
 <html lang="en">
@@ -388,6 +498,50 @@ LOCUS_REPORT_HTML = ("""
 </html>
 """)
 
+# Relative paths to the JS bundles used by SchemaEvaluator
+# Main page
+SCHEMA_EVALUATOR_SCHEMA_BUNDLE = "report_template_components/src/bundles/SchemaEvaluator/schema_report/report_bundle.js"
+# Loci pages
+SCHEMA_EVALUATOR_LOCI_BUNDLE = "report_template_components/src/bundles/SchemaEvaluator/loci_reports/report_bundle.js"
+
+# Do not use list of strings as constants if the strings include formatting
+# placeholders. Multiple references to the list of strings will have the same
+# id and altering the strings with format will not change the list id. In
+# multiprocessing it can reference the same list/id in different processess
+# and use the latest changes to a string in the list/id when those changes
+# might not refer to the current process (returning an incorrect value).
+
+# Table headers for the Schema report summary data table
+SCHEMA_SUMMARY_TABLE_HEADER = ("Loci\tAlleles\tValid Alleles\tInvalid alleles\tIncomplete ORF\tAmbiguous Bases\t"
+								"Missing Start/Stop Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tAlleles below "
+								"threshold\tAlleles above threshold")
+
+# Table headers for the Loci Analysis Table in the Schema report
+LOCI_ANALYSIS_TABLE_HEADER = ("Locus\tTotal Alleles\tValid Alleles\tInvalid Alleles\tProportion of Validated Alleles\tDistinct "
+						 	  "Protein Alleles\tIncomplete ORF\tAmbiguous Bases\tMissing Start/Stop Codon\tIn-frame Stop Codon\tAlleles "
+						 	  "< {0}bp\tAlleles below threshold\tAlleles above threshold\tMissing Allele IDs")
+
+# Column headers for the Summary Table in the Loci reports
+LOCI_REPORTS_SUMMARY_TABLE_HEADER = ("Locus\tTotal Alleles\tValid Alleles\tInvalid Alleles\tProportion of Validated Alleles\tDistinct "
+				 					 "Protein Alleles\tIncomplete ORF\tAmbiguous Bases\tMissing Start/Stop Codon\tIn-frame Stop Codon\t"
+									 "Alleles < {0}bp\tSize Range (bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below threshold "
+									 "({1}bp)\tAlleles above threshold ({2}bp)\tMissing Allele IDs")
+
+# Column headers for the Invalid Alleles table in the loci reports
+INVALID_ALLELES_TABLE_HEADER = ["Allele ID", "Exception Category", "Exception Description"]
+
+TRANSLATION_EXCEPTIONS_TABLE_HEADER = ["Extra in frame stop codon",
+						  "is not a start codon",
+						  "is not a stop codon",
+						  "sequence length is not a multiple of 3",
+						  "ambiguous or invalid characters"]
+
+DISTINCT_ALLELES_TABLE_HEADER = ["Protein Allele ID", "Count", "List of Distinct Alleles"]
+
+# <-- SchemaEvaluator module
+
+# --> AlleleCallEvaluator module
+
 # HTML template to create main AlleleCall report
 ALLELECALL_REPORT_HTML = ("""
 <!DOCTYPE html>
@@ -406,91 +560,203 @@ ALLELECALL_REPORT_HTML = ("""
 </html>
 """)
 
-# Basename for files created by the SchemaEvaluator module
-SCHEMA_REPORT_BASENAME = 'schema_report.html'
-
-# Basename for files created by the AlleleCallEvaluator module
-DISTANCE_MATRIX_BASENAME = 'distance_matrix.tsv'
-CORE_MSA_BASENAME = 'cgMLST_MSA.fasta'
-MASKED_PROFILES_BASENAME = 'masked_profiles.tsv'
-CGMLST_PROFILES_BASENAME = 'cgMLST_profiles.tsv'
-ALLELECALL_REPORT_BASENAME = 'allelecall_report.html'
-
-# Basename for files created by ExtractCgMLST module
-PRESENCE_ABSENCE_BASENAME = 'presence_absence.tsv'
-MISSING_LOCI_BASENAME = 'missing_loci_stats.tsv'
-
-# Relative path to the JS bundles used by SchemaEvaluator
-# Main page
-SCHEMA_EVALUATOR_SCHEMA_BUNDLE = 'report_template_components/src/bundles/SchemaEvaluator/schema_report/report_bundle.js'
-# Loci pages
-SCHEMA_EVALUATOR_LOCI_BUNDLE = 'report_template_components/src/bundles/SchemaEvaluator/loci_reports/report_bundle.js'
-
 # Relative path to the JS bundle used by AlleleCallEvaluator
-ALLELECALL_EVALUATOR_BUNDLE = 'report_template_components/src/bundles/AlleleCallEvaluator/report_bundle.js'
+ALLELECALL_EVALUATOR_BUNDLE = "report_template_components/src/bundles/AlleleCallEvaluator/report_bundle.js"
 
-# Do not use list of strings as constants if the strings include formatting
-# placeholders. Multiple references to the list of strings will have the same
-# id and altering the strings with format will not change the list id. In
-# multiprocessing it can reference the same list/id in different processess
-# and use the latest changes to a string in the list/id when those changes
-# might not refer to the current process (returning an incorrect value).
+# Basename for the output files created by the AlleleCallEvaluator module
+DISTANCE_MATRIX_BASENAME = "distance_matrix.tsv"
+CORE_MSA_BASENAME = "cgMLST_MSA.fasta"
+CGMLST_PROFILES_BASENAME = "cgMLST_profiles.tsv"
+ALLELECALL_REPORT_BASENAME = "allelecall_report.html"
 
-# Table header for the Schema report summary data
-SCHEMA_SUMMARY_TABLE_HEADERS = ("Loci\tAlleles\tValid Alleles\tInvalid alleles\tIncomplete ORF\tAmbiguous Bases\t"
-								"Missing Start/Stop Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tAlleles below "
-								"threshold\tAlleles above threshold")
-
-# Column headers for the Loci Analysis Table in the Schema report
-LOCI_ANALYSIS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
-						 'Alleles\tProportion of Validated Alleles\tDistinct '
-						 'Protein Alleles\tIncomplete '
-						 'ORF\tAmbiguous Bases\tMissing '
-						 'Start/Stop Codon\tIn-frame Stop Codon\tAlleles '
-						 '< {0}bp\tAlleles below threshold\tAlleles above '
-						 'threshold\tMissing Allele IDs')
-
-# Column headers for the Summary Table in the Loci reports
-LOCUS_COLUMNS = ('Locus\tTotal Alleles\tValid Alleles\tInvalid '
-				 'Alleles\tProportion of Validated Alleles\tDistinct '
-				 'Protein Alleles\t'
-				 'Incomplete ORF\tAmbiguous Bases\tMissing Start/Stop '
-				 'Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tSize Range '
-				 '(bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below '
-				 'threshold ({1}bp)\tAlleles above threshold ({2}bp)\t'
-				 'Missing Allele IDs')
-
-# Column headers for the Invalid Alleles table in the loci reports
-INVALID_ALLELES_COLUMNS = ['Allele ID', 'Exception Category',
-						   'Exception Description']
-
-TRANSLATION_EXCEPTIONS = ['Extra in frame stop codon',
-						  'is not a start codon',
-						  'is not a stop codon',
-						  'sequence length is not a multiple of 3',
-						  'ambiguous or invalid characters']
-
-DISTINCT_ALLELES_COLUMNS = ['Protein Allele ID',
-							'Count',
-							'List of Distinct Alleles']
-
-# Column headers for the Sample Stats table in the allele calling report
-SAMPLE_STATS_COLUMNS = ['Sample', 'Total Contigs', 'Total CDSs',
-						'Proportion of Classified CDSs', 'Identified Loci',
-						'Proportion of Identified Loci',
-						'Valid Classifications', 'Invalid Classifications']
+# Table headers for the Sample Stats table in the allele calling report
+SAMPLE_STATS_HEADER = ["Sample", "Total Contigs", "Total CDSs", "Proportion of Classified CDSs",
+                       "Identified Loci", "Proportion of Identified Loci", "Valid Classifications",
+					   "Invalid Classifications"]
 
 # Column headers for the Loci Stats table in the allele calling report
-LOCI_STATS_COLUMNS = ['Locus', 'Total CDSs', 'Valid Classes',
-					  'Invalid Classes', 'Proportion Samples']
+LOCUS_STATS_HEADER = ["Locus", "Total CDSs", "Valid Classes", "Invalid Classes", "Proportion Samples"]
 
 # Column headers for the Summary Stats table in the allele calling report
-SUMMARY_STATS_COLUMNS = ['Total Samples', 'Total Loci', 'Total CDSs',
-						 'Total CDSs Classified', 'EXC', 'INF',
-						 'PLOT3', 'PLOT5', 'LOTSC', 'NIPH',
-						 'NIPHEM', 'ALM', 'ASM', 'PAMA', 'LNF']
+SUMMARY_STATS_HEADER = ["Total Samples", "Total Loci", "Total CDSs", "Total CDSs Classified", "EXC",
+                        "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"]
 
-# Exception messages
+# <-- AlleleCallEvaluator module
+
+# --> AdaptSchema module
+
+# File header for file with summary statistics created by the AdaptSchema module
+ADAPTSCHEMA_STATS_HEADER = ["Locus", "Total_alleles", "Valid_alleles", "No. Representatives"]
+
+# <-- AdaptSchema module
+
+# --> ComputeCore module
+
+# Default loci presence thresholds used to compute the cgMLST
+CGMLST_THRESHOLDS = [0.95, 0.99, 1]
+CGMLST_THRESHOLD_MIN = 0
+CGMLST_THRESHOLD_MAX = 1
+
+PRESENCE_ABSENCE_PROFILES_BASENAME = "presence_absence_profiles.tsv"
+
+# Header for TSV file with sample loci presence stats
+SAMPLE_LOCUS_PRESENCE_HEADER = ["Sample", "Locus presence count", "Locus presence proportion"]
+SAMPLE_LOCUS_PRESENCE_BASENAME = "sample_presence_stats.tsv"
+# Header for TSV file with locus sample presence stats
+LOCUS_SAMPLE_PRESENCE_HEADER = ["Locus", "Sample presence count", "Sample presence proportion"]
+LOCUS_SAMPLE_PRESENCE_BASENAME = "locus_presence_stats.tsv"
+
+PERMUTATION_NUMBER_DEFAULT = 100
+PERMUTATION_SAMPLES_DEFAULT = None
+
+# <-- ComputeCore module
+
+# --> AnnotateSchema module
+
+# UniProt Proteins API URL
+UNIPROT_PROTEINS_API = "https://www.ebi.ac.uk/proteins/api/proteins"
+# UniProt entry template URL
+UNIPROT_ENTRY_URL = "https://www.uniprot.org/uniprotkb/{0}/entry"
+# FTP to get UniProt's reference proteomes
+UNIPROT_PROTEOMES_FTP = ("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/")
+
+# Querying UniProt
+UNIPROT_REST_API_THREADS = 4
+UNIPROT_RESTAPI_MAX_RETRIES = 3
+# Time allowed to establish TCP connection
+# Set to 3.05 based on the standard practices to set slightly greater than TCP packet retransmission cycles
+UNIPROT_RESTAPI_SERVER_TIMEOUT = 3.05
+UNIPROT_RESTAPI_RESPONSE_TIMEOUT = 5
+UNIPROT_RESTAPI_RETRY_SLEEP = 1
+# Define list of status codes after which is allowed to retry
+UNIPROT_RESTAPI_STATUS_FORCELIST = [500, 502, 503, 504]
+
+ANNOTATE_SCHEMA_FIRST_COLUMN = "Locus"
+ANNOTATE_SCHEMA_PROTEOME_COLUMNS = ["Proteome_ID", "Proteome_Product", "Proteome_Gene_Name", "Proteome_Species", "Proteome_BSR"]
+ANNOTATE_SCHEMA_RESTAPI_COLUMNS = ["RestAPI_Accession", "RestAPI_Source", "RestAPI_TaxID", "RestAPI_Taxon", "RestAPI_Protein_Name", "RestAPI_Gene_Name", "RestAPI_URL"]
+
+# <-- AnnotateSchema module
+
+# --> Chewie-NS integration
+
+# List of Chewie-NS instance identifiers and URLs
+HOST_NS = {"main": "https://chewbbaca.online/api/NS/api/",
+		   "tutorial": "https://tutorial.chewbbaca.online/api/NS/api/",
+		   "local": "http://127.0.0.1:5000/NS/api/"}
+
+DEFAULT_NOMENCLATURE_SERVER = "main"
+
+NSSTATS_MODES = ["species", "schemas"]
+
+# <-- Chewie-NS integration
+
+## BLAST
+
+# Minimum MAJOR and MINOR BLAST versions
+BLAST_MAJOR = 2
+BLAST_MINOR = 9
+
+# Paths to BLASTp and makeblastdb executables in Linux and Windows
+BLASTP_ALIAS = "blastp"
+MAKEBLASTDB_ALIAS = shutil.which("makeblastdb")
+BLASTDB_ALIASTOOL_ALIAS = shutil.which("blastdb_aliastool")
+BLASTDBCMD_ALIAS = shutil.which("blastdbcmd")
+
+# Define minimum sequence threshold to change BLASTn and BLASTp task type
+BLAST_TASK_THRESHOLD = {"blastn": 50, "blastp": 30}
+
+# BLAST outfmt
+BLAST_DEFAULT_OUTFMT = "6 qseqid qstart qend qlen sseqid slen score"
+
+# Define sequence identifier prefix to avoid issues where makeblastdb modifies the IDs
+# of the sequences when creating the database (e.g. when IDs are interpreted as PDB chain IDs)
+BLASTDB_LCL_PREFIX = "lcl|SEQ"
+BLASTDB_SEQ_PREFIX = "SEQ"
+
+## MAFFT
+
+# Path to MAFFT executable
+MAFFT_ALIAS = shutil.which("mafft")
+# MAFFT default parameters
+MAFFT_DEFAULT_PARAMETERS = ["--thread", "1", "--retree", "1", "--maxiterate", "0", "--treeout"]
+
+# --> GetAlleles module
+
+# Header for TSV file created by the GetAlleles module
+GETALLELES_LOCI_STATS_HEADER = ["Locus", "Total alleles in schema", "Samples with locus", "Distinct alleles in dataset"]
+
+# <-- GetAlleles module
+
+# --> MergeResults module
+
+# List of valid files for the SubsetResutls and MergeResults modules
+# Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
+SUPPORTED_RESULTS_FILES = [ALLELIC_PROFILES_BASENAME, COORDINATES_PROFILES_BASENAME, SAMPLE_STATISTICS_BASENAME,
+                           LOCI_STATS_BASENAME, INVALID_CDS_BASENAME, GENE_COORDINATES_BASENAME, MISSING_FASTA_BASENAME,
+						   MISSING_TSV_BASENAME, UNCLASSIFIED_BASENAME, PARALOGOUS_COUNTS_BASENAME, PARALOGOUS_TABLE_BASENAME,
+						   INFERRED_ALLELES_BASENAME, PRESENCE_ABSENCE_PROFILES_BASENAME]
+
+# <-- MergeResults module
+
+# --> ComputeDistances module
+
+DEFAULT_DISTANCE_METHOD = "hamming"
+
+DISTANCE_METHODS = ["hamming", "jaccard", "loci", "core"]
+
+DEFAULT_OUTPUT_FORMAT = "lower_triangular"
+
+OUTPUT_FORMATS = ["upper_triangular", "lower_triangular", "symmetric", "table"]
+
+# <-- ComputeDistances module
+
+# --> ComputeMSA module
+
+# Filenames for the files created by the ComputeMSA module
+COMPUTEMSA_PROTEIN_CONCAT = "protein_concat.fasta"
+COMPUTEMSA_DNA_CONCAT = "dna_concat.fasta"
+COMPUTEMSA_PROTEIN_MSA = "protein_msa.fasta"
+COMPUTEMSA_PROTEIN_MSA_VARIABLE = "protein_msa_variable.fasta"
+COMPUTEMSA_DNA_MSA = "dna_msa.fasta"
+COMPUTEMSA_DNA_MSA_VARIABLE = "dna_msa_variable.fasta"
+
+# Gap character used in the MSAs
+GAP_CHAR = "-"
+
+DEFAULT_GAPS = "exclude"
+GAPS_CHOICES = ["ignore", "exclude"]
+
+DEFAULT_AMBIGUOUS = "exclude"
+AMBIGUOUS_CHOICES = ["ignore", "exclude"]
+
+# <-- ComputeMSA module
+
+# --> HashProfiles
+
+HASHPROFILES_DEFAULT_HASH_ALGO = "crc32"
+
+# <-- HashProfiles
+
+# --> DownloadSchema
+
+LOCI_TO_ADAPT_BASENAME = 'loci_to_adapt.txt'
+
+# <-- DownloadSchema
+
+############################
+## Warning and Exceptions ##
+############################
+
+MISSING_GENE_LIST = ("Could not find the '.genes_list' file in the schema's directory.")
+
+SCHEMA_LOCI_GENE_LIST_NOMATCH = ("The identifiers of the loci FASTA files in the schema do not match "
+                                 "the loci identifiers stored in the '.genes_list' file. The schema "
+								 "includes {0} exclusive loci IDs ({1}) and the '.genes_list' file "
+								 "includes {2} exclusive loci IDs ({3}).")
+
+LOCI_LIST_SCHEMA_LOCI_NOMATCH = ("The file containing the list of loci includes loci IDs that are not in the "
+                                 "schema. Please ensure that all loci IDs in the file match IDs of loci in the "
+								 "schema. The following loci are not in the schema: {0}.")
 
 # Input file is a FASTA file but chewBBACA expects a file with a list of
 # file paths
@@ -676,21 +942,6 @@ NO_MSAS_CREATED = ('Could not compute the MSA for any of the files. Exiting...')
 
 COMPUTEMSA_NO_SCHEMA = ('Schema directory must be provided when input is a TSV file with allelic profiles.')
 
-# Define sequence identifier prefix to avoid issues where makeblastdb modifies the IDs
-# of the sequences when creating the database (e.g. when IDs are interpreted as PDB chain IDs)
-BLASTDB_LCL_PREFIX = 'lcl|SEQ'
-BLASTDB_SEQ_PREFIX = 'SEQ'
-
-# List of valid files for the MergeResults module
-# Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
-ALLELECALL_OUTFILES = ['results_alleles.tsv', 'results_contigsInfo.tsv',
-					   'results_statistics.tsv', 'loci_summary_stats.tsv',
-					   'invalid_cds.txt', 'cds_coordinates.tsv',
-					   'missing_classes.fasta', 'missing_classes.tsv',
-					   'unclassified_sequences.fasta', 'paralogous_counts.tsv',
-					   'paralogous_loci.tsv', 'novel_alleles.fasta',
-					   'presence_absence.tsv']
-
 CONFLICTING_ARGUMENTS = ("The value provided for the {0} does not match any of the values used with the schema ({1}).")
 
 SUBSETRESULTS_MISSING_LISTS_EXCEPTION = ('Did not provide a list of loci or samples. Please '
@@ -724,12 +975,8 @@ HASHPROFILES_INVALID_HASHING = ('{0} hash function is not available in the hashl
 				 				'(https://docs.python.org/3/library/hashlib.html) and '
 				 				'zlib (https://docs.python.org/3/library/zlib.html) modules.')
 
-GENE_PREDICTORS = ["pyrodigal", "augustus"]
-
 INVALID_GENE_PREDICTOR = ("Specified gene predictor is not valid. Please provide one of the following "
                           f"supported gene predictors: {', '.join(GENE_PREDICTORS)}.")
-
-AUGUSTUS_ALIAS = 'augustus'
 
 AUGUSTUS_MISSING = ("Could not find AUGUSTUS executables. Please ensure that AUGUSTUS is installed "
                     "and added to the PATH environment variable.")
@@ -737,26 +984,8 @@ AUGUSTUS_MISSING = ("Could not find AUGUSTUS executables. Please ensure that AUG
 AUGUSTUS_INVALID_SPECIES = ("Specified species ID is not in the list of supported species for "
                             "AUGUSTUS. Please provide one of the following supported species IDs:\n{0}.")
 
-AUGUSTUS_OUTFMTS = ['genes', 'gff']
-
-AUGUSTUS_OUTFMT_DEFAULT = ["genes"]
-
 AUGUSTUS_INVALID_OUTFMT = ("Invalid output format specified for AUGUSTUS results. Please select a single "
                             "or multiple of the following supported output formats: {0}")
-
-PYRODIGAL_MODES = ["single", "meta"]
-
-PYRODIGAL_DEFAULT_MODE = "single"
-
-PYRODIGAL_OUTFMTS = ['genes', 'translations', 'gff', 'genbank', 'scores']
-
-PYRODIGAL_DEFAULT_OUTFMTS = ['genes']
-
-PYRODIGAL_MIN_CONFIDENCE = 0.0
-
-PYRODIGAL_MAX_CONFIDENCE = 100.0
-
-GENE_PREDICTOR_DEFAULT = "pyrodigal"
 
 PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal results. Please select a single "
                             "or multiple of the following supported output formats: {0}")
@@ -764,127 +993,7 @@ PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal resul
 INVALID_PYRODIGAL_MODE = ("Invalid execution mode specified for Pyrodigal. Please choose one of the "
                           f"following supported execution modes: {PYRODIGAL_MODES}.")
 
-AUGUSTUS_GFF_FILTERS = ["# start gene", "# coding sequence"]
-
-VALID_PARAMETERS = {"augustus": ["augustus_species", "augustus_output_formats", "augustus_path"],
-					"pyrodigal": ["pyrodigal_training_file", "pyrodigal_mode",
-							  	  "pyrodigal_output_formats", "pyrodigal_minimum_confidence",
-							  	  "pyrodigal_training_reference", "pyrodigal_just_training"]}
-
 MISSING_INPUTS = ("Some of the paths to input files are not valid.")
-
-CPU_CORES_DEFAULT = 1
-CPU_CORES_MIN = 1
-
-# List of parameter names used by chewBBACA
-INPUT_FILES_ARGNAME = "input_path"
-OUTPUT_DIRECTORY_ARGNAME = "output_directory"
-GENE_PREDICTOR_ARGNAME = "gene_predictor"
-GENE_PREDICTION_OPTIONS_ARGNAME = "gene_prediction_options"
-TRANSLATION_TABLE_ARGNAME = "translation_table"
-CPU_CORES_ARGNAME = "cpu_cores"
-SCHEMA_NAME_ARGNAME = "schema_name"
-BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
-MINIMUM_LENGTH_ARGNAME = "minimum_length"
-SIZE_THRESHOLD_ARGNAME = "size_threshold"
-CLUSTERING_OPTIONS_ARGNAME = "clustering_options"
-BLAST_PATH_ARGNAME = "blast_path"
-CDS_INPUT_ARGNAME = "cds_input"
-NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
-NO_CLEANUP_ARGNAME = "no_cleanup"
-SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
-LOCI_LIST_ARGNAME = "loci_list"
-NO_INFERRED_ARGNAME = "no_inferred"
-OUTPUT_UNCLASSIFIED_ARGNAME = "output_unclassified"
-OUTPUT_MISSING_ARGNAME = "output_missing"
-OUTPUT_NOVEL_ARGNAME = "output_novel"
-OUTPUT_MASKED_ARGNAME = "output_masked_profiles"
-FORCE_CONTINUE_ARGNAME = "force_continue"
-EXECUTION_MODE_ARGNAME = "execution_mode"
-ANNOTATIONS_FILE_ARGNAME = "annotations_file"
-LOCI_REPORTS_ARGNAME = "loci_reports"
-LIGTH_ARGNAME = "light"
-ADD_SEQUENCES_ARGNAME = "add_sequences"
-RESULTS_FILES_ARGNAME = "results_files"
-RESULTS_DIRECTORIES_ARGNAME = "results_directories"
-NO_PRESENCE_ABSENCE_ARGNAME = "no_presence_absence"
-NO_DISTANCE_MATRIX_ARGNAME = "no_distance_matrix"
-NO_NEIGHBOR_JOINING_ARGNAME = "no_neighbor_joining"
-FORCE_CORE_MSA_ARGNAME = "force_core_msa"
-PROFILES_ARGNAME = "profiles"
-LOCI_PRESENCE_THRESHOLD_ARGNAME = "loci_presence_threshold"
-SAMPLE_STEP_ARGNAME = "sample_step"
-COMPUTE_ACCESSORY_ARGNAME = "compute_accessory"
-RAREFACTION_ANALYSIS_ARGNAME = "rarefaction_analysis"
-PERMUTATION_NUMBER_ARGNAME = "permutation_number"
-PERMUTATION_SAMPLES_ARGNAME = "permutation_samples"
-EXCLUDE_LOCI_ARGNAME = "exclude_loci"
-EXCLUDE_GENOMES_ARGNAME = "exclude_genomes"
-SAMPLE_LIST_ARGNAME = "sample_list"
-INVERT_LOCI_ARGNAME = "invert_loci"
-INVERT_SAMPLES_ARGNAME = "invert_samples"
-COMMON_ARGNAME = "common"
-ALLELIC_PROFILES_ARGNAME = "allelic_profiles"
-HASHING_ALGO_ARGNAME = "hashing_algo"
-NROW_CHUNK_ARGNAME = "nrow_chunk"
-TRANSLATE_ALLELES_ARGNAME = "translate_alleles"
-DISTINCT_ARGNAME = "distinct"
-SIZE_FILTER_ARGNAME = "size_filter"
-PROTEIN_TABLE_ARGNAME = "protein_table"
-PROTEOME_TAXA_ARGNAME = "proteome_taxa"
-PROTEOME_MATCHES_ARGNAME = "proteome_matches"
-NO_SPARQL_ARGNAME = "no_sparql"
-DISTANCE_COMPUTATION_METHOD_ARGNAME = "distance_computation_method"
-OUTPUT_FORMAT_ARGNAME = "output_format"
-COMPUTE_SIMILARITY_ARGNAME = "compute_similarity"
-NO_MASK_ARGNAME = "no_mask"
-DNA_MSA_ARGNAME = "dna_msa"
-OUTPUT_VARIABLE_ARGNAME = 'output_variable'
-GAPS_ARGNAME = "gaps"
-AMBIGUOUS_ARGNAME = "ambiguous"
-ONLY_LOCI_MSAS_ARGNAME = "only_loci_msas"
-CUSTOM_MAFFT_OPTIONS_ARGNAME = "custom_mafft_options"
-PROTEIN_INPUT_ARGNAME = "protein_input"
-SPECIES_ID_ARGNAME = "species_id"
-SCHEMA_ID_ARGNAME = "schema_id"
-NOMENCLATURE_SERVER_INSTANCE_ARGNAME = "nomenclature_server_instance"
-SCHEMA_DATE_ARGNAME = "schema_date"
-LATEST_VERSION_ARGNAME = "latest_version"
-LOCI_PREFIX_ARGNAME = "loci_prefix"
-DESCRIPTION_FILE_ARGNAME = "description_file"
-CONTINUE_UPLOAD_ARGNAME = "continue_upload"
-SUBMIT_ALLELES_ARGNAME = "submit_alleles"
-STATS_MODE_ARGNAME = "stats_mode"
-CHEWIE_VERSION_ARGNAME = "chewie_version"
-PYRODIGAL_MODE_ARGNAME = "pyrodigal_mode"
-PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
-AUGUSTUS_PATH_ARGNAME = "augustus_path"
-CLUSTERING_WORD_ARGNAME = "word_size"
-CLUSTERING_WINDOW_ARGNAME = "window_size"
-CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
-CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
-CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
-UNIPROT_REST_API_ARGNAME = "rest_api"
-UNIPROT_REST_API_MATCHES_ARGNAME = "rest_api_matches"
-
-NSSTATS_MODE_CHOICES = ['species', 'schemas']
-
-DEFAULT_GAPS = "exclude"
-GAPS_CHOICES = ["ignore", "exclude"]
-
-DEFAULT_AMBIGUOUS = "exclude"
-AMBIGUOUS_CHOICES = ["ignore", "exclude"]
-
-DEFAULT_DISTANCE_METHOD = "hamming"
-DISTANCE_METHODS = ['hamming', 'jaccard', 'loci', 'core']
-INVALID_DISTANCE_METHOD = ("Invalid distance method specified.")
-
-DEFAULT_OUTPUT_FORMAT = "lower_triangular"
-OUTPUT_FORMATS = ['upper_triangular', 'lower_triangular', 'symmetric', 'table']
-INVALID_OUTPUT_FORMAT = ("Invalid output format specified.")
-
-PERMUTATION_NUMBER_DEFAULT = 100
-PERMUTATION_SAMPLES_DEFAULT = None
 
 INVALID_GENEPREDICTOR_PARAMETER = ("{0} is not a valid parameter=argument pair used to configure gene prediction with {1}.")
 INVALID_PARAMETER_STR = ("{0} is not a valid parameter=argument pair.")
@@ -892,104 +1001,15 @@ INVALID_PARAMETER_STR = ("{0} is not a valid parameter=argument pair.")
 PYRODIGAL_META_NOPTF = ("Cannot use a training file when running Pyrodigal in `meta` mode. "
 						"Please do not provide a training file if setting Pyrodigal's running mode to `meta`.")
 
-# Define expected types for the arguments
-ARGUMENT_TYPES = {
-	"input_files": str,
-	"output_directory": str,
-	"schema_directory": str,
-	"loci_list": str,
-	"gene_predictor": str,
-	"gene_prediction_options": str,
-	"translation_table": int,
-	"cpu_cores": int,
-	"schema_name": str,
-	"blast_score_ratio": float,
-	"minimum_length": int,
-	"size_threshold": float,
-	"clustering_options": str,
-	"blast_path": str,
-	"cds_input": bool,
-	"no_cds_renaming": bool,
-	"no_cleanup": bool,
-	"augustus_species": str,
-	"augustus_output_formats": str,
-	"augustus_path": str,
-	"pyrodigal_training_file": str,
-	"pyrodigal_mode": str,
-	"pyrodigal_output_formats": str,
-	"pyrodigal_minimum_confidence": float,
-	"pyrodigal_training_reference": str,
-	"pyrodigal_just_training": bool,
-	"word_size": int,
-	"window_size": int,
-	"clustering_sim": float,
-	"representative_filter": float,
-	"intra_filter": float,
-	"annotations_file": str,
-	"results_files": str,
-	"results_directories": str,
-	"profiles": str,
-	"loci_presence_threshold": float,
-	"sample_step": int,
-	"permutation_number": int,
-	"permutation_samples": int,
-	"exclude_loci": str,
-	"exclude_genomes": str,
-	"sample_list": str,
-	"allelic_profiles": str,
-	"hash_type": str,
-	"size_filter": bool,
-	"protein_table": str,
-	"taxa":str,
-	"proteome_matches": int,
-	"no_sparql": bool,
-	"output_format": str,
-	"output_variable": bool,
-	"execution_mode": int,
-	"hashing_algo": str,
-	"nrow_chunk": int,
-	"proteome_taxa": str,
-	"rest_api": bool,
-	"rest_api_matches": int,
-	"distance_computation_method": str,
-	"input_path": str,
-	"gaps": str,
-	"ambiguous": str,
-	"custom_mafft_options":str,
-	"species_id": str,
-	"schema_id": str,
-	"nomenclature_server_instance": str,
-	"schema_date": str,
-	"latest_version": bool,
-	"loci_prefix": str,
-	"description_file": str,
-	"continue_upload": bool,
-	"stats_mode": str,
-}
-
 CANNOT_PROVIDE_PTF_AND_TREF = ("Cannot provide a Pyrodigal training file and a training reference "
 							   "to create a training file. Please provide either a training "
 							   "file or a training reference to create a new training file, "
 							   "not both.")
 
-SCHEMA_NAME_DEFAULT = "schema_seed"
-
-# Links to Documentation pages
-PredictGenesDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/PredictGenes.html"
-CreateSchemaDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/CreateSchema.html"
-AlleleCallDocs = "https://chewbbaca.readthedocs.io/en/latest/user/modules/AlleleCall.html"
-
-ALLELECALL_MODES = {1: "Searches for exact matches at the DNA level between the schema alleles and the input CDSs.",
-                    2: "Searches for exact matches at the DNA and protein levels between the schema alleles and the input CDSs.",
-					3: "Searches for exact matches at the DNA and protein levels and clusters CDSs against all representative alleles followed by intracluster BLASTp.",
-					4: "The default mode. Runs the whole process (exact matching, clustering followed by intracluster BLASTp, and a final all-vs-all BLASTp between all representative alleles and the remaining unclassified CDSs)."}
-
-ALLELECALL_DEFAULT_MODE = 4
-
 INVALID_ALLELECALL_MODE = ("Specified invalid mode for allele calling. Please provide one of the "
                            f"following supported modes: {'\n'.join([str(k)+': '+v for k, v in ALLELECALL_MODES.items()])}")
 
-MISSING_RESULTS_ALLELES = (f"Input directory with results data does not include the {RESULTS_ALLELES_BASENAME} file.")
+MISSING_RESULTS_FILES = (f"Input directory with results data must include the following file types: {0}.")
 
 MISSING_ANNOTATIONS_FILE = ("Path provided for the annotations file {0} is not valid.")
 
@@ -1009,33 +1029,10 @@ INVALID_EXCLUDE_SAMPLES = ("The following sample IDs in the list provided to `--
 
 PROFILES_FILE_MISSING = ("The path provided to the TSV file with allelic profiles is not valid.")
 
-HASHPROFILES_DEFAULT_HASH_ALGO = "crc32"
+INVALID_OUTPUT_FORMAT = ("Invalid output format specified.")
 
-MISSING_PROTEIN_TABLE = ("Path for protein table is not valid.")
+INVALID_DISTANCE_METHOD = ("Invalid distance method specified.")
 
-UNIPROT_QUERY_TEMPLATE = """
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX up: <http://purl.uniprot.org/core/>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-
-SELECT DISTINCT ?protein ?productName ?geneName
-WHERE {{
-  ?seqObj a up:Simple_Sequence ;
-          up:md5Checksum "{0}" .
-
-  ?protein up:sequence ?seqObj .
-
-  OPTIONAL {{ ?protein up:recommendedName/up:fullName ?productName . }}
-  OPTIONAL {{
-    ?protein up:encodedBy ?gene .
-    ?gene skos:prefLabel ?geneName .
-  }}
-}}
-"""
-
-ANNOTATE_SCHEMA_FIRST_COLUMN = "Locus"
-ANNOTATE_SCHEMA_PROTEOME_COLUMNS = ["Proteome_ID", "Proteome_Product", "Proteome_Gene_Name", "Proteome_Species", "Proteome_BSR"]
-ANNOTATE_SCHEMA_RESTAPI_COLUMNS = ["RestAPI_Accession", "RestAPI_Source", "RestAPI_TaxID", "RestAPI_Taxon", "RestAPI_Protein_Name", "RestAPI_Gene_Name", "RestAPI_URL"]
 ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD = ("No annotation method was specified. Please provide either a single "
                                         "or multiple taxon names to '--ptax, --proteome-taxa' or '--rapi, "
 										"--rest-api' to query UniProt's Proteins API or both options.")
@@ -1043,4 +1040,9 @@ ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD = ("No annotation method was specified. Ple
 COMPUTEMSA_INVALID_GAPS_OPTION = (f"Invalid option provided to '--gaps'. Please provide one of the following option: {DEFAULT_GAPS}")
 COMPUTEMSA_INVALID_AMBIGUOUS_OPTION = (f"Invalid option provided to '--ambiguous'. Please provide one of the following options: {DEFAULT_AMBIGUOUS}")
 
-NS_STATS_INVALID_MODE = (f"Invalid value passed to '--sm, --stats-mode'. Please select one of the following options: {NSSTATS_MODE_CHOICES}")
+NS_STATS_INVALID_MODE = (f"Invalid value passed to '--sm, --stats-mode'. Please select one of the following options: {NSSTATS_MODES}")
+
+FORCE_TRAINING_FILE = ("Provided a Pyrodigal training file. Ignoring the translation table value previously set "
+                       "({0}) and using the genetic code defined in the training file ({1}).")
+
+MISSING_PROTEIN_TABLE = ("Path for protein table is not valid.")

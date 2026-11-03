@@ -251,3 +251,41 @@ def run_blastdbcmd(blastdbcmd_path, blast_db, output_file):
 		sys.exit(f'Cound not extract sequences from {blast_db}.\n')
 
 	return [stdout, stderr]
+
+
+def get_blast_version(blastp_path):
+	"""Determine version of BLAST.
+
+	Parameters
+	----------
+	blastp_path : str
+		Path to the BLASTp executable.
+
+	Returns
+	-------
+	version : dict or NoneType
+		Dictionary with the BLAST MAJOR and MINOR versions or
+		NoneType if it was not possible to determine the BLAST
+		version.
+	"""
+	# Try to get BLAST version using BLASTp
+	try:
+		proc = subprocess.Popen([blastp_path, '-version'],
+								stdout=subprocess.PIPE,
+								stderr=subprocess.PIPE)
+		stdout, stderr = proc.communicate()
+		# Process the version string
+		version_string = stdout.decode('utf8')
+		version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
+		blast_version_pat = re.compile(version_pattern)
+		match = blast_version_pat.search(version_string)
+		# Got something
+		if match is not None:
+			version = {k: int(v) for k, v in match.groupdict().items()}
+		# No matches
+		else:
+			version = None
+	except:
+		version = None
+
+	return version

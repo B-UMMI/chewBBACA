@@ -19,9 +19,9 @@ try:
 	from AlleleCall import allele_call
 	from SchemaEvaluator import evaluate_schema
 	from AlleleCallEvaluator import evaluate_calls
-	from PrepExternalSchema import adapt_schema
+	from AdaptSchema import adapt_schema
 	from AnnotateSchema import annotate_schema
-	from ExtractCgMLST import determine_cgmlst
+	from ComputeCore import compute_core
 	from SubsetResults import subset_results
 	from HashProfiles import hash_profiles
 	from GetAlleles import get_alleles
@@ -43,9 +43,9 @@ except ModuleNotFoundError:
 	from CHEWBBACA.AlleleCall import allele_call
 	from CHEWBBACA.SchemaEvaluator import evaluate_schema
 	from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
-	from CHEWBBACA.PrepExternalSchema import adapt_schema
+	from CHEWBBACA.AdaptSchema import adapt_schema
 	from CHEWBBACA.AnnotateSchema import annotate_schema
-	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+	from CHEWBBACA.ComputeCore import compute_core
 	from CHEWBBACA.SubsetResults import subset_results
 	from CHEWBBACA.HashProfiles import hash_profiles
 	from CHEWBBACA.GetAlleles import get_alleles
@@ -580,21 +580,21 @@ def run_evaluate_calls():
 
 
 @pdt.process_timer
-def run_determine_cgmlst():
-	"""Run the ExtractCgMLST module to determine the set of core loci based on allele calling results."""
+def run_compute_core():
+	"""Run the ComputeCore module to determine the set of core loci based on allele calling results."""
 
 	def msg(name=None):
-		usage_msg = "chewBBACA.py ExtractCgMLST --input-file <file> --output-directory <dir> [options]"
+		usage_msg = "chewBBACA.py ComputeCore --input-file <file> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="ExtractCgMLST",
+	parser = argparse.ArgumentParser(prog="ComputeCore",
 									 description="Determine the set of core loci based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/ExtractCgMLST.html")
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/ComputeCore.html")
 
-	parser.add_argument("ExtractCgMLST", nargs="+", help=argparse.SUPPRESS)
+	parser.add_argument("ComputeCore", nargs="+", help=argparse.SUPPRESS)
 
 	parser.add_argument("-p", "--profiles", type=ct.ARGUMENT_TYPES[ct.PROFILES_ARGNAME],
 						required=True, dest=ct.PROFILES_ARGNAME,
@@ -666,9 +666,9 @@ def run_determine_cgmlst():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.ExtractCgMLSTValidator.model_validate(clean_args)
+	validated_args = pv.ComputeCoreValidator.model_validate(clean_args)
 
-	determine_cgmlst.main(validated_args)
+	compute_core.main(validated_args)
 
 
 @pdt.process_timer
@@ -760,7 +760,7 @@ def run_merge_results():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.MergeResults.model_validate(clean_args)
+	validated_args = pv.MergeResultsValidator.model_validate(clean_args)
 
 	merge_results.main(validated_args)
 
@@ -887,20 +887,20 @@ def run_get_alleles():
 
 @pdt.process_timer
 def run_adapt_schema():
-	"""Run the PrepExternalSchema module to adapt a typing schema."""
+	"""Run the AdaptSchema module to adapt a typing schema."""
 
 	def msg(name=None):
-		usage_msg = "chewBBACA.py PrepExternalSchema --schema-directory <dir> --output-directory <dir> [options]"
+		usage_msg = "chewBBACA.py AdaptSchema --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="PrepExternalSchema",
+	parser = argparse.ArgumentParser(prog="AdaptSchema",
 									 description="Adapt an external schema to be used with chewBBACA.",
 									 usage=msg(),
 									 formatter_class=pv.ModifiedHelpFormatter,
-									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/PrepExternalSchema.html")
+									 epilog="Module documentation available at https://chewbbaca.readthedocs.io/en/latest/user/modules/AdaptSchema.html")
 
-	parser.add_argument("PrepExternalSchema", nargs="+", help=argparse.SUPPRESS)
+	parser.add_argument("AdaptSchema", nargs="+", help=argparse.SUPPRESS)
 
 	parser.add_argument("-s", "--schema-directory", type=ct.ARGUMENT_TYPES[ct.SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.SCHEMA_DIRECTORY_ARGNAME,
@@ -981,7 +981,7 @@ def run_adapt_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = pv.PrepExternalSchemaValidator.model_validate(clean_args)
+	validated_args = pv.AdaptSchemaValidator.model_validate(clean_args)
 
 	adapt_schema.main(validated_args)
 
@@ -1303,7 +1303,7 @@ def run_download_schema():
 	parser.add_argument("--lv", "--latest-version", action="store_true",
 						required=False, dest=ct.LATEST_VERSION_ARGNAME,
 						help="If the compressed version that is available is not the latest, downloads "
-							 "all loci FASTA files and constructs schema locally using the PrepExternalSchema module.")
+							 "all loci FASTA files and constructs schema locally using the AdaptSchema module.")
 
 	parser.add_argument("--bp", "--blast-path", type=ct.ARGUMENT_TYPES[ct.BLAST_PATH_ARGNAME],
 						required=False, dest=ct.BLAST_PATH_ARGNAME,
@@ -1515,11 +1515,11 @@ def main():
 										  run_evaluate_schema],
 					  'AlleleCallEvaluator': ['Build an interactive report for allele calling results evaluation.',
 											  run_evaluate_calls],
-					  'ExtractCgMLST': ['Determines the set of loci that constitute the core genome based on loci presence thresholds.',
-										run_determine_cgmlst],
+					  'ComputeCore': ['Determines the set of loci that constitute the core genome based on loci presence thresholds.',
+										run_compute_core],
 					  'SubsetResults': ['Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
 										run_subset_results],
-					  'PrepExternalSchema': ['Adapt an external schema to be used with chewBBACA.',
+					  'AdaptSchema': ['Adapt an external schema to be used with chewBBACA.',
 											 run_adapt_schema],
 					  'MergeResults': ['Merge results files created by chewBBACA.',
 									   run_merge_results],

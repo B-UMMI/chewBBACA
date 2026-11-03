@@ -47,7 +47,7 @@ def main(config):
 	print(f'Listing files in {config.results_files}...')
 
 	# Need to list the files in each directory and group them based on filename
-	file_list = {file_type: None for file_type in ct.ALLELECALL_OUTFILES}
+	file_list = {file_type: None for file_type in ct.SUPPORTED_RESULTS_FILES}
 	input_files = fo.listdir(config.results_files, full_path=True)
 	for f in input_files:
 		fbasename = fo.file_basename(f)

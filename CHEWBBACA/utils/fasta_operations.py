@@ -256,7 +256,7 @@ def validate_fasta(file_path):
 		# Biopython used to simply return an empty list for non-FASTA files and ignore comments or special characters, but Biopython 1.86 raises a deprecation warning
 		# Need to use the warnings module to ignore warnings of category BiopythonDeprecationWarning
 		with warnings.catch_warnings():
-			warnings.filterwarnings('ignore', category=BiopythonDeprecationWarning)
+			warnings.filterwarnings("ignore", category=BiopythonDeprecationWarning)
 			# Need to convert to list to exhaust generator
 			# Otherwise it might increase memory usage
 			records = list(sequence_generator(file_path))

@@ -4,23 +4,20 @@
 Purpose
 -------
 
-This module contains functions/classes related to the validation
-of the arguments passed to chewBABCA's modules.
+This module contains functions/classes related to the validation of the
+arguments passed to chewBBACA's modules.
 
 Code documentation
 ------------------
 """
 
 
-import os
-import re
 import sys
 import zlib
 import shutil
 import hashlib
 import argparse
 import platform
-import subprocess
 import multiprocessing
 from typing import Annotated
 from functools import partial
@@ -36,19 +33,23 @@ from pydantic import (BaseModel,
 
 try:
 	from utils import (constants as ct,
+	                   blast_wrapper as bw,
 					   file_operations as fo,
 					   process_datetime as pd,
 					   fasta_operations as fao,
 					   chewiens_requests as cr,
 					   iterables_manipulation as im,
+					   augustus_gene_prediction as agp,
 					   pyrodigal_gene_prediction as pgp)
 except ModuleNotFoundError:
 	from CHEWBBACA.utils import (constants as ct,
+	                             blast_wrapper as bw,
 	                             file_operations as fo,
 	                             process_datetime as pd,
 								 fasta_operations as fao,
 								 chewiens_requests as cr,
 								 iterables_manipulation as im,
+								 augustus_gene_prediction as agp,
 								 pyrodigal_gene_prediction as pgp)
 
 
@@ -75,55 +76,21 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 			return f'{parts_text}'
 
 
-# def validate_ns_url(arg):
-# 	"""Verify if the Chewie-NS URL passed to chewBBACA is valid.
-
-# 	Parameters
-# 	----------
-# 	arg : str
-# 		Identifier of the Chewie-NS instance or the URL
-# 		to a instance of Chewie-NS.
-
-# 	Returns
-# 	-------
-# 	ns_url : str
-# 		URL to connect to the instance of Chewie-NS.
-
-# 	Raises
-# 	------
-# 	SystemExit
-# 		- If it is not possible to connect to the
-# 		chewie-NS instance.
-# 	"""
-# 	if arg in ct.HOST_NS:
-# 		ns_url = ct.HOST_NS[arg]
-# 	else:
-# 		ns_url = arg
-
-# 	# sync schema has None by default to get ns_url in schema URI
-# 	if ns_url is not None:
-# 		# check if server is up
-# 		conn = cr.check_connection(ns_url)
-# 		if conn is False:
-# 			sys.exit(ct.NS_CANNOT_CONNECT.format(ns_url))
-
-# 	return ns_url
-
-
 def validate_python_version(minimum_version):
 	"""Validate Python version used to run chewBBACA.
 
 	Parameters
 	----------
 	minimum_version : tuple
-		A tuple with the Puthon version as (MAJOR, MINOR, PATCH).
-		According to the rules of Semanting Versioning
-		(https://semver.org/).
+		A tuple with the Python version as (MAJOR, MINOR, PATCH) according 
+		to the rules of Semanting Versioning (https://semver.org/).
 
 	Returns
 	-------
-	python_version : str
-		Python version in format "MAJOR.MINOR.PATCH".
+	valid : bool
+		True if the Python version is compatible with chewBBACA, False otherwise.
+	version : str
+		Python version in the format "MAJOR.MINOR.PATCH".
 
 	Raises
 	------
@@ -138,100 +105,26 @@ def validate_python_version(minimum_version):
 	return valid, version
 
 
-def is_exe(fpath):
-	"""Determine if path points to a file and if the file is an executable.
-
-	Parameters
-	----------
-	fpath : str
-		Path to a file.
-
-	Returns
-	-------
-	True if the file exists and is executable, False otherwise.
-	"""
-	return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-
-def get_blast_version(blastp_path):
-	"""Determines BLAST version.
-
-	Parameters
-	----------
-	blastp_path : str
-		Path to the BLASTp executable.
-
-	Returns
-	-------
-	version : dict or NoneType
-		Dictionary with the BLAST MAJOR and MINOR versions or
-		NoneType if it was not possible to determine the BLAST
-		version.
-	"""
-	# Try to get BLAST version using BLASTp
-	try:
-		proc = subprocess.Popen([blastp_path, '-version'],
-								stdout=subprocess.PIPE,
-								stderr=subprocess.PIPE)
-		stdout, stderr = proc.communicate()
-		# Process the version string
-		version_string = stdout.decode('utf8')
-		version_pattern = r'^blastp:\s(?P<MAJOR>\d+).(?P<MINOR>\d+).(?P<REV>\d+).*'
-		blast_version_pat = re.compile(version_pattern)
-		match = blast_version_pat.search(version_string)
-		# Got something
-		if match is not None:
-			version = {k: int(v) for k, v in match.groupdict().items()}
-		# No matches
-		else:
-			version = None
-	except:
-		version = None
-
-	return version
-
-
-def get_file_prefixes(path_list):
-	"""Determine the file prefix for each file in a list of file paths.
-
-	Parameters
-	----------
-	path_list : list
-		List with file paths.
-
-	Returns
-	-------
-	prefixes :  dict
-		Dictionary with file prefixes as keys and file basenames
-		as values.
-	"""
-	basenames = {fo.file_basename(file, False): file for file in path_list}
-	basename_counts = {}
-	for k, v in basenames.items():
-		if k not in basename_counts:
-			basename_counts[k] = [v]
-		else:
-			basename_counts[k] += [v]
-
-	return basename_counts
-
-
-def list_input_files(input_path):
-	""""""
-	if os.path.isfile(input_path):
-		# Read list of input files
-		input_files = [line[0] for line in fo.read_tabular(input_path)]
-	# Input path is for a directory
-	elif os.path.isdir(input_path):
-		# List absolute paths
-		# Only keep paths to files
-		input_files = [file for file in fo.listdir(input_path, full_path=True) if os.path.isdir(file) is False]
-
-	return input_files
-
-
 def filter_inputs_extension(input_files, extensions=ct.FASTA_EXTENSIONS):
-	""""""
+	"""Determine if files end with any of the supported file extensions.
+
+	Parameters
+	----------
+	input_files : list
+		List with paths to input files.
+	extensions : list
+		List of supported file extensions.
+
+	Returns
+	-------
+	input_files : list
+		List with paths to input files that have a supported file extension.
+	
+	Raises
+	------
+	SystemExit
+		- If any of the input files has a non-supported file extension.
+	"""
 	# Need to verify if files end with any of the accepted file extensions
 	valid_extension, invalid_extension = fo.filter_by_extension(input_files, extensions)
 	if len(invalid_extension) > 0:
@@ -243,18 +136,50 @@ def filter_inputs_extension(input_files, extensions=ct.FASTA_EXTENSIONS):
 
 
 def inputs_exist(input_files):
-	""""""
+	"""Determine if all input files exist.
+
+	Parameters
+	----------
+	input_files : list
+		List with paths to input files.
+	
+	Returns
+	-------
+	input_files : list
+		List with paths to input files that exist.
+
+	Raises
+	------
+	SystemExit
+		- If any of the input files does not exist.
+	"""
 	# Check that all files exist
 	missing_inputs = [file for file in input_files if fo.exists(file) is False]
 	if len(missing_inputs) > 0:
 		missing_joined = "\n".join(missing_inputs)
-		sys.exit(ct.MISSMISSING_INPUTS_EXCEPTIONING_INPUTS.format(missing_joined))
+		sys.exit(ct.MISSING_INPUTS_EXCEPTION.format(missing_joined))
 
 	return input_files
 
 
 def validate_inputs_fastas(input_files):
-	""""""
+	"""Determine if all input files are in a valid FASTA format.
+
+	Parameters
+	----------
+	input_files : list
+		List with paths to input files.
+	
+	Returns
+	-------
+	input_files : list
+		List with paths to input files that are in a valid FASTA format.
+
+	Raises
+	------
+	SystemExit
+		- If any of the input files is not in a valid FASTA format.
+	"""
 	# Input FASTA files must have a valid format
 	fasta, non_fasta = fao.filter_non_fasta(input_files)
 	if len(non_fasta) > 0:
@@ -266,23 +191,24 @@ def validate_inputs_fastas(input_files):
 
 
 def check_unique_prefixes(input_files):
-	"""Check if all input files have an unique identifier.
+	"""Check if all input files have a unique identifier.
 
 	Parameters
 	----------
-	input_list : str
-		Path to file that contains the list of paths to input files.
+	input_list : list
+		List with paths to input files.
 
 	Returns
 	-------
-	False if there are no input files sharing the same identifier.
+	input_files : list
+		List with paths to input files that have a unique identifier.
 
 	Raises
 	------
 	SystemExit
-		- If there are multiple files sharing the same prefix.
+		- If there are multiple files sharing the same unique prefix.
 	"""
-	prefixes = get_file_prefixes(input_files)
+	prefixes = fo.get_file_prefixes(input_files)
 	# Detect if some inputs share the same unique prefix
 	if len(set(prefixes)) < len(input_files):
 		repeated_basenames = [f"{k}: {', '.join(v)}" for k, v in prefixes.items() if len(v) > 1]
@@ -298,12 +224,13 @@ def check_blanks(input_files):
 
 	Parameters
 	----------
-	input_list : str
-		Path to file that contains the list of paths to input files.
+	input_files : list
+		List with paths to input files.
 
 	Returns
 	-------
-	False if there are no blank spaces in the filenames.
+	input_files : list
+		List with paths to input files that do not include blank spaces in the filename.
 
 	Raises
 	------
@@ -320,7 +247,24 @@ def check_blanks(input_files):
 
 
 def check_blast(blast_path, blastp_alias=ct.BLASTP_ALIAS):
-	"""
+	"""Determine if BLAST executables are available in the system.
+
+	Parameters
+	----------
+	blast_path : str
+		Path to the folder containing BLAST executables.
+	blastp_alias : str
+		Alias used to call BLASTp.
+
+	Returns
+	-------
+	blast_path : str
+		Path to the folder containing BLAST executables.
+
+	Raises
+	------
+	SystemExit
+		- If BLAST executables are not available in the system.
 	"""
 	# User did not provide a path, try to determine path to BLAST executables using BLASTp alias
 	if not blast_path:
@@ -333,12 +277,33 @@ def check_blast(blast_path, blastp_alias=ct.BLASTP_ALIAS):
 
 
 def check_blast_version(blast_path, blastp_alias=ct.BLASTP_ALIAS, major=ct.BLAST_MAJOR, minor=ct.BLAST_MINOR):
-	"""
+	"""Determine if the BLAST version meets minimum requirements.
+
+	Parameters
+	----------
+	blast_path : str
+		Path to the folder containing BLAST executables.
+	blastp_alias : str
+		Alias used to call BLASTp.
+	major : int
+		Minimum required MAJOR version of BLAST.
+	minor : int
+		Minimum required MINOR version of BLAST.
+	
+	Returns
+	-------
+	blast_path : str
+		Path to the folder containing BLAST executables.
+
+	Raises
+	------
+	SystemExit
+		- If the BLAST version does not meet minimum requirements.
 	"""
 	# Create path to BLASTp executable
 	blastp_path = fo.join_paths(blast_path, [blastp_alias])
 	# Get BLAST version
-	blast_version = get_blast_version(blastp_path)
+	blast_version = bw.get_blast_version(blastp_path)
 	# Determine if BLAST version meets minimum requirements
 	if blast_version['MAJOR'] < major or (blast_version['MAJOR'] >= major and blast_version['MINOR'] < minor):
 		sys.exit(ct.BLAST_INVALID_VERSION)
@@ -347,7 +312,24 @@ def check_blast_version(blast_path, blastp_alias=ct.BLASTP_ALIAS, major=ct.BLAST
 
 
 def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
-	"""
+	"""Determine if AUGUSTUS executable is available in the system.
+
+	Parameters
+	----------
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
+	augustus_alias : str
+		Alias used to call AUGUSTUS.
+
+	Returns
+	-------
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
+
+	Raises
+	------
+	SystemExit
+		- If AUGUSTUS executable is not available in the system.
 	"""
 	# User did not provide a path, try to determine path to the AUGUSTUS executable using its alias
 	if not augustus_path:
@@ -359,45 +341,30 @@ def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
 	return augustus_path
 
 
-def get_augustus_species_list(augustus_exe):
-	"""Get the list of species' models supported by AUGUSTUS.
+def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
+	"""Validate if the provided AUGUSTUS species is supported by the installed version of AUGUSTUS.
 
 	Parameters
 	----------
+	species_id : str
+		Species ID provided by the user.
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
 	augustus_alias : str
 		Alias used to call AUGUSTUS.
 
 	Returns
 	-------
-	version : str
+	species_id : str
+		Species ID that will be used for AUGUSTUS gene prediction.
+
+	Raises
+	------
+	SystemExit
+		- If the provided species ID is not supported by the installed version of AUGUSTUS.
 	"""
-	# Try to get the list os species' models supported by AUGUSTUS'
-	proc = subprocess.Popen([augustus_exe, '--species=help'],
-							stdout=subprocess.PIPE,
-							stderr=subprocess.PIPE,
-							text=True)
-	stdout, stderr = proc.communicate()
-	# Process the list of species printed to stdout
-	species_list = {}
-	# List of species is printed to stderr
-	i = 0
-	for line in stderr.split("\n"):
-		if "|" in line:
-			i += 1
-			# Skip the table header and separator
-			if i > 2:
-				species_id, species_name = line.split("|")
-				species_id = species_id.strip()
-				species_name = species_name.strip()
-				species_list[species_name] = species_id
-
-	return species_list
-
-
-def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
-	""""""
 	augustus_exe = fo.join_paths(augustus_path, [augustus_alias])
-	species_list = get_augustus_species_list(augustus_exe)
+	species_list = agp.get_augustus_species_list(augustus_exe)
 
 	if species_id not in species_list.values():
 		# Create string with list of options
@@ -409,7 +376,23 @@ def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUS
 
 
 def input_is_fasta(input_path):
-	""""""
+	"""Determine if the provided input is a single FASTA file.
+
+	Parameters
+	----------
+	input_path : str
+		Path to the input file.
+
+	Returns
+	-------
+	input_path : str
+		Path to the input file if it is a single FASTA file.
+
+	Raises
+	------
+	SystemExit
+		- If the provided input is a FASTA file.
+	"""
 	# Check if input is a single FASTA file
 	if fo.is_file(input_path)[0]:
 		if fao.validate_fasta(input_path):
@@ -419,42 +402,89 @@ def input_is_fasta(input_path):
 
 
 def add_ptf_genetic_code(ptf_path, genetic_code):
-	"""
+	"""Determine if the provided Pyrodigal training file has a different genetic code than the one provided by the user.
+
+	Parameters
+	----------
+	ptf_path : str
+		Path to the Pyrodigal training file.
+	genetic_code : int
+		Genetic code provided by the user.
+
+	Returns
+	-------
+	genetic_code : int
+		Genetic code that will be used for Pyrodigal gene prediction.
 	"""
 	# Get translation table used to create training file
 	ptf_genetic_code = pgp.read_training_file(ptf_path).translation_table
 	if ptf_genetic_code != genetic_code:
-		print("Provided a Pyrodigal training file. Ignoring the translation table "
-				f"value previously set ({genetic_code}) and using the genetic "
-				f"code defined in the training file ({ptf_genetic_code}).")
+		print(ct.FORCE_TRAINING_FILE.format(genetic_code, ptf_genetic_code))
 		genetic_code = ptf_genetic_code
 
 	return genetic_code
 
 
 def check_meta(pyrodigal_mode, pyrodigal_training_file):
+	"""Determine if the provided Pyrodigal mode is compatible with the provided training file.
+
+	Parameters
+	----------
+	pyrodigal_mode : str
+		Pyrodigal mode provided by the user.
+	pyrodigal_training_file : str
+		Path to the Pyrodigal training file provided by the user.
+
+	Returns
+	-------
+	pyrodigal_mode : str
+		Pyrodigal mode that will be used for Pyrodigal gene prediction.
+
+	Raises
+	------
+	SystemExit
+		- If the provided Pyrodigal mode is "meta" and a training file was provided.
 	"""
-	"""
-	if pyrodigal_mode == 'meta' and pyrodigal_training_file is not None:
+	if pyrodigal_mode == "meta" and pyrodigal_training_file is not None:
 		sys.exit(ct.PYRODIGAL_META_NOPTF)
 
 	return pyrodigal_mode
 
 
 def validate_multiple_choices(choices, valid_options, exception_str):
-	""""""
+	"""Validate if all provided choices are valid options.
+
+	Parameters
+	----------
+	choices : list
+		List of choices provided by the user.
+	valid_options : list
+		List of valid options.
+	exception_str : str
+		Exception string to be printed if any of the provided choices is not a valid option.
+
+	Returns
+	-------
+	choices : list
+		List of choices that are valid options.
+
+	Raises
+	------
+	SystemExit
+		- If any of the provided choices is not a valid option.
+	"""
 	if not all([option in valid_options for option in choices]):
 		sys.exit(exception_str.format(valid_options))
 
 	return choices
 
 
-def verify_cpu_usage(arg):
+def verify_cpu_usage(cpu_value):
 	"""Verify if the cores/threads value does not exceed available resources.
 
 	Parameters
 	----------
-	cpu_to_use : int
+	cpu_value : int
 		Value provided for the number of CPU cores/threads.
 
 	Returns
@@ -463,15 +493,26 @@ def verify_cpu_usage(arg):
 		Value of CPU cores/threads that will be used after
 		determining if the provided value was safe.
 	"""
+	# Determine number of cores/threads available in the system
 	system_ncores = multiprocessing.cpu_count()
-	if arg == system_ncores:
+	if cpu_value == system_ncores:
 		print(ct.CPU_VALUE_WARNING.format(system_ncores))
 
-	return arg
+	return cpu_value
 
 
 def parse_parameter_string(input_string):
-	"""
+	"""Parse a string of parameter=argument pairs.
+
+	Parameters
+	----------
+	input_string : list
+		List of strings with parameter=argument pairs.
+
+	Returns
+	-------
+	config_args : dict
+		Dictionary with parameter names as keys and argument values as values.
 	"""
 	config_args = {}
 	for v in input_string:
@@ -487,33 +528,107 @@ def parse_parameter_string(input_string):
 
 
 def validate_choice(choice, valid_options, exception_str):
-	""""""
+	"""Validate if the provided choice is a valid option.
+
+	Parameters
+	----------
+	choice : str
+		Choice provided by the user.
+	valid_options : list
+		List of valid options.
+	exception_str : str
+		Exception string to be printed if the provided choice is not a valid option.
+
+	Returns
+	-------
+	choice : str
+		The validated choice.
+
+	Raises
+	------
+	SystemExit
+		- If the provided choice is not a valid option.
+	"""
 	if choice not in valid_options:
 		sys.exit(exception_str)
 
 	return choice
 
 
-# Check if parent directory for the provided output_dir exists
-# field_validator is used to check before the class is instantiated
 def parentdir_exists(input_path):
-	parent_dir = os.path.dirname(input_path)
-	if not os.path.isdir(parent_dir):
+	"""Determine if the parent directory of the provided path exists.
+	
+	Parameters
+	----------
+	input_path : str
+		Path for which to check the parent directory.
+
+	Returns
+	-------
+	input_path : str
+		The input path if the parent directory exists.
+
+	Raises
+	------
+	ValueError
+		- If the parent directory for the provided path does not exist.
+	"""
+	parent_dir = fo.get_parent_directory(input_path)
+	if not fo.is_directory(parent_dir)[0]:
 		raise ValueError(f"Parent directory for '{input_path}' does not exist.")
+
 	return input_path
 
 
-def input_path_exists(input_path, function, exception_str):
+def input_paths_exist(input_path, function, exception_str):
+	"""Determine if the provided input path(s) exist.
+
+	Parameters
+	----------
+	input_path : str or list
+		Path(s) for which to check existence.
+	function : callable
+		Function to use for checking existence.
+	exception_str : str
+		Exception string to be printed if any path does not exist.
+
+	Returns
+	-------
+	input_path : str or list
+		The input path(s) if all exist.
+
+	Raises
+	------
+	SystemExit
+		- If any of the provided paths do not exist.
+	"""
 	# Convert into list if it is a single path/str
 	path_list = input_path if type(input_path) is list else [input_path]
 	for path in path_list:
 		if not function(path):
 			sys.exit(exception_str.format(path))
+
 	return input_path
 
 
 def create_output_directory(output_path):
-	""""""
+	"""Create the output directory if it does not exist.
+	
+	Parameters
+	----------
+	output_path : str
+		Path to the output directory.
+
+	Returns
+	-------
+	output_path : str
+		Path to the output directory.
+
+	Raises
+	------
+	SystemExit
+		- If the output directory already exists.
+	"""
 	created, output_path = fo.create_directory(output_path)
 	if not created:
 		sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
@@ -522,13 +637,46 @@ def create_output_directory(output_path):
 
 
 def check_ptf_tref_conflict(training_file, training_reference):
-	""""""
+	"""Check if both a Pyrodigal training file and a training reference were provided.
+	
+	Parameters
+	----------
+	training_file : str
+		Path to the Pyrodigal training file.
+	training_reference : str
+		Path to the training reference.
+
+	Returns
+	-------
+	None
+
+	Raises
+	------
+	SystemExit
+		- If both a Pyrodigal training file and a training reference were provided.
+	"""
 	if training_file and training_reference:
 		sys.exit(ct.CANNOT_PROVIDE_PTF_AND_TREF)
 
 
 def schema_includes_fasta(schema_directory):
-	""""""
+	"""Check if the schema directory includes FASTA files.
+
+	Parameters
+	----------
+	schema_directory : str
+		Path to the schema directory.
+
+	Returns
+	-------
+	schema_directory : str
+		Path to the schema directory.
+
+	Raises
+	------
+	SystemExit
+		- If no FASTA files are found in the schema directory.
+	"""
 	schema_files = fo.listdir(schema_directory)
 	# Check if the folder includes FASTA files
 	fasta_extension, _ = fo.filter_by_extension(schema_files, ct.FASTA_EXTENSIONS)
@@ -539,7 +687,23 @@ def schema_includes_fasta(schema_directory):
 
 
 def schema_check_genes_list(schema_directory):
-	""""""
+	"""Check if the schema directory includes a genes list file and the loci IDs match the FASTA files.
+
+	Parameters
+	----------
+	schema_directory : str
+		Path to the schema directory.
+
+	Returns
+	-------
+	schema_directory : str
+		Path to the schema directory.
+
+	Raises
+	------
+	SystemExit
+		- If the genes list file is missing or the loci IDs do not match the FASTA files.
+	"""
 	schema_files = fo.listdir(schema_directory)
 	# Check if schema includes the .genes_list file
 	if ct.GENE_LIST_BASENAME not in schema_files:
@@ -560,7 +724,23 @@ def schema_check_genes_list(schema_directory):
 
 
 def schema_check_config(schema_directory):
-	""""""
+	"""Check if the schema directory includes the configuration file.
+
+	Parameters
+	----------
+	schema_directory : str
+		Path to the schema directory.
+
+	Returns
+	-------
+	schema_directory : str
+		Path to the schema directory.
+
+	Raises
+	------
+	SystemExit
+		- If the configuration file is missing.
+	"""
 	schema_files = fo.listdir(schema_directory)
 	# Check if schema includes the .schema_config file
 	if ct.SCHEMA_CONFIG_BASENAME not in schema_files:
@@ -570,7 +750,23 @@ def schema_check_config(schema_directory):
 
 
 def schema_check_short(schema_directory):
-	""""""
+	"""Check if the schema directory includes the "short" directory.
+
+	Parameters
+	----------
+	schema_directory : str
+		Path to the schema directory.
+
+	Returns
+	-------
+	schema_directory : str
+		Path to the schema directory.
+
+	Raises
+	------
+	SystemExit
+		- If the "short" directory is missing.
+	"""
 	schema_files = fo.listdir(schema_directory)
 	# Check if the "short" directory exists
 	if "short" not in schema_files:
@@ -580,7 +776,26 @@ def schema_check_short(schema_directory):
 
 
 def check_argument_conflict(arg_name, arg_value, schema_config, force_continue):
-	""""""
+	"""Check if the provided argument value conflicts with the values stored in the schema configuration.
+	
+	Parameters
+	----------
+	arg_name : str
+		Name of the argument to check for conflicts.
+	arg_value : any
+		Value of the argument to check for conflicts.
+	schema_config : dict
+		Dictionary containing the schema configuration with the argument values used with the schema.
+	force_continue : bool
+		Flag indicating whether to force continuation despite conflicts.
+
+	Returns
+	-------
+	arg_value : any
+		The validated argument value.
+	schema_config : dict
+		Updated schema configuration with the argument value added if it was not already present.
+	"""
 	if arg_value not in schema_config[arg_name]:
 		print(ct.CONFLICTING_ARGUMENTS.format(arg_name, schema_config[arg_name]))
 		if not force_continue:
@@ -596,34 +811,93 @@ def check_argument_conflict(arg_name, arg_value, schema_config, force_continue):
 	return arg_value, schema_config
 
 
-def contains_results(results_directory):
-	""""""
+def contains_results(results_directory, results_files_basenames):
+	"""Check if the results directory includes the expected results file.
+
+	Parameters
+	----------
+	results_directory : str
+		Path to the results directory.
+
+	Returns
+	-------
+	results_directory : str
+		Path to the results directory.
+
+	Raises
+	------
+	SystemExit
+		- If the expected results file is missing.
+	"""
 	# List files in input direcoty
 	results_files = fo.listdir(results_directory)
 	# Check if folder includes the results_alleles.tsv file with allelic profiles
-	if ct.RESULTS_ALLELES_BASENAME not in results_files:
-		sys.exit(ct.MISSING_RESULTS_ALLELES)
+	if any([basename not in results_files for basename in results_files_basenames]):
+		sys.exit(ct.MISSING_RESULTS_FILES.format(", ".join(results_files_basenames)))
 
 	return results_directory
 
 
 def ensure_list(input_val):
-	"""
+	"""Ensure that the input value is a list. If it is a string, convert it to a list with a single element.
+
+	Parameters
+	----------
+	input_val : str or list
+		Input value to be checked.
+
+	Returns
+	-------
+	input_val : list
+		Input value as a list. If the input was a string, it will be a list with a single element.
 	"""
 	if isinstance(input_val, str):
 		return [input_val]
+
 	return input_val
 
 
-# Define reusable fields
+def validate_hashing_algo(hashing_algo):
+	"""Validate the hashing algorithm.
+
+	Parameters
+	----------
+	hashing_algo : str
+		The name of the hashing algorithm to validate.
+
+	Returns
+	-------
+	tuple
+		A tuple containing the validated hashing algorithm and its corresponding function.
+
+	Raises
+	------
+	SystemExit
+		- If the hashing algorithm is not supported.
+	"""
+	# Get hash function
+	hashing_function = getattr(hashlib, hashing_algo, None)
+	if hashing_function is None:
+		hashing_function = getattr(zlib, hashing_algo, None)
+
+	if hashing_function is None:
+		sys.exit(ct.HASHPROFILES_INVALID_HASHING.format(hashing_algo))
+
+	return [hashing_algo, hashing_function]
+
+##########################
+# Annotated types/Fields #
+##########################
+
+# Define reusable annotated types/Fields for argument validation
 OutputDirectory = Annotated[str,
 							AfterValidator(parentdir_exists),
 							AfterValidator(create_output_directory)]
 
 InputFiles = Annotated[str,
-					   AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_INPUT_ARG)),
+					   AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_INPUT_ARG)),
 					   AfterValidator(input_is_fasta),
-					   AfterValidator(list_input_files),
+					   AfterValidator(fo.list_input_files),
 					   AfterValidator(filter_inputs_extension),
 					   AfterValidator(inputs_exist),
 					   AfterValidator(validate_inputs_fastas),
@@ -631,20 +905,20 @@ InputFiles = Annotated[str,
 					   AfterValidator(check_blanks)]
 
 ChewieSchema = Annotated[str,
-						 AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
 						 AfterValidator(schema_includes_fasta),
 						 AfterValidator(schema_check_genes_list),
 						 AfterValidator(schema_check_config),
 						 AfterValidator(schema_check_short)]
 
 ExternalSchema = Annotated[str,
-							AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
+							AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.SCHEMA_PATH_MISSING)),
 							AfterValidator(schema_includes_fasta)]
 
 LociList = Annotated[str,
-					 AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_LOCI_LIST)),
+					 AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_LOCI_LIST)),
 					 AfterValidator(input_is_fasta),
-					 AfterValidator(list_input_files)]
+					 AfterValidator(fo.list_input_files)]
 
 BLASTScoreRatio = Annotated[float,
 							Field(default=ct.BSR_DEFAULT,
@@ -692,7 +966,7 @@ CPUCores = Annotated[int,
 
 PyrodigalTrainingFile = Annotated[str,
                                   Field(default=None),
-                                  AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+                                  AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
 
 PyrodigalMode = Annotated[str,
 						  Field(default=ct.PYRODIGAL_DEFAULT_MODE),
@@ -710,7 +984,7 @@ PyrodigalMinimumConfidence = Annotated[float,
 
 PyrodigalTrainingReference = Annotated[str,
                                        Field(default=None),
-                                       AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+                                       AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
 
 PyrodigalJustTraining = Annotated[bool,
                                   Field(default=False)]
@@ -754,12 +1028,142 @@ IntraFilter = Annotated[float,
 							  le=ct.INTRA_CLUSTER_MAX)]
 
 Annotations = Annotated[str,
-                        AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_ANNOTATIONS_FILE))]
-
+                        AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_ANNOTATIONS_FILE))]
 
 BooleanFlag = Annotated[bool,
                         Field(default=False)]
 
+SchemaName = Annotated[str,
+                       Field(default=ct.SCHEMA_NAME_DEFAULT)]
+
+AllelecallMode = Annotated[int,
+                           Field(default=ct.ALLELECALL_DEFAULT_MODE),
+						   AfterValidator(partial(validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.INVALID_ALLELECALL_MODE))]
+
+NSCONFIG = Annotated[bool,
+                     Field(default=False)]
+
+# Nedd to add a AfterValidator to get and validate results files
+ResultsFiles = Annotated[str,
+                         AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_RESULTS)),
+						 AfterValidator(partial(contains_results, results_files_basenames=[ct.RESULTS_ALLELES_BASENAME]))]
+
+Profiles = Annotated[str,
+                     AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI))]
+
+LociPresenceThreshold = Annotated[list,
+                            Field(default=ct.CGMLST_THRESHOLDS,
+                                  ge=ct.CGMLST_THRESHOLD_MIN,
+								  le=ct.CGMLST_THRESHOLD_MAX)]
+
+SampleStep = Annotated[int,
+                 Field(default=1)]
+
+Permutation = Annotated[int,
+                        Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
+
+ExcludeLoci = Annotated[str,
+                        AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI)),
+						AfterValidator(input_is_fasta),
+						AfterValidator(fo.list_input_files)]
+
+ExcludeGenomes = Annotated[str,
+                           AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+						   AfterValidator(input_is_fasta),
+						   AfterValidator(fo.list_input_files)]
+
+SampleList = Annotated[str,
+                       AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+					   AfterValidator(input_is_fasta),
+					   AfterValidator(fo.list_input_files)]
+
+ResultsDirectories = Annotated[list,
+								AfterValidator(partial(input_paths_exist,
+								                       function=fo.is_directory,
+													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
+
+# Should implement a validator for the profile filr format
+AllelicProfiles = Annotated[str,
+                            AfterValidator(partial(input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=ct.PROFILES_FILE_MISSING))]
+
+HashingAlgo = Annotated[str,
+                        Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
+                              validate_default=True),
+						AfterValidator(validate_hashing_algo)]
+
+NrowChunk = Annotated[int,
+                      Field(default=100)]
+
+ProteinTable = Annotated[str,
+                         Field(default=None),
+                         AfterValidator(partial(input_paths_exist,
+                                                function=fo.exists,
+												exception_str=ct.MISSING_PROTEIN_TABLE))]
+
+Taxa = Annotated[list,
+                 Field(default=None)]
+
+ProteomeMatches = Annotated[int,
+                            Field(default=1, ge=1)]
+
+RestApiMatches = Annotated[int,
+                           Field(default=1, ge=1)]
+
+DistanceComputationMethod = Annotated[str,
+                   					  Field(default=ct.DEFAULT_DISTANCE_METHOD),
+                   					  AfterValidator(partial(validate_choice, valid_options=ct.DISTANCE_METHODS, exception_str=ct.INVALID_DISTANCE_METHOD))]
+
+OutputFormat = Annotated[str,
+                   Field(default=ct.DEFAULT_OUTPUT_FORMAT),
+				   AfterValidator(partial(validate_choice, valid_options=ct.OUTPUT_FORMATS, exception_str=ct.INVALID_OUTPUT_FORMAT))]
+
+MSAInput = Annotated[str,
+					 AfterValidator(partial(input_paths_exist,
+								    function=fo.exists,
+									exception_str=ct.MISSING_INPUT_ARG))]
+
+Gaps = Annotated[str,
+                 Field(default=ct.DEFAULT_GAPS),
+				 AfterValidator(partial(validate_choice, valid_options=ct.GAPS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_GAPS_OPTION))]
+
+Ambiguous = Annotated[str,
+                      Field(default=ct.DEFAULT_AMBIGUOUS),
+					  AfterValidator(partial(validate_choice, valid_options=ct.AMBIGUOUS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_AMBIGUOUS_OPTION))]
+
+CustomMafftOptions = Annotated[str,
+                               Field(default=None)]
+
+SpeciesId = Annotated[str,
+                      Field(default=None)]
+
+SchemaId = Annotated[str,
+                     Field(default=None)]
+
+NomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER])]
+
+SchemaDate = Annotated[str,
+                       Field(default=None),
+					   AfterValidator(pd.validate_date)] # Determine if user date is in a valid format
+
+DescriptionFile = Annotated[str,
+                            Field(default=None),
+                            AfterValidator(partial(input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=ct.MISSING_INPUTS_EXCEPTION))]
+
+StatsMode = Annotated[str,
+                      Field(default=None),
+					  AfterValidator(partial(validate_choice,
+					                         valid_options=ct.NSSTATS_MODES,
+											 exception_str=ct.NS_STATS_INVALID_MODE))]
+
+
+#####################################
+# Module argument validation models #
+#####################################
 
 # Use separate models to validate Pyrodigal and AUGUSTUS arguments, since they have different fields and validation requirements
 class PyrodigalArgs(BaseModel):
@@ -806,7 +1210,6 @@ class ClusteringArgs(BaseModel):
 
 
 ValidatedClusteringOptions = Annotated[ClusteringArgs | None, Field(default=None)]
-
 
 class PredictGenesValidator(BaseModel):
 	# Use `from_attributes=True` to inspect the attributes of the 
@@ -862,10 +1265,6 @@ class PredictGenesValidator(BaseModel):
 				sys.exit(ct.JUST_TRAINING)
 
 		return self
-
-
-SchemaName = Annotated[str,
-                       Field(default=ct.SCHEMA_NAME_DEFAULT)]
 
 
 class CreateSchemaValidator(BaseModel):
@@ -935,14 +1334,6 @@ class CreateSchemaValidator(BaseModel):
 				sys.exit(ct.JUST_TRAINING)
 
 		return self
-
-
-AllelecallMode = Annotated[int,
-                           Field(default=ct.ALLELECALL_DEFAULT_MODE),
-						   AfterValidator(partial(validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.INVALID_ALLELECALL_MODE))]
-
-NSCONFIG = Annotated[bool,
-                     Field(default=False)]
 
 
 class AlleleCallValidator(BaseModel):
@@ -1016,7 +1407,10 @@ class AlleleCallValidator(BaseModel):
 		schema_files = fo.listdir(self.schema_directory, full_path=True)
 		loci_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
 		loci_ids = [fo.file_basename(file, False) for file in loci_files]
-		self.loci_list = [loci_ids, loci_files]
+		if self.loci_list:
+			self.loci_list = [self.loci_list, [loci_ids, loci_files]]
+		else:
+			self.loci_list = [[loci_ids, loci_files], [loci_ids, loci_files]]
 
 		return self
 
@@ -1164,12 +1558,6 @@ class SchemaEvaluatorValidator(BaseModel):
 		return self
 
 
-# Nedd to add a AfterValidator to get and validate results files
-ResultsFiles = Annotated[str,
-                         AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_RESULTS)),
-						 AfterValidator(contains_results)]
-
-
 class AlleleCallEvaluatorValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -1195,32 +1583,7 @@ class AlleleCallEvaluatorValidator(BaseModel):
 		return self
 
 
-Profiles = Annotated[str,
-                     AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI))]
-
-LociPresenceThreshold = Annotated[list,
-                            Field(default=ct.CGMLST_THRESHOLDS,
-                                  ge=ct.CGMLST_THRESHOLD_MIN,
-								  le=ct.CGMLST_THRESHOLD_MAX)]
-
-SampleStep = Annotated[int,
-                 Field(default=1)]
-
-Permutation = Annotated[int,
-                        Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
-
-ExcludeLoci = Annotated[str,
-                        AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI)),
-						AfterValidator(input_is_fasta),
-						AfterValidator(list_input_files)]
-
-ExcludeGenomes = Annotated[str,
-                           AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
-						   AfterValidator(input_is_fasta),
-						   AfterValidator(list_input_files)]
-
-
-class ExtractCgMLSTValidator(BaseModel):
+class ComputeCoreValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
@@ -1260,12 +1623,6 @@ class ExtractCgMLSTValidator(BaseModel):
 		return self
 
 
-SampleList = Annotated[str,
-                       AfterValidator(partial(input_path_exists, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
-					   AfterValidator(input_is_fasta),
-					   AfterValidator(list_input_files)]
-
-
 class SubsetResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -1296,7 +1653,7 @@ class SubsetResultsValidator(BaseModel):
 	# Check if the loci IDs in the input list are all in the results
 	@model_validator(mode="after")
 	def check_loci(self):
-		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.LOCUS_SAMPLE_PRESENCE_BASENAME, ct.LOCI_STATS_BASENAME]
 		if self.loci_list:
 			for fname in file_types:
 				# Determine if file exists in the input directory
@@ -1325,7 +1682,7 @@ class SubsetResultsValidator(BaseModel):
 	# Check if the sample IDs in the input list are all in the results
 	@model_validator(mode="after")
 	def check_samples(self):
-		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.SAMPLE_LOCUS_PRESENCE_BASENAME, ct.LOCI_STATS_BASENAME]
 		if self.sample_list:
 			for fname in file_types:
 				file_path = fo.join_paths(self.results_files, [fname])
@@ -1345,13 +1702,7 @@ class SubsetResultsValidator(BaseModel):
 		return self
 
 
-ResultsDirectories = Annotated[list,
-								AfterValidator(partial(input_path_exists,
-								                       function=fo.is_directory,
-													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
-
-
-class MergeResults(BaseModel):
+class MergeResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
@@ -1369,7 +1720,7 @@ class MergeResults(BaseModel):
 	# Check if results have loci in common
 	@model_validator(mode="after")
 	def validate_loci(self):
-		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME, ct.LOCI_STATS_BASENAME]
+		file_types = [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.LOCUS_SAMPLE_PRESENCE_BASENAME, ct.LOCI_STATS_BASENAME]
 		results_files = {fname: [] for fname in file_types}
 		for folder in self.results_directories:
 			# List files in folder
@@ -1423,35 +1774,6 @@ class MergeResults(BaseModel):
 						 f"of the following file types: {'\n'.join(file_types)}")
 
 		return self
-
-
-# Should implement a validator for the profile filr format
-AllelicProfiles = Annotated[str,
-                            AfterValidator(partial(input_path_exists,
-                                                   function=fo.exists,
-												   exception_str=ct.PROFILES_FILE_MISSING))]
-
-
-def validate_hashing_algo(hashing_algo):
-	""""""
-	# Get hash function
-	hashing_function = getattr(hashlib, hashing_algo, None)
-	if hashing_function is None:
-		hashing_function = getattr(zlib, hashing_algo, None)
-
-	if hashing_function is None:
-		sys.exit(ct.HASHPROFILES_INVALID_HASHING.format(hashing_algo))
-
-	return [hashing_algo, hashing_function]
-
-
-HashingAlgo = Annotated[str,
-                        Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
-                              validate_default=True),
-						AfterValidator(validate_hashing_algo)]
-
-NrowChunk = Annotated[int,
-                      Field(default=100)]
 
 
 class HashProfilesValidator(BaseModel):
@@ -1573,7 +1895,7 @@ class GetAllelesValidator(BaseModel):
 		return self
 
 
-class PrepExternalSchemaValidator(BaseModel):
+class AdaptSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: OutputDirectory
@@ -1655,22 +1977,6 @@ class PrepExternalSchemaValidator(BaseModel):
 		return self
 
 
-ProteinTable = Annotated[str,
-                         Field(default=None),
-                         AfterValidator(partial(input_path_exists,
-                                                function=fo.exists,
-												exception_str=ct.MISSING_PROTEIN_TABLE))]
-
-Taxa = Annotated[list,
-                 Field(default=None)]
-
-ProteomeMatches = Annotated[int,
-                            Field(default=1, ge=1)]
-
-RestApiMatches = Annotated[int,
-                           Field(default=1, ge=1)]
-
-
 class AnnotateSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -1737,15 +2043,6 @@ class AnnotateSchemaValidator(BaseModel):
 		return self
 
 
-DistanceComputationMethod = Annotated[str,
-                   					  Field(default=ct.DEFAULT_DISTANCE_METHOD),
-                   					  AfterValidator(partial(validate_choice, valid_options=ct.DISTANCE_METHODS, exception_str=ct.INVALID_DISTANCE_METHOD))]
-
-OutputFormat = Annotated[str,
-                   Field(default=ct.DEFAULT_OUTPUT_FORMAT),
-				   AfterValidator(partial(validate_choice, valid_options=ct.OUTPUT_FORMATS, exception_str=ct.INVALID_OUTPUT_FORMAT))]
-
-
 class ComputeDistancesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -1757,22 +2054,6 @@ class ComputeDistancesValidator(BaseModel):
 	no_mask: BooleanFlag
 	cpu_cores: CPUCores
 
-
-MSAInput = Annotated[str,
-					 AfterValidator(partial(input_path_exists,
-								    function=fo.exists,
-									exception_str=ct.MISSING_INPUT_ARG))]
-
-Gaps = Annotated[str,
-                 Field(default=ct.DEFAULT_GAPS),
-				 AfterValidator(partial(validate_choice, valid_options=ct.GAPS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_GAPS_OPTION))]
-
-Ambiguous = Annotated[str,
-                      Field(default=ct.DEFAULT_AMBIGUOUS),
-					  AfterValidator(partial(validate_choice, valid_options=ct.AMBIGUOUS_CHOICES, exception_str=ct.COMPUTEMSA_INVALID_AMBIGUOUS_OPTION))]
-
-CustomMafftOptions = Annotated[str,
-                               Field(default=None)]
 
 class ComputeMSAValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
@@ -1802,21 +2083,6 @@ class ComputeMSAValidator(BaseModel):
 				self.translation_table = config_values[ct.TRANSLATION_TABLE_ARGNAME][0]
 
 		return self
-
-
-SpeciesId = Annotated[str,
-                      Field(default=None)]
-
-SchemaId = Annotated[str,
-                     Field(default=None)]
-
-NomenclatureServerInstance = Annotated[str | None,
-                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER])]
-
-
-SchemaDate = Annotated[str,
-                       Field(default=None),
-					   AfterValidator(pd.validate_date)] # Determine if user date is in a valid format
 
 
 class DownloadSchemaValidator(BaseModel):
@@ -1859,13 +2125,6 @@ class DownloadSchemaValidator(BaseModel):
 		self.schema_id = schema_info
 
 		return self
-
-
-DescriptionFile = Annotated[str,
-                            Field(default=None),
-                            AfterValidator(partial(input_path_exists,
-                                                   function=fo.exists,
-												   exception_str=ct.MISSING_INPUTS_EXCEPTION))]
 
 
 class UploadSchemaValidator(BaseModel):
@@ -1977,13 +2236,6 @@ class SynchronizeSchemaValidator(BaseModel):
 			sys.exit("Schema does not contain the '.ns_config' file.")
 
 		return self
-
-
-StatsMode = Annotated[str,
-                      Field(default=None),
-					  AfterValidator(partial(validate_choice,
-					                         valid_options=ct.NSSTATS_MODE_CHOICES,
-											 exception_str=ct.NS_STATS_INVALID_MODE))]
 
 
 class NSStatsValidator(BaseModel):

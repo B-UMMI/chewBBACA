@@ -966,7 +966,7 @@ def main(config):
     # Re-determine the representative sequences
     schema_short_directory = fo.join_paths(config.schema_directory, ['short'])
     if attributed > 0 or count > 0:
-        loci_list = fo.join_paths(config.schema_directory, [ct.LOCI_LIST])
+        loci_list = fo.join_paths(config.schema_directory, [ct.LOCI_TO_ADAPT_BASENAME])
         loci_list, total_loci = pv.check_input_type(temp_dir, loci_list)
         adapt_schema.main(loci_list, [config.schema_directory, schema_short_directory],
                           config.cpu_cores, float(schema_params['bsr'][0]),

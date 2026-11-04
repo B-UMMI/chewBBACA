@@ -15,13 +15,13 @@ import sys
 import subprocess
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	from utils import (file_operations as fo,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	from CHEWBBACA import global_constants as gct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
 
@@ -151,7 +151,7 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, augu
 		outfasta = fo.join_paths(output_directory, ["genes", f"{genome_basename}.fasta"])
 		records = []
 		for seqid, cds_data in gene_info.items():
-			current_record = ct.FASTA_RECORD_TEMPLATE.format(seqid, cds_data[-2])
+			current_record = gct.FASTA_RECORD_TEMPLATE.format(seqid, cds_data[-2])
 			records.append(current_record)
 		fo.write_lines(records, outfasta)
 		output_files[0] = outfasta
@@ -184,7 +184,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 		fo.create_directory(format_outdir)
 
 	# Add common arguments to all sublists
-	augustus_exe = fo.join_paths(gene_prediction_parameters.augustus_path, [ct.AUGUSTUS_ALIAS])
+	augustus_exe = fo.join_paths(gene_prediction_parameters.augustus_path, [gct.AUGUSTUS_ALIAS])
 	common_args = [output_directory, augustus_exe,
 				   gene_prediction_parameters.augustus_species, gene_prediction_parameters.augustus_output_format]
 	augustus_inputs = im.multiprocessing_inputs(augustus_inputs, common_args, predict_genome_genes)
@@ -213,7 +213,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 	# Merge TSV files with CDS coordinates
 	coordinate_files = [i[1] for i in augustus_inputs]
 	merged_coordinates = fo.join_paths(output_directory, ['gene_coordinates.tsv'])
-	fo.concatenate_files(coordinate_files, merged_coordinates, header=ct.GENE_TABLE_HEADER)
+	fo.concatenate_files(coordinate_files, merged_coordinates, header=gct.GENE_TABLE_HEADER)
 	# Delete separate coordinate files
 	fo.remove_files(coordinate_files)
 

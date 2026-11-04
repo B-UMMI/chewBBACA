@@ -16,13 +16,13 @@ from Bio.Seq import Seq
 from collections import Counter
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	from utils import (file_operations as fo,
 					   iterables_manipulation as im,
 					   fasta_operations as fao)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	from CHEWBBACA import global_constants as gct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 iterables_manipulation as im,
 								 fasta_operations as fao)
 
@@ -86,7 +86,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
 	# try to translate the reverse complement
 	elif method == 'revcomp':
 		try:
-			myseq = im.reverse_complement(myseq, ct.DNA_BASES)
+			myseq = im.reverse_complement(myseq, gct.DNA_BASES)
 			protseq = translate_sequence(myseq, table_id)
 		except Exception as argh:
 			return argh
@@ -101,7 +101,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
 	elif method == 'revrevcomp':
 		try:
 			myseq = im.reverse_str(myseq)
-			myseq = im.reverse_complement(myseq, ct.DNA_BASES)
+			myseq = im.reverse_complement(myseq, gct.DNA_BASES)
 			protseq = translate_sequence(myseq, table_id)
 		except Exception as argh:
 			return argh
@@ -150,7 +150,7 @@ def translate_dna(dna_sequence, table_id, min_len):
 	translating_methods = ['original', 'revcomp', 'rev', 'revrevcomp']
 
 	# check if the sequence has ambiguous bases
-	valid_dna = im.check_str_alphabet(original_seq, ct.DNA_BASES)
+	valid_dna = im.check_str_alphabet(original_seq, gct.DNA_BASES)
 	if valid_dna is not True:
 		return 'ambiguous or invalid characters'
 
@@ -418,7 +418,7 @@ def determine_distinct(sequences_file, unique_fasta, map_ids):
 
 			# Add unseen sequence to Fasta file with distinct sequences
 			if seq_hash not in duplicates:
-				recout = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
+				recout = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
 				out_seqs.append(recout)
 
 			# Add CDS hash as key

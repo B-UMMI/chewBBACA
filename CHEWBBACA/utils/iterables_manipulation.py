@@ -16,11 +16,30 @@ import hashlib
 import itertools
 
 try:
-	from utils import (constants as ct,
-					   fasta_operations as fao)
+	import global_constants as gct
+	from utils import (fasta_operations as fao)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 fasta_operations as fao)
+	from CHEWBBACA import global_constants as gct
+	from CHEWBBACA.utils import (fasta_operations as fao)
+
+
+def ensure_list(input_val):
+	"""Ensure that the input value is a list. If it is a string, convert it to a list with a single element.
+
+	Parameters
+	----------
+	input_val : str or list
+		Input value to be checked.
+
+	Returns
+	-------
+	input_val : list
+		Input value as a list. If the input was a string, it will be a list with a single element.
+	"""
+	if isinstance(input_val, str):
+		return [input_val]
+
+	return input_val
 
 
 def match_regex(text, pattern):
@@ -284,7 +303,7 @@ def extract_single_cds(sequence, start, stop, strand):
 	coding_sequence = extract_subsequence(sequence, start, stop)
 
 	if strand == 0:
-		coding_sequence = reverse_complement(coding_sequence, ct.DNA_BASES)
+		coding_sequence = reverse_complement(coding_sequence, gct.DNA_BASES)
 
 	return coding_sequence
 

@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Purpose
+-------
+
+
+"""
+
+
+import sys
+from typing import Annotated
+from functools import partial
+
+import pandas as pd
+from pydantic import (BaseModel,
+					  ConfigDict,
+					  AfterValidator,
+					  model_validator)
+
+try:
+	import global_constants as gct
+	import global_validation as gval
+	from utils import file_operations as fo
+except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.global_validation as gval
+	from CHEWBBACA.utils import file_operations as fo
+
+
+SampleList = Annotated[str,
+                       AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+					   AfterValidator(gval.input_is_fasta),
+					   AfterValidator(fo.list_input_files)]
+
+
+class SubsetResultsValidator(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	output_directory: gval.OutputDirectory
+	results_files: gval.ResultsFiles
+	loci_list: gval.LociList | None = None
+	sample_list: gval.SampleList | None = None
+	inverse_loci: gval.BooleanFlag
+	inverse_samples: gval.BooleanFlag
+
+	@model_validator(mode="after")
+	def check_lists(self):
+		# Do not proceed if user provided neither a list of loci nor of samples
+		if not self.loci_list and not self.sample_list:
+			sys.exit(gct.SUBSETRESULTS_MISSING_LISTS_EXCEPTION)
+
+		return self
+
+	@model_validator(mode="after")
+	def check_files(self):
+		# Do not proceed if the input folder does not include any of the supported output files
+		input_files = fo.listdir(self.results_files)
+		if len(set(gct.ALLELECALL_OUTFILES)-set(input_files)) == len(gct.ALLELECALL_OUTFILES):
+			sys.exit("Input directory does not include any of the supported output files that can be subsetted."
+			         "Please ensure that the input directory includes at least one of the following files:\n"
+					 f"{'\n'.join(gct.ALLELECALL_OUTFILES)}")
+
+	# Check if the loci IDs in the input list are all in the results
+	@model_validator(mode="after")
+	def check_loci(self):
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.RESULTS_COORDINATES_BASENAME, gct.LOCUS_SAMPLE_PRESENCE_BASENAME, gct.LOCI_STATS_BASENAME]
+		if self.loci_list:
+			for fname in file_types:
+				# Determine if file exists in the input directory
+				file_path = fo.join_paths(self.results_files, [fname])
+				if fo.is_file(file_path)[0]:
+					if fname in file_types[:3]:
+						results_loci = fo.read_lines(file_path, strip=True, num_lines=1)
+						results_loci = results_loci[0].split("\t")[1:]
+					elif fname in file_types[3:]:
+						results_loci = pd.read_csv(file_path, usecols=["Locus"], sep="\t", dtype=str)
+						results_loci = results_loci["Locus"].tolist()
+
+					non_matching = set(self.loci_list) - set(results_loci)
+					if len(non_matching) > 0:
+						sys.exit(f"The following loci IDs in the input loci list do not match "
+							     f"loci IDs in the results files:\n{'\n'.join(non_matching)}\n"
+								 "Please ensure that all loci IDs in the input loci list match "
+								 "loci IDs in the resutls files.")
+			# It is possible that the input directory does not include any of the files containing the loci IDs
+			if not fo.is_file(file_path)[0]:
+				print(f"Could not get the list of loci IDs from the results files in the input directory "
+				      "to validate the loci IDs in the input loci list.")
+
+		return self
+
+	# Check if the sample IDs in the input list are all in the results
+	@model_validator(mode="after")
+	def check_samples(self):
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.RESULTS_COORDINATES_BASENAME, gct.SAMPLE_LOCUS_PRESENCE_BASENAME, gct.LOCI_STATS_BASENAME]
+		if self.sample_list:
+			for fname in file_types:
+				file_path = fo.join_paths(self.results_files, [fname])
+				if fo.is_file(file_path)[0]:
+					results_samples = pd.read_csv(file_path, usecols=["FILE"], sep="\t", dtype=str)
+					results_samples = results_samples["FILE"].tolist()
+					non_matching = set(self.sample_list) - set(results_samples)
+					if len(non_matching) > 0:
+						sys.exit(f"The following sample IDs in the input sample list do not match "
+							  	 f"sample IDs in the results files:\n{'\n'.join(non_matching)}\n"
+							  	 "Please ensure that all sample IDs in the input sample list match "
+							  	 "sample IDs in the resutls files.")
+			if not fo.is_file(file_path)[0]:
+				print(f"Could not get the list of sample IDs from the results files in the input directory "
+				      "to validate the sample IDs in the input loci list.")
+
+		return self

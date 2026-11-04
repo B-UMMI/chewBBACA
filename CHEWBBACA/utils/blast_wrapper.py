@@ -13,12 +13,13 @@ Code documentation
 
 
 import sys
+import re
 import subprocess
 
 try:
-	from utils import constants as ct
+	import global_constants as gct
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import constants as ct
+	from CHEWBBACA import global_constants as gct
 
 
 def make_blast_db(makeblastdb_path, input_fasta, output_path, db_type):
@@ -96,7 +97,7 @@ def determine_blast_task(sequences, blast_type='blastp'):
 		https://www.ncbi.nlm.nih.gov/books/NBK569839/
 	"""
 	# get sequence length threshold for BLAST application
-	length_threshold = ct.BLAST_TASK_THRESHOLD[blast_type]
+	length_threshold = gct.BLAST_TASK_THRESHOLD[blast_type]
 	sequence_lengths = [len(p) for p in sequences]
 	minimum_length = min(sequence_lengths)
 	if minimum_length < length_threshold:
@@ -152,7 +153,7 @@ def run_blast(blast_path, blast_db, fasta_file, blast_output,
 	"""
 	# Do not retrieve hits with high probability of occuring by chance
 	blast_args = [blast_path, '-db', blast_db, '-query', fasta_file,
-				  '-out', blast_output, '-outfmt', ct.BLAST_DEFAULT_OUTFMT,
+				  '-out', blast_output, '-outfmt', gct.BLAST_DEFAULT_OUTFMT,
 				  '-max_hsps', str(max_hsps), '-num_threads', str(threads),
 				  '-evalue', '0.001']
 

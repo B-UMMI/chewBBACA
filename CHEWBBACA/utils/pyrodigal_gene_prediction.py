@@ -16,14 +16,14 @@ import math
 import pyrodigal
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	from utils import (file_operations as fo,
 					   fasta_operations as fao,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	from CHEWBBACA import global_constants as gct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
@@ -389,7 +389,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 	# Merge TSV files with CDS coordinates
 	coordinate_files = [i[1] for i in pyrodigal_inputs]
 	merged_coordinates = fo.join_paths(output_directory, ['gene_coordinates.tsv'])
-	fo.concatenate_files(coordinate_files, merged_coordinates, header=ct.GENE_TABLE_HEADER)
+	fo.concatenate_files(coordinate_files, merged_coordinates, header=gct.GENE_TABLE_HEADER)
 	# Delete separate coordinate files
 	fo.remove_files(coordinate_files)
 

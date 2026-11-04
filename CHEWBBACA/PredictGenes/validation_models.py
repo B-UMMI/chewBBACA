@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Purpose
+-------
+
+
+"""
+
+
+import sys
+import shutil
+from typing import Annotated
+from functools import partial
+
+from pydantic import (BaseModel,
+					  Field,
+					  ConfigDict,
+					  AfterValidator,
+					  BeforeValidator,
+					  model_validator)
+
+try:
+	import PredictGenes.constants as ct
+	import global_constants as gct
+	import global_validation as gval
+	import utils.file_operations as fo
+	import utils.iterables_manipulation as im
+	import utils.augustus_gene_prediction as agp
+except ModuleNotFoundError:
+	import CHEWBBACA.PredictGenes.constants as ct
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.global_validation as gval
+	import CHEWBBACA.utils.file_operations as fo
+	import CHEWBBACA.utils.iterables_manipulation as im
+	import CHEWBBACA.utils.augustus_gene_prediction as agp
+
+
+def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
+	"""Determine if AUGUSTUS executable is available in the system.
+
+	Parameters
+	----------
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
+	augustus_alias : str
+		Alias used to call AUGUSTUS.
+
+	Returns
+	-------
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
+
+	Raises
+	------
+	SystemExit
+		- If AUGUSTUS executable is not available in the system.
+	"""
+	# User did not provide a path, try to determine path to the AUGUSTUS executable using its alias
+	if not augustus_path:
+		augustus_path = fo.get_parent_directory(shutil.which(augustus_alias))
+
+	if augustus_path is None or fo.exists(augustus_path) is False:
+		sys.exit(ct.AUGUSTUS_MISSING)
+
+	return augustus_path
+
+
+def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):
+	"""Validate if the provided AUGUSTUS species is supported by the installed version of AUGUSTUS.
+
+	Parameters
+	----------
+	species_id : str
+		Species ID provided by the user.
+	augustus_path : str
+		Path to the folder containing AUGUSTUS executable.
+	augustus_alias : str
+		Alias used to call AUGUSTUS.
+
+	Returns
+	-------
+	species_id : str
+		Species ID that will be used for AUGUSTUS gene prediction.
+
+	Raises
+	------
+	SystemExit
+		- If the provided species ID is not supported by the installed version of AUGUSTUS.
+	"""
+	augustus_exe = fo.join_paths(augustus_path, [augustus_alias])
+	species_list = agp.get_augustus_species_list(augustus_exe)
+
+	if species_id not in species_list.values():
+		# Create string with list of options
+		species_list_str = [": ".join([k, v]) for k, v in species_list.items()]
+		species_list_str = "\n".join(species_list_str)
+		sys.exit(ct.AUGUSTUS_INVALID_SPECIES.format(species_list_str))
+
+	return species_id
+
+
+GenePredictor = Annotated[str,
+						  Field(default=ct.GENE_PREDICTOR_DEFAULT),
+						  AfterValidator(partial(gval.validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.PREDICTGENES_INVALID_GENE_PREDICTOR))]
+
+# Validate if input is str, not if it is None
+GenePredictionOptions = Annotated[list,
+                                  Field(default={}),
+                                  AfterValidator(gval.parse_parameter_string)]
+
+PyrodigalTrainingFile = Annotated[str,
+                                  Field(default=None),
+                                  AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+
+PyrodigalMode = Annotated[str,
+						  Field(default=ct.PYRODIGAL_DEFAULT_MODE),
+						  AfterValidator(partial(gval.validate_choice, valid_options=ct.PYRODIGAL_MODES, exception_str=ct.PREDICTGENES_INVALID_PYRODIGAL_MODE))]
+
+PyrodigalOutputFormats = Annotated[list,
+								   Field(default=ct.PYRODIGAL_DEFAULT_OUTFMTS),
+								   BeforeValidator(im.ensure_list),
+								   AfterValidator(partial(gval.validate_multiple_choices, valid_options=ct.PYRODIGAL_OUTFMTS, exception_str=ct.PYRODIGAL_INVALID_OUTFMT))]
+
+PyrodigalMinimumConfidence = Annotated[float,
+                                       Field(default=None,
+                                             ge=ct.PYRODIGAL_MIN_CONFIDENCE,
+											 le=ct.PYRODIGAL_MAX_CONFIDENCE)]
+
+PyrodigalTrainingReference = Annotated[str,
+                                       Field(default=None),
+                                       AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+
+PyrodigalJustTraining = Annotated[bool,
+                                  Field(default=False)]
+
+AugustusPath = Annotated[str | None,
+                         Field(default=None,
+                               validate_default=True),
+						 AfterValidator(check_augustus)]
+
+AugustusSpecies = Annotated[str,
+                            Field(default=None)]
+
+AugustusOutputFormat = Annotated[list,
+								 Field(default=ct.AUGUSTUS_OUTFMT_DEFAULT),
+								 BeforeValidator(im.ensure_list),
+								 AfterValidator(partial(gval.validate_multiple_choices, valid_options=ct.AUGUSTUS_OUTFMTS, exception_str=ct.AUGUSTUS_INVALID_OUTFMT))]
+
+
+# Use separate models to validate Pyrodigal and AUGUSTUS arguments, since they have different fields and validation requirements
+class PyrodigalArgs(BaseModel):
+	# Enforce strict field checking
+	model_config = ConfigDict(extra="forbid")
+
+	pyrodigal_training_file: PyrodigalTrainingFile
+	pyrodigal_mode: PyrodigalMode
+	pyrodigal_output_formats: PyrodigalOutputFormats
+	pyrodigal_minimum_confidence: PyrodigalMinimumConfidence
+	pyrodigal_training_reference: PyrodigalTrainingReference
+	pyrodigal_just_training: PyrodigalJustTraining
+
+
+class AugustusArgs(BaseModel):
+	# Enforce strict field checking
+	model_config = ConfigDict(extra="forbid")
+
+	augustus_path: AugustusPath
+	augustus_species: AugustusSpecies
+	augustus_output_format: AugustusOutputFormat
+
+	@model_validator(mode="after")
+	def validate_species(self):
+		self.augustus_species = validate_augustus_species(self.augustus_species, self.augustus_path)
+
+		return self
+
+
+# Field definition for the validated gene prediction arguments
+ValidatedGenePredictionOptions = Annotated[PyrodigalArgs | AugustusArgs | None, Field(default=None)]
+
+
+class PredictGenesValidator(BaseModel):
+	# Use `from_attributes=True` to inspect the attributes of the 
+	# argparse.Namespace object directly without having to convert to a dictionary
+	# Do not use `extra="forbid"` so that it accepts the arg with the module name without having to remove it explicitly
+	model_config = ConfigDict(from_attributes=True)
+
+	# Field order is preserved when serializing with model_dump()
+	output_directory: gval.OutputDirectory
+	input_files: gval.InputFiles
+	gene_predictor: GenePredictor
+	gene_prediction_options: GenePredictionOptions
+	validated_gene_prediction_options: ValidatedGenePredictionOptions
+	translation_table: gval.TranslationTable
+	cpu_cores: gval.CPUCores
+
+	# Further validation for gene prediction arguments
+	@model_validator(mode="after")
+	def validate_gene_prediction_arguments(self):
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options = PyrodigalArgs(**self.gene_prediction_options)
+		elif self.gene_predictor == "augustus":
+			self.validated_gene_prediction_options = AugustusArgs(**self.gene_prediction_options)
+
+		return self
+
+	# Need to get genetic code from training file
+	@model_validator(mode="after")
+	def get_ptf_genetic_code(self):
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			self.translation_table = gval.add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
+
+		return self
+
+	@model_validator(mode="after")
+	def mode_and_ptf(self):
+		if self.gene_predictor == "pyrodigal":
+			self.validated_gene_prediction_options.pyrodigal_mode = gval.check_meta(self.validated_gene_prediction_options.pyrodigal_mode, self.validated_gene_prediction_options.pyrodigal_training_file)
+
+		return self
+
+	@model_validator(mode="after")
+	def ptf_and_reference(self):
+		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_reference:
+			# Check if user provided path to Pyrodigal training file and to a training reference, which is not allowed
+			gval.check_ptf_tref_conflict(self.validated_gene_prediction_options.pyrodigal_training_file, self.validated_gene_prediction_options.pyrodigal_training_reference)
+			# Create training file based on training reference
+			print(f'Creating Pyrodigal training file based on {self.validated_gene_prediction_options.pyrodigal_training_reference}...')
+			self.validated_gene_prediction_options.pyrodigal_training_file = gval.create_training_file(self.validated_gene_prediction_options.pyrodigal_training_reference, self.output_directory, self.translation_table)
+			print(f'Training file saved to {self.validated_gene_prediction_options.pyrodigal_training_file}')
+			# Exit if user only requested to create training file
+			if self.validated_gene_prediction_options.pyrodigal_just_training:
+				sys.exit(gct.JUST_TRAINING)
+
+		return self

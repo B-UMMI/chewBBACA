@@ -19,15 +19,15 @@ from Bio.SeqIO import FastaIO
 from Bio import BiopythonDeprecationWarning
 
 try:
+	import global_constants as gct
 	from utils import (file_operations as fo,
 					   iterables_manipulation as im,
-					   sequence_manipulation as sm,
-					   constants as ct)
+					   sequence_manipulation as sm)
 except ModuleNotFoundError:
+	from CHEWBBACA import global_constants as gct
 	from CHEWBBACA.utils import (file_operations as fo,
 								 iterables_manipulation as im,
-								 sequence_manipulation as sm,
-								 constants as ct)
+								 sequence_manipulation as sm)
 
 
 def sequence_generator(input_file):
@@ -175,8 +175,7 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=50000,
 			new_id = '{0}{1}'.format(prefix, start)
 			ids_map[new_id] = record.id
 			sequence = str(record.seq)
-			new_rec = fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
-									   [new_id, sequence])
+			new_rec = fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [new_id, sequence])
 			seqs.append(new_rec)
 			start += 1
 		elif record is None:
@@ -358,7 +357,7 @@ def get_sequences_by_id(sequences, seqids, output_file, limit=50000):
 	while exhausted is False:
 		record = next(seqs, None)
 		if record is not None:
-			record = fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [record[0], record[1]])
+			record = fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [record[0], record[1]])
 			records.append(record)
 		else:
 			exhausted = True
@@ -540,7 +539,7 @@ def translate_fasta(input_fasta, output_directory, translation_table, write_dna=
 		return [None, None, translated, invalid]
 
 	# Save protein sequences if there were any valid translations
-	valid_protein_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE, valid_proteins)
+	valid_protein_lines = fasta_lines(gct.FASTA_RECORD_TEMPLATE, valid_proteins)
 	protein_file_basename = fo.file_basename(input_fasta, False) + '_protein.fasta'
 	protein_file_path = fo.join_paths(output_directory, [protein_file_basename])
 	fo.write_lines(valid_protein_lines, protein_file_path)
@@ -552,7 +551,7 @@ def translate_fasta(input_fasta, output_directory, translation_table, write_dna=
 		valid_dna = [[rec[0], str(rec[1][0][1])]
 					 for rec in translated_records
 					 if type(rec[1]) == list]
-		valid_dna_lines = fasta_lines(ct.FASTA_RECORD_TEMPLATE, valid_dna)
+		valid_dna_lines = fasta_lines(gct.FASTA_RECORD_TEMPLATE, valid_dna)
 		dna_file_basename = fo.file_basename(input_fasta)
 		dna_file_path = fo.join_paths(output_directory, [dna_file_basename])
 		fo.write_lines(valid_dna_lines, dna_file_path)

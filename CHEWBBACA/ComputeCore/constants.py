@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the ComputeCore module.
 """
 
-
+# Name of the module
 COMPUTECORE_MODULE_NAME = "ComputeCore"
 
+# Parameter names
 COMPUTECORE_PROFILES_ARGNAME = "profiles"
 COMPUTECORE_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 COMPUTECORE_LOCI_PRESENCE_THRESHOLD_ARGNAME = "loci_presence_threshold"
@@ -22,6 +23,7 @@ COMPUTECORE_CPU_CORES_ARGNAME = "cpu_cores"
 COMPUTECORE_EXCLUDE_LOCI_ARGNAME = "exclude_loci"
 COMPUTECORE_EXCLUDE_GENOMES_ARGNAME = "exclude_genomes"
 
+# Argument types
 COMPUTECORE_ARGUMENT_TYPES = {
 	"profiles": str,
 	"output_directory": str,
@@ -52,7 +54,6 @@ PERMUTATION_NUMBER_DEFAULT = 100
 PERMUTATION_SAMPLES_DEFAULT = None
 
 # Exceptions
-
 INVALID_EXCLUDE_LOCI = ("The following loci IDs in the list provided to `--exclude-loci` do not match "
                         "any of the loci IDs in the input results:\n{0}\nPlease ensure that all loci "
 						"IDs in the input list match loci IDs in the profiles.")

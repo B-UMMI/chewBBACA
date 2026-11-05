@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the AlleleCallEvaluator module.
 """
 
-
+# Name of the module
 ALLELECALLEVALUATOR_MODULE_NAME = "AlleleCallEvaluator"
 
+# Parameter names
 ALLELECALLEVALUATOR_RESULTS_FILES_ARGNAME = "results_files"
 ALLELECALLEVALUATOR_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 ALLELECALLEVALUATOR_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
@@ -21,6 +22,7 @@ ALLELECALLEVALUATOR_NO_NEIGHBOR_JOINING_ARGNAME = "no_neighbor_joining"
 ALLELECALLEVALUATOR_FORCE_CORE_MSA_ARGNAME = "force_core_msa"
 ALLELECALLEVALUATOR_LIGTH_ARGNAME = "light"
 
+# Argument types
 ALLELECALLEVALUATOR_ARGUMENT_TYPES = {
 	"results_files": str,
 	"schema_directory": str,
@@ -34,7 +36,7 @@ ALLELECALLEVALUATOR_ARGUMENT_TYPES = {
 	"light": bool
 }
 
-# HTML template to create main AlleleCall report
+# HTML template to create the main page of the HTML report
 ALLELECALL_REPORT_HTML = ("""
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +54,7 @@ ALLELECALL_REPORT_HTML = ("""
 </html>
 """)
 
-# Relative path to the JS bundle used by AlleleCallEvaluator
+# Relative path to the main JS bundle
 ALLELECALL_EVALUATOR_BUNDLE = "report_template_components/src/bundles/AlleleCallEvaluator/report_bundle.js"
 
 # Basename for the output files created by the AlleleCallEvaluator module
@@ -61,14 +63,14 @@ CORE_MSA_BASENAME = "cgMLST_MSA.fasta"
 CGMLST_PROFILES_BASENAME = "cgMLST_profiles.tsv"
 ALLELECALL_REPORT_BASENAME = "allelecall_report.html"
 
-# Table headers for the Sample Stats table in the allele calling report
+# Table headers for the Sample Stats table in the HTML report
 SAMPLE_STATS_HEADER = ["Sample", "Total Contigs", "Total CDSs", "Proportion of Classified CDSs",
                        "Identified Loci", "Proportion of Identified Loci", "Valid Classifications",
 					   "Invalid Classifications"]
 
-# Column headers for the Loci Stats table in the allele calling report
+# Column headers for the Loci Stats table in the HTML report
 LOCUS_STATS_HEADER = ["Locus", "Total CDSs", "Valid Classes", "Invalid Classes", "Proportion Samples"]
 
-# Column headers for the Summary Stats table in the allele calling report
+# Column headers for the Summary Stats table in the HTML report
 SUMMARY_STATS_HEADER = ["Total Samples", "Total Loci", "Total CDSs", "Total CDSs Classified", "EXC",
                         "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"]

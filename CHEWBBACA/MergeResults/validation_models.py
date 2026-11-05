@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the MergeResults module.
 """
 
 
@@ -31,12 +31,14 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 ResultsDirectories = Annotated[list,
 								AfterValidator(partial(gval.input_paths_exist,
 								                       function=fo.is_directory,
 													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
 
 
+# Main validation class
 class MergeResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

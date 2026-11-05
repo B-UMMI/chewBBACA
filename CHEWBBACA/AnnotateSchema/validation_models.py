@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the AnnotateSchema module.
 """
 
 
@@ -31,6 +31,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 ProteinTable = Annotated[str,
                          Field(default=None),
                          AfterValidator(partial(gval.input_paths_exist,
@@ -47,6 +48,7 @@ RestApiMatches = Annotated[int,
                            Field(default=1, ge=1)]
 
 
+# Main validation class
 class AnnotateSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the HashProfiles module.
 """
 
 
@@ -29,6 +29,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Function used to validate the hashing algorithm specified by the user
 def validate_hashing_algo(hashing_algo):
 	"""Validate the hashing algorithm.
 
@@ -58,6 +59,7 @@ def validate_hashing_algo(hashing_algo):
 	return [hashing_algo, hashing_function]
 
 
+# Annotated Fields
 HashingAlgo = Annotated[str,
                         Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
                               validate_default=True),
@@ -67,6 +69,7 @@ NrowChunk = Annotated[int,
                       Field(default=100)]
 
 
+# Main validation class
 class HashProfilesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

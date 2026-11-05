@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the GetAlleles module.
 """
 
-
+# Name of the module
 GETALLELES_MODULE_NAME = "GetAlleles"
 
+# Parameter names
 GETALLELES_ALLELIC_PROFILES_ARGNAME = "allelic_profiles"
 GETALLELES_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 GETALLELES_LOCI_LIST_ARGNAME = "loci_list"
@@ -19,6 +20,7 @@ GETALLELES_TRANSLATION_TABLE_ARGNAME = "translation_table"
 GETALLELES_TRANSLATE_ALLELES_ARGNAME = "translate_alleles"
 GETALLELES_DISTINCT_ARGNAME = "distinct"
 
+# Argument types
 GETALLELES_ARGUMENT_TYPES = {
 	"allelic_profiles": str,
 	"schema_directory": str,

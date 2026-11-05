@@ -4,16 +4,18 @@
 Purpose
 -------
 
-
+This file stores constants used by the MergeResults module.
 """
 
-
+# Name of the module
 MERGERESULTS_MODULE_NAME = "MergeResults"
 
+# Parameter names
 MERGERESULTS_RESULTS_DIRECTORIES_ARGNAME = "results_directories"
 MERGERESULTS_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 MERGERESULTS_COMMON_ARGNAME = "common"
 
+# Argument types
 MERGERESULTS_ARGUMENT_TYPES = {
 	"results_directories": str,
 	"output_directory": str,
@@ -21,7 +23,6 @@ MERGERESULTS_ARGUMENT_TYPES = {
 }
 
 # Exceptions
-
 MERGERESULTS_INPUTFILE_EXCEPTION = ("Input paths should all be folders. The following are not folders:\n{0}")
 
 MERGERESULTS_NOCOMMONLOCI_EXCEPTION = ('Results do not have loci in common.')

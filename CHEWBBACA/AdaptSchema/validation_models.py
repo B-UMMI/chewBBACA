@@ -4,13 +4,12 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the AdaptSchema module.
 """
 
 import sys
 from typing import Annotated
 
-import pandas as pd
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
@@ -28,6 +27,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 AdaptationMinimumLength = Annotated[int,
                                     Field(default=0)]
 
@@ -35,6 +35,7 @@ AdaptationSizeThreshold = Annotated[float,
                                     Field(default=None)]
 
 
+# Main validation class
 class AdaptSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

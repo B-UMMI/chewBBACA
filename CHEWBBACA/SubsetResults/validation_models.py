@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the SubsetResults module.
 """
 
 
@@ -30,12 +30,14 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 SampleList = Annotated[str,
                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
 					   AfterValidator(gval.input_is_fasta),
 					   AfterValidator(fo.list_input_files)]
 
 
+# Main validation class
 class SubsetResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

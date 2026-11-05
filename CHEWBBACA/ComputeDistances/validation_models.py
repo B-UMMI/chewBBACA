@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the ComputeDistances module.
 """
 
 
@@ -14,8 +14,7 @@ from functools import partial
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
-					  AfterValidator,
-					  model_validator)
+					  AfterValidator)
 
 try:
 	import ComputeDistances.constants as ct
@@ -25,6 +24,7 @@ except ModuleNotFoundError:
 	import CHEWBBACA.global_validation as gval
 
 
+# Annotated Fields
 DistanceComputationMethod = Annotated[str,
                    					  Field(default=ct.DEFAULT_DISTANCE_METHOD),
                    					  AfterValidator(partial(gval.validate_choice, valid_options=ct.DISTANCE_METHODS, exception_str=ct.INVALID_DISTANCE_METHOD))]
@@ -34,6 +34,7 @@ OutputFormat = Annotated[str,
 				   AfterValidator(partial(gval.validate_choice, valid_options=ct.OUTPUT_FORMATS, exception_str=ct.INVALID_OUTPUT_FORMAT))]
 
 
+# Main validation class
 class ComputeDistancesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

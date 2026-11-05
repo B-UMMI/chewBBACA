@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the ComputeMSA module.
 """
 
 
@@ -29,6 +29,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 MSAInput = Annotated[str,
 					 AfterValidator(partial(gval.input_paths_exist,
 								    function=fo.exists,
@@ -46,6 +47,7 @@ CustomMafftOptions = Annotated[str,
                                Field(default=None)]
 
 
+# Main validation class
 class ComputeMSAValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

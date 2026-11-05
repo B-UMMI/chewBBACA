@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the AnnotateSchema module.
 """
 
-
+# Name of the module
 ANNOTATESCHEMA_MODULE_NAME = "AnnotateSchema"
 
+# Parameter names
 ANNOTATESCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 ANNOTATESCHEMA_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 ANNOTATESCHEMA_LOCI_LIST_ARGNAME = "loci_list"
@@ -24,6 +25,7 @@ ANNOTATESCHEMA_UNIPROT_REST_API_ARGNAME = "rest_api"
 ANNOTATESCHEMA_UNIPROT_REST_API_MATCHES_ARGNAME = "rest_api_matches"
 ANNOTATESCHEMA_NO_CLEANUP_ARGNAME = "no_cleanup"
 
+# Argument types
 ANNOTATESCHEMA_ARGUMENT_TYPES = {
 	"schema_directory": str,
 	"output_directory": str,
@@ -58,12 +60,12 @@ UNIPROT_RESTAPI_RETRY_SLEEP = 1
 # Define list of status codes after which is allowed to retry
 UNIPROT_RESTAPI_STATUS_FORCELIST = [500, 502, 503, 504]
 
+# Column headers/names for the output file
 ANNOTATE_SCHEMA_FIRST_COLUMN = "Locus"
 ANNOTATE_SCHEMA_PROTEOME_COLUMNS = ["Proteome_ID", "Proteome_Product", "Proteome_Gene_Name", "Proteome_Species", "Proteome_BSR"]
 ANNOTATE_SCHEMA_RESTAPI_COLUMNS = ["RestAPI_Accession", "RestAPI_Source", "RestAPI_TaxID", "RestAPI_Taxon", "RestAPI_Protein_Name", "RestAPI_Gene_Name", "RestAPI_URL"]
 
 # Exceptions
-
 MISSING_PROTEIN_TABLE = ("Path for protein table is not valid.")
 
 ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD = ("No annotation method was specified. Please provide either a single "

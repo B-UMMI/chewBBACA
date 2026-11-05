@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the AlleleCallEvaluator module.
 """
 
 
@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Main validation class
 class AlleleCallEvaluatorValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

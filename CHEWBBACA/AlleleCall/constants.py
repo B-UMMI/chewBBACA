@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the AlleleCall module.
 """
 
-
+# Name of the module
 ALLELECALL_MODULE_NAME = "AlleleCall"
 
+# Parameter names
 ALLELECALL_INPUT_FILES_ARGNAME = "input_path"
 ALLELECALL_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 ALLELECALL_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
@@ -34,7 +35,7 @@ ALLELECALL_CPU_CORES_ARGNAME = "cpu_cores"
 ALLELECALL_NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
 ALLELECALL_NO_CLEANUP_ARGNAME = "no_cleanup"
 
-# Define expected types for the arguments
+# Argument types
 ALLELECALL_ARGUMENT_TYPES = {
 	"input_path": str,
 	"schema_directory": str,
@@ -104,6 +105,7 @@ PROTEIN_CLUSTERING = "Protein clustering"
 REPRESENTATIVE_DETERMINATION = "Representative determination"
 WRAPPING_UP = "Wrapping up"
 
+# Execution modes
 ALLELECALL_MODES = {1: "Searches for exact matches at the DNA level between the schema alleles and the input CDSs.",
                     2: "Searches for exact matches at the DNA and protein levels between the schema alleles and the input CDSs.",
 					3: "Searches for exact matches at the DNA and protein levels and clusters CDSs against all representative alleles followed by intracluster BLASTp.",
@@ -112,7 +114,6 @@ ALLELECALL_MODES = {1: "Searches for exact matches at the DNA level between the 
 ALLELECALL_DEFAULT_MODE = 4
 
 # Exceptions
-
 ALLELECALL_INVALID_MODE = ("Specified invalid mode for allele calling. Please provide one of the "
                            f"following supported modes: {'\n'.join([str(k)+': '+v for k, v in ALLELECALL_MODES.items()])}")
 

@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the ComputeCore module.
 """
 
 
@@ -29,6 +29,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 LociPresenceThreshold = Annotated[list,
                             Field(default=ct.CGMLST_THRESHOLDS,
                                   ge=ct.CGMLST_THRESHOLD_MIN,
@@ -41,16 +42,21 @@ Permutation = Annotated[int,
                         Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
 
 ExcludeLoci = Annotated[str,
-                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI)),
+                        AfterValidator(partial(gval.input_paths_exist,
+                                               function=fo.exists,
+											   exception_str=ct.MISSING_EXCLUDE_LOCI)),
 						AfterValidator(gval.input_is_fasta),
 						AfterValidator(fo.list_input_files)]
 
 ExcludeGenomes = Annotated[str,
-                           AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
+                           AfterValidator(partial(gval.input_paths_exist,
+                                                  function=fo.exists,
+												  exception_str=ct.MISSING_EXCLUDE_GENOMES)),
 						   AfterValidator(gval.input_is_fasta),
 						   AfterValidator(fo.list_input_files)]
 
 
+# Main validation class
 class ComputeCoreValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

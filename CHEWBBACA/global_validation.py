@@ -744,17 +744,15 @@ def contains_results(results_directory, results_files_basenames):
 	return results_directory
 
 
-##########################
-# Annotated types/Fields #
-##########################
-
-# Define reusable annotated types/Fields for argument validation
+# Define reusable annotated types/Fields for argument validation in multiple modules
 OutputDirectory = Annotated[str,
 							AfterValidator(parentdir_exists),
 							AfterValidator(create_output_directory)]
 
 InputFiles = Annotated[str,
-					   AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.MISSING_INPUT_ARG)),
+					   AfterValidator(partial(input_paths_exist,
+					                          function=fo.exists,
+											  exception_str=gct.MISSING_INPUT_ARG)),
 					   AfterValidator(input_is_fasta),
 					   AfterValidator(fo.list_input_files),
 					   AfterValidator(filter_inputs_extension),
@@ -764,18 +762,24 @@ InputFiles = Annotated[str,
 					   AfterValidator(check_blanks)]
 
 ChewieSchema = Annotated[str,
-						 AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(partial(input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
 						 AfterValidator(schema_includes_fasta),
 						 AfterValidator(schema_check_genes_list),
 						 AfterValidator(schema_check_config),
 						 AfterValidator(schema_check_short)]
 
 ExternalSchema = Annotated[str,
-							AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.SCHEMA_PATH_MISSING)),
+							AfterValidator(partial(input_paths_exist,
+							                       function=fo.exists,
+												   exception_str=gct.SCHEMA_PATH_MISSING)),
 							AfterValidator(schema_includes_fasta)]
 
 LociList = Annotated[str,
-					 AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(partial(input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
 					 AfterValidator(input_is_fasta),
 					 AfterValidator(fo.list_input_files)]
 
@@ -791,7 +795,9 @@ MinimumLength = Annotated[int,
 
 TranslationTable = Annotated[int,
 							 Field(default=gct.GENETIC_CODE_DEFAULT),
-							 AfterValidator(partial(validate_choice, valid_options=gct.GENETIC_CODES, exception_str=gct.INVALID_GENETIC_CODE))]
+							 AfterValidator(partial(validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
 
 SizeThreshold = Annotated[float | None,
 						  Field(default=gct.ST_DEFAULT,
@@ -853,7 +859,9 @@ IntraFilter = Annotated[float,
 							  le=gct.INTRA_CLUSTER_MAX)]
 
 Annotations = Annotated[str,
-                        AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.MISSING_ANNOTATIONS_FILE))]
+                        AfterValidator(partial(input_paths_exist,
+                                               function=fo.exists,
+											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]
 
 BooleanFlag = Annotated[bool,
                         Field(default=False)]
@@ -863,8 +871,11 @@ NSCONFIG = Annotated[bool,
 
 # Nedd to add a AfterValidator to get and validate results files
 ResultsFiles = Annotated[str,
-                         AfterValidator(partial(input_paths_exist, function=fo.exists, exception_str=gct.MISSING_RESULTS)),
-						 AfterValidator(partial(contains_results, results_files_basenames=[gct.ALLELIC_PROFILES_BASENAME]))]
+                         AfterValidator(partial(input_paths_exist,
+                                                function=fo.exists,
+												exception_str=gct.MISSING_RESULTS)),
+						 AfterValidator(partial(contains_results,
+						                        results_files_basenames=[gct.ALLELIC_PROFILES_BASENAME]))]
 
 # Should implement a validator for the profile filr format
 AllelicProfiles = Annotated[str,

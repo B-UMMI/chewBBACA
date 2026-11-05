@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the SchemaEvaluator module.
 """
 
-
+# Name of the module
 SCHEMAEVALUATOR_MODULE_NAME = "SchemaEvaluator"
 
+# Parameter names
 SCHEMAEVALUATOR_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 SCHEMAEVALUATOR_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 SCHEMAEVALUATOR_LOCI_LIST_ARGNAME = "loci_list"
@@ -22,7 +23,7 @@ SCHEMAEVALUATOR_LOCI_REPORTS_ARGNAME = "loci_reports"
 SCHEMAEVALUATOR_LIGTH_ARGNAME = "light"
 SCHEMAEVALUATOR_ADD_SEQUENCES_ARGNAME = "add_sequences"
 
-# Define expected types for the arguments
+# Argument types
 SCHEMAEVALUATOR_ARGUMENT_TYPES = {
 	"schema_directory": str,
 	"output_directory": str,
@@ -37,6 +38,7 @@ SCHEMAEVALUATOR_ARGUMENT_TYPES = {
 	"add_sequences": bool
 }
 
+# Basename for the main report file
 SCHEMA_REPORT_BASENAME = "schema_report.html"
 
 # HTML template to create Schema Report
@@ -92,6 +94,20 @@ SCHEMA_EVALUATOR_LOCI_BUNDLE = "report_template_components/src/bundles/SchemaEva
 # and use the latest changes to a string in the list/id when those changes
 # might not refer to the current process (returning an incorrect value).
 
+# Column headers for the Invalid Alleles table
+INVALID_ALLELES_TABLE_HEADER = ["Allele ID", "Exception Category", "Exception Description"]
+
+# List of possible translation exceptions
+TRANSLATION_EXCEPTIONS = ["Extra in frame stop codon",
+						  "is not a start codon",
+						  "is not a stop codon",
+						  "sequence length is not a multiple of 3",
+						  "ambiguous or invalid characters"]
+
+# Column headers/names for the table with data about distinct alleles
+DISTINCT_ALLELES_TABLE_HEADER = ["Protein Allele ID", "Count", "List of Distinct Alleles"]
+
+# Exceptions
 # Table headers for the Schema report summary data table
 SCHEMA_SUMMARY_TABLE_HEADER = ("Loci\tAlleles\tValid Alleles\tInvalid alleles\tIncomplete ORF\tAmbiguous Bases\t"
 								"Missing Start/Stop Codon\tIn-frame Stop Codon\tAlleles < {0}bp\tAlleles below "
@@ -107,14 +123,3 @@ LOCI_REPORTS_SUMMARY_TABLE_HEADER = ("Locus\tTotal Alleles\tValid Alleles\tInval
 				 					 "Protein Alleles\tIncomplete ORF\tAmbiguous Bases\tMissing Start/Stop Codon\tIn-frame Stop Codon\t"
 									 "Alleles < {0}bp\tSize Range (bp)\tLength Median (bp)\tLength Mode (bp)\tAlleles below threshold "
 									 "({1}bp)\tAlleles above threshold ({2}bp)\tMissing Allele IDs")
-
-# Column headers for the Invalid Alleles table in the loci reports
-INVALID_ALLELES_TABLE_HEADER = ["Allele ID", "Exception Category", "Exception Description"]
-
-TRANSLATION_EXCEPTIONS = ["Extra in frame stop codon",
-						  "is not a start codon",
-						  "is not a stop codon",
-						  "sequence length is not a multiple of 3",
-						  "ambiguous or invalid characters"]
-
-DISTINCT_ALLELES_TABLE_HEADER = ["Protein Allele ID", "Count", "List of Distinct Alleles"]

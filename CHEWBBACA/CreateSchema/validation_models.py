@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the CreateSchema module.
 """
 
 
@@ -27,10 +27,12 @@ except ModuleNotFoundError:
 	import CHEWBBACA.CreateSchema.constants as ct
 
 
+# Annotated Fields
 SchemaName = Annotated[str,
                        Field(default=ct.SCHEMA_NAME_DEFAULT)]
 
 
+# Main validation class
 class CreateSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

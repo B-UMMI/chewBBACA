@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the PredictGenes module.
 """
 
 
@@ -100,6 +100,7 @@ def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUS
 	return species_id
 
 
+# Annotated Fields
 GenePredictor = Annotated[str,
 						  Field(default=ct.GENE_PREDICTOR_DEFAULT),
 						  AfterValidator(partial(gval.validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.PREDICTGENES_INVALID_GENE_PREDICTOR))]
@@ -180,6 +181,7 @@ class AugustusArgs(BaseModel):
 ValidatedGenePredictionOptions = Annotated[PyrodigalArgs | AugustusArgs | None, Field(default=None)]
 
 
+# Main validation class
 class PredictGenesValidator(BaseModel):
 	# Use `from_attributes=True` to inspect the attributes of the 
 	# argparse.Namespace object directly without having to convert to a dictionary

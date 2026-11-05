@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the CreateSchema module.
 """
 
-
+# Name of the module
 CREATESCHEMA_MODULE_NAME = "CreateSchema"
 
+# Parameter names
 CREATESCHEMA_INPUT_FILES_ARGNAME = "input_files"
 CREATESCHEMA_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 CREATESCHEMA_SCHEMA_NAME_ARGNAME = "schema_name"
@@ -26,7 +27,7 @@ CREATESCHEMA_CPU_CORES_ARGNAME = "cpu_cores"
 CREATESCHEMA_NO_CDS_RENAMING_ARGNAME = "no_cds_renaming"
 CREATESCHEMA_NO_CLEANUP_ARGNAME = "no_cleanup"
 
-# Define expected types for the arguments
+# Argument types
 CREATESCHEMA_ARGUMENT_TYPES = {
 	"input_files": str,
 	"output_directory": str,
@@ -45,7 +46,6 @@ CREATESCHEMA_ARGUMENT_TYPES = {
 	"no_cleanup": bool,
 }
 
-
 # Proteins to cluster are divided into a maximum of 40 smaller groups in CreateSchema
 # Since we do not have pre-defined clusters during schema creation, dividing based on
 # the number of CPU cores would lead to variable results. Therefore, we use a fixed
@@ -56,4 +56,5 @@ CREATESCHEMA_CLUSTERING_NGROUPS = 40
 # CreateSchema exclusive section headers
 FINAL_BLASTp = "Final BLASTp"
 
+# Default name for the folder containing the schema seeds created by the CreateSchema module
 SCHEMA_NAME_DEFAULT = "schema_seed"

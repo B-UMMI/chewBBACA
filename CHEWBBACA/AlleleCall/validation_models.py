@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the AlleleCall module.
 """
 
 
@@ -31,11 +31,13 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils import file_operations as fo
 
 
+# Annotated Fields
 AllelecallMode = Annotated[int,
                            Field(default=ct.ALLELECALL_DEFAULT_MODE),
 						   AfterValidator(partial(gval.validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.ALLELECALL_INVALID_MODE))]
 
 
+# Main validation class
 class AlleleCallValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

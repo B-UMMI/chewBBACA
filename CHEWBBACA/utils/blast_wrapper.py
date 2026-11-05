@@ -220,40 +220,6 @@ def run_blastdb_aliastool(blastdb_aliastool_path, seqid_infile, seqid_outfile):
 	return [stdout, stderr]
 
 
-def run_blastdbcmd(blastdbcmd_path, blast_db, output_file):
-	"""Run blastdbcmd to extract sequences from a BLAST database.
-
-	Parameters
-	----------
-	blastdbcmd_path : str
-		Path to the blastdbcmd executable.
-	blast_db : str
-		Path to the BLAST database.
-	output_file : str
-		Path to the output file that will store the sequences.
-
-	Returns
-	-------
-	stdout : bytes
-		BLAST stdout.
-	stderr : bytes or str
-		BLAST stderr.
-	"""
-	blastdbcmd_args = [blastdbcmd_path, '-db', blast_db, '-out', output_file, '-entry', 'all']
-
-	blastdbcmd_process = subprocess.Popen(blastdbcmd_args,
-										  stdout=subprocess.PIPE,
-										  stderr=subprocess.PIPE)
-
-	stdout, stderr = blastdbcmd_process.communicate()
-
-	# Exit if it is not possible to extract sequences from BLAST db
-	if len(stderr) > 0:
-		sys.exit(f'Cound not extract sequences from {blast_db}.\n')
-
-	return [stdout, stderr]
-
-
 def get_blast_version(blastp_path):
 	"""Determine version of BLAST.
 

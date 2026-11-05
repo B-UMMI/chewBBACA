@@ -137,7 +137,7 @@ def main(config):
 			if len(below) > 0:
 				# Save lines matching excluded CDSs to separate TSV file
 				below_outlines = ['\t'.join(line) for line in [header]+below]
-				below_lines_outfile = fo.join_paths(config.output_directory, [ct.GENE_COORDINATES_EXCLUDED_BASENAME])
+				below_lines_outfile = fo.join_paths(config.output_directory, [gct.GENE_COORDINATES_EXCLUDED_BASENAME])
 				fo.write_lines(below_outlines, below_lines_outfile)
 				print(f'Wrote CDS coordinates for the CDSs excluded based on the confidence threshold to {below_lines_outfile}')
 

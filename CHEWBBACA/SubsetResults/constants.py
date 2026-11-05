@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the SubsetResults module.
 """
 
-
+# Name of the module
 SUBSETRESULTS_MODULE_NAME = "SubsetResults"
 
+# Parameter names
 SUBSETRESULTS_RESULTS_FILES_ARGNAME = "results_files"
 SUBSETRESULTS_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 SUBSETRESULTS_LOCI_LIST_ARGNAME = "loci_list"
@@ -17,6 +18,7 @@ SUBSETRESULTS_SAMPLE_LIST_ARGNAME = "sample_list"
 SUBSETRESULTS_INVERT_LOCI_ARGNAME = "invert_loci"
 SUBSETRESULTS_INVERT_SAMPLES_ARGNAME = "invert_samples"
 
+# Argument types
 SUBSETRESULTS_ARGUMENT_TYPES = {
 	"results_files": str,
 	"output_directory": str,
@@ -27,7 +29,6 @@ SUBSETRESULTS_ARGUMENT_TYPES = {
 }
 
 # Exceptions
-
 SUBSETRESULTS_MISSING_LISTS_EXCEPTION = ('Did not provide a list of loci or samples. Please '
 										 'provide at least one of those lists to subset results.')
 

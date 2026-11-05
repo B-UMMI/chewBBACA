@@ -4,12 +4,13 @@
 Purpose
 -------
 
-
+This file stores constants used by the AdaptSchema module.
 """
 
-
+# Name of the module
 ADAPTSCHEMA_MODULE_NAME = "AdaptSchema"
 
+# Parameter names
 ADAPTSCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 ADAPTSCHEMA_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 ADAPTSCHEMA_LOCI_LIST_ARGNAME = "loci_list"
@@ -24,6 +25,7 @@ ADAPTSCHEMA_CPU_CORES_ARGNAME = "cpu_cores"
 ADAPTSCHEMA_BLAST_PATH_ARGNAME = "blast_path"
 ADAPTSCHEMA_SIZE_FILTER_ARGNAME = "size_filter"
 
+# Argument types
 ADAPTSCHEMA_ARGUMENT_TYPES = {
 	"schema_directory": str,
 	"output_directory": str,

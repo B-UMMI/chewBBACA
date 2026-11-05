@@ -12,19 +12,17 @@ Code documentation
 
 
 import sys
-import shutil
 
-##########################################
-## Minimum, Maximum, and Default values ##
-##########################################
+# Global constants used by multiple modules
 
+# Current chewie version
 __version__ = "4.0.0-beta"
 
 # Authors, GitHub repository, documentation, tutorial and contacts
-AUTHORS = 'Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez'
-REPOSITORY = 'https://github.com/B-UMMI/chewBBACA'
-DOCUMENTATION = 'https://chewbbaca.readthedocs.io/en/latest/index.html'
-CONTACTS = 'imm-bioinfo@medicina.ulisboa.pt'
+AUTHORS = "Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez"
+REPOSITORY = "https://github.com/B-UMMI/chewBBACA"
+DOCUMENTATION = "https://chewbbaca.readthedocs.io/en/latest/index.html"
+CONTACTS = "imm-bioinfo@medicina.ulisboa.pt"
 
 # BLAST Score Ratio default values
 # Value must be contained in the [0.0, 1.0] interval
@@ -103,10 +101,11 @@ GENETIC_CODES = {1: "The Standard Code",
 
 GENETIC_CODE_DEFAULT = 11
 
+# Defautl and minimum values for the number of CPU cores
 CPU_CORES_DEFAULT = 1
 CPU_CORES_MIN = 1
 
-# Basenames for the output files
+# Basenames for the output/results files created by chewie
 ALLELIC_PROFILES_BASENAME = "allelic_profiles.tsv" # TSV file containing the allelic profiles
 COORDINATES_PROFILES_BASENAME = "coordinates_profiles.tsv" # TSV file containing the allele genomic coordinates
 PARALOGOUS_COUNTS_BASENAME = "paralogous_counts.tsv" # TSV file containing the list and count per paralogous locus
@@ -121,7 +120,8 @@ INFERRED_ALLELES_BASENAME = "inferred_alleles.fasta" # FASTA file containing the
 INFERRED_ALLELES_TABLE_BASENAME = "inferred_alleles.tsv" # TSV file containing data about the inferred alleles
 PRESENCE_ABSENCE_PROFILES_BASENAME = "presence_absence_profiles.tsv"
 INVALID_CDS_BASENAME = "invalid_cds.txt" # TXT file with the list of invalid CDSs
-GENE_COORDINATES_BASENAME = "gene_coordinates.tsv"
+GENE_COORDINATES_BASENAME = "gene_coordinates.tsv" # TSV file containing the coordinates of predicted CDSs
+GENE_COORDINATES_EXCLUDED_BASENAME = "gene_coordinates_excluded.tsv" # TSV file containing the list of predicted CDSs that were excluded
 SCHEMA_CONFIG_BASENAME = ".schema_config" # Pickle file containing schema config values
 GENE_LIST_BASENAME = ".genes_list" # Pickle file containing the list of genes in a schema
 NS_CONFIG_BASENAME = ".ns_config" # Pickle file added to schemas downloaded to Chewie-NS
@@ -146,21 +146,21 @@ SCHEMA_CONFIG_CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
 SCHEMA_CONFIG_CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
 SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
 
+# Column headers/names for the file with CDS/gene coordinates created by the PredictGenes module and used by other modules
 GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
                       "Coding_Strand", "Confidence", "SHA256"]
 
 # Valid FASTA file extensions
 FASTA_EXTENSIONS = [".fasta", ".fna", ".ffn", ".fa", ".fas"]
 
-# Character replacements for genome and loci identifiers
+# Character replacements for genome and locus identifiers
 CHAR_REPLACEMENTS = [("|", "_"), ("_", "-"), ("(", ""), (")", ""), ("'", ""), ("\"", ""), (":", "")]
 
 # Minimum Python version
 MIN_PYTHON = [(3, 10, 0), "3.10.0"]
 
-## GET and POST requests
 
-# Chewie-NS related constants
+# HTTP Headers
 HEADERS_GET = {"Authorization": None,
 			   "accept": "application/octet-stream"}
 
@@ -178,9 +178,11 @@ HEADERS_POST_JSON = {"Authorization": None,
 # Timeout, in seconds, to wait for user input
 PROMPT_TIMEOUT = 30
 
-# Ambiguous characters for DNA and protein sequences
-PROTEIN_AMBIGUOUS_CHARS = ['B', 'Z', 'X', 'J']
-DNA_AMBIGUOUS_CHARS = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
+# The fantastic four
+NUCLEOTIDES = "AGCT"
+# The variants aka Ambiguous characters for DNA and protein sequences
+PROTEIN_AMBIGUOUS_CHARS = ["B", "Z", "X", "J"]
+DNA_AMBIGUOUS_CHARS = ["R", "Y", "S", "W", "K", "M", "B", "D", "H", "V", "N"]
 
 # Allele classes
 ALLELE_CLASSES = ["EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"]
@@ -190,27 +192,22 @@ PROBABLE_LNF = "PLNF"
 # String template for a standard single line FASTA record
 FASTA_RECORD_TEMPLATE = ">{0}\n{1}"
 
-NUCLEOTIDES = "AGCT"
-
-# Links to Documentation pages
+# Link template for the Documentation pages
 DOCS_URL_TEMPLATE = "https://chewbbaca.readthedocs.io/en/latest/user/modules/{0}.html"
-
-## BLAST
 
 # Minimum MAJOR and MINOR BLAST versions
 BLAST_MAJOR = 2
 BLAST_MINOR = 9
 
-# Paths to BLASTp and makeblastdb executables in Linux and Windows
+# Alias for BLAST executables
 BLASTP_ALIAS = "blastp"
-MAKEBLASTDB_ALIAS = shutil.which("makeblastdb")
-BLASTDB_ALIASTOOL_ALIAS = shutil.which("blastdb_aliastool")
-BLASTDBCMD_ALIAS = shutil.which("blastdbcmd")
+MAKEBLASTDB_ALIAS = "makeblastdb"
+BLASTDB_ALIASTOOL_ALIAS = "blastdb_aliastool"
 
-# Define minimum sequence threshold to change BLASTn and BLASTp task type
+# Define minimum sequence threshold to select BLASTn and BLASTp task type
 BLAST_TASK_THRESHOLD = {"blastn": 50, "blastp": 30}
 
-# BLAST outfmt
+# BLAST default outfmt
 BLAST_DEFAULT_OUTFMT = "6 qseqid qstart qend qlen sseqid slen score"
 
 # Define sequence identifier prefix to avoid issues where makeblastdb modifies the IDs
@@ -218,16 +215,12 @@ BLAST_DEFAULT_OUTFMT = "6 qseqid qstart qend qlen sseqid slen score"
 BLASTDB_LCL_PREFIX = "lcl|SEQ"
 BLASTDB_SEQ_PREFIX = "SEQ"
 
-## MAFFT
-
 # Path to MAFFT executable
-MAFFT_ALIAS = shutil.which("mafft")
+MAFFT_ALIAS = "mafft"
 # MAFFT default parameters
 MAFFT_DEFAULT_PARAMETERS = ["--thread", "1", "--retree", "1", "--maxiterate", "0", "--treeout"]
 
-############################
-## Warning and Exceptions ##
-############################
+# Warnings and Exceptions raised by multiple modules
 
 MISSING_GENE_LIST = ("Could not find the '.genes_list' file in the schema's directory.")
 

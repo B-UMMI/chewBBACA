@@ -4,7 +4,7 @@
 Purpose
 -------
 
-
+This file includes the Pydantic classes used to valdiate the argument values passed to the modules that allow for the integration with Chewie-NS.
 """
 
 
@@ -36,6 +36,7 @@ except ModuleNotFoundError:
 	from CHEWBBACA.utils.process_datetime import validate_date
 
 
+# Annotated Fields
 SpeciesId = Annotated[str,
                       Field(default=None)]
 
@@ -62,6 +63,7 @@ StatsMode = Annotated[str,
 											 exception_str=ct.NSSTATS_INVALID_MODE))]
 
 
+# Main validation class for the DownloadSchema module
 class DownloadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -104,6 +106,7 @@ class DownloadSchemaValidator(BaseModel):
 		return self
 
 
+# Main validation class for the UploadSchema module
 class UploadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -187,6 +190,7 @@ class UploadSchemaValidator(BaseModel):
 		return self
 
 
+# Main validation class for the SyncSchema module
 class SynchronizeSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
@@ -215,6 +219,7 @@ class SynchronizeSchemaValidator(BaseModel):
 		return self
 
 
+# Main validation class for the NSStats module
 class NSStatsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

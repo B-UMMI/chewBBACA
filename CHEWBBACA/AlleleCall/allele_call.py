@@ -23,9 +23,10 @@ import sqlite3
 import pandas as pd
 
 try:
+	import global_constants as gct
+	import AlleleCall.constants as ct
 	from PredictGenes import predict_genes
-	from utils import (constants as ct,
-					   blast_wrapper as bw,
+	from utils import (blast_wrapper as bw,
 					   core_functions as cf,
 					   file_operations as fo,
 					   fasta_operations as fao,
@@ -34,9 +35,10 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.AlleleCall.constants as ct
 	from CHEWBBACA.PredictGenes import predict_genes
-	from CHEWBBACA.utils import (constants as ct,
-								 blast_wrapper as bw,
+	from CHEWBBACA.utils import (blast_wrapper as bw,
 								 core_functions as cf,
 								 file_operations as fo,
 								 fasta_operations as fao,
@@ -707,7 +709,7 @@ def write_loci_summary(classification_files, output_directory, total_inputs,
 		locus_line = im.join_list(counts_list, '\t')
 		loci_stats.append(locus_line)
 
-	output_file = fo.join_paths(output_directory, [ct.LOCI_STATS_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.LOCI_STATS_BASENAME])
 	fo.write_lines(loci_stats, output_file)
 
 	return output_file
@@ -772,7 +774,7 @@ def write_results_alleles(classification_files, input_identifiers,
 	# Transpose intermediate file
 	transposed_file = fo.transpose_matrix(intermediate_file, output_directory)
 	# Change basename of transposed file
-	output_file = fo.join_paths(output_directory, [ct.RESULTS_ALLELES_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.ALLELIC_PROFILES_BASENAME])
 	fo.move_file(transposed_file, output_file)
 
 	# Delete intermediate files
@@ -801,7 +803,7 @@ def write_results_masked(input_file, output_directory):
 	matrix = pd.read_csv(input_file, header=0, index_col=0, sep='\t', low_memory=False)
 	masked_matrix = matrix.apply(im.replace_chars)
 	# Write masked matrix to file
-	output_file = fo.join_paths(output_directory, [ct.RESULTS_ALLELES_MASKED_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.ALLELIC_PROFILES_MASKED_BASENAME])
 	masked_matrix.to_csv(output_file, sep='\t', index_label='FILE')
 
 	return output_file
@@ -874,7 +876,7 @@ def write_results_statistics(classification_files, input_identifiers,
 		lines.append(input_line)
 
 	outlines = ['\t'.join(line) for line in lines]
-	output_file = fo.join_paths(output_directory, [ct.RESULTS_STATISTICS_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.SAMPLE_STATISTICS_BASENAME])
 	fo.write_lines(outlines, output_file)
 
 	return output_file
@@ -964,7 +966,7 @@ def write_results_contigs(classification_files, input_identifiers, output_direct
 	repeated_hashes, repeated_counts = fo.count_repeated_matrix(transposed_file, invalid_classes)
 
 	# Define path to output file
-	output_file = fo.join_paths(output_directory, [ct.RESULTS_COORDINATES_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.COORDINATES_PROFILES_BASENAME])
 	# Create dictionary to store info about repeated CDSs
 	repeated_info = {}
 	with open(transposed_file, 'r') as infile:
@@ -976,7 +978,7 @@ def write_results_contigs(classification_files, input_identifiers, output_direct
 		for i, line in enumerate(csv_reader):
 			genome_id = line[0]
 			# Get value pairs for EXC/INF- matches
-			value_pairs = [(genome_id, v, header[j+1]) for j, v in enumerate(line[1:]) if v not in ct.ALLELECALL_CLASSIFICATIONS[2:]]
+			value_pairs = [(genome_id, v, header[j+1]) for j, v in enumerate(line[1:]) if v not in gct.ALLELE_CLASSES[2:]]
 			# Get coordinate data for the EXC/INF- matches
 			# Need to process value pairs in chunks due to the SQLITE_MAX_VARIABLE_NUMBER limit, which limits the number of parameter placeholders included in a single SQL statement
 			# The value of SQLITE_MAX_VARIABLE_NUMBER is 32,766 for SQLite >= 3.32.0, limiting queries to 16,383 value pairs/loci
@@ -1068,7 +1070,7 @@ def create_unclassified_fasta(fasta_file, prot_file, unclassified_protids,
 	else:
 		unclassified_seqids = unclassified_protids
 
-	output_file = fo.join_paths(output_directory, [ct.UNCLASSIFIED_BASENAME])
+	output_file = fo.join_paths(output_directory, [gct.UNCLASSIFIED_BASENAME])
 	dna_index = fao.index_fasta(fasta_file)
 	# Create FASTA file with unclassified CDSs
 	fao.get_sequences_by_id(dna_index, unclassified_seqids, output_file)
@@ -1151,7 +1153,7 @@ def assign_allele_ids(locus_files, ns, repeated, output_directory, loci_finder):
 						locus_results[genome_id][0] = 'INF'
 			# Classify as PAMA when a CDS matches multiple loci
 			else:
-				locus_results[genome_id][0] = ct.ALLELECALL_CLASSIFICATIONS[9]
+				locus_results[genome_id][0] = gct.ALLELE_CLASSES[9]
 
 		# Save updated results
 		fo.pickle_dumper(locus_results, locus_files[1])
@@ -1461,17 +1463,17 @@ def identify_paralogous(repeated, output_directory):
 	paralogous_counts_lines.extend(['{0}\t{1}'.format(k, sum(v))
 									for k, v in paralogous_counts.items()])
 	paralogous_counts_outfile = fo.join_paths(output_directory,
-											  [ct.PARALOGOUS_COUNTS_BASENAME])
+											  [gct.PARALOGOUS_COUNTS_BASENAME])
 	fo.write_lines(paralogous_counts_lines, paralogous_counts_outfile)
 
 	# Write groups of paralogous loci per input
-	paralogous_lines = [ct.PARALOGOUS_LIST_HEADER]
+	paralogous_lines = [ct.PARALOGOUS_TABLE_HEADER]
 	for cds, g in paralogous_data.items():
 		paralogous_lines.extend(['{0}\t{1}\t{2}'.format(k, '|'.join(v), cds)
 								 for k, v in g.items()])
 
 	paralogous_loci_outfile = fo.join_paths(output_directory,
-											[ct.PARALOGOUS_LOCI_BASENAME])
+											[gct.PARALOGOUS_TABLE_BASENAME])
 	fo.write_lines(paralogous_lines, paralogous_loci_outfile)
 
 	return [len(paralogous_counts), paralogous_counts_outfile, paralogous_loci_outfile]
@@ -1691,12 +1693,12 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 	dna_index = fao.index_fasta(fasta_file)
 
 	# Define path to output FASTA file
-	output_fasta_file = fo.join_paths(output_directory, [ct.MISSING_FASTA_BASENAME])
+	output_fasta_file = fo.join_paths(output_directory, [gct.MISSING_FASTA_BASENAME])
 
 	# Define path to output TSV file
-	output_tsv_file = fo.join_paths(output_directory, [ct.MISSING_TSV_BASENAME])
+	output_tsv_file = fo.join_paths(output_directory, [gct.MISSING_TSV_BASENAME])
 	# Write header line
-	fo.write_lines([ct.MISSING_HEADER], output_tsv_file, write_mode='a')
+	fo.write_lines([ct.MISSING_TSV_HEADER], output_tsv_file, write_mode='a')
 
 	# Add integer index to FASTA header and first TSV column
 	index = 1
@@ -1724,7 +1726,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 
 					sequence_header = (f'{index}|{genome_id}|{locus_id}&{v[0]}|{match_id}&{match_classification}')
 					sequence = str(dna_index[match_id].seq)
-					record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [sequence_header, sequence])
+					record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [sequence_header, sequence])
 					locus_records.append(record)
 					locus_lines.append(f'{index}\t{genome_id}\t{locus_id}\t{v[0]}\t{match_id}\t{match_classification}')
 					index += 1
@@ -2046,7 +2048,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 			print('Make sure that Pyrodigal runs in meta mode (--pm meta) '
 				  'if any input file has less than 100kbp.')
 		if len(cds_fastas) == 0:
-			sys.exit(f'{ct.CANNOT_PREDICT}')
+			sys.exit(f'{gct.CANNOT_PREDICT}')
 	# Inputs are FASTA files with the predicted CDSs
 	else:
 		if not config.no_cds_renaming:
@@ -2248,7 +2250,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	print(f'\n{len(ut_seqids)} CDSs could not be translated.')
 
 	# Create file with list of invalid CDSs
-	invalid_file = fo.join_paths(temp_directory, [ct.INVALID_CDS_BASENAME])
+	invalid_file = fo.join_paths(temp_directory, [gct.INVALID_CDS_BASENAME])
 	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), '\n')
 	fo.write_to_file(invalid_alleles, invalid_file, 'w', '\n')
 	# Count the number of invalid CDSs per input
@@ -2369,9 +2371,9 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	fo.create_directory(clustering_dir)
 
 	# Define BLASTp, makeblastdb and blastdb_aliastool paths
-	blastp_path = fo.join_paths(config.blast_path, [ct.BLASTP_ALIAS])
-	makeblastdb_path = fo.join_paths(config.blast_path, [ct.MAKEBLASTDB_ALIAS])
-	blastdb_aliastool_path = fo.join_paths(config.blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+	blastp_path = fo.join_paths(config.blast_path, [gct.BLASTP_ALIAS])
+	makeblastdb_path = fo.join_paths(config.blast_path, [gct.MAKEBLASTDB_ALIAS])
+	blastdb_aliastool_path = fo.join_paths(config.blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 
 	# Concatenate representative FASTA files
 	concat_reps = fo.join_paths(reps_protein_dir, ['loci_to_call_translated_representatives.fasta'])
@@ -2443,7 +2445,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	lcl_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_LCL.fasta'])
 	# Return mapping between new short IDs and original IDs
 	# Use 'SEQ' as prefix to avoid issues where makeblastdb modifies the IDs
-	_ = fao.integer_headers(distinct_prots, lcl_distinct_prots, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+	_ = fao.integer_headers(distinct_prots, lcl_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLAST database for distinct proteins
 	blast_db_dir = fo.join_paths(clustering_dir, ['BLASTp_db'])
 	fo.create_directory(blast_db_dir)
@@ -2454,7 +2456,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 	seq_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_SEQ.fasta'])
-	id_mapping = fao.integer_headers(distinct_prots, seq_distinct_prots, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+	id_mapping = fao.integer_headers(distinct_prots, seq_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 
@@ -2573,7 +2575,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
 	lcl_remaining_seqs = fo.join_paths(iterative_rep_dir, ['unclassified_proteins_LCL.fasta'])
 	# Use 'lcl|SEQ' to tell BLAST that these are local sequences and should not be modified
-	_ = fao.integer_headers(remaining_seqs_file, lcl_remaining_seqs, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+	_ = fao.integer_headers(remaining_seqs_file, lcl_remaining_seqs, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLAST database
 	blast_db_dir = fo.join_paths(iterative_rep_dir, ['BLASTp_db'])
 	fo.create_directory(blast_db_dir)
@@ -2584,7 +2586,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 	seq_distinct_prots = fo.join_paths(iterative_rep_dir, ['distinct_proteins_SEQ.fasta'])
-	id_mapping = fao.integer_headers(remaining_seqs_file, seq_distinct_prots, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+	id_mapping = fao.integer_headers(remaining_seqs_file, seq_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 	# Index file with SeqIO.index_db to store record information as a file on disk
@@ -2921,11 +2923,11 @@ def main(config):
 	print('='*(len(ct.WRAPPING_UP)+2))
 
 	# Adjust missing locus classification based on mode
-	classification_labels = ct.ALLELECALL_CLASSIFICATIONS
+	classification_labels = gct.ALLELE_CLASSES
 	# Only mode 4 performs a final exhaustive search
 	# Other modes do not and LNF classifications are considered Probable LNFs (PLNF)
 	if config.mode != 4:
-		classification_labels[-1] = ct.PROBABLE_LNF
+		classification_labels[-1] = gct.PROBABLE_LNF
 		print(f"Running in mode {config.mode}. Renaming Locus Not Found (LNF) "
 			  "class to Probable LNF (PLNF).")
 
@@ -2941,7 +2943,7 @@ def main(config):
 		print('There is no CDS coordinate data. Will add CDS identifiers to results_contigsInfo.tsv.')
 		database_path = None
 
-	print(f'Creating file with genome coordinates profiles ({ct.RESULTS_COORDINATES_BASENAME})...')
+	print(f'Creating file with genome coordinates profiles ({gct.COORDINATES_PROFILES_BASENAME})...')
 	results_contigs = write_results_contigs(list(results['classification_files'].values()),
 											results['int_to_unique'],
 											config.output_directory,
@@ -2952,7 +2954,7 @@ def main(config):
 
 	# Identify paralogous loci
 	print('Identifying paralogous loci and creating files with the list of paralogous '
-		  f'loci ({ct.PARALOGOUS_COUNTS_BASENAME} & {ct.PARALOGOUS_LOCI_BASENAME})...')
+		  f'loci ({gct.PARALOGOUS_COUNTS_BASENAME} & {gct.PARALOGOUS_TABLE_BASENAME})...')
 	paralogous_info = identify_paralogous(repeated_info, config.output_directory)
 	print(f'Identified {paralogous_info[0]} paralogous loci.')
 
@@ -3061,12 +3063,12 @@ def main(config):
 			clines.append([allele_id, cds_id, rep])
 
 	clines = [im.join_list(l, '\t') for l in clines]
-	coutfile = fo.join_paths(config.output_directory, [ct.NOVEL_ALLELES_FILENAME])
-	clines = [ct.NOVEL_ALLELES_LIST_HEADER] + clines
+	coutfile = fo.join_paths(config.output_directory, [gct.INFERRED_ALLELES_BASENAME])
+	clines = [ct.INFERRED_ALLELES_TABLE_HEADER] + clines
 	fo.write_lines(clines, coutfile)
 
 	# Create file with allelic profiles
-	print(f'Creating file with the allelic profiles ({ct.RESULTS_ALLELES_BASENAME})...')
+	print(f'Creating file with the allelic profiles ({gct.INFERRED_ALLELES_BASENAME})...')
 	profiles_table = write_results_alleles(list(results['classification_files'].values()),
 										   list(results['int_to_unique'].values()),
 										   config.output_directory,
@@ -3075,11 +3077,11 @@ def main(config):
 
 	# Create file with masked profiles
 	if config.output_masked_profiles:
-		print(f'Creating file with the masked allelic profiles ({ct.RESULTS_ALLELES_MASKED_BASENAME})...')
+		print(f'Creating file with the masked allelic profiles ({gct.ALLELIC_PROFILES_MASKED_BASENAME})...')
 		masked = write_results_masked(profiles_table, config.output_directory)
 
 	# Create file with class counts per input file
-	print(f'Creating file with class counts per input ({ct.RESULTS_STATISTICS_BASENAME})...')
+	print(f'Creating file with class counts per input ({gct.SAMPLE_STATISTICS_BASENAME})...')
 	input_stats_file = write_results_statistics(results['classification_files'],
 												results['int_to_unique'],
 												results['cds_counts'],
@@ -3089,7 +3091,7 @@ def main(config):
 												results['invalid_alleles'])
 
 	# Create file with class counts per locus called
-	print(f'Creating file with class counts per locus ({ct.LOCI_STATS_BASENAME})...')
+	print(f'Creating file with class counts per locus ({gct.LOCI_STATS_BASENAME})...')
 	loci_stats_file = write_loci_summary(results['classification_files'],
 										 config.output_directory,
 										 len(config.input_files),
@@ -3098,7 +3100,7 @@ def main(config):
 
 	# Create FASTA file with unclassified CDSs
 	if config.output_unclassified:
-		print(f'Creating file with unclassified CDSs ({ct.UNCLASSIFIED_BASENAME})...')
+		print(f'Creating file with unclassified CDSs ({gct.UNCLASSIFIED_BASENAME})...')
 		unclassified_file = create_unclassified_fasta(results['dna_fasta'],
 													  results['protein_fasta'],
 													  results['unclassified_ids'],
@@ -3109,7 +3111,7 @@ def main(config):
 	# Create FASTA and TSV files with data about the CDSs classified as non-EXC/non-INF
 	if config.output_missing:
 		print('Creating files with data about the CDSs classified as non-EXC/non-INF '
-			  f'({ct.MISSING_FASTA_BASENAME} & {ct.MISSING_TSV_BASENAME})...')
+			  f'({gct.MISSING_FASTA_BASENAME} & {gct.MISSING_TSV_BASENAME})...')
 		missing_outfiles = create_missing_fasta(results['classification_files'],
 												results['dna_fasta'],
 												results['int_to_unique'],
@@ -3121,8 +3123,8 @@ def main(config):
 
 	# Create FASTA file with inferred alleles
 	if len(novel_alleles) > 0 and config.output_novel:
-		print(f'Creating file with new alleles ({ct.NOVEL_BASENAME})...')
-		novel_fasta = fo.join_paths(config.output_directory, [ct.NOVEL_BASENAME])
+		print(f'Creating file with new alleles ({gct.INFERRED_ALLELES_BASENAME})...')
+		novel_fasta = fo.join_paths(config.output_directory, [gct.INFERRED_ALLELES_BASENAME])
 		novel_files = [v[0] for v in updated_files.values()]
 		# Concatenate all FASTA files with inferred alleles
 		fo.concatenate_files(novel_files, novel_fasta)
@@ -3130,7 +3132,7 @@ def main(config):
 	# Move file with list of excluded CDS
 	# File is not created if we only search for exact matches
 	if config.mode != 1:
-		print(f'Creating file with invalid CDSs ({ct.INVALID_CDS_BASENAME})...')
+		print(f'Creating file with invalid CDSs ({gct.INVALID_CDS_BASENAME})...')
 		fo.move_file(results['invalid_alleles'][0], config.output_directory)
 
 	# Count total for each classification type
@@ -3140,9 +3142,9 @@ def main(config):
 
 	# Subtract number of times a CDSs is repeated
 	print(f'Classified a total of {total_cds-sum(repeated_counts.values())} CDSs.')
-	class_counts_header = [f'{c:^8}' for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]]
+	class_counts_header = [f'{c:^8}' for c in gct.ALLELE_CLASSES[:-1]]
 	class_counts_header = ' '.join(class_counts_header)
-	class_counts_values = [f'{global_counts.get(c, 0):^8}' for c in ct.ALLELECALL_CLASSIFICATIONS[:-1]]
+	class_counts_values = [f'{global_counts.get(c, 0):^8}' for c in gct.ALLELE_CLASSES[:-1]]
 	class_counts_values = ' '.join(class_counts_values)
 	print('='*len(class_counts_header))
 	print(class_counts_header)

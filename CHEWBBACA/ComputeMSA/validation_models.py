@@ -50,16 +50,16 @@ class ComputeMSAValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: gval.OutputDirectory
-	input_path: gval.MSAInput
+	input_path: MSAInput
 	schema_directory: gval.ExternalSchema
 	dna_msa: gval.BooleanFlag
 	output_variable: gval.BooleanFlag
 	translation_table: gval.TranslationTable
 	cpu_cores: gval.CPUCores
 	only_loci_msas: gval.BooleanFlag
-	gaps: gval.Gaps
-	ambiguous: gval.Ambiguous
-	custom_mafft_options: gval.CustomMafftOptions
+	gaps: Gaps
+	ambiguous: Ambiguous
+	custom_mafft_options: CustomMafftOptions
 	protein_input: gval.BooleanFlag
 	no_cleanup: gval.BooleanFlag
 

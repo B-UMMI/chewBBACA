@@ -111,7 +111,7 @@ LOCI_REPORTS_SUMMARY_TABLE_HEADER = ("Locus\tTotal Alleles\tValid Alleles\tInval
 # Column headers for the Invalid Alleles table in the loci reports
 INVALID_ALLELES_TABLE_HEADER = ["Allele ID", "Exception Category", "Exception Description"]
 
-TRANSLATION_EXCEPTIONS_TABLE_HEADER = ["Extra in frame stop codon",
+TRANSLATION_EXCEPTIONS = ["Extra in frame stop codon",
 						  "is not a start codon",
 						  "is not a stop codon",
 						  "sequence length is not a multiple of 3",

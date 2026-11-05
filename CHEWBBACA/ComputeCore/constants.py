@@ -41,8 +41,6 @@ CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 CGMLST_THRESHOLD_MIN = 0
 CGMLST_THRESHOLD_MAX = 1
 
-PRESENCE_ABSENCE_PROFILES_BASENAME = "presence_absence_profiles.tsv"
-
 # Header for TSV file with sample loci presence stats
 SAMPLE_LOCUS_PRESENCE_HEADER = ["Sample", "Locus presence count", "Locus presence proportion"]
 SAMPLE_LOCUS_PRESENCE_BASENAME = "sample_presence_stats.tsv"
@@ -64,3 +62,5 @@ INVALID_EXCLUDE_SAMPLES = ("The following sample IDs in the list provided to `--
 						   "IDs in the input list match loci IDs in the profiles.")
 
 MISSING_EXCLUDE_LOCI = ("Path to file with list of loci is not valid.")
+
+MISSING_EXCLUDE_GENOMES = ("Path to file with list of genomes is not valid.")

@@ -16,7 +16,8 @@ import pandas as pd
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
-					  AfterValidator)
+					  AfterValidator,
+					  model_validator)
 
 try:
 	import AnnotateSchema.constants as ct
@@ -52,15 +53,15 @@ class AnnotateSchemaValidator(BaseModel):
 	output_directory: gval.OutputDirectory
 	schema_directory: gval.ExternalSchema
 	loci_list: gval.LociList | None = None
-	protein_table: gval.ProteinTable
+	protein_table: ProteinTable
 	blast_score_ratio: gval.BLASTScoreRatio
 	translation_table: gval.TranslationTable
 	cpu_cores: gval.CPUCores
-	proteome_taxa: gval.Taxa
-	proteome_matches: gval.ProteomeMatches
+	proteome_taxa: Taxa
+	proteome_matches: ProteomeMatches
 	blast_path: gval.BLASTPath
 	rest_api: gval.BooleanFlag
-	rest_api_matches: gval.RestApiMatches
+	rest_api_matches: RestApiMatches
 	no_cleanup: gval.BooleanFlag
 
 	# User must specify that loci should be annotated based on either proteomes or requests to UniProt's Proteins API or both

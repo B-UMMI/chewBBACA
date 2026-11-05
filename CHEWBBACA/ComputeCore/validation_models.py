@@ -18,15 +18,15 @@ from pydantic import (BaseModel,
 					  model_validator)
 
 try:
+	import ComputeCore.constants as ct
 	import global_constants as gct
 	import global_validation as gval
 	from utils import file_operations as fo
-	import ComputeCore.constants as ct
 except ModuleNotFoundError:
+	import CHEWBBACA.ComputeCore.constants as ct
 	import CHEWBBACA.global_constants as gct
 	import CHEWBBACA.global_validation as gval
 	from CHEWBBACA.utils import file_operations as fo
-	import CHEWBBACA.ComputeCore.constants as ct
 
 
 LociPresenceThreshold = Annotated[list,
@@ -41,12 +41,12 @@ Permutation = Annotated[int,
                         Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
 
 ExcludeLoci = Annotated[str,
-                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=gct.MISSING_EXCLUDE_LOCI)),
+                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_LOCI)),
 						AfterValidator(gval.input_is_fasta),
 						AfterValidator(fo.list_input_files)]
 
 ExcludeGenomes = Annotated[str,
-                           AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=gct.MISSING_EXCLUDE_GENOMES)),
+                           AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
 						   AfterValidator(gval.input_is_fasta),
 						   AfterValidator(fo.list_input_files)]
 

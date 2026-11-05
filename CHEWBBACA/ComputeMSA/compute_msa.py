@@ -27,20 +27,22 @@ import sys
 import pandas as pd
 
 try:
+	import global_constants as gct
+	import ComputeMSA.constants as ct
 	from GetAlleles import get_alleles
-	from utils.parameters_validation import GetAllelesValidator
+	from GetAlleles.validation_models import GetAllelesValidator
 	from utils import (
-		constants as ct,
 		mafft_wrapper as mw,
 		file_operations as fo,
 		fasta_operations as fao,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.ComputeMSA.constants as ct
 	from CHEWBBACA.GetAlleles import get_alleles
-	from CHEWBBACA.utils.parameters_validation import GetAllelesValidator
+	from CHEWBBACA.GetAlleles.validation_models import GetAllelesValidator
 	from CHEWBBACA.utils import (
-		constants as ct,
 		mafft_wrapper as mw,
 		file_operations as fo,
 		fasta_operations as fao,
@@ -85,7 +87,7 @@ def concatenate_loci_alignments(sample, loci, sample_profile, fasta_index, outpu
 	# Save FASTA file with sample alignment
 	alignment_outfile = fo.join_paths(output_directory,
 									  [f'{sample}.fasta'])
-	alignment_record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+	alignment_record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE,
 											[sample, alignment])
 	fo.write_lines([alignment_record], alignment_outfile)
 
@@ -257,7 +259,7 @@ def determine_variable_positions(msa_file, output_file, gap_char, ambiguous_char
 		variable_pos = list(zip(*[i[1] for i in variable]))
 		variable_pos = [''.join(i) for i in variable_pos]
 		variable_records = [[allele_id, variable_pos[i]] for i, allele_id in enumerate(msa_records.keys())]
-		variable_records = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, variable_records)
+		variable_records = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, variable_records)
 		fo.write_lines(variable_records, output_file)
 		return [True, output_file]
 	else:
@@ -344,7 +346,7 @@ def main(config):
 		# Copy input files to output directory
 		print('Copying FASTA files to temp directory...')
 		files_to_copy = fo.listdir(config.input_path, full_path=True)
-		files_to_copy = fo.filter_by_extension(files_to_copy, ct.FASTA_EXTENSIONS)[0]
+		files_to_copy = fo.filter_by_extension(files_to_copy, gct.FASTA_EXTENSIONS)[0]
 		copied_dir = fo.join_paths(config.output_directory, ['input_files'])
 		fo.create_directory(copied_dir)
 		copied_files = []
@@ -368,7 +370,7 @@ def main(config):
 
 	# Exit if no sequences were found
 	if len(dna_files) == 0 and len(protein_files) == 0:
-		sys.exit(ct.COMPUTEMSA_NO_ALLELES)
+		sys.exit(ct.NO_MSAS_CREATED)
 
 	# Run MAFFT to compute protein MSAs
 	print('Running MAFFT to compute the MSA for each input file...')
@@ -378,7 +380,7 @@ def main(config):
 	mafft_outfiles = [os.path.basename(file) for file in protein_files]
 	mafft_outfiles = [fo.join_paths(mafft_protein_outdir, [file]) for file in mafft_outfiles]
 	mafft_inputs = [[file, mafft_outfiles[i]] for i, file in enumerate(protein_files)]
-	common_args = [config.custom_mafft_options.split()] if config.custom_mafft_options is not None else [ct.MAFFT_DEFAULT_PARAMETERS[:-1]]
+	common_args = [config.custom_mafft_options.split()] if config.custom_mafft_options is not None else [gct.MAFFT_DEFAULT_PARAMETERS[:-1]]
 	# Add common arguments to all sublists
 	inputs = im.multiprocessing_inputs(mafft_inputs, common_args, mw.call_mafft)
 	mafft_results = mo.map_async_parallelizer(inputs,
@@ -455,7 +457,7 @@ def main(config):
 		fo.create_directory(variable_protein_outfolder)
 		# Define paths to output files
 		variable_protein_outfiles = [fo.join_paths(variable_protein_outfolder, [fo.file_basename(file)]) for file in gapped_results]
-		common_args = [ct.GAP_CHAR, ct.PROTEIN_AMBIGUOUS_CHARS, config.gaps, config.ambiguous]
+		common_args = [ct.GAP_CHAR, gct.PROTEIN_AMBIGUOUS_CHARS, config.gaps, config.ambiguous]
 		variable_inputs = im.multiprocessing_inputs([list(i) for i in zip(gapped_results, variable_protein_outfiles)], common_args, determine_variable_positions)
 		variable_results = mo.map_async_parallelizer(variable_inputs,
 													 mo.function_helper,
@@ -475,7 +477,7 @@ def main(config):
 				variable_dna_outfolder = fo.join_paths(mafft_outdir, ['variable_dna'])
 				fo.create_directory(variable_dna_outfolder)
 				variable_dna_outfiles = [fo.join_paths(variable_dna_outfolder, [fo.file_basename(file)]) for file in dna_results]
-				common_args = [ct.GAP_CHAR, ct.PROTEIN_AMBIGUOUS_CHARS, config.gaps, config.ambiguous]
+				common_args = [ct.GAP_CHAR, gct.PROTEIN_AMBIGUOUS_CHARS, config.gaps, config.ambiguous]
 				variable_inputs = im.multiprocessing_inputs([list(i) for i in zip(dna_results, variable_dna_outfiles)], common_args, determine_variable_positions)
 				variable_results = mo.map_async_parallelizer(variable_inputs,
 															 mo.function_helper,

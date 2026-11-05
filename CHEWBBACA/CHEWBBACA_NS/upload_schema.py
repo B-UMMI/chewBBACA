@@ -33,18 +33,18 @@ import multiprocessing
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	import CHEWBBACA_NS.constants as ct
+	from utils import (file_operations as fo,
 					   chewiens_requests as cr,
 					   fasta_operations as fao,
-					   parameters_validation as pv,
 					   sequence_manipulation as sm)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.CHEWBBACA_NS.constants as ct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 chewiens_requests as cr,
 								 fasta_operations as fao,
-								 parameters_validation as pv,
 								 sequence_manipulation as sm)
 
 
@@ -271,18 +271,18 @@ def quality_control(locus_input):
 
 		modes_concat = ':'.join(map(str, modes))
 		st_percentage = int(size_threshold*100)
-		invalid += [[s, ct.ALM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in alm]
-		invalid += [[s, ct.ASM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in asm]
+		invalid += [[s, gct.ALM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in alm]
+		invalid += [[s, gct.ASM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in asm]
 
 	# Rewrite FASTA files with valid sequences only
 	if len(invalid) > 0:
 		# Create FASTA file with valid DNA sequences
 		valid_fasta = os.path.join(output_directories[0], '{0}.fasta'.format(locus_id))
-		dna_records = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, [(seqid, seq) for seqid, seq in dna_seqs.items()])
+		dna_records = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, [(seqid, seq) for seqid, seq in dna_seqs.items()])
 		fo.write_lines(dna_records, valid_fasta)
 		# Create FASTA file with valid protein sequences
 		valid_prot_file = protein_file
-		prot_records = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, [(seqid, seq) for seqid, seq in prot_seqs.items()])
+		prot_records = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, [(seqid, seq) for seqid, seq in prot_seqs.items()])
 		fo.write_lines(prot_records, valid_prot_file)
 	else:
 		valid_fasta = fasta_path
@@ -797,7 +797,7 @@ def main(config):
 	# Verify user
 	print("-- User Permissions --")
 	# GET request headers
-	headers_get = ct.HEADERS_GET_JSON
+	headers_get = gct.HEADERS_GET_JSON
 	headers_get["Authorization"] = token
 
 	# Determine current user ID and Role
@@ -815,11 +815,11 @@ def main(config):
 		sys.exit(ct.LOADSCHEMA_NO_PERMISSIONS)
 
 	# POST requests headers
-	headers_post = ct.HEADERS_POST_JSON
+	headers_post = gct.HEADERS_POST_JSON
 	headers_post["Authorization"] = token
 	headers_post["user_id"] = user_id
 	# POST headers to send binary data
-	headers_post_bytes = ct.HEADERS_POST
+	headers_post_bytes = gct.HEADERS_POST
 	headers_post_bytes["Authorization"] = token
 	headers_post_bytes["user_id"] = user_id
 
@@ -827,7 +827,7 @@ def main(config):
 	print(f"Local schema: {config.schema_directory[0]}")
 
 	# Get schema files from genes list file
-	genes_list = fo.join_paths(config.schema_directory[0], [ct.GENE_LIST_BASENAME])
+	genes_list = fo.join_paths(config.schema_directory[0], [gct.GENE_LIST_BASENAME])
 	genes = fo.pickle_loader(genes_list)
 	fasta_paths = [os.path.join(config.schema_directory[0], file) for file in genes]
 	fasta_paths.sort()

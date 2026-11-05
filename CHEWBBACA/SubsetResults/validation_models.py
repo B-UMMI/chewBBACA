@@ -19,10 +19,12 @@ from pydantic import (BaseModel,
 					  model_validator)
 
 try:
+	import SubsetResults.constants as ct
 	import global_constants as gct
 	import global_validation as gval
 	from utils import file_operations as fo
 except ModuleNotFoundError:
+	import CHEWBBACA.SubsetResults.constants as ct
 	import CHEWBBACA.global_constants as gct
 	import CHEWBBACA.global_validation as gval
 	from CHEWBBACA.utils import file_operations as fo
@@ -40,7 +42,7 @@ class SubsetResultsValidator(BaseModel):
 	output_directory: gval.OutputDirectory
 	results_files: gval.ResultsFiles
 	loci_list: gval.LociList | None = None
-	sample_list: gval.SampleList | None = None
+	sample_list: SampleList | None = None
 	inverse_loci: gval.BooleanFlag
 	inverse_samples: gval.BooleanFlag
 
@@ -48,7 +50,7 @@ class SubsetResultsValidator(BaseModel):
 	def check_lists(self):
 		# Do not proceed if user provided neither a list of loci nor of samples
 		if not self.loci_list and not self.sample_list:
-			sys.exit(gct.SUBSETRESULTS_MISSING_LISTS_EXCEPTION)
+			sys.exit(ct.SUBSETRESULTS_MISSING_LISTS_EXCEPTION)
 
 		return self
 
@@ -56,15 +58,15 @@ class SubsetResultsValidator(BaseModel):
 	def check_files(self):
 		# Do not proceed if the input folder does not include any of the supported output files
 		input_files = fo.listdir(self.results_files)
-		if len(set(gct.ALLELECALL_OUTFILES)-set(input_files)) == len(gct.ALLELECALL_OUTFILES):
+		if len(set(gct.SUPPORTED_RESULTS_FILES)-set(input_files)) == len(gct.SUPPORTED_RESULTS_FILES):
 			sys.exit("Input directory does not include any of the supported output files that can be subsetted."
 			         "Please ensure that the input directory includes at least one of the following files:\n"
-					 f"{'\n'.join(gct.ALLELECALL_OUTFILES)}")
+					 f"{'\n'.join(gct.SUPPORTED_RESULTS_FILES)}")
 
 	# Check if the loci IDs in the input list are all in the results
 	@model_validator(mode="after")
 	def check_loci(self):
-		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.RESULTS_COORDINATES_BASENAME, gct.LOCUS_SAMPLE_PRESENCE_BASENAME, gct.LOCI_STATS_BASENAME]
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME, gct.LOCI_STATS_BASENAME]
 		if self.loci_list:
 			for fname in file_types:
 				# Determine if file exists in the input directory
@@ -93,7 +95,7 @@ class SubsetResultsValidator(BaseModel):
 	# Check if the sample IDs in the input list are all in the results
 	@model_validator(mode="after")
 	def check_samples(self):
-		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.RESULTS_COORDINATES_BASENAME, gct.SAMPLE_LOCUS_PRESENCE_BASENAME, gct.LOCI_STATS_BASENAME]
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME, gct.LOCI_STATS_BASENAME]
 		if self.sample_list:
 			for fname in file_types:
 				file_path = fo.join_paths(self.results_files, [fname])

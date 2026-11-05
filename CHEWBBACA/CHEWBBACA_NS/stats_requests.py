@@ -21,11 +21,11 @@ import requests
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from utils import (constants as ct,
-                       chewiens_requests as cr)
+    import global_constants as gct
+    from utils import chewiens_requests as cr
 except ModuleNotFoundError:
-    from CHEWBBACA.utils import (constants as ct,
-                                 chewiens_requests as cr)
+    import CHEWBBACA.global_constants as gct
+    from CHEWBBACA.utils import chewiens_requests as cr
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -349,7 +349,7 @@ def main(config):
     schema_id : int
         The integer identifier of a schema in Chewie-NS.
     """
-    headers_get = ct.HEADERS_GET_JSON
+    headers_get = gct.HEADERS_GET_JSON
 
     print("Retrieving data...")
     if config.stats_mode == "species":

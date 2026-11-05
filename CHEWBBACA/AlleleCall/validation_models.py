@@ -20,8 +20,10 @@ from pydantic import (BaseModel,
 					  model_validator)
 
 try:
+	import AlleleCall.constants as ct
 	import global_constants as gct
 	import global_validation as gval
+	import PredictGenes.validation_models as pval
 	from utils import file_operations as fo
 except ModuleNotFoundError:
 	import CHEWBBACA.global_constants as gct
@@ -30,8 +32,8 @@ except ModuleNotFoundError:
 
 
 AllelecallMode = Annotated[int,
-                           Field(default=gct.ALLELECALL_DEFAULT_MODE),
-						   AfterValidator(partial(gval.validate_choice, valid_options=gct.ALLELECALL_MODES, exception_str=gct.INVALID_ALLELECALL_MODE))]
+                           Field(default=ct.ALLELECALL_DEFAULT_MODE),
+						   AfterValidator(partial(gval.validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.ALLELECALL_INVALID_MODE))]
 
 
 class AlleleCallValidator(BaseModel):
@@ -46,9 +48,9 @@ class AlleleCallValidator(BaseModel):
 	minimum_length: gval.MinimumLength
 	translation_table: gval.TranslationTable
 	size_threshold: gval.SizeThreshold
-	gene_predictor : gval.GenePredictor
-	gene_prediction_options: gval.GenePredictionOptions
-	validated_gene_prediction_options: gval.ValidatedGenePredictionOptions
+	gene_predictor : pval.GenePredictor
+	gene_prediction_options: pval.GenePredictionOptions
+	validated_gene_prediction_options: pval.ValidatedGenePredictionOptions
 	clustering_options: gval.ClusteringOptions
 	validated_clustering_options: gval.ValidatedClusteringOptions
 	blast_path: gval.BLASTPath
@@ -60,7 +62,7 @@ class AlleleCallValidator(BaseModel):
 	output_masked_profiles: gval.BooleanFlag
 	no_cds_renaming: gval.BooleanFlag
 	force_continue: gval.BooleanFlag
-	mode: gval.AllelecallMode
+	mode: AllelecallMode
 	cpu_cores: gval.CPUCores
 	no_cleanup: gval.BooleanFlag
 	ns_config: gval.NSCONFIG
@@ -69,9 +71,9 @@ class AlleleCallValidator(BaseModel):
 	@model_validator(mode="after")
 	def validate_gene_prediction_arguments(self):
 		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_options = gval.PyrodigalArgs(**self.gene_prediction_options)
+			self.validated_gene_prediction_options = pval.PyrodigalArgs(**self.gene_prediction_options)
 		elif self.gene_predictor == "augustus":
-			self.validated_gene_prediction_options = gval.AugustusArgs(**self.gene_prediction_options)
+			self.validated_gene_prediction_options = pval.AugustusArgs(**self.gene_prediction_options)
 
 		return self
 
@@ -117,19 +119,19 @@ class AlleleCallValidator(BaseModel):
 		config_file = fo.join_paths(self.schema_directory, [gct.SCHEMA_CONFIG_BASENAME])
 		config = fo.pickle_loader(config_file)
 		# BLAST Score Ratio
-		self.blast_score_ratio, config = gval.check_argument_conflict(gct.BLAST_SCORE_RATIO_ARGNAME, self.blast_score_ratio, config, self.force_continue)
+		self.blast_score_ratio, config = gval.check_argument_conflict(gct.SCHEMA_CONFIG_BLAST_SCORE_RATIO_ARGNAME, self.blast_score_ratio, config, self.force_continue)
 		# Minimum length
-		self.minimum_length, config = gval.check_argument_conflict(gct.MINIMUM_LENGTH_ARGNAME, self.minimum_length, config, self.force_continue)
+		self.minimum_length, config = gval.check_argument_conflict(gct.SCHEMA_CONFIG_MINIMUM_LENGTH_ARGNAME, self.minimum_length, config, self.force_continue)
 		# Size threshold
-		self.size_threshold, config = gval.check_argument_conflict(gct.SIZE_THRESHOLD_ARGNAME, self.size_threshold, config, self.force_continue)
+		self.size_threshold, config = gval.check_argument_conflict(gct.SCHEMA_CONFIG_SIZE_THRESHOLD_ARGNAME, self.size_threshold, config, self.force_continue)
 		# Pyrodigal training file
 		if self.gene_predictor == "pyrodigal" and self.validated_gene_prediction_options.pyrodigal_training_file is not None:
-			self.validated_gene_prediction_options.pyrodigal_training_file, config = gval.check_argument_conflict(gct.PYRODIGAL_TRAININGFILE_ARGNAME, self.validated_gene_prediction_options.pyrodigal_training_file, config, self.force_continue)
+			self.validated_gene_prediction_options.pyrodigal_training_file, config = gval.check_argument_conflict(gct.SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME, self.validated_gene_prediction_options.pyrodigal_training_file, config, self.force_continue)
 			# Compare current value for the translation table and the one in the training file
 			self.translation_table = gval.add_ptf_genetic_code(self.validated_gene_prediction_options.pyrodigal_training_file, self.translation_table)
 			# Add translation table to config if it is different than the ones previously used
-			if self.translation_table not in config[gct.TRANSLATION_TABLE_ARGNAME]:
-				config[gct.TRANSLATION_TABLE_ARGNAME].append(self.translation_table)
+			if self.translation_table not in config[gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME]:
+				config[gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME].append(self.translation_table)
 
 		# Update schema config file
 		fo.pickle_dumper(config, config_file)

@@ -13,7 +13,6 @@ Code documentation
 
 
 import os
-import sys
 import math
 
 import numpy as np
@@ -25,13 +24,15 @@ import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	import ComputeCore.constants as ct
+	from utils import (file_operations as fo,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.ComputeCore.constants as ct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)
 
@@ -191,7 +192,7 @@ def compute_presence_absence(matrix, output_directory):
 	"""
 	presence_absence = matrix.apply(binarize_matrix)
 
-	pa_outpath = fo.join_paths(output_directory, [ct.PRESENCE_ABSENCE_BASENAME])
+	pa_outpath = fo.join_paths(output_directory, [ct.PRESENCE_ABSENCE_PROFILES_BASENAME])
 	presence_absence.to_csv(pa_outpath, sep='\t')
 
 	return [presence_absence, pa_outpath]
@@ -402,7 +403,7 @@ def main(config):
 
 	# Count number of special classifications per genome
 	print('Computing the presence-absence statistics per sample...')
-	genome_mdata_df = compute_stats(pa_matrix, column_names=ct.GENOMES_MISSING_COLUMNS)
+	genome_mdata_df = compute_stats(pa_matrix, column_names=ct.SAMPLE_LOCUS_PRESENCE_HEADER)
 	# Sort based on increasing number of special classifications
 	genome_mdata_df = genome_mdata_df.sort_values('Loci presence count', ascending=False)
 	sorted_genomes = genome_mdata_df['Sample'].tolist()
@@ -411,7 +412,7 @@ def main(config):
 
 	# Count number of special classifications per locus
 	print('Computing the presence-absence statistics per locus...')
-	loci_mdata_df = compute_stats(pa_matrix, axis=0, column_names=ct.LOCI_MISSING_COLUMNS)
+	loci_mdata_df = compute_stats(pa_matrix, axis=0, column_names=ct.LOCUS_SAMPLE_PRESENCE_HEADER)
 	# Sort based on increasing number of special classifications
 	loci_mdata_df = loci_mdata_df.sort_values('Sample presence count', ascending=False)
 	# Round percentage values to 2 decimal places
@@ -501,12 +502,12 @@ def main(config):
 			agMLST_traces.append(trace)
 
 	# Write TSV with presence-absence statistics per sample
-	genome_mdata_path = os.path.join(config.output_directory, ct.GENOMES_MISSING_BASENAME)
+	genome_mdata_path = os.path.join(config.output_directory, ct.SAMPLE_LOCUS_PRESENCE_BASENAME)
 	genome_mdata_df.to_csv(genome_mdata_path, sep='\t', index=False)
 	print(f'Saved presence-absence statistics per sample to {genome_mdata_path}')
 
 	# Write TSV with presence-absence statistics per locus
-	loci_mdata_path = os.path.join(config.output_directory, ct.LOCI_MISSING_BASENAME)
+	loci_mdata_path = os.path.join(config.output_directory, ct.LOCUS_SAMPLE_PRESENCE_BASENAME)
 	loci_mdata_df.to_csv(loci_mdata_path, sep='\t', index=False)
 	print(f'Saved presence-absence statistics per locus to {loci_mdata_path}')
 

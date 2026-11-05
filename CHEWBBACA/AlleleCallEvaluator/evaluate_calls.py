@@ -21,28 +21,28 @@ import json
 import pandas as pd
 
 try:
+	import global_constants as gct
+	import AlleleCallEvaluator.constants as ct
+	import ComputeMSA.constants as cct
 	from ComputeMSA import compute_msa
-	from ExtractCgMLST import determine_cgmlst
+	from ComputeCore import compute_core
 	from ComputeDistances import compute_distances
 	from utils import (
-		constants as ct,
 		file_operations as fo,
 		fasta_operations as fao,
 		iterables_manipulation as im,
-		multiprocessing_operations as mo,
-		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.AlleleCallEvaluator.constants as ct
+	import CHEWBBACA.ComputeMSA.constants as cct
 	from CHEWBBACA.ComputeMSA import compute_msa
-	from CHEWBBACA.ExtractCgMLST import determine_cgmlst
+	from CHEWBBACA.ComputeCore import compute_core
 	from CHEWBBACA.ComputeDistances import compute_distances
 	from CHEWBBACA.utils import (
-		constants as ct,
 		file_operations as fo,
 		fasta_operations as fao,
 		iterables_manipulation as im,
-		multiprocessing_operations as mo,
-		mafft_wrapper as mw,
 		fasttree_wrapper as fw)
 
 
@@ -187,7 +187,7 @@ def profile_column_to_fasta(locus, schema_directory, allelic_profiles,
 		if clean_class in alleles:
 			current_sample = sample_ids[i]
 			seq = alleles[clean_class]
-			record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+			record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE,
 										  [f'{locus}_{current_sample}', seq])
 			sequences.append(record)
 		# FASTA file does not contain the allele
@@ -231,7 +231,7 @@ def concatenate_loci_alignments(sample, loci, fasta_index, output_directory):
 	# Save alignment for sample
 	alignment_outfile = fo.join_paths(output_directory,
 									  [f'{sample}_cgMLST_alignment.fasta'])
-	alignment_record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE,
+	alignment_record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE,
 											[sample, alignment])
 	fo.write_lines([alignment_record], alignment_outfile)
 
@@ -244,7 +244,7 @@ def main(config):
 	fo.create_directory(temp_directory)
 
 	# Read "results_statistics.tsv" to get class counts per sample
-	sample_statistics_file = fo.join_paths(config.results_files, [ct.RESULTS_STATISTICS_BASENAME])
+	sample_statistics_file = fo.join_paths(config.results_files, [gct.SAMPLE_STATISTICS_BASENAME])
 	sample_counts = pd.read_csv(sample_statistics_file, delimiter="\t")
 	# Convert values in FILE column to str to avoid issues with IDs that can be interpreted as int
 	sample_counts["FILE"] = sample_counts["FILE"].astype("string")
@@ -259,11 +259,11 @@ def main(config):
 
 	# Data for stacked Bar chart with class counts per sample
 	sample_data = []
-	for c in ct.ALLELECALL_CLASSIFICATIONS:
+	for c in gct.ALLELE_CLASSES:
 		sample_data.append(sample_counts[c].tolist())
 
 	# Read "loci_summary_stats.tsv" to get class counts per locus
-	loci_statistics_file = fo.join_paths(config.results_files, [ct.LOCI_STATS_BASENAME])
+	loci_statistics_file = fo.join_paths(config.results_files, [gct.LOCI_STATS_BASENAME])
 	loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
 	# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
 	loci_counts["Locus"] = loci_counts["Locus"].astype("string")
@@ -278,7 +278,7 @@ def main(config):
 
 	# Data for stacked Bar chart with class counts per locus
 	loci_data = []
-	for c in ct.ALLELECALL_CLASSIFICATIONS:
+	for c in gct.ALLELE_CLASSES:
 		loci_data.append(loci_counts[c].tolist())
 
 	# Compute data for Sample Stats table
@@ -286,12 +286,12 @@ def main(config):
 	# CDSs per sample (future development will use coordinates for synteny
 	# analysis)
 	print("Computing sample statistics...", end="")
-	cds_coordinates_file = fo.join_paths(config.results_files, [ct.GENE_COORDINATES_BASENAME])
+	cds_coordinates_file = fo.join_paths(config.results_files, [gct.GENE_COORDINATES_BASENAME])
 	sample_stats = compute_sample_stats(sample_ids, total_loci, cds_coordinates_file, sample_counts)
 
 	total_cds = sum([v[1] for k, v in sample_stats.items()])
 
-	sample_stats_columns = ct.SAMPLE_STATS_COLUMNS + \
+	sample_stats_columns = ct.SAMPLE_STATS_HEADER + \
 		sample_counts.columns.tolist()[1:]
 
 	# Create list to store in HTML
@@ -306,7 +306,7 @@ def main(config):
 	# Sort loci stats based on decreasing sample presence
 	loci_stats = sorted(loci_stats, key=lambda x: x[4], reverse=True)
 
-	loci_stats_columns = ct.LOCI_STATS_COLUMNS + \
+	loci_stats_columns = ct.LOCUS_STATS_HEADER + \
 		loci_counts.columns.tolist()[1:-1]
 	print("done.")
 
@@ -328,7 +328,7 @@ def main(config):
 	# Count total number of classified CDSs per class
 	loci_sums = loci_counts[loci_counts.columns[1:]].sum(axis=0)
 	loci_sums = loci_sums.tolist()
-	summary_columns = ct.SUMMARY_STATS_COLUMNS
+	summary_columns = ct.SUMMARY_STATS_HEADER
 	summary_rows = [total_samples, total_loci, total_cds, loci_sums[-1], *loci_sums[:-1]]
 
 	phylo_data = {"phylo_data": []}
@@ -341,7 +341,7 @@ def main(config):
 	if config.light is False:
 		if False in [config.no_pa, config.no_dm, config.no_tree] or config.cg_alignment is True:
 			# Define path to TSV file that contains allelic profiles
-			allelic_profiles_file = fo.join_paths(config.results_files, [ct.RESULTS_ALLELES_BASENAME])
+			allelic_profiles_file = fo.join_paths(config.results_files, [gct.ALLELIC_PROFILES_BASENAME])
 
 			# Import matrix with allelic profiles
 			print("Reading profile matrix...", end="")
@@ -352,12 +352,12 @@ def main(config):
 			# Mask missing data
 			print("Masking profile matrix...", end="")
 			masked_profiles = profiles_matrix.apply(im.replace_chars)
-			output_masked = os.path.join(config.output_directory, ct.ALLELIC_PROFILES_MASKED_BASENAME)
+			output_masked = os.path.join(config.output_directory, gct.ALLELIC_PROFILES_MASKED_BASENAME)
 			masked_profiles.to_csv(output_masked, sep='\t')
 			print("done.")
 			# Compute Presence-Absence matrix
 			print("Computing Presence-Absence matrix...", end="")
-			pa_matrix, pa_outfile = determine_cgmlst.compute_presence_absence(masked_profiles, config.output_directory)
+			pa_matrix, pa_outfile = compute_core.compute_presence_absence(masked_profiles, config.output_directory)
 			print("done.")
 
 			if config.no_pa is False:
@@ -372,7 +372,7 @@ def main(config):
 			if config.no_dm is False or config.no_tree is False or config.cg_alignment is True:
 				# Compute the cgMLST at 100%
 				print("Determining cgMLST loci...")
-				cgMLST_genes, _, _, _ = determine_cgmlst.compute_cgMLST(len(sample_ids), pa_matrix, sample_ids, 1, False)
+				cgMLST_genes, _, _, _ = compute_core.compute_cgMLST(len(sample_ids), pa_matrix, sample_ids, 1, False)
 				cgMLST_genes = cgMLST_genes.tolist()
 				print("\n", f"cgMLST is composed of {len(cgMLST_genes)} loci.")
 				if len(cgMLST_genes) > 0:
@@ -407,7 +407,7 @@ def main(config):
 				compute_msa.main(cgMLST_matrix_outfile, temp_directory, config.schema_directory, False, False,
 					   config.translation_table, config.cpu_cores, False, "exclude", "exclude", None, False, False)
 
-				full_alignment = fo.join_paths(temp_directory, [ct.COMPUTEMSA_PROTEIN_MSA])
+				full_alignment = fo.join_paths(temp_directory, [cct.COMPUTEMSA_PROTEIN_MSA])
 
 				if config.no_tree is False:
 					print("Computing the NJ tree based on the core genome MSA...", end="")

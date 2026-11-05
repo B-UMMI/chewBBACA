@@ -28,22 +28,20 @@ from collections import defaultdict
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from PrepExternalSchema import adapt_schema
-    from utils import (constants as ct,
-                       file_operations as fo,
+    import global_constants as gct
+    import CHEWBBACA_NS.constants as ct
+    from AdaptSchema import adapt_schema
+    from utils import (file_operations as fo,
                        fasta_operations as fao,
                        chewiens_requests as cr,
-                       # profiles_sqlitedb as ps,
-                       parameters_validation as pv,
                        iterables_manipulation as im)
 except ModuleNotFoundError:
-    from CHEWBBACA.PrepExternalSchema import adapt_schema
-    from CHEWBBACA.utils import (constants as ct,
-                                 file_operations as fo,
+    import CHEWBBACA.global_constants as gct
+    import CHEWBBACA.CHEWBBACA_NS.constants as ct
+    from CHEWBBACA.AdaptSchema import adapt_schema
+    from CHEWBBACA.utils import (file_operations as fo,
                                  fasta_operations as fao,
                                  chewiens_requests as cr,
-                                 # profiles_sqlitedb as ps,
-                                 parameters_validation as pv,
                                  iterables_manipulation as im)
 
 
@@ -714,7 +712,7 @@ def retrieve_latest(local_date, schema_uri, headers_get, ns_date):
 def main(config):
 
     # Get ns configs
-    ns_config_file = fo.join_paths(config.schema_directory, [ct.NS_CONFIG_BASENAME])
+    ns_config_file = fo.join_paths(config.schema_directory, [gct.NS_CONFIG_BASENAME])
     local_date, schema_uri = fo.pickle_loader(ns_config_file)
     # Get schema and species identifiers
     schema_id = schema_uri.split("/")[-1]
@@ -727,7 +725,7 @@ def main(config):
         token = ''
 
     # GET request headers
-    headers_get = ct.HEADERS_GET_JSON
+    headers_get = gct.HEADERS_GET_JSON
     headers_get['Authorization'] = token
 
     # determine current user ID and Role
@@ -751,15 +749,15 @@ def main(config):
         user_auth = True if 'tutorial' in config.nomenclature_server_instance else False
 
     # POST requests headers
-    headers_post = ct.HEADERS_POST_JSON
+    headers_post = gct.HEADERS_POST_JSON
     headers_post['Authorization'] = token
     headers_post['user_id'] = user_id
     # POST headers to send binary data
-    headers_post_bytes = ct.HEADERS_POST
+    headers_post_bytes = gct.HEADERS_POST
     headers_post_bytes['Authorization'] = token
     headers_post_bytes['user_id'] = user_id
 
-    schema_params = pv.read_configs(config.schema_directory, ct.SCHEMA_CONFIG_BASENAME)
+    schema_params = pv.read_configs(config.schema_directory, gct.SCHEMA_CONFIG_BASENAME)
 
     # verify that local configs have a single value per parameter
     if all([len(schema_params[k]) == 1
@@ -817,7 +815,7 @@ def main(config):
           ''.format(count, len(loci_alleles)))
 
     # Get schema files from genes list file
-    genes_list = fo.join_paths(config.schema_directory, [ct.GENE_LIST_BASENAME])
+    genes_list = fo.join_paths(config.schema_directory, [gct.GENE_LIST_BASENAME])
     genes = fo.pickle_loader(genes_list)
 
     # update loci structure

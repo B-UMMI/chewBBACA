@@ -19,9 +19,9 @@ from getpass import getpass
 from urllib.parse import urlparse, urlencode, urlsplit, parse_qs
 
 try:
-	from utils import constants as ct
+	import global_constants as gct
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import constants as ct
+	import CHEWBBACA.global_constants as gct
 
 
 def simple_get_request(url, headers, endpoint_list=None,
@@ -114,7 +114,7 @@ def simple_post_request(url, headers, endpoint_list=None,
 	return [url, res]
 
 
-def check_connection(url, headers=ct.HEADERS_GET_JSON):
+def check_connection(url, headers=gct.HEADERS_GET_JSON):
 	"""Verify connection to a Chewie-NS instance.
 
 	Perform a GET request to the stats/summary endpoint of a
@@ -361,7 +361,7 @@ def login_user_to_NS(server_url, email, password):
 	auth_params['password'] = password
 
 	auth_url, auth_r = simple_post_request(server_url,
-										   ct.HEADERS_POST_JSON,
+										   gct.HEADERS_POST_JSON,
 										   ['auth', 'login'],
 										   data=json.dumps(auth_params))
 

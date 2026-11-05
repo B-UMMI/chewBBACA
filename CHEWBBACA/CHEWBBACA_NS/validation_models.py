@@ -13,7 +13,6 @@ import sys
 from typing import Annotated
 from functools import partial
 
-import pandas as pd
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
@@ -24,13 +23,17 @@ from pydantic import (BaseModel,
 try:
 	import global_constants as gct
 	import global_validation as gval
+	import CHEWBBACA_NS.constants as ct
 	from utils import file_operations as fo
 	from utils import chewiens_requests as cr
+	from utils.process_datetime import validate_date
 except ModuleNotFoundError:
 	import CHEWBBACA.global_constants as gct
 	import CHEWBBACA.global_validation as gval
+	import CHEWBBACA.CHEWBBACA_NS.constants as ct
 	from CHEWBBACA.utils import file_operations as fo
 	from CHEWBBACA.utils import chewiens_requests as cr
+	from CHEWBBACA.utils.process_datetime import validate_date
 
 
 SpeciesId = Annotated[str,
@@ -40,11 +43,11 @@ SchemaId = Annotated[str,
                      Field(default=None)]
 
 NomenclatureServerInstance = Annotated[str | None,
-                               		   Field(default=gct.HOST_NS[gct.DEFAULT_NOMENCLATURE_SERVER])]
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER])]
 
 SchemaDate = Annotated[str,
                        Field(default=None),
-					   AfterValidator(pd.validate_date)] # Determine if user date is in a valid format
+					   AfterValidator(validate_date)] # Determine if user date is in a valid format
 
 DescriptionFile = Annotated[str,
                             Field(default=None),
@@ -55,18 +58,18 @@ DescriptionFile = Annotated[str,
 StatsMode = Annotated[str,
                       Field(default=None),
 					  AfterValidator(partial(gval.validate_choice,
-					                         valid_options=gct.NSSTATS_MODES,
-											 exception_str=gct.NS_STATS_INVALID_MODE))]
+					                         valid_options=ct.NSSTATS_MODES,
+											 exception_str=ct.NSSTATS_INVALID_MODE))]
 
 
 class DownloadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: gval.OutputDirectory
-	species_id: gval.SpeciesId
-	schema_id: gval.SchemaId
-	nomenclature_server_instance: gval.NomenclatureServerInstance
-	schema_date: gval.SchemaDate
+	species_id: SpeciesId
+	schema_id: SchemaId
+	nomenclature_server_instance: NomenclatureServerInstance
+	schema_date: SchemaDate
 	latest_version: gval.BooleanFlag
 	blast_path : gval.BLASTPath
 	cpu_cores: gval.CPUCores
@@ -105,12 +108,12 @@ class UploadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	schema_directory: gval.ChewieSchema
-	species_id: gval.SpeciesId
+	species_id: SpeciesId
 	schema_name: str
 	loci_prefix: str
-	description_file: gval.DescriptionFile
+	description_file: DescriptionFile
 	annotations_file: gval.Annotations | None = None
-	nomenclature_server_instance: gval.NomenclatureServerInstance
+	nomenclature_server_instance: NomenclatureServerInstance
 	continue_up: gval.BooleanFlag
 	cpu_cores: gval.CPUCores
 
@@ -188,7 +191,7 @@ class SynchronizeSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	schema_directory: gval.ChewieSchema
-	nomenclature_server_instance: gval.NomenclatureServerInstance
+	nomenclature_server_instance: NomenclatureServerInstance
 	submit_alleles: gval.BooleanFlag
 	blast_path: gval.BLASTPath
 	cpu_cores: gval.CPUCores
@@ -215,10 +218,10 @@ class SynchronizeSchemaValidator(BaseModel):
 class NSStatsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	stats_mode: gval.StatsMode
-	species_id: gval.SpeciesId
-	schema_id: gval.SchemaId
-	nomenclature_server_instance: gval.NomenclatureServerInstance
+	stats_mode: StatsMode
+	species_id: SpeciesId
+	schema_id: SchemaId
+	nomenclature_server_instance: NomenclatureServerInstance
 
 	# Check that it is possible to connect Chewie-NS
 	@model_validator(mode="after")

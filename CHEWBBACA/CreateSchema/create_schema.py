@@ -20,10 +20,9 @@ import sys
 import math
 
 try:
-	from __init__ import __version__
+	import global_constants as gct
 	from PredictGenes import predict_genes
-	from utils import (constants as ct,
-					   blast_wrapper as bw,
+	from utils import (blast_wrapper as bw,
 					   core_functions as cf,
 					   file_operations as fo,
 					   fasta_operations as fao,
@@ -31,10 +30,9 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA import __version__
+	import CHEWBBACA.global_constants as gct
 	from CHEWBBACA.PredictGenes import predict_genes
-	from CHEWBBACA.utils import (constants as ct,
-								 blast_wrapper as bw,
+	from CHEWBBACA.utils import (blast_wrapper as bw,
 								 core_functions as cf,
 								 file_operations as fo,
 								 fasta_operations as fao,
@@ -533,7 +531,7 @@ def main(config):
 		print(f'Copied Pyrodigal training file to {schema_dir}')
 
 	# Write schema config file
-	schema_config = cf.write_schema_config(config, __version__, schema_dir)
+	schema_config = cf.write_schema_config(config, gct.__version__, schema_dir)
 	print(f'Wrote schema config values to {schema_config[1]}')
 
 	# Create the file with the list of genes/loci

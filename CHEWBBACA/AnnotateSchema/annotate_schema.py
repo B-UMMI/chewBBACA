@@ -19,25 +19,25 @@ Code documentation
 import os
 
 try:
+	import global_constants as gct
+	import AnnotateSchema.constants as ct
 	from utils import (
-		constants as ct,
 		blast_wrapper as bw,
 		core_functions as cf,
 		file_operations as fo,
 		uniprot_requests as ur,
 		fasta_operations as fao,
-		parameters_validation as pv,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.AnnotateSchema.constants as ct
 	from CHEWBBACA.utils import (
-		constants as ct,
 		blast_wrapper as bw,
 		core_functions as cf,
 		file_operations as fo,
 		uniprot_requests as ur,
 		fasta_operations as fao,
-		parameters_validation as pv,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
 
@@ -167,13 +167,13 @@ def proteome_annotations(schema_directory, loci, temp_directory, taxa, blast_sco
 												 cpu_cores, True)
 	reps_protein_files = [r[1] for r in reps_protein_files]
 
-	print('\nDownloading list of reference proteomes...', end='')
-	remote_readme = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, ['README'])
-	local_readme = fo.join_paths(temp_directory, ['reference_proteomes_readme.txt'])
+	print("\nDownloading list of reference proteomes...", end="")
+	remote_readme = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, ["README"])
+	local_readme = fo.join_paths(temp_directory, ["reference_proteomes_readme.txt"])
 
 	# Get README file with list of reference proteomes
 	res = fo.download_file(remote_readme, local_readme)
-	print('done.')
+	print("done.")
 
 	# Get lines with proteome info for species of interest
 	readme_lines = fo.read_lines(local_readme, strip=False)
@@ -181,48 +181,47 @@ def proteome_annotations(schema_directory, loci, temp_directory, taxa, blast_sco
 	selected_proteomes = im.contained_terms(readme_lines, taxa)
 	selected_proteomes = [line.strip('\n') for line in selected_proteomes]
 	selected_proteomes = [line.split('\t') for line in selected_proteomes]
-	print('Found {0} reference proteomes for {1}.'.format(len(selected_proteomes), taxa))
+	print("Found {0} reference proteomes for {1}.".format(len(selected_proteomes), taxa))
 	proteome_results = {}
 	if len(selected_proteomes) > 0:
-		# create directory to store proteomes
-		proteomes_directory = fo.join_paths(temp_directory, ['proteomes'])
+		# Create directory to store proteomes
+		proteomes_directory = fo.join_paths(temp_directory, ["proteomes"])
 		fo.create_directory(proteomes_directory)
 
 		proteomes_files = ur.get_proteomes(selected_proteomes,
 										   proteomes_directory)
 
-		# uncompress files and concatenate into single FASTA
+		# Uncompress files and concatenate into single FASTA
 		uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
 		proteomes_concat = fo.join_paths(proteomes_directory,
-										 ['full_proteome.fasta'])
+										 ["full_proteome.fasta"])
 		proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
 												proteomes_concat)
 
-		# get self-scores
-		# concatenate protein files
+		# Get self-scores
+		# Concatenate protein files
 		reps_concat = fo.concatenate_files(reps_protein_files,
-										   fo.join_paths(temp_directory, ['reps_concat.fasta']))
+										   fo.join_paths(temp_directory, ["reps_concat.fasta"]))
 
-		print('\nDetermining self-score of representatives...', end='')
-		blastp_path = os.path.join(blast_path, ct.BLASTP_ALIAS)
-		makeblastdb_path = os.path.join(blast_path, ct.MAKEBLASTDB_ALIAS)
-		blast_version = pv.get_blast_version(blast_path)
-		blastdb_aliastool_path = fo.join_paths(blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+		print("\nDetermining self-score of representatives...", end="")
+		blastp_path = os.path.join(blast_path, gct.BLASTP_ALIAS)
+		makeblastdb_path = os.path.join(blast_path, gct.MAKEBLASTDB_ALIAS)
+		blast_version = bw.get_blast_version(blast_path)
+		blastdb_aliastool_path = fo.join_paths(blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 		self_scores = cf.determine_self_scores(reps_concat, temp_directory,
-			makeblastdb_path, blastp_path, 'prot', cpu_cores, blastdb_aliastool_path)
-		print('done.')
+			makeblastdb_path, blastp_path, "prot", cpu_cores, blastdb_aliastool_path)
+		print("done.")
 
-		# create BLASTdb with proteome sequences
-		proteome_blastdb = fo.join_paths(proteomes_directory,
-										 ['proteomes_db'])
-		db_std = bw.make_blast_db(makeblastdb_path, proteomes_concat, proteome_blastdb, 'prot')
+		# Create BLASTdb with proteome sequences
+		proteome_blastdb = fo.join_paths(proteomes_directory, ["proteomes_db"])
+		db_std = bw.make_blast_db(makeblastdb_path, proteomes_concat, proteome_blastdb, "prot")
 
 		# BLASTp to determine annotations
-		blast_inputs = [[blastp_path, proteome_blastdb, file, file+'_blastout.tsv',
+		blast_inputs = [[blastp_path, proteome_blastdb, file, file+"_blastout.tsv",
 						 1, 1, None, None, 10, None, bw.run_blast]
 						for file in reps_protein_files]
 
-		print('BLASTing representatives against proteomes...')
+		print("BLASTing representatives against proteomes...")
 		blast_results = mo.map_async_parallelizer(blast_inputs,
 												  mo.function_helper,
 												  cpu_cores,
@@ -402,7 +401,7 @@ def main(config):
 		for locus in config.loci_list[0]:
 			annotations_lines[locus] = []
 			if config.protein_table:
-				annotations_lines[locus].extend(loci_coordinates.get(locus, [""]*len(ct.GENE_TABLE_HEADERS[1:])))
+				annotations_lines[locus].extend(loci_coordinates.get(locus, [""]*len(gct.GENE_TABLE_HEADERS[1:])))
 			if config.proteome_taxa:
 				# Get proteome annotations for locus and combine data from multiple matches
 				proteome_data = proteome_results.get(locus, None)

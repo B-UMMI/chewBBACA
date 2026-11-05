@@ -4,8 +4,7 @@
 Purpose
 -------
 
-This module contains core functions used by chewBBACA's
-modules.
+This module contains core functions used by chewBBACA's modules.
 
 Code documentation
 ------------------
@@ -15,8 +14,8 @@ Code documentation
 import os
 
 try:
-	from utils import (constants as ct,
-					   blast_wrapper as bw,
+	import global_constants as gct
+	from utils import (blast_wrapper as bw,
 					   file_operations as fo,
 					   fasta_operations as fao,
 					   sequence_clustering as sc,
@@ -24,8 +23,8 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 blast_wrapper as bw,
+	import CHEWBBACA.global_constants as gct
+	from CHEWBBACA.utils import (blast_wrapper as bw,
 								 file_operations as fo,
 								 fasta_operations as fao,
 								 sequence_clustering as sc,
@@ -54,7 +53,7 @@ def write_gene_list(schema_dir):
 	schema_files = fo.filter_by_extension(schema_files, [".fasta"])[0]
 	# Remove file extension
 	schema_files = [fo.file_basename(file, False) for file in schema_files]
-	output_file = fo.join_paths(schema_dir, [ct.GENE_LIST_BASENAME])
+	output_file = fo.join_paths(schema_dir, [gct.GENE_LIST_BASENAME])
 	fo.pickle_dumper(schema_files, output_file)
 
 	return [os.path.isfile(output_file), output_file]
@@ -84,22 +83,22 @@ def write_schema_config(config, chewie_version, output_directory):
 	is the path to the created file.
 	"""
 	params = {}
-	params[ct.BLAST_SCORE_RATIO_ARGNAME] = [config.blast_score_ratio]
-	params[ct.TRANSLATION_TABLE_ARGNAME] = [config.translation_table]
-	params[ct.MINIMUM_LENGTH_ARGNAME] = [config.minimum_length]
-	params[ct.CHEWIE_VERSION_ARGNAME] = [chewie_version]
-	params[ct.SIZE_THRESHOLD_ARGNAME] = [config.size_threshold]
-	params[ct.CLUSTERING_WORD_ARGNAME] = [config.validated_clustering_options.word_size]
-	params[ct.CLUSTERING_WINDOW_ARGNAME] = [config.validated_clustering_options.window_size]
-	params[ct.CLUSTERING_SIMILARITY_ARGNAME] = [config.validated_clustering_options.clustering_similarity]
-	params[ct.CLUSTERING_REPRESENTATIVEFILTER_ARGNAME] = [config.validated_clustering_options.representative_filter]
-	params[ct.CLUSTERING_INTRAFILTER_ARGNAME] = [config.validated_clustering_options.intra_filter]
+	params[gct.SCHEMA_CONFIG_BLAST_SCORE_RATIO_ARGNAME] = [config.blast_score_ratio]
+	params[gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME] = [config.translation_table]
+	params[gct.SCHEMA_CONFIG_MINIMUM_LENGTH_ARGNAME] = [config.minimum_length]
+	params[gct.SCHEMA_CONFIG_CHEWIE_VERSION_ARGNAME] = [chewie_version]
+	params[gct.SCHEMA_CONFIG_SIZE_THRESHOLD_ARGNAME] = [config.size_threshold]
+	params[gct.SCHEMA_CONFIG_CLUSTERING_WORD_ARGNAME] = [config.validated_clustering_options.word_size]
+	params[gct.SCHEMA_CONFIG_CLUSTERING_WINDOW_ARGNAME] = [config.validated_clustering_options.window_size]
+	params[gct.SCHEMA_CONFIG_CLUSTERING_SIMILARITY_ARGNAME] = [config.validated_clustering_options.clustering_similarity]
+	params[gct.SCHEMA_CONFIG_CLUSTERING_REPRESENTATIVEFILTER_ARGNAME] = [config.validated_clustering_options.representative_filter]
+	params[gct.SCHEMA_CONFIG_CLUSTERING_INTRAFILTER_ARGNAME] = [config.validated_clustering_options.intra_filter]
 	if config.gene_predictor == 'pyrodigal':
 		# Determine PTF checksum
 		ptf_hash = fo.hash_file(config.validated_gene_prediction_options.pyrodigal_training_file, 'blake2b')
-		params[ct.PYRODIGAL_TRAININGFILE_ARGNAME] = [ptf_hash]
+		params[gct.SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME] = [ptf_hash]
 
-	config_file = os.path.join(output_directory, ct.SCHEMA_CONFIG_BASENAME)
+	config_file = os.path.join(output_directory, gct.SCHEMA_CONFIG_BASENAME)
 	fo.pickle_dumper(params, config_file)
 
 	return [os.path.isfile(config_file), config_file]
@@ -811,7 +810,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
 	lcl_fasta = fo.join_paths(output_directory, [fo.file_basename(fasta_file, False)+'_LCL.fasta'])
 	# Return mapping between new short IDs and original IDs
-	_ = fao.integer_headers(fasta_file, lcl_fasta, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+	_ = fao.integer_headers(fasta_file, lcl_fasta, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLAST database
 	blast_db_dir = fo.join_paths(output_directory, ['BLASTp_db'])
 	fo.create_directory(blast_db_dir)
@@ -823,13 +822,13 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 	seq_fasta = fo.join_paths(output_directory, [fo.file_basename(fasta_file, False)+'_SEQ.fasta'])
-	id_mapping = fao.integer_headers(fasta_file, seq_fasta, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+	id_mapping = fao.integer_headers(fasta_file, seq_fasta, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 
 	# Split Fasta file to BLAST short sequences (<30aa) separately
 	# only possible to have alleles <30aa with non-default schemas
 	above_outfile, below_outfile = fao.split_seqlength(seq_fasta,
 													   output_directory,
-													   ct.BLAST_TASK_THRESHOLD['blastp'])
+													   gct.BLAST_TASK_THRESHOLD['blastp'])
 
 	total_seqids = above_outfile[0] + below_outfile[0]
 	all_seqids = above_outfile[1] + below_outfile[1]
@@ -923,7 +922,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 		# Get all representatives that do not have a self-score
 		for seqid in missing:
 			current_rep = concat_reps_index[seqid]
-			record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [current_rep.id, str(current_rep.seq)])
+			record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [current_rep.id, str(current_rep.seq)])
 			rep_file = fo.join_paths(output_directory, [f'{current_rep.id}_solo.fasta'])
 			fo.write_lines([record], rep_file)
 			# Create file with representative seqid to only compare against self

@@ -20,13 +20,6 @@ MERGERESULTS_ARGUMENT_TYPES = {
 	"common": bool
 }
 
-# List of valid files for the SubsetResutls and MergeResults modules
-# Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
-SUPPORTED_RESULTS_FILES = [ALLELIC_PROFILES_BASENAME, COORDINATES_PROFILES_BASENAME, SAMPLE_STATISTICS_BASENAME,
-                           LOCI_STATS_BASENAME, INVALID_CDS_BASENAME, GENE_COORDINATES_BASENAME, MISSING_FASTA_BASENAME,
-						   MISSING_TSV_BASENAME, UNCLASSIFIED_BASENAME, PARALOGOUS_COUNTS_BASENAME, PARALOGOUS_TABLE_BASENAME,
-						   INFERRED_ALLELES_BASENAME, PRESENCE_ABSENCE_PROFILES_BASENAME]
-
 # Exceptions
 
 MERGERESULTS_INPUTFILE_EXCEPTION = ("Input paths should all be folders. The following are not folders:\n{0}")

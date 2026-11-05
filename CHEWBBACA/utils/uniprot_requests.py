@@ -19,13 +19,15 @@ from urllib.request import urlopen
 from requests.adapters import HTTPAdapter
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	import AnnotateSchema.constants as ct
+	from utils import (file_operations as fo,
 					   fasta_operations as fao,
 					   sequence_manipulation as sm)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.AnnotateSchema.constants as ct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 fasta_operations as fao,
 								 sequence_manipulation as sm)
 
@@ -165,7 +167,7 @@ def get_annotation(input_file, translation_table, maximum_matches):
 		# Do not query UniProt if another allele encoding the same protein has already been seen
 		if md5_hash not in queried:
 			params = {"md5": md5_hash}
-			response = send_request(session, ct.UNIPROT_PROTEINS_API, params=params, headers=ct.HEADERS_GET_JSON)
+			response = send_request(session, ct.UNIPROT_PROTEINS_API, params=params, headers=gct.HEADERS_GET_JSON)
 			# Extract results if request was successful
 			if response.status_code == 200:
 				data = response.json()

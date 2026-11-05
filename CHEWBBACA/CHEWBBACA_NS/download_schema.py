@@ -30,19 +30,21 @@ from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
-    from PrepExternalSchema import adapt_schema
-    from utils import (constants as ct,
-                       file_operations as fo,
-                       process_datetime as pd,
-                       chewiens_requests as cr,
-                       parameters_validation as pv)
+    import global_constants as gct
+    import CHEWBBACA_NS.constants as ct
+    from AdaptSchema import adapt_schema
+    from utils import (
+        file_operations as fo,
+        process_datetime as pd,
+        chewiens_requests as cr)
 except ModuleNotFoundError:
-    from CHEWBBACA.PrepExternalSchema import adapt_schema
-    from CHEWBBACA.utils import (constants as ct,
-                                 file_operations as fo,
-                                 process_datetime as pd,
-                                 chewiens_requests as cr,
-                                 parameters_validation as pv)
+    import CHEWBBACA.global_constants as gct
+    import CHEWBBACA.CHEWBBACA_NS.constants as ct
+    from CHEWBBACA.AdaptSchema import adapt_schema
+    from CHEWBBACA.utils import (
+        file_operations as fo,
+        process_datetime as pd,
+        chewiens_requests as cr)
 
 
 # Suppress only the single warning from urllib3 needed.
@@ -416,7 +418,7 @@ def download_ptf(ptf_hash, download_folder, schema_id,
 
 def main(config):
     # GET request headers
-    headers_get = ct.HEADERS_GET_JSON
+    headers_get = gct.HEADERS_GET_JSON
 
     print(f"Schema id: {config.schema_id[0]}")
     print(f"Schema name: {config.schema_id[2]["name"]}")
@@ -462,8 +464,10 @@ def main(config):
         # Create output directories
         schema_path_exists = fo.create_directory(schema_path)
         if schema_path_exists is False:
-            sys.exit(ct.OUTPUT_DIRECTORY_EXISTS)
+            sys.exit(gct.OUTPUT_DIRECTORY_EXISTS)
         fo.create_directory(schema_path_short)
+
+########################## Need to modufy this part to work with Pydantic models, etc
 
         loci_list = fo.join_paths(schema_path, [ct.LOCI_TO_ADAPT_BASENAME])
         loci_list, total_loci = pv.check_input_type(config.output_directory, loci_list)

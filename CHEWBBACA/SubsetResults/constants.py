@@ -46,4 +46,6 @@ SUBSETRESULTS_ABSENT_LOCI_EXCEPTION = ('Please make sure that all loci IDs in th
 SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION = ('Please make sure that all sample IDs in the list provided to '
 				  	 					  '`--sample-list` match sample IDs in the input results.')
 
+MISSING_EXCLUDE_LOCI = ("Path to file with list of loci is not valid.")
+
 MISSING_EXCLUDE_GENOMES = ("Path to file with list of genomes is not valid.")

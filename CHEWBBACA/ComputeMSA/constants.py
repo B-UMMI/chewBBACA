@@ -25,7 +25,7 @@ COMPUTEMSA_NO_CLEANUP_ARGNAME = "no_cleanup"
 COMPUTEMSA_CPU_CORES_ARGNAME = "cpu_cores"
 
 COMPUTEMSA_ARGUMENT_TYPES = {
-	"input_files": str,
+	"input_path": str,
 	"output_directory": str,
 	"schema_directory": str,
 	"translation_table": int,

@@ -63,9 +63,6 @@ ASSEMBLY_STATS_COLUMNS = ["FILE", "Number of contigs", "Average contig size",
 						  "N50", "Assembly size", "GC content", "Missing values (Ns)",
 						  "Total genes", "Excluded genes"]
 
-GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
-                      "Coding_Strand", "Confidence", "SHA256"]
-
 # Exceptions
 
 PREDICTGENES_INVALID_PYRODIGAL_MODE = ("Invalid execution mode specified for Pyrodigal. Please choose one of the "

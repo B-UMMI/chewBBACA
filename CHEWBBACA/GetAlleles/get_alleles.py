@@ -13,14 +13,14 @@ Code documentation
 import pandas as pd
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import GetAlleles.constants as ct
+	from utils import (file_operations as fo,
 					   fasta_operations as fao,
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	import CHEWBBACA.GetAlleles.constants as ct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
 								 multiprocessing_operations as mo)

@@ -36,7 +36,7 @@ ALLELECALL_NO_CLEANUP_ARGNAME = "no_cleanup"
 
 # Define expected types for the arguments
 ALLELECALL_ARGUMENT_TYPES = {
-	"input_files": str,
+	"input_path": str,
 	"schema_directory": str,
 	"output_directory": str,
 	"loci_list": str,

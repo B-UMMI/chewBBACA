@@ -19,13 +19,16 @@ from pydantic import (BaseModel,
 try:
 	import global_constants as gct
 	import global_validation as gval
+	import CreateSchema.constants as ct
+	import PredictGenes.validation_models as pval
 except ModuleNotFoundError:
 	import CHEWBBACA.global_constants as gct
 	import CHEWBBACA.global_validation as gval
+	import CHEWBBACA.CreateSchema.constants as ct
 
 
 SchemaName = Annotated[str,
-                       Field(default=gct.SCHEMA_NAME_DEFAULT)]
+                       Field(default=ct.SCHEMA_NAME_DEFAULT)]
 
 
 class CreateSchemaValidator(BaseModel):
@@ -33,14 +36,14 @@ class CreateSchemaValidator(BaseModel):
 
 	output_directory: gval.OutputDirectory
 	input_files: gval.InputFiles
-	schema_name: gval.SchemaName
+	schema_name: SchemaName
 	blast_score_ratio: gval.BLASTScoreRatio
 	minimum_length: gval.MinimumLength
 	translation_table: gval.TranslationTable
 	size_threshold: gval.SizeThreshold
-	gene_predictor : gval.GenePredictor
-	gene_prediction_options: gval.GenePredictionOptions
-	validated_gene_prediction_options: gval.ValidatedGenePredictionOptions
+	gene_predictor : pval.GenePredictor
+	gene_prediction_options: pval.GenePredictionOptions
+	validated_gene_prediction_options: pval.ValidatedGenePredictionOptions
 	clustering_options: gval.ClusteringOptions
 	validated_clustering_options: gval.ValidatedClusteringOptions
 	blast_path: gval.BLASTPath
@@ -53,9 +56,9 @@ class CreateSchemaValidator(BaseModel):
 	@model_validator(mode="after")
 	def validate_gene_prediction_arguments(self):
 		if self.gene_predictor == "pyrodigal":
-			self.validated_gene_prediction_options = gval.PyrodigalArgs(**self.gene_prediction_options)
+			self.validated_gene_prediction_options = pval.PyrodigalArgs(**self.gene_prediction_options)
 		elif self.gene_predictor == "augustus":
-			self.validated_gene_prediction_options = gval.AugustusArgs(**self.gene_prediction_options)
+			self.validated_gene_prediction_options = pval.AugustusArgs(**self.gene_prediction_options)
 
 		return self
 

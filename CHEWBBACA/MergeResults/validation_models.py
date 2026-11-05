@@ -22,24 +22,26 @@ from pydantic import (BaseModel,
 try:
 	import global_constants as gct
 	import global_validation as gval
+	import MergeResults.constants as ct
 	from utils import file_operations as fo
 except ModuleNotFoundError:
 	import CHEWBBACA.global_constants as gct
 	import CHEWBBACA.global_validation as gval
+	import CHEWBBACA.MergeResults.constants as ct
 	from CHEWBBACA.utils import file_operations as fo
 
 
 ResultsDirectories = Annotated[list,
 								AfterValidator(partial(gval.input_paths_exist,
 								                       function=fo.is_directory,
-													   exception_str=gct.MERGERESULTS_INPUTFILE_EXCEPTION))]
+													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
 
 
 class MergeResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	output_directory: gval.OutputDirectory
-	results_directories: gval.ResultsDirectories
+	results_directories: ResultsDirectories
 	common: gval.BooleanFlag
 
 	# Determine if user passed more than one input path
@@ -53,7 +55,7 @@ class MergeResultsValidator(BaseModel):
 	# Check if results have loci in common
 	@model_validator(mode="after")
 	def validate_loci(self):
-		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.RESULTS_COORDINATES_BASENAME, gct.LOCUS_SAMPLE_PRESENCE_BASENAME, gct.LOCI_STATS_BASENAME]
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME, gct.LOCI_STATS_BASENAME]
 		results_files = {fname: [] for fname in file_types}
 		for folder in self.results_directories:
 			# List files in folder
@@ -89,10 +91,10 @@ class MergeResultsValidator(BaseModel):
 
 				# Exit if there are no common loci between all results
 				if len(loci) == 0:
-					sys.exit(gct.MERGERESULTS_NOCOMMONLOCI_EXCEPTION)
+					sys.exit(ct.MERGERESULTS_NOCOMMONLOCI_EXCEPTION)
 				# Exit if results are not for the same set of loci
 				elif len(loci) != len(headers[0]) and not self.common:
-					sys.exit(gct.MERGERESULTS_LOCIDIFFER_EXCEPTION)
+					sys.exit(ct.MERGERESULTS_LOCIDIFFER_EXCEPTION)
 
 				self.common = [self.common, loci, len(headers[0])]
 

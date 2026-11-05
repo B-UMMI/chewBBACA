@@ -17,12 +17,14 @@ import sys
 import pandas as pd
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import SubsetResults.constants as ct
+	import global_constants as gct
+	from utils import (file_operations as fo,
 					   fasta_operations as fao)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-					   			 file_operations as fo,
+	import CHEWBBACA.SubsetResults.constants as ct
+	import CHEWBBACA.global_constants as gct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 fasta_operations as fao)
 
 
@@ -47,7 +49,7 @@ def main(config):
 	print(f'Listing files in {config.results_files}...')
 
 	# Need to list the files in each directory and group them based on filename
-	file_list = {file_type: None for file_type in ct.SUPPORTED_RESULTS_FILES}
+	file_list = {file_type: None for file_type in gct.SUPPORTED_RESULTS_FILES}
 	input_files = fo.listdir(config.results_files, full_path=True)
 	for f in input_files:
 		fbasename = fo.file_basename(f)
@@ -147,19 +149,19 @@ def main(config):
 		# Define name for the output file with the merged results
 		output_file = fo.join_paths(config.output_directory, [ftype])
 		# Subset TSV files with profiles
-		if ftype in [ct.RESULTS_ALLELES_BASENAME, ct.RESULTS_COORDINATES_BASENAME, ct.PRESENCE_ABSENCE_BASENAME]:
+		if ftype in [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME]:
 			df = pd.read_csv(fpath, usecols=['FILE']+loci_to_keep, skiprows=samples_to_skip, sep='\t', dtype=str)
 			# Save dataframe to file after filtering loci and samples
 			df.to_csv(output_file, sep='\t', index=False)
-		elif ftype in [ct.PARALOGOUS_COUNTS_BASENAME]:
+		elif ftype in [gct.PARALOGOUS_COUNTS_BASENAME]:
 			# Get the allelic profiles for the loci and sample subsets
-			profiles = pd.read_csv(file_list[ct.RESULTS_ALLELES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
+			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
 			paralogous_counts = (profiles=='NIPH').sum(axis=0) + (profiles=='NIPHEM').sum(axis=0)
 			# Only keep entries for loci with a count > 0
 			counts_df = pd.DataFrame(data={'Locus': loci_to_keep, 'Count': paralogous_counts})
 			counts_df = counts_df[counts_df['Count']>0]
 			counts_df.to_csv(output_file, index=False, sep='\t')
-		elif ftype in [ct.MISSING_TSV_BASENAME]:
+		elif ftype in [gct.MISSING_TSV_BASENAME]:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
 			# Filter based on loci and sample subsets
@@ -167,7 +169,7 @@ def main(config):
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
 			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
 			fo.write_lines(out_records, output_file, joiner='\n')
-		elif ftype in [ct.UNCLASSIFIED_BASENAME]:
+		elif ftype in [gct.UNCLASSIFIED_BASENAME]:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
 			# Filter based on sample subset
@@ -175,7 +177,7 @@ def main(config):
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
 			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
 			fo.write_lines(out_records, output_file, joiner='\n')
-		elif ftype in [ct.NOVEL_BASENAME]:
+		elif ftype in [gct.INFERRED_ALLELES_BASENAME]:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
 			# Filter based on loci subset
@@ -183,7 +185,7 @@ def main(config):
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
 			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
 			fo.write_lines(out_records, output_file, joiner='\n')
-		elif ftype in [ct.MISSING_TSV_BASENAME, ct.PARALOGOUS_LOCI_BASENAME]:
+		elif ftype in [gct.MISSING_TSV_BASENAME, gct.PARALOGOUS_TABLE_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpath, num_lines=1)
 			fo.write_lines(header, output_file)
@@ -191,7 +193,7 @@ def main(config):
 			# Identify lines that include loci and samples in the subsets
 			inlines = [line for line in inlines if loci_finder.search(line) and sample_finder.search(line)]
 			fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
-		elif ftype in [ct.GENE_COORDINATES_BASENAME]:
+		elif ftype in [gct.GENE_COORDINATES_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpath, num_lines=1)
 			fo.write_lines(header, output_file)
@@ -200,13 +202,13 @@ def main(config):
 			if config.sample_list:
 				inlines = [line for line in inlines if sample_finder.search(line)]
 			fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
-		elif ftype in [ct.INVALID_CDS_BASENAME]:
+		elif ftype in [gct.INVALID_CDS_BASENAME]:
 			inlines = fo.read_lines(fpath)
 			# Identify lines for samples in the subset
 			if config.sample_list:
 				inlines = [line for line in inlines if sample_finder.search(line)]
 			fo.write_lines(inlines, output_file, joiner='\n')
-		elif ftype in [ct.LOCI_STATS_BASENAME]:
+		elif ftype in [gct.LOCI_STATS_BASENAME]:
 			# Get the lines matching the loci subset
 			statistics = pd.read_csv(fpath, delimiter='\t', index_col=0, dtype=str)
 			# Filter rows to only get index entries matching the loci_to_keep
@@ -215,45 +217,45 @@ def main(config):
 			statistics = statistics.reset_index().rename(columns={'index': 'Locus'})
 
 			# Get the allelic profiles for the loci and sample subsets
-			profiles = pd.read_csv(file_list[ct.RESULTS_ALLELES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
+			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
 			counts = {}
 
 			# Count the number of INFs and EXC
-			counts['EXC'] = (~profiles.isin(ct.ALLELECALL_CLASSIFICATIONS[2:])).sum(axis=0)
+			counts['EXC'] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=0)
 			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=0)
 			counts['EXC'] = counts['EXC'] - counts['INF']
-			for l in ct.ALLELECALL_CLASSIFICATIONS[2:]:
+			for l in gct.ALLELE_CLASSES[2:]:
 				counts[l] = (profiles==l).sum(axis=0)
 
 			counts_df = pd.concat([s.reset_index(drop=True) for k, s in counts.items()], axis=1)
-			counts_df.columns = ct.ALLELECALL_CLASSIFICATIONS
+			counts_df.columns = gct.ALLELE_CLASSES
 
 			# This sets the FILE column as Index
 			counts_df = pd.concat([statistics['Locus'], counts_df], axis=1)
 			# Compute the values for the Total CDSs Classified column
 			# Cannot compute this value when subsetting a dataset because it is
 			# not possible to know the number of total CDSs classified per NIPH/NIPHEM
-			counts_df['Total CDSs Classified'] = counts_df[ct.ALLELECALL_CLASSIFICATIONS[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
+			counts_df['Total CDSs Classified'] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
 			# Add '~' to indicate the values only approximate the real values
 			#counts_df['Total_CDSs'] = '~' + counts_df['Total_CDSs'].astype(str)
 
 			# Save merged files
 			counts_df.to_csv(output_file, index=False, sep='\t')
-		elif ftype in [ct.RESULTS_STATISTICS_BASENAME]:
+		elif ftype in [gct.SAMPLE_STATISTICS_BASENAME]:
 			# Get the allelic profiles per dataframe
 			statistics = pd.read_csv(fpath, delimiter='\t', skiprows=samples_to_skip, dtype=str)
-			profiles = pd.read_csv(file_list[ct.RESULTS_ALLELES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
+			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
 
 			counts = {}
 			# Count the number of INFs and EXC
-			counts['EXC'] = (~profiles.isin(ct.ALLELECALL_CLASSIFICATIONS[2:])).sum(axis=1)
+			counts['EXC'] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=1)
 			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=1)
 			counts['EXC'] = counts['EXC'] - counts['INF']
-			for l in ct.ALLELECALL_CLASSIFICATIONS[2:]:
+			for l in gct.ALLELE_CLASSES[2:]:
 				counts[l] = (profiles==l).sum(axis=1)
 
 			counts_df = pd.concat([s.reset_index(drop=True) for k, s in counts.items()], axis=1)
-			counts_df.columns = ct.ALLELECALL_CLASSIFICATIONS
+			counts_df.columns = gct.ALLELE_CLASSES
 
 			# This sets the FILE column as Index
 			counts_df = pd.concat([statistics['FILE'], counts_df], axis=1)
@@ -261,7 +263,7 @@ def main(config):
 			counts_df['Invalid CDSs'] = statistics['Invalid CDSs']
 			# Cannot compute this value when subsetting a dataset because it is
 			# not possible to know the number of CDSs classified per NIPH/NIPHEM
-			counts_df['Total CDSs Classified'] = counts_df[ct.ALLELECALL_CLASSIFICATIONS[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
+			counts_df['Total CDSs Classified'] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
 			# Add '~' to indicate the values only approximate the real values
 			#counts_df['Classified_CDSs'] = '~' + counts_df['Classified_CDSs'].astype(str)
 			counts_df['Total_CDSs'] = statistics['Total_CDSs']

@@ -20,9 +20,9 @@ import itertools
 import multiprocessing
 
 try:
-	from __init__ import __version__
-	from utils import (constants as ct,
-					   blast_wrapper as bw,
+	import global_constants as gct
+	import AdaptSchema.constants as ct
+	from utils import (blast_wrapper as bw,
 					   core_functions as cf,
 					   file_operations as fo,
 					   fasta_operations as fao,
@@ -30,9 +30,9 @@ try:
 					   iterables_manipulation as im,
 					   multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA import __version__
-	from CHEWBBACA.utils import (constants as ct,
-								 blast_wrapper as bw,
+	import CHEWBBACA.global_constants as gct
+	import CHEWBBACA.AdaptSchema.constants as ct
+	from CHEWBBACA.utils import (blast_wrapper as bw,
 								 core_functions as cf,
 								 file_operations as fo,
 								 fasta_operations as fao,
@@ -253,8 +253,8 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 
 				modes_concat = ':'.join(map(str, modes))
 				st_percentage = int(size_threshold*100)
-				invalid += [[s, ct.ALM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in alm]
-				invalid += [[s, ct.ASM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in asm]
+				invalid += [[s, gct.ALM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in alm]
+				invalid += [[s, gct.ASM_MSG.format(st_percentage, allele_sizes[s], modes_concat)] for s in asm]
 
 			# Remove excluded alleles
 			dna_seqs = {seqid: seq
@@ -297,13 +297,13 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 			protein_file = fo.join_paths(locus_temp_dir,
 										 [f'{locus_id}_protein.fasta'])
 			protein_data = [[i, prot_seqs[i]] for i in ids_to_blast]
-			protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, protein_data)
+			protein_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, protein_data)
 			fo.write_lines(protein_lines, protein_file)
 
 			# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
 			lcl_proteins = fo.join_paths(locus_temp_dir, [protein_file.replace('.fasta', '_LCL.fasta')])
 			# Use 'lcl|SEQ' as prefix to avoid issues where makeblastdb modifies the IDs
-			_ = fao.integer_headers(protein_file, lcl_proteins, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+			_ = fao.integer_headers(protein_file, lcl_proteins, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 			# Create BLASTdb with all distinct proteins
 			blastp_db = os.path.join(locus_temp_dir, locus_id)
 			db_std = bw.make_blast_db(makeblastdb_path, lcl_proteins, blastp_db, 'prot')
@@ -312,7 +312,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 
 			# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 			seq_proteins = fo.join_paths(locus_temp_dir, [protein_file.replace('.fasta', '_SEQ.fasta')])
-			id_mapping = fao.integer_headers(protein_file, seq_proteins, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+			id_mapping = fao.integer_headers(protein_file, seq_proteins, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 			# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 			inverse_id_mapping = im.invert_dictionary(id_mapping)
 
@@ -326,13 +326,13 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 				rep_file = fo.join_paths(locus_temp_dir,
 										 [f'{locus_id}_rep_protein.fasta'])
 				rep_protein_data = [[r, prot_seqs[r]] for r in representatives]
-				rep_protein_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, rep_protein_data)
+				rep_protein_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, rep_protein_data)
 				fo.write_lines(rep_protein_lines, rep_file)
 
 				# Compute self-score for representative alleles
 				for seqid in representatives:
 					if seqid not in rep_self_scores:
-						record = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid, prot_seqs[seqid]])
+						record = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [seqid, prot_seqs[seqid]])
 						current_rep_file = fo.join_paths(locus_temp_dir, [f'{seqid}_solo.fasta'])
 						fo.write_lines([record], current_rep_file)
 						# Create file with representative seqid to only compare against self
@@ -437,7 +437,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 		# Add locus identifier as prefix to sequence IDs
 		# Some external schemas, such as schemas from cgMLST.org, do not include the locus identifier in the sequence headers
 		locus_data = [[k, v] if locus_id in k else [f'{locus_id}_{k}', v] for k, v in dna_seqs.items()]
-		locus_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, locus_data)
+		locus_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, locus_data)
 		fo.write_lines(locus_lines, locus_file)
 
 		# Get total number of valid sequences
@@ -446,7 +446,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 		# Write schema file with representatives
 		# Do not forget to add locus identifier as prefix to sequence IDs if it is not included in the original ID
 		locus_rep_data = [[r, dna_seqs[r]] if locus_id in r else [f'{locus_id}_{r}', dna_seqs[r]] for r in final_representatives]
-		locus_rep_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE,
+		locus_rep_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE,
 										  locus_rep_data)
 		fo.write_lines(locus_rep_lines, locus_short_file)
 
@@ -516,9 +516,9 @@ def main(config):
 	# with few inputs, some sublists might be empty
 	even_loci_groups = [i for i in even_loci_groups if len(i) > 0]
 	# Add common arguments
-	blastp_path = os.path.join(config.blast_path, ct.BLASTP_ALIAS)
-	makeblastdb_path = os.path.join(config.blast_path, ct.MAKEBLASTDB_ALIAS)
-	blastdb_aliastool_path = fo.join_paths(config.blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+	blastp_path = os.path.join(config.blast_path, gct.BLASTP_ALIAS)
+	makeblastdb_path = os.path.join(config.blast_path, gct.MAKEBLASTDB_ALIAS)
+	blastdb_aliastool_path = fo.join_paths(config.blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 	even_loci_groups = [[i, schema_path, schema_short_path,
 						 config.blast_score_ratio, config.adaptation_minimum_length,
 						 config.translation_table, config.adaptation_size_threshold,
@@ -553,7 +553,7 @@ def main(config):
 	stats_loci_file = '{0}/{1}_{2}'.format(parent_directory,
 										   schema_basename,
 										   'summary_stats.tsv')
-	stats_lines = [ct.PREPEXTERNAL_SUMMARY_STATS_HEADER] + stats_lines
+	stats_lines = [ct.ADAPTSCHEMA_STATS_HEADER] + stats_lines
 	fo.write_lines(stats_lines, stats_loci_file)
 
 	print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')
@@ -572,9 +572,9 @@ def main(config):
 		print(f'Copied Pyrodigal training file to {schema_path}')
 
 	# Write schema config file
-	schema_config = cf.write_schema_config(config, __version__, schema_path)
+	schema_config = cf.write_schema_config(config, gct.__version__, schema_path)
 	print(f'Wrote schema config values to {schema_config[1]}')
 
 	# Create the file with the list of genes/loci
 	cf.write_gene_list(schema_path)
-	print(f'Wrote list of loci to {os.path.join(schema_path, ct.GENE_LIST_BASENAME)}')
+	print(f'Wrote list of loci to {os.path.join(schema_path, gct.GENE_LIST_BASENAME)}')

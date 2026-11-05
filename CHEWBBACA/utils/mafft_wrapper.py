@@ -16,9 +16,9 @@ import os
 import subprocess
 
 try:
-	from utils import constants as ct
+	import global_constants as gct
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import constants as ct
+	import CHEWBBACA.global_constants as gct
 
 
 def call_mafft(input_file, output_file, custom_mafft_params=None):
@@ -46,9 +46,9 @@ def call_mafft(input_file, output_file, custom_mafft_params=None):
 		MAFFT stderr.
 	"""
 	if not custom_mafft_params:
-		mafft_cmd = [ct.MAFFT_ALIAS] + ct.MAFFT_DEFAULT_PARAMETERS + [input_file, '>', output_file]
+		mafft_cmd = [gct.MAFFT_ALIAS] + gct.MAFFT_DEFAULT_PARAMETERS + [input_file, '>', output_file]
 	else:
-		mafft_cmd = [ct.MAFFT_ALIAS] + custom_mafft_params + [input_file, '>', output_file]
+		mafft_cmd = [gct.MAFFT_ALIAS] + custom_mafft_params + [input_file, '>', output_file]
 	# Join command list into single string
 	mafft_cmd = ' '.join(mafft_cmd)
 

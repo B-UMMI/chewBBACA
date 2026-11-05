@@ -24,18 +24,20 @@ import statistics
 from collections import Counter
 
 try:
+	import global_constants as gct
 	from ComputeMSA import compute_msa
+	import SchemaEvaluator.constants as ct
 	from utils import (
-		constants as ct,
 		file_operations as fo,
 		fasta_operations as fao,
 		sequence_manipulation as sm,
 		iterables_manipulation as im,
 		multiprocessing_operations as mo)
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
 	from CHEWBBACA.ComputeMSA import compute_msa
+	import CHEWBBACA.SchemaEvaluator.constants as ct
 	from CHEWBBACA.utils import (
-		constants as ct,
 		file_operations as fo,
 		fasta_operations as fao,
 		sequence_manipulation as sm,
@@ -321,7 +323,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 	if len(ns_alleles) > 0 and len(protein_file) < nr_alleles:
 		records = fao.sequence_generator(protein_file)
 		records = [[(rec.id).replace('*', ''), str(rec.seq)] for rec in records]
-		output_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, records)
+		output_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, records)
 		fo.remove_files([protein_file])
 		fo.write_lines(output_lines, protein_file)
 
@@ -331,7 +333,7 @@ def compute_locus_statistics(locus, translation_table, minimum_length,
 		distinct_proteins = sm.determine_duplicated_seqs(translated_alleles)
 		distinct_records = [[v[0], k]
 							for k, v in distinct_proteins.items()]
-		distinct_lines = fao.fasta_lines(ct.FASTA_RECORD_TEMPLATE, distinct_records)
+		distinct_lines = fao.fasta_lines(gct.FASTA_RECORD_TEMPLATE, distinct_records)
 		distinct_file = fo.join_paths(distinct_dir, [f"{locus_id}_distinct.fasta"])
 		fo.write_lines(distinct_lines, distinct_file)
 		distinct_ids = [[get_alleleID(i) for i in v]
@@ -523,7 +525,7 @@ def locus_report(locus_file, locus_data, annotation_columns,
 			phylo_text = phylo_text.replace('\n', '')
 			phylo_data['phylo_data'] = phylo_text
 
-	locus_columns = ct.LOCUS_COLUMNS.format(minimum_length,
+	locus_columns = ct.LOCI_REPORTS_SUMMARY_TABLE_HEADER.format(minimum_length,
 											locus_data[14],
 											locus_data[15])
 	locus_columns = locus_columns.split('\t')
@@ -543,10 +545,10 @@ def locus_report(locus_file, locus_data, annotation_columns,
 					   "protein": protein_sequences,
 					   "botThreshold": locus_data[14],
 					   "topThreshold": locus_data[15],
-					   "invalidAlleles": [{"columns": ct.INVALID_ALLELES_COLUMNS},
+					   "invalidAlleles": [{"columns": ct.INVALID_ALLELES_TABLE_HEADER},
 										  {"rows": locus_data[16]}],
 					   "nsAlleles": locus_data[21],
-					   "distinctAlleles": [{"columns": ct.DISTINCT_ALLELES_COLUMNS},
+					   "distinctAlleles": [{"columns": ct.DISTINCT_ALLELES_TABLE_HEADER},
 										   {"rows": locus_data[22]}],
 					   }
 
@@ -654,7 +656,7 @@ def main(config):
 	print(f"\nProvided annotations for {len(annotation_values[1])} loci in the schema.")
 
 	# Columns for the Summary Data Table in the Schema Report
-	summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADERS.format(config.minimum_length)
+	summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADER.format(config.minimum_length)
 	summary_columns = summary_columns.split('\t')
 
 	# Get total number of alleles with a length value not multiple of 3
@@ -687,7 +689,7 @@ def main(config):
 					above_sum]
 
 	# Columns for the Allele Analysis Table component
-	analysis_columns = ct.LOCI_ANALYSIS_COLUMNS.format(config.minimum_length)
+	analysis_columns = ct.LOCI_ANALYSIS_TABLE_HEADER.format(config.minimum_length)
 	analysis_columns = analysis_columns.split("\t")
 	analysis_rows = list(data[13])
 
@@ -746,7 +748,7 @@ def main(config):
 			# Need to pass complete MAFFT default parameters defined in constants.py to create tree output
 			print("Calling the ComputeMSA module to compute the loci MSAs...")
 			msa_files_dir = compute_msa.main(protein_files_dir, temp_directory, None, False, False,
-						config.translation_table, config.cpu_cores, False, "exclude", "exclude", ' '.join(ct.MAFFT_DEFAULT_PARAMETERS), True, True)
+						config.translation_table, config.cpu_cores, False, "exclude", "exclude", ' '.join(gct.MAFFT_DEFAULT_PARAMETERS), True, True)
 			msa_files_dir = fo.join_paths(msa_files_dir, ["protein"])
 			msa_files = fo.listdir(msa_files_dir, full_path=True)
 			msa_files_dict = {fo.file_basename(f, False).replace("_distinct", ''): f for f in msa_files}

@@ -16,8 +16,9 @@ import csv
 import pandas as pd
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
+	import global_constants as gct
+	import PredictGenes.constants as ct
+	from utils import (file_operations as fo,
 					   fasta_operations as fao,
 					   assembly_statistics as ast,
 					   iterables_manipulation as im,
@@ -25,8 +26,9 @@ try:
 					   pyrodigal_gene_prediction as pgp,
 					   augustus_gene_prediction as agp)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-								 file_operations as fo,
+	import CHEWBBACA.PredictGenes.constants as ct
+	import CHEWBBACA.global_constants as gct
+	from CHEWBBACA.utils import (file_operations as fo,
 								 fasta_operations as fao,
 								 assembly_statistics as ast,
 								 iterables_manipulation as im,
@@ -104,7 +106,7 @@ def main(config):
 		fo.write_lines(failed_lines, failed_outfile)
 
 	if len(cds_fastas) == 0:
-		sys.exit(f'{ct.CANNOT_PREDICT}')
+		sys.exit(f'{gct.CANNOT_PREDICT}')
 
 	print(f'Predicted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.')
 	print(f'CDS coordinate data saved to {cds_coordinates}')

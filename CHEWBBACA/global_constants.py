@@ -119,6 +119,35 @@ MISSING_FASTA_BASENAME = "missing_classes.fasta" # FASTA file containing the CDS
 MISSING_TSV_BASENAME = "missing_classes.tsv" # TSV file containing information about the CDSs/loci assigned special classifications
 INFERRED_ALLELES_BASENAME = "inferred_alleles.fasta" # FASTA file containing the alleles inferred through allele calling
 INFERRED_ALLELES_TABLE_BASENAME = "inferred_alleles.tsv" # TSV file containing data about the inferred alleles
+PRESENCE_ABSENCE_PROFILES_BASENAME = "presence_absence_profiles.tsv"
+INVALID_CDS_BASENAME = "invalid_cds.txt" # TXT file with the list of invalid CDSs
+GENE_COORDINATES_BASENAME = "gene_coordinates.tsv"
+SCHEMA_CONFIG_BASENAME = ".schema_config" # Pickle file containing schema config values
+GENE_LIST_BASENAME = ".genes_list" # Pickle file containing the list of genes in a schema
+NS_CONFIG_BASENAME = ".ns_config" # Pickle file added to schemas downloaded to Chewie-NS
+
+# List of valid files for the SubsetResutls and MergeResults modules
+# Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
+SUPPORTED_RESULTS_FILES = [ALLELIC_PROFILES_BASENAME, COORDINATES_PROFILES_BASENAME, SAMPLE_STATISTICS_BASENAME,
+                           LOCI_STATS_BASENAME, INVALID_CDS_BASENAME, GENE_COORDINATES_BASENAME, MISSING_FASTA_BASENAME,
+						   MISSING_TSV_BASENAME, UNCLASSIFIED_BASENAME, PARALOGOUS_COUNTS_BASENAME, PARALOGOUS_TABLE_BASENAME,
+						   INFERRED_ALLELES_BASENAME, PRESENCE_ABSENCE_PROFILES_BASENAME]
+
+# Names for the schema config parameters
+SCHEMA_CONFIG_BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
+SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME = "translation_table"
+SCHEMA_CONFIG_MINIMUM_LENGTH_ARGNAME = "minimum_length"
+SCHEMA_CONFIG_CHEWIE_VERSION_ARGNAME = "chewie_version"
+SCHEMA_CONFIG_SIZE_THRESHOLD_ARGNAME = "size_threshold"
+SCHEMA_CONFIG_CLUSTERING_WORD_ARGNAME = "word_size"
+SCHEMA_CONFIG_CLUSTERING_WINDOW_ARGNAME = "window_size"
+SCHEMA_CONFIG_CLUSTERING_SIMILARITY_ARGNAME = "clustering_sim"
+SCHEMA_CONFIG_CLUSTERING_REPRESENTATIVEFILTER_ARGNAME = "representative_filter"
+SCHEMA_CONFIG_CLUSTERING_INTRAFILTER_ARGNAME = "intra_filter"
+SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME = "pyrodigal_training_file"
+
+GENE_TABLE_HEADERS = ["CDS_ID", "Genome", "Contig", "Start", "Stop", "Protein_ID",
+                      "Coding_Strand", "Confidence", "SHA256"]
 
 # Valid FASTA file extensions
 FASTA_EXTENSIONS = [".fasta", ".fna", ".ffn", ".fa", ".fas"]
@@ -152,11 +181,6 @@ PROMPT_TIMEOUT = 30
 # Ambiguous characters for DNA and protein sequences
 PROTEIN_AMBIGUOUS_CHARS = ['B', 'Z', 'X', 'J']
 DNA_AMBIGUOUS_CHARS = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
-
-INVALID_CDS_BASENAME = "invalid_cds.txt" # TXT file with the list of invalid CDSs
-SCHEMA_CONFIG_BASENAME = ".schema_config" # Pickle file containing schema config values
-GENE_LIST_BASENAME = ".genes_list" # Pickle file containing the list of genes in a schema
-NS_CONFIG_BASENAME = ".ns_config" # Pickle file added to schemas downloaded to Chewie-NS
 
 # Allele classes
 ALLELE_CLASSES = ["EXC", "INF", "PLOT3", "PLOT5", "LOTSC", "NIPH", "NIPHEM", "ALM", "ASM", "PAMA", "LNF"]

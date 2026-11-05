@@ -13,20 +13,18 @@ Code documentation
 """
 
 
-import os
-import sys
 from functools import reduce
 
 import pandas as pd
 
 try:
+	import global_constants as gct
 	from SubsetResults import subset_results
-	from utils import (constants as ct,
-					   file_operations as fo)
+	from utils import file_operations as fo
 except ModuleNotFoundError:
+	import CHEWBBACA.global_constants as gct
 	from CHEWBBACA.SubsetResults import subset_results
-	from CHEWBBACA.utils import (constants as ct,
-					   			 file_operations as fo)
+	from CHEWBBACA.utils import file_operations as fo
 
 
 def main(config):
@@ -62,7 +60,7 @@ def main(config):
 		input_files = config.results_directories
 
 	# Need to list the files in each directory and group them based on filename
-	file_list = {ftype: [] for ftype in ct.SUPPORTED_RESULTS_FILES}
+	file_list = {ftype: [] for ftype in gct.SUPPORTED_RESULTS_FILES}
 	for d in input_files:
 		# List all files in the folder
 		files = fo.listdir(d, full_path=True)

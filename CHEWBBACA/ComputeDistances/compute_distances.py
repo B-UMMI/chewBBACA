@@ -21,15 +21,17 @@ import numpy as np
 import pandas as pd
 
 try:
-	from utils import (constants as ct,
-					   file_operations as fo,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
+	import global_constants as gct
+	from utils import (
+		file_operations as fo,
+		iterables_manipulation as im,
+		multiprocessing_operations as mo)
 except ModuleNotFoundError:
-	from CHEWBBACA.utils import (constants as ct,
-							  	 file_operations as fo,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+	import CHEWBBACA.global_constants as gct
+	from CHEWBBACA.utils import (
+		file_operations as fo,
+		iterables_manipulation as im,
+		multiprocessing_operations as mo)
 
 
 def compute_hamming(current_row, permutation_rows, total_loci, similarity):
@@ -466,7 +468,7 @@ def main(config):
 
 	# Mask matrix values
 	if config.no_mask is False:
-		output_masked = fo.join_paths(config.output_directory, [ct.MASKED_PROFILES_BASENAME])
+		output_masked = fo.join_paths(config.output_directory, [gct.ALLELIC_PROFILES_MASKED_BASENAME])
 		# Mask special classifications and remove 'INF-' prefixes
 		print('Masking profiles...')
 		masked_profiles = profiles.apply(im.replace_chars)

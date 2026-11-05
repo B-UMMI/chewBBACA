@@ -20,30 +20,17 @@ import os
 import json
 import pandas as pd
 
-try:
-	import global_constants as gct
-	import AlleleCallEvaluator.constants as ct
-	import ComputeMSA.constants as cct
-	from ComputeMSA import compute_msa
-	from ComputeCore import compute_core
-	from ComputeDistances import compute_distances
-	from utils import (
-		file_operations as fo,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		fasttree_wrapper as fw)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.AlleleCallEvaluator.constants as ct
-	import CHEWBBACA.ComputeMSA.constants as cct
-	from CHEWBBACA.ComputeMSA import compute_msa
-	from CHEWBBACA.ComputeCore import compute_core
-	from CHEWBBACA.ComputeDistances import compute_distances
-	from CHEWBBACA.utils import (
-		file_operations as fo,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		fasttree_wrapper as fw)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.AlleleCallEvaluator.constants as ct
+import CHEWBBACA.ComputeMSA.constants as cct
+from CHEWBBACA.ComputeMSA import compute_msa
+from CHEWBBACA.ComputeCore import compute_core
+from CHEWBBACA.ComputeDistances import compute_distances
+from CHEWBBACA.utils import (
+	file_operations as fo,
+	fasta_operations as fao,
+	iterables_manipulation as im,
+	fasttree_wrapper as fw)
 
 
 def compute_sample_stats(sample_ids, total_loci, coordinates_file, sample_counts):

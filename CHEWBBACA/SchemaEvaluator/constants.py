@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the SchemaEvaluator module.
 """
 
-# Name of the module
-SCHEMAEVALUATOR_MODULE_NAME = "SchemaEvaluator"
 
 # Parameter names
 SCHEMAEVALUATOR_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"

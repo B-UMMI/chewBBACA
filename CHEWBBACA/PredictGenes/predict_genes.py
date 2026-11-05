@@ -15,26 +15,15 @@ import csv
 
 import pandas as pd
 
-try:
-	import global_constants as gct
-	import PredictGenes.constants as ct
-	from utils import (file_operations as fo,
-					   fasta_operations as fao,
-					   assembly_statistics as ast,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo,
-					   pyrodigal_gene_prediction as pgp,
-					   augustus_gene_prediction as agp)
-except ModuleNotFoundError:
-	import CHEWBBACA.PredictGenes.constants as ct
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 fasta_operations as fao,
-								 assembly_statistics as ast,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo,
-								 pyrodigal_gene_prediction as pgp,
-								 augustus_gene_prediction as agp)
+import CHEWBBACA.PredictGenes.constants as ct
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.utils import (file_operations as fo,
+								fasta_operations as fao,
+								assembly_statistics as ast,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo,
+								pyrodigal_gene_prediction as pgp,
+								augustus_gene_prediction as agp)
 
 
 def exclude_records(input_file, input_id, records_ids, output_directory, delete_original=False):

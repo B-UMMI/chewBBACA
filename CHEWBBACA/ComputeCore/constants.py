@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the ComputeCore module.
 """
 
-# Name of the module
-COMPUTECORE_MODULE_NAME = "ComputeCore"
 
 # Parameter names
 COMPUTECORE_PROFILES_ARGNAME = "profiles"

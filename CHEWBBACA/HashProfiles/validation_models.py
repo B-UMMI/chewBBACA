@@ -19,14 +19,9 @@ from pydantic import (BaseModel,
 					  AfterValidator,
 					  model_validator)
 
-try:
-	import global_validation as gval
-	import HashProfiles.constants as ct
-	from utils import file_operations as fo
-except ModuleNotFoundError:
-	import CHEWBBACA.global_validation as gval
-	import CHEWBBACA.HashProfiles.constants as ct
-	from CHEWBBACA.utils import file_operations as fo
+import CHEWBBACA.global_validation as gval
+import CHEWBBACA.HashProfiles.constants as ct
+from CHEWBBACA.utils import file_operations as fo
 
 
 # Function used to validate the hashing algorithm specified by the user

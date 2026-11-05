@@ -18,11 +18,70 @@ import sys
 # Current chewie version
 __version__ = "4.0.0-beta"
 
+VERSION_TRIGGERS = ["-v", "--v", "-version", "--version"]
+
+HELP_TRIGGERS = ["-h", "--h", "-help", "--help"]
+
 # Authors, GitHub repository, documentation, tutorial and contacts
 AUTHORS = "Rafael Mamede, Pedro Cerqueira, Mickael Silva, João Carriço, Mário Ramirez"
 REPOSITORY = "https://github.com/B-UMMI/chewBBACA"
 DOCUMENTATION = "https://chewbbaca.readthedocs.io/en/latest/index.html"
 CONTACTS = "imm-bioinfo@medicina.ulisboa.pt"
+
+# Module names and brief descriptions
+ADAPTSCHEMA_MODULE_NAME = "AdaptSchema"
+ADAPTSCHEMA_MODULE_SHORT_DESCRIPTION = "Adapt schemas for use with chewBBACA."
+
+ALLELECALL_MODULE_NAME = "AlleleCall"
+ALLELECALL_MODULE_SHORT_DESCRIPTION = "Determine allelic profiles."
+
+ALLELECALLEVALUATOR_MODULE_NAME = "AlleleCallEvaluator"
+ALLELECALLEVALUATOR_MODULE_SHORT_DESCRIPTION = "Build an interactive report for allele calling evaluation."
+
+ANNOTATESCHEMA_MODULE_NAME = "AnnotateSchema"
+ANNOTATESCHEMA_MODULE_SHORT_DESCRIPTION = "Retrieve annotations for loci in a schema."
+
+DOWNLOADSCHEMA_MODULE_NAME = "DownloadShema"
+DOWNLOADSCHEMA_MODULE_SHORT_DESCRIPTION = "Download schemas from Chewie-NS."
+
+UPLOADSCHEMA_MODULE_NAME = "UploadShema"
+UPLOADSCHEMA_MODULE_SHORT_DESCRIPTION = "Upload schemas to Chewie-NS."
+
+SYNCSCHEMA_MODULE_NAME = "SyncShema"
+SYNCSCHEMA_MODULE_SHORT_DESCRIPTION = "Synchronize local schemas with the remote versions on Chewie-NS."
+
+NSSTATS_MODULE_NAME = "NSStats"
+NSSTATS_MODULE_SHORT_DESCRIPTION = "Retrieve basic species and schema information from Chewie-NS."
+
+COMPUTECORE_MODULE_NAME = "ComputeCore"
+COMPUTECORE_MODULE_SHORT_DESCRIPTION = "Determine the set of core loci based on allele calling results."
+
+COMPUTEDISTANCES_MODULE_NAME = "ComputeDistances"
+COMPUTEDISTANCES_MODULE_SHORT_DESCRIPTION = "Compute pairwise distances based on allele calling results."
+
+COMPUTEMSA_MODULE_NAME = "ComputeMSA"
+COMPUTEMSA_MODULE_SHORT_DESCRIPTION = "Compute Multiple Sequence Alignments."
+
+CREATESCHEMA_MODULE_NAME = "CreateSchema"
+CREATESCHEMA_MODULE_SHORT_DESCRIPTION = "Create a schema based on genome assemblies or coding sequences."
+
+GETALLELES_MODULE_NAME = "GetAlleles"
+GETALLELES_MODULE_SHORT_DESCRIPTION = "Get allele sequences."
+
+HASHPROFILES_MODULE_NAME = "HashProfiles"
+HASHPROFILES_MODULE_SHORT_DESCRIPTION = "Hash allelic profiles."
+
+MERGERESULTS_MODULE_NAME = "MergeResults"
+MERGERESULTS_MODULE_SHORT_DESCRIPTION = "Merge results files."
+
+PREDICTGENES_MODULE_NAME = "PredictGenes"
+PREDICTGENES_MODULE_SHORT_DESCRIPTION = "Predict genes for genome assemblies."
+
+SCHEMAEVALUATOR_MODULE_NAME = "SchemaEvaluator"
+SCHEMAEVALUATOR_MODULE_SHORT_DESCRIPTION = "Build an interactive report for schema evaluation."
+
+SUBSETRESULTS_MODULE_NAME = "SubsetResults"
+SUBSETRESULTS_MODULE_SHORT_DESCRIPTION = "Subset results files."
 
 # BLAST Score Ratio default values
 # Value must be contained in the [0.0, 1.0] interval

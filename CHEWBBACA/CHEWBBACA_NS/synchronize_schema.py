@@ -27,22 +27,13 @@ import requests
 from collections import defaultdict
 from urllib3.exceptions import InsecureRequestWarning
 
-try:
-    import global_constants as gct
-    import CHEWBBACA_NS.constants as ct
-    from AdaptSchema import adapt_schema
-    from utils import (file_operations as fo,
-                       fasta_operations as fao,
-                       chewiens_requests as cr,
-                       iterables_manipulation as im)
-except ModuleNotFoundError:
-    import CHEWBBACA.global_constants as gct
-    import CHEWBBACA.CHEWBBACA_NS.constants as ct
-    from CHEWBBACA.AdaptSchema import adapt_schema
-    from CHEWBBACA.utils import (file_operations as fo,
-                                 fasta_operations as fao,
-                                 chewiens_requests as cr,
-                                 iterables_manipulation as im)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.CHEWBBACA_NS.constants as ct
+from CHEWBBACA.AdaptSchema import adapt_schema
+from CHEWBBACA.utils import (file_operations as fo,
+                                fasta_operations as fao,
+                                chewiens_requests as cr,
+                                iterables_manipulation as im)
 
 
 # Suppress only the single warning from urllib3 needed.

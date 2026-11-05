@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the MergeResults module.
 """
 
-# Name of the module
-MERGERESULTS_MODULE_NAME = "MergeResults"
 
 # Parameter names
 MERGERESULTS_RESULTS_DIRECTORIES_ARGNAME = "results_directories"

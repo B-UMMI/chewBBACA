@@ -15,16 +15,10 @@ from pydantic import (BaseModel,
 					  ConfigDict,
 					  model_validator)
 
-try:
-	import global_constants as gct
-	import global_validation as gval
-	import PredictGenes.validation_models as pval
-	from utils import file_operations as fo
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.global_validation as gval
-	import CHEWBBACA.PredictGenes.validation_models as pval
-	from CHEWBBACA.utils import file_operations as fo
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.global_validation as gval
+import CHEWBBACA.PredictGenes.validation_models as pval
+from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields

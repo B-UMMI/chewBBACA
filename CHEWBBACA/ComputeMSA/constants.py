@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the ComputeMSA module.
 """
 
-# Name of the module
-COMPUTEMSA_MODULE_NAME = "ComputeMSA"
 
 # Parameter names
 COMPUTEMSA_INPUT_FILES_ARGNAME = "input_path"

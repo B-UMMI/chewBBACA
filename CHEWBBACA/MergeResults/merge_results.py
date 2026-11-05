@@ -17,14 +17,9 @@ from functools import reduce
 
 import pandas as pd
 
-try:
-	import global_constants as gct
-	from SubsetResults import subset_results
-	from utils import file_operations as fo
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.SubsetResults import subset_results
-	from CHEWBBACA.utils import file_operations as fo
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.SubsetResults import subset_results
+from CHEWBBACA.utils import file_operations as fo
 
 
 def main(config):

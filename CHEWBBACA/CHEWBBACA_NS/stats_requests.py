@@ -20,12 +20,8 @@ import sys
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 
-try:
-    import global_constants as gct
-    from utils import chewiens_requests as cr
-except ModuleNotFoundError:
-    import CHEWBBACA.global_constants as gct
-    from CHEWBBACA.utils import chewiens_requests as cr
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.utils import chewiens_requests as cr
 
 
 # Suppress only the single warning from urllib3 needed.

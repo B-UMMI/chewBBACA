@@ -19,16 +19,10 @@ from pydantic import (BaseModel,
 					  AfterValidator,
 					  model_validator)
 
-try:
-	import global_constants as gct
-	import global_validation as gval
-	import MergeResults.constants as ct
-	from utils import file_operations as fo
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.global_validation as gval
-	import CHEWBBACA.MergeResults.constants as ct
-	from CHEWBBACA.utils import file_operations as fo
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.global_validation as gval
+import CHEWBBACA.MergeResults.constants as ct
+from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields

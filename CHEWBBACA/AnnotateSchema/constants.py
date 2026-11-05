@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the AnnotateSchema module.
 """
 
-# Name of the module
-ANNOTATESCHEMA_MODULE_NAME = "AnnotateSchema"
 
 # Parameter names
 ANNOTATESCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"

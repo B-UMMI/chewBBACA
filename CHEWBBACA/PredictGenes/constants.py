@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the PredictGenes module.
 """
 
-# Name of the module
-PREDICTGENES_MODULE_NAME = "PredictGenes"
 
 # Parameter names
 PREDICTGENES_INPUT_FILES_ARGNAME = "input_files"

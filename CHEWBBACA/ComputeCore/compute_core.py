@@ -23,18 +23,10 @@ from plotly.offline import plot
 import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 
-try:
-	import global_constants as gct
-	import ComputeCore.constants as ct
-	from utils import (file_operations as fo,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.ComputeCore.constants as ct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+import CHEWBBACA.ComputeCore.constants as ct
+from CHEWBBACA.utils import (file_operations as fo,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def binarize_matrix(column):

@@ -29,22 +29,13 @@ import concurrent.futures
 from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
 
-try:
-    import global_constants as gct
-    import CHEWBBACA_NS.constants as ct
-    from AdaptSchema import adapt_schema
-    from utils import (
-        file_operations as fo,
-        process_datetime as pd,
-        chewiens_requests as cr)
-except ModuleNotFoundError:
-    import CHEWBBACA.global_constants as gct
-    import CHEWBBACA.CHEWBBACA_NS.constants as ct
-    from CHEWBBACA.AdaptSchema import adapt_schema
-    from CHEWBBACA.utils import (
-        file_operations as fo,
-        process_datetime as pd,
-        chewiens_requests as cr)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.CHEWBBACA_NS.constants as ct
+from CHEWBBACA.AdaptSchema import adapt_schema
+from CHEWBBACA.utils import (
+    file_operations as fo,
+    process_datetime as pd,
+    chewiens_requests as cr)
 
 
 # Suppress only the single warning from urllib3 needed.

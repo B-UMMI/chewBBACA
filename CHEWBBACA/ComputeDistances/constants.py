@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the PredictGenes module.
 """
 
-# Name of the module
-COMPUTEDISTANCES_MODULE_NAME = "ComputeDistances"
 
 # Parameter names
 COMPUTEDISTANCES_ALLELIC_PROFILES_ARGNAME = "allelic_profiles"

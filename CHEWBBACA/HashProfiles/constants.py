@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the HashProfiles module.
 """
 
-# Name of the module
-HASHPROFILES_MODULE_NAME = "HashProfiles"
 
 # Parameter names
 HASHPROFILES_ALLELIC_PROFILES_ARGNAME = "allelic_profiles"

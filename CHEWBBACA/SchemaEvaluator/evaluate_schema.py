@@ -23,26 +23,15 @@ import shutil
 import statistics
 from collections import Counter
 
-try:
-	import global_constants as gct
-	from ComputeMSA import compute_msa
-	import SchemaEvaluator.constants as ct
-	from utils import (
-		file_operations as fo,
-		fasta_operations as fao,
-		sequence_manipulation as sm,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.ComputeMSA import compute_msa
-	import CHEWBBACA.SchemaEvaluator.constants as ct
-	from CHEWBBACA.utils import (
-		file_operations as fo,
-		fasta_operations as fao,
-		sequence_manipulation as sm,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.ComputeMSA import compute_msa
+import CHEWBBACA.SchemaEvaluator.constants as ct
+from CHEWBBACA.utils import (
+	file_operations as fo,
+	fasta_operations as fao,
+	sequence_manipulation as sm,
+	iterables_manipulation as im,
+	multiprocessing_operations as mo)
 
 
 def compute_quartiles(values):

@@ -20,20 +20,12 @@ from pydantic import (BaseModel,
 					  AfterValidator,
 					  model_validator)
 
-try:
-	import global_constants as gct
-	import global_validation as gval
-	import CHEWBBACA_NS.constants as ct
-	from utils import file_operations as fo
-	from utils import chewiens_requests as cr
-	from utils.process_datetime import validate_date
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.global_validation as gval
-	import CHEWBBACA.CHEWBBACA_NS.constants as ct
-	from CHEWBBACA.utils import file_operations as fo
-	from CHEWBBACA.utils import chewiens_requests as cr
-	from CHEWBBACA.utils.process_datetime import validate_date
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.global_validation as gval
+import CHEWBBACA.CHEWBBACA_NS.constants as ct
+from CHEWBBACA.utils import file_operations as fo
+from CHEWBBACA.utils import chewiens_requests as cr
+from CHEWBBACA.utils.process_datetime import validate_date
 
 
 # Annotated Fields

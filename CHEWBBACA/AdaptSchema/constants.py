@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the AdaptSchema module.
 """
 
-# Name of the module
-ADAPTSCHEMA_MODULE_NAME = "AdaptSchema"
 
 # Parameter names
 ADAPTSCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"

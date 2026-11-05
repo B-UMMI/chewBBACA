@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the AlleleCallEvaluator module.
 """
 
-# Name of the module
-ALLELECALLEVALUATOR_MODULE_NAME = "AlleleCallEvaluator"
 
 # Parameter names
 ALLELECALLEVALUATOR_RESULTS_FILES_ARGNAME = "results_files"

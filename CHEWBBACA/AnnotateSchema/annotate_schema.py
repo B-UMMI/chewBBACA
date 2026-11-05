@@ -18,28 +18,16 @@ Code documentation
 
 import os
 
-try:
-	import global_constants as gct
-	import AnnotateSchema.constants as ct
-	from utils import (
-		blast_wrapper as bw,
-		core_functions as cf,
-		file_operations as fo,
-		uniprot_requests as ur,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.AnnotateSchema.constants as ct
-	from CHEWBBACA.utils import (
-		blast_wrapper as bw,
-		core_functions as cf,
-		file_operations as fo,
-		uniprot_requests as ur,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.AnnotateSchema.constants as ct
+from CHEWBBACA.utils import (
+	blast_wrapper as bw,
+	core_functions as cf,
+	file_operations as fo,
+	uniprot_requests as ur,
+	fasta_operations as fao,
+	iterables_manipulation as im,
+	multiprocessing_operations as mo)
 
 
 def extract_annotations(blastout_files, indexed_proteome, self_scores,

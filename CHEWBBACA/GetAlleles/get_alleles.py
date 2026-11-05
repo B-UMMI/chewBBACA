@@ -12,18 +12,11 @@ Code documentation
 
 import pandas as pd
 
-try:
-	import GetAlleles.constants as ct
-	from utils import (file_operations as fo,
-					   fasta_operations as fao,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.GetAlleles.constants as ct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 fasta_operations as fao,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+import CHEWBBACA.GetAlleles.constants as ct
+from CHEWBBACA.utils import (file_operations as fo,
+								fasta_operations as fao,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def get_locus_alleles(locus_id, allele_ids, locus_file, output_directory):

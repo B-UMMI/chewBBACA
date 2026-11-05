@@ -20,18 +20,11 @@ import random
 import numpy as np
 import pandas as pd
 
-try:
-	import global_constants as gct
-	from utils import (
-		file_operations as fo,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.utils import (
-		file_operations as fo,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.utils import (
+	file_operations as fo,
+	iterables_manipulation as im,
+	multiprocessing_operations as mo)
 
 
 def compute_hamming(current_row, permutation_rows, total_loci, similarity):

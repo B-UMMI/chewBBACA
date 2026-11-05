@@ -16,16 +16,10 @@ import sys
 
 import pandas as pd
 
-try:
-	import SubsetResults.constants as ct
-	import global_constants as gct
-	from utils import (file_operations as fo,
-					   fasta_operations as fao)
-except ModuleNotFoundError:
-	import CHEWBBACA.SubsetResults.constants as ct
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 fasta_operations as fao)
+import CHEWBBACA.SubsetResults.constants as ct
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.utils import (file_operations as fo,
+								fasta_operations as fao)
 
 
 def main(config):

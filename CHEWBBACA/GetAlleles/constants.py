@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the GetAlleles module.
 """
 
-# Name of the module
-GETALLELES_MODULE_NAME = "GetAlleles"
 
 # Parameter names
 GETALLELES_ALLELIC_PROFILES_ARGNAME = "allelic_profiles"

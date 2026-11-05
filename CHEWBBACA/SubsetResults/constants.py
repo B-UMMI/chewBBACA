@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the SubsetResults module.
 """
 
-# Name of the module
-SUBSETRESULTS_MODULE_NAME = "SubsetResults"
 
 # Parameter names
 SUBSETRESULTS_RESULTS_FILES_ARGNAME = "results_files"

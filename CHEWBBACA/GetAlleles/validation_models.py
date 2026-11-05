@@ -11,14 +11,10 @@ This file includes the Pydantic classes used to valdiate the argument values pas
 import sys
 from pydantic import (BaseModel, ConfigDict, model_validator)
 
-try:
-	import global_constants as gct
-	import global_validation as gval
-	from utils import file_operations as fo
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.global_validation as gval
-	from CHEWBBACA.utils import file_operations as fo
+
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.global_validation as gval
+from CHEWBBACA.utils import file_operations as fo
 
 
 # Main validation class

@@ -12,14 +12,9 @@ arguments provided through the command line and calls the specified module.
 import sys
 import argparse
 
-try:
-	import global_constants as gct
-	import global_validation as gval
-	from utils.process_datetime import process_timer
-except ModuleNotFoundError:
-	from CHEWBBACA import global_constants as gct
-	from CHEWBBACA import global_validation as gval
-	from CHEWBBACA.utils.process_datetime import process_timer
+from CHEWBBACA import global_constants as gct
+from CHEWBBACA import global_validation as gval
+from CHEWBBACA.utils.process_datetime import process_timer
 
 
 class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -49,27 +44,21 @@ class ModifiedHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 def run_predict_genes():
 	"""Run the PredictGenes module to predict genes from a set of input genome assemblies."""
 
-	try:
-		from PredictGenes import constants as ct
-		from PredictGenes import validation_models as vm
-		from PredictGenes import predict_genes
-	except ModuleNotFoundError:
-		from CHEWBBACA.PredictGenes import constants as ct
-		from CHEWBBACA.PredictGenes import validation_models as vm
-		from CHEWBBACA.PredictGenes import predict_genes
+	# For development without installing run "python -m CHEWBBACA.chewBBACA PredictGenes -h" from the top directory
+	from CHEWBBACA.PredictGenes import constants as ct
+	from CHEWBBACA.PredictGenes import validation_models as vm
+	from CHEWBBACA.PredictGenes import predict_genes
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py PredictGenes --input-files <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="PredictGenes",
+	parser = argparse.ArgumentParser(prog=gct.PREDICTGENES_MODULE_NAME,
 									 description="Predict genes from a set of input genome assemblies.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.PREDICTGENES_MODULE_NAME)}")
-
-	parser.add_argument('PredictGenes', nargs='+', help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.PREDICTGENES_MODULE_NAME)}")
 
 	parser.add_argument("-i", "--input-files", type=ct.PREDICTGENES_ARGUMENT_TYPES[ct.PREDICTGENES_INPUT_FILES_ARGNAME],
 						required=False, dest=ct.PREDICTGENES_INPUT_FILES_ARGNAME,
@@ -123,28 +112,21 @@ def run_predict_genes():
 def run_create_schema():
 	"""Run the CreateSchema module to create a schema seed."""
 
-	try:
-		from CreateSchema import constants as ct
-		from CreateSchema import validation_models as vm
-		from CreateSchema import create_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.CreateSchema import constants as ct
-		from CHEWBBACA.CreateSchema import validation_models as vm
-		from CHEWBBACA.CreateSchema import create_schema
+	from CHEWBBACA.CreateSchema import constants as ct
+	from CHEWBBACA.CreateSchema import validation_models as vm
+	from CHEWBBACA.CreateSchema import create_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py CreateSchema --input-files <path> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="CreateSchema",
+	parser = argparse.ArgumentParser(prog=gct.CREATESCHEMA_MODULE_NAME,
 									 description="Create a schema seed.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog="It is strongly advised to provide a training file to create a schema. "
-											f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.CREATESCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("CreateSchema", nargs="+", help=argparse.SUPPRESS)
+											f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.CREATESCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-i", "--input-files", type=ct.CREATESCHEMA_ARGUMENT_TYPES[ct.CREATESCHEMA_INPUT_FILES_ARGNAME],
 						required=True, dest=ct.CREATESCHEMA_INPUT_FILES_ARGNAME,
@@ -252,29 +234,22 @@ def run_create_schema():
 def run_allele_call():
 	"""Run the AlleleCall module to perform allele calling."""
 
-	try:
-		from AlleleCall import constants as ct
-		from AlleleCall import validation_models as vm
-		from AlleleCall import allele_call
-	except ModuleNotFoundError:
-		from CHEWBBACA.AlleleCall import constants as ct
-		from CHEWBBACA.AlleleCall import validation_models as vm
-		from CHEWBBACA.AlleleCall import allele_call
+	from CHEWBBACA.AlleleCall import constants as ct
+	from CHEWBBACA.AlleleCall import validation_models as vm
+	from CHEWBBACA.AlleleCall import allele_call
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py AlleleCall --input-files <path> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="AlleleCall",
+	parser = argparse.ArgumentParser(prog=gct.ALLELECALL_MODULE_NAME,
 									 description="Determine the allelic profiles of a set of genomes.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog="It is strongly advised to perform allele calling with the schema's "
 									 		"parameters to ensure the consistency of the results. "
-											f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.ALLELECALL_MODULE_NAME)}")
-
-	parser.add_argument("AlleleCall", nargs="+", help=argparse.SUPPRESS)
+											f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.ALLELECALL_MODULE_NAME)}")
 
 	parser.add_argument("-i", "--input-files", type=ct.ALLELECALL_ARGUMENT_TYPES[ct.ALLELECALL_INPUT_FILES_ARGNAME],
 						required=True, dest=ct.ALLELECALL_INPUT_FILES_ARGNAME,
@@ -436,28 +411,21 @@ def run_allele_call():
 def run_evaluate_schema():
 	"""Run the SchemaEvaluator module to evaluate a typing schema."""
 
-	try:
-		from SchemaEvaluator import constants as ct
-		from SchemaEvaluator import validation_models as vm
-		from SchemaEvaluator import evaluate_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.SchemaEvaluator import constants as ct
-		from CHEWBBACA.SchemaEvaluator import validation_models as vm
-		from CHEWBBACA.SchemaEvaluator import evaluate_schema
+	from CHEWBBACA.SchemaEvaluator import constants as ct
+	from CHEWBBACA.SchemaEvaluator import validation_models as vm
+	from CHEWBBACA.SchemaEvaluator import evaluate_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py SchemaEvaluator --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="SchemaEvaluator",
+	parser = argparse.ArgumentParser(prog=gct.SCHEMAEVALUATOR_MODULE_NAME,
 									 description="Build an interactive report for schema evaluation.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
 									 epilog="The module can evaluate schemas created with chewBBACA or from external platforms. "
-									 		f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.SCHEMAEVALUATOR_MODULE_NAME)}")
-
-	parser.add_argument("SchemaEvaluator", nargs="+", help=argparse.SUPPRESS)
+									 		f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.SCHEMAEVALUATOR_MODULE_NAME)}")
 
 	parser.add_argument("-s", "--schema-directory", type=ct.SCHEMAEVALUATOR_ARGUMENT_TYPES[ct.SCHEMAEVALUATOR_SCHEMA_DIRECTORY_ARGNAME],
 					 	required=True, dest=ct.SCHEMAEVALUATOR_SCHEMA_DIRECTORY_ARGNAME,
@@ -530,27 +498,20 @@ def run_evaluate_schema():
 def run_evaluate_calls():
 	"""Run the AlleleCallEvaluator module to evaluate allele calling results."""
 
-	try:
-		from AlleleCallEvaluator import constants as ct
-		from AlleleCallEvaluator import validation_models as vm
-		from AlleleCallEvaluator import evaluate_calls
-	except ModuleNotFoundError:
-		from CHEWBBACA.AlleleCallEvaluator import constants as ct
-		from CHEWBBACA.AlleleCallEvaluator import validation_models as vm
-		from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
+	from CHEWBBACA.AlleleCallEvaluator import constants as ct
+	from CHEWBBACA.AlleleCallEvaluator import validation_models as vm
+	from CHEWBBACA.AlleleCallEvaluator import evaluate_calls
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py AlleleCallEvaluator --input-files <dir> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="AlleleCallEvaluator",
+	parser = argparse.ArgumentParser(prog=gct.ALLELECALLEVALUATOR_MODULE_NAME,
 									 description="Build an interactive report for allele calling results evaluation.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.ALLELECALLEVALUATOR_MODULE_NAME)}")
-
-	parser.add_argument("AlleleCallEvaluator", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.ALLELECALLEVALUATOR_MODULE_NAME)}")
 
 	parser.add_argument("-r", "--results-files", type=ct.ALLELECALLEVALUATOR_ARGUMENT_TYPES[ct.ALLELECALLEVALUATOR_RESULTS_FILES_ARGNAME],
 					 	required=True, dest=ct.ALLELECALLEVALUATOR_RESULTS_FILES_ARGNAME,
@@ -611,27 +572,20 @@ def run_evaluate_calls():
 def run_compute_core():
 	"""Run the ComputeCore module to determine the set of core loci based on allele calling results."""
 
-	try:
-		from ComputeCore import constants as ct
-		from ComputeCore import validation_models as vm
-		from ComputeCore import compute_core
-	except ModuleNotFoundError:
-		from CHEWBBACA.ComputeCore import constants as ct
-		from CHEWBBACA.ComputeCore import validation_models as vm
-		from CHEWBBACA.ComputeCore import compute_core
+	from CHEWBBACA.ComputeCore import constants as ct
+	from CHEWBBACA.ComputeCore import validation_models as vm
+	from CHEWBBACA.ComputeCore import compute_core
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py ComputeCore --input-file <file> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="ComputeCore",
+	parser = argparse.ArgumentParser(prog=gct.COMPUTECORE_MODULE_NAME,
 									 description="Determine the set of core loci based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.COMPUTECORE_MODULE_NAME)}")
-
-	parser.add_argument("ComputeCore", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.COMPUTECORE_MODULE_NAME)}")
 
 	parser.add_argument("-p", "--profiles", type=ct.COMPUTECORE_ARGUMENT_TYPES[ct.COMPUTECORE_PROFILES_ARGNAME],
 						required=True, dest=ct.COMPUTECORE_PROFILES_ARGNAME,
@@ -712,27 +666,20 @@ def run_compute_core():
 def run_subset_results():
 	"""Run the SubsetResults module to subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers."""
 
-	try:
-		from SubsetResults import constants as ct
-		from SubsetResults import validation_models as vm
-		from SubsetResults import subset_results
-	except ModuleNotFoundError:
-		from CHEWBBACA.SubsetResults import constants as ct
-		from CHEWBBACA.SubsetResults import validation_models as vm
-		from CHEWBBACA.SubsetResults import subset_results
+	from CHEWBBACA.SubsetResults import constants as ct
+	from CHEWBBACA.SubsetResults import validation_models as vm
+	from CHEWBBACA.SubsetResults import subset_results
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py SubsetResults --input-file <file> --loci-list <file> --samples-list <file> --output-file <file> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="SubsetResults",
+	parser = argparse.ArgumentParser(prog=gct.SUBSETRESULTS_MODULE_NAME,
 									 description="Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.SUBSETRESULTS_MODULE_NAME)}")
-
-	parser.add_argument("SubsetResults", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.SUBSETRESULTS_MODULE_NAME)}")
 
 	parser.add_argument("-r", "--results-files", type=ct.SUBSETRESULTS_ARGUMENT_TYPES[ct.SUBSETRESULTS_RESULTS_FILES_ARGNAME],
 						required=True, dest=ct.SUBSETRESULTS_RESULTS_FILES_ARGNAME,
@@ -775,27 +722,20 @@ def run_subset_results():
 def run_merge_results():
 	"""Run the MergeResults module to merge results files created by chewBBACA."""
 
-	try:
-		from MergeResults import constants as ct
-		from MergeResults import validation_models as vm
-		from MergeResults import merge_results
-	except ModuleNotFoundError:
-		from CHEWBBACA.MergeResults import constants as ct
-		from CHEWBBACA.MergeResults import validation_models as vm
-		from CHEWBBACA.MergeResults import merge_results
+	from CHEWBBACA.MergeResults import constants as ct
+	from CHEWBBACA.MergeResults import validation_models as vm
+	from CHEWBBACA.MergeResults import merge_results
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py MergeResults --results-directories <dir> <dir> ... --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="MergeResults",
+	parser = argparse.ArgumentParser(prog=gct.MERGERESULTS_MODULE_NAME,
 									 description="Merge results files created by chewBBACA.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.MERGERESULTS_MODULE_NAME)}")
-
-	parser.add_argument("MergeResults", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.MERGERESULTS_MODULE_NAME)}")
 
 	parser.add_argument("-r", "--results-directories", nargs="+", type=ct.MERGERESULTS_ARGUMENT_TYPES[ct.MERGERESULTS_RESULTS_DIRECTORIES_ARGNAME],
 						required=True, dest=ct.MERGERESULTS_RESULTS_DIRECTORIES_ARGNAME,
@@ -824,27 +764,20 @@ def run_merge_results():
 def run_hash_profiles():
 	"""Run the HashProfiles module to hash allelic profiles."""
 
-	try:
-		from HashProfiles import constants as ct
-		from HashProfiles import validation_models as vm
-		from HashProfiles import hash_profiles
-	except ModuleNotFoundError:
-		from CHEWBBACA.HashProfiles import constants as ct
-		from CHEWBBACA.HashProfiles import validation_models as vm
-		from CHEWBBACA.HashProfiles import hash_profiles
+	from CHEWBBACA.HashProfiles import constants as ct
+	from CHEWBBACA.HashProfiles import validation_models as vm
+	from CHEWBBACA.HashProfiles import hash_profiles
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py HashProfiles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="HashProfiles",
+	parser = argparse.ArgumentParser(prog=gct.HASHPROFILES_MODULE_NAME,
 									 description="Hash allelic profiles.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.HASHPROFILES_MODULE_NAME)}")
-
-	parser.add_argument("HashProfiles", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.HASHPROFILES_MODULE_NAME)}")
 
 	parser.add_argument("-a", "--allelic-profiles", type=ct.HASHPROFILES_ARGUMENT_TYPES[ct.HASHPROFILES_ALLELIC_PROFILES_ARGNAME],
 						required=True, dest=ct.HASHPROFILES_ALLELIC_PROFILES_ARGNAME,
@@ -888,27 +821,20 @@ def run_hash_profiles():
 def run_get_alleles():
 	"""Run the GetAlleles module to create FASTA files containing the alleles identified by the AlleleCall module."""
 
-	try:
-		from GetAlleles import constants as ct
-		from GetAlleles import validation_models as vm
-		from GetAlleles import get_alleles
-	except ModuleNotFoundError:
-		from CHEWBBACA.GetAlleles import constants as ct
-		from CHEWBBACA.GetAlleles import validation_models as vm
-		from CHEWBBACA.GetAlleles import get_alleles
+	from CHEWBBACA.GetAlleles import constants as ct
+	from CHEWBBACA.GetAlleles import validation_models as vm
+	from CHEWBBACA.GetAlleles import get_alleles
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py GetAlleles --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="GetAlleles",
+	parser = argparse.ArgumentParser(prog=gct.GETALLELES_MODULE_NAME,
 									 description="Create FASTA files containing the alleles identified by the AlleleCall module.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.GETALLELES_MODULE_NAME)}")
-
-	parser.add_argument("GetAlleles", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.GETALLELES_MODULE_NAME)}")
 
 	parser.add_argument("-a", "--allelic-profiles", type=ct.GETALLELES_ARGUMENT_TYPES[ct.GETALLELES_ALLELIC_PROFILES_ARGNAME],
 						required=True, dest=ct.GETALLELES_ALLELIC_PROFILES_ARGNAME,
@@ -962,27 +888,20 @@ def run_get_alleles():
 def run_adapt_schema():
 	"""Run the AdaptSchema module to adapt a typing schema."""
 
-	try:
-		from AdaptSchema import constants as ct
-		from AdaptSchema import validation_models as vm
-		from AdaptSchema import adapt_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.AdaptSchema import constants as ct
-		from CHEWBBACA.AdaptSchema import validation_models as vm
-		from CHEWBBACA.AdaptSchema import adapt_schema
+	from CHEWBBACA.AdaptSchema import constants as ct
+	from CHEWBBACA.AdaptSchema import validation_models as vm
+	from CHEWBBACA.AdaptSchema import adapt_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py AdaptSchema --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="AdaptSchema",
+	parser = argparse.ArgumentParser(prog=gct.ADAPTSCHEMA_MODULE_NAME,
 									 description="Adapt an external schema to be used with chewBBACA.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.ADAPTSCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("AdaptSchema", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.ADAPTSCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-s", "--schema-directory", type=ct.ADAPTSCHEMA_ARGUMENT_TYPES[ct.ADAPTSCHEMA_SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.ADAPTSCHEMA_SCHEMA_DIRECTORY_ARGNAME,
@@ -1072,27 +991,20 @@ def run_adapt_schema():
 def run_annotate_schema():
 	"""Run the AnnotateSchema module to annotate loci in a schema."""
 
-	try:
-		from AnnotateSchema import constants as ct
-		from AnnotateSchema import validation_models as vm
-		from AnnotateSchema import annotate_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.AnnotateSchema import constants as ct
-		from CHEWBBACA.AnnotateSchema import validation_models as vm
-		from CHEWBBACA.AnnotateSchema import annotate_schema
+	from CHEWBBACA.AnnotateSchema import constants as ct
+	from CHEWBBACA.AnnotateSchema import validation_models as vm
+	from CHEWBBACA.AnnotateSchema import annotate_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py AnnotateSchema --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="AnnotateSchema",
+	parser = argparse.ArgumentParser(prog=gct.ANNOTATESCHEMA_MODULE_NAME,
 									 description="Retrieve annotations for loci in a schema.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.ANNOTATESCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("AnnotateSchema", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.ANNOTATESCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-s", "--schema-directory", type=ct.ANNOTATESCHEMA_ARGUMENT_TYPES[ct.ANNOTATESCHEMA_SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.ANNOTATESCHEMA_SCHEMA_DIRECTORY_ARGNAME,
@@ -1175,27 +1087,20 @@ def run_annotate_schema():
 def run_compute_distances():
 	"""Run the ComputeDistances module to compute pairwise distances based on allele calling results."""
 
-	try:
-		from ComputeDistances import constants as ct
-		from ComputeDistances import validation_models as vm
-		from ComputeDistances import compute_distances
-	except ModuleNotFoundError:
-		from CHEWBBACA.ComputeDistances import constants as ct
-		from CHEWBBACA.ComputeDistances import validation_models as vm
-		from CHEWBBACA.ComputeDistances import compute_distances
+	from CHEWBBACA.ComputeDistances import constants as ct
+	from CHEWBBACA.ComputeDistances import validation_models as vm
+	from CHEWBBACA.ComputeDistances import compute_distances
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py ComputeDistances --input-file <file> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="ComputeDistances",
+	parser = argparse.ArgumentParser(prog=gct.COMPUTEDISTANCES_MODULE_NAME,
 									 description="Compute pairwise distances based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.COMPUTEDISTANCES_MODULE_NAME)}")
-
-	parser.add_argument("ComputeDistances", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.COMPUTEDISTANCES_MODULE_NAME)}")
 
 	parser.add_argument("-a", "--allelic-profiles", type=ct.COMPUTEDISTANCES_ARGUMENT_TYPES[ct.COMPUTEDISTANCES_ALLELIC_PROFILES_ARGNAME],
 						required=True, dest=ct.COMPUTEDISTANCES_ALLELIC_PROFILES_ARGNAME,
@@ -1247,27 +1152,20 @@ def run_compute_distances():
 def run_compute_msa():
 	"""Run the ComputeMSA module to compute a Multiple Sequence Alignment based on allele calling results."""
 
-	try:
-		from ComputeMSA import constants as ct
-		from ComputeMSA import validation_models as vm
-		from ComputeMSA import compute_msa
-	except ModuleNotFoundError:
-		from CHEWBBACA.ComputeMSA import constants as ct
-		from CHEWBBACA.ComputeMSA import validation_models as vm
-		from CHEWBBACA.ComputeMSA import compute_msa
+	from CHEWBBACA.ComputeMSA import constants as ct
+	from CHEWBBACA.ComputeMSA import validation_models as vm
+	from CHEWBBACA.ComputeMSA import compute_msa
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py ComputeMSA --input-file <file> --schema-directory <dir> --output-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="ComputeMSA",
+	parser = argparse.ArgumentParser(prog=gct.COMPUTEMSA_MODULE_NAME,
 									 description="Compute a Multiple Sequence Alignment based on allele calling results.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.COMPUTEMSA_MODULE_NAME)}")
-
-	parser.add_argument("ComputeMSA", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.COMPUTEMSA_MODULE_NAME)}")
 
 	parser.add_argument("-i", "--input-path", type=ct.COMPUTEMSA_ARGUMENT_TYPES[ct.COMPUTEMSA_INPUT_FILES_ARGNAME],
 						required=True, dest=ct.COMPUTEMSA_INPUT_FILES_ARGNAME,
@@ -1370,27 +1268,20 @@ def run_compute_msa():
 def run_download_schema():
 	"""Run the DownloadSchema module to download a schema from Chewie-NS."""
 
-	try:
-		from CHEWBBACA_NS import constants as ct
-		from CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA_NS import download_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.CHEWBBACA_NS import constants as ct
-		from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA.CHEWBBACA_NS import download_schema
+	from CHEWBBACA.CHEWBBACA_NS import constants as ct
+	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
+	from CHEWBBACA.CHEWBBACA_NS import download_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py DownloadSchema --species-id <id> --schema-id <id> --download-folder <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="DownloadSchema",
+	parser = argparse.ArgumentParser(prog=gct.DOWNLOADSCHEMA_MODULE_NAME,
 									 description="Download a schema from Chewie-NS.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.DOWNLOADSCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("DownloadSchema", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.DOWNLOADSCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-o", "--output-directory", type=ct.DOWNLOADSCHEMA_ARGUMENT_TYPES[ct.DOWNLOADSCHEMA_OUTPUT_DIRECTORY_ARGNAME],
 						required=True, dest=ct.DOWNLOADSCHEMA_OUTPUT_DIRECTORY_ARGNAME,
@@ -1447,27 +1338,20 @@ def run_download_schema():
 def run_upload_schema():
 	"""Run the UploadSchema module to upload a schema to Chewie-NS."""
 
-	try:
-		from CHEWBBACA_NS import constants as ct
-		from CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA_NS import upload_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.CHEWBBACA_NS import constants as ct
-		from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA.CHEWBBACA_NS import upload_schema
+	from CHEWBBACA.CHEWBBACA_NS import constants as ct
+	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
+	from CHEWBBACA.CHEWBBACA_NS import upload_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py UploadSchema --schema-directory <dir> --species-id <id> --schema-name <name> --loci-prefix <prefix> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="UploadSchema",
+	parser = argparse.ArgumentParser(prog=gct.UPLOADSCHEMA_MODULE_NAME,
 									 description="Upload a schema to Chewie-NS.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.UPLOADSCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("UploadSchema", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.UPLOADSCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-s", "--schema-directory", type=ct.UPLOADSCHEMA_ARGUMENT_TYPES[ct.UPLOADSCHEMA_SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.UPLOADSCHEMA_SCHEMA_DIRECTORY_ARGNAME,
@@ -1532,27 +1416,20 @@ def run_upload_schema():
 def run_synchronize_schema():
 	"""Run the SyncSchema module to synchronize a local schema with the remote version in Chewie-NS."""
 
-	try:
-		from CHEWBBACA_NS import constants as ct
-		from CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA_NS import synchronize_schema
-	except ModuleNotFoundError:
-		from CHEWBBACA.CHEWBBACA_NS import constants as ct
-		from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA.CHEWBBACA_NS import synchronize_schema
+	from CHEWBBACA.CHEWBBACA_NS import constants as ct
+	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
+	from CHEWBBACA.CHEWBBACA_NS import synchronize_schema
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py SyncSchema --schema-directory <dir> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="SyncSchema",
+	parser = argparse.ArgumentParser(prog=gct.SYNCSCHEMA_MODULE_NAME,
 									 description="Synchronize a schema with its remote version in Chewie-NS.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.SYNCSCHEMA_MODULE_NAME)}")
-
-	parser.add_argument("SyncSchema", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.SYNCSCHEMA_MODULE_NAME)}")
 
 	parser.add_argument("-s", "--schema-directory", type=ct.SYNCSCHEMA_ARGUMENT_TYPES[ct.SYNCSCHEMA_SCHEMA_DIRECTORY_ARGNAME],
 						required=True, dest=ct.SYNCSCHEMA_SCHEMA_DIRECTORY_ARGNAME,
@@ -1597,27 +1474,20 @@ def run_synchronize_schema():
 def run_stats_requests():
 	"""Run the NSStats module to get information about schemas in Chewie-NS."""
 
-	try:
-		from CHEWBBACA_NS import constants as ct
-		from CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA_NS import stats_requests
-	except ModuleNotFoundError:
-		from CHEWBBACA.CHEWBBACA_NS import constants as ct
-		from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
-		from CHEWBBACA.CHEWBBACA_NS import stats_requests
+	from CHEWBBACA.CHEWBBACA_NS import constants as ct
+	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
+	from CHEWBBACA.CHEWBBACA_NS import stats_requests
 
 	def msg(name=None):
 		usage_msg = "chewBBACA.py NSStats --mode <mode> [options]"
 
 		return usage_msg
 
-	parser = argparse.ArgumentParser(prog="NSStats",
+	parser = argparse.ArgumentParser(prog=gct.NSSTATS_MODULE_NAME,
 									 description="Retrieve basic information about the species and schemas in Chewie-NS.",
 									 usage=msg(),
 									 formatter_class=ModifiedHelpFormatter,
-									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(ct.NSSTATS_MODULE_NAME)}")
-
-	parser.add_argument("NSStats", nargs="+", help=argparse.SUPPRESS)
+									 epilog=f"Module documentation available at {gct.DOCS_URL_TEMPLATE.format(gct.NSSTATS_MODULE_NAME)}")
 
 	parser.add_argument("--sm", "--stats-mode", type=ct.NSSTATS_ARGUMENT_TYPES[ct.NSSTATS_STATS_MODE_ARGNAME],
 						required=True, dest=ct.NSSTATS_STATS_MODE_ARGNAME,
@@ -1650,60 +1520,40 @@ def run_stats_requests():
 
 def main():
 
-	functions_info = {'PredictGenes': ['Predict genes from a set of input genome assemblies.',
-									  run_predict_genes],
-					  'CreateSchema': ["Create a gene-by-gene schema based on a set of FASTA files with genome assemblies or coding sequences.",
-									   run_create_schema],
-					  'AlleleCall': ['Determine the allelic profiles of a set of bacterial genomes based on a schema.',
-									 run_allele_call],
-					  'SchemaEvaluator': ['Build an interactive report for schema evaluation.',
-										  run_evaluate_schema],
-					  'AlleleCallEvaluator': ['Build an interactive report for allele calling results evaluation.',
-											  run_evaluate_calls],
-					  'ComputeCore': ['Determines the set of loci that constitute the core genome based on loci presence thresholds.',
-										run_compute_core],
-					  'SubsetResults': ['Subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers.',
-										run_subset_results],
-					  'AdaptSchema': ['Adapt an external schema to be used with chewBBACA.',
-											 run_adapt_schema],
-					  'MergeResults': ['Merge results files created by chewBBACA.',
-									   run_merge_results],
-					  'HashProfiles': ['Hash allelic profiles.',
-					  					run_hash_profiles],
-					  'GetAlleles': ['Create FASTA files containing the alleles identified by the AlleleCall module.',
-					  				 run_get_alleles],
-					  'AnnotateSchema': ['Retrieve annotations for loci in a schema.',
-										 run_annotate_schema],
-					  'ComputeDistances': ['Compute pairwise distances based on allele calling results.',
-										  run_compute_distances],
-					  'ComputeMSA': ['Compute a Multiple Sequence Alignment based on allele calling results.',
-									 run_compute_msa],
-					  'DownloadSchema': ['Download a schema from Chewie-NS.',
-										 run_download_schema],
-					  'UploadSchema': ['Upload a schema to Chewie-NS.',
-									 run_upload_schema],
-					  'SyncSchema': ['Synchronize a schema with its remote version in Chewie-NS.',
-									 run_synchronize_schema],
-					  'NSStats': ['Retrieve basic information about the species and schemas in Chewie-NS.',
-								  run_stats_requests]}
+	functions_info = {gct.PREDICTGENES_MODULE_NAME: [gct.PREDICTGENES_MODULE_SHORT_DESCRIPTION, run_predict_genes],
+					  gct.CREATESCHEMA_MODULE_NAME: [gct.CREATESCHEMA_MODULE_SHORT_DESCRIPTION, run_create_schema],
+					  gct.ALLELECALL_MODULE_NAME: [gct.ALLELECALL_MODULE_SHORT_DESCRIPTION, run_allele_call],
+					  gct.SCHEMAEVALUATOR_MODULE_NAME: [gct.SCHEMAEVALUATOR_MODULE_SHORT_DESCRIPTION, run_evaluate_schema],
+					  gct.ALLELECALLEVALUATOR_MODULE_NAME: [gct.ALLELECALLEVALUATOR_MODULE_SHORT_DESCRIPTION, run_evaluate_calls],
+					  gct.COMPUTECORE_MODULE_NAME: [gct.COMPUTECORE_MODULE_SHORT_DESCRIPTION, run_compute_core],
+					  gct.SUBSETRESULTS_MODULE_NAME: [gct.SUBSETRESULTS_MODULE_SHORT_DESCRIPTION, run_subset_results],
+					  gct.ADAPTSCHEMA_MODULE_NAME: [gct.ADAPTSCHEMA_MODULE_SHORT_DESCRIPTION, run_adapt_schema],
+					  gct.MERGERESULTS_MODULE_NAME: [gct.MERGERESULTS_MODULE_SHORT_DESCRIPTION, run_merge_results],
+					  gct.HASHPROFILES_MODULE_NAME: [gct.HASHPROFILES_MODULE_SHORT_DESCRIPTION, run_hash_profiles],
+					  gct.GETALLELES_MODULE_NAME: [gct.GETALLELES_MODULE_SHORT_DESCRIPTION, run_get_alleles],
+					  gct.ANNOTATESCHEMA_MODULE_NAME: [gct.ANNOTATESCHEMA_MODULE_SHORT_DESCRIPTION, run_annotate_schema],
+					  gct.COMPUTEDISTANCES_MODULE_NAME: [gct.COMPUTEDISTANCES_MODULE_SHORT_DESCRIPTION, run_compute_distances],
+					  gct.COMPUTEMSA_MODULE_NAME: [gct.COMPUTEMSA_MODULE_SHORT_DESCRIPTION, run_compute_msa],
+					  gct.DOWNLOADSCHEMA_MODULE_NAME: [gct.DOWNLOADSCHEMA_MODULE_SHORT_DESCRIPTION, run_download_schema],
+					  gct.UPLOADSCHEMA_MODULE_NAME: [gct.UPLOADSCHEMA_MODULE_SHORT_DESCRIPTION, run_upload_schema],
+					  gct.SYNCSCHEMA_MODULE_NAME: [gct.SYNCSCHEMA_MODULE_SHORT_DESCRIPTION, run_synchronize_schema],
+					  gct.NSSTATS_MODULE_NAME: [gct.NSSTATS_MODULE_SHORT_DESCRIPTION, run_stats_requests]}
 
-	print(f'chewBBACA version: {gct.__version__}')
-	version_triggers = ['-v', '--v', '-version', '--version']
-	if len(sys.argv) > 1 and sys.argv[1] in version_triggers:
+	print(f"chewBBACA version: {gct.__version__}")
+	if len(sys.argv) > 1 and sys.argv[1] in gct.VERSION_TRIGGERS:
 		# Exit after printing version
 		sys.exit(0)
 
-	print(f'Authors: {gct.AUTHORS}')
-	print(f'Github: {gct.REPOSITORY}')
-	print(f'Documentation: {gct.DOCUMENTATION}')
-	print(f'Contacts: {gct.CONTACTS}\n')
+	print(f"Authors: {gct.AUTHORS}")
+	print(f"Github: {gct.REPOSITORY}")
+	print(f"Documentation: {gct.DOCUMENTATION}")
+	print(f"Contacts: {gct.CONTACTS}\n")
 
 	# Display help message if selected process is not valid
-	help_triggers = ['-h', '--h', '-help', '--help']
-	if len(sys.argv) == 1 or sys.argv[1] not in functions_info or sys.argv[1] in help_triggers:
+	if len(sys.argv) == 1 or sys.argv[1] not in functions_info or sys.argv[1] in gct.HELP_TRIGGERS:
 		exit_code = 0
 		# Detect if user passed module name that does not exist
-		if len(sys.argv) > 1 and sys.argv[1] not in help_triggers:
+		if len(sys.argv) > 1 and sys.argv[1] not in gct.HELP_TRIGGERS:
 			print(f"No module named {sys.argv[1]}.\n")
 			exit_code = 1
 		print("USAGE: chewBBACA.py [module] -h, --help\n")
@@ -1719,7 +1569,7 @@ def main():
 
 	# Trigger module help message if no arguments are provided
 	if len(sys.argv) == 2 and sys.argv[1] in functions_info:
-		sys.argv.append("-h")
+		sys.argv.append(gct.HELP_TRIGGERS[0])
 
 	process = sys.argv[1]
 	functions_info[process][1]()

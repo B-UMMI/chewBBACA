@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the modules taht allow for the integration with Chewie-NS.
 """
 
-# Name of the DownloadSchema module
-DOWNLOADSCHEMA_MODULE_NAME = "DownloadShema"
 
 # Parameter names for the DownloadSchema module
 DOWNLOADSCHEMA_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
@@ -31,9 +29,6 @@ DOWNLOADSCHEMA_ARGUMENT_TYPES = {
 	"blast_path": str,
 	"cpu_cores": int,
 }
-
-# Name of the UploadSchema module
-UPLOADSCHEMA_MODULE_NAME = "UploadShema"
 
 # Parameter names for the UploadSchema module
 UPLOADSCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
@@ -59,9 +54,6 @@ UPLOADSCHEMA_ARGUMENT_TYPES = {
 	"cpu_cores": int,
 }
 
-# Name of the SyncSchema module
-SYNCSCHEMA_MODULE_NAME = "SyncShema"
-
 # Parameter names for the SyncSchema module
 SYNCSCHEMA_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 SYNCSCHEMA_NOMENCLATURE_SERVER_INSTANCE_ARGNAME = "nomenclature_server_instance"
@@ -77,9 +69,6 @@ SYNCSCHEMA_ARGUMENT_TYPES = {
 	"blast_path": str,
 	"cpu_cores": int,
 }
-
-# Name of the NSStats module
-NSSTATS_MODULE_NAME = "NSStats"
 
 # Parameter names for the NSStats module
 NSSTATS_STATS_MODE_ARGNAME = "stats_mode"

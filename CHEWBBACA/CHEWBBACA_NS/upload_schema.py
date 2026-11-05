@@ -32,20 +32,12 @@ import multiprocessing
 
 from urllib3.exceptions import InsecureRequestWarning
 
-try:
-	import global_constants as gct
-	import CHEWBBACA_NS.constants as ct
-	from utils import (file_operations as fo,
-					   chewiens_requests as cr,
-					   fasta_operations as fao,
-					   sequence_manipulation as sm)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.CHEWBBACA_NS.constants as ct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 chewiens_requests as cr,
-								 fasta_operations as fao,
-								 sequence_manipulation as sm)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.CHEWBBACA_NS.constants as ct
+from CHEWBBACA.utils import (file_operations as fo,
+								chewiens_requests as cr,
+								fasta_operations as fao,
+								sequence_manipulation as sm)
 
 
 # Suppress only the single warning from urllib3 needed.

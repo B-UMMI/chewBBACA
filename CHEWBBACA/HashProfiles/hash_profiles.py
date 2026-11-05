@@ -12,16 +12,10 @@ Code documentation
 
 import pandas as pd
 
-try:
-	from utils import (file_operations as fo,
-					   fasta_operations as fao,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	from CHEWBBACA.utils import (file_operations as fo,
-								 fasta_operations as fao,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+from CHEWBBACA.utils import (file_operations as fo,
+								fasta_operations as fao,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def hash_column(column, locus_file, hashing_function):

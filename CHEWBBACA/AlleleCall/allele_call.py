@@ -22,30 +22,17 @@ from collections import Counter
 import sqlite3
 import pandas as pd
 
-try:
-	import global_constants as gct
-	import AlleleCall.constants as ct
-	from PredictGenes import predict_genes
-	from utils import (blast_wrapper as bw,
-					   core_functions as cf,
-					   file_operations as fo,
-					   fasta_operations as fao,
-					   process_datetime as pdt,
-					   sequence_manipulation as sm,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.AlleleCall.constants as ct
-	from CHEWBBACA.PredictGenes import predict_genes
-	from CHEWBBACA.utils import (blast_wrapper as bw,
-								 core_functions as cf,
-								 file_operations as fo,
-								 fasta_operations as fao,
-								 process_datetime as pdt,
-								 sequence_manipulation as sm,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.AlleleCall.constants as ct
+from CHEWBBACA.PredictGenes import predict_genes
+from CHEWBBACA.utils import (blast_wrapper as bw,
+								core_functions as cf,
+								file_operations as fo,
+								fasta_operations as fao,
+								process_datetime as pdt,
+								sequence_manipulation as sm,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def compute_loci_modes(loci_files, output_file):

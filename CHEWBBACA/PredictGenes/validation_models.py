@@ -20,20 +20,12 @@ from pydantic import (BaseModel,
 					  BeforeValidator,
 					  model_validator)
 
-try:
-	import PredictGenes.constants as ct
-	import global_constants as gct
-	import global_validation as gval
-	import utils.file_operations as fo
-	import utils.iterables_manipulation as im
-	import utils.augustus_gene_prediction as agp
-except ModuleNotFoundError:
-	import CHEWBBACA.PredictGenes.constants as ct
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.global_validation as gval
-	import CHEWBBACA.utils.file_operations as fo
-	import CHEWBBACA.utils.iterables_manipulation as im
-	import CHEWBBACA.utils.augustus_gene_prediction as agp
+import CHEWBBACA.PredictGenes.constants as ct
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.global_validation as gval
+import CHEWBBACA.utils.file_operations as fo
+import CHEWBBACA.utils.iterables_manipulation as im
+import CHEWBBACA.utils.augustus_gene_prediction as agp
 
 
 def check_augustus(augustus_path, augustus_alias=ct.AUGUSTUS_ALIAS):

@@ -19,26 +19,15 @@ import shutil
 import itertools
 import multiprocessing
 
-try:
-	import global_constants as gct
-	import AdaptSchema.constants as ct
-	from utils import (blast_wrapper as bw,
-					   core_functions as cf,
-					   file_operations as fo,
-					   fasta_operations as fao,
-					   sequence_manipulation as sm,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.AdaptSchema.constants as ct
-	from CHEWBBACA.utils import (blast_wrapper as bw,
-								 core_functions as cf,
-								 file_operations as fo,
-								 fasta_operations as fao,
-								 sequence_manipulation as sm,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.AdaptSchema.constants as ct
+from CHEWBBACA.utils import (blast_wrapper as bw,
+								core_functions as cf,
+								file_operations as fo,
+								fasta_operations as fao,
+								sequence_manipulation as sm,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def bsr_categorizer(blast_results, representatives,

@@ -26,28 +26,16 @@ import sys
 
 import pandas as pd
 
-try:
-	import global_constants as gct
-	import ComputeMSA.constants as ct
-	from GetAlleles import get_alleles
-	from GetAlleles.validation_models import GetAllelesValidator
-	from utils import (
-		mafft_wrapper as mw,
-		file_operations as fo,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	import CHEWBBACA.ComputeMSA.constants as ct
-	from CHEWBBACA.GetAlleles import get_alleles
-	from CHEWBBACA.GetAlleles.validation_models import GetAllelesValidator
-	from CHEWBBACA.utils import (
-		mafft_wrapper as mw,
-		file_operations as fo,
-		fasta_operations as fao,
-		iterables_manipulation as im,
-		multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+import CHEWBBACA.ComputeMSA.constants as ct
+from CHEWBBACA.GetAlleles import get_alleles
+from CHEWBBACA.GetAlleles.validation_models import GetAllelesValidator
+from CHEWBBACA.utils import (
+	mafft_wrapper as mw,
+	file_operations as fo,
+	fasta_operations as fao,
+	iterables_manipulation as im,
+	multiprocessing_operations as mo)
 
 
 def concatenate_loci_alignments(sample, loci, sample_profile, fasta_index, output_directory):

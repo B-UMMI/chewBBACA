@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the AlleleCall module.
 """
 
-# Name of the module
-ALLELECALL_MODULE_NAME = "AlleleCall"
 
 # Parameter names
 ALLELECALL_INPUT_FILES_ARGNAME = "input_path"

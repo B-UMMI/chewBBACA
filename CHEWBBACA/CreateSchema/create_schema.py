@@ -19,26 +19,15 @@ import os
 import sys
 import math
 
-try:
-	import global_constants as gct
-	from PredictGenes import predict_genes
-	from utils import (blast_wrapper as bw,
-					   core_functions as cf,
-					   file_operations as fo,
-					   fasta_operations as fao,
-					   sequence_manipulation as sm,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	import CHEWBBACA.global_constants as gct
-	from CHEWBBACA.PredictGenes import predict_genes
-	from CHEWBBACA.utils import (blast_wrapper as bw,
-								 core_functions as cf,
-								 file_operations as fo,
-								 fasta_operations as fao,
-								 sequence_manipulation as sm,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+import CHEWBBACA.global_constants as gct
+from CHEWBBACA.PredictGenes import predict_genes
+from CHEWBBACA.utils import (blast_wrapper as bw,
+								core_functions as cf,
+								file_operations as fo,
+								fasta_operations as fao,
+								sequence_manipulation as sm,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):

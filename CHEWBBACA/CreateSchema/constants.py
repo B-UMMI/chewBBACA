@@ -7,8 +7,6 @@ Purpose
 This file stores constants used by the CreateSchema module.
 """
 
-# Name of the module
-CREATESCHEMA_MODULE_NAME = "CreateSchema"
 
 # Parameter names
 CREATESCHEMA_INPUT_FILES_ARGNAME = "input_files"

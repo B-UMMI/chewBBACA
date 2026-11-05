@@ -16,12 +16,8 @@ from pydantic import (BaseModel,
 					  ConfigDict,
 					  AfterValidator)
 
-try:
-	import ComputeDistances.constants as ct
-	import global_validation as gval
-except ModuleNotFoundError:
-	import CHEWBBACA.ComputeDistances.constants as ct
-	import CHEWBBACA.global_validation as gval
+import CHEWBBACA.ComputeDistances.constants as ct
+import CHEWBBACA.global_validation as gval
 
 
 # Annotated Fields

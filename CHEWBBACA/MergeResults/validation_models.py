@@ -15,6 +15,7 @@ from functools import partial
 
 import pandas as pd
 from pydantic import (BaseModel,
+                      Field,
 					  ConfigDict,
 					  AfterValidator,
 					  model_validator)
@@ -27,18 +28,27 @@ from CHEWBBACA.utils import file_operations as fo
 
 # Annotated Fields
 ResultsDirectories = Annotated[list,
+                               Field(description=ct.MERGERESULTS_RESULTS_DIRECTORIES_DESCRIPTION),
 								AfterValidator(partial(gval.input_paths_exist,
 								                       function=fo.is_directory,
 													   exception_str=ct.MERGERESULTS_INPUTFILE_EXCEPTION))]
 
+OutputDirectory = Annotated[str,
+                            Field(description=ct.MERGERESULTS_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+Common = Annotated[bool,
+                        Field(default=False,
+                              description=ct.MERGERESULTS_COMMON_DESCRIPTION)]
 
 # Main validation class
 class MergeResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
+	output_directory: OutputDirectory
 	results_directories: ResultsDirectories
-	common: gval.BooleanFlag
+	common: Common
 
 	# Determine if user passed more than one input path
 	@model_validator(mode="after")

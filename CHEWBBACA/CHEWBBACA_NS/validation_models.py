@@ -28,45 +28,53 @@ from CHEWBBACA.utils import chewiens_requests as cr
 from CHEWBBACA.utils.process_datetime import validate_date
 
 
-# Annotated Fields
-SpeciesId = Annotated[str,
-                      Field(default=None)]
+# DownloadSchema Annotated Fields
+DownloadSchemaOutputDirectory = Annotated[str,
+                            Field(description=ct.DOWNLOADSCHEMA_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
 
-SchemaId = Annotated[str,
-                     Field(default=None)]
+DownloadSchemaSpeciesId = Annotated[str,
+                      Field(default=None,
+                            description=ct.DOWNLOADSCHEMA_SPECIES_ID_DESCRIPTION)]
 
-NomenclatureServerInstance = Annotated[str | None,
-                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER])]
+DownloadSchemaSchemaId = Annotated[str,
+                     Field(default=None,
+                           description=ct.DOWNLOADSCHEMA_SCHEMA_ID_DESCRIPTION)]
 
-SchemaDate = Annotated[str,
-                       Field(default=None),
+DownloadSchemaNomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER],
+                                                description=ct.DOWNLOADSCHEMA_NOMENCLATURE_SERVER_INSTANCE_DESCRIPTION)]
+
+DownloadSchemaSchemaDate = Annotated[str,
+                       Field(default=None,
+                             description=ct.DOWNLOADSCHEMA_SCHEMA_DATE_DESCRIPTION),
 					   AfterValidator(validate_date)] # Determine if user date is in a valid format
 
-DescriptionFile = Annotated[str,
-                            Field(default=None),
-                            AfterValidator(partial(gval.input_paths_exist,
-                                                   function=fo.exists,
-												   exception_str=gct.MISSING_INPUTS_EXCEPTION))]
+DownloadSchemaLatestVersion = Annotated[bool,
+                        Field(default=False,
+                              description=ct.DOWNLOADSCHEMA_LATEST_VERSION_DESCRIPTION)]
 
-StatsMode = Annotated[str,
-                      Field(default=None),
-					  AfterValidator(partial(gval.validate_choice,
-					                         valid_options=ct.NSSTATS_MODES,
-											 exception_str=ct.NSSTATS_INVALID_MODE))]
+DownloadSchemaCPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.DOWNLOADSCHEMA_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
 
 
 # Main validation class for the DownloadSchema module
 class DownloadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	species_id: SpeciesId
-	schema_id: SchemaId
-	nomenclature_server_instance: NomenclatureServerInstance
-	schema_date: SchemaDate
-	latest_version: gval.BooleanFlag
+	output_directory: DownloadSchemaOutputDirectory
+	species_id: DownloadSchemaSpeciesId
+	schema_id: DownloadSchemaSchemaId
+	nomenclature_server_instance: DownloadSchemaNomenclatureServerInstance
+	schema_date: DownloadSchemaSchemaDate
+	latest_version: DownloadSchemaLatestVersion
 	blast_path : gval.BLASTPath
-	cpu_cores: gval.CPUCores
+	cpu_cores: DownloadSchemaCPUCores
 
 	# Check that it is possible to connect Chewie-NS
 	@model_validator(mode="after")
@@ -98,19 +106,68 @@ class DownloadSchemaValidator(BaseModel):
 		return self
 
 
+# UploadSchema Annotated Fields
+UploadSchemaSchemaDirectory = Annotated[str,
+                                        Field(description=ct.UPLOADSCHEMA_SCHEMA_DIRECTORY_DESCRIPTION),
+						 AfterValidator(partial(gval.input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(gval.schema_includes_fasta),
+						 AfterValidator(gval.schema_check_genes_list),
+						 AfterValidator(gval.schema_check_config),
+						 AfterValidator(gval.schema_check_short)]
+
+UploadSchemaSpeciesId = Annotated[str,
+                      Field(default=None,
+                            description=ct.UPLOADSCHEMA_SPECIES_ID_DESCRIPTION)]
+
+UploadSchemaSchemaName = Annotated[str,
+                       Field(description=ct.UPLOADSCHEMA_SCHEMA_NAME_DESCRIPTION)]
+
+UploadSchemaLociPrefix = Annotated[str,
+                       Field(description=ct.UPLOADSCHEMA_LOCI_PREFIX_DESCRIPTION)]
+
+UploadSchemaDescriptionFile = Annotated[str,
+                            Field(default=None,
+                                  description=ct.UPLOADSCHEMA_DESCRIPTION_FILE_DESCRIPTION),
+                            AfterValidator(partial(gval.input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=gct.MISSING_INPUTS_EXCEPTION))]
+
+UploadSchemaAnnotations = Annotated[str,
+                                    Field(description=ct.UPLOADSCHEMA_ANNOTATIONS_FILE_DESCRIPTION),
+                        			AfterValidator(partial(gval.input_paths_exist,
+                                               function=fo.exists,
+											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]
+
+UploadSchemaNomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER],
+                                                description=ct.UPLOADSCHEMA_NOMENCLATURE_SERVER_INSTANCE_DESCRIPTION)]
+
+UploadSchemaContinueUp = Annotated[bool,
+                       Field(description=ct.UPLOADSCHEMA_CONTINUE_UPLOAD_DESCRIPTION)]
+
+UploadSchemaCPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.UPLOADSCHEMA_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+
 # Main validation class for the UploadSchema module
 class UploadSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	schema_directory: gval.ChewieSchema
-	species_id: SpeciesId
-	schema_name: str
-	loci_prefix: str
-	description_file: DescriptionFile
-	annotations_file: gval.Annotations | None = None
-	nomenclature_server_instance: NomenclatureServerInstance
-	continue_up: gval.BooleanFlag
-	cpu_cores: gval.CPUCores
+	schema_directory: UploadSchemaSchemaDirectory
+	species_id: UploadSchemaSpeciesId
+	schema_name: UploadSchemaSchemaName
+	loci_prefix: UploadSchemaLociPrefix
+	description_file: UploadSchemaDescriptionFile
+	annotations_file: UploadSchemaAnnotations
+	nomenclature_server_instance: UploadSchemaNomenclatureServerInstance
+	continue_upload: UploadSchemaContinueUp
+	cpu_cores: UploadSchemaCPUCores
 
 	# Check that it is possible to connect Chewie-NS
 	@model_validator(mode="after")
@@ -182,15 +239,41 @@ class UploadSchemaValidator(BaseModel):
 		return self
 
 
+# SyncSchema Annotated Fields
+SyncSchemaSchemaDirectory = Annotated[str,
+                                        Field(description=ct.SYNCSCHEMA_SCHEMA_DIRECTORY_DESCRIPTION),
+						 AfterValidator(partial(gval.input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(gval.schema_includes_fasta),
+						 AfterValidator(gval.schema_check_genes_list),
+						 AfterValidator(gval.schema_check_config),
+						 AfterValidator(gval.schema_check_short)]
+
+SyncSchemaNomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER],
+                                                description=ct.SYNCSCHEMA_NOMENCLATURE_SERVER_INSTANCE_DESCRIPTION)]
+
+SyncSchemaSubmitAlleles = Annotated[bool,
+                          Field(description=ct.SYNCSCHEMA_SUBMIT_ALLELES_DESCRIPTION)]
+
+SyncSchemaCPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.SYNCSCHEMA_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+
 # Main validation class for the SyncSchema module
 class SynchronizeSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	schema_directory: gval.ChewieSchema
-	nomenclature_server_instance: NomenclatureServerInstance
-	submit_alleles: gval.BooleanFlag
+	schema_directory: SyncSchemaSchemaDirectory
+	nomenclature_server_instance: SyncSchemaNomenclatureServerInstance
+	submit_alleles: SyncSchemaSubmitAlleles
 	blast_path: gval.BLASTPath
-	cpu_cores: gval.CPUCores
+	cpu_cores: SyncSchemaCPUCores
 
 	# Check that it is possible to connect Chewie-NS
 	@model_validator(mode="after")
@@ -211,14 +294,35 @@ class SynchronizeSchemaValidator(BaseModel):
 		return self
 
 
+# NSStats Annotated Fields
+NSStatsStatsMode = Annotated[str,
+                      Field(default=None,
+                            description=ct.NSSTATS_STATS_MODE_DESCRIPTION),
+					  AfterValidator(partial(gval.validate_choice,
+					                         valid_options=ct.NSSTATS_MODES,
+											 exception_str=ct.NSSTATS_INVALID_MODE))]
+
+NSStatsSpeciesId = Annotated[str,
+                      Field(default=None,
+                            description=ct.NSSTATS_SPECIES_ID_DESCRIPTION)]
+
+NSStatsSchemaId = Annotated[str,
+                     Field(default=None,
+                           description=ct.NSSTATS_SCHEMA_ID_DESCRIPTION)]
+
+NSStatsNomenclatureServerInstance = Annotated[str | None,
+                               		   Field(default=ct.HOST_NS[ct.DEFAULT_NOMENCLATURE_SERVER],
+                                                description=ct.NSSTATS_NOMENCLATURE_SERVER_INSTANCE_DESCRIPTION)]
+
+
 # Main validation class for the NSStats module
 class NSStatsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	stats_mode: StatsMode
-	species_id: SpeciesId
-	schema_id: SchemaId
-	nomenclature_server_instance: NomenclatureServerInstance
+	stats_mode: NSStatsStatsMode
+	species_id: NSStatsSpeciesId
+	schema_id: NSStatsSchemaId
+	nomenclature_server_instance: NSStatsNomenclatureServerInstance
 
 	# Check that it is possible to connect Chewie-NS
 	@model_validator(mode="after")

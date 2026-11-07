@@ -93,14 +93,30 @@ def validate_augustus_species(species_id, augustus_path, augustus_alias=ct.AUGUS
 
 
 # Annotated Fields
-GenePredictor = Annotated[str,
-						  Field(default=ct.GENE_PREDICTOR_DEFAULT),
-						  AfterValidator(partial(gval.validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.PREDICTGENES_INVALID_GENE_PREDICTOR))]
+OutputDirectory = Annotated[str,
+                            Field(description=ct.PREDICTGENES_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
 
-# Validate if input is str, not if it is None
-GenePredictionOptions = Annotated[list,
-                                  Field(default={}),
-                                  AfterValidator(gval.parse_parameter_string)]
+InputPath = Annotated[str,
+                      Field(description=ct.PREDICTGENES_INPUT_PATH_DESCRIPTION),
+					   AfterValidator(partial(gval.input_paths_exist,
+					                          function=fo.exists,
+											  exception_str=gct.MISSING_INPUT_ARG)),
+					   AfterValidator(gval.input_is_fasta),
+					   AfterValidator(fo.list_input_files),
+					   AfterValidator(gval.filter_inputs_extension),
+					   AfterValidator(gval.inputs_exist),
+					   AfterValidator(gval.validate_inputs_fastas),
+					   AfterValidator(gval.check_unique_prefixes),
+					   AfterValidator(gval.check_blanks)]
+
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.PREDICTGENES_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
 
 PyrodigalTrainingFile = Annotated[str,
                                   Field(default=None),
@@ -140,6 +156,12 @@ AugustusOutputFormat = Annotated[list,
 								 BeforeValidator(im.ensure_list),
 								 AfterValidator(partial(gval.validate_multiple_choices, valid_options=ct.AUGUSTUS_OUTFMTS, exception_str=ct.AUGUSTUS_INVALID_OUTFMT))]
 
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.PREDICTGENES_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
 
 # Use separate models to validate Pyrodigal and AUGUSTUS arguments, since they have different fields and validation requirements
 class PyrodigalArgs(BaseModel):
@@ -152,6 +174,22 @@ class PyrodigalArgs(BaseModel):
 	pyrodigal_minimum_confidence: PyrodigalMinimumConfidence
 	pyrodigal_training_reference: PyrodigalTrainingReference
 	pyrodigal_just_training: PyrodigalJustTraining
+
+
+# Create str with the defautl values for the gene prediction parameter=argument pairs
+# Added here to avoid circular imports
+def create_default_gene_prediction_str():
+	default_gene_prediction_config = PyrodigalArgs.model_validate({}).model_dump()
+	default_gene_prediction_options = []
+	for parameter, argument in default_gene_prediction_config.items():
+		if type(argument) == list:
+			default_gene_prediction_options.append(f'"{parameter}={','.join(argument)}"')
+		else:
+			default_gene_prediction_options.append(f'"{parameter}={argument}"')
+
+	default_gene_prediction_str = ' '.join(default_gene_prediction_options)
+
+	return default_gene_prediction_str
 
 
 class AugustusArgs(BaseModel):
@@ -169,6 +207,17 @@ class AugustusArgs(BaseModel):
 		return self
 
 
+GenePredictor = Annotated[str,
+						  Field(default=ct.GENE_PREDICTOR_DEFAULT,
+						        description=ct.PREDICTGENES_GENE_PREDICTOR_DESCRIPTION),
+						  AfterValidator(partial(gval.validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.PREDICTGENES_INVALID_GENE_PREDICTOR))]
+
+# Validate if input is str, not if it is None
+GenePredictionOptions = Annotated[list,
+                                  Field(default=create_default_gene_prediction_str(),
+                                        description=ct.PREDICTGENES_GENE_PREDICTION_OPTIONS_DESCRIPTION),
+                                  AfterValidator(gval.parse_parameter_string)]
+
 # Field definition for the validated gene prediction arguments
 ValidatedGenePredictionOptions = Annotated[PyrodigalArgs | AugustusArgs | None, Field(default=None)]
 
@@ -181,13 +230,13 @@ class PredictGenesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	# Field order is preserved when serializing with model_dump()
-	output_directory: gval.OutputDirectory
-	input_files: gval.InputFiles
+	output_directory: OutputDirectory
+	input_path: InputPath
 	gene_predictor: GenePredictor
 	gene_prediction_options: GenePredictionOptions
 	validated_gene_prediction_options: ValidatedGenePredictionOptions
-	translation_table: gval.TranslationTable
-	cpu_cores: gval.CPUCores
+	translation_table: TranslationTable
+	cpu_cores: CPUCores
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")

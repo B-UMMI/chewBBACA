@@ -14,6 +14,7 @@ from functools import partial
 
 import pandas as pd
 from pydantic import (BaseModel,
+                      Field,
 					  ConfigDict,
 					  AfterValidator,
 					  model_validator)
@@ -25,22 +26,52 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
+OutputDirectory = Annotated[str,
+                            Field(description=ct.SUBSETRESULTS_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+ResultsFiles = Annotated[str,
+                         Field(description=ct.SUBSETRESULTS_RESULTS_FILES_DESCRIPTION),
+                         AfterValidator(partial(gval.input_paths_exist,
+                                                function=fo.exists,
+												exception_str=gct.MISSING_RESULTS)),
+						 AfterValidator(partial(gval.contains_results,
+						                        results_files_basenames=[gct.ALLELIC_PROFILES_BASENAME]))]
+
+LociList = Annotated[str,
+                     Field(description=ct.SUBSETRESULTS_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
 SampleList = Annotated[str,
+                       Field(description=ct.SUBSETRESULTS_SAMPLE_LIST_DESCRIPTION),
                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
 					   AfterValidator(gval.input_is_fasta),
 					   AfterValidator(fo.list_input_files)]
+
+InvertLoci = Annotated[bool,
+                        Field(default=False,
+                              description=ct.SUBSETRESULTS_INVERT_LOCI_DESCRIPTION)]
+
+InvertSample = Annotated[bool,
+                        Field(default=False,
+                              description=ct.SUBSETRESULTS_INVERT_SAMPLES_DESCRIPTION)]
 
 
 # Main validation class
 class SubsetResultsValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	results_files: gval.ResultsFiles
-	loci_list: gval.LociList | None = None
-	sample_list: SampleList | None = None
-	inverse_loci: gval.BooleanFlag
-	inverse_samples: gval.BooleanFlag
+	output_directory: OutputDirectory
+	results_files: ResultsFiles
+	loci_list: LociList
+	sample_list: SampleList
+	invert_loci: InvertLoci
+	invert_samples: InvertSample
 
 	@model_validator(mode="after")
 	def check_lists(self):
@@ -58,6 +89,8 @@ class SubsetResultsValidator(BaseModel):
 			sys.exit("Input directory does not include any of the supported output files that can be subsetted."
 			         "Please ensure that the input directory includes at least one of the following files:\n"
 					 f"{'\n'.join(gct.SUPPORTED_RESULTS_FILES)}")
+
+		return self
 
 	# Check if the loci IDs in the input list are all in the results
 	@model_validator(mode="after")

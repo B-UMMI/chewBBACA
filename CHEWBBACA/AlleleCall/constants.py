@@ -9,7 +9,7 @@ This file stores constants used by the AlleleCall module.
 
 
 # Parameter names
-ALLELECALL_INPUT_FILES_ARGNAME = "input_path"
+ALLELECALL_INPUT_PATH_ARGNAME = "input_path"
 ALLELECALL_SCHEMA_DIRECTORY_ARGNAME = "schema_directory"
 ALLELECALL_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 ALLELECALL_LOCI_LIST_ARGNAME = "loci_list"
@@ -59,6 +59,61 @@ ALLELECALL_ARGUMENT_TYPES = {
 	"no_cds_renaming": bool,
 	"no_cleanup": bool
 }
+
+# Parameter descriptions
+ALLELECALL_INPUT_PATH_DESCRIPTION = ("Path to the directory that contains the input FASTA files or to "
+							 "a file with a list of full paths to FASTA files, one per line.")
+ALLELECALL_SCHEMA_DIRECTORY_DESCRIPTION = ("Path to the schema directory. The schema directory contains the "
+							 "loci FASTA files and a folder named `short` that contains the FASTA "
+							 "files with the loci representative alleles.")
+ALLELECALL_OUTPUT_DIRECTORY_DESCRIPTION = ("Output directory where the process will store intermediate files "
+							 "and allele calling results.")
+ALLELECALL_LOCI_LIST_DESCRIPTION = ("Path to a file with the list of schema loci to perform allele "
+							 "calling for. The file must include the full paths to the loci FASTA "
+							 "files or the loci IDs, one per line. The process will perform "
+							 "allele calling only for the subset of loci provided in the file.")
+ALLELECALL_BLAST_SCORE_RATIO_DESCRIPTION = ("BLAST Score Ratio (BSR) value. The BSR is computed for each BLASTp "
+							 "alignment and aligned sequences with a BSR >= than the defined value "
+							 "are considered to be alleles of the same locus.")
+ALLELECALL_MINIMUM_LENGTH_DESCRIPTION = ("Minimum sequence length value. Predicted coding sequences (CDSs) "
+							 "shorter than this value are excluded.")
+ALLELECALL_TRANSLATION_TABLE_DESCRIPTION = ("Genetic code used to predict genes and to translate coding DNA "
+							 "sequences (CDSs). This value will be ignored if a training file "
+							 "is used.")
+ALLELECALL_SIZE_THRESHOLD_DESCRIPTION = ("Coding sequence (CDS) size variation threshold. At the default "
+							 "value of 0.2, CDSs with a size that deviates +-20 percent from "
+							 "the locus length mode are classified as ASM/ALM.")
+ALLELECALL_NO_INFERRED_DESCRIPTION = ("If provided, the process will not add the sequences of "
+							 "inferred alleles (INF) to the schema. Allelic profiles "
+							 "will still include the allele identifiers attributed to "
+							 "the inferred alleles. Use this parameter if the schema "
+							 "is being accessed by multiple processes/users simultaneously.")
+ALLELECALL_OUTPUT_UNCLASSIFIED_DESCRIPTION = ("Create a Fasta file with the coding sequences (CDSs) that "
+							 "were not classified.")
+ALLELECALL_OUTPUT_MISSING_DESCRIPTION = ("Create a Fasta file with coding sequences (CDSs) classified "
+							 "as NIPH, NIPHEM, ASM, ALM, PLOT3, PLOT5 and LOTSC.")
+ALLELECALL_OUTPUT_NOVEL_DESCRIPTION = ("Create a Fasta file with the novel alleles inferred during "
+							 "allele calling. The sequence headers include the locus and "
+							 "allele identifiers attributed by chewBBACA based on the "
+							 "allele calling results.")
+ALLELECALL_OUTPUT_MASKED_DESCRIPTION = ("Create a TSV file with the masked allelic profiles. The "
+							 "masking process removes the `INF-` prefix from inferred "
+							 "alleles and substitutes all special classes (NIPH, NIPHEM, "
+							 "ASM, ALM, PLOT3, PLOT5, LOTSC, PAMA) with `0`.")
+ALLELECALL_FORCE_CONTINUE_DESCRIPTION = ("If provided, chewie will not warn users and ask for "
+							 "permission to continue if any of the provided argument "
+							 "values does not match the values in the config file.")
+ALLELECALL_EXECUTION_MODE_DESCRIPTION = ("Execution mode (1: only exact matches at DNA level; 2: "
+							 "exact matches at DNA and Protein level; 3: exact matches "
+							 "and minimizer-based clustering to find similar alleles "
+							 "based on BSR+0.1; 4: run the full process to find exact "
+							 "matches and similar matches based on BSR value, including "
+							 "the determination of new representative alleles to add to "
+							 "the schema).")
+ALLELECALL_CPU_CORES_DESCRIPTION = ("Number of CPU cores that will be used to run the process (chewie "
+							 "resets to a lower value if it is equal to or exceeds the total "
+							 "number of available CPU cores).")
+ALLELECALL_NS_CONFIG_DESCRIPTION = ("")
 
 # Headers used in output files
 # Headers for TSV files with paralogous loci count and per genome

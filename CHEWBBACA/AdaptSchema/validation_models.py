@@ -9,12 +9,15 @@ This file includes the Pydantic classes used to valdiate the argument values pas
 
 import sys
 from typing import Annotated
+from functools import partial
 
 from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
+					  AfterValidator,
 					  model_validator)
 
+import CHEWBBACA.AdaptSchema.constants as ct
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.global_validation as gval
 import CHEWBBACA.PredictGenes.validation_models as pval
@@ -22,34 +25,90 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
+OutputDirectory = Annotated[str,
+                            Field(description=ct.ADAPTSCHEMA_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+ExternalSchema = Annotated[str,
+                           Field(description=ct.ADAPTSCHEMA_SCHEMA_DIRECTORY_DESCRIPTION),
+							AfterValidator(partial(gval.input_paths_exist,
+							                       function=fo.exists,
+												   exception_str=gct.SCHEMA_PATH_MISSING)),
+							AfterValidator(gval.schema_includes_fasta)]
+
+LociList = Annotated[str,
+                     Field(description=ct.ADAPTSCHEMA_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
+BLASTScoreRatio = Annotated[float,
+							Field(default=gct.BSR_DEFAULT,
+							      ge=gct.BSR_MIN,
+								  le=gct.BSR_MAX,
+								  description=ct.ADAPTSCHEMA_BLAST_SCORE_RATIO_DESCRIPTION)]
+
+MinimumLength = Annotated[int,
+						  Field(default=gct.MSL_DEFAULT,
+						        ge=gct.MSL_MIN,
+								le=gct.MSL_MAX,
+								description=ct.ADAPTSCHEMA_MINIMUM_LENGTH_DESCRIPTION)]
+
 AdaptationMinimumLength = Annotated[int,
                                     Field(default=0)]
 
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.ADAPTSCHEMA_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
+
+SizeThreshold = Annotated[float | None,
+						  Field(default=gct.ST_DEFAULT,
+						        ge=gct.ST_MIN,
+								le=gct.ST_MAX,
+								description=ct.ADAPTSCHEMA_SIZE_THRESHOLD_DESCRIPTION)]
+
 AdaptationSizeThreshold = Annotated[float,
                                     Field(default=None)]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.ADAPTSCHEMA_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+SizeFilter = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ADAPTSCHEMA_SIZE_FILTER_DESCRIPTION)]
 
 
 # Main validation class
 class AdaptSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	schema_directory: gval.ExternalSchema
-	loci_list: gval.LociList | None = None
+	output_directory: OutputDirectory
+	schema_directory: ExternalSchema
+	loci_list: LociList
 	gene_predictor: pval.GenePredictor
 	gene_prediction_options: pval.GenePredictionOptions
 	validated_gene_prediction_options: pval.ValidatedGenePredictionOptions
 	clustering_options: gval.ClusteringOptions
 	validated_clustering_options: gval.ValidatedClusteringOptions
-	blast_score_ratio: gval.BLASTScoreRatio
-	minimum_length: gval.MinimumLength
+	blast_score_ratio: BLASTScoreRatio
+	minimum_length: MinimumLength
 	adaptation_minimum_length: AdaptationMinimumLength
-	translation_table: gval.TranslationTable
-	size_threshold: gval.SizeThreshold
+	translation_table: TranslationTable
+	size_threshold: SizeThreshold
 	adaptation_size_threshold: AdaptationSizeThreshold
-	cpu_cores: gval.CPUCores
+	cpu_cores: CPUCores
 	blast_path: gval.BLASTPath
-	size_filter: gval.BooleanFlag
+	size_filter: SizeFilter
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")

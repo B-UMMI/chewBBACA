@@ -26,45 +26,95 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
+ExternalSchema = Annotated[str,
+                           Field(description=ct.ANNOTATESCHEMA_SCHEMA_DIRECTORY_DESCRIPTION),
+							AfterValidator(partial(gval.input_paths_exist,
+							                       function=fo.exists,
+												   exception_str=gct.SCHEMA_PATH_MISSING)),
+							AfterValidator(gval.schema_includes_fasta)]
+
+OutputDirectory = Annotated[str,
+                            Field(description=ct.ANNOTATESCHEMA_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+LociList = Annotated[str,
+                     Field(description=ct.ANNOTATESCHEMA_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
 ProteinTable = Annotated[str,
-                         Field(default=None),
+                         Field(default=None,
+                               description=ct.ANNOTATESCHEMA_PROTEIN_TABLE_DESCRIPTION),
                          AfterValidator(partial(gval.input_paths_exist,
                                                 function=fo.exists,
 												exception_str=ct.MISSING_PROTEIN_TABLE))]
 
+BLASTScoreRatio = Annotated[float,
+							Field(default=gct.BSR_DEFAULT,
+							      ge=gct.BSR_MIN,
+								  le=gct.BSR_MAX,
+								  description=ct.ANNOTATESCHEMA_BLAST_SCORE_RATIO_DESCRIPTION)]
+
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.ANNOTATESCHEMA_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.ANNOTATESCHEMA_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
 Taxa = Annotated[list,
-                 Field(default=None)]
+                 Field(default=None,
+                       description=ct.ANNOTATESCHEMA_PROTEOME_TAXA_DESCRIPTION)]
 
 ProteomeMatches = Annotated[int,
-                            Field(default=1, ge=1)]
+                            Field(default=1,
+                                  ge=1,
+								  description=ct.ANNOTATESCHEMA_PROTEOME_MATCHES_DESCRIPTION)]
+
+RestAPI = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ANNOTATESCHEMA_UNIPROT_REST_API_DESCRIPTION)]
 
 RestApiMatches = Annotated[int,
-                           Field(default=1, ge=1)]
+                           Field(default=1,
+                                 ge=1,
+								 description=ct.ANNOTATESCHEMA_UNIPROT_REST_API_MATCHES_DESCRIPTION)]
 
 
 # Main validation class
 class AnnotateSchemaValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	schema_directory: gval.ExternalSchema
-	loci_list: gval.LociList | None = None
+	output_directory: OutputDirectory
+	schema_directory: ExternalSchema
+	loci_list: LociList
 	protein_table: ProteinTable
-	blast_score_ratio: gval.BLASTScoreRatio
-	translation_table: gval.TranslationTable
-	cpu_cores: gval.CPUCores
+	blast_score_ratio: BLASTScoreRatio
+	translation_table: TranslationTable
+	cpu_cores: CPUCores
 	proteome_taxa: Taxa
 	proteome_matches: ProteomeMatches
 	blast_path: gval.BLASTPath
-	rest_api: gval.BooleanFlag
+	rest_api: RestAPI
 	rest_api_matches: RestApiMatches
-	no_cleanup: gval.BooleanFlag
+	no_cleanup: gval.NoCleanup
 
 	# User must specify that loci should be annotated based on either proteomes or requests to UniProt's Proteins API or both
 	@model_validator(mode="after")
 	def check_annotation_method(self):
 		if not self.proteome_taxa and not self.rest_api:
-			sys.exit(gct.ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD)
+			sys.exit(ct.ANNOTATE_SCHEMA_NO_ANNOTATION_METHOD)
 
 		return self
 
@@ -104,6 +154,6 @@ class AnnotateSchemaValidator(BaseModel):
 		config_file = fo.join_paths(self.schema_directory, [gct.SCHEMA_CONFIG_BASENAME])
 		if fo.exists(config_file):
 			config_values = fo.pickle_loader(config_file)
-			self.translation_table = config_values[gct.TRANSLATION_TABLE_ARGNAME][0]
+			self.translation_table = config_values[gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME][0]
 
 		return self

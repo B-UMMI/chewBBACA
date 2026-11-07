@@ -36,6 +36,33 @@ SCHEMAEVALUATOR_ARGUMENT_TYPES = {
 	"add_sequences": bool
 }
 
+# Parameter descriptions
+SCHEMAEVALUATOR_SCHEMA_DIRECTORY_DESCRIPTION = ("Path to the schema's directory.")
+SCHEMAEVALUATOR_OUTPUT_DIRECTORY_DESCRIPTION = ("Path to the output directory where the report HTML files will be created.")
+SCHEMAEVALUATOR_LOCI_LIST_DESCRIPTION = ("Path to a file with the list of loci in the schema that the process "
+							 "should analyse (one per line, full paths or loci IDs).")
+SCHEMAEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION = ("Path to the TSV file with loci annotations to include in a datatable "
+							 "component of the report.")
+SCHEMAEVALUATOR_TRANSLATION_TABLE_DESCRIPTION = ("Translation table used to translate CDSs.")
+SCHEMAEVALUATOR_SIZE_THRESHOLD_DESCRIPTION = ("Coding sequence (CDS) size variation threshold. The module identifies "
+							 "the alleles with size that deviates from the locus length mode +/- this "
+							 "size threshold value.")
+SCHEMAEVALUATOR_MINIMUM_LENGTH_DESCRIPTION = ("Minimum sequence length value. The module identifies alleles shorter "
+							 "than this value.")
+SCHEMAEVALUATOR_CPU_CORES_DESCRIPTION = ("Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
+SCHEMAEVALUATOR_LOCI_REPORTS_DESCRIPTION = ("Create a detailed report page for each locus. The locus report "
+							 "includes components with relevant data and analysis results, such "
+							 "as allele diversity charts, a MSA for the alignment of the distinct "
+							 "translated alleles and a tree drawn with Phylocanvas based on the "
+							 "MAFFT guide tree.")
+SCHEMAEVALUATOR_LIGTH_DESCRIPTION = ("Skips MSA computation with MAFFT and does not add the Phylogenetic "
+							 "Tree and MSA components to the loci reports.")
+SCHEMAEVALUATOR_ADD_SEQUENCES_DESCRIPTION = ("Adds Code Editor components with the DNA and Protein sequences to "
+							 "the loci reports. The Code Editor is in readonly mode (allows to "
+							 "search for and copy text).")
+
 # Basename for the main report file
 SCHEMA_REPORT_BASENAME = "schema_report.html"
 

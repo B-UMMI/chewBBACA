@@ -9,36 +9,132 @@ This file includes the Pydantic classes used to valdiate the argument values pas
 
 
 import sys
+from typing import Annotated
+from functools import partial
 
-from pydantic import (BaseModel, ConfigDict, model_validator)
+from pydantic import (BaseModel,
+                      Field,
+                      ConfigDict,
+                      AfterValidator,
+					  model_validator)
 
 import CHEWBBACA.global_constants as gct
+import CHEWBBACA.SchemaEvaluator.constants as ct
 import CHEWBBACA.global_validation as gval
 from CHEWBBACA.utils import file_operations as fo
+
+
+# Annotated Fields
+
+# Define reusable annotated types/Fields for argument validation in multiple modules
+OutputDirectory = Annotated[str,
+                            Field(description=ct.SCHEMAEVALUATOR_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+ExternalSchema = Annotated[str,
+                           Field(description=ct.SCHEMAEVALUATOR_SCHEMA_DIRECTORY_DESCRIPTION),
+							AfterValidator(partial(gval.input_paths_exist,
+							                       function=fo.exists,
+												   exception_str=gct.SCHEMA_PATH_MISSING)),
+							AfterValidator(gval.schema_includes_fasta)]
+
+LociList = Annotated[str,
+                     Field(description=ct.SCHEMAEVALUATOR_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
+Annotations = Annotated[str,
+                        Field(description=ct.SCHEMAEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION),
+                        AfterValidator(partial(gval.input_paths_exist,
+                                               function=fo.exists,
+											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]
+
+MinimumLength = Annotated[int,
+						  Field(default=gct.MSL_DEFAULT,
+						        ge=gct.MSL_MIN,
+								le=gct.MSL_MAX,
+								description=ct.SCHEMAEVALUATOR_MINIMUM_LENGTH_DESCRIPTION)]
+
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.SCHEMAEVALUATOR_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
+
+SizeThreshold = Annotated[float | None,
+						  Field(default=gct.ST_DEFAULT,
+						        ge=gct.ST_MIN,
+								le=gct.ST_MAX,
+								description=ct.SCHEMAEVALUATOR_SIZE_THRESHOLD_DESCRIPTION)]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.SCHEMAEVALUATOR_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+MinimumLengthValues = Annotated[list,
+                                Field(default=[])]
+
+SizeThresholdValues = Annotated[list,
+                                Field(default=[])]
+
+TranslationTableValues = Annotated[list,
+                                   Field(default=[])]
+
+BlastScoreRatioValues = Annotated[list,
+                                  Field(default=[])]
+
+LociReports = Annotated[bool,
+                     Field(default=False,
+                           description=ct.SCHEMAEVALUATOR_LOCI_REPORTS_DESCRIPTION)]
+
+Light = Annotated[bool,
+                     Field(default=False,
+                           description=ct.SCHEMAEVALUATOR_LIGTH_DESCRIPTION)]
+
+AddSequences = Annotated[bool,
+                     Field(default=False,
+                           description=ct.SCHEMAEVALUATOR_ADD_SEQUENCES_DESCRIPTION)]
+
+ChewieSchema = Annotated[bool,
+                     Field(default=False)]
+
+TrainingFile = Annotated[bool,
+                     Field(default=False)]
+
+NSConfig = Annotated[bool,
+                     Field(default=False)]
 
 
 # Main validation class
 class SchemaEvaluatorValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	schema_directory: gval.ChewieSchema
-	loci_list: gval.LociList | None = None
-	annotations_file: gval.Annotations | None = None
-	translation_table: gval.TranslationTable
-	size_threshold: gval.SizeThreshold
-	minimum_length: gval.MinimumLength
-	cpu_cores: gval.CPUCores
-	loci_reports: gval.BooleanFlag
-	light: gval.BooleanFlag
-	add_sequences: gval.BooleanFlag
-	chewie_schema: gval.BooleanFlag
-	minimum_length_values: gval.MinimumLengthValues
-	size_threshold_values: gval.SizeThresholdValues
-	translation_table_values: gval.TranslationTableValues
-	blast_score_ratio_values: gval.BlastScoreRatioValues
-	training_file: gval.BooleanFlag
-	ns_config: gval.NSCONFIG
+	output_directory: OutputDirectory
+	schema_directory: ExternalSchema
+	loci_list: LociList
+	annotations_file: Annotations
+	translation_table: TranslationTable
+	size_threshold: SizeThreshold
+	minimum_length: MinimumLength
+	cpu_cores: CPUCores
+	loci_reports: LociReports
+	light: Light
+	add_sequences: AddSequences
+	chewie_schema: ChewieSchema
+	minimum_length_values: MinimumLengthValues
+	size_threshold_values: SizeThresholdValues
+	translation_table_values: TranslationTableValues
+	blast_score_ratio_values: BlastScoreRatioValues
+	training_file: TrainingFile
+	ns_config: NSConfig
 
 	# Verify that the schema contains FASTA files for all loci in the list of loci
 	@model_validator(mode="after")

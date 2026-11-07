@@ -27,42 +27,139 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
+OutputDirectory = Annotated[str,
+                            Field(description=ct.ALLELECALL_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+InputPath = Annotated[str,
+                      Field(description=ct.ALLELECALL_INPUT_PATH_DESCRIPTION),
+					   AfterValidator(partial(gval.input_paths_exist,
+					                          function=fo.exists,
+											  exception_str=gct.MISSING_INPUT_ARG)),
+					   AfterValidator(gval.input_is_fasta),
+					   AfterValidator(fo.list_input_files),
+					   AfterValidator(gval.filter_inputs_extension),
+					   AfterValidator(gval.inputs_exist),
+					   AfterValidator(gval.validate_inputs_fastas),
+					   AfterValidator(gval.check_unique_prefixes),
+					   AfterValidator(gval.check_blanks)]
+
+ChewieSchema = Annotated[str,
+                         Field(description=ct.ALLELECALL_SCHEMA_DIRECTORY_DESCRIPTION),
+						 AfterValidator(partial(gval.input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(gval.schema_includes_fasta),
+						 AfterValidator(gval.schema_check_genes_list),
+						 AfterValidator(gval.schema_check_config),
+						 AfterValidator(gval.schema_check_short)]
+
+LociList = Annotated[str,
+                     Field(description=ct.ALLELECALL_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
+BLASTScoreRatio = Annotated[float,
+							Field(default=gct.BSR_DEFAULT,
+							      ge=gct.BSR_MIN,
+								  le=gct.BSR_MAX,
+								  description=ct.ALLELECALL_BLAST_SCORE_RATIO_DESCRIPTION)]
+
+MinimumLength = Annotated[int,
+						  Field(default=gct.MSL_DEFAULT,
+						        ge=gct.MSL_MIN,
+								le=gct.MSL_MAX,
+								description=ct.ALLELECALL_MINIMUM_LENGTH_DESCRIPTION)]
+
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.ALLELECALL_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
+
+SizeThreshold = Annotated[float | None,
+						  Field(default=gct.ST_DEFAULT,
+						        ge=gct.ST_MIN,
+								le=gct.ST_MAX,
+								description=ct.ALLELECALL_SIZE_THRESHOLD_DESCRIPTION)]
+
 AllelecallMode = Annotated[int,
-                           Field(default=ct.ALLELECALL_DEFAULT_MODE),
+                           Field(default=ct.ALLELECALL_DEFAULT_MODE,
+                                 description=ct.ALLELECALL_EXECUTION_MODE_DESCRIPTION),
 						   AfterValidator(partial(gval.validate_choice, valid_options=ct.ALLELECALL_MODES, exception_str=ct.ALLELECALL_INVALID_MODE))]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.ALLELECALL_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+NoInferred = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_NO_INFERRED_DESCRIPTION)]
+
+OutputUnclassified = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_OUTPUT_UNCLASSIFIED_DESCRIPTION)]
+
+OutpuMissing = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_OUTPUT_MISSING_DESCRIPTION)]
+
+OutputNovel = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_OUTPUT_NOVEL_DESCRIPTION)]
+
+OutputMaskedProfiles = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_OUTPUT_MASKED_DESCRIPTION)]
+
+ForceContinue = Annotated[bool,
+                        Field(default=False,
+                              description=ct.ALLELECALL_FORCE_CONTINUE_DESCRIPTION)]
+
+NSCONFIG = Annotated[bool,
+                     Field(default=False,
+                           description=ct.ALLELECALL_NS_CONFIG_DESCRIPTION)]
 
 
 # Main validation class
 class AlleleCallValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	input_files: gval.InputFiles
-	schema_directory: gval.ChewieSchema
+	output_directory: OutputDirectory
+	input_path: InputPath
+	schema_directory: ChewieSchema
 	# Do not run validation if loci_list is None
-	loci_list: gval.LociList | None = None
-	blast_score_ratio: gval.BLASTScoreRatio
-	minimum_length: gval.MinimumLength
-	translation_table: gval.TranslationTable
-	size_threshold: gval.SizeThreshold
+	loci_list: LociList
+	blast_score_ratio: BLASTScoreRatio
+	minimum_length: MinimumLength
+	translation_table: TranslationTable
+	size_threshold: SizeThreshold
 	gene_predictor : pval.GenePredictor
 	gene_prediction_options: pval.GenePredictionOptions
 	validated_gene_prediction_options: pval.ValidatedGenePredictionOptions
 	clustering_options: gval.ClusteringOptions
 	validated_clustering_options: gval.ValidatedClusteringOptions
 	blast_path: gval.BLASTPath
-	cds_input: gval.BooleanFlag
-	no_inferred: gval.BooleanFlag
-	output_unclassified: gval.BooleanFlag
-	output_missing: gval.BooleanFlag
-	output_novel: gval.BooleanFlag
-	output_masked_profiles: gval.BooleanFlag
-	no_cds_renaming: gval.BooleanFlag
-	force_continue: gval.BooleanFlag
-	mode: AllelecallMode
-	cpu_cores: gval.CPUCores
-	no_cleanup: gval.BooleanFlag
-	ns_config: gval.NSCONFIG
+	cds_input: gval.CDSInput
+	no_inferred: NoInferred
+	output_unclassified: OutputUnclassified
+	output_missing: OutpuMissing
+	output_novel: OutputNovel
+	output_masked_profiles: OutputMaskedProfiles
+	no_cds_renaming: gval.NoCDSRemaining
+	force_continue: ForceContinue
+	execution_mode: AllelecallMode
+	cpu_cores: CPUCores
+	no_cleanup: gval.NoCleanup
+	ns_config: NSCONFIG
 
 	# Further validation for gene prediction arguments
 	@model_validator(mode="after")

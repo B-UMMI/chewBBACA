@@ -24,18 +24,53 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
+# Should implement a validator for the profile filr format
+AllelicProfiles = Annotated[str,
+                            Field(description=ct.COMPUTECORE_PROFILES_DESCRIPTION),
+                            AfterValidator(partial(gval.input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=gct.PROFILES_FILE_MISSING))]
+
+OutputDirectory = Annotated[str,
+                            Field(description=ct.COMPUTECORE_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
 LociPresenceThreshold = Annotated[list,
                             Field(default=ct.CGMLST_THRESHOLDS,
                                   ge=ct.CGMLST_THRESHOLD_MIN,
-								  le=ct.CGMLST_THRESHOLD_MAX)]
+								  le=ct.CGMLST_THRESHOLD_MAX,
+								  description=ct.COMPUTECORE_LOCI_PRESENCE_THRESHOLD_DESCRIPTION)]
 
 SampleStep = Annotated[int,
-                 Field(default=1)]
+                 Field(default=1,
+                       description=ct.COMPUTECORE_SAMPLE_STEP_DESCRIPTION)]
 
-Permutation = Annotated[int,
-                        Field(default=ct.PERMUTATION_NUMBER_DEFAULT)]
+ComputeAccessory = Annotated[bool,
+                        Field(default=False,
+                              description=ct.COMPUTECORE_COMPUTE_ACCESSORY_DESCRIPTION)]
+
+RarefactionAnalysis = Annotated[bool,
+                        Field(default=False,
+                              description=ct.COMPUTECORE_RAREFACTION_ANALYSIS_DESCRIPTION)]
+
+PermutationNumber = Annotated[int,
+                        Field(default=ct.PERMUTATION_NUMBER_DEFAULT,
+                              description=ct.COMPUTECORE_PERMUTATION_NUMBER_DESCRIPTION)]
+
+PermutationSamples = Annotated[int,
+                        Field(default=ct.PERMUTATION_SAMPLES_DEFAULT,
+                              description=ct.COMPUTECORE_PERMUTATION_SAMPLES_DESCRIPTION)]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.COMPUTECORE_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
 
 ExcludeLoci = Annotated[str,
+                        Field(description=ct.COMPUTECORE_EXCLUDE_LOCI_DESCRIPTION),
                         AfterValidator(partial(gval.input_paths_exist,
                                                function=fo.exists,
 											   exception_str=ct.MISSING_EXCLUDE_LOCI)),
@@ -43,6 +78,7 @@ ExcludeLoci = Annotated[str,
 						AfterValidator(fo.list_input_files)]
 
 ExcludeGenomes = Annotated[str,
+                           Field(description=ct.COMPUTECORE_EXCLUDE_GENOMES_DESCRIPTION),
                            AfterValidator(partial(gval.input_paths_exist,
                                                   function=fo.exists,
 												  exception_str=ct.MISSING_EXCLUDE_GENOMES)),
@@ -54,18 +90,18 @@ ExcludeGenomes = Annotated[str,
 class ComputeCoreValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
+	output_directory: OutputDirectory
 	# Need to validate the profiles (header starting with FILE followed by loci IDs, header line followed by profiles, etc?)
-	profiles: gval.AllelicProfiles
+	profiles: AllelicProfiles
 	loci_presence_threshold: LociPresenceThreshold
 	sample_step: SampleStep
-	compute_accessory: gval.BooleanFlag
-	rarefaction_analysis: gval.BooleanFlag
-	permutation_number: Permutation
-	permutation_samples: int | None = None
-	cpu_cores: gval.CPUCores
-	exclude_loci: ExcludeLoci | None = None
-	exclude_genomes: ExcludeGenomes | None = None
+	compute_accessory: ComputeAccessory
+	rarefaction_analysis: RarefactionAnalysis
+	permutation_number: PermutationNumber
+	permutation_samples: PermutationSamples
+	cpu_cores: CPUCores
+	exclude_loci: ExcludeLoci
+	exclude_genomes: ExcludeGenomes
 
 	@model_validator(mode="after")
 	def check_exclude_loci(self):
@@ -75,7 +111,7 @@ class ComputeCoreValidator(BaseModel):
 			results_loci = results_loci[0].split("\t")[1:]
 			extra_loci = set(self.exclude_loci) - set(results_loci)
 			if len(extra_loci) > 0:
-				print(gct.INVALID_EXCLUDE_LOCI.format("\n".join(extra_loci)))
+				print(ct.INVALID_EXCLUDE_LOCI.format("\n".join(extra_loci)))
 
 		return self
 
@@ -86,6 +122,6 @@ class ComputeCoreValidator(BaseModel):
 			results_samples = fo.extract_column(self.profiles)
 			extra_samples = set(self.exclude_genomes) - set(results_samples)
 			if len(extra_samples) > 0:
-				print(gct.INVALID_EXCLUDE_SAMPLES.format("\n".join(extra_samples)))
+				print(ct.INVALID_EXCLUDE_SAMPLES.format("\n".join(extra_samples)))
 
 		return self

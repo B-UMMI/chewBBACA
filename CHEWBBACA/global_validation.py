@@ -23,6 +23,7 @@ from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
 					  AfterValidator)
+from pydantic_core import PydanticUndefined
 
 try:
 	import global_constants as gct
@@ -401,8 +402,10 @@ def verify_cpu_usage(cpu_value):
 	"""
 	# Determine number of cores/threads available in the system
 	system_ncores = multiprocessing.cpu_count()
-	if cpu_value == system_ncores:
-		print(gct.CPU_VALUE_WARNING.format(system_ncores))
+	if cpu_value > system_ncores:
+		sys.exit(gct.EXCEEDED_CPU.format(cpu_value, system_ncores))
+	elif cpu_value == system_ncores:
+		print(gct.CPU_VALUE_WARNING.format(cpu_value, system_ncores))
 
 	return cpu_value
 
@@ -746,10 +749,11 @@ def contains_results(results_directory, results_files_basenames):
 
 # Define reusable annotated types/Fields for argument validation in multiple modules
 OutputDirectory = Annotated[str,
+                            Field(description=""),
 							AfterValidator(parentdir_exists),
 							AfterValidator(create_output_directory)]
 
-InputFiles = Annotated[str,
+InputPath = Annotated[str,
 					   AfterValidator(partial(input_paths_exist,
 					                          function=fo.exists,
 											  exception_str=gct.MISSING_INPUT_ARG)),
@@ -816,22 +820,30 @@ TranslationTableValues = Annotated[list,
 BlastScoreRatioValues = Annotated[list,
                                   Field(default=[])]
 
-ClusteringOptions = Annotated[str,
-                              Field(default={}),
-                              AfterValidator(parse_parameter_string)]
-
 BLASTPath = Annotated[str | None, # Need to specify that the argument value may not be provided
                       Field(default=None, # Need to set default to None to really set arg value as None
-							validate_default=True), # Needs to be validated even if it is None
+							validate_default=True, # Needs to be validated even if it is None
+							description=gct.BLAST_PATH_DESCRIPTION),
 					  AfterValidator(check_blast),
 					  AfterValidator(check_blast_version)]
+
+CDSInput = Annotated[bool,
+                     Field(default=False,
+                           description=gct.CDS_INPUT_DESCRIPTION)]
+
+NoCleanup = Annotated[bool,
+                        Field(default=False,
+                              description=gct.NO_CLEANUP_DESCRIPTION)]
+
+NoCDSRemaining = Annotated[bool,
+                        Field(default=False,
+                              description=gct.NO_CDS_RENAMING_DESCRIPTION)]
 
 CPUCores = Annotated[int,
 					 Field(default=gct.CPU_CORES_DEFAULT,
 					       ge=gct.CPU_CORES_MIN,
 						   le=multiprocessing.cpu_count()),
 					 AfterValidator(verify_cpu_usage)]
-
 
 WordSize = Annotated[int,
 					 Field(default=gct.WORD_SIZE_DEFAULT,
@@ -898,3 +910,43 @@ class ClusteringArgs(BaseModel):
 
 # Field definition for the validated clustering arguments
 ValidatedClusteringOptions = Annotated[ClusteringArgs | None, Field(default=None)]
+
+
+# Create str with the defautl values for the gene prediction parameter=argument pairs
+# Added here to avoid circular imports
+def create_default_clustering_str():
+	default_clustering_config = ClusteringArgs.model_validate({}).model_dump()
+	default_clustering_options = []
+	for parameter, argument in default_clustering_config.items():
+		if type(argument) == list:
+			default_clustering_options.append(f'"{parameter}={','.join(argument)}"')
+		else:
+			default_clustering_options.append(f'"{parameter}={argument}"')
+
+	default_clustering_str = ' '.join(default_clustering_options)
+
+	return default_clustering_str
+
+
+ClusteringOptions = Annotated[str,
+                              Field(default=create_default_clustering_str(),
+                                    description=gct.CLUSTERING_OPTIONS_DESCRIPTION),
+                              AfterValidator(parse_parameter_string)]
+
+
+def get_field_help(model, field_name):
+	"""
+	"""
+	field = model.model_fields[field_name]
+	description = field.description or ""
+
+	# Append default if a valid defautl value is set
+	if field.default is not PydanticUndefined and field.default is not None:
+		return f"{description} (default: {field.default})."
+
+	return description
+
+
+def get_system_cpu_cores():
+	""""""
+	return multiprocessing.cpu_count()

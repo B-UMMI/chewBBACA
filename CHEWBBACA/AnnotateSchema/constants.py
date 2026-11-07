@@ -40,6 +40,36 @@ ANNOTATESCHEMA_ARGUMENT_TYPES = {
 	"no_cleanup": bool
 }
 
+# Parameter descriptions
+ANNOTATESCHEMA_SCHEMA_DIRECTORY_DESCRIPTION = ("Path to the schema's directory.")
+ANNOTATESCHEMA_OUTPUT_DIRECTORY_DESCRIPTION = ("Path to the output directory where the process will store intermediate "
+							 "files and save the final TSV file with the loci annotations.")
+ANNOTATESCHEMA_LOCI_LIST_DESCRIPTION = ("Path to a file with the list of loci in the schema that the process "
+							 "should find annotations for (one per line, full paths or loci IDs).")
+ANNOTATESCHEMA_PROTEIN_TABLE_DESCRIPTION = ("Path to the TSV file with coding sequence (CDS) coordinate data, "
+							 "`cds_coordinates.tsv`, created by the CreateSchema process.")
+ANNOTATESCHEMA_BLAST_SCORE_RATIO_DESCRIPTION = ("BLAST Score Ratio value. The BSR is only used when taxa names are "
+							 "provided to the --taxa parameter and local sequences are aligned "
+							 "against reference proteomes downloaded from UniProt. Annotations "
+							 "are selected based on a BSR >= than the specified value.")
+ANNOTATESCHEMA_TRANSLATION_TABLE_DESCRIPTION = ("Genetic code used to translate coding DNA sequences (CDSs). If no value"
+							 " is specified, the process tries to get the value stored in the schema "
+							 "config file. If the schema does not include a config file, the process "
+							 "uses the default translation table (11).")
+ANNOTATESCHEMA_CPU_CORES_DESCRIPTION = ("Number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the "
+							 "total number of available CPU cores/threads).")
+ANNOTATESCHEMA_PROTEOME_TAXA_DESCRIPTION = ("List of scientific names for a set of taxa. The process will download "
+							 "reference proteomes from UniProt associated to taxa names that contain "
+							 "any of the provided terms. The schema representative alleles are aligned "
+							 "against the reference proteomes to assign annotations based on high-BSR "
+							 "matches.")
+ANNOTATESCHEMA_PROTEOME_MATCHES_DESCRIPTION = ("Maximum number of proteome matches to report.")
+ANNOTATESCHEMA_UNIPROT_REST_API_DESCRIPTION = ("Search for annotations using UniProt's Proteins API.")
+ANNOTATESCHEMA_UNIPROT_REST_API_MATCHES_DESCRIPTION = ("Maximum number of matches retrieved from UniProt's Proteins API to report.")
+ANNOTATESCHEMA_NO_CLEANUP_DESCRIPTION = ("If provided, intermediate files generated during process execution "
+							 "are not removed at the end.")
+
 # UniProt Proteins API URL
 UNIPROT_PROTEINS_API = "https://www.ebi.ac.uk/proteins/api/proteins"
 # UniProt entry template URL

@@ -36,6 +36,41 @@ COMPUTECORE_ARGUMENT_TYPES = {
 	"exclude_genomes": str
 }
 
+# Parameter descriptions
+COMPUTECORE_PROFILES_DESCRIPTION = ("Path to the TSV file that contains the allelic profiles determined by "
+							 "the AlleleCall module.")
+COMPUTECORE_OUTPUT_DIRECTORY_DESCRIPTION = ("Path to the directory where the process will store the output files.")
+COMPUTECORE_LOCI_PRESENCE_THRESHOLD_DESCRIPTION = ("Loci/genes that constitute the core genome must be in a proportion of "
+							 "genomes that is at least equal to this value. Provide multiple values "
+							 "to compute the core genome for multiple threshold values.")
+COMPUTECORE_SAMPLE_STEP_DESCRIPTION = ("The allele calling results are processed iteratively to evaluate the "
+							 "impact of adding subsets of the results in computing the core genome. "
+							 "The step value controls the number of allelic profiles added in each "
+							 "iteration until all profiles are included.")
+COMPUTECORE_COMPUTE_ACCESSORY_DESCRIPTION = ("Determine the set of accessory loci. The accessory genome corresponds "
+							 "to all the loci not included in the core genome. The accessory genome "
+							 "is determined for each core genome threshold.")
+COMPUTECORE_RAREFACTION_ANALYSIS_DESCRIPTION = ("Perform rarefaction analysis to evaluate the stability of the core genome "
+							 "are randomly selected and the number of core loci (for the core genome) or "
+							 "total loci (for the pangenome) is computed for each subset from 1 to the "
+							 "total number of samples. The average number of core loci (for the core genome) "
+							 "or total loci (for the pangenome) is computed for each sample size subset "
+							 "using the values of all permutations to plot the rarefaction curve. The "
+							 "rarefaction analysis is performed for each threshold. A power law model "
+							 "is fitted to the rarefaction curve to estimate the stability of the core genome "
+							 "and the openness of the pangenome.")
+COMPUTECORE_PERMUTATION_NUMBER_DESCRIPTION = ("Number of permutations for the rarefaction analysis. The rarefaction analysis "
+							 "is repeated a number of times equal to the value provided to this parameter.")
+COMPUTECORE_PERMUTATION_SAMPLES_DESCRIPTION = ("Number of samples randomly selected for each permutation. All samples will be "
+							 "used if this value is not provided.")
+COMPUTECORE_CPU_CORES_DESCRIPTION = ("Maximum number of CPU cores/threads that will be used to run the process "
+							 "(chewie resets to a lower value if it is equal to or exceeds the total "
+							 "number of available CPU cores/threads).")
+COMPUTECORE_EXCLUDE_LOCI_DESCRIPTION = ("Path to a file with a list of loci identifiers to exclude from the analysis "
+							 "(one locus identifier per line).")
+COMPUTECORE_EXCLUDE_GENOMES_DESCRIPTION = ("Path to a file with a list of genome identifiers to exclude from the analysis "
+							 "(one genome identifier per line).")
+
 # Default loci presence thresholds used to compute the cgMLST
 CGMLST_THRESHOLDS = [0.95, 0.99, 1]
 CGMLST_THRESHOLD_MIN = 0

@@ -9,26 +9,87 @@ This file includes the Pydantic classes used to valdiate the argument values pas
 
 
 import sys
-from pydantic import (BaseModel, ConfigDict, model_validator)
+from typing import Annotated
+from functools import partial
+
+from pydantic import (BaseModel,
+                      Field,
+                      ConfigDict,
+                      AfterValidator,
+					  model_validator)
 
 
+import CHEWBBACA.GetAlleles.constants as ct
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.global_validation as gval
 from CHEWBBACA.utils import file_operations as fo
+
+
+# Annotated Fields
+AllelicProfiles = Annotated[str,
+                            Field(description=ct.GETALLELES_ALLELIC_PROFILES_DESCRIPTION),
+                            AfterValidator(partial(gval.input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=gct.PROFILES_FILE_MISSING))]
+
+OutputDirectory = Annotated[str,
+                            Field(description=ct.GETALLELES_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+ChewieSchema = Annotated[str,
+                         Field(description=ct.GETALLELES_SCHEMA_DIRECTORY_DESCRIPTION),
+						 AfterValidator(partial(gval.input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(gval.schema_includes_fasta),
+						 AfterValidator(gval.schema_check_genes_list),
+						 AfterValidator(gval.schema_check_config),
+						 AfterValidator(gval.schema_check_short)]
+
+LociList = Annotated[str,
+                     Field(description=ct.GETALLELES_LOCI_LIST_DESCRIPTION),
+					 AfterValidator(partial(gval.input_paths_exist,
+					                        function=fo.exists,
+											exception_str=gct.MISSING_LOCI_LIST)),
+					 AfterValidator(gval.input_is_fasta),
+					 AfterValidator(fo.list_input_files)]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.GETALLELES_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
+
+TranslateAlleles = Annotated[bool,
+                        Field(default=False,
+                              description=ct.GETALLELES_TRANSLATE_ALLELES_DESCRIPTION)]
+
+TranslationTable = Annotated[int,
+							 Field(default=gct.GENETIC_CODE_DEFAULT,
+							       description=ct.GETALLELES_TRANSLATION_TABLE_DESCRIPTION),
+							 AfterValidator(partial(gval.validate_choice,
+							                        valid_options=gct.GENETIC_CODES,
+													exception_str=gct.INVALID_GENETIC_CODE))]
+
+Distinct = Annotated[bool,
+                        Field(default=False,
+                              description=ct.GETALLELES_DISTINCT_DESCRIPTION)]
 
 
 # Main validation class
 class GetAllelesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	allelic_profiles: gval.AllelicProfiles
-	schema_directory: gval.ChewieSchema
-	loci_list: gval.LociList | None = None
-	cpu_cores: gval.CPUCores
-	translate_alleles: gval.BooleanFlag
-	translation_table: gval.TranslationTable
-	distinct: gval.BooleanFlag
+	output_directory: OutputDirectory
+	allelic_profiles: AllelicProfiles
+	schema_directory: ChewieSchema
+	loci_list: LociList
+	cpu_cores: CPUCores
+	translate_alleles: TranslateAlleles
+	translation_table: TranslationTable
+	distinct: Distinct
 
 	# Use translation table defined in training file
 	@model_validator(mode="after")

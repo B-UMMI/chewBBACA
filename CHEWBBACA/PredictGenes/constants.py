@@ -9,7 +9,7 @@ This file stores constants used by the PredictGenes module.
 
 
 # Parameter names
-PREDICTGENES_INPUT_FILES_ARGNAME = "input_files"
+PREDICTGENES_INPUT_PATH_ARGNAME = "input_path"
 PREDICTGENES_OUTPUT_DIRECTORY_ARGNAME = "output_directory"
 PREDICTGENES_GENE_PREDICTOR_ARGNAME = "gene_predictor"
 PREDICTGENES_GENE_PREDICTION_OPTIONS_ARGNAME = "gene_prediction_options"
@@ -18,13 +18,31 @@ PREDICTGENES_CPU_CORES_ARGNAME = "cpu_cores"
 
 # Argument types
 PREDICTGENES_ARGUMENT_TYPES = {
-	"input_files": str,
+	"input_path": str,
 	"output_directory": str,
 	"gene_predictor": str,
 	"gene_prediction_options": str,
 	"translation_table": int,
 	"cpu_cores": int,
 }
+
+# Parameter descriptions
+PREDICTGENES_INPUT_PATH_DESCRIPTION = ("Path to the directory that contains the input files or to a file "
+							 "with a list of full paths to the input files, one per line. Input "
+							 "files must be in FASTA format.")
+PREDICTGENES_OUTPUT_DIRECTORY_DESCRIPTION = ("Path to the output directory where the process will store the files with the predicted genes.")
+PREDICTGENES_GENE_PREDICTOR_DESCRIPTION = ("Specify which gene prediction software to use. Default is Pyrodigal "
+							 "to predict genes from prokaryotic genomes. AUGUSTUS can predict genes "
+							 "for prokaryotic and eukaryotic genomes.")
+PREDICTGENES_GENE_PREDICTION_OPTIONS_DESCRIPTION = ("List of arguments passed to configure the gene prediction. When providing "
+							 "genome assemblies in FASTA format, the list of arguments for each parameter "
+							 "used to configure the gene prediction can be passed as the long format of "
+							 "the parameter name followed by the argument value.")
+PREDICTGENES_TRANSLATION_TABLE_DESCRIPTION = ("The translation table, matching a specific genetic code, used for gene "
+							 "prediction. This value is ignored if a Pyrodigal training file is passed to "
+							 "'--gpo, --gene-prediction-options'. In that case, the translation table "
+							 "specified in the Pyrodigal training file is used.")
+PREDICTGENES_CPU_CORES_DESCRIPTION = ("Number of CPU cores that will be used to run the process.")
 
 # Gene predictor options
 GENE_PREDICTORS = ["pyrodigal", "augustus"]

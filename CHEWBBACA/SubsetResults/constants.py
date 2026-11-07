@@ -26,6 +26,18 @@ SUBSETRESULTS_ARGUMENT_TYPES = {
 	"invert_samples": bool
 }
 
+# Parameter descriptions
+SUBSETRESULTS_RESULTS_FILES_DESCRIPTION = ("Path to the directory containing the files to be subsetted.")
+SUBSETRESULTS_OUTPUT_DIRECTORY_DESCRIPTION = ("Path to the output directory.")
+SUBSETRESULTS_LOCI_LIST_DESCRIPTION = ("Path to a TXT/TSV file containing a list of loci to select, one locus identifier "
+							 "per line. If the file contains multiple columns, the loci identifiers must be in "
+							 "the first column.")
+SUBSETRESULTS_SAMPLE_LIST_DESCRIPTION = ("Path to a TXT/TSV file containing a list of samples to select, one sample identifier "
+							 "per line. If the file contains multiple columns, the sample identifiers must be in "
+							 "the first column.")
+SUBSETRESULTS_INVERT_LOCI_DESCRIPTION = ("If provided, the process will select the loci that are not in the input loci list.")
+SUBSETRESULTS_INVERT_SAMPLES_DESCRIPTION = ("If provided, the process will select the samples that are not in the input samples list.")
+
 # Exceptions
 SUBSETRESULTS_MISSING_LISTS_EXCEPTION = ('Did not provide a list of loci or samples. Please '
 										 'provide at least one of those lists to subset results.')

@@ -12,6 +12,7 @@ import sys
 import zlib
 import hashlib
 from typing import Annotated
+from functools import partial
 
 from pydantic import (BaseModel,
 					  Field,
@@ -19,6 +20,7 @@ from pydantic import (BaseModel,
 					  AfterValidator,
 					  model_validator)
 
+import CHEWBBACA.global_constants as gct
 import CHEWBBACA.global_validation as gval
 import CHEWBBACA.HashProfiles.constants as ct
 from CHEWBBACA.utils import file_operations as fo
@@ -55,25 +57,55 @@ def validate_hashing_algo(hashing_algo):
 
 
 # Annotated Fields
+OutputDirectory = Annotated[str,
+                            Field(description=ct.HASHPROFILES_OUTPUT_DIRECTORY_DESCRIPTION),
+							AfterValidator(gval.parentdir_exists),
+							AfterValidator(gval.create_output_directory)]
+
+AllelicProfiles = Annotated[str,
+                            Field(description=ct.HASHPROFILES_ALLELIC_PROFILES_DESCRIPTION),
+                            AfterValidator(partial(gval.input_paths_exist,
+                                                   function=fo.exists,
+												   exception_str=gct.PROFILES_FILE_MISSING))]
+
+ChewieSchema = Annotated[str,
+                         Field(description=ct.HASHPROFILES_SCHEMA_DIRECTORY_DESCRIPTION),
+						 AfterValidator(partial(gval.input_paths_exist,
+						                        function=fo.exists,
+												exception_str=gct.SCHEMA_PATH_MISSING)),
+						 AfterValidator(gval.schema_includes_fasta),
+						 AfterValidator(gval.schema_check_genes_list),
+						 AfterValidator(gval.schema_check_config),
+						 AfterValidator(gval.schema_check_short)]
+
 HashingAlgo = Annotated[str,
                         Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
-                              validate_default=True),
+                              validate_default=True,
+							  description=ct.HASHPROFILES_HASHING_ALGO_DESCRIPTION),
 						AfterValidator(validate_hashing_algo)]
 
 NrowChunk = Annotated[int,
-                      Field(default=100)]
+                      Field(default=100,
+                            description=ct.HASHPROFILES_NROW_CHUNK_DESCRIPTION)]
+
+CPUCores = Annotated[int,
+					 Field(default=gct.CPU_CORES_DEFAULT,
+					       ge=gct.CPU_CORES_MIN,
+						   le=gval.get_system_cpu_cores(),
+						   description=ct.HASHPROFILES_CPU_CORES_DESCRIPTION),
+					 AfterValidator(gval.verify_cpu_usage)]
 
 
 # Main validation class
 class HashProfilesValidator(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
-	output_directory: gval.OutputDirectory
-	allelic_profiles: gval.AllelicProfiles
-	schema_directory: gval.ChewieSchema
+	output_directory: OutputDirectory
+	allelic_profiles: AllelicProfiles
+	schema_directory: ChewieSchema
 	hashing_algo: HashingAlgo
 	nrow_chunk: NrowChunk
-	cpu_cores: gval.CPUCores
+	cpu_cores: CPUCores
 
 	# Determine if all loci IDs in the profiles are in the schema
 	@model_validator(mode="after")

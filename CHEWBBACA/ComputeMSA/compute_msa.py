@@ -320,7 +320,6 @@ def main(config):
 		get_alleles_config = GetAllelesValidator(output_directory=get_alleles_outdir,
 		                                         allelic_profiles=config.input_path,
 												 schema_directory=config.schema_directory,
-												 loci_list=None,
 												 cpu_cores=config.cpu_cores,
 												 translate_alleles=True,
 												 translation_table=config.translation_table,

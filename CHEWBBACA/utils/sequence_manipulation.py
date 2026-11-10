@@ -86,7 +86,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
 	# try to translate the reverse complement
 	elif method == 'revcomp':
 		try:
-			myseq = im.reverse_complement(myseq, gct.DNA_BASES)
+			myseq = im.reverse_complement(myseq, gct.NUCLEOTIDES)
 			protseq = translate_sequence(myseq, table_id)
 		except Exception as argh:
 			return argh
@@ -101,7 +101,7 @@ def translate_dna_aux(dna_sequence, method, table_id):
 	elif method == 'revrevcomp':
 		try:
 			myseq = im.reverse_str(myseq)
-			myseq = im.reverse_complement(myseq, gct.DNA_BASES)
+			myseq = im.reverse_complement(myseq, gct.NUCLEOTIDES)
 			protseq = translate_sequence(myseq, table_id)
 		except Exception as argh:
 			return argh
@@ -150,7 +150,7 @@ def translate_dna(dna_sequence, table_id, min_len):
 	translating_methods = ['original', 'revcomp', 'rev', 'revrevcomp']
 
 	# check if the sequence has ambiguous bases
-	valid_dna = im.check_str_alphabet(original_seq, gct.DNA_BASES)
+	valid_dna = im.check_str_alphabet(original_seq, gct.NUCLEOTIDES)
 	if valid_dna is not True:
 		return 'ambiguous or invalid characters'
 

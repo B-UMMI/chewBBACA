@@ -78,8 +78,5 @@ CREATESCHEMA_CPU_CORES_DESCRIPTION = ("Number of CPU cores that will be used to 
 # different runs
 CREATESCHEMA_CLUSTERING_NGROUPS = 40
 
-# CreateSchema exclusive section headers
-FINAL_BLASTp = "Final BLASTp"
-
 # Default name for the folder containing the schema seeds created by the CreateSchema module
 SCHEMA_NAME_DEFAULT = "schema_seed"

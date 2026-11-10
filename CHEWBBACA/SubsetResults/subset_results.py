@@ -35,12 +35,14 @@ def main(config):
 		Path to a file with a list of loci to select, one identifier per line (without file extension).
 	sample_list : str
 		Path to a file with a list of samples to select, one identifier per line (without file extension).
-	inverse_loci : bool
+	invert_loci : bool
 		If provided, the process will select the loci that are not in the input loci list.
-	inverse_samples : bool
+	invert_samples : bool
 		If provided, the process will select the samples that are not in the input sample list.
 	"""
 	print(f'Listing files in {config.results_files}...')
+
+	print(config)
 
 	# Need to list the files in each directory and group them based on filename
 	file_list = {file_type: None for file_type in gct.SUPPORTED_RESULTS_FILES}
@@ -66,23 +68,23 @@ def main(config):
 
 	if len(file_list) == 0:
 		sys.exit(ct.SUBSETRESULTS_MISSING_FILES_EXCEPTION)
-	elif 'results_alleles.tsv' not in file_list:
+	elif gct.ALLELIC_PROFILES_BASENAME not in file_list:
 		sys.exit(ct.SUBSETRESULTS_MISSING_PROFILES_EXCEPTION)
 
 	# Get list of loci and samples from the allelic profiles
-	print(f'Getting the complete list of loci from {file_list['results_alleles.tsv']}...')
-	loci = fo.read_lines(file_list['results_alleles.tsv'], strip=True, num_lines=1)
+	print(f'Getting the complete list of loci from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...')
+	loci = fo.read_lines(file_list[gct.ALLELIC_PROFILES_BASENAME], strip=True, num_lines=1)
 	loci = loci[0].split('\t')[1:]
 	print(f'Input data includes results for {len(loci)} loci.')
 
-	print(f'Getting the complete list of samples from {file_list['results_alleles.tsv']}...')
-	samples = pd.read_csv(file_list['results_alleles.tsv'], usecols=['FILE'], sep='\t', dtype=str)
+	print(f'Getting the complete list of samples from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...')
+	samples = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], usecols=['FILE'], sep='\t', dtype=str)
 	samples = samples['FILE'].tolist()
 	print(f'Input data includes results for {len(samples)} samples.')
 
 	if config.loci_list:
 		loci_subset = config.loci_list
-		# Determine if any of the loci IDs in the list are not present in input results
+		# Determine if any of the loci IDs in the list are not present in the input results
 		loci_to_keep = set(loci_subset).intersection(set(loci))
 		if len(loci_to_keep) < len(loci_subset):
 			missing_loci = set(loci_subset).difference(set(loci))
@@ -90,8 +92,8 @@ def main(config):
 		 		  f'present in the input results: {', '.join(missing_loci)}')
 			sys.exit(ct.SUBSETRESULTS_ABSENT_LOCI_EXCEPTION)
 
-		if config.inverse_loci is True:
-			print('Provided `--inverse-loci`. Inverting loci list...')
+		if config.invert_loci is True:
+			print('Provided `--invert-loci`. Inverting loci list...')
 			loci_to_keep = set(loci).difference(set(loci_subset))
 	else:
 		loci_to_keep = loci
@@ -111,8 +113,8 @@ def main(config):
 				  f'present in the input results: {', '.join(missing_samples)}')
 			sys.exit(ct.SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION)
 
-		if config.inverse_samples is True:
-			print('Provided `--inverse-samples`. Inverting list of samples...')
+		if config.invert_samples is True:
+			print('Provided `--invert-samples`. Inverting list of samples...')
 			# It is easier to use a list of sample indexes to skip to subset the TSV files with profiles
 			# So, we use that for that type of file and the actual loci subset for other file types
 			# Need to +1 since Pandas uses 1-index

@@ -94,8 +94,11 @@ def write_schema_config(config, chewie_version, output_directory):
 	params[gct.SCHEMA_CONFIG_CLUSTERING_REPRESENTATIVEFILTER_ARGNAME] = [config.validated_clustering_options.representative_filter]
 	params[gct.SCHEMA_CONFIG_CLUSTERING_INTRAFILTER_ARGNAME] = [config.validated_clustering_options.intra_filter]
 	if config.gene_predictor == 'pyrodigal':
-		# Determine PTF checksum
-		ptf_hash = fo.hash_file(config.validated_gene_prediction_options.pyrodigal_training_file, 'blake2b')
+		if config.validated_gene_prediction_options.pyrodigal_training_file is not None:
+			# Determine PTF checksum
+			ptf_hash = fo.hash_file(config.validated_gene_prediction_options.pyrodigal_training_file, 'blake2b')
+		else:
+			ptf_hash = None
 		params[gct.SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME] = [ptf_hash]
 
 	config_file = os.path.join(output_directory, gct.SCHEMA_CONFIG_BASENAME)

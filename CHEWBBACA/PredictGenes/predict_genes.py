@@ -50,7 +50,7 @@ def exclude_records(input_file, input_id, records_ids, output_directory, delete_
 
 def main(config):
 	# Sort file paths
-	input_files = im.sort_iterable(config.input_files, sort_key=str.lower)
+	input_files = im.sort_iterable(config.input_path, sort_key=str.lower)
 	print('Number of inputs: {0}'.format(len(input_files)))
 
 	# Compute assembly statistics

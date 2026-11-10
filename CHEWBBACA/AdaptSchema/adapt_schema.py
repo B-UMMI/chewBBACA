@@ -542,7 +542,7 @@ def main(config):
 	stats_loci_file = '{0}/{1}_{2}'.format(parent_directory,
 										   schema_basename,
 										   'summary_stats.tsv')
-	stats_lines = [ct.ADAPTSCHEMA_STATS_HEADER] + stats_lines
+	stats_lines = [im.join_list(ct.ADAPTSCHEMA_STATS_HEADER, "\t")] + stats_lines
 	fo.write_lines(stats_lines, stats_loci_file)
 
 	print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')

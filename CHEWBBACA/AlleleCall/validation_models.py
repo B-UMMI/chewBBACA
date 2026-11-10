@@ -56,7 +56,7 @@ ChewieSchema = Annotated[str,
 						 AfterValidator(gval.schema_check_short)]
 
 LociList = Annotated[str,
-                     Field(description=ct.ALLELECALL_LOCI_LIST_DESCRIPTION),
+                     Field(default=None, description=ct.ALLELECALL_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,
 											exception_str=gct.MISSING_LOCI_LIST)),
@@ -154,7 +154,7 @@ class AlleleCallValidator(BaseModel):
 	output_missing: OutpuMissing
 	output_novel: OutputNovel
 	output_masked_profiles: OutputMaskedProfiles
-	no_cds_renaming: gval.NoCDSRemaining
+	no_cds_renaming: gval.NoCDSRenaming
 	force_continue: ForceContinue
 	execution_mode: AllelecallMode
 	cpu_cores: CPUCores

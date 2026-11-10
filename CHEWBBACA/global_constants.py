@@ -29,17 +29,47 @@ DOCUMENTATION = "https://chewbbaca.readthedocs.io/en/latest/index.html"
 CONTACTS = "imm-bioinfo@medicina.ulisboa.pt"
 
 # Module names and brief descriptions
-ADAPTSCHEMA_MODULE_NAME = "AdaptSchema"
-ADAPTSCHEMA_MODULE_SHORT_DESCRIPTION = "Adapt schemas for use with chewBBACA."
+PREDICTGENES_MODULE_NAME = "PredictGenes"
+PREDICTGENES_MODULE_SHORT_DESCRIPTION = "Predict genes for genome assemblies."
+
+CREATESCHEMA_MODULE_NAME = "CreateSchema"
+CREATESCHEMA_MODULE_SHORT_DESCRIPTION = "Create a schema based on genome assemblies or coding sequences."
 
 ALLELECALL_MODULE_NAME = "AlleleCall"
 ALLELECALL_MODULE_SHORT_DESCRIPTION = "Determine allelic profiles."
 
+SCHEMAEVALUATOR_MODULE_NAME = "SchemaEvaluator"
+SCHEMAEVALUATOR_MODULE_SHORT_DESCRIPTION = "Build an interactive report for schema evaluation."
+
 ALLELECALLEVALUATOR_MODULE_NAME = "AlleleCallEvaluator"
 ALLELECALLEVALUATOR_MODULE_SHORT_DESCRIPTION = "Build an interactive report for allele calling evaluation."
 
+COMPUTECORE_MODULE_NAME = "ComputeCore"
+COMPUTECORE_MODULE_SHORT_DESCRIPTION = "Determine the set of core loci based on allele calling results."
+
+SUBSETRESULTS_MODULE_NAME = "SubsetResults"
+SUBSETRESULTS_MODULE_SHORT_DESCRIPTION = "Subset results files."
+
+MERGERESULTS_MODULE_NAME = "MergeResults"
+MERGERESULTS_MODULE_SHORT_DESCRIPTION = "Merge results files."
+
+HASHPROFILES_MODULE_NAME = "HashProfiles"
+HASHPROFILES_MODULE_SHORT_DESCRIPTION = "Hash allelic profiles."
+
+GETALLELES_MODULE_NAME = "GetAlleles"
+GETALLELES_MODULE_SHORT_DESCRIPTION = "Get allele sequences."
+
+ADAPTSCHEMA_MODULE_NAME = "AdaptSchema"
+ADAPTSCHEMA_MODULE_SHORT_DESCRIPTION = "Adapt schemas for use with chewBBACA."
+
 ANNOTATESCHEMA_MODULE_NAME = "AnnotateSchema"
 ANNOTATESCHEMA_MODULE_SHORT_DESCRIPTION = "Retrieve annotations for loci in a schema."
+
+COMPUTEDISTANCES_MODULE_NAME = "ComputeDistances"
+COMPUTEDISTANCES_MODULE_SHORT_DESCRIPTION = "Compute pairwise distances based on allele calling results."
+
+COMPUTEMSA_MODULE_NAME = "ComputeMSA"
+COMPUTEMSA_MODULE_SHORT_DESCRIPTION = "Compute Multiple Sequence Alignments."
 
 DOWNLOADSCHEMA_MODULE_NAME = "DownloadSchema"
 DOWNLOADSCHEMA_MODULE_SHORT_DESCRIPTION = "Download schemas from Chewie-NS."
@@ -52,36 +82,6 @@ SYNCSCHEMA_MODULE_SHORT_DESCRIPTION = "Synchronize local schemas with the remote
 
 NSSTATS_MODULE_NAME = "NSStats"
 NSSTATS_MODULE_SHORT_DESCRIPTION = "Retrieve basic species and schema information from Chewie-NS."
-
-COMPUTECORE_MODULE_NAME = "ComputeCore"
-COMPUTECORE_MODULE_SHORT_DESCRIPTION = "Determine the set of core loci based on allele calling results."
-
-COMPUTEDISTANCES_MODULE_NAME = "ComputeDistances"
-COMPUTEDISTANCES_MODULE_SHORT_DESCRIPTION = "Compute pairwise distances based on allele calling results."
-
-COMPUTEMSA_MODULE_NAME = "ComputeMSA"
-COMPUTEMSA_MODULE_SHORT_DESCRIPTION = "Compute Multiple Sequence Alignments."
-
-CREATESCHEMA_MODULE_NAME = "CreateSchema"
-CREATESCHEMA_MODULE_SHORT_DESCRIPTION = "Create a schema based on genome assemblies or coding sequences."
-
-GETALLELES_MODULE_NAME = "GetAlleles"
-GETALLELES_MODULE_SHORT_DESCRIPTION = "Get allele sequences."
-
-HASHPROFILES_MODULE_NAME = "HashProfiles"
-HASHPROFILES_MODULE_SHORT_DESCRIPTION = "Hash allelic profiles."
-
-MERGERESULTS_MODULE_NAME = "MergeResults"
-MERGERESULTS_MODULE_SHORT_DESCRIPTION = "Merge results files."
-
-PREDICTGENES_MODULE_NAME = "PredictGenes"
-PREDICTGENES_MODULE_SHORT_DESCRIPTION = "Predict genes for genome assemblies."
-
-SCHEMAEVALUATOR_MODULE_NAME = "SchemaEvaluator"
-SCHEMAEVALUATOR_MODULE_SHORT_DESCRIPTION = "Build an interactive report for schema evaluation."
-
-SUBSETRESULTS_MODULE_NAME = "SubsetResults"
-SUBSETRESULTS_MODULE_SHORT_DESCRIPTION = "Subset results files."
 
 # BLAST Score Ratio default values
 # Value must be contained in the [0.0, 1.0] interval
@@ -187,10 +187,9 @@ NS_CONFIG_BASENAME = ".ns_config" # Pickle file added to schemas downloaded to C
 
 # List of valid files for the SubsetResutls and MergeResults modules
 # Includes all standard files created by the AlleleCall module plus the ones created with specific parameters
-SUPPORTED_RESULTS_FILES = [ALLELIC_PROFILES_BASENAME, COORDINATES_PROFILES_BASENAME, SAMPLE_STATISTICS_BASENAME,
-                           LOCI_STATS_BASENAME, INVALID_CDS_BASENAME, GENE_COORDINATES_BASENAME, MISSING_FASTA_BASENAME,
-						   MISSING_TSV_BASENAME, UNCLASSIFIED_BASENAME, PARALOGOUS_COUNTS_BASENAME, PARALOGOUS_TABLE_BASENAME,
-						   INFERRED_ALLELES_BASENAME, PRESENCE_ABSENCE_PROFILES_BASENAME]
+SUPPORTED_RESULTS_FILES = [ALLELIC_PROFILES_BASENAME, COORDINATES_PROFILES_BASENAME, PRESENCE_ABSENCE_PROFILES_BASENAME, LOCI_STATS_BASENAME, SAMPLE_STATISTICS_BASENAME,
+                           GENE_COORDINATES_BASENAME, PARALOGOUS_COUNTS_BASENAME, PARALOGOUS_TABLE_BASENAME, MISSING_TSV_BASENAME, MISSING_FASTA_BASENAME,
+						   INFERRED_ALLELES_BASENAME, INVALID_CDS_BASENAME, UNCLASSIFIED_BASENAME]
 
 # Names for the schema config parameters
 SCHEMA_CONFIG_BLAST_SCORE_RATIO_ARGNAME = "blast_score_ratio"
@@ -422,3 +421,5 @@ PROFILES_FILE_MISSING = ("The path provided to the TSV file with allelic profile
 
 FORCE_TRAINING_FILE = ("Provided a Pyrodigal training file. Ignoring the translation table value previously set "
                        "({0}) and using the genetic code defined in the training file ({1}).")
+
+LOCI_PRESENCE_VALUE_OUT_OF_LIMITS = ("At least one of the loci presence threshold values ({0}) is not within the accepted interval.")

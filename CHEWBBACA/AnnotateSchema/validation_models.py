@@ -39,7 +39,7 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.create_output_directory)]
 
 LociList = Annotated[str,
-                     Field(description=ct.ANNOTATESCHEMA_LOCI_LIST_DESCRIPTION),
+                     Field(default=None, description=ct.ANNOTATESCHEMA_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,
 											exception_str=gct.MISSING_LOCI_LIST)),

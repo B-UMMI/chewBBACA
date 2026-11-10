@@ -808,12 +808,12 @@ def list_input_files(input_path):
 	"""
 	if os.path.isfile(input_path):
 		# Read list of input files
-		input_files = [line[0] for line in fo.read_tabular(input_path)]
+		input_files = [line[0] for line in read_tabular(input_path)]
 	# Input path is for a directory
 	elif os.path.isdir(input_path):
 		# List absolute paths
 		# Only keep paths to files
-		input_files = [file for file in fo.listdir(input_path, full_path=True)
+		input_files = [file for file in listdir(input_path, full_path=True)
 		               if os.path.isdir(file) is False]
 
 	return input_files

@@ -26,6 +26,7 @@ from collections import Counter
 import CHEWBBACA.global_constants as gct
 from CHEWBBACA.ComputeMSA import compute_msa
 import CHEWBBACA.SchemaEvaluator.constants as ct
+from CHEWBBACA.ComputeMSA.validation_models import ComputeMSAValidator
 from CHEWBBACA.utils import (
 	file_operations as fo,
 	fasta_operations as fao,
@@ -590,7 +591,7 @@ def main(config):
 	# Sort list of schema loci
 	schema_files = sorted(config.loci_list[1])
 	# Map basename to full path
-	loci_basenames = {fo.file_basename(file, False): file for file in config.loci_list[0]}
+	loci_basenames = {fo.file_basename(file, False): file for file in config.loci_list[1]}
 
 	# Check if the schema was created with chewBBACA
 	if config.chewie_schema is not False:
@@ -736,14 +737,30 @@ def main(config):
 		if len(fo.listdir(protein_files_dir)) > 0:
 			# Need to pass complete MAFFT default parameters defined in constants.py to create tree output
 			print("Calling the ComputeMSA module to compute the loci MSAs...")
-			msa_files_dir = compute_msa.main(protein_files_dir, temp_directory, None, False, False,
-						config.translation_table, config.cpu_cores, False, "exclude", "exclude", ' '.join(gct.MAFFT_DEFAULT_PARAMETERS), True, True)
-			msa_files_dir = fo.join_paths(msa_files_dir, ["protein"])
+			# Create config object to pass to ComputeMSA
+			compute_msa_outdir = fo.join_paths(temp_directory, ["MSAs"])
+			compute_msa_config = ComputeMSAValidator(output_directory=compute_msa_outdir,
+			                                         input_path=protein_files_dir,
+													 schema_directory=None,
+													 dna_msa=False,
+													 output_variable=False,
+													 translation_table=config.translation_table,
+													 cpu_cores=config.cpu_cores,
+													 only_loci_msas=False,
+													 gaps="exclude",
+													 ambiguous="exclude",
+													 custom_mafft_options=' '.join(gct.MAFFT_DEFAULT_PARAMETERS),
+													 protein_input=True,
+													 no_cleanup=True)
+
+			compute_msa.main(compute_msa_config)
+
+			msa_files_dir = fo.join_paths(compute_msa_outdir, ["MSAs", "protein"])
 			msa_files = fo.listdir(msa_files_dir, full_path=True)
 			msa_files_dict = {fo.file_basename(f, False).replace("_distinct", ''): f for f in msa_files}
 
 			# Copy tree files to diretory with MSA files
-			tree_files_dir = fo.join_paths(temp_directory, ["input_files"])
+			tree_files_dir = fo.join_paths(temp_directory, ["MSAs", "input_files"])
 			tree_files = fo.listdir(tree_files_dir, full_path=True)
 			tree_files = fo.filter_by_extension(tree_files, [".tree"])[0]
 			for tf in tree_files:

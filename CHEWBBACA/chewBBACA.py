@@ -4,8 +4,8 @@
 Purpose
 -------
 
-This is the main script of the chewBBACA suite. It parses the options and 
-arguments provided through the command line and calls the specified module.
+This is the main script of the chewBBACA suite. It parses the options and arguments 
+provided through the command line to call the specified module.
 """
 
 
@@ -55,7 +55,7 @@ class ModifiedHelpFormatter(argparse.HelpFormatter):
 
 @process_timer
 def run_predict_genes():
-	"""Run the PredictGenes module to predict genes for genome assemblies."""
+	"""Predict genes for genome assemblies."""
 
 	# For development without installing run "python -m CHEWBBACA.chewBBACA PredictGenes -h" from the top directory
 	from CHEWBBACA.PredictGenes import constants as ct
@@ -352,7 +352,7 @@ def run_allele_call():
 
 @process_timer
 def run_evaluate_schema():
-	"""Run the SchemaEvaluator module to evaluate a typing schema."""
+	"""Build an interactive report for schema evaluation."""
 
 	from CHEWBBACA.SchemaEvaluator import constants as ct
 	from CHEWBBACA.SchemaEvaluator import validation_models as vm
@@ -431,7 +431,7 @@ def run_evaluate_schema():
 
 @process_timer
 def run_evaluate_calls():
-	"""Run the AlleleCallEvaluator module to evaluate allele calling results."""
+	"""Build an interactive report for allele calling evaluation."""
 
 	from CHEWBBACA.AlleleCallEvaluator import constants as ct
 	from CHEWBBACA.AlleleCallEvaluator import validation_models as vm
@@ -504,7 +504,7 @@ def run_evaluate_calls():
 
 @process_timer
 def run_compute_core():
-	"""Run the ComputeCore module to determine the set of core loci based on allele calling results."""
+	"""Determine the set of core loci based on allele calling results."""
 
 	from CHEWBBACA.ComputeCore import constants as ct
 	from CHEWBBACA.ComputeCore import validation_models as vm
@@ -582,7 +582,7 @@ def run_compute_core():
 
 @process_timer
 def run_subset_results():
-	"""Run the SubsetResults module to subset the data in files created by chewBBACA based on a list of loci and/or sample identifiers."""
+	"""Subset results files."""
 
 	from CHEWBBACA.SubsetResults import constants as ct
 	from CHEWBBACA.SubsetResults import validation_models as vm
@@ -635,7 +635,7 @@ def run_subset_results():
 
 @process_timer
 def run_merge_results():
-	"""Run the MergeResults module to merge results files created by chewBBACA."""
+	"""Merge results files."""
 
 	from CHEWBBACA.MergeResults import constants as ct
 	from CHEWBBACA.MergeResults import validation_models as vm
@@ -673,7 +673,7 @@ def run_merge_results():
 
 @process_timer
 def run_hash_profiles():
-	"""Run the HashProfiles module to hash allelic profiles."""
+	"""Hash allelic profiles."""
 
 	from CHEWBBACA.HashProfiles import constants as ct
 	from CHEWBBACA.HashProfiles import validation_models as vm
@@ -726,7 +726,7 @@ def run_hash_profiles():
 
 @process_timer
 def run_get_alleles():
-	"""Run the GetAlleles module to create FASTA files containing the alleles identified by the AlleleCall module."""
+	"""Get allele sequences."""
 
 	from CHEWBBACA.GetAlleles import constants as ct
 	from CHEWBBACA.GetAlleles import validation_models as vm
@@ -789,7 +789,7 @@ def run_get_alleles():
 
 @process_timer
 def run_adapt_schema():
-	"""Run the AdaptSchema module to adapt a typing schema."""
+	"""Adapt schemas for use with chewBBACA."""
 
 	from CHEWBBACA.AdaptSchema import constants as ct
 	from CHEWBBACA.AdaptSchema import validation_models as vm
@@ -877,7 +877,7 @@ def run_adapt_schema():
 
 @process_timer
 def run_annotate_schema():
-	"""Run the AnnotateSchema module to annotate loci in a schema."""
+	"""Retrieve annotations for loci in a schema."""
 
 	from CHEWBBACA.AnnotateSchema import constants as ct
 	from CHEWBBACA.AnnotateSchema import validation_models as vm
@@ -965,7 +965,7 @@ def run_annotate_schema():
 
 @process_timer
 def run_compute_distances():
-	"""Run the ComputeDistances module to compute pairwise distances based on allele calling results."""
+	"""Compute pairwise distances based on allele calling results."""
 
 	from CHEWBBACA.ComputeDistances import constants as ct
 	from CHEWBBACA.ComputeDistances import validation_models as vm
@@ -1023,7 +1023,7 @@ def run_compute_distances():
 
 @process_timer
 def run_compute_msa():
-	"""Run the ComputeMSA module to compute a Multiple Sequence Alignment based on allele calling results."""
+	"""Compute Multiple Sequence Alignments."""
 
 	from CHEWBBACA.ComputeMSA import constants as ct
 	from CHEWBBACA.ComputeMSA import validation_models as vm
@@ -1111,7 +1111,7 @@ def run_compute_msa():
 
 @process_timer
 def run_download_schema():
-	"""Run the DownloadSchema module to download a schema from Chewie-NS."""
+	"""Download schemas from Chewie-NS."""
 
 	from CHEWBBACA.CHEWBBACA_NS import constants as ct
 	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
@@ -1174,7 +1174,7 @@ def run_download_schema():
 
 @process_timer
 def run_upload_schema():
-	"""Run the UploadSchema module to upload a schema to Chewie-NS."""
+	"""Upload schemas to Chewie-NS."""
 
 	from CHEWBBACA.CHEWBBACA_NS import constants as ct
 	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
@@ -1242,7 +1242,7 @@ def run_upload_schema():
 
 @process_timer
 def run_synchronize_schema():
-	"""Run the SyncSchema module to synchronize a local schema with the remote version in Chewie-NS."""
+	"""Synchronize local schemas with the remote versions on Chewie-NS."""
 
 	from CHEWBBACA.CHEWBBACA_NS import constants as ct
 	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
@@ -1290,7 +1290,7 @@ def run_synchronize_schema():
 
 @process_timer
 def run_stats_requests():
-	"""Run the NSStats module to get information about schemas in Chewie-NS."""
+	"""Retrieve basic species and schema information from Chewie-NS."""
 
 	from CHEWBBACA.CHEWBBACA_NS import constants as ct
 	from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
@@ -1333,6 +1333,7 @@ def run_stats_requests():
 
 def main():
 
+	# Need the modules names in the global constants to be able to
 	functions_info = {gct.PREDICTGENES_MODULE_NAME: [gct.PREDICTGENES_MODULE_SHORT_DESCRIPTION, run_predict_genes],
 					  gct.CREATESCHEMA_MODULE_NAME: [gct.CREATESCHEMA_MODULE_SHORT_DESCRIPTION, run_create_schema],
 					  gct.ALLELECALL_MODULE_NAME: [gct.ALLELECALL_MODULE_SHORT_DESCRIPTION, run_allele_call],
@@ -1385,6 +1386,9 @@ def main():
 		sys.argv.append(gct.HELP_TRIGGERS[0])
 
 	process = sys.argv[1]
+	# Pop the module name from the list of arguments because it is not defined as an argument in the parsers
+	sys.argv.pop(1)
+	# Call the selected module
 	functions_info[process][1]()
 
 

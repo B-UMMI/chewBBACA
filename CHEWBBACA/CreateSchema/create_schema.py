@@ -20,6 +20,7 @@ import sys
 import math
 
 import CHEWBBACA.global_constants as gct
+import CHEWBBACA.CreateSchema.constants as ct
 from CHEWBBACA.PredictGenes import predict_genes
 from CHEWBBACA.utils import (blast_wrapper as bw,
 								core_functions as cf,
@@ -63,14 +64,14 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
 	# Sequence IDs may include multiple "-", so always split only based on the last one
 	schema_records = {f"{seqid.rsplit('_', 1)[0]}-protein{seqid.rsplit('_', 1)[1]}": seq for seqid, seq in schema_records.items()}
 	# Replace special chars
-	schema_records = {im.replace_multiple_characters(seqid, ct.CHAR_REPLACEMENTS): seq for seqid, seq in schema_records.items()}
+	schema_records = {im.replace_multiple_characters(seqid, gct.CHAR_REPLACEMENTS): seq for seqid, seq in schema_records.items()}
 
 	# Define basenames and paths for loci FASTA files (the file basename is used as locus ID)
 	loci_paths = {seqid: fo.join_paths(schema_directory, [seqid+'.fasta']) for seqid in schema_records}
 	# Create loci FASTA files
 	for seqid, seq in schema_records.items():
 		# Representative is the first allele, so it is necessary to add "_1" to the sequence ID
-		current_representative = fao.fasta_str_record(ct.FASTA_RECORD_TEMPLATE, [seqid+'_1', seq])
+		current_representative = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [seqid+'_1', seq])
 		fo.write_to_file(current_representative, loci_paths[seqid])
 
 	# Create 'short' directory with the FASTA files that contain only the representative alleles
@@ -82,7 +83,7 @@ def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
 def create_schema_seed(config):
 	"""Create a schema seed based on a set of input FASTA files."""
 	# Map input file paths to file basename without extension and MD5 file hash
-	input_file_ids = [(file, fo.file_basename(file, False)) for file in config.input_files]
+	input_file_ids = [(file, fo.file_basename(file, False)) for file in config.input_path]
 
 	# Create directory to store temporary files
 	temp_directory = fo.join_paths(config.output_directory, ['temp'])
@@ -91,11 +92,11 @@ def create_schema_seed(config):
 	# Create directory to store files with Pyrodigal results
 	if config.cds_input is False:
 		# Run Pyrodigal to predict genes for all input genomes
-		print(f'\n {ct.CDS_PREDICTION} ')
-		print('='*(len(ct.CDS_PREDICTION)+2))
+		# print(f'\n {ct.CDS_PREDICTION} ')
+		# print('='*(len(gct.CDS_PREDICTION)+2))
 
 		# Gene prediction step
-		print(f'Calling the PredictGenes module to predict genes for {len(config.input_files)} inputs...')
+		print(f'Calling the PredictGenes module to predict genes for {len(config.input_path)} inputs...')
 		pyrodigal_results = predict_genes.main(config)
 
 		# Dictionary with info about inputs for which gene prediction failed
@@ -110,7 +111,7 @@ def create_schema_seed(config):
 			print('Make sure that Prodigal runs in meta mode (--pm meta) '
 				  'if any input file has less than 100kbp.')
 		if len(cds_fastas) == 0:
-			sys.exit(f'\n{ct.CANNOT_PREDICT}')
+			sys.exit(f'\n{gct.CANNOT_PREDICT}')
 	# Inputs are FASTA files with the predicted CDSs
 	else:
 		if not config.no_cds_renaming:
@@ -200,8 +201,8 @@ def create_schema_seed(config):
 	# keep hash of unique sequences and a list with the integer
 	# identifiers of genomes that have those sequences
 	# lists of integers are encoded with polyline algorithm
-	print(f'\n {ct.CDS_DEDUPLICATION} ')
-	print('='*(len(ct.CDS_DEDUPLICATION)+2))
+	# print(f'\n {gct.CDS_DEDUPLICATION} ')
+	# print('='*(len(gct.CDS_DEDUPLICATION)+2))
 	# create directory to store files from DNA deduplication
 	dna_dedup_dir = fo.join_paths(preprocess_dir, ['cds_deduplication'])
 	fo.create_directory(dna_dedup_dir)
@@ -220,8 +221,8 @@ def create_schema_seed(config):
 	dna_index = fao.index_fasta(distinct_file)
 
 	# Translate CDSs
-	print(f'\n {ct.CDS_TRANSLATION} ')
-	print('='*(len(ct.CDS_TRANSLATION)+2))
+	# print(f'\n {gct.CDS_TRANSLATION} ')
+	# print('='*(len(gct.CDS_TRANSLATION)+2))
 
 	# Create directory to store translation results
 	cds_translation_dir = fo.join_paths(preprocess_dir, ['cds_translation'])
@@ -238,13 +239,13 @@ def create_schema_seed(config):
 	print(f'\n{len(ut_seqids)} CDSs could not be translated.')
 
 	# Create file with list of invalid CDSs
-	invalid_file = fo.join_paths(config.output_directory, [ct.INVALID_CDS_BASENAME])
+	invalid_file = fo.join_paths(config.output_directory, [gct.INVALID_CDS_BASENAME])
 	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), '\n')
 	fo.write_to_file(invalid_alleles, invalid_file, 'w', '\n')
 
 	# Protein deduplication
-	print(f'\n {ct.PROTEIN_DEDUPLICATION} ')
-	print('='*(len(ct.PROTEIN_DEDUPLICATION)+2))
+	# print(f'\n {gct.PROTEIN_DEDUPLICATION} ')
+	# print('='*(len(gct.PROTEIN_DEDUPLICATION)+2))
 	# Create directory to store files from protein deduplication
 	protein_dedup_dir = fo.join_paths(preprocess_dir, ['protein_deduplication'])
 	fo.create_directory(protein_dedup_dir)
@@ -262,8 +263,8 @@ def create_schema_seed(config):
 	print(f'Kept {len(schema_seqids)} sequences after filtering the initial sequences.')
 
 	# Protein clustering
-	print(f'\n {ct.PROTEIN_CLUSTERING} ')
-	print('='*(len(ct.PROTEIN_CLUSTERING)+2))
+	# print(f'\n {gct.PROTEIN_CLUSTERING} ')
+	# print('='*(len(gct.PROTEIN_CLUSTERING)+2))
 
 	# Create directory to store clustering data
 	clustering_dir = fo.join_paths(temp_directory, ['2_clustering'])
@@ -320,14 +321,14 @@ def create_schema_seed(config):
 	schema_seqids = list(set(schema_seqids) - set(intra_excluded))
 
 	# Define BLASTp and makeblastdb paths
-	blastp_path = fo.join_paths(config.blast_path, [ct.BLASTP_ALIAS])
-	makeblastdb_path = fo.join_paths(config.blast_path, [ct.MAKEBLASTDB_ALIAS])
-	blastdb_aliastool_path = fo.join_paths(config.blast_path, [ct.BLASTDB_ALIASTOOL_ALIAS])
+	blastp_path = fo.join_paths(config.blast_path, [gct.BLASTP_ALIAS])
+	makeblastdb_path = fo.join_paths(config.blast_path, [gct.MAKEBLASTDB_ALIAS])
+	blastdb_aliastool_path = fo.join_paths(config.blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
 	lcl_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_lcl.fasta'])
 	# Return mapping between new short IDs and original IDs
-	_ = fao.integer_headers(representative_pfasta, lcl_distinct_prots, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+	_ = fao.integer_headers(representative_pfasta, lcl_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLAST DB
 	blast_db_dir = fo.join_paths(clustering_dir, ['BLASTp_db'])
 	fo.create_directory(blast_db_dir)
@@ -338,7 +339,7 @@ def create_schema_seed(config):
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 	seq_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_SEQ.fasta'])
-	id_mapping = fao.integer_headers(representative_pfasta, seq_distinct_prots, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+	id_mapping = fao.integer_headers(representative_pfasta, seq_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 
@@ -376,8 +377,8 @@ def create_schema_seed(config):
 		fo.write_lines(bsr_excluded, blast_excluded_outfile)
 
 	# Perform final BLAST to identify similar sequences that do not share many/any kmers
-	print(f'\n {ct.FINAL_BLASTp} ')
-	print('='*(len(ct.FINAL_BLASTp)+2))
+	# print(f'\n {ct.FINAL_BLASTp} ')
+	# print('='*(len(ct.FINAL_BLASTp)+2))
 	print(f'{len(schema_seqids)} sequences to compare in final BLASTp.'.format(len(schema_seqids)))
 
 	# Sort seqids before final BLASTp to ensure consistent results
@@ -393,7 +394,7 @@ def create_schema_seed(config):
 
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
 	lcl_quasi_schema = fo.join_paths(final_blast_dir, ['remaining_sequences_LCL.fasta'])
-	_ = fao.integer_headers(quasi_schema_file, lcl_quasi_schema, start=1, limit=50000, prefix=ct.BLASTDB_LCL_PREFIX, id_map=True)
+	_ = fao.integer_headers(quasi_schema_file, lcl_quasi_schema, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLASTp database
 	blast_db = fo.join_paths(final_blast_dir, ['remaining_sequences'])
 	db_std = bw.make_blast_db(makeblastdb_path, lcl_quasi_schema, blast_db, 'prot')
@@ -402,7 +403,7 @@ def create_schema_seed(config):
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
 	seq_quasi_schema = fo.join_paths(final_blast_dir, ['remaining_sequences_SEQ.fasta'])
-	id_mapping = fao.integer_headers(quasi_schema_file, seq_quasi_schema, start=1, limit=50000, prefix=ct.BLASTDB_SEQ_PREFIX, id_map=True)
+	id_mapping = fao.integer_headers(quasi_schema_file, seq_quasi_schema, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 
@@ -510,7 +511,7 @@ def main(config):
 		execution are not removed at the end.
 	"""
 	# Sort paths to FASTA files
-	config.input_files = im.sort_iterable(config.input_files, sort_key=lambda x: x.lower())
+	config.input_path = im.sort_iterable(config.input_path, sort_key=lambda x: x.lower())
 	results = create_schema_seed(config)
 
 	# Copy Pyrodigal Training File (PTF) to schema directory
@@ -525,7 +526,7 @@ def main(config):
 
 	# Create the file with the list of genes/loci
 	cf.write_gene_list(schema_dir)
-	print(f'Wrote list of loci to {os.path.join(schema_dir, ct.GENE_LIST_BASENAME)}')
+	print(f'Wrote list of loci to {os.path.join(schema_dir, gct.GENE_LIST_BASENAME)}')
 
 	# Remove temporary files
 	if config.no_cleanup is False:

@@ -389,7 +389,8 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 	# Merge TSV files with CDS coordinates
 	coordinate_files = [i[1] for i in pyrodigal_inputs]
 	merged_coordinates = fo.join_paths(output_directory, ['gene_coordinates.tsv'])
-	fo.concatenate_files(coordinate_files, merged_coordinates, header=gct.GENE_TABLE_HEADER)
+	gene_coordinates_header = im.join_list(gct.GENE_TABLE_HEADERS, delimiter="\t") + "\n"
+	fo.concatenate_files(coordinate_files, merged_coordinates, header=gene_coordinates_header)
 	# Delete separate coordinate files
 	fo.remove_files(coordinate_files)
 

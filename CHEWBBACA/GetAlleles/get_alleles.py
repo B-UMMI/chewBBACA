@@ -119,7 +119,7 @@ def main(config):
 
 	# Save loci statistics
 	loci_stats_file = fo.join_paths(config.output_directory, ['summary_stats.tsv'])
-	loci_stats_header = ct.GETALLELES_LOCI_STATS_HEADER
+	loci_stats_header = im.join_list(ct.GETALLELES_LOCI_STATS_HEADER, "\t")
 	loci_stats_lines = [[k]+list(map(str, v)) for k, v in loci_stats.items()]
 	loci_stats_lines = [loci_stats_header] + ['\t'.join(l) for l in loci_stats_lines]
 	fo.write_lines(loci_stats_lines, loci_stats_file)

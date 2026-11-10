@@ -74,17 +74,12 @@ def main(config):
 		elif len(paths) != len(input_files):
 			# These file types are expected to have the same number of files as input folders.
 			# If absent, merging would just create incomplete results.
-			if ftype in ['results_alleles.tsv', 'results_contigsInfo.tsv',
-						 'presence_absence.tsv', 'loci_summary_stats.tsv',
-						 'results_statistics.tsv', 'cds_coordinates.tsv']:
+			if ftype in gct.SUPPORTED_RESULTS_FILES[:6]:
 				print(f'Will not merge files ending in {ftype} because their '
 					  f'number ({len(paths)}) is different than expected ({len(input_files)}).')
 				to_exclude.append(ftype)
 			# These file types may not always be present depending on the options used to run chewBBACA and merging them when some are missing is not critical.
-			elif ftype in ['paralogous_counts.tsv', 'paralogous_loci.tsv',
-				  		   'missing_classes.tsv', 'missing_classes.fasta',
-						   'novel_alleles.fasta', 'invalid_cds.txt',
-						   'unclassified_sequences.fasta']:
+			elif ftype in gct.SUPPORTED_RESULTS_FILES[6:]:
 				print(f'Found {len(paths)} files for the {ftype} file type.')
 		else:
 			print(f'Found {len(paths)} files for the {ftype} file type.')
@@ -102,7 +97,7 @@ def main(config):
 		output_file = fo.join_paths(config.output_directory, [ftype])
 		print(f'Merging {len(fpaths)} files for the {ftype} file type...')
 		# Merge TSV files with profiles
-		if ftype in ['results_alleles.tsv', 'results_contigsInfo.tsv', 'presence_absence.tsv']:
+		if ftype in [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME]:
 			# Merge all files without duplicating the header
 			# Add the FILE column to read it as first column
 			# Pass the full or common set of loci
@@ -110,7 +105,7 @@ def main(config):
 			merged_df = pd.concat(dataframes, ignore_index=True)
 			# Save merged files
 			merged_df.to_csv(output_file, index=False, sep='\t')
-		elif ftype in ['loci_summary_stats.tsv', 'paralogous_counts.tsv']:
+		elif ftype in [gct.LOCI_STATS_BASENAME, gct.PARALOGOUS_COUNTS_BASENAME]:
 			# Read and use FILE column as index to filter based on loci sets if necessary
 			dataframes = [pd.read_csv(p, delimiter='\t', index_col=0) for p in fpaths]
 			# Sum all values to get merged dataframe
@@ -120,14 +115,14 @@ def main(config):
 			merged_df = merged_df.reset_index().rename(columns={'index': 'Locus'})
 			# Save merged files
 			merged_df.to_csv(output_file, index=False, sep='\t')
-		elif ftype in ['results_statistics.tsv', 'missing_classes.tsv', 'paralogous_loci.tsv', 'cds_coordinates.tsv']:
+		elif ftype in [gct.SAMPLE_STATISTICS_BASENAME, gct.MISSING_TSV_BASENAME, gct.PARALOGOUS_TABLE_BASENAME, gct.GENE_COORDINATES_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpaths[0], num_lines=1)
 			fo.write_lines(header, output_file)
 			for p in fpaths:
 				inlines = fo.read_lines(p)[1:]
 				fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
-		elif ftype in ['missing_classes.fasta', 'novel_alleles.fasta', 'invalid_cds.txt', 'unclassified_sequences.fasta']:
+		elif ftype in [gct.MISSING_FASTA_BASENAME, gct.INFERRED_ALLELES_BASENAME, gct.INVALID_CDS_BASENAME, gct.UNCLASSIFIED_BASENAME]:
 			fo.concatenate_files(fpaths, output_file)
 
 		print(f'Saved merged results to {output_file}')

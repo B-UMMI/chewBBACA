@@ -137,8 +137,8 @@ def main(config):
 
 	# Get loci identifiers
 	# Read loci IDs in profiles file
-	profiles_header = fo.read_lines(config.allelic_profiles, strip=True, num_lines=1)
-	loci_ids = profiles_header[0].split("\t")[1:]
+	profiles_header = fo.read_lines(config.allelic_profiles, strip=True, num_lines=1)[0]
+	loci_ids = profiles_header.split("\t")[1:]
 	print(f"Total loci: {len(loci_ids)}")
 
 	# Get input/sample identifiers

@@ -17,7 +17,6 @@ import shutil
 import platform
 import multiprocessing
 from typing import Annotated
-from functools import partial
 
 from pydantic import (BaseModel,
 					  Field,
@@ -39,6 +38,11 @@ except ModuleNotFoundError:
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
 								 pyrodigal_gene_prediction as pgp)
+
+
+def get_system_cpu_cores():
+	""""""
+	return multiprocessing.cpu_count()
 
 
 def validate_python_version(minimum_version):
@@ -358,34 +362,6 @@ def check_meta(pyrodigal_mode, pyrodigal_training_file):
 	return pyrodigal_mode
 
 
-def validate_multiple_choices(choices, valid_options, exception_str):
-	"""Validate if all provided choices are valid options.
-
-	Parameters
-	----------
-	choices : list
-		List of choices provided by the user.
-	valid_options : list
-		List of valid options.
-	exception_str : str
-		Exception string to be printed if any of the provided choices is not a valid option.
-
-	Returns
-	-------
-	choices : list
-		List of choices that are valid options.
-
-	Raises
-	------
-	SystemExit
-		- If any of the provided choices is not a valid option.
-	"""
-	if not all([option in valid_options for option in choices]):
-		sys.exit(exception_str.format(valid_options))
-
-	return choices
-
-
 def verify_cpu_usage(cpu_value):
 	"""Verify if the cores/threads value does not exceed available resources.
 
@@ -431,7 +407,10 @@ def parse_parameter_string(input_string):
 		if "," in argument:
 			argument = argument.split(",")
 		# Add parameter name and argument value to config dictionary
-		config_args[parameter] = argument
+		if argument != "None":
+			config_args[parameter] = argument
+		else:
+			config_args[parameter] = None
 
 	return config_args
 
@@ -462,6 +441,44 @@ def validate_choice(choice, valid_options, exception_str):
 		sys.exit(exception_str)
 
 	return choice
+
+
+def validate_multiple_choices(choices, valid_options, exception_str):
+	"""Validate if all provided choices are valid options.
+
+	Parameters
+	----------
+	choices : list
+		List of choices provided by the user.
+	valid_options : list
+		List of valid options.
+	exception_str : str
+		Exception string to be printed if any of the provided choices is not a valid option.
+
+	Returns
+	-------
+	choices : list
+		List of choices that are valid options.
+
+	Raises
+	------
+	SystemExit
+		- If any of the provided choices is not a valid option.
+	"""
+	if not all([option in valid_options for option in choices]):
+		sys.exit(exception_str.format(valid_options))
+
+	return choices
+
+
+def validate_value_bounds(value, lower_limit, upper_limit, exception):
+	"""
+	"""
+	values = [value] if type(value) != list else value
+	if any([v < lower_limit or v > upper_limit for v in values]):
+		sys.exit(exception.format(value))
+
+	return value
 
 
 def parentdir_exists(input_path):
@@ -748,78 +765,6 @@ def contains_results(results_directory, results_files_basenames):
 
 
 # Define reusable annotated types/Fields for argument validation in multiple modules
-OutputDirectory = Annotated[str,
-                            Field(description=""),
-							AfterValidator(parentdir_exists),
-							AfterValidator(create_output_directory)]
-
-InputPath = Annotated[str,
-					   AfterValidator(partial(input_paths_exist,
-					                          function=fo.exists,
-											  exception_str=gct.MISSING_INPUT_ARG)),
-					   AfterValidator(input_is_fasta),
-					   AfterValidator(fo.list_input_files),
-					   AfterValidator(filter_inputs_extension),
-					   AfterValidator(inputs_exist),
-					   AfterValidator(validate_inputs_fastas),
-					   AfterValidator(check_unique_prefixes),
-					   AfterValidator(check_blanks)]
-
-ChewieSchema = Annotated[str,
-						 AfterValidator(partial(input_paths_exist,
-						                        function=fo.exists,
-												exception_str=gct.SCHEMA_PATH_MISSING)),
-						 AfterValidator(schema_includes_fasta),
-						 AfterValidator(schema_check_genes_list),
-						 AfterValidator(schema_check_config),
-						 AfterValidator(schema_check_short)]
-
-ExternalSchema = Annotated[str,
-							AfterValidator(partial(input_paths_exist,
-							                       function=fo.exists,
-												   exception_str=gct.SCHEMA_PATH_MISSING)),
-							AfterValidator(schema_includes_fasta)]
-
-LociList = Annotated[str,
-					 AfterValidator(partial(input_paths_exist,
-					                        function=fo.exists,
-											exception_str=gct.MISSING_LOCI_LIST)),
-					 AfterValidator(input_is_fasta),
-					 AfterValidator(fo.list_input_files)]
-
-BLASTScoreRatio = Annotated[float,
-							Field(default=gct.BSR_DEFAULT,
-							      ge=gct.BSR_MIN,
-								  le=gct.BSR_MAX)]
-
-MinimumLength = Annotated[int,
-						  Field(default=gct.MSL_DEFAULT,
-						        ge=gct.MSL_MIN,
-								le=gct.MSL_MAX)]
-
-TranslationTable = Annotated[int,
-							 Field(default=gct.GENETIC_CODE_DEFAULT),
-							 AfterValidator(partial(validate_choice,
-							                        valid_options=gct.GENETIC_CODES,
-													exception_str=gct.INVALID_GENETIC_CODE))]
-
-SizeThreshold = Annotated[float | None,
-						  Field(default=gct.ST_DEFAULT,
-						        ge=gct.ST_MIN,
-								le=gct.ST_MAX)]
-
-MinimumLengthValues = Annotated[list,
-                                Field(default=[])]
-
-SizeThresholdValues = Annotated[list,
-                                Field(default=[])]
-
-TranslationTableValues = Annotated[list,
-                                   Field(default=[])]
-
-BlastScoreRatioValues = Annotated[list,
-                                  Field(default=[])]
-
 BLASTPath = Annotated[str | None, # Need to specify that the argument value may not be provided
                       Field(default=None, # Need to set default to None to really set arg value as None
 							validate_default=True, # Needs to be validated even if it is None
@@ -835,15 +780,10 @@ NoCleanup = Annotated[bool,
                         Field(default=False,
                               description=gct.NO_CLEANUP_DESCRIPTION)]
 
-NoCDSRemaining = Annotated[bool,
+NoCDSRenaming = Annotated[bool,
                         Field(default=False,
                               description=gct.NO_CDS_RENAMING_DESCRIPTION)]
 
-CPUCores = Annotated[int,
-					 Field(default=gct.CPU_CORES_DEFAULT,
-					       ge=gct.CPU_CORES_MIN,
-						   le=multiprocessing.cpu_count()),
-					 AfterValidator(verify_cpu_usage)]
 
 WordSize = Annotated[int,
 					 Field(default=gct.WORD_SIZE_DEFAULT,
@@ -870,31 +810,6 @@ IntraFilter = Annotated[float,
 						      ge=gct.INTRA_CLUSTER_MIN,
 							  le=gct.INTRA_CLUSTER_MAX)]
 
-Annotations = Annotated[str,
-                        AfterValidator(partial(input_paths_exist,
-                                               function=fo.exists,
-											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]
-
-BooleanFlag = Annotated[bool,
-                        Field(default=False)]
-
-NSCONFIG = Annotated[bool,
-                     Field(default=False)]
-
-# Nedd to add a AfterValidator to get and validate results files
-ResultsFiles = Annotated[str,
-                         AfterValidator(partial(input_paths_exist,
-                                                function=fo.exists,
-												exception_str=gct.MISSING_RESULTS)),
-						 AfterValidator(partial(contains_results,
-						                        results_files_basenames=[gct.ALLELIC_PROFILES_BASENAME]))]
-
-# Should implement a validator for the profile filr format
-AllelicProfiles = Annotated[str,
-                            AfterValidator(partial(input_paths_exist,
-                                                   function=fo.exists,
-												   exception_str=gct.PROFILES_FILE_MISSING))]
-
 
 # Use a separate model to validate clustering arguments passed to modules that use clustering
 class ClusteringArgs(BaseModel):
@@ -912,24 +827,23 @@ class ClusteringArgs(BaseModel):
 ValidatedClusteringOptions = Annotated[ClusteringArgs | None, Field(default=None)]
 
 
-# Create str with the defautl values for the gene prediction parameter=argument pairs
+# Create str with the default values for the gene prediction parameter=argument pairs
 # Added here to avoid circular imports
-def create_default_clustering_str():
+def create_default_clustering_options():
 	default_clustering_config = ClusteringArgs.model_validate({}).model_dump()
 	default_clustering_options = []
 	for parameter, argument in default_clustering_config.items():
 		if type(argument) == list:
-			default_clustering_options.append(f'"{parameter}={','.join(argument)}"')
+			default_clustering_options.append(f"{parameter}={','.join(argument)}")
 		else:
-			default_clustering_options.append(f'"{parameter}={argument}"')
+			default_clustering_options.append(f"{parameter}={argument}")
 
-	default_clustering_str = ' '.join(default_clustering_options)
-
-	return default_clustering_str
+	return default_clustering_options
 
 
-ClusteringOptions = Annotated[str,
-                              Field(default=create_default_clustering_str(),
+ClusteringOptions = Annotated[list,
+                              Field(default=create_default_clustering_options(),
+                                    validate_default=True,
                                     description=gct.CLUSTERING_OPTIONS_DESCRIPTION),
                               AfterValidator(parse_parameter_string)]
 
@@ -940,13 +854,13 @@ def get_field_help(model, field_name):
 	field = model.model_fields[field_name]
 	description = field.description or ""
 
-	# Append default if a valid defautl value is set
+	# Append default if a valid default value is set
 	if field.default is not PydanticUndefined and field.default is not None:
-		return f"{description} (default: {field.default})."
+		default_value = field.default
+		# Format the default value that is displayed to match what users must write
+		if type(default_value) == list:
+			default_value = " ".join([f'"{v}"' for v in default_value])
+
+		return f"{description} (default: {default_value})."
 
 	return description
-
-
-def get_system_cpu_cores():
-	""""""
-	return multiprocessing.cpu_count()

@@ -15,6 +15,7 @@ from pydantic import (BaseModel,
 					  Field,
 					  ConfigDict,
 					  AfterValidator,
+					  field_validator,
 					  model_validator)
 
 import CHEWBBACA.ComputeMSA.constants as ct
@@ -35,12 +36,8 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.parentdir_exists),
 							AfterValidator(gval.create_output_directory)]
 
-ExternalSchema = Annotated[str,
-                           Field(description=ct.COMPUTEMSA_SCHEMA_DIRECTORY_DESCRIPTION),
-							AfterValidator(partial(gval.input_paths_exist,
-							                       function=fo.exists,
-												   exception_str=gct.SCHEMA_PATH_MISSING)),
-							AfterValidator(gval.schema_includes_fasta)]
+ExternalSchema = Annotated[str | None,
+                           Field(default=None, description=ct.COMPUTEMSA_SCHEMA_DIRECTORY_DESCRIPTION)]
 
 DNAMSA = Annotated[bool,
                         Field(default=False,
@@ -104,6 +101,22 @@ class ComputeMSAValidator(BaseModel):
 	custom_mafft_options: CustomMafftOptions
 	protein_input: ProteinInput
 	no_cleanup: gval.NoCleanup
+
+	@field_validator("schema_directory")
+	@classmethod
+	def schema_exists(cls, value):
+		if value is not None:
+			return gval.input_paths_exist(value, fo.exists, gct.SCHEMA_PATH_MISSING)
+
+		return value
+
+	@field_validator("schema_directory")
+	@classmethod
+	def schema_includes_fasta(cls, value):
+		if value is not None:
+			return gval.schema_includes_fasta(value)
+
+		return value
 
 	# Use the translation table defined in the training file if main input is a matrix with allelic profiles
 	@model_validator(mode="after")

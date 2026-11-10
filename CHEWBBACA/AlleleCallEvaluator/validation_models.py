@@ -49,7 +49,7 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.create_output_directory)]
 
 Annotations = Annotated[str,
-                        Field(description=ct.ALLELECALLEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION),
+                        Field(default=None, description=ct.ALLELECALLEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION),
                         AfterValidator(partial(gval.input_paths_exist,
                                                function=fo.exists,
 											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]

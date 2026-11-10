@@ -679,7 +679,7 @@ def write_loci_summary(classification_files, output_directory, total_inputs,
 	output_file : str
 		Path to the output file.
 	"""
-	loci_stats = [ct.LOCI_STATS_HEADER]
+	loci_stats = [im.join_list(ct.LOCI_STATS_HEADER, "\t")]
 	for k, v in classification_files.items():
 		locus_id = loci_finder.search(k).group()
 		locus_results = fo.pickle_loader(v)
@@ -1446,7 +1446,7 @@ def identify_paralogous(repeated, output_directory):
 			paralogous_counts.setdefault(p[1], []).append(1)
 
 	# Write paralogous loci counts
-	paralogous_counts_lines = [ct.PARALOGOUS_COUNTS_HEADER]
+	paralogous_counts_lines = [im.join_list(ct.PARALOGOUS_COUNTS_HEADER, "\t")]
 	paralogous_counts_lines.extend(['{0}\t{1}'.format(k, sum(v))
 									for k, v in paralogous_counts.items()])
 	paralogous_counts_outfile = fo.join_paths(output_directory,
@@ -1454,7 +1454,7 @@ def identify_paralogous(repeated, output_directory):
 	fo.write_lines(paralogous_counts_lines, paralogous_counts_outfile)
 
 	# Write groups of paralogous loci per input
-	paralogous_lines = [ct.PARALOGOUS_TABLE_HEADER]
+	paralogous_lines = [im.join_list(ct.PARALOGOUS_TABLE_HEADER, "\t")]
 	for cds, g in paralogous_data.items():
 		paralogous_lines.extend(['{0}\t{1}\t{2}'.format(k, '|'.join(v), cds)
 								 for k, v in g.items()])
@@ -2010,7 +2010,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	template_dict = ct.ALLELECALL_DICT
 
 	# Map input file paths to file basename without extension and MD5 file hash
-	input_file_ids = [(file, fo.file_basename(file, False)) for file in config.input_files]
+	input_file_ids = [(file, fo.file_basename(file, False)) for file in config.input_path]
 
 	# Inputs are genome assemblies
 	if config.cds_input is False:
@@ -2019,7 +2019,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 		print('='*(len(ct.CDS_PREDICTION)+2))
 
 		# Gene prediction step
-		print(f'Calling the PredictGenes module to predict genes for {len(config.input_files)} inputs...')
+		print(f'Calling the PredictGenes module to predict genes for {len(config.input_path)} inputs...')
 		pyrodigal_results = predict_genes.main(config)
 
 		# Dictionary with info about inputs for which gene prediction failed
@@ -2207,7 +2207,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	print(f'Unclassified CDSs: {len(unclassified_seqids)}')
 
 	# User only wants to determine exact matches or all sequences were classified
-	if config.mode == 1 or len(unclassified_seqids) == 0:
+	if config.execution_mode == 1 or len(unclassified_seqids) == 0:
 		template_dict['classification_files'] = classification_files
 		template_dict['protein_fasta'] = distinct_file
 		template_dict['unclassified_ids'] = unclassified_seqids
@@ -2326,7 +2326,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	print(f"Unclassified proteins: {total_selected}")
 
 	# User only wanted DNA and Protein exact matches or all sequences were classified
-	if config.mode == 2 or len(unclassified_seqids) == 0:
+	if config.execution_mode == 2 or len(unclassified_seqids) == 0:
 		template_dict['classification_files'] = classification_files
 		template_dict['protein_fasta'] = unique_pfasta
 		template_dict['unclassified_ids'] = unclassified_seqids
@@ -2538,7 +2538,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	print(f'Unclassified proteins: {len(unclassified_seqids)}')
 
 	# User only wanted exact matches and clustering or all sequences were classified
-	if config.mode == 3 or len(unclassified_seqids) == 0:
+	if config.execution_mode == 3 or len(unclassified_seqids) == 0:
 		template_dict['classification_files'] = classification_files
 		template_dict['protein_fasta'] = distinct_prots
 		template_dict['unclassified_ids'] = unclassified_seqids
@@ -2852,8 +2852,8 @@ def main(config):
 	start_time = pdt.get_datetime()
 
 	# Sort list of input files
-	config.input_files = im.sort_iterable(config.input_files, sort_key=lambda x: x.lower())
-	print(f"Number of inputs: {len(config.input_files)}")
+	config.input_path = im.sort_iterable(config.input_path, sort_key=lambda x: x.lower())
+	print(f"Number of inputs: {len(config.input_path)}")
 
 	# Get list of schema loci
 	loci_to_call = config.loci_list[0][1]
@@ -2913,9 +2913,9 @@ def main(config):
 	classification_labels = gct.ALLELE_CLASSES
 	# Only mode 4 performs a final exhaustive search
 	# Other modes do not and LNF classifications are considered Probable LNFs (PLNF)
-	if config.mode != 4:
+	if config.execution_mode != 4:
 		classification_labels[-1] = gct.PROBABLE_LNF
-		print(f"Running in mode {config.mode}. Renaming Locus Not Found (LNF) "
+		print(f"Running in mode {config.execution_mode}. Renaming Locus Not Found (LNF) "
 			  "class to Probable LNF (PLNF).")
 
 	# Sort to get output order similar to chewBBACA v2
@@ -2967,7 +2967,7 @@ def main(config):
 	print(f'Assigned identifiers to {novel_alleles_count} new alleles for {len(novel_alleles)} loci.')
 
 	updated_files = {}
-	if config.mode != 1:
+	if config.execution_mode != 1:
 		print('Getting original sequence identifiers for new alleles...')
 		for locus_novel in novel_alleles:
 			current_novel = fo.pickle_loader(locus_novel[1])
@@ -2980,7 +2980,7 @@ def main(config):
 
 		reps_info = {}
 		representative_ids = set()
-		if config.mode == 4:
+		if config.execution_mode == 4:
 			print('Getting data for new representative alleles...')
 			# Get info for new representative alleles that must be added to files in the short directory
 			for locus_novel in novel_alleles:
@@ -3050,12 +3050,12 @@ def main(config):
 			clines.append([allele_id, cds_id, rep])
 
 	clines = [im.join_list(l, '\t') for l in clines]
-	coutfile = fo.join_paths(config.output_directory, [gct.INFERRED_ALLELES_BASENAME])
-	clines = [ct.INFERRED_ALLELES_TABLE_HEADER] + clines
+	coutfile = fo.join_paths(config.output_directory, [gct.INFERRED_ALLELES_TABLE_BASENAME])
+	clines = [im.join_list(ct.INFERRED_ALLELES_TABLE_HEADER, "\t")] + clines
 	fo.write_lines(clines, coutfile)
 
 	# Create file with allelic profiles
-	print(f'Creating file with the allelic profiles ({gct.INFERRED_ALLELES_BASENAME})...')
+	print(f'Creating file with the allelic profiles ({gct.ALLELIC_PROFILES_BASENAME})...')
 	profiles_table = write_results_alleles(list(results['classification_files'].values()),
 										   list(results['int_to_unique'].values()),
 										   config.output_directory,
@@ -3081,7 +3081,7 @@ def main(config):
 	print(f'Creating file with class counts per locus ({gct.LOCI_STATS_BASENAME})...')
 	loci_stats_file = write_loci_summary(results['classification_files'],
 										 config.output_directory,
-										 len(config.input_files),
+										 len(config.input_path),
 										 classification_labels,
 										 loci_finder)
 
@@ -3118,7 +3118,7 @@ def main(config):
 
 	# Move file with list of excluded CDS
 	# File is not created if we only search for exact matches
-	if config.mode != 1:
+	if config.execution_mode != 1:
 		print(f'Creating file with invalid CDSs ({gct.INVALID_CDS_BASENAME})...')
 		fo.move_file(results['invalid_alleles'][0], config.output_directory)
 
@@ -3139,7 +3139,7 @@ def main(config):
 	print(class_counts_values)
 	print('='*len(class_counts_header))
 
-	if config.no_inferred is False and config.mode != 1 and len(novel_alleles) > 0:
+	if config.no_inferred is False and config.execution_mode != 1 and len(novel_alleles) > 0:
 		print('Added {0} new alleles to the schema.'.format(total_inferred))
 		print('Added {0} new representative alleles to the schema.'.format(total_representatives))
 	elif config.no_inferred is True:

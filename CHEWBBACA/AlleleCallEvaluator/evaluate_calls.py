@@ -24,8 +24,10 @@ import CHEWBBACA.global_constants as gct
 import CHEWBBACA.AlleleCallEvaluator.constants as ct
 import CHEWBBACA.ComputeMSA.constants as cct
 from CHEWBBACA.ComputeMSA import compute_msa
+from CHEWBBACA.ComputeMSA.validation_models import ComputeMSAValidator
 from CHEWBBACA.ComputeCore import compute_core
 from CHEWBBACA.ComputeDistances import compute_distances
+from CHEWBBACA.ComputeDistances.validation_models import ComputeDistancesValidator
 from CHEWBBACA.utils import (
 	file_operations as fo,
 	fasta_operations as fao,
@@ -326,7 +328,7 @@ def main(config):
 			   {"sample_ids": []}]
 	cgMLST_genes = []
 	if config.light is False:
-		if False in [config.no_pa, config.no_dm, config.no_tree] or config.cg_alignment is True:
+		if False in [config.no_presence_absence, config.no_distance_matrix, config.no_neighbor_joining] or config.force_core_msa is True:
 			# Define path to TSV file that contains allelic profiles
 			allelic_profiles_file = fo.join_paths(config.results_files, [gct.ALLELIC_PROFILES_BASENAME])
 
@@ -347,7 +349,7 @@ def main(config):
 			pa_matrix, pa_outfile = compute_core.compute_presence_absence(masked_profiles, config.output_directory)
 			print("done.")
 
-			if config.no_pa is False:
+			if config.no_presence_absence is False:
 				# Sort Presence-Absence matrix based on decreasing loci presence
 				sorted_loci = [x[0] for x in loci_stats]
 				pa_matrix = pa_matrix[sorted_loci]
@@ -356,7 +358,7 @@ def main(config):
 						   {"loci_ids": sorted_loci},
 						   {"sample_ids": sorted_samples}]
 
-			if config.no_dm is False or config.no_tree is False or config.cg_alignment is True:
+			if config.no_distance_matrix is False or config.no_neighbor_joining is False or config.force_core_msa is True:
 				# Compute the cgMLST at 100%
 				print("Determining cgMLST loci...")
 				cgMLST_genes, _, _, _ = compute_core.compute_cgMLST(len(sample_ids), pa_matrix, sample_ids, 1, False)
@@ -367,12 +369,22 @@ def main(config):
 					cgMLST_matrix_outfile = os.path.join(config.output_directory, ct.CGMLST_PROFILES_BASENAME)
 					cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
 
-			if config.no_dm is False:
+			if config.no_distance_matrix is False:
 				# Compute distance matrix
 				# Based on cgMLST profiles
 				if len(cgMLST_genes) > 0:
+					# Call the ComputeDistances module to compute pairwise allelic distances
 					distances_dir = fo.join_paths(config.output_directory, ["distances"])
-					dm_results = compute_distances.main(cgMLST_matrix_outfile, distances_dir, "hamming", "symmetric", True, False, config.cpu_cores)
+					compute_distances_config = ComputeDistancesValidator(output_directory=distances_dir,
+					                                                     allelic_profiles=cgMLST_matrix_outfile,
+																		 distance_computation_method="hamming",
+																		 output_format="symmetric",
+																		 compute_similarity=False,
+																		 no_mask=True,
+																		 cpu_cores=config.cpu_cores)
+
+					dm_results = compute_distances.main(compute_distances_config)
+
 					# Import distance matrix
 					dm_files = fo.listdir(dm_results, full_path=True)
 					dm_files = fo.filter_by_substring(dm_files, ["_symmetric.tsv"])
@@ -387,16 +399,29 @@ def main(config):
 
 		# Only using the loci in the cgMLST
 		# Might have to change if we need to work with all loci in the future
-		if config.no_tree is False or config.cg_alignment is True:
+		if config.no_neighbor_joining is False or config.force_core_msa is True:
 			if len(cgMLST_genes) > 0:
 				# Call the ComputeMSA module to compute the loci MSAs
 				print("Calling the ComputeMSA module to compute the cgMLST alignment...")
-				compute_msa.main(cgMLST_matrix_outfile, temp_directory, config.schema_directory, False, False,
-					   config.translation_table, config.cpu_cores, False, "exclude", "exclude", None, False, False)
+				compute_msa_outdir = fo.join_paths(temp_directory, ["MSAs"])
+				compute_msa_config = ComputeMSAValidator(output_directory=compute_msa_outdir,
+														input_path=cgMLST_matrix_outfile,
+														schema_directory=config.schema_directory,
+														dna_msa=False,
+														output_variable=False,
+														translation_table=config.translation_table,
+														cpu_cores=config.cpu_cores,
+														only_loci_msas=False,
+														gaps="exclude",
+														ambiguous="exclude",
+														custom_mafft_options=' '.join(gct.MAFFT_DEFAULT_PARAMETERS),
+														protein_input=False,
+														no_cleanup=False)
 
-				full_alignment = fo.join_paths(temp_directory, [cct.COMPUTEMSA_PROTEIN_MSA])
+				compute_msa.main(compute_msa_config)
+				full_alignment = fo.join_paths(compute_msa_outdir, [cct.COMPUTEMSA_PROTEIN_MSA])
 
-				if config.no_tree is False:
+				if config.no_neighbor_joining is False:
 					print("Computing the NJ tree based on the core genome MSA...", end="")
 					# Compute NJ tree with FastTree
 					out_tree = fo.join_paths(config.output_directory, ["cgMLST.tree"])

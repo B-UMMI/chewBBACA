@@ -124,7 +124,7 @@ class SubsetResultsValidator(BaseModel):
 	# Check if the sample IDs in the input list are all in the results
 	@model_validator(mode="after")
 	def check_samples(self):
-		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME, gct.LOCI_STATS_BASENAME]
+		file_types = [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME, gct.SAMPLE_STATISTICS_BASENAME]
 		if self.sample_list:
 			for fname in file_types:
 				file_path = fo.join_paths(self.results_files, [fname])

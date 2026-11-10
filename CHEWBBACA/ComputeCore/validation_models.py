@@ -38,9 +38,11 @@ OutputDirectory = Annotated[str,
 
 LociPresenceThreshold = Annotated[list,
                             Field(default=ct.CGMLST_THRESHOLDS,
-                                  ge=ct.CGMLST_THRESHOLD_MIN,
-								  le=ct.CGMLST_THRESHOLD_MAX,
-								  description=ct.COMPUTECORE_LOCI_PRESENCE_THRESHOLD_DESCRIPTION)]
+								  description=ct.COMPUTECORE_LOCI_PRESENCE_THRESHOLD_DESCRIPTION),
+							AfterValidator(partial(gval.validate_value_bounds,
+								            	   lower_limit=ct.CGMLST_THRESHOLD_MIN,
+												   upper_limit=ct.CGMLST_THRESHOLD_MAX,
+												   exception=gct.LOCI_PRESENCE_VALUE_OUT_OF_LIMITS))]
 
 SampleStep = Annotated[int,
                  Field(default=1,
@@ -70,7 +72,7 @@ CPUCores = Annotated[int,
 					 AfterValidator(gval.verify_cpu_usage)]
 
 ExcludeLoci = Annotated[str,
-                        Field(description=ct.COMPUTECORE_EXCLUDE_LOCI_DESCRIPTION),
+                        Field(default=None, description=ct.COMPUTECORE_EXCLUDE_LOCI_DESCRIPTION),
                         AfterValidator(partial(gval.input_paths_exist,
                                                function=fo.exists,
 											   exception_str=ct.MISSING_EXCLUDE_LOCI)),
@@ -78,7 +80,7 @@ ExcludeLoci = Annotated[str,
 						AfterValidator(fo.list_input_files)]
 
 ExcludeGenomes = Annotated[str,
-                           Field(description=ct.COMPUTECORE_EXCLUDE_GENOMES_DESCRIPTION),
+                           Field(default=None, description=ct.COMPUTECORE_EXCLUDE_GENOMES_DESCRIPTION),
                            AfterValidator(partial(gval.input_paths_exist,
                                                   function=fo.exists,
 												  exception_str=ct.MISSING_EXCLUDE_GENOMES)),

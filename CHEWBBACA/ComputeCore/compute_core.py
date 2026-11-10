@@ -23,6 +23,7 @@ from plotly.offline import plot
 import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 
+import CHEWBBACA.global_constants as gct
 import CHEWBBACA.ComputeCore.constants as ct
 from CHEWBBACA.utils import (file_operations as fo,
 								iterables_manipulation as im,
@@ -184,7 +185,7 @@ def compute_presence_absence(matrix, output_directory):
 	"""
 	presence_absence = matrix.apply(binarize_matrix)
 
-	pa_outpath = fo.join_paths(output_directory, [ct.PRESENCE_ABSENCE_PROFILES_BASENAME])
+	pa_outpath = fo.join_paths(output_directory, [gct.PRESENCE_ABSENCE_PROFILES_BASENAME])
 	presence_absence.to_csv(pa_outpath, sep='\t')
 
 	return [presence_absence, pa_outpath]
@@ -328,9 +329,6 @@ def perform_rarefaction_analysis(permutation_i, pa_matrix, sample_ids, n_samples
 	return rarefaction_values
 
 
-#	return X, Y_mean, Y_std, Y_predicted, alpha, alpha_error
-
-
 def main(config):
 	"""Determine the cgMLST based on allele calling results.
 
@@ -397,10 +395,10 @@ def main(config):
 	print('Computing the presence-absence statistics per sample...')
 	genome_mdata_df = compute_stats(pa_matrix, column_names=ct.SAMPLE_LOCUS_PRESENCE_HEADER)
 	# Sort based on increasing number of special classifications
-	genome_mdata_df = genome_mdata_df.sort_values('Loci presence count', ascending=False)
+	genome_mdata_df = genome_mdata_df.sort_values("Locus presence count", ascending=False)
 	sorted_genomes = genome_mdata_df['Sample'].tolist()
 	# Round percentage values to 2 decimal places
-	genome_mdata_df['Loci presence proportion'] = genome_mdata_df['Loci presence proportion'].round(3)
+	genome_mdata_df["Locus presence proportion"] = genome_mdata_df["Locus presence proportion"].round(3)
 
 	# Count number of special classifications per locus
 	print('Computing the presence-absence statistics per locus...')
@@ -510,7 +508,7 @@ def main(config):
 
 	print('Creating line plots for each threshold and step value...')
 	# Create trace with present loci
-	present = genome_mdata_df['Loci presence count'].tolist()
+	present = genome_mdata_df["Locus presence count"].tolist()
 	genomes_index = list(range(1, len(present)+1))
 	miss_trace = go.Scattergl(x=genomes_index,
 							  y=present,

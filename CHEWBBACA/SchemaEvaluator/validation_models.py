@@ -25,8 +25,6 @@ from CHEWBBACA.utils import file_operations as fo
 
 
 # Annotated Fields
-
-# Define reusable annotated types/Fields for argument validation in multiple modules
 OutputDirectory = Annotated[str,
                             Field(description=ct.SCHEMAEVALUATOR_OUTPUT_DIRECTORY_DESCRIPTION),
 							AfterValidator(gval.parentdir_exists),
@@ -40,7 +38,7 @@ ExternalSchema = Annotated[str,
 							AfterValidator(gval.schema_includes_fasta)]
 
 LociList = Annotated[str,
-                     Field(description=ct.SCHEMAEVALUATOR_LOCI_LIST_DESCRIPTION),
+                     Field(default=None, description=ct.SCHEMAEVALUATOR_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,
 											exception_str=gct.MISSING_LOCI_LIST)),
@@ -48,7 +46,7 @@ LociList = Annotated[str,
 					 AfterValidator(fo.list_input_files)]
 
 Annotations = Annotated[str,
-                        Field(description=ct.SCHEMAEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION),
+                        Field(default=None, description=ct.SCHEMAEVALUATOR_ANNOTATIONS_FILE_DESCRIPTION),
                         AfterValidator(partial(gval.input_paths_exist,
                                                function=fo.exists,
 											   exception_str=gct.MISSING_ANNOTATIONS_FILE))]
@@ -172,7 +170,7 @@ class SchemaEvaluatorValidator(BaseModel):
 			config_file  = fo.join_paths(self.schema_directory, [gct.SCHEMA_CONFIG_BASENAME])
 			config_values = fo.pickle_loader(config_file)
 			# Set the argument that indicates that the schema was created with chewBBACA to True
-			self.chewie_schema = config_values.get(gct.CHEWIE_VERSION_ARGNAME)[0]
+			self.chewie_schema = config_values.get(gct.SCHEMA_CONFIG_CHEWIE_VERSION_ARGNAME)[0]
 		else:
 			self.chewie_schema = False
 
@@ -187,9 +185,9 @@ class SchemaEvaluatorValidator(BaseModel):
 			config_file  = fo.join_paths(self.schema_directory, [gct.SCHEMA_CONFIG_BASENAME])
 			config_values = fo.pickle_loader(config_file)
 			# Get the first minimum_length, size_threshold, and translation_table values used with the schema
-			self.minimum_length = config_values.get(gct.MINIMUM_LENGTH_ARGNAME)[0]
-			self.size_threshold = config_values.get(gct.SIZE_THRESHOLD_ARGNAME)[0]
-			self.translation_table = config_values.get(gct.TRANSLATION_TABLE_ARGNAME)[0]
+			self.minimum_length = config_values.get(gct.SCHEMA_CONFIG_MINIMUM_LENGTH_ARGNAME)[0]
+			self.size_threshold = config_values.get(gct.SCHEMA_CONFIG_SIZE_THRESHOLD_ARGNAME)[0]
+			self.translation_table = config_values.get(gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME)[0]
 
 		return self
 
@@ -199,11 +197,11 @@ class SchemaEvaluatorValidator(BaseModel):
 			config_file  = fo.join_paths(self.schema_directory, [gct.SCHEMA_CONFIG_BASENAME])
 			config_values = fo.pickle_loader(config_file)
 			# Get the first minimum_length, size_threshold, and translation_table values used with the schema
-			self.minimum_length_values = config_values.get(gct.MINIMUM_LENGTH_ARGNAME)
-			self.size_threshold_values = config_values.get(gct.SIZE_THRESHOLD_ARGNAME)
-			self.translation_table_values = config_values.get(gct.TRANSLATION_TABLE_ARGNAME)
-			self.blast_score_ratio_values = config_values.get(gct.BLAST_SCORE_RATIO_ARGNAME)
-			self.training_file = True if config_values.get(gct.PYRODIGAL_TRAININGFILE_ARGNAME)[0] else False
+			self.minimum_length_values = config_values.get(gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME)
+			self.size_threshold_values = config_values.get(gct.SCHEMA_CONFIG_SIZE_THRESHOLD_ARGNAME)
+			self.translation_table_values = config_values.get(gct.SCHEMA_CONFIG_TRANSLATION_TABLE_ARGNAME)
+			self.blast_score_ratio_values = config_values.get(gct.SCHEMA_CONFIG_BLAST_SCORE_RATIO_ARGNAME)
+			self.training_file = True if config_values.get(gct.SCHEMA_CONFIG_PYRODIGAL_TRAININGFILE_ARGNAME)[0] else False
 
 		return self
 

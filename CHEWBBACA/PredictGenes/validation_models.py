@@ -18,6 +18,7 @@ from pydantic import (BaseModel,
 					  ConfigDict,
 					  AfterValidator,
 					  BeforeValidator,
+					  field_validator,
 					  model_validator)
 
 import CHEWBBACA.PredictGenes.constants as ct
@@ -118,9 +119,8 @@ TranslationTable = Annotated[int,
 							                        valid_options=gct.GENETIC_CODES,
 													exception_str=gct.INVALID_GENETIC_CODE))]
 
-PyrodigalTrainingFile = Annotated[str,
-                                  Field(default=None),
-                                  AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+PyrodigalTrainingFile = Annotated[str | None,
+                                  Field(default=None)]
 
 PyrodigalMode = Annotated[str,
 						  Field(default=ct.PYRODIGAL_DEFAULT_MODE),
@@ -131,14 +131,13 @@ PyrodigalOutputFormats = Annotated[list,
 								   BeforeValidator(im.ensure_list),
 								   AfterValidator(partial(gval.validate_multiple_choices, valid_options=ct.PYRODIGAL_OUTFMTS, exception_str=ct.PYRODIGAL_INVALID_OUTFMT))]
 
-PyrodigalMinimumConfidence = Annotated[float,
+PyrodigalMinimumConfidence = Annotated[float | None,
                                        Field(default=None,
                                              ge=ct.PYRODIGAL_MIN_CONFIDENCE,
 											 le=ct.PYRODIGAL_MAX_CONFIDENCE)]
 
-PyrodigalTrainingReference = Annotated[str,
-                                       Field(default=None),
-                                       AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.INVALID_PTF_PATH))]
+PyrodigalTrainingReference = Annotated[str | None,
+                                       Field(default=None)]
 
 PyrodigalJustTraining = Annotated[bool,
                                   Field(default=False)]
@@ -175,21 +174,27 @@ class PyrodigalArgs(BaseModel):
 	pyrodigal_training_reference: PyrodigalTrainingReference
 	pyrodigal_just_training: PyrodigalJustTraining
 
+	@field_validator("pyrodigal_training_file", "pyrodigal_training_reference")
+	@classmethod
+	def ptf_exists(cls, value):
+		if value is not None:
+			return gval.input_paths_exist(v, fo.exists, ct.INVALID_PTF_PATH)
+
+		return value
+
 
 # Create str with the defautl values for the gene prediction parameter=argument pairs
 # Added here to avoid circular imports
-def create_default_gene_prediction_str():
+def create_default_gene_prediction_options():
 	default_gene_prediction_config = PyrodigalArgs.model_validate({}).model_dump()
 	default_gene_prediction_options = []
 	for parameter, argument in default_gene_prediction_config.items():
 		if type(argument) == list:
-			default_gene_prediction_options.append(f'"{parameter}={','.join(argument)}"')
+			default_gene_prediction_options.append(f"{parameter}={','.join(argument)}")
 		else:
-			default_gene_prediction_options.append(f'"{parameter}={argument}"')
+			default_gene_prediction_options.append(f"{parameter}={argument}")
 
-	default_gene_prediction_str = ' '.join(default_gene_prediction_options)
-
-	return default_gene_prediction_str
+	return default_gene_prediction_options
 
 
 class AugustusArgs(BaseModel):
@@ -214,7 +219,8 @@ GenePredictor = Annotated[str,
 
 # Validate if input is str, not if it is None
 GenePredictionOptions = Annotated[list,
-                                  Field(default=create_default_gene_prediction_str(),
+                                  Field(default=create_default_gene_prediction_options(),
+                                        validate_default=True,
                                         description=ct.PREDICTGENES_GENE_PREDICTION_OPTIONS_DESCRIPTION),
                                   AfterValidator(gval.parse_parameter_string)]
 

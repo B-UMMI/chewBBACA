@@ -38,7 +38,7 @@ ExternalSchema = Annotated[str,
 							AfterValidator(gval.schema_includes_fasta)]
 
 LociList = Annotated[str,
-                     Field(description=ct.ADAPTSCHEMA_LOCI_LIST_DESCRIPTION),
+                     Field(default=None, description=ct.ADAPTSCHEMA_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,
 											exception_str=gct.MISSING_LOCI_LIST)),

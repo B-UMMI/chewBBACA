@@ -15,18 +15,11 @@ import math
 
 import pyrodigal
 
-try:
-	import global_constants as gct
-	from utils import (file_operations as fo,
-					   fasta_operations as fao,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	from CHEWBBACA import global_constants as gct
-	from CHEWBBACA.utils import (file_operations as fo,
-								 fasta_operations as fao,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+from CHEWBBACA import global_constants as gct
+from CHEWBBACA.utils import (file_operations as fo,
+								fasta_operations as fao,
+								iterables_manipulation as im,
+								multiprocessing_operations as mo)
 
 
 def create_gene_finder(training_data, closed, mask, meta):
@@ -365,8 +358,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 	pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
 												  mo.function_helper,
 												  cpu_cores,
-												  show_progress=True,
-												  pool_type='threadpool')
+												  pool_type="threadpool")
 
 	# Get number of inputs for which gene prediction failed
 	# Inputs with 0 CDSs and inputs with error messages

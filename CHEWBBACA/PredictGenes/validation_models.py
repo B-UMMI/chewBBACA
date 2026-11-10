@@ -99,7 +99,9 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.parentdir_exists),
 							AfterValidator(gval.create_output_directory)]
 
-InputPath = Annotated[str,
+# Need to include list type to avoid PydanticSerializationUnexpectedValue
+# Input is a str but AfterValidator converts it into a list of valid file paths
+InputPath = Annotated[str | list,
                       Field(description=ct.PREDICTGENES_INPUT_PATH_DESCRIPTION),
 					   AfterValidator(partial(gval.input_paths_exist,
 					                          function=fo.exists,
@@ -218,7 +220,9 @@ GenePredictor = Annotated[str,
 						  AfterValidator(partial(gval.validate_choice, valid_options=ct.GENE_PREDICTORS, exception_str=ct.PREDICTGENES_INVALID_GENE_PREDICTOR))]
 
 # Validate if input is str, not if it is None
-GenePredictionOptions = Annotated[list,
+# Need to include dict type to avoid PydanticSerializationUnexpectedValue
+# Input is a list but AfterValidator converts it into a dictionary
+GenePredictionOptions = Annotated[list | dict,
                                   Field(default=create_default_gene_prediction_options(),
                                         validate_default=True,
                                         description=ct.PREDICTGENES_GENE_PREDICTION_OPTIONS_DESCRIPTION),
@@ -283,3 +287,9 @@ class PredictGenesValidator(BaseModel):
 				sys.exit(gct.JUST_TRAINING)
 
 		return self
+
+
+# Define custom exceptions used by the PredictGenes module
+class InputsNoPredictions(Exception):
+	"""Raised when Pyrodigal cannot predict genes from any of the input files"""
+	pass

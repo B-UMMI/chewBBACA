@@ -3,24 +3,18 @@
 """
 Purpose
 -------
-This script computes assembly statistics.
+This script computes genome assembly statistics.
 """
 
 
-import math
 import statistics
 from pathlib import Path
 
 from Bio.SeqUtils import gc_fraction
 
-try:
-	from utils import (fasta_operations as fao,
-					   iterables_manipulation as im,
-					   multiprocessing_operations as mo)
-except ModuleNotFoundError:
-	from CHEWBBACA.utils import (fasta_operations as fao,
-								 iterables_manipulation as im,
-								 multiprocessing_operations as mo)
+from CHEWBBACA.utils import (fasta_operations as fao,
+                             iterables_manipulation as im,
+                             multiprocessing_operations as mo)
 
 
 def calc_n50(contig_sizes):
@@ -108,7 +102,7 @@ def compute_assembly_stats(input_files, cpu_cores):
     stats_inputs = im.divide_list_into_n_chunks(input_files, len(input_files))
     common_args = []
     stats_inputs = im.multiprocessing_inputs(stats_inputs, common_args, determine_assembly_stats)
-    stats_results = mo.map_async_parallelizer(stats_inputs, mo.function_helper, cpu_cores, show_progress=True, pool_type='threadpool')
+    stats_results = mo.map_async_parallelizer(stats_inputs, mo.function_helper, cpu_cores, pool_type="threadpool")
     # Merge into a single dictionary
     assembly_statistics = im.merge_dictionaries(stats_results)
 

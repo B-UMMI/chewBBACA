@@ -9,13 +9,66 @@ provided through the command line to call the specified module.
 """
 
 
+import os
 import sys
+import shlex
 import shutil
 import argparse
 
+from loguru import logger
+from pydantic import ValidationError
+
 from CHEWBBACA import global_constants as gct
 from CHEWBBACA import global_validation as gval
-from CHEWBBACA.utils.process_datetime import process_timer
+
+
+# Initialize logging
+# Start with console logging in case Pydantic validation fails
+logger.remove() # CLear default handlers before adding custom one
+logger.add(sys.stderr, level="INFO", format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
+
+
+# Function to initialize file logging
+def setup_file_logging(output_dir):
+	"""
+	"""
+	logfile_path = os.path.join(output_dir, "chewie.log")
+	logger.add(
+		logfile_path,
+		level="DEBUG",
+		enqueue=True,
+		format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
+	)
+
+	logger.info(f"File logging initialized at: {logfile_path}")
+
+	return logfile_path
+
+
+def print_initial_header():
+	"""
+	"""
+	print("="*len(f"Authors: {gct.AUTHORS}"))
+	print(f"Authors: {gct.AUTHORS}")
+	print(f"Github: {gct.REPOSITORY}")
+	print(f"Documentation: {gct.DOCUMENTATION}")
+	print(f"Contacts: {gct.CONTACTS}")
+	print("="*len(f"Authors: {gct.AUTHORS}"))
+
+
+def log_cli_command(process_name):
+	"""
+	"""
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[process_name]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+
+
+def log_validated_args(validated_args):
+	""""""
+	logger.info("Validated arguments:")
+	for parameter, argument in validated_args.items():
+		logger.info(f"{parameter}: {argument}")
 
 
 class ModifiedHelpFormatter(argparse.HelpFormatter):
@@ -53,7 +106,6 @@ class ModifiedHelpFormatter(argparse.HelpFormatter):
 			return f'{parts_text}'
 
 
-@process_timer
 def run_predict_genes():
 	"""Predict genes for genome assemblies."""
 
@@ -102,13 +154,30 @@ def run_predict_genes():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.PredictGenesValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.PredictGenesValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	# Predict CDSs
-	predict_genes.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	# Log command
+	log_cli_command(gct.PREDICTGENES_MODULE_NAME)
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the PredictGenes module
+	logger.info(f"Running the {gct.PREDICTGENES_MODULE_NAME} module...")
+	try:
+		predict_genes.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_create_schema():
 	"""Create a schema based on genome assemblies or coding sequences."""
 
@@ -202,14 +271,33 @@ def run_create_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.CreateSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.CreateSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	# Run the CreateSchema process
-	nloci = create_schema.main(validated_args)
-	print(f'Created schema seed with {nloci} loci.')
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.CREATESCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the CreateSchema module
+	logger.info(f"Running the {gct.CREATESCHEMA_MODULE_NAME} module...")
+	try:
+		nloci = create_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+	
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_allele_call():
 	"""Determine allelic profiles."""
 
@@ -344,13 +432,33 @@ def run_allele_call():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.AlleleCallValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.AlleleCallValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	# Run the AlleleCall process
-	allele_call.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ALLELECALL_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the AlleleCall module
+	logger.info(f"Running the {gct.ALLELECALL_MODULE_NAME} module...")
+	try:
+		allele_call.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_evaluate_schema():
 	"""Build an interactive report for schema evaluation."""
 
@@ -424,12 +532,33 @@ def run_evaluate_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.SchemaEvaluatorValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.SchemaEvaluatorValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
+	
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SCHEMAEVALUATOR_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
 
-	evaluate_schema.main(validated_args)
+	# Run the SchemaEvaluator module
+	logger.info(f"Running the {gct.SCHEMAEVALUATOR_MODULE_NAME} module...")
+	try:
+		evaluate_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_evaluate_calls():
 	"""Build an interactive report for allele calling evaluation."""
 
@@ -497,12 +626,33 @@ def run_evaluate_calls():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.AlleleCallEvaluatorValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.AlleleCallEvaluatorValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	evaluate_calls.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ALLELECALLEVALUATOR_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the AlleleCallEvaluator module
+	logger.info(f"Running the {gct.ALLELECALLEVALUATOR_MODULE_NAME} module...")
+	try:
+		evaluate_calls.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_compute_core():
 	"""Determine the set of core loci based on allele calling results."""
 
@@ -575,12 +725,33 @@ def run_compute_core():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.ComputeCoreValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.ComputeCoreValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	compute_core.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTECORE_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the ComputeCore module
+	logger.info(f"Running the {gct.COMPUTECORE_MODULE_NAME} module...")
+	try:
+		compute_core.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_subset_results():
 	"""Subset results files."""
 
@@ -628,12 +799,33 @@ def run_subset_results():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.SubsetResultsValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.SubsetResultsValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	subset_results.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SUBSETRESULTS_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the SubsetResults module
+	logger.info(f"Running the {gct.SUBSETRESULTS_MODULE_NAME} module...")
+	try:
+		subset_results.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_merge_results():
 	"""Merge results files."""
 
@@ -666,12 +858,33 @@ def run_merge_results():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.MergeResultsValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.MergeResultsValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	merge_results.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.MERGERESULTS_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the MergeResults module
+	logger.info(f"Running the {gct.MERGERESULTS_MODULE_NAME} module...")
+	try:
+		merge_results.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_hash_profiles():
 	"""Hash allelic profiles."""
 
@@ -719,12 +932,33 @@ def run_hash_profiles():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.HashProfilesValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.HashProfilesValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	hash_profiles.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.HASHPROFILES_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the HashProfiles module
+	logger.info(f"Running the {gct.HASHPROFILES_MODULE_NAME} module...")
+	try:
+		hash_profiles.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_get_alleles():
 	"""Get allele sequences."""
 
@@ -782,12 +1016,33 @@ def run_get_alleles():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.GetAllelesValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.GetAllelesValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	get_alleles.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.GETALLELES_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the GetAlleles module
+	logger.info(f"Running the {gct.GETALLELES_MODULE_NAME} module...")
+	try:
+		get_alleles.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_adapt_schema():
 	"""Adapt schemas for use with chewBBACA."""
 
@@ -870,12 +1125,36 @@ def run_adapt_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.AdaptSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.AdaptSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	adapt_schema.main(validated_args)
+########### Is this writing the log file into the schema folder???
+
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ADAPTSCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the AdaptSchema module
+	logger.info(f"Running the {gct.ADAPTSCHEMA_MODULE_NAME} module...")
+	try:
+		adapt_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
+
 def run_annotate_schema():
 	"""Retrieve annotations for loci in a schema."""
 
@@ -958,12 +1237,33 @@ def run_annotate_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.AnnotateSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.AnnotateSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	annotate_schema.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ANNOTATESCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the AnnotateSchema module
+	logger.info(f"Running the {gct.ANNOTATESCHEMA_MODULE_NAME} module...")
+	try:
+		annotate_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+		
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_compute_distances():
 	"""Compute pairwise distances based on allele calling results."""
 
@@ -1016,12 +1316,33 @@ def run_compute_distances():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.ComputeDistancesValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.ComputeDistancesValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	compute_distances.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTEDISTANCES_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the ComputeDistances module
+	logger.info(f"Running the {gct.COMPUTEDISTANCES_MODULE_NAME} module...")
+	try:
+		compute_distances.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_compute_msa():
 	"""Compute Multiple Sequence Alignments."""
 
@@ -1104,12 +1425,33 @@ def run_compute_msa():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.ComputeMSAValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.ComputeMSAValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	compute_msa.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTEMSA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+	
+	# Run the ComputeMSA module
+	logger.info(f"Running the {gct.COMPUTEMSA_MODULE_NAME} module...")
+	try:
+		compute_msa.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_download_schema():
 	"""Download schemas from Chewie-NS."""
 
@@ -1167,12 +1509,33 @@ def run_download_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.DownloadSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.DownloadSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	download_schema.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.DOWNLOADSCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the DownloadSchema module
+	logger.info(f"Running the {gct.DOWNLOADSCHEMA_MODULE_NAME} module...")
+	try:
+		download_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+	
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_upload_schema():
 	"""Upload schemas to Chewie-NS."""
 
@@ -1235,12 +1598,33 @@ def run_upload_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.UploadSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.UploadSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	upload_schema.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.UPLOADSCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the UploadSchema module
+	logger.info(f"Running the {gct.UPLOADSCHEMA_MODULE_NAME} module...")
+	try:
+		upload_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+	
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_synchronize_schema():
 	"""Synchronize local schemas with the remote versions on Chewie-NS."""
 
@@ -1283,12 +1667,33 @@ def run_synchronize_schema():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.SynchronizeSchemaValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.SynchronizeSchemaValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	synchronize_schema.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SYNCSCHEMA_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the SynSchema module
+	logger.info(f"Running the {gct.SYNCSCHEMA_MODULE_NAME} module...")
+	try:
+		synchronize_schema.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
-@process_timer
 def run_stats_requests():
 	"""Retrieve basic species and schema information from Chewie-NS."""
 
@@ -1326,9 +1731,31 @@ def run_stats_requests():
 	# Strip out None values so Pydantic defaults take effect
 	clean_args = {k: v for k, v in vars(args).items() if v is not None}
 	# Use Pydantic model to validate argument values
-	validated_args = vm.NSStatsValidator.model_validate(clean_args)
+	try:
+		validated_args = vm.NSStatsValidator.model_validate(clean_args)
+	except ValidationError as err:
+		logger.error(f"Error during argument validation: {err}")
+		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-	stats_requests.main(validated_args)
+	# Initialize file logging
+	logfile_path = setup_file_logging(validated_args.output_directory)
+	logger.info(f"File logging initialized at: {logfile_path}")
+	# Log command
+	# Use shlex to retain quotes and other special characters
+	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.NSSTATS_MODULE_NAME]+sys.argv[1:])
+	logger.info(f"Command: {raw_cmd}")
+	# Log list of validated arguments
+	log_validated_args(validated_args.model_dump())
+
+	# Run the NSStats module
+	logger.info(f"Running the {gct.NSSTATS_MODULE_NAME} module...")
+	try:
+		stats_requests.main(validated_args)
+	except Exception as err:
+		logger.error(f"Process error: {err}")
+		sys.exit(gval.ExitCode.GENERAL_ERROR)
+
+	logger.success(f"Process completed successfully!")
 
 
 def main():
@@ -1353,15 +1780,12 @@ def main():
 					  gct.SYNCSCHEMA_MODULE_NAME: [gct.SYNCSCHEMA_MODULE_SHORT_DESCRIPTION, run_synchronize_schema],
 					  gct.NSSTATS_MODULE_NAME: [gct.NSSTATS_MODULE_SHORT_DESCRIPTION, run_stats_requests]}
 
-	print(f"chewBBACA version: {gct.__version__}")
 	if len(sys.argv) > 1 and sys.argv[1] in gct.VERSION_TRIGGERS:
+		print(f"chewBBACA version: {gct.__version__}")
 		# Exit after printing version
 		sys.exit(0)
 
-	print(f"Authors: {gct.AUTHORS}")
-	print(f"Github: {gct.REPOSITORY}")
-	print(f"Documentation: {gct.DOCUMENTATION}")
-	print(f"Contacts: {gct.CONTACTS}\n")
+	print_initial_header()
 
 	# Display help message if selected process is not valid
 	if len(sys.argv) == 1 or sys.argv[1] not in functions_info or sys.argv[1] in gct.HELP_TRIGGERS:
@@ -1369,7 +1793,7 @@ def main():
 		# Detect if user passed module name that does not exist
 		if len(sys.argv) > 1 and sys.argv[1] not in gct.HELP_TRIGGERS:
 			print(f"No module named {sys.argv[1]}.\n")
-			exit_code = 1
+			exit_code = 2
 		print("USAGE: chewBBACA.py [module] -h, --help\n")
 		print("Select one of the following modules:")
 		for f in functions_info:

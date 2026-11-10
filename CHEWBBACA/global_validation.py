@@ -16,6 +16,7 @@ import sys
 import shutil
 import platform
 import multiprocessing
+from enum import IntEnum
 from typing import Annotated
 
 from pydantic import (BaseModel,
@@ -38,6 +39,16 @@ except ModuleNotFoundError:
 								 fasta_operations as fao,
 								 iterables_manipulation as im,
 								 pyrodigal_gene_prediction as pgp)
+
+
+# Define custom Exit Code Enum to use as reference for all modules
+class ExitCode(IntEnum):
+	SUCCESS = 0
+	GENERAL_ERROR = 1
+	INVALID_ARGS = 2
+	VALIDATION_ERROR = 65
+	FILE_NOT_FOUND = 66
+	USER_CANCELLED = 130
 
 
 def get_system_cpu_cores():

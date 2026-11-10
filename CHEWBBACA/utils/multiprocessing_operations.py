@@ -16,10 +16,10 @@ import time
 import traceback
 import multiprocessing.pool
 
-try:
-	from utils import iterables_manipulation as im
-except ModuleNotFoundError:
-	from CHEWBBACA.utils import iterables_manipulation as im
+from tqdm import tqdm
+from loguru import logger
+
+from CHEWBBACA.utils import iterables_manipulation as im
 
 
 def function_helper(input_args):
@@ -40,18 +40,17 @@ def function_helper(input_args):
 	"""
 	try:
 		results = input_args[-1](*input_args[0:-1])
-	except Exception as e:
+	except Exception as err:
 		func_name = (input_args[-1]).__name__
 		traceback_lines = traceback.format_exc()
-		traceback_text = ''.join(traceback_lines)
-		print('\nError on {0}:\n{1}\n'.format(func_name, traceback_text), flush=True)
+		traceback_text = "".join(traceback_lines)
+		logger.error("\nError on {func_name}:\n{traceback_text}\n")
 		results = [func_name, traceback_text]
 
 	return results
 
 
-def map_async_parallelizer(inputs, function, cpu, callback='extend',
-						   chunksize=1, show_progress=False, pool_type='pool'):
+def map_async_parallelizer(inputs, function, cpu, chunksize=1, pool_type="pool"):
 	"""Run function in parallel.
 
 	Parameters
@@ -63,18 +62,10 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
 	cpu : int
 		Number of processes to create (based on the
 		number of CPU cores).
-	callback : str
-		Results can be appended, "append", to the
-		list that stores results or the list of results
-		can be extended, "extend".
 	chunksize : int
 		Size of input chunks that will be passed to
 		each process. The function will create groups
 		of inputs with this number of elements.
-	show_progress : bool
-		True to show a progress bar with the percentage
-		of inputs that have been processed, False
-		otherwise.
 	pool_type : str
 		The multiprocessing.pool object that will be used,
 		Pool or ThreadPool.
@@ -85,28 +76,20 @@ def map_async_parallelizer(inputs, function, cpu, callback='extend',
 		List with the results returned for each function
 		call.
 	"""
-	if pool_type == 'pool':
+	if pool_type == "pool":
 		multiprocessing_function = multiprocessing.pool.Pool
 	# Gene prediction uses ThreadPool because Pyrodigal might hang with Pool
-	elif pool_type == 'threadpool':
+	elif pool_type == "threadpool":
 		multiprocessing_function = multiprocessing.pool.ThreadPool
 
-	results = []
 	# Use context manager to join and close pool automatically
 	with multiprocessing_function(cpu) as pool:
-		if callback == 'extend':
-			rawr = pool.map_async(function, inputs,
-								  callback=results.extend, chunksize=chunksize)
-		elif callback == 'append':
-			rawr = pool.map_async(function, inputs,
-								  callback=results.append, chunksize=chunksize)
+		# Use tqdm to show progress bar
+		# imap_unordered returns results as processes complete, not in the same order as inputs
+		# Gather results into a list (e.g., if the function being executed in parallel returns a dict, it will be a list of dict)
+		results = list(tqdm(pool.imap_unordered(function, inputs, chunksize=chunksize), total=len(inputs), desc="Processing"))
 
-		if show_progress is True:
-			progress = None
-			while progress != 100:
-				progress = progress_bar(rawr._number_left, len(inputs), progress)
-
-		rawr.wait()
+	logger.info(f"Finished running {function} in parallel. Processed {len(inputs)} items.")
 
 	return results
 
@@ -139,10 +122,10 @@ def progress_bar(remaining, total, previous, tickval=5, ticknum=20):
 	# only print if percentage has changed
 	if progress != previous:
 		progress_tick = progress//tickval
-		progress_bar = '[{0}{1}] {2}%'.format('='*progress_tick,
-											  ' '*(ticknum-progress_tick),
+		progress_bar = "[{0}{1}] {2}%".format("="*progress_tick,
+											  " "*(ticknum-progress_tick),
 											  progress)
-		print('\r', progress_bar, end='')
+		logger.info("\r", progress_bar, end="")
 
 	time.sleep(0.1)
 

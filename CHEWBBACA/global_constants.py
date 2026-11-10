@@ -346,12 +346,6 @@ SCHEMA_MISSING_FILES = ("Schema does not include a `{0}` file. Please ensure tha
 OUTPUT_DIRECTORY_EXISTS = ("Output directory already exists. Please provide a non-existent path "
                            "to create a new directory where results will be stored.")
 
-# Could not predict CDSs for input FASTA files
-# e.g. files only contain sequence headers, contain invalid
-# sequences/chars or pyrodigal cannot predict any genes
-CANNOT_PREDICT = ('Could not predict CDSs from any of the input files.'
-				  '\nPlease verify the format of the input files.')
-
 INVALID_GENETIC_CODE = ("Invalid genetic code value. Value must match one of the following accepted genetic codes"
                         f"codes:\n{'\n'.join([str(k)+': '+v for k, v in GENETIC_CODES.items()])}")
 

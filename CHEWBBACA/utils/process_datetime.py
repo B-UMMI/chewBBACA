@@ -12,16 +12,7 @@ Code documentation
 """
 
 
-import sys
-import functools
 import datetime as dt
-
-
-def get_datetime():
-	"""Return datetime object for current date and hour."""
-	current_datetime = dt.datetime.now()
-
-	return current_datetime
 
 
 def datetime_str(datetime_obj, date_format='%Y-%m-%dT%H:%M:%S'):
@@ -67,33 +58,6 @@ def datetime_obj(datetime_str, date_format='%Y-%m-%dT%H:%M:%S'):
 	return dt_obj
 
 
-def datetime_diff(sdate, edate):
-	"""Return the difference in minutes and seconds between two dates.
-
-	Parameters
-	----------
-	sdate : datetime.datetime
-		Datetime module object corresponding to
-		the oldest date.
-	edate : datetime.datetime
-		Datetime module object corresponding to
-		the most recent date.
-
-	Returns
-	-------
-	A list with the following elements:
-		minutes : float
-			Time difference between the two dates
-			in minutes.
-		seconds : float
-			The remaining time difference in seconds.
-	"""
-	delta = edate - sdate
-	minutes, seconds = divmod(delta.total_seconds(), 60)
-
-	return [minutes, seconds]
-
-
 def validate_date(date, date_format='%Y-%m-%dT%H:%M:%S.%f'):
 	"""Check if date is in specified format.
 
@@ -119,38 +83,3 @@ def validate_date(date, date_format='%Y-%m-%dT%H:%M:%S.%f'):
 		valid = date
 
 	return valid
-
-
-def process_header(process):
-	"""Print a header with the name of the process."""
-	header = f'chewBBACA - {process}'
-	hf = '='*(len(header)+4)
-	print(f'{hf}\n  {header}\n{hf}')
-
-
-# Decorator to time main processes
-def process_timer(func):
-	# Use functools to preserve info about wrapped function
-	@functools.wraps(func)
-	def wrapper(*args, **kwargs):
-		# Get process name and print header
-		process_header(sys.argv[1])
-
-		# Do not measure time if it is only needed to print the help message
-		if any([option in ['-h', '--help'] for option in sys.argv]) is False:
-			start = get_datetime()
-			start_str = datetime_str(start)
-			print(f'Started at: {start_str}\n')
-
-		# Run function
-		func(*args, **kwargs)
-
-		# Does not print elapsed time if the help message is printed
-		end = get_datetime()
-		end_str = datetime_str(end)
-		print(f'\nFinished at: {end_str}')
-
-		minutes, seconds = datetime_diff(start, end)
-		print(f'Took {minutes: .0f}m{seconds: .0f}s.')
-
-	return wrapper

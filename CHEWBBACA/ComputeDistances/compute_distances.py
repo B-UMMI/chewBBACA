@@ -19,6 +19,7 @@ import random
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 import CHEWBBACA.global_constants as gct
 from CHEWBBACA.utils import (
@@ -266,24 +267,24 @@ def write_matrix(pickled_results, genome_ids, output_directory, output_file_pref
 		allele_diffs = list(map(str, allele_diffs))
 		# Add padding before distance values
 		# This creates a right/upper triangular matrix
-		padding = [''] * (len(genome_ids)-len(allele_diffs))
+		padding = [""] * (len(genome_ids)-len(allele_diffs))
 		ad_line = [g] + padding + allele_diffs
 		ad_lines.append(ad_line)
 		if len(ad_lines) >= limit or g == genome_ids[-1]:
-			ad_text = [im.join_list(l, '\t') for l in ad_lines]
+			ad_text = [im.join_list(l, "\t") for l in ad_lines]
 			fo.write_lines(ad_text, upper_triangular, write_mode='a')
 			ad_lines = []
 
 	# User specified different output type
-	if output_type != 'upper_triangular':
+	if output_type != "upper_triangular":
 		# Transpose to get lower triangular matrix
-		print('Transposing upper triangular matrix...')
-		lower_triangular_outfile = fo.join_paths(output_directory, [f'{output_file_prefix}_lower.tsv'])
+		logger.info("Transposing upper triangular matrix...")
+		lower_triangular_outfile = fo.join_paths(output_directory, [f"{output_file_prefix}_lower.tsv"])
 		lower_triangular = transpose_matrix(upper_triangular, lower_triangular_outfile)
 		# Merge upper and lower triangular matrices to create a symmetric matrix
-		if output_type == 'symmetric':
-			print('Creating symmetric matrix...')
-			symmetric_outfile = fo.join_paths(output_directory, [f'{output_file_prefix}_symmetric.tsv'])
+		if output_type == "symmetric":
+			logger.info("Creating symmetric matrix...")
+			symmetric_outfile = fo.join_paths(output_directory, [f"{output_file_prefix}_symmetric.tsv"])
 			output_file = merge_triangular_matrices(upper_triangular, lower_triangular, symmetric_outfile, len(col_ids))
 			os.remove(lower_triangular)
 		else:
@@ -447,43 +448,43 @@ def main(config):
 	# Create output directory
 	fo.create_directory(config.output_directory)
 
-	print(f'Distance method: {config.distance_computation_method}')
-	print(f'Output format: {config.output_format}')
+	logger.info(f"Distance method: {config.distance_computation_method}")
+	logger.info(f"Output format: {config.output_format}")
 	# Import profiles
-	print('Reading input file...')
-	profiles = pd.read_csv(config.allelic_profiles, sep='\t', dtype=str, index_col=0)
+	logger.info("Reading input file...")
+	profiles = pd.read_csv(config.allelic_profiles, sep="\t", dtype=str, index_col=0)
 	# Get sample identifiers
 	sample_ids = profiles.index.tolist()
 	total_samples = len(sample_ids)
-	print(f'Total samples: {total_samples}')
+	logger.info(f"Total samples: {total_samples}")
 	total_loci = profiles.shape[1]
-	print(f'Total loci: {total_loci}')
+	logger.info(f"Total loci: {total_loci}")
 
 	# Mask matrix values
 	if config.no_mask is False:
 		output_masked = fo.join_paths(config.output_directory, [gct.ALLELIC_PROFILES_MASKED_BASENAME])
 		# Mask special classifications and remove 'INF-' prefixes
-		print('Masking profiles...')
+		logger.info("Masking profiles...")
 		masked_profiles = profiles.apply(im.replace_chars)
 		# Save masked profiles
-		masked_profiles.to_csv(output_masked, sep='\t')
-		print(f'Masked {total_samples} profiles.')
+		masked_profiles.to_csv(output_masked, sep="\t")
+		logger.info(f"Masked {total_samples} profiles.")
 	else:
 		masked_profiles = profiles
 
 	if config.compute_similarity:
-		print('Computing pairwise similarities...')
-		tmp_directory_basename = 'pairwise_similarities'
+		logger.info("Computing pairwise similarities...")
+		tmp_directory_basename = "pairwise_similarities"
 	else:
-		print('Computing pairwise distances...')
-		tmp_directory_basename = 'pairwise_distances'
+		logger.info("Computing pairwise distances...")
+		tmp_directory_basename = "pairwise_distances"
 
 	# Create temp directory to store pairwise distances per genome
 	tmp_directory = fo.join_paths(config.output_directory, [tmp_directory_basename])
 	fo.create_directory(tmp_directory)
 
 	# Convert to numpy array with int32 values to reduce memory usage and make it easier to compute distances
-	np_profiles = masked_profiles.to_numpy(dtype='int32')
+	np_profiles = masked_profiles.to_numpy(dtype="int32")
 
 	# Divide input into 20 lists for 5% progress resolution
 	rows_indexes = [i for i in range(np_profiles.shape[0])]
@@ -494,28 +495,24 @@ def main(config):
 	common_args = [[l, np_profiles, sample_ids, tmp_directory, config.distance_computation_method, config.compute_similarity, compute_distances] for l in parallel_inputs]
 
 	# Increasing cpu cores can greatly increase memory usage
-	results = mo.map_async_parallelizer(common_args,
-										mo.function_helper,
-										config.cpu_cores,
-										show_progress=True)
-	print()
+	results = mo.map_async_parallelizer(common_args, mo.function_helper, config.cpu_cores)
 
 	merged = im.merge_dictionaries(results)
-	data_indexes = [0, 1] if config.distance_computation_method == 'core' else [0]
+	data_indexes = [0, 1] if config.distance_computation_method == "core" else [0]
 
-	print('Creating output files...')
+	logger.info("Creating output files...")
 	for i in data_indexes:
-		output_file_prefix = 'distances' if i == 0 else 'loci'
-		if config.output_format != 'table':
+		output_file_prefix = "distances" if i == 0 else "loci"
+		if config.output_format != "table":
 			# Import arrays per genome and save to matrix file
-			col_ids = ['FILE'] + sample_ids
+			col_ids = ["FILE"] + sample_ids
 			write_matrix(merged, sample_ids, config.output_directory, output_file_prefix, col_ids, config.output_format, i)
-		elif config.output_format == 'table':
+		elif config.output_format == "table":
 			# Write TSV with one pairwise distance per line
-			output_file = fo.join_paths(config.output_directory, [f'{output_file_prefix}.tsv'])
+			output_file = fo.join_paths(config.output_directory, [f"{output_file_prefix}.tsv"])
 			write_table(merged, sample_ids, output_file, i)
 
-	print(f'Results available in {config.output_directory}')
+	logger.info(f"Results available in {config.output_directory}")
 
 	# Delete folder with intermediate pickles
 	fo.delete_directory(tmp_directory)

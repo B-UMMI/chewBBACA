@@ -11,6 +11,7 @@ Code documentation
 
 
 import pandas as pd
+from loguru import logger
 
 from CHEWBBACA.utils import (file_operations as fo,
 								fasta_operations as fao,
@@ -133,20 +134,20 @@ def main(config):
 	nrows : int
 		Divide input file into subsets to process more efficiently.
 	"""
-	print(f"Hash function: {config.hashing_algo[0]}")
+	logger.info(f"Hash function: {config.hashing_algo[0]}")
 
 	# Get loci identifiers
 	# Read loci IDs in profiles file
 	profiles_header = fo.read_lines(config.allelic_profiles, strip=True, num_lines=1)[0]
 	loci_ids = profiles_header.split("\t")[1:]
-	print(f"Total loci: {len(loci_ids)}")
+	logger.info(f"Total loci: {len(loci_ids)}")
 
 	# Get input/sample identifiers
 	sample_ids = pd.read_csv(config.allelic_profiles, delimiter="\t", dtype=str, usecols=["FILE"])
-	sample_ids = sample_ids['FILE'].tolist()
-	print(f"Total samples: {len(sample_ids)}")
+	sample_ids = sample_ids["FILE"].tolist()
+	logger.info(f"Total samples: {len(sample_ids)}")
 
-	print(f"Dividing input file into subsets of {config.nrow_chunk} rows to process more efficiently...")
+	logger.info(f"Dividing input file into subsets of {config.nrow_chunk} rows to process more efficiently...")
 	loci_files = {}
 	for locus in loci_ids:
 		loci_files[locus] = fo.join_paths(config.schema_directory, [locus+".fasta"])
@@ -159,10 +160,10 @@ def main(config):
 							 config.hashing_algo[1], config.nrow_chunk, range(1, i+1),
 							 config.output_directory, hash_profiles])
 
-	print("Hashing profiles...")
-	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, config.cpu_cores, show_progress=True)
+	logger.info("Hashing profiles...")
+	hashed_files = mo.map_async_parallelizer(multi_inputs, mo.function_helper, config.cpu_cores)
 
-	print("\nCreating output file...")
+	logger.info("Creating output file...")
 	# Create file with header
 	header_basename = fo.file_basename(config.allelic_profiles, False) + "_header.tsv"
 	header_file = fo.join_paths(config.output_directory, [header_basename])
@@ -173,6 +174,6 @@ def main(config):
 	fo.concatenate_files([header_file]+hashed_files, output_file)
 
 	# Delete intermediate dataframes
-	print("Removing intermediate files...")
+	logger.info("Removing intermediate files...")
 	fo.remove_files([header_file]+hashed_files)
-	print(f"Hashed profiles saved to {output_file}")
+	logger.info(f"Hashed profiles saved to {output_file}")

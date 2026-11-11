@@ -83,6 +83,9 @@ SYNCSCHEMA_MODULE_SHORT_DESCRIPTION = "Synchronize local schemas with the remote
 NSSTATS_MODULE_NAME = "NSStats"
 NSSTATS_MODULE_SHORT_DESCRIPTION = "Retrieve basic species and schema information from Chewie-NS."
 
+LOGFILE_BASENAME = "chewie.log"
+LOGFILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
+
 # BLAST Score Ratio default values
 # Value must be contained in the [0.0, 1.0] interval
 BSR_MIN = 0.0
@@ -179,6 +182,8 @@ INFERRED_ALLELES_BASENAME = "inferred_alleles.fasta" # FASTA file containing the
 INFERRED_ALLELES_TABLE_BASENAME = "inferred_alleles.tsv" # TSV file containing data about the inferred alleles
 PRESENCE_ABSENCE_PROFILES_BASENAME = "presence_absence_profiles.tsv"
 INVALID_CDS_BASENAME = "invalid_cds.txt" # TXT file with the list of invalid CDSs
+GENE_PREDICTION_FAILURES_BASENAME = "gene_prediction_failures.tsv"
+ASSEMBLY_STATS_BASENAME = "assembly_stats.tsv"
 GENE_COORDINATES_BASENAME = "gene_coordinates.tsv" # TSV file containing the coordinates of predicted CDSs
 GENE_COORDINATES_EXCLUDED_BASENAME = "gene_coordinates_excluded.tsv" # TSV file containing the list of predicted CDSs that were excluded
 SCHEMA_CONFIG_BASENAME = ".schema_config" # Pickle file containing schema config values
@@ -417,3 +422,8 @@ FORCE_TRAINING_FILE = ("Provided a Pyrodigal training file. Ignoring the transla
                        "({0}) and using the genetic code defined in the training file ({1}).")
 
 LOCI_PRESENCE_VALUE_OUT_OF_LIMITS = ("At least one of the loci presence threshold values ({0}) is not within the accepted interval.")
+
+# Could not predict CDSs for input FASTA files
+# e.g. files only contain sequence headers, contain invalid
+# sequences/chars or pyrodigal cannot predict any genes
+PREDICTGENES_NO_PREDICTIONS = ("Could not predict CDSs from any of the input files. Please verify the format of the input files and the argument values passed to chewBBACA.")

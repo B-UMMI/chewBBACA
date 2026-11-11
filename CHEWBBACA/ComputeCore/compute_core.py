@@ -17,6 +17,7 @@ import math
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 import plotly.colors as pc
 import plotly.express as px
 from plotly.offline import plot
@@ -359,54 +360,54 @@ def main(config):
 
 	# Get number of genomes and loci
 	total_genomes, total_loci = profiles.shape
-	print(f'Input file includes profiles for {total_genomes} samples and {total_loci} loci.')
+	logger.info(f"Input file includes profiles for {total_genomes} samples and {total_loci} loci.")
 
 	cgMLST_thresholds = sorted(config.loci_presence_threshold)
-	print(f'Will compute the set of core loci based on the following loci presence thresholds: {", ".join(map(str, cgMLST_thresholds))}')
+	logger.info(f"Will compute the set of core loci based on the following loci presence thresholds: {", ".join(map(str, cgMLST_thresholds))}")
 
 	# Read list of samples to exclude from the analysis
 	if config.exclude_genomes:
-		print(f'User provided list with {len(config.exclude_genomes)} samples to exclude.')
-		print(f'List of genomes to exclude: {", ".join(config.exclude_genomes)}')
+		logger.info(f"User provided list with {len(config.exclude_genomes)} samples to exclude.")
+		logger.info(f"List of genomes to exclude: {", ".join(config.exclude_genomes)}")
 		profiles = remove_genomes(profiles, config.exclude_genomes)
-		print(f'Excluded {total_genomes - profiles.shape[0]} genomes.')
+		logger.info(f"Excluded {total_genomes - profiles.shape[0]} genomes.")
 
 	if config.exclude_loci:
-		print(f'User provided list with {len(config.exclude_loci)} loci to exclude.')
+		logger.info(f"User provided list with {len(config.exclude_loci)} loci to exclude.")
 		profiles = remove_columns(profiles, config.exclude_loci)
-		print(f'Excluded {total_loci - profiles.shape[1]} loci.')
+		logger.info(f"Excluded {total_loci - profiles.shape[1]} loci.")
 
 	if config.exclude_genomes or config.exclude_loci:
 		total_genomes, total_loci = profiles.shape
-		print(f'After excluding {len(config.exclude_genomes)} sample profiles and {len(config.exclude_loci)} '
-			  f'loci columns, the profiles to analyze include {total_genomes} samples and {total_loci} loci.')
+		logger.info(f"After excluding {len(config.exclude_genomes)} sample profiles and {len(config.exclude_loci)} "
+			  		f"loci columns, the profiles to analyze include {total_genomes} samples and {total_loci} loci.")
 
 	# Mask special classifications and remove 'INF-' prefixes
-	print('Masking profiles...')
+	logger.info("Masking profiles...")
 	masked_profiles = profiles.apply(im.replace_chars)
-	print(f'Masked {total_genomes} profiles.')
+	logger.info(f"Masked {total_genomes} profiles.")
 
 	# Compute presence-absence matrix
-	print('Computing presence-absence matrix...')
+	logger.info("Computing presence-absence matrix...")
 	pa_matrix, pa_outfile = compute_presence_absence(masked_profiles, config.output_directory)
-	print(f'Presence-absence matrix saved to {pa_outfile}')
+	logger.info(f"Presence-absence matrix saved to {pa_outfile}")
 
 	# Count number of special classifications per genome
-	print('Computing the presence-absence statistics per sample...')
+	logger.info("Computing the presence-absence statistics per sample...")
 	genome_mdata_df = compute_stats(pa_matrix, column_names=ct.SAMPLE_LOCUS_PRESENCE_HEADER)
 	# Sort based on increasing number of special classifications
 	genome_mdata_df = genome_mdata_df.sort_values("Locus presence count", ascending=False)
-	sorted_genomes = genome_mdata_df['Sample'].tolist()
+	sorted_genomes = genome_mdata_df["Sample"].tolist()
 	# Round percentage values to 2 decimal places
 	genome_mdata_df["Locus presence proportion"] = genome_mdata_df["Locus presence proportion"].round(3)
 
 	# Count number of special classifications per locus
-	print('Computing the presence-absence statistics per locus...')
+	logger.info("Computing the presence-absence statistics per locus...")
 	loci_mdata_df = compute_stats(pa_matrix, axis=0, column_names=ct.LOCUS_SAMPLE_PRESENCE_HEADER)
 	# Sort based on increasing number of special classifications
 	loci_mdata_df = loci_mdata_df.sort_values('Sample presence count', ascending=False)
 	# Round percentage values to 2 decimal places
-	loci_mdata_df['Sample presence proportion'] = loci_mdata_df['Sample presence proportion'].round(3)
+	loci_mdata_df["Sample presence proportion"] = loci_mdata_df["Sample presence proportion"].round(3)
 
 	# Create custom color palette for line plots
 	# Select the color at the midpoint of the colorscale if only one threshold is provided, otherwise sample colors from the colorscale
@@ -422,46 +423,46 @@ def main(config):
 	cgMLST_traces = []
 	agMLST_traces = []
 	for i, t in enumerate(cgMLST_thresholds):
-		print(f'Analyzing results for threshold {t}...')
+		logger.info(f"Analyzing results for threshold {t}...")
 		# Use multiprocessing to determine set of core loci for each step in parallel
 		step_ranges = [[step_i] for step_i in im.inclusive_range(1, len(sorted_genomes), config.sample_step)]
 		# Define the chunk size so that it creates groups of inputs instead of treating each input as a separate group which can be inefficient
 		chunk_size = math.ceil(len(step_ranges)/config.cpu_cores)
 		cgMLST_inputs = im.multiprocessing_inputs(step_ranges, [pa_matrix, sorted_genomes, t, config.compute_accessory], compute_cgMLST)
-		cgMLST_results = mo.map_async_parallelizer(cgMLST_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+		cgMLST_results = mo.map_async_parallelizer(cgMLST_inputs, mo.function_helper, config.cpu_cores, chunksize=chunk_size, pool_type="threadpool")
 
 		# The set of core loci are determined on the last step value
 		cgMLST_loci = cgMLST_results[-1][0]
 		# Get number of core loci per step value
 		cgMLST_counts = {r[1][0]: r[1][1] for r in cgMLST_results}
-		print(f'\nBased on the threshold of {t}, the core genome is composed of {len(cgMLST_loci)}/{total_loci} loci.')
+		logger.info(f"Based on the threshold of {t}, the core genome is composed of {len(cgMLST_loci)}/{total_loci} loci.")
 
 		# Write cgMLST matrix
 		# Get subset from masked matrix
 		cgMLST_matrix = masked_profiles[cgMLST_loci]
-		cgMLST_path = os.path.join(config.output_directory, 'cgMLST{0}.tsv'.format(int(t*100)))
+		cgMLST_path = os.path.join(config.output_directory, "cgMLST{0}.tsv".format(int(t*100)))
 		cgMLST_matrix.to_csv(cgMLST_path, sep='\t')
-		print(f'cgMLST profiles for threshold {t} saved to {cgMLST_path}')
+		logger.info(f"cgMLST profiles for threshold {t} saved to {cgMLST_path}")
 
 		# Write list of cgMLST loci
-		cgMLST_loci_path = os.path.join(config.output_directory, 'cgMLSTschema{0}.txt'.format(int(t*100)))
+		cgMLST_loci_path = os.path.join(config.output_directory, "cgMLSTschema{0}.txt".format(int(t*100)))
 		fo.write_lines(list(cgMLST_loci), cgMLST_loci_path)
-		print(f'List of core loci for threshold {t} saved to {cgMLST_loci_path}')
+		logger.info(f"List of core loci for threshold {t} saved to {cgMLST_loci_path}")
 
 		# Determine the percentage of cgMLST loci present in each genome
 		# Get the values for each genome in the order of the sorted_genomes list, cast them to int32 and compute the percentage of core loci in each genome
 		cgMLST_sample_pct = [np.sum(cgMLST_matrix.loc[genome].astype(np.int32) > 0) / len(cgMLST_loci) for genome in sorted_genomes]
-		genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'] = cgMLST_sample_pct
-		genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'] = genome_mdata_df[f'Loci presence proportion (cgMLST{int(t*100)})'].round(3)
+		genome_mdata_df[f"Loci presence proportion (cgMLST{int(t*100)})"] = cgMLST_sample_pct
+		genome_mdata_df[f"Loci presence proportion (cgMLST{int(t*100)})"] = genome_mdata_df[f"Loci presence proportion (cgMLST{int(t*100)})"].round(3)
 
 		current_color = custom_palette[i]
 		# Create line plot for core genome values at each step value
 		trace = go.Scattergl(x=list(cgMLST_counts.keys()),
 							 y=list(cgMLST_counts.values()),
-							 mode='lines',
+							 mode="lines",
 							 line=dict(color=current_color),
-							 name='cgMLST{0}'.format(int(t*100)),
-							 hovertemplate=('%{y}'))
+							 name="cgMLST{0}".format(int(t*100)),
+							 hovertemplate=("%{y}"))
 		cgMLST_traces.append(trace)
 
 		if config.compute_accessory:
@@ -469,76 +470,76 @@ def main(config):
 			agMLST_loci = cgMLST_results[-1][2]
 			# Get size of accessory genome per step value
 			agMLST_counts = {r[3][0]: r[3][1] for r in cgMLST_results}
-			print(f'Based on the threshold of {t}, the accessory genome is composed of {len(agMLST_loci)}/{total_loci} loci.')
+			logger.info(f"Based on the threshold of {t}, the accessory genome is composed of {len(agMLST_loci)}/{total_loci} loci.")
 			# Write agMLST matrix
 			# Get subset from masked matrix
 			agMLST_matrix = masked_profiles[agMLST_loci]
-			agMLST_path = os.path.join(config.output_directory, 'agMLST{0}.tsv'.format(int(t*100)))
+			agMLST_path = os.path.join(config.output_directory, "agMLST{0}.tsv".format(int(t*100)))
 			agMLST_matrix.to_csv(agMLST_path, sep='\t')
-			print(f'agMLST profiles for threshold {t} saved to {agMLST_path}')
+			logger.info(f"agMLST profiles for threshold {t} saved to {agMLST_path}")
 
 			# Write list of agMLST loci
-			agMLST_loci_path = os.path.join(config.output_directory, 'agMLSTschema{0}.txt'.format(int(t*100)))
+			agMLST_loci_path = os.path.join(config.output_directory, "agMLSTschema{0}.txt".format(int(t*100)))
 			fo.write_lines(list(agMLST_loci), agMLST_loci_path)
-			print(f'List of accessory loci for threshold {t} saved to {agMLST_loci_path}')
+			logger.info(f"List of accessory loci for threshold {t} saved to {agMLST_loci_path}")
 
 			# Create line plot for accessory genome values at each step value
 			trace = go.Scattergl(x=list(agMLST_counts.keys()),
 								 y=list(agMLST_counts.values()),
-								 mode='lines',
-								 line=dict(dash='dash', color=current_color),
-								 name='agMLST{0}'.format(int(t*100)),
-								 hovertemplate=('%{y}'))
+								 mode="lines",
+								 line=dict(dash="dash", color=current_color),
+								 name="agMLST{0}".format(int(t*100)),
+								 hovertemplate=("%{y}"))
 			agMLST_traces.append(trace)
 
 	# Write TSV with presence-absence statistics per sample
 	genome_mdata_path = os.path.join(config.output_directory, ct.SAMPLE_LOCUS_PRESENCE_BASENAME)
 	genome_mdata_df.to_csv(genome_mdata_path, sep='\t', index=False)
-	print(f'Saved presence-absence statistics per sample to {genome_mdata_path}')
+	logger.info(f"Saved presence-absence statistics per sample to {genome_mdata_path}")
 
 	# Write TSV with presence-absence statistics per locus
 	loci_mdata_path = os.path.join(config.output_directory, ct.LOCUS_SAMPLE_PRESENCE_BASENAME)
 	loci_mdata_df.to_csv(loci_mdata_path, sep='\t', index=False)
-	print(f'Saved presence-absence statistics per locus to {loci_mdata_path}')
+	logger.info(f"Saved presence-absence statistics per locus to {loci_mdata_path}")
 
 	# Plot loci presence frequency percentage
-	print('Creating plot with the distribution of loci presence values...')
+	logger.info("Creating plot with the distribution of loci presence values...")
 	output_html_path = plot_loci_presence(loci_mdata_df, config.output_directory)
-	print(f'Saved plot to {output_html_path}')
+	logger.info(f"Saved plot to {output_html_path}")
 
-	print('Creating line plots for each threshold and step value...')
+	logger.info("Creating line plots for each threshold and step value...")
 	# Create trace with present loci
 	present = genome_mdata_df["Locus presence count"].tolist()
 	genomes_index = list(range(1, len(present)+1))
 	miss_trace = go.Scattergl(x=genomes_index,
 							  y=present,
-							  mode='lines',
-							  name='No. of loci per sample',
-							  line=dict(dash='dot', color='#000000'),
-							  hovertemplate=('%{y}<br>'
-											 'Sample: %{text}<br>'),
+							  mode="lines",
+							  name="No. of loci per sample",
+							  line=dict(dash="dot", color="#000000"),
+							  hovertemplate=("%{y}<br>"
+											 "Sample: %{text}<br>"),
 							  text=sorted_genomes)
 
 	traces = cgMLST_traces + agMLST_traces + [miss_trace]
 
 	fig = go.Figure(data=traces)
-	fig.update_layout(title={'text': 'Size of the core genome for each threshold and step value',
-							 'font_size': 30},
-					  template='simple_white',
-					  hovermode='x',
-					  yaxis=dict(title=dict(text='Number of loci', font=dict(size=20)),
+	fig.update_layout(title={"text": "Size of the core genome for each threshold and step value",
+							 "font_size": 30},
+					  template="simple_white",
+					  hovermode="x",
+					  yaxis=dict(title=dict(text="Number of loci", font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True),
-					  xaxis=dict(title=dict(text='Number of samples', font=dict(size=20)),
+					  xaxis=dict(title=dict(text="Number of samples", font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True,
                                       range=[0, len(sorted_genomes)])
 	)
 
-	output_html_basename = 'cgMLST.html' if not config.compute_accessory else 'cgMLST_plus_agMLST.html'
+	output_html_basename = "cgMLST.html" if not config.compute_accessory else "cgMLST_plus_agMLST.html"
 	output_html_path = os.path.join(config.output_directory, output_html_basename)
 	plot(fig, filename=output_html_path, auto_open=False)
-	print(f'Line plots saved to {output_html_path}')
+	logger.info(f"Line plots saved to {output_html_path}")
 
 	# Use rarefaction analysis to determine if the core stabilizes
 	if config.rarefaction_analysis:
@@ -553,13 +554,13 @@ def main(config):
 		rarefaction_traces = []
 		analysis_type = 'core'
 		for i, t in enumerate(cgMLST_thresholds):
-			print(f'Performing rarefaction analysis to measure core genome stability for threshold {t}...')
-			print(f'Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.')
+			logger.info(f"Performing rarefaction analysis to measure core genome stability for threshold {t}...")
+			logger.info(f"Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.")
 
 			chunk_size = math.ceil(n_permutations/config.cpu_cores)
 			permutations = [[perm_i] for perm_i in list(range(n_permutations))]
 			rarefaction_inputs = im.multiprocessing_inputs(permutations, [pa_matrix, sample_ids, n_samples, n_loci, t, analysis_type], perform_rarefaction_analysis)
-			rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+			rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, chunksize=chunk_size, pool_type="threadpool")
 
 			# Concatenate the results for all permutations
 			rarefaction_perms = np.vstack(rarefaction_results)
@@ -569,7 +570,7 @@ def main(config):
 			Y_std_core = np.std(rarefaction_perms, axis=0)
 		
 			# Use non-linear least squares to fit a power law function to the data
-			fit_function = power_law_decay if analysis_type == 'core' else power_law_growth
+			fit_function = power_law_decay if analysis_type == "core" else power_law_growth
 			# Define the initial value for k as the value for the first empirical observation
 			# Define the initial value for the exponent as 0.5 so that the initial value is within the valid interval and indicates there is some change
 			# May need to set maxfev value to increase the number of times the parameter values are tweaked with very noisy data
@@ -589,48 +590,48 @@ def main(config):
 			# α > 0 indicates that the core-genome is not completely stable, with higher values pointing to a more steep drop
 			# Values close to 0 indicate the core-genome is stabilizing, while high values may be related to the strains not sharing a lot of the genes or the data being of low quality
 			# High values can make it drop to 0 very quickly
-			print(f'\nThe value of the decay exponent (α) for the core-genome determined based on a threshold of {t} is {alpha_core:.3f} ± {alpha_core_error:.3f}')
+			logger.info(f"The value of the decay exponent (α) for the core-genome determined based on a threshold of {t} is {alpha_core:.3f} ± {alpha_core_error:.3f}")
 
 			# Create traces for empirical permutation averages and Power law curve
 			current_color = custom_palette[i]
 			# Trace for empirical permutation averages
 			# Need to include "<extra></extra>" in the hovertemplate so that the trace name is not shown next to the hover label
 			mean_trace_core = go.Scatter(x=X, y=Y_mean_core,
-									   mode='lines',
-									   name=f'Core-genome Permutation Means (t={t})',
+									   mode="lines",
+									   name=f"Core-genome Permutation Means (t={t})",
 									   line=dict(color=current_color),
 									   hovertemplate=f"Core-genome Permutation Means (t={t})<br># samples: %{{x}}<br># loci: %{{y}}<extra></extra>")
 
 			# Trace for the standard deviation values
 			y_upper = Y_mean_core + Y_std_core
 			y_lower = Y_mean_core - Y_std_core
-			std_color = current_color.replace('rgb', 'rgba').replace(')', ', 0.35)')
+			std_color = current_color.replace("rgb", "rgba").replace(")", ", 0.35)")
 			std_trace_core = go.Scatter(x=np.concatenate([X, X[::-1]]),
 							   y=np.concatenate([y_upper, y_lower[::-1]]),
-							   fill='toself',
+							   fill="toself",
 							   fillcolor=std_color,
-							   line=dict(color='rgba(255,255,255,0)'),
+							   line=dict(color="rgba(255,255,255,0)"),
 							   hoverinfo="skip",
 							   showlegend=False
 							   )
 
 			# Trace for Power law curve
 			pcore_trace = go.Scatter(x=X, y=Y_predicted,
-							mode='lines',
+							mode="lines",
 							name=f"Core-genome Power Law Fit (t={t}, α={alpha_core:.3f})",
 							line=dict(color=current_color, dash='dot'),
 							hovertemplate=f"Power Law Fit (t={t}, α={alpha_core:.3f})<br># samples: %{{x}}<br># loci: %{{y}}<extra></extra>")
 
 			rarefaction_traces.extend([mean_trace_core, std_trace_core, pcore_trace])
 
-		print(f'Performing rarefaction analysis to evaluate pangenome stability...')
-		print(f'Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.')
+		logger.info(f"Performing rarefaction analysis to evaluate pangenome stability...")
+		logger.info(f"Using {n_permutations} permutations and {n_samples} samples for the rarefaction analysis.")
 
-		analysis_type = 'pangenome'
+		analysis_type = "pangenome"
 		chunk_size = math.ceil(n_permutations/config.cpu_cores)
 		permutations = [[perm_i] for perm_i in list(range(n_permutations))]
 		rarefaction_inputs = im.multiprocessing_inputs(permutations, [pa_matrix, sample_ids, n_samples, n_loci, t, analysis_type], perform_rarefaction_analysis)
-		rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, show_progress=True, pool_type='threadpool', chunksize=chunk_size)
+		rarefaction_results = mo.map_async_parallelizer(rarefaction_inputs, mo.function_helper, config.cpu_cores, chunksize=chunk_size, pool_type="threadpool")
 
 		# Concatenate the results for all permutations
 		rarefaction_perms = np.vstack(rarefaction_results)
@@ -640,7 +641,7 @@ def main(config):
 		Y_std_pan = np.std(rarefaction_perms, axis=0)
 
 		# Use non-linear least squares to fit a power law function to the data
-		fit_function = power_law_decay if analysis_type == 'core' else power_law_growth
+		fit_function = power_law_decay if analysis_type == "core" else power_law_growth
 		# Define the initial value for k as the value for the first empirical observation
 		# Define the initial value for the exponent as 0.5 so that the initial value is within the valid interval and indicates there is some change
 		# May need to set maxfev value to increase the number of times the parameter values are tweaked with very noisy data
@@ -659,13 +660,13 @@ def main(config):
 		# Print information about the growth exponent
 		# Values above 0 mean that new genes keep being discovered as we add genomes
 		# Values closer to 0 mean that fewer genes are discovered, with 0 meaning that the pangenome is closed
-		print(f'\nThe growth exponent (y) for the pangenome is {gamma_pan:.3f} ± {gamma_pan_error:.3f}.')
+		logger.info(f"The growth exponent (y) for the pangenome is {gamma_pan:.3f} ± {gamma_pan_error:.3f}.")
 
 		# Create traces for empirical permutation averages and Power law curve
 		mean_trace_pan = go.Scatter(x=X, y=Y_mean_pan,
-									 mode='lines',
-									 name=f'Pangenome Permutation Means',
-									 line=dict(color='black'),
+									 mode="lines",
+									 name=f"Pangenome Permutation Means",
+									 line=dict(color="black"),
 									 hovertemplate=f"Pangenome Permutation Means<br># samples: %{{x}}<br># loci: %{{y}}<extra></extra>")
 
 		# Trace for the standard deviation values
@@ -673,17 +674,17 @@ def main(config):
 		y_lower = Y_mean_pan - Y_std_pan
 		std_trace_pan = go.Scatter(x=np.concatenate([X, X[::-1]]),
 							y=np.concatenate([y_upper, y_lower[::-1]]),
-							fill='toself',
-							fillcolor='rgba(211, 211, 211, 0.35)',
-							line=dict(color='rgba(255,255,255,0)'),
+							fill="toself",
+							fillcolor="rgba(211, 211, 211, 0.35)",
+							line=dict(color="rgba(255,255,255,0)"),
 							hoverinfo="skip",
 							showlegend=False
 							)
 
 		ppan_trace = go.Scatter(x=X, y=Y_pan_predicted,
-						  mode='lines',
+						  mode="lines",
 						  name=f"Pangenome Power Law Fit (y={gamma_pan:.3f})",
-						  line=dict(color='black', dash='dot'),
+						  line=dict(color="black", dash="dot"),
 						  hovertemplate=f"Power Law Fit (y={gamma_pan:.3f})<br># samples: %{{x}}<br># loci: %{{y}}<extra></extra>")
 
 		rarefaction_traces.extend([mean_trace_pan, std_trace_pan, ppan_trace])
@@ -691,20 +692,20 @@ def main(config):
 		fig = go.Figure()
 		fig.add_traces(rarefaction_traces)
 
-		fig.update_layout(title={'text': 'Core-genome and pangenome rarefaction analysis',
-							 'font_size': 30},
-							 template='simple_white',
-							 hovermode='x',
-							 xaxis=dict(title=dict(text='Number of samples', font=dict(size=20)),
+		fig.update_layout(title={"text": "Core-genome and pangenome rarefaction analysis",
+							 "font_size": 30},
+							 template="simple_white",
+							 hovermode="x",
+							 xaxis=dict(title=dict(text="Number of samples", font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True,
                                       range=[0, n_samples]),
-							 yaxis=dict(title=dict(text='Number of loci', font=dict(size=20)),
+							 yaxis=dict(title=dict(text="Number of loci", font=dict(size=20)),
                                       tickfont=dict(size=18),
                                       showgrid=True)
 		)
 
-		output_html_basename = 'rarefaction_analysis.html'
+		output_html_basename = "rarefaction_analysis.html"
 		output_html_path = os.path.join(config.output_directory, output_html_basename)
 		plot(fig, filename=output_html_path, auto_open=False)
-		print(f'Line plots for the rarefaction analysis saved to {output_html_path}')
+		logger.info(f"Line plots for the rarefaction analysis saved to {output_html_path}")

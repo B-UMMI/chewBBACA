@@ -31,7 +31,9 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.parentdir_exists),
 							AfterValidator(gval.create_output_directory)]
 
-InputPath = Annotated[str,
+# Need to include list type to avoid PydanticSerializationUnexpectedValue
+# Input is a str but AfterValidator converts it into a list of valid file paths
+InputPath = Annotated[str | list,
                       Field(description=ct.CREATESCHEMA_INPUT_PATH_DESCRIPTION),
 					   AfterValidator(partial(gval.input_paths_exist,
 					                          function=fo.exists,

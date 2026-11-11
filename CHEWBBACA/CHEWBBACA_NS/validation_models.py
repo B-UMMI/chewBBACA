@@ -34,11 +34,11 @@ DownloadSchemaOutputDirectory = Annotated[str,
 							AfterValidator(gval.parentdir_exists),
 							AfterValidator(gval.create_output_directory)]
 
-DownloadSchemaSpeciesId = Annotated[str,
+DownloadSchemaSpeciesId = Annotated[str | list,
                       Field(default=None,
                             description=ct.DOWNLOADSCHEMA_SPECIES_ID_DESCRIPTION)]
 
-DownloadSchemaSchemaId = Annotated[str,
+DownloadSchemaSchemaId = Annotated[str | list,
                      Field(default=None,
                            description=ct.DOWNLOADSCHEMA_SCHEMA_ID_DESCRIPTION)]
 
@@ -332,3 +332,65 @@ class NSStatsValidator(BaseModel):
 			sys.exit(f"Could not connect to the Chewie-NS instance at {self.nomenclature_server_instance} (returned status code {connection[1]}).")
 
 		return self
+
+
+# Define custom exceptions
+class DownloadSchemaInvalidDateFormat(Exception):
+	"""Raised when the date format is invalid"""
+	pass
+
+class DownloadSchemaInvalidDate(Exception):
+	"""Raised when the date is not valid due to matching a date prior or later than the schema dates."""
+	pass
+
+class DownloadSchemaFailedLociFastaDownload(Exception):
+	"""Raised when the download of the loci FASTA files fails."""
+	pass
+
+class SchemaLocked(Exception):
+	"""Raised when a remote schema is locked."""
+	pass
+
+class UploadSchemaCannotContinueUpload(Exception):
+	""""""
+	pass
+
+class UploadSchemaCannotDetermineSchemaStatus(Exception):
+	""""""
+	pass
+
+class UploadSchemaCannotCreateSchema(Exception):
+	""""""
+	pass
+
+class UploadSchemaFailedUpload(Exception):
+	""""""
+	pass
+
+class SyncSchemaMultipleArgumentValues(Exception):
+	""""""
+	pass
+
+class SyncSchemaSchemaConfigNoMatch(Exception):
+	""""""
+	pass
+
+class NSStatsCouldNotRetrieveSpeciesData(Exception):
+	""""""
+	pass
+
+class NSStatsInvalidSpeciesID(Exception):
+	""""""
+	pass
+
+class NSStatsCouldNotRetrieveSchemas(Exception):
+	""""""
+	pass
+
+class NSStatsInvalidSchemaID(Exception):
+	""""""
+	pass
+
+class NoPermissions(Exception):
+	""""""
+	pass

@@ -15,11 +15,12 @@ import re
 import sys
 
 import pandas as pd
+from loguru import logger
 
 import CHEWBBACA.SubsetResults.constants as ct
 import CHEWBBACA.global_constants as gct
 from CHEWBBACA.utils import (file_operations as fo,
-								fasta_operations as fao)
+							 fasta_operations as fao)
 
 
 def main(config):
@@ -40,10 +41,7 @@ def main(config):
 	invert_samples : bool
 		If provided, the process will select the samples that are not in the input sample list.
 	"""
-	print(f'Listing files in {config.results_files}...')
-
-	print(config)
-
+	logger.info(f"Listing files in {config.results_files}...")
 	# Need to list the files in each directory and group them based on filename
 	file_list = {file_type: None for file_type in gct.SUPPORTED_RESULTS_FILES}
 	input_files = fo.listdir(config.results_files, full_path=True)
@@ -56,11 +54,10 @@ def main(config):
 	missing = []
 	for ftype, fpath in file_list.items():
 		if fpath is None:
-			print(f'Did not find matching files for the {ftype} file type. Output '
-		 		  'directory will not include that file.')
+			logger.info(f"Did not find matching files for the {ftype} file type. Output directory will not include that file.")
 			missing.append(ftype)
 		else:
-			print(f'Found the {ftype} file type to subset.')
+			logger.info(f"Found the {ftype} file type to subset.")
 
 	# Remove from the dictionary the file types without matching files
 	for ftype in missing:
@@ -72,15 +69,15 @@ def main(config):
 		sys.exit(ct.SUBSETRESULTS_MISSING_PROFILES_EXCEPTION)
 
 	# Get list of loci and samples from the allelic profiles
-	print(f'Getting the complete list of loci from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...')
+	logger.info(f"Getting the complete list of loci from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...")
 	loci = fo.read_lines(file_list[gct.ALLELIC_PROFILES_BASENAME], strip=True, num_lines=1)
 	loci = loci[0].split('\t')[1:]
-	print(f'Input data includes results for {len(loci)} loci.')
+	logger.info(f"Input data includes results for {len(loci)} loci.")
 
-	print(f'Getting the complete list of samples from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...')
-	samples = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], usecols=['FILE'], sep='\t', dtype=str)
-	samples = samples['FILE'].tolist()
-	print(f'Input data includes results for {len(samples)} samples.')
+	logger.info(f"Getting the complete list of samples from {file_list[gct.ALLELIC_PROFILES_BASENAME]}...")
+	samples = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], usecols=["FILE"], sep="\t", dtype=str)
+	samples = samples["FILE"].tolist()
+	logger.info(f"Input data includes results for {len(samples)} samples.")
 
 	if config.loci_list:
 		loci_subset = config.loci_list
@@ -88,20 +85,18 @@ def main(config):
 		loci_to_keep = set(loci_subset).intersection(set(loci))
 		if len(loci_to_keep) < len(loci_subset):
 			missing_loci = set(loci_subset).difference(set(loci))
-			print(f'{len(missing_loci)} loci IDs in the provided list are not '
-		 		  f'present in the input results: {', '.join(missing_loci)}')
+			logger.info(f"{len(missing_loci)} loci IDs in the provided list are not present in the input results: {', '.join(missing_loci)}")
 			sys.exit(ct.SUBSETRESULTS_ABSENT_LOCI_EXCEPTION)
 
 		if config.invert_loci is True:
-			print('Provided `--invert-loci`. Inverting loci list...')
+			logger.info("Provided `--invert-loci`. Inverting loci list...")
 			loci_to_keep = set(loci).difference(set(loci_subset))
 	else:
 		loci_to_keep = loci
 
 	# Sort list of loci
 	loci_to_keep = sorted(loci_to_keep)
-	print(f'Will subset the results based on a list of {len(loci_to_keep)} loci IDs '
-	   	  f'(from a total of {len(loci)} loci).')
+	logger.info(f"Will subset the results based on a list of {len(loci_to_keep)} loci IDs (from a total of {len(loci)} loci).")
 
 	if config.sample_list:
 		sample_subset = config.sample_list
@@ -109,12 +104,11 @@ def main(config):
 		samples_to_keep = set(sample_subset).intersection(set(samples))
 		if len(samples_to_keep) < len(sample_subset):
 			missing_samples = set(sample_subset).difference(set(samples))
-			print(f'{len(missing_samples)} sample IDs in the provided list are not '
-				  f'present in the input results: {', '.join(missing_samples)}')
+			logger.info(f"{len(missing_samples)} sample IDs in the provided list are not present in the input results: {', '.join(missing_samples)}")
 			sys.exit(ct.SUBSETRESULTS_ABSENT_SAMPLES_EXCEPTION)
 
 		if config.invert_samples is True:
-			print('Provided `--invert-samples`. Inverting list of samples...')
+			logger.info("Provided `--invert-samples`. Inverting list of samples...")
 			# It is easier to use a list of sample indexes to skip to subset the TSV files with profiles
 			# So, we use that for that type of file and the actual loci subset for other file types
 			# Need to +1 since Pandas uses 1-index
@@ -127,8 +121,7 @@ def main(config):
 
 	# Sort list of samples
 	samples_to_keep = sorted(samples_to_keep)
-	print(f'Will subset the results based on a list of {len(samples_to_keep)} sample IDs '
-		  f'(from a total of {len(samples)} samples).')
+	logger.info(f"Will subset the results based on a list of {len(samples_to_keep)} sample IDs (from a total of {len(samples)} samples).")
 
 	# Create regex objects to filter based on loci and sample lists
 	loci_finder = re.compile('|'.join(loci_to_keep))
@@ -137,33 +130,33 @@ def main(config):
 	# Create output directory
 	outdir_nonexists = fo.create_directory(config.output_directory)
 	if outdir_nonexists is False:
-		print('Output directory already exists. Will save subsetted data files to it anyway.')
+		logger.warning("Output directory already exists. Will save subsetted data files to it anyway.")
 
 	# Iterate over each file type to merge all
 	for ftype, fpath in file_list.items():
-		print(f'Subsetting {fpath}...')
+		logger.info(f"Subsetting {fpath}...")
 		# Define name for the output file with the merged results
 		output_file = fo.join_paths(config.output_directory, [ftype])
 		# Subset TSV files with profiles
 		if ftype in [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME]:
-			df = pd.read_csv(fpath, usecols=['FILE']+loci_to_keep, skiprows=samples_to_skip, sep='\t', dtype=str)
+			df = pd.read_csv(fpath, usecols=["FILE"]+loci_to_keep, skiprows=samples_to_skip, sep="\t", dtype=str)
 			# Save dataframe to file after filtering loci and samples
-			df.to_csv(output_file, sep='\t', index=False)
+			df.to_csv(output_file, sep="\t", index=False)
 		elif ftype in [gct.PARALOGOUS_COUNTS_BASENAME]:
 			# Get the allelic profiles for the loci and sample subsets
-			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
-			paralogous_counts = (profiles=='NIPH').sum(axis=0) + (profiles=='NIPHEM').sum(axis=0)
+			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter="\t", usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
+			paralogous_counts = (profiles=="NIPH").sum(axis=0) + (profiles=="NIPHEM").sum(axis=0)
 			# Only keep entries for loci with a count > 0
-			counts_df = pd.DataFrame(data={'Locus': loci_to_keep, 'Count': paralogous_counts})
-			counts_df = counts_df[counts_df['Count']>0]
-			counts_df.to_csv(output_file, index=False, sep='\t')
+			counts_df = pd.DataFrame(data={"Locus": loci_to_keep, "Count": paralogous_counts})
+			counts_df = counts_df[counts_df["Count"]>0]
+			counts_df.to_csv(output_file, index=False, sep="\t")
 		elif ftype in [gct.MISSING_TSV_BASENAME]:
 			records = fao.sequence_generator(fpath)
 			records = {rec.id: str(rec.seq) for rec in records}
 			# Filter based on loci and sample subsets
 			filtered_recids = [recid for recid in records if loci_finder.search(recid) and sample_finder.search(recid)]
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
-			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
+			out_records = [f">{recid}\n{seq}" for recid, seq in filtered_records.items()]
 			fo.write_lines(out_records, output_file, joiner='\n')
 		elif ftype in [gct.UNCLASSIFIED_BASENAME]:
 			records = fao.sequence_generator(fpath)
@@ -171,7 +164,7 @@ def main(config):
 			# Filter based on sample subset
 			filtered_recids = [recid for recid in records if sample_finder.search(recid)]
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
-			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
+			out_records = [f">{recid}\n{seq}" for recid, seq in filtered_records.items()]
 			fo.write_lines(out_records, output_file, joiner='\n')
 		elif ftype in [gct.INFERRED_ALLELES_BASENAME]:
 			records = fao.sequence_generator(fpath)
@@ -179,8 +172,8 @@ def main(config):
 			# Filter based on loci subset
 			filtered_recids = [recid for recid in records if loci_finder.search(recid)]
 			filtered_records = {recid: records[recid] for recid in filtered_recids}
-			out_records = [f'>{recid}\n{seq}' for recid, seq in filtered_records.items()]
-			fo.write_lines(out_records, output_file, joiner='\n')
+			out_records = [f">{recid}\n{seq}" for recid, seq in filtered_records.items()]
+			fo.write_lines(out_records, output_file, joiner="\n")
 		elif ftype in [gct.MISSING_TSV_BASENAME, gct.PARALOGOUS_TABLE_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpath, num_lines=1)
@@ -188,7 +181,7 @@ def main(config):
 			inlines = fo.read_lines(fpath)[1:]
 			# Identify lines that include loci and samples in the subsets
 			inlines = [line for line in inlines if loci_finder.search(line) and sample_finder.search(line)]
-			fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
+			fo.write_lines(inlines, output_file, joiner="\n", write_mode="a")
 		elif ftype in [gct.GENE_COORDINATES_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpath, num_lines=1)
@@ -197,29 +190,29 @@ def main(config):
 			# Filter based on samples subset
 			if config.sample_list:
 				inlines = [line for line in inlines if sample_finder.search(line)]
-			fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
+			fo.write_lines(inlines, output_file, joiner="\n", write_mode="a")
 		elif ftype in [gct.INVALID_CDS_BASENAME]:
 			inlines = fo.read_lines(fpath)
 			# Identify lines for samples in the subset
 			if config.sample_list:
 				inlines = [line for line in inlines if sample_finder.search(line)]
-			fo.write_lines(inlines, output_file, joiner='\n')
+			fo.write_lines(inlines, output_file, joiner="\n")
 		elif ftype in [gct.LOCI_STATS_BASENAME]:
 			# Get the lines matching the loci subset
-			statistics = pd.read_csv(fpath, delimiter='\t', index_col=0, dtype=str)
+			statistics = pd.read_csv(fpath, delimiter="\t", index_col=0, dtype=str)
 			# Filter rows to only get index entries matching the loci_to_keep
 			statistics = statistics.filter(items=loci_to_keep, axis=0)
 			# Reset index to add it as the first column
-			statistics = statistics.reset_index().rename(columns={'index': 'Locus'})
+			statistics = statistics.reset_index().rename(columns={"index": "Locus"})
 
 			# Get the allelic profiles for the loci and sample subsets
-			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter='\t', usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
+			profiles = pd.read_csv(file_list[gct.ALLELIC_PROFILES_BASENAME], delimiter="\t", usecols=loci_to_keep, skiprows=samples_to_skip, dtype=str)
 			counts = {}
 
 			# Count the number of INFs and EXC
-			counts['EXC'] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=0)
-			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=0)
-			counts['EXC'] = counts['EXC'] - counts['INF']
+			counts["EXC"] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=0)
+			counts["INF"] = profiles.apply(lambda col: col.str.startswith("INF")).sum(axis=0)
+			counts["EXC"] = counts["EXC"] - counts["INF"]
 			for l in gct.ALLELE_CLASSES[2:]:
 				counts[l] = (profiles==l).sum(axis=0)
 
@@ -227,16 +220,16 @@ def main(config):
 			counts_df.columns = gct.ALLELE_CLASSES
 
 			# This sets the FILE column as Index
-			counts_df = pd.concat([statistics['Locus'], counts_df], axis=1)
+			counts_df = pd.concat([statistics["Locus"], counts_df], axis=1)
 			# Compute the values for the Total CDSs Classified column
 			# Cannot compute this value when subsetting a dataset because it is
 			# not possible to know the number of total CDSs classified per NIPH/NIPHEM
-			counts_df['Total CDSs Classified'] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
+			counts_df["Total CDSs Classified"] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[["NIPH", "NIPHEM"]].sum(axis=1)
 			# Add '~' to indicate the values only approximate the real values
 			#counts_df['Total_CDSs'] = '~' + counts_df['Total_CDSs'].astype(str)
 
 			# Save merged files
-			counts_df.to_csv(output_file, index=False, sep='\t')
+			counts_df.to_csv(output_file, index=False, sep="\t")
 		elif ftype in [gct.SAMPLE_STATISTICS_BASENAME]:
 			# Get the allelic profiles per dataframe
 			statistics = pd.read_csv(fpath, delimiter='\t', skiprows=samples_to_skip, dtype=str)
@@ -244,9 +237,9 @@ def main(config):
 
 			counts = {}
 			# Count the number of INFs and EXC
-			counts['EXC'] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=1)
-			counts['INF'] = profiles.apply(lambda col: col.str.startswith('INF')).sum(axis=1)
-			counts['EXC'] = counts['EXC'] - counts['INF']
+			counts["EXC"] = (~profiles.isin(gct.ALLELE_CLASSES[2:])).sum(axis=1)
+			counts["INF"] = profiles.apply(lambda col: col.str.startswith("INF")).sum(axis=1)
+			counts["EXC"] = counts["EXC"] - counts["INF"]
 			for l in gct.ALLELE_CLASSES[2:]:
 				counts[l] = (profiles==l).sum(axis=1)
 
@@ -254,19 +247,19 @@ def main(config):
 			counts_df.columns = gct.ALLELE_CLASSES
 
 			# This sets the FILE column as Index
-			counts_df = pd.concat([statistics['FILE'], counts_df], axis=1)
+			counts_df = pd.concat([statistics["FILE"], counts_df], axis=1)
 
-			counts_df['Invalid CDSs'] = statistics['Invalid CDSs']
+			counts_df["Invalid CDSs"] = statistics["Invalid CDSs"]
 			# Cannot compute this value when subsetting a dataset because it is
 			# not possible to know the number of CDSs classified per NIPH/NIPHEM
-			counts_df['Total CDSs Classified'] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[['NIPH', 'NIPHEM']].sum(axis=1)
+			counts_df["Total CDSs Classified"] = counts_df[gct.ALLELE_CLASSES[:-1]].sum(axis=1) + counts_df[["NIPH", "NIPHEM"]].sum(axis=1)
 			# Add '~' to indicate the values only approximate the real values
 			#counts_df['Classified_CDSs'] = '~' + counts_df['Classified_CDSs'].astype(str)
-			counts_df['Total_CDSs'] = statistics['Total_CDSs']
+			counts_df["Total_CDSs"] = statistics["Total_CDSs"]
 
 			# Save merged files
-			counts_df.to_csv(output_file, index=False, sep='\t')
+			counts_df.to_csv(output_file, index=False, sep="\t")
 
-		print(f'Saved subsetted {ftype} to {output_file}')
+		logger.info(f"Saved subsetted {ftype} to {output_file}")
 
-	print(f'Done. Subsetted results available in {config.output_directory}')
+	logger.info(f"Done. Subsetted results available in {config.output_directory}")

@@ -18,6 +18,8 @@ from urllib3.util import Retry
 from urllib.request import urlopen
 from requests.adapters import HTTPAdapter
 
+from loguru import logger
+
 try:
 	import global_constants as gct
 	import AnnotateSchema.constants as ct
@@ -73,7 +75,7 @@ def get_proteomes(proteome_ids, output_dir):
 	proteomes_files : list
 		Local paths to the downloaded proteomes.
 	"""
-	print('Downloading reference proteomes...')
+	logger.info("Downloading reference proteomes...")
 	# construct FTP URLs for each proteome
 	downloaded = 0
 	proteomes_files = []
@@ -86,7 +88,7 @@ def get_proteomes(proteome_ids, output_dir):
 		res = fo.download_file(proteome_url, local_proteome_file)
 		proteomes_files.append(local_proteome_file)
 		downloaded += 1
-		print('\r', 'Downloaded {0}/{1}'.format(downloaded, len(proteome_ids)), end='')
+		logger.info("Downloaded {0}/{1}".format(downloaded, len(proteome_ids)))
 		time.sleep(0.1)
 
 	return proteomes_files

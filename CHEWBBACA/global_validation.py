@@ -852,7 +852,10 @@ def create_default_clustering_options():
 	return default_clustering_options
 
 
-ClusteringOptions = Annotated[list,
+# Validate if input is str, not if it is None
+# Need to include dict type to avoid PydanticSerializationUnexpectedValue
+# Input is a list but AfterValidator converts it into a dictionary
+ClusteringOptions = Annotated[list | dict,
                               Field(default=create_default_clustering_options(),
                                     validate_default=True,
                                     description=gct.CLUSTERING_OPTIONS_DESCRIPTION),
@@ -875,3 +878,11 @@ def get_field_help(model, field_name):
 		return f"{description} (default: {default_value})."
 
 	return description
+
+
+# Define custom exceptions used by the multiple modules
+class InputsNoPredictions(Exception):
+	"""Raised when Pyrodigal cannot predict genes from any of the input files"""
+	pass
+
+

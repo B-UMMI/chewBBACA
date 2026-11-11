@@ -28,16 +28,26 @@ logger.remove() # CLear default handlers before adding custom one
 logger.add(sys.stderr, level="INFO", format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
 
 
-# Function to initialize file logging
 def setup_file_logging(output_dir):
+	"""Initialize file logging.
+
+	Parameters
+	----------
+	output_dir : str
+		Path to the output directory to store the log file.
+
+	Returns
+	-------
+	logfile_path : str
+		Path to the log file.
 	"""
-	"""
-	logfile_path = os.path.join(output_dir, "chewie.log")
+	logfile_path = os.path.join(output_dir, gct.LOGFILE_BASENAME)
 	logger.add(
 		logfile_path,
 		level="DEBUG",
+		# Use this to ensure thread-safe writing
 		enqueue=True,
-		format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
+		format=gct.LOGFILE_FORMAT
 	)
 
 	logger.info(f"File logging initialized at: {logfile_path}")
@@ -46,8 +56,7 @@ def setup_file_logging(output_dir):
 
 
 def print_initial_header():
-	"""
-	"""
+	"""Print initial header to stdout."""
 	print("="*len(f"Authors: {gct.AUTHORS}"))
 	print(f"Authors: {gct.AUTHORS}")
 	print(f"Github: {gct.REPOSITORY}")
@@ -57,7 +66,17 @@ def print_initial_header():
 
 
 def log_cli_command(process_name):
-	"""
+	"""Write the CLI command to the log file.
+
+	Parameters
+	----------
+	process_name : str
+		Name of the process module. Necessary because the process/module name 
+		is removed from sys.argv before passing the args to a module's parser.
+	
+	Returns
+	-------
+	None.
 	"""
 	# Use shlex to retain quotes and other special characters
 	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[process_name]+sys.argv[1:])
@@ -65,7 +84,17 @@ def log_cli_command(process_name):
 
 
 def log_validated_args(validated_args):
-	""""""
+	"""Write the list of validated arguments to the log file.
+
+	Parameters
+	----------
+	validated_args : dict
+		Dictionary with parameter names as keys and validated argument values as values.
+
+	Returns
+	-------
+	None.
+	"""
 	logger.info("Validated arguments:")
 	for parameter, argument in validated_args.items():
 		logger.info(f"{parameter}: {argument}")
@@ -172,7 +201,8 @@ def run_predict_genes():
 	try:
 		predict_genes.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -279,11 +309,8 @@ def run_create_schema():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.CREATESCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.CREATESCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -292,7 +319,8 @@ def run_create_schema():
 	try:
 		nloci = create_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 	
 	logger.success(f"Process completed successfully!")
@@ -440,11 +468,8 @@ def run_allele_call():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ALLELECALL_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.ALLELECALL_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -453,7 +478,8 @@ def run_allele_call():
 	try:
 		allele_call.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -540,11 +566,8 @@ def run_evaluate_schema():
 	
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SCHEMAEVALUATOR_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.SCHEMAEVALUATOR_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -553,7 +576,8 @@ def run_evaluate_schema():
 	try:
 		evaluate_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -634,11 +658,8 @@ def run_evaluate_calls():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ALLELECALLEVALUATOR_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.ALLELECALLEVALUATOR_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -647,9 +668,10 @@ def run_evaluate_calls():
 	try:
 		evaluate_calls.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
-		
+
 	logger.success(f"Process completed successfully!")
 
 
@@ -733,11 +755,8 @@ def run_compute_core():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTECORE_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.COMPUTECORE_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -746,7 +765,8 @@ def run_compute_core():
 	try:
 		compute_core.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -807,11 +827,8 @@ def run_subset_results():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SUBSETRESULTS_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.SUBSETRESULTS_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -820,7 +837,8 @@ def run_subset_results():
 	try:
 		subset_results.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -866,11 +884,8 @@ def run_merge_results():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.MERGERESULTS_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.MERGERESULTS_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -879,7 +894,8 @@ def run_merge_results():
 	try:
 		merge_results.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -940,11 +956,8 @@ def run_hash_profiles():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.HASHPROFILES_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.HASHPROFILES_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -953,7 +966,8 @@ def run_hash_profiles():
 	try:
 		hash_profiles.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -1024,11 +1038,8 @@ def run_get_alleles():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.GETALLELES_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.GETALLELES_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1037,7 +1048,8 @@ def run_get_alleles():
 	try:
 		get_alleles.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -1131,15 +1143,10 @@ def run_adapt_schema():
 		logger.error(f"Error during argument validation: {err}")
 		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
-########### Is this writing the log file into the schema folder???
-
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ADAPTSCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.ADAPTSCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1148,11 +1155,11 @@ def run_adapt_schema():
 	try:
 		adapt_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
-
 
 
 def run_annotate_schema():
@@ -1245,11 +1252,8 @@ def run_annotate_schema():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.ANNOTATESCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.ANNOTATESCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1258,7 +1262,8 @@ def run_annotate_schema():
 	try:
 		annotate_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 		
 	logger.success(f"Process completed successfully!")
@@ -1324,11 +1329,8 @@ def run_compute_distances():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTEDISTANCES_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.COMPUTEDISTANCES_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1337,7 +1339,8 @@ def run_compute_distances():
 	try:
 		compute_distances.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -1433,11 +1436,8 @@ def run_compute_msa():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.COMPUTEMSA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.COMPUTEMSA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 	
@@ -1446,7 +1446,8 @@ def run_compute_msa():
 	try:
 		compute_msa.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -1517,11 +1518,8 @@ def run_download_schema():
 
 	# Initialize file logging
 	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.DOWNLOADSCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.DOWNLOADSCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1530,7 +1528,8 @@ def run_download_schema():
 	try:
 		download_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 	
 	logger.success(f"Process completed successfully!")
@@ -1605,12 +1604,12 @@ def run_upload_schema():
 		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
 	# Initialize file logging
-	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
+	# UploadSchema does not have an output directory defined
+	# Set to schema's parent directory
+	logfile_outdir = os.path.dirname(validated_args.schema_directory)
+	logfile_path = setup_file_logging(logfile_outdir)
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.UPLOADSCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.UPLOADSCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1619,7 +1618,8 @@ def run_upload_schema():
 	try:
 		upload_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 	
 	logger.success(f"Process completed successfully!")
@@ -1674,12 +1674,12 @@ def run_synchronize_schema():
 		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
 	# Initialize file logging
-	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
+	# SynSchema does not have an output directory defined
+	# Set to schema's parent directory
+	logfile_outdir = os.path.dirname(validated_args.schema_directory)
+	logfile_path = setup_file_logging(logfile_outdir)
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.SYNCSCHEMA_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.SYNCSCHEMA_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1688,7 +1688,8 @@ def run_synchronize_schema():
 	try:
 		synchronize_schema.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")
@@ -1738,12 +1739,12 @@ def run_stats_requests():
 		sys.exit(gval.ExitCode.VALIDATION_ERROR)
 
 	# Initialize file logging
-	logfile_path = setup_file_logging(validated_args.output_directory)
-	logger.info(f"File logging initialized at: {logfile_path}")
+	# NSStats does not have an output directory defined
+	# Set to working directory
+	logfile_outdir = os.getcwd()
+	logfile_path = setup_file_logging(logfile_outdir)
 	# Log command
-	# Use shlex to retain quotes and other special characters
-	raw_cmd = " ".join(shlex.quote(arg) for arg in [sys.argv[0]]+[gct.NSSTATS_MODULE_NAME]+sys.argv[1:])
-	logger.info(f"Command: {raw_cmd}")
+	log_cli_command(gct.NSSTATS_MODULE_NAME)
 	# Log list of validated arguments
 	log_validated_args(validated_args.model_dump())
 
@@ -1752,7 +1753,8 @@ def run_stats_requests():
 	try:
 		stats_requests.main(validated_args)
 	except Exception as err:
-		logger.error(f"Process error: {err}")
+		# Captures stack trace automatically from sys.exc_info()
+		logger.exception("Process error:")
 		sys.exit(gval.ExitCode.GENERAL_ERROR)
 
 	logger.success(f"Process completed successfully!")

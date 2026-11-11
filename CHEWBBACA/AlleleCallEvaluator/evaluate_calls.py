@@ -18,7 +18,9 @@ Code documentation
 
 import os
 import json
+
 import pandas as pd
+from loguru import logger
 
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.AlleleCallEvaluator.constants as ct
@@ -244,7 +246,7 @@ def main(config):
 	sample_ids = sample_counts["FILE"].tolist()
 	# Get total number of samples
 	total_samples = len(sample_ids)
-	print(f"Number of samples: {total_samples}")
+	logger.info(f"Number of samples: {total_samples}")
 
 	# Data for stacked Bar chart with class counts per sample
 	sample_data = []
@@ -253,7 +255,7 @@ def main(config):
 
 	# Read "loci_summary_stats.tsv" to get class counts per locus
 	loci_statistics_file = fo.join_paths(config.results_files, [gct.LOCI_STATS_BASENAME])
-	loci_counts = pd.read_csv(loci_statistics_file, delimiter='\t')
+	loci_counts = pd.read_csv(loci_statistics_file, delimiter="\t")
 	# Convert values in Locus column to str to avoid issues with IDs that can be interpreted as int
 	loci_counts["Locus"] = loci_counts["Locus"].astype("string")
 	# Sort based on decreasing number of EXC
@@ -263,7 +265,7 @@ def main(config):
 	loci_ids = loci_counts["Locus"].tolist()
 	# Get total number of loci
 	total_loci = len(loci_ids)
-	print(f"Number of loci: {total_loci}")
+	logger.info(f"Number of loci: {total_loci}")
 
 	# Data for stacked Bar chart with class counts per locus
 	loci_data = []
@@ -274,7 +276,7 @@ def main(config):
 	# Need to read file with CDS coordinates to get number of contigs and
 	# CDSs per sample (future development will use coordinates for synteny
 	# analysis)
-	print("Computing sample statistics...", end="")
+	logger.info("Computing sample statistics...")
 	cds_coordinates_file = fo.join_paths(config.results_files, [gct.GENE_COORDINATES_BASENAME])
 	sample_stats = compute_sample_stats(sample_ids, total_loci, cds_coordinates_file, sample_counts)
 
@@ -287,17 +289,15 @@ def main(config):
 	sample_stats_rows = []
 	for k, v in sample_stats.items():
 		sample_stats_rows.append([k, v[0], v[1], *v[3:]])
-	print("done.")
 
 	# Compute data for the Loci Stats table
-	print("Computing loci statistics...", end="")
+	logger.info("Computing loci statistics...")
 	loci_stats = compute_loci_stats(total_samples, loci_counts)
 	# Sort loci stats based on decreasing sample presence
 	loci_stats = sorted(loci_stats, key=lambda x: x[4], reverse=True)
 
 	loci_stats_columns = ct.LOCUS_STATS_HEADER + \
 		loci_counts.columns.tolist()[1:-1]
-	print("done.")
 
 	# Read loci annotations from TSV file
 	annotation_values = [[], []]
@@ -311,7 +311,7 @@ def main(config):
 							if line[0] in loci_ids]
 		annotation_values[1].extend(loci_annotations)
 
-	print(f"Provided annotations for {len(annotation_values[1])} loci in the schema.")
+	logger.info(f"Provided annotations for {len(annotation_values[1])} loci in the schema.")
 
 	# Data for Summary Table
 	# Count total number of classified CDSs per class
@@ -333,21 +333,18 @@ def main(config):
 			allelic_profiles_file = fo.join_paths(config.results_files, [gct.ALLELIC_PROFILES_BASENAME])
 
 			# Import matrix with allelic profiles
-			print("Reading profile matrix...", end="")
+			logger.info("Reading profile matrix...")
 			profiles_matrix = pd.read_csv(allelic_profiles_file, header=0, index_col=0, sep="\t", low_memory=False)
 			# Convert Index values to str to avoid issues with IDs that can be interpreted as int
 			profiles_matrix.index = profiles_matrix.index.astype("string")
-			print("done.")
 			# Mask missing data
-			print("Masking profile matrix...", end="")
+			logger.info("Masking profile matrix...")
 			masked_profiles = profiles_matrix.apply(im.replace_chars)
 			output_masked = os.path.join(config.output_directory, gct.ALLELIC_PROFILES_MASKED_BASENAME)
-			masked_profiles.to_csv(output_masked, sep='\t')
-			print("done.")
+			masked_profiles.to_csv(output_masked, sep="\t")
 			# Compute Presence-Absence matrix
-			print("Computing Presence-Absence matrix...", end="")
+			logger.info("Computing Presence-Absence matrix...")
 			pa_matrix, pa_outfile = compute_core.compute_presence_absence(masked_profiles, config.output_directory)
-			print("done.")
 
 			if config.no_presence_absence is False:
 				# Sort Presence-Absence matrix based on decreasing loci presence
@@ -360,14 +357,14 @@ def main(config):
 
 			if config.no_distance_matrix is False or config.no_neighbor_joining is False or config.force_core_msa is True:
 				# Compute the cgMLST at 100%
-				print("Determining cgMLST loci...")
+				logger.info("Determining cgMLST loci...")
 				cgMLST_genes, _, _, _ = compute_core.compute_cgMLST(len(sample_ids), pa_matrix, sample_ids, 1, False)
 				cgMLST_genes = cgMLST_genes.tolist()
-				print("\n", f"cgMLST is composed of {len(cgMLST_genes)} loci.")
+				logger.info(f"cgMLST is composed of {len(cgMLST_genes)} loci.")
 				if len(cgMLST_genes) > 0:
 					cgMLST_matrix = masked_profiles[cgMLST_genes]
 					cgMLST_matrix_outfile = os.path.join(config.output_directory, ct.CGMLST_PROFILES_BASENAME)
-					cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep='\t')
+					cgMLST_matrix.to_csv(cgMLST_matrix_outfile, sep="\t")
 
 			if config.no_distance_matrix is False:
 				# Compute distance matrix
@@ -395,14 +392,14 @@ def main(config):
 					dm_data = [{"rows": distance_m.values.tolist()},
 							   {"sample_ids": distance_m.columns.tolist()}]
 				else:
-					print("cgMLST is composed of 0 loci. Cannot compute distance matrix.")
+					logger.info("cgMLST is composed of 0 loci. Cannot compute distance matrix.")
 
 		# Only using the loci in the cgMLST
 		# Might have to change if we need to work with all loci in the future
 		if config.no_neighbor_joining is False or config.force_core_msa is True:
 			if len(cgMLST_genes) > 0:
 				# Call the ComputeMSA module to compute the loci MSAs
-				print("Calling the ComputeMSA module to compute the cgMLST alignment...")
+				logger.info("Calling the ComputeMSA module to compute the cgMLST alignment...")
 				compute_msa_outdir = fo.join_paths(temp_directory, ["MSAs"])
 				compute_msa_config = ComputeMSAValidator(output_directory=compute_msa_outdir,
 														input_path=cgMLST_matrix_outfile,
@@ -422,15 +419,14 @@ def main(config):
 				full_alignment = fo.join_paths(compute_msa_outdir, [cct.COMPUTEMSA_PROTEIN_MSA])
 
 				if config.no_neighbor_joining is False:
-					print("Computing the NJ tree based on the core genome MSA...", end="")
+					logger.info("Computing the NJ tree based on the core genome MSA...")
 					# Compute NJ tree with FastTree
 					out_tree = fo.join_paths(config.output_directory, ["cgMLST.tree"])
 					fw.call_fasttree(full_alignment, out_tree)
 					phylo_data = fo.read_file(out_tree)
 					phylo_data = {"phylo_data": phylo_data}
-					print("done.")
 			else:
-				print("cgMLST is composed of 0 loci. Cannot compute cgMLST alignment and tree.")
+				logger.info("cgMLST is composed of 0 loci. Cannot compute cgMLST alignment and tree.")
 
 	report_data = {"summaryData": [{"columns": summary_columns},
 								   {"rows": [summary_rows]}],
@@ -468,4 +464,4 @@ def main(config):
 	# Delete all temporary files
 	fo.delete_directory(temp_directory)
 
-	print(f"Results available in {config.output_directory}.")
+	logger.info(f"Results available in {config.output_directory}.")

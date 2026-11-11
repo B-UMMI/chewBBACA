@@ -15,10 +15,9 @@ import csv
 import pandas as pd
 from loguru import logger
 
-from CHEWBBACA.PredictGenes import constants as ct
-from CHEWBBACA.PredictGenes import validation_models as vm
 from CHEWBBACA import global_constants as gct
 from CHEWBBACA import global_validation as gval
+from CHEWBBACA.PredictGenes import constants as ct
 from CHEWBBACA.utils import (file_operations as fo,
 								fasta_operations as fao,
 								assembly_statistics as ast,
@@ -96,8 +95,8 @@ def main(config):
 		logger.warning(f"Wrote the list of inputs for which gene prediction failed to {failed_outfile}")
 
 	if len(cds_fastas) == 0:
-		logger.warning(ct.PREDICTGENES_NO_PREDICTIONS)
-		raise vm.InputsNoPredictions
+		logger.warning(gct.PREDICTGENES_NO_PREDICTIONS)
+		raise gval.InputsNoPredictions
 
 	logger.info(f"Predicted a total of {total_extracted} CDSs from {len(input_files)-len(failed)} inputs.")
 	logger.info(f"Genomic coordinates for the predicted CDSs saved to {cds_coordinates}")
@@ -173,7 +172,7 @@ def main(config):
 	# Save assembly statistics
 	assembly_statistics_df = pd.DataFrame.from_dict(assembly_statistics, orient="index").reset_index()
 	assembly_statistics_df.columns = ct.ASSEMBLY_STATS_COLUMNS
-	assembly_statistics_outfile = fo.join_paths(config.output_directory, ["assembly_stats.tsv"])
+	assembly_statistics_outfile = fo.join_paths(config.output_directory, [gct.ASSEMBLY_STATS_BASENAME])
 	assembly_statistics_df.to_csv(assembly_statistics_outfile, sep='\t', index=False)
 	logger.info(f"Assembly statistics saved to {assembly_statistics_outfile}")
 

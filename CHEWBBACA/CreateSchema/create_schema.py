@@ -16,11 +16,13 @@ Code documentation
 
 
 import os
-import sys
 import math
 
-import CHEWBBACA.global_constants as gct
-import CHEWBBACA.CreateSchema.constants as ct
+from loguru import logger
+
+from CHEWBBACA import global_constants as gct
+from CHEWBBACA import global_validation as gval
+from CHEWBBACA.CreateSchema import constants as ct
 from CHEWBBACA.PredictGenes import predict_genes
 from CHEWBBACA.utils import (blast_wrapper as bw,
 								core_functions as cf,
@@ -86,17 +88,14 @@ def create_schema_seed(config):
 	input_file_ids = [(file, fo.file_basename(file, False)) for file in config.input_path]
 
 	# Create directory to store temporary files
-	temp_directory = fo.join_paths(config.output_directory, ['temp'])
+	temp_directory = fo.join_paths(config.output_directory, ["temp"])
 	fo.create_directory(temp_directory)
 
 	# Create directory to store files with Pyrodigal results
 	if config.cds_input is False:
 		# Run Pyrodigal to predict genes for all input genomes
-		# print(f'\n {ct.CDS_PREDICTION} ')
-		# print('='*(len(gct.CDS_PREDICTION)+2))
-
 		# Gene prediction step
-		print(f'Calling the PredictGenes module to predict genes for {len(config.input_path)} inputs...')
+		logger.info(f"Calling the PredictGenes module to predict genes for {len(config.input_path)} inputs...")
 		pyrodigal_results = predict_genes.main(config)
 
 		# Dictionary with info about inputs for which gene prediction failed
@@ -107,23 +106,23 @@ def create_schema_seed(config):
 		# Dictionary with info about the CDSs closer to contig tips per input
 		failed, _, cds_fastas, _, _, cds_counts, _ = pyrodigal_results
 		if len(failed) > 0:
-			print(f'\nFailed to predict genes for {len(failed)} inputs')
-			print('Make sure that Prodigal runs in meta mode (--pm meta) '
-				  'if any input file has less than 100kbp.')
+			logger.warning(f"Failed to predict genes for {len(failed)} inputs.")
+			logger.warning("Make sure that Prodigal runs in meta mode if any input file has less than 100kbp.")
 		if len(cds_fastas) == 0:
-			sys.exit(f'\n{gct.CANNOT_PREDICT}')
+			logger.warning(f"{gct.PREDICTGENES_NO_PREDICTIONS}")
+			raise gval.InputsNoPredictions
 	# Inputs are FASTA files with the predicted CDSs
 	else:
 		if not config.no_cds_renaming:
 			# Rename the input CDSs based on the unique identifier for each input file
-			print(f'\nRenaming CDSs for {len(input_file_ids)} input files...')
+			logger.info(f"Renaming CDSs for {len(input_file_ids)} input files...")
 			# Create a temporary directory to store renamed CDSs
-			renamed_dir = fo.join_paths(config.output_directory, ['renamed_genes'])
+			renamed_dir = fo.join_paths(config.output_directory, ["renamed_genes"])
 			fo.create_directory(renamed_dir)
 			renaming_inputs = []
 			cds_fastas = []
 			for file in input_file_ids:
-				output_file = fo.join_paths(renamed_dir, [f'{file[1]}.fasta'])
+				output_file = fo.join_paths(renamed_dir, [f"{file[1]}.fasta"])
 				# Use the basename of each input file as unique identifier
 				cds_prefix = f'{file[1]}_'
 				renaming_inputs.append([file[0], output_file, 1, 50000,
@@ -133,29 +132,28 @@ def create_schema_seed(config):
 			# Rename CDSs in files
 			renaming_results = mo.map_async_parallelizer(renaming_inputs,
 														 mo.function_helper,
-														 config.cpu_cores,
-														 show_progress=False)
+														 config.cpu_cores)
 		else:
-			print(f'User provided `--no-cds-renaming`. Will not rename CDS identifiers in input files. '
-		 		  'The process may not complete successfully if the CDS identifiers do not conform to the '
-				  'format used by chewBBACA.')
+			logger.info(f"User provided `--no-cds-renaming`. Will not rename CDS identifiers in input files. "
+		 		  		"The process may not complete successfully if the CDS identifiers do not conform to the "
+				  		"format used by chewBBACA.")
 
 			cds_fastas = [file[0] for file in input_file_ids]
 
 			# Try to get the TSV file with the CDS coordinates if the CDS sets were created by the PredictGenes module
 			input_files_parent_dir = input_file_ids[0][0].rsplit('/', 2)[0]
-			coordinates_file = fo.join_paths(input_files_parent_dir, ['gene_coordinates.tsv'])
+			coordinates_file = fo.join_paths(input_files_parent_dir, [gct.GENE_COORDINATES_BASENAME])
 			if os.path.isfile(coordinates_file):
-				print(f'Found a TSV file with CDS coordinate data in {coordinates_file}. Copying it to the output directory.')
+				logger.info(f"Found a TSV file with CDS coordinate data in {coordinates_file}. Copying it to the output directory.")
 				# Copy file with CDS coordinates to output directory
-				destination = fo.join_paths(os.path.dirname(temp_directory), ['gene_coordinates.tsv'])
+				destination = fo.join_paths(os.path.dirname(temp_directory), [gct.GENE_COORDINATES_BASENAME])
 				fo.copy_file(coordinates_file, destination)
 
 			# Try to get the TSV file with assembly statistics if the CDS sets were created by the PredictGenes module 
-			assembly_stats_file = fo.join_paths(input_files_parent_dir, ['assembly_stats.tsv'])
+			assembly_stats_file = fo.join_paths(input_files_parent_dir, [gct.ASSEMBLY_STATS_BASENAME])
 			if os.path.isfile(assembly_stats_file):
-				print(f'Found a TSV file with assembly statistics in {assembly_stats_file}. Copying it to output directory.')
-				destination = fo.join_paths(os.path.dirname(temp_directory), ['assembly_stats.tsv'])
+				logger.info(f"Found a TSV file with assembly statistics in {assembly_stats_file}. Copying it to the output directory.")
+				destination = fo.join_paths(os.path.dirname(temp_directory), [gct.ASSEMBLY_STATS_BASENAME])
 				fo.copy_file(assembly_stats_file, destination)
 
 		# No inputs failed gene prediction
@@ -164,14 +162,14 @@ def create_schema_seed(config):
 		cds_counts = {fo.file_basename(f, False): fao.count_sequences(f) for f in cds_fastas}
 
 	total_cdss = sum(cds_counts.values())
-	print(f'Total number of CDSs identified from all input files: {total_cdss}')
+	logger.info(f"Total number of CDSs identified from all input files: {total_cdss}")
 
 	if len(failed) > 0:
 		# Exclude inputs that failed gene prediction
 		input_file_ids = [file for file in input_file_ids if file[0] not in failed]
 		# Write Prodigal stderr for inputs that failed gene prediction
-		failed_lines = [f'{k}\t{v}' for k, v in failed.items()]
-		failed_outfile = fo.join_paths(config.output_directory, ['gene_prediction_failures.tsv'])
+		failed_lines = [f"{k}\t{v}" for k, v in failed.items()]
+		failed_outfile = fo.join_paths(config.output_directory, [gct.GENE_PREDICTION_FAILURES_BASENAME])
 		fo.write_lines(failed_lines, failed_outfile)
 
 	# Map input identifiers to integers
@@ -188,31 +186,29 @@ def create_schema_seed(config):
 	file_index = 1
 	cds_files = []
 	for group in concatenation_inputs:
-		output_file = fo.join_paths(concatenation_dir, ['cds_{0}.fasta'.format(file_index)])
+		output_file = fo.join_paths(concatenation_dir, [f"cds_{file_index}.fasta"])
 		fo.concatenate_files(group, output_file)
 		cds_files.append(output_file)
 		file_index += 1
 
 	# Create directory to store files from pre-process steps
-	preprocess_dir = fo.join_paths(temp_directory, ['1_cds_preprocess'])
+	preprocess_dir = fo.join_paths(temp_directory, ["1_cds_preprocess"])
 	fo.create_directory(preprocess_dir)
 
 	# DNA sequences deduplication step
 	# keep hash of unique sequences and a list with the integer
 	# identifiers of genomes that have those sequences
 	# lists of integers are encoded with polyline algorithm
-	# print(f'\n {gct.CDS_DEDUPLICATION} ')
-	# print('='*(len(gct.CDS_DEDUPLICATION)+2))
 	# create directory to store files from DNA deduplication
-	dna_dedup_dir = fo.join_paths(preprocess_dir, ['cds_deduplication'])
+	dna_dedup_dir = fo.join_paths(preprocess_dir, ["cds_deduplication"])
 	fo.create_directory(dna_dedup_dir)
-	print('Identifying distinct CDSs...')
+	logger.info("Identifying distinct CDSs...")
 	dna_dedup_results = cf.exclude_duplicates(cds_files, dna_dedup_dir, config.cpu_cores,
 									   [unique_to_int, int_to_unique],
 									   False, True)
 
 	_, distinct_seqids, distinct_file, repeated = dna_dedup_results
-	print(f'Identified {len(distinct_seqids)} distinct CDSs.')
+	logger.info(f"Identified {len(distinct_seqids)} distinct CDSs.")
 
 	# Delete directory containing concatenated FASTA files
 	fo.delete_directory(concatenation_dir)
@@ -220,14 +216,10 @@ def create_schema_seed(config):
 	# Index FASTA file with distinct DNA sequences
 	dna_index = fao.index_fasta(distinct_file)
 
-	# Translate CDSs
-	# print(f'\n {gct.CDS_TRANSLATION} ')
-	# print('='*(len(gct.CDS_TRANSLATION)+2))
-
 	# Create directory to store translation results
-	cds_translation_dir = fo.join_paths(preprocess_dir, ['cds_translation'])
+	cds_translation_dir = fo.join_paths(preprocess_dir, ["cds_translation"])
 	fo.create_directory(cds_translation_dir)
-	print(f'Translating {len(distinct_seqids)} CDS...')
+	logger.info(f"Translating {len(distinct_seqids)} CDS...")
 	# This step excludes small sequences
 	ts_results = cf.translate_sequences(distinct_seqids, distinct_file,
 										cds_translation_dir,
@@ -236,44 +228,39 @@ def create_schema_seed(config):
 										config.cpu_cores)
 
 	protein_file, ut_seqids, ut_lines = ts_results
-	print(f'\n{len(ut_seqids)} CDSs could not be translated.')
+	logger.info(f"{len(ut_seqids)} CDSs could not be translated.")
 
 	# Create file with list of invalid CDSs
 	invalid_file = fo.join_paths(config.output_directory, [gct.INVALID_CDS_BASENAME])
-	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), '\n')
-	fo.write_to_file(invalid_alleles, invalid_file, 'w', '\n')
+	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), "\n")
+	fo.write_to_file(invalid_alleles, invalid_file, "w", "\n")
 
 	# Protein deduplication
-	# print(f'\n {gct.PROTEIN_DEDUPLICATION} ')
-	# print('='*(len(gct.PROTEIN_DEDUPLICATION)+2))
 	# Create directory to store files from protein deduplication
-	protein_dedup_dir = fo.join_paths(preprocess_dir, ['protein_deduplication'])
+	protein_dedup_dir = fo.join_paths(preprocess_dir, ["protein_deduplication"])
 	fo.create_directory(protein_dedup_dir)
-	print('Identifying distinct proteins...')
+	logger.info("Identifying distinct proteins...")
 	ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
 									   [unique_to_int, int_to_unique],
 									   True, True)
 
 	_, representative_pseqids, representative_pfasta, _ = ds_results
 
-	print(f'Identified {len(representative_pseqids)} distinct proteins.')
+	logger.info(f"Identified {len(representative_pseqids)} distinct proteins.")
 
 	# Sort remaining seqids
 	schema_seqids = im.sort_iterable(representative_pseqids, sort_key=lambda x: x.lower())
-	print(f'Kept {len(schema_seqids)} sequences after filtering the initial sequences.')
+	logger.info(f"Kept {len(schema_seqids)} sequences after filtering the initial sequences.")
 
 	# Protein clustering
-	# print(f'\n {gct.PROTEIN_CLUSTERING} ')
-	# print('='*(len(gct.PROTEIN_CLUSTERING)+2))
-
 	# Create directory to store clustering data
-	clustering_dir = fo.join_paths(temp_directory, ['2_clustering'])
+	clustering_dir = fo.join_paths(temp_directory, ["2_clustering"])
 	fo.create_directory(clustering_dir)
 
 	# Read protein sequences
 	proteins = fao.import_sequences(representative_pfasta)
 
-	print('Clustering proteins...')
+	logger.info("Clustering proteins...")
 	# Do not divide based on the number of available cores
 	# It can lead to different results depending on the number of cores
 	# Divide into fixed number of groups
@@ -290,31 +277,31 @@ def create_schema_seed(config):
 									  config.cpu_cores,
 									  group_size,
 									  False)
-	print(f'\nClustered {len(proteins)} proteins into {len(cs_results)} clusters.')
+	logger.info(f"Clustered {len(proteins)} proteins into {len(cs_results)} clusters.")
 
 	# Exclude based on high similarity to cluster representatives
-	rep_filter_dir = fo.join_paths(clustering_dir, ['representative_filter'])
+	rep_filter_dir = fo.join_paths(clustering_dir, ["representative_filter"])
 	fo.create_directory(rep_filter_dir)
-	print('Removing proteins highly similar to the cluster representative...')
+	logger.info("Removing proteins highly similar to the cluster representative...")
 	cp_results = cf.cluster_representative_filter(cs_results, config.validated_clustering_options.representative_filter, rep_filter_dir)
 	clusters, excluded_seqids, singletons, clustered_sequences = cp_results
-	print(f'Removed {len(excluded_seqids)} sequences.')
-	print(f'Identified {len(singletons)} singletons.')
-	print(f'Remaining sequences after representative and singleton pruning: {clustered_sequences}')
+	logger.info(f"Removed {len(excluded_seqids)} sequences.")
+	logger.info(f"Identified {len(singletons)} singletons.")
+	logger.info(f"Remaining sequences after representative and singleton pruning: {clustered_sequences}")
 
 	# Remove excluded seqids
 	schema_seqids = list(set(schema_seqids) - excluded_seqids)
 
 	# Exclude based on high similarity to other clustered sequences
-	intra_filter_dir = fo.join_paths(clustering_dir, ['intracluster_filter'])
+	intra_filter_dir = fo.join_paths(clustering_dir, ["intracluster_filter"])
 	fo.create_directory(intra_filter_dir)
-	print('Removing sequences highly similar to other clustered sequences...')
+	logger.info("Removing sequences highly similar to other clustered sequences...")
 	cip_results = cf.cluster_intra_filter(clusters, proteins,
 										  config.validated_clustering_options.word_size,
 										  config.validated_clustering_options.intra_filter,
 										  intra_filter_dir)
 	clusters, intra_excluded = cip_results
-	print(f'Removed {len(intra_excluded)} sequences.')
+	logger.info(f"Removed {len(intra_excluded)} sequences.")
 
 	# Remove excluded seqids - we get set of sequences from clusters
 	# plus singletons
@@ -326,27 +313,27 @@ def create_schema_seed(config):
 	blastdb_aliastool_path = fo.join_paths(config.blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
-	lcl_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_lcl.fasta'])
+	lcl_distinct_prots = fo.join_paths(clustering_dir, ["distinct_proteins_lcl.fasta"])
 	# Return mapping between new short IDs and original IDs
 	_ = fao.integer_headers(representative_pfasta, lcl_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLAST DB
-	blast_db_dir = fo.join_paths(clustering_dir, ['BLASTp_db'])
+	blast_db_dir = fo.join_paths(clustering_dir, ["BLASTp_db"])
 	fo.create_directory(blast_db_dir)
-	blast_db = fo.join_paths(blast_db_dir, ['distinct_proteins'])
-	db_std = bw.make_blast_db(makeblastdb_path, lcl_distinct_prots, blast_db, 'prot')
+	blast_db = fo.join_paths(blast_db_dir, ["distinct_proteins"])
+	db_std = bw.make_blast_db(makeblastdb_path, lcl_distinct_prots, blast_db, "prot")
 	# Delete FASTA file with LCL IDs
 	fo.remove_files([lcl_distinct_prots])
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
-	seq_distinct_prots = fo.join_paths(clustering_dir, ['distinct_proteins_SEQ.fasta'])
+	seq_distinct_prots = fo.join_paths(clustering_dir, ["distinct_proteins_SEQ.fasta"])
 	id_mapping = fao.integer_headers(representative_pfasta, seq_distinct_prots, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 
 	# All-vs-all BLASTp per cluster
 	if len(clusters) > 0:
-		print(f'Clusters to BLAST: {len(clusters)}')
-		print('Performing all-vs-all BLASTp per cluster...')
+		logger.info(f"Clusters to BLAST: {len(clusters)}")
+		logger.info("Performing all-vs-all BLASTp per cluster...")
 		blast_results, blast_results_dir = cf.blast_clusters(clusters,
 													seq_distinct_prots,
 													inverse_id_mapping,
@@ -357,7 +344,7 @@ def create_schema_seed(config):
 		blast_files = im.flatten_list(blast_results)
 
 		# Compute and exclude based on BSR
-		print('\nRemoving sequences based on high BSR...')
+		logger.info("Removing sequences based on high BSR...")
 		bsr_excluded = []
 		for file in blast_files:
 			blast_lines = fo.read_tabular(file)
@@ -370,68 +357,64 @@ def create_schema_seed(config):
 		# Merge BSR results
 		bsr_excluded = set(im.flatten_list(bsr_excluded))
 		schema_seqids = list(set(schema_seqids) - bsr_excluded)
-		print(f'Removed {len(bsr_excluded)} sequences.')
+		logger.info(f"Removed {len(bsr_excluded)} sequences.")
 
 		# Write list of excluded to file
-		blast_excluded_outfile = fo.join_paths(blast_results_dir, ['bsr_excluded.txt'])
+		blast_excluded_outfile = fo.join_paths(blast_results_dir, ["bsr_excluded.txt"])
 		fo.write_lines(bsr_excluded, blast_excluded_outfile)
 
 	# Perform final BLAST to identify similar sequences that do not share many/any kmers
-	# print(f'\n {ct.FINAL_BLASTp} ')
-	# print('='*(len(ct.FINAL_BLASTp)+2))
-	print(f'{len(schema_seqids)} sequences to compare in final BLASTp.'.format(len(schema_seqids)))
+	logger.info(f"{len(schema_seqids)} sequences to compare in final BLASTp.")
 
 	# Sort seqids before final BLASTp to ensure consistent results
 	schema_seqids = im.sort_iterable(schema_seqids, sort_key=lambda x: x.lower())
 
 	# Create directory for final BLASTp
-	final_blast_dir = fo.join_paths(temp_directory, ['3_final_blast'])
+	final_blast_dir = fo.join_paths(temp_directory, ["3_final_blast"])
 	fo.create_directory(final_blast_dir)
 
 	# Create FASTA file with remaining sequences
-	quasi_schema_file = os.path.join(final_blast_dir, 'remaining_sequences.fasta')
+	quasi_schema_file = os.path.join(final_blast_dir, "remaining_sequences.fasta")
 	fao.get_sequences_by_id(proteins, schema_seqids, quasi_schema_file)
 
 	# Shorten sequence IDs to avoid issues with long identifiers when creating BLAST DBs
-	lcl_quasi_schema = fo.join_paths(final_blast_dir, ['remaining_sequences_LCL.fasta'])
+	lcl_quasi_schema = fo.join_paths(final_blast_dir, ["remaining_sequences_LCL.fasta"])
 	_ = fao.integer_headers(quasi_schema_file, lcl_quasi_schema, start=1, limit=50000, prefix=gct.BLASTDB_LCL_PREFIX, id_map=True)
 	# Create BLASTp database
-	blast_db = fo.join_paths(final_blast_dir, ['remaining_sequences'])
-	db_std = bw.make_blast_db(makeblastdb_path, lcl_quasi_schema, blast_db, 'prot')
+	blast_db = fo.join_paths(final_blast_dir, ["remaining_sequences"])
+	db_std = bw.make_blast_db(makeblastdb_path, lcl_quasi_schema, blast_db, "prot")
 	# Delete FASTA file with LCL IDs
 	fo.remove_files([lcl_quasi_schema])
 
 	# Create a second FASTA file with the sequence ID format returned by BLAST ('SEQ' instead of 'lcl|SEQ')
-	seq_quasi_schema = fo.join_paths(final_blast_dir, ['remaining_sequences_SEQ.fasta'])
+	seq_quasi_schema = fo.join_paths(final_blast_dir, ["remaining_sequences_SEQ.fasta"])
 	id_mapping = fao.integer_headers(quasi_schema_file, seq_quasi_schema, start=1, limit=50000, prefix=gct.BLASTDB_SEQ_PREFIX, id_map=True)
 	# Return inverse mapping to convert original IDs to renamed IDs for BLASTp
 	inverse_id_mapping = im.invert_dictionary(id_mapping)
 
 	# Divide FASTA file into groups of 100 sequences to reduce
 	# execution time for large sequence sets
-	split_dir = fo.join_paths(final_blast_dir, ['cds_subsets'])
+	split_dir = fo.join_paths(final_blast_dir, ["cds_subsets"])
 	fo.create_directory(split_dir)
 	splitted_fastas = fao.split_seqcount(seq_quasi_schema, split_dir, 100)
 
 	# Create directory to store results from final BLASTp
-	final_blastp_dir = fo.join_paths(final_blast_dir, ['BLAST_results'])
+	final_blastp_dir = fo.join_paths(final_blast_dir, ["BLAST_results"])
 	fo.create_directory(final_blastp_dir)
-	blast_outputs = ['{0}/{1}_blast_out.tsv'.format(final_blastp_dir, fo.file_basename(i[0], False))
-					 for i in splitted_fastas]
+	blast_outputs = [f"{final_blastp_dir}/{fo.file_basename(i[0], False)}_blast_out.tsv" for i in splitted_fastas]
 
 	# Add common arguments to all sublists
 	blast_inputs = [[blastp_path, blast_db, file[0],
 					 blast_outputs[i], 1, 1, bw.run_blast]
 					for i, file in enumerate(splitted_fastas)]
 
-	print('Performing final BLASTp...')
+	logger.info("Performing final BLASTp...")
 	blast_results = mo.map_async_parallelizer(blast_inputs,
 											  mo.function_helper,
-											  config.cpu_cores,
-											  show_progress=True)
+											  config.cpu_cores)
 
 	# Concatenate files with BLASTp results
-	blast_output = fo.join_paths(final_blast_dir, ['blast_out_concat.tsv'])
+	blast_output = fo.join_paths(final_blast_dir, ["blast_out_concat.tsv"])
 	blast_output = fo.concatenate_files(blast_outputs, blast_output)
 	blast_lines = fo.read_tabular(blast_output)
 	# Convert renamed IDs back to original IDs
@@ -440,14 +423,14 @@ def create_schema_seed(config):
 								  dna_index,
 								  config.blast_score_ratio)
 	schema_seqids = list(set(schema_seqids) - set(final_excluded))
-	print(f'\nRemoved {len(final_excluded)} sequences highly similar to other sequences.')
+	logger.info(f"Removed {len(final_excluded)} sequences highly similar to other sequences.")
 
 	# Create file with the schema representative sequences
-	loci_representatives = os.path.join(final_blast_dir, 'loci_representatives.fasta')
+	loci_representatives = os.path.join(final_blast_dir, "loci_representatives.fasta")
 	fao.get_sequences_by_id(dna_index, schema_seqids, loci_representatives)
 
 	# Create schema directory and FASTA files
-	print(f'Creating schema seed in {config.output_directory}')
+	logger.info(f"Creating schema seed with {len(schema_seqids)} loci in {config.output_directory}")
 	schema_files = create_schema_structure(loci_representatives, config.output_directory, config.schema_name)
 
 	return [schema_files, temp_directory]
@@ -518,15 +501,15 @@ def main(config):
 	schema_dir = os.path.join(config.output_directory, config.schema_name)
 	if config.gene_predictor == "pyrodigal" and config.validated_gene_prediction_options.pyrodigal_training_file is not None:
 		fo.copy_file(config.validated_gene_prediction_options.pyrodigal_training_file, schema_dir)
-		print(f'Copied Pyrodigal training file to {schema_dir}')
+		logger.info(f"Copied Pyrodigal training file to {schema_dir}")
 
 	# Write schema config file
 	schema_config = cf.write_schema_config(config, gct.__version__, schema_dir)
-	print(f'Wrote schema config values to {schema_config[1]}')
+	logger.info(f"Wrote schema config values to {schema_config[1]}")
 
 	# Create the file with the list of genes/loci
 	cf.write_gene_list(schema_dir)
-	print(f'Wrote list of loci to {os.path.join(schema_dir, gct.GENE_LIST_BASENAME)}')
+	logger.info(f"Wrote list of loci to {os.path.join(schema_dir, gct.GENE_LIST_BASENAME)}")
 
 	# Remove temporary files
 	if config.no_cleanup is False:

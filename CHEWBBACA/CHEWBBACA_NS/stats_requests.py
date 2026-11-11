@@ -20,7 +20,10 @@ import sys
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 
+from loguru import logger
+
 import CHEWBBACA.global_constants as gct
+from CHEWBBACA.CHEWBBACA_NS import validation_models as vm
 from CHEWBBACA.utils import chewiens_requests as cr
 
 
@@ -49,16 +52,14 @@ def species_stats(base_url, headers_get):
         and printed to display a table with the information
         retrieved from the Chewie-NS.
     """
-    # get species and number of schemas
+    # Get species and number of schemas
     species = species_schemas_count(base_url, headers_get)
 
     species_stats = []
-    # table header
-    species_stats.append('-'*78)
-    species_stats.append('{:<30}  {:^10}  {:^10}  {:^10}  '
-                         '{:^10}'.format('Species', 'id', '#schemas',
-                                         '#loci', '#alleles'))
-    species_stats.append('-'*78)
+    # Table header
+    species_stats.append("-"*78)
+    species_stats.append("{:<30}  {:^10}  {:^10}  {:^10}  {:^10}".format("Species", "id", "#schemas", "#loci", "#alleles"))
+    species_stats.append("-"*78)
 
     for sp in species:
         # get totla number of loci and alleles per species
@@ -66,13 +67,12 @@ def species_stats(base_url, headers_get):
         total_loci = 0
         total_alleles = 0
         for s in stats:
-            total_loci += int(s['nr_loci'])
-            total_alleles += int(s['nr_alleles'])
+            total_loci += int(s["nr_loci"])
+            total_alleles += int(s["nr_alleles"])
 
-        species_stats.append('{:<30}  {:^10}  {:^10}  {:^10}  '
-                             '{:^10}'.format(sp[1], sp[0], sp[2],
-                                             total_loci, total_alleles))
-    species_stats.append('-'*78)
+        species_stats.append('{:<30}  {:^10}  {:^10}  {:^10}  {:^10}'.format(sp[1], sp[0], sp[2], total_loci, total_alleles))
+
+    species_stats.append("-"*78)
 
     return species_stats
 
@@ -100,14 +100,14 @@ def schema_stats(species_id, base_url, headers_get):
         List with one dict per schema ot NoneType
         if it was not possible to retrieve information.
     """
-    endpoint_list = ['stats', 'species', species_id, 'totals']
+    endpoint_list = ["stats", "species", species_id, "totals"]
     # unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     status_code = res.status_code
     if status_code not in [200, 201]:
         res = None
     else:
-        res = res.json()['message']
+        res = res.json()["message"]
 
     return res
 
@@ -130,27 +130,25 @@ def species_schemas_count(base_url, headers_get):
         identifier, the name of the species
         and the total number of schemas.
     """
-    endpoint_list = ['stats', 'species']
+    endpoint_list = ["stats", "species"]
     # unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
-    if 'message' in res:
-        res = res['message']
+    if "message" in res and len(res) > 0:
+        res = res["message"]
     else:
-        sys.exit('Could not retrieve species info.')
+        logger.error("Could not retrieve species info.")
+        raise vm.NSStatsCouldNotRetrieveSpeciesData
 
-    if len(res) == 0:
-        sys.exit('Could not retrieve species info.')
-    else:
-        info = []
-        for s in res:
-            sid = s['species']['value'].split('/')[-1]
-            name = s['name']['value']
-            num_schemas = s['schemas']['value']
-            info.append([sid, name, num_schemas])
+    info = []
+    for s in res:
+        sid = s["species"]["value"].split("/")[-1]
+        name = s["name"]["value"]
+        num_schemas = s["schemas"]["value"]
+        info.append([sid, name, num_schemas])
 
-    # sort by species identifier
+    # Sort by species identifier
     info = sorted(info, key=lambda x: int(x[0]))
 
     return info
@@ -177,8 +175,8 @@ def species_schemas(species_id, base_url, headers_get):
         contain the URI and name for all schemas
         associated with the species.
     """
-    endpoint_list = ['species', species_id]
-    # unpack list of sequential endpoints and pass to create URI
+    endpoint_list = ["species", species_id]
+    # Unpack list of sequential endpoints and pass to create URI
     res = cr.simple_get_request(base_url, headers_get, endpoint_list)[1]
     res = res.json()
 
@@ -217,35 +215,33 @@ def single_species(species_id, base_url, headers_get):
         - If the process could not retrieve schemas for the
           species.
     """
-    # get all schemas for species
+    # Get all schemas for species
     schemas = species_schemas(species_id, base_url, headers_get)
-    if 'NOT FOUND' in schemas:
-        sys.exit('Could not find information about a species with '
-                 'provided identifier (id={0}).'.format(species_id))
-    species_name = schemas[0]['name']['value']
-    schemas = {s['schemas']['value'].split('/')[-1]: s['schemaName']['value']
-               for s in schemas[1:]}
+    if "NOT FOUND" in schemas:
+        logger.error(f"Could not find information for a species with identifier {species_id}).")
+        raise vm.NSStatsInvalidSpeciesID
 
-    # get more info for all schema
+    species_name = schemas[0]["name"]["value"]
+    schemas = {s["schemas"]["value"].split("/")[-1]: s["schemaName"]["value"] for s in schemas[1:]}
+
+    # Get more info for all schema
     stats = schema_stats(species_id, base_url, headers_get)
     if stats is None:
-        sys.exit('Could not retrieve schemas for {0} '
-                 '(id={1}).'.format(species_name, species_id))
+        logger.error(f"Could not retrieve list of schemas for species {species_name} (ID={species_id})")
+        raise vm.NSStatsCouldNotRetrieveSchemas
+
     schemas_stats = []
-    schemas_stats.append('{0} (id={1})'.format(species_name, species_id))
-    schemas_stats.append('-'*66)
-    schemas_stats.append('{:<30}  {:^10}  {:^10}  {:^10}'
-                         ''.format('Schema_name', 'id', '#loci', '#alleles'))
-    schemas_stats.append('-'*66)
+    schemas_stats.append(f"{species_name} (id={species_id})")
+    schemas_stats.append("-"*66)
+    schemas_stats.append("{:<30}  {:^10}  {:^10}  {:^10}".format("Schema_name", "id", "#loci", "#alleles"))
+    schemas_stats.append("-"*66)
     for s in stats:
-        schema_id = s['uri'].split('/')[-1]
-        total_loci = s['nr_loci']
-        total_alleles = s['nr_alleles']
+        schema_id = s["uri"].split("/")[-1]
+        total_loci = s["nr_loci"]
+        total_alleles = s["nr_alleles"]
         schema_name = schemas[schema_id]
-        schemas_stats.append('{:<30}  {:^10}  {:^10}  {:^10}'
-                             ''.format(schema_name, schema_id,
-                                       total_loci, total_alleles))
-    schemas_stats.append('-'*66)
+        schemas_stats.append("{:<30}  {:^10}  {:^10}  {:^10}".format(schema_name, schema_id, total_loci, total_alleles))
+    schemas_stats.append("-"*66)
 
     return schemas_stats
 
@@ -286,19 +282,22 @@ def single_schema(species_id, schema_id, base_url, headers_get):
     # get all schemas for species
     species = species_schemas(species_id, base_url, headers_get)
     if "NOT FOUND" in species:
-        sys.exit("Could not find information about a species with "
-                 f"provided identifier (id={species_id}).")
+        logger.error(f"Could not find information for a species with identifier {species_id}).")
+        raise vm.NSStatsInvalidSpeciesID
+
     species_name = species[0]["name"]["value"]
 
     schemas = schema_stats(species_id, base_url, headers_get)
 
     if schemas is None:
-        sys.exit(f"Could not retrieve schemas for {species_name} (id={species_id}).")
+        logger.error(f"Could not retrieve list of schemas for species {species_name} (ID={species_id})")
+        raise vm.NSStatsCouldNotRetrieveSchemas
     else:
         schema = [s for s in schemas if s["uri"].split("/")[-1] == schema_id]
 
     if len(schema) == 0:
-        sys.exit(f"Could not find information about schema with specified identifier (id={schema_id}).")
+        logger.error(f"Could not find information about schema with specified identifier (ID={schema_id}).")
+        raise vm.NSStatsInvalidSchemaID
 
     schema = schema[0]
     schema_info = []
@@ -347,7 +346,7 @@ def main(config):
     """
     headers_get = gct.HEADERS_GET_JSON
 
-    print("Retrieving data...")
+    logger.info("Retrieving data...")
     if config.stats_mode == "species":
         stats = species_stats(config.nomenclature_server_instance, headers_get)
     elif config.stats_mode == "schemas":
@@ -357,8 +356,9 @@ def main(config):
             else:
                 stats = single_species(config.species_id, config.nomenclature_server_instance, headers_get)
         else:
-            sys.exit("Please provide a valid species identifier to get the list of available schemas.\n")
+            logger.error("Please provide a valid species identifier to get the list of available schemas.")
+            raise vm.NSStatsInvalidSpeciesID
 
     # Print stats
-    stats_text = "\n".join(stats)
-    print("{0}".format(stats_text))
+    for sline in stats:
+        logger.info(sline)

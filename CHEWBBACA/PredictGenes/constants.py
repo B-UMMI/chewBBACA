@@ -93,8 +93,3 @@ PYRODIGAL_INVALID_OUTFMT = ("Invalid output format specified for Pyrodigal resul
 
 INVALID_PTF_PATH = ("Cannot find the specified Prodigal training file in {0}."
 					"\nPlease provide a path to a valid training file.")
-
-# Could not predict CDSs for input FASTA files
-# e.g. files only contain sequence headers, contain invalid
-# sequences/chars or pyrodigal cannot predict any genes
-PREDICTGENES_NO_PREDICTIONS = ("Could not predict CDSs from any of the input files. Please verify the format of the input files and the argument values passed to chewBBACA.")

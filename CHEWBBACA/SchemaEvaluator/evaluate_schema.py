@@ -23,6 +23,8 @@ import shutil
 import statistics
 from collections import Counter
 
+from loguru import logger
+
 import CHEWBBACA.global_constants as gct
 from CHEWBBACA.ComputeMSA import compute_msa
 import CHEWBBACA.SchemaEvaluator.constants as ct
@@ -595,7 +597,7 @@ def main(config):
 
 	# Check if the schema was created with chewBBACA
 	if config.chewie_schema is not False:
-		print("The schema was created with chewBBACA v{0}.".format(config.chewie_schema))
+		logger.info(f"The schema was created with chewBBACA v{config.chewie_schema}.")
 		# Message displayed in the Schema Creation Alert
 		creation_message = (f"Created with chewBBACA v{config.chewie_schema}\n"
 							f"BLAST Score Ratio: {', '.join(map(str, config.blast_score_ratio_values))}\n"
@@ -626,8 +628,8 @@ def main(config):
 	inputs = im.multiprocessing_inputs(inputs, common_args, compute_locus_statistics)
 
 	# Compute loci statistics
-	print("Computing loci statistics...")
-	results = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores, show_progress=True)
+	logger.info("Computing loci statistics...")
+	results = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores)
 
 	# Group values for the same statistic
 	data = list(zip(*results))
@@ -643,11 +645,11 @@ def main(config):
 		loci_annotations = [line for line in annotation_lines[1:] if line[0] in loci_basenames]
 		annotation_values[1].extend(loci_annotations)
 
-	print(f"\nProvided annotations for {len(annotation_values[1])} loci in the schema.")
+	logger.info(f"Provided annotations for {len(annotation_values[1])} loci in the schema.")
 
 	# Columns for the Summary Data Table in the Schema Report
 	summary_columns = ct.SCHEMA_SUMMARY_TABLE_HEADER.format(config.minimum_length)
-	summary_columns = summary_columns.split('\t')
+	summary_columns = summary_columns.split("\t")
 
 	# Get total number of alleles with a length value not multiple of 3
 	notMultiple_sum = sum([subdata[6] for subdata in data[13]])
@@ -736,7 +738,7 @@ def main(config):
 		# Check if there are any protein files to compute MSAs for before calling the ComputeMSA module
 		if len(fo.listdir(protein_files_dir)) > 0:
 			# Need to pass complete MAFFT default parameters defined in constants.py to create tree output
-			print("Calling the ComputeMSA module to compute the loci MSAs...")
+			logger.info("Calling the ComputeMSA module to compute the loci MSAs...")
 			# Create config object to pass to ComputeMSA
 			compute_msa_outdir = fo.join_paths(temp_directory, ["MSAs"])
 			compute_msa_config = ComputeMSAValidator(output_directory=compute_msa_outdir,
@@ -785,11 +787,8 @@ def main(config):
 		# Create loci reports
 		# Compute MSA and NJ tree if --light is not True
 		# Add DNA and Protein sequences if --add-sequences is provided
-		print("Creating loci reports...")
-		loci_htmls = mo.map_async_parallelizer(inputs,
-											   mo.function_helper,
-											   config.cpu_cores,
-											   show_progress=True)
+		logger.info("Creating loci reports...")
+		loci_htmls = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores)
 
 	# Copy the JS bundle files to the respective directories
 	# JS bundle used by schema report
@@ -807,4 +806,4 @@ def main(config):
 	# Delete all temporary files
 	fo.delete_directory(temp_directory)
 
-	print(f'\nResults available in {os.path.abspath(config.output_directory)}.')
+	logger.info(f"Results available in {os.path.abspath(config.output_directory)}.")

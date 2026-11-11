@@ -19,6 +19,8 @@ import shutil
 import itertools
 import multiprocessing
 
+from loguru import logger
+
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.AdaptSchema.constants as ct
 from CHEWBBACA.utils import (blast_wrapper as bw,
@@ -344,8 +346,7 @@ def adapt_loci(loci, schema_path, schema_short_path, bsr, min_len,
 						if len(rep_results) > 0:
 							rep_self_scores[rep_results[0][0]] = float(rep_results[0][6])
 						else:
-							print('Could not determine the self-alignment raw '
-								f'score for {rep_results[0][0]}')
+							logger.error("Could not determine the self-alignment raw score for {rep_results[0][0]}")
 
 				# Create file with seqids to BLAST against
 				ids_str = im.join_list([str(inverse_id_mapping[i]) for i in ids_to_blast if i not in representatives], '\n')
@@ -483,14 +484,13 @@ def main(config):
 	blast_path : str
 		Path to the directory that contains the BLAST executables.
 	"""
-	schema_path = config.output_directory
+	schema_path = fo.join_paths(config.output_directory, ["adapted_schema"])
 	# Create the "short" directory to store the FASTA files with representative alleles
 	schema_short_path = fo.join_paths(schema_path, ["short"])
 	fo.create_directory(schema_short_path)
 
-	print('Number of loci to adapt: {0}\n'.format(len(config.loci_list[0])))
-	print('Determining the total number of alleles and '
-		  'allele mean length per gene...\n'.format())
+	logger.info(f"Number of loci to adapt: {len(config.loci_list[0])}")
+	logger.info("Determining the total number of alleles and allele mean length per gene...")
 
 	# Count number of sequences and mean length per locus
 	loci_info = []
@@ -501,7 +501,7 @@ def main(config):
 	# Split files according to number of sequences and sequence mean length
 	# in each file to pass even groups of sequences to all cores
 	# divide into 100 input sets to get 1% progress resolution
-	even_loci_groups = mo.distribute_loci(loci_info, 100, 'seqcount')
+	even_loci_groups = mo.distribute_loci(loci_info, 100, "seqcount")
 	# with few inputs, some sublists might be empty
 	even_loci_groups = [i for i in even_loci_groups if len(i) > 0]
 	# Add common arguments
@@ -514,8 +514,8 @@ def main(config):
 						 blastp_path, makeblastdb_path, blastdb_aliastool_path,
 						 adapt_loci] for i in even_loci_groups]
 
-	print('Adapting {0} loci...\n'.format(len(config.loci_list[0])))
-	invalid_data = mo.map_async_parallelizer(even_loci_groups, mo.function_helper, config.cpu_cores, show_progress=True)
+	logger.info(f"Adapting {len(config.loci_list[0])} loci...")
+	invalid_data = mo.map_async_parallelizer(even_loci_groups, mo.function_helper, config.cpu_cores)
 
 	# Write files with list of invalid alleles and invalid loci
 	schema_basename = fo.file_basename(schema_path.rstrip('/'))
@@ -524,8 +524,7 @@ def main(config):
 	# Write file with alleles that were determined to be invalid
 	invalid_alleles = [sub[0] for sub in invalid_data]
 	invalid_alleles = list(itertools.chain.from_iterable(invalid_alleles))
-	invalid_alleles_file = os.path.join(parent_directory,
-										f'{schema_basename}_invalid_alleles.txt')
+	invalid_alleles_file = os.path.join(parent_directory, f"{schema_basename}_invalid_alleles.txt")
 	invalid_alleles = [f'{allele[0]}: {allele[1]}' for allele in invalid_alleles]
 	fo.write_lines(invalid_alleles, invalid_alleles_file)
 
@@ -533,37 +532,35 @@ def main(config):
 	invalid_loci = [sub[1] for sub in invalid_data]
 	invalid_loci = list(itertools.chain.from_iterable(invalid_loci))
 	invalid_loci_file = os.path.join(parent_directory,
-									  '{0}_{1}'.format(schema_basename, 'invalid_loci.txt'))
+									  "{0}_{1}".format(schema_basename, "invalid_loci.txt"))
 	fo.write_lines(invalid_loci, invalid_loci_file)
 
 	stats_lines = [sub[2] for sub in invalid_data]
 	stats_lines = list(itertools.chain.from_iterable(stats_lines))
 	stats_lines = ['\t'.join(line) for line in stats_lines]
-	stats_loci_file = '{0}/{1}_{2}'.format(parent_directory,
-										   schema_basename,
-										   'summary_stats.tsv')
+	stats_loci_file = '{0}/{1}_{2}'.format(parent_directory, schema_basename, "summary_stats.tsv")
 	stats_lines = [im.join_list(ct.ADAPTSCHEMA_STATS_HEADER, "\t")] + stats_lines
 	fo.write_lines(stats_lines, stats_loci_file)
 
-	print(f'\n\nNumber of invalid loci: {len(invalid_loci)}')
-	print(f'Wrote list of invalid loci to {invalid_loci_file}')
+	logger.info(f"Number of invalid loci: {len(invalid_loci)}")
+	logger.info(f"Wrote list of invalid loci to {invalid_loci_file}")
 
-	print(f'Number of invalid alleles: {len(invalid_alleles)}')
-	print(f'Wrote list of invalid alleles to {invalid_alleles_file}')
-	print(f'Wrote file with summary statistics to {stats_loci_file}')
+	logger.info(f"Number of invalid alleles: {len(invalid_alleles)}")
+	logger.info(f"Wrote list of invalid alleles to {invalid_alleles_file}")
+	logger.info(f"Wrote file with summary statistics to {stats_loci_file}")
 
-	print('\nSuccessfully adapted {0}/{1} loci present in the '
-		  'input schema.'.format(len(config.loci_list[0])-len(invalid_loci), len(config.loci_list[0])))
+	logger.info("Successfully adapted {0}/{1} loci present in the "
+		  		"input schema.".format(len(config.loci_list[0])-len(invalid_loci), len(config.loci_list[0])))
 
 	# Copy Pyrodigal Training File (PTF) to schema directory
 	if config.gene_predictor == "pyrodigal" and config.validated_gene_prediction_options.pyrodigal_training_file is not None:
 		fo.copy_file(config.validated_gene_prediction_options.pyrodigal_training_file, schema_path)
-		print(f'Copied Pyrodigal training file to {schema_path}')
+		logger.info(f"Copied Pyrodigal training file to {schema_path}")
 
 	# Write schema config file
 	schema_config = cf.write_schema_config(config, gct.__version__, schema_path)
-	print(f'Wrote schema config values to {schema_config[1]}')
+	logger.info(f"Wrote schema config values to {schema_config[1]}")
 
 	# Create the file with the list of genes/loci
 	cf.write_gene_list(schema_path)
-	print(f'Wrote list of loci to {os.path.join(schema_path, gct.GENE_LIST_BASENAME)}')
+	logger.info(f"Wrote list of loci to {os.path.join(schema_path, gct.GENE_LIST_BASENAME)}")

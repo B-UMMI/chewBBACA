@@ -294,8 +294,7 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 	# Determine set of distinct sequences per file
 	dedup_results = mo.map_async_parallelizer(dedup_inputs,
 											  mo.function_helper,
-											  cpu_cores,
-											  show_progress=False)
+											  cpu_cores)
 
 	if only_seqids is True:
 		merge_results = merge_get_seqids(dedup_results, ids_map)
@@ -425,8 +424,7 @@ def translate_sequences(sequence_ids, sequences_file, temp_directory,
 	# Translate sequences
 	translation_results = mo.map_async_parallelizer(translation_inputs,
 													mo.function_helper,
-													cpu_cores,
-													show_progress=True)
+													cpu_cores)
 
 	# Concatenate files
 	protein_file = fo.join_paths(temp_directory, ['translated.fasta'])
@@ -516,8 +514,7 @@ def cluster_sequences(sequences, word_size, window_size, clustering_sim,
 	# Cluster proteins
 	clustering_results = mo.map_async_parallelizer(cluster_inputs,
 												   mo.function_helper,
-												   cpu_cores,
-												   show_progress=True)
+												   cpu_cores)
 
 	# Merge clusters
 	clusters = [d[0] for d in clustering_results]
@@ -753,8 +750,7 @@ def blast_clusters(clusters, sequences, id_mapping, output_directory,
 	# BLAST sequences in a cluster against every sequence in that cluster
 	blast_results = mo.map_async_parallelizer(splitted_seqids,
 											  mo.function_helper,
-											  cpu_cores,
-											  show_progress=True)
+											  cpu_cores)
 
 	return [blast_results, blastp_results_dir]
 
@@ -899,8 +895,7 @@ def determine_self_scores(fasta_file, output_directory, makeblastdb_path,
 
 	blast_results = mo.map_async_parallelizer(blast_inputs,
 											  mo.function_helper,
-											  blast_threads,
-											  show_progress=False)
+											  blast_threads)
 
 	# Concatenate files with BLASTp results
 	blast_output = fo.join_paths(final_blastp_dir, ['blastout_concat.tsv'])

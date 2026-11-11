@@ -18,6 +18,8 @@ Code documentation
 
 import os
 
+from loguru import logger
+
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.AnnotateSchema.constants as ct
 from CHEWBBACA.utils import (
@@ -62,7 +64,7 @@ def extract_annotations(blastout_files, indexed_proteome, self_scores,
 	"""
 	proteome_results = {}
 	for file in blastout_files:
-		locus_id = fo.file_basename(file).split('_short')[0]
+		locus_id = fo.file_basename(file).split("_short")[0]
 		results = fo.read_tabular(file)
 		if len(results) > 0:
 			# compute BSR values
@@ -145,31 +147,28 @@ def proteome_annotations(schema_directory, loci, temp_directory, taxa, blast_sco
 			fao.write_records([first_record], rep_file, mode='w')
 			reps_paths.append(rep_file)
 
-	print('Translating representative sequences...')
+	logger.info("Translating representative sequences...")
 	# Translate representatives for all loci
 	translated_reps = fo.join_paths(temp_directory, ["translated_reps"])
 	fo.create_directory(translated_reps)
 
-	reps_protein_files = mo.parallelize_function(fao.translate_fasta, reps_paths,
-												 [translated_reps, translation_table, False],
-												 cpu_cores, True)
+	reps_protein_files = mo.parallelize_function(fao.translate_fasta, reps_paths, [translated_reps, translation_table, False], cpu_cores)
 	reps_protein_files = [r[1] for r in reps_protein_files]
 
-	print("\nDownloading list of reference proteomes...", end="")
+	logger.info("Downloading list of reference proteomes...")
 	remote_readme = fo.join_paths(ct.UNIPROT_PROTEOMES_FTP, ["README"])
 	local_readme = fo.join_paths(temp_directory, ["reference_proteomes_readme.txt"])
 
 	# Get README file with list of reference proteomes
 	res = fo.download_file(remote_readme, local_readme)
-	print("done.")
 
 	# Get lines with proteome info for species of interest
 	readme_lines = fo.read_lines(local_readme, strip=False)
 
 	selected_proteomes = im.contained_terms(readme_lines, taxa)
-	selected_proteomes = [line.strip('\n') for line in selected_proteomes]
-	selected_proteomes = [line.split('\t') for line in selected_proteomes]
-	print("Found {0} reference proteomes for {1}.".format(len(selected_proteomes), taxa))
+	selected_proteomes = [line.strip("\n") for line in selected_proteomes]
+	selected_proteomes = [line.split("\t") for line in selected_proteomes]
+	logger.info(f"Found {len(selected_proteomes)} reference proteomes for {taxa}.")
 	proteome_results = {}
 	if len(selected_proteomes) > 0:
 		# Create directory to store proteomes
@@ -181,24 +180,20 @@ def proteome_annotations(schema_directory, loci, temp_directory, taxa, blast_sco
 
 		# Uncompress files and concatenate into single FASTA
 		uncompressed_proteomes = [fo.unzip_file(file) for file in proteomes_files]
-		proteomes_concat = fo.join_paths(proteomes_directory,
-										 ["full_proteome.fasta"])
-		proteomes_concat = fo.concatenate_files(uncompressed_proteomes,
-												proteomes_concat)
+		proteomes_concat = fo.join_paths(proteomes_directory, ["full_proteome.fasta"])
+		proteomes_concat = fo.concatenate_files(uncompressed_proteomes, proteomes_concat)
 
 		# Get self-scores
 		# Concatenate protein files
-		reps_concat = fo.concatenate_files(reps_protein_files,
-										   fo.join_paths(temp_directory, ["reps_concat.fasta"]))
+		reps_concat = fo.concatenate_files(reps_protein_files, fo.join_paths(temp_directory, ["reps_concat.fasta"]))
 
-		print("\nDetermining self-score of representatives...", end="")
+		logger.info("Determining self-score of representatives...")
 		blastp_path = os.path.join(blast_path, gct.BLASTP_ALIAS)
 		makeblastdb_path = os.path.join(blast_path, gct.MAKEBLASTDB_ALIAS)
 		blast_version = bw.get_blast_version(blast_path)
 		blastdb_aliastool_path = fo.join_paths(blast_path, [gct.BLASTDB_ALIASTOOL_ALIAS])
 		self_scores = cf.determine_self_scores(reps_concat, temp_directory,
 			makeblastdb_path, blastp_path, "prot", cpu_cores, blastdb_aliastool_path)
-		print("done.")
 
 		# Create BLASTdb with proteome sequences
 		proteome_blastdb = fo.join_paths(proteomes_directory, ["proteomes_db"])
@@ -209,15 +204,12 @@ def proteome_annotations(schema_directory, loci, temp_directory, taxa, blast_sco
 						 1, 1, None, None, 10, None, bw.run_blast]
 						for file in reps_protein_files]
 
-		print("BLASTing representatives against proteomes...")
-		blast_results = mo.map_async_parallelizer(blast_inputs,
-												  mo.function_helper,
-												  cpu_cores,
-												  show_progress=True)
+		logger.info("BLASTing representatives against proteomes...")
+		blast_results = mo.map_async_parallelizer(blast_inputs, mo.function_helper, cpu_cores)
 
 		blastout_files = [fo.join_paths(translated_reps, [file])
 						  for file in os.listdir(translated_reps)
-						  if 'blastout' in file]
+						  if "blastout" in file]
 
 		# index proteome file
 		indexed_proteome = fao.index_fasta(proteomes_concat)
@@ -268,14 +260,14 @@ def create_annotations_table(annotations, output_directory, header, schema_name)
 		else:
 			locus_annotations.extend(data[:-1])
 			proteome_data = list(zip(*data[-1]))
-			proteome_data = [';'.join(list(map(str, d))) for d in proteome_data]
-			proteome_data = ['' if set(d) == {';'} else d for d in proteome_data]
+			proteome_data = [";".join(list(map(str, d))) for d in proteome_data]
+			proteome_data = ["" if set(d) == {";"} else d for d in proteome_data]
 			locus_annotations.extend(proteome_data)
 
 		annotation_lines.append(locus_annotations)
 
-	annotation_lines = ['\t'.join(line) for line in annotation_lines]
-	output_basename = '{0}_annotations.tsv'.format(schema_name)
+	annotation_lines = ["\t".join(line) for line in annotation_lines]
+	output_basename = "{0}_annotations.tsv".format(schema_name)
 	output_file = fo.join_paths(output_directory, [output_basename])
 	fo.write_lines(annotation_lines, output_file)
 
@@ -320,15 +312,15 @@ def main(config):
 	temp_directory = fo.join_paths(config.output_directory, ["temp"])
 	fo.create_directory(temp_directory)
 
-	print(f"Schema directory: {config.schema_directory}")
-	print(f"Number of loci: {len(config.loci_list[0])}")
-	print(f"BLAST Score Ratio: {config.blast_score_ratio}")
-	print(f"Translation table: {config.translation_table}")
+	logger.info(f"Schema directory: {config.schema_directory}")
+	logger.info(f"Number of loci: {len(config.loci_list[0])}")
+	logger.info(f"BLAST Score Ratio: {config.blast_score_ratio}")
+	logger.info(f"Translation table: {config.translation_table}")
 
 	# Search for annotations based on the reference proteomes for the specified taxa
 	proteome_results = {}
 	if config.proteome_taxa is not None:
-		print(f"Searching for annotations based on UniProt's reference proteomes for {config.proteome_taxa}...")
+		logger.info(f"Searching for annotations based on UniProt's reference proteomes for {config.proteome_taxa}...")
 		proteome_results = proteome_annotations(config.schema_directory,
 		                                        config.loci_list,
 												temp_directory,
@@ -338,28 +330,28 @@ def main(config):
 												config.proteome_matches,
 												config.blast_path,
 												config.translation_table)
-		print(f"\nRetrieved annotations for {len(proteome_results)}/{len(config.loci_list[0])} loci.")
+		logger.info(f"Retrieved annotations for {len(proteome_results)}/{len(config.loci_list[0])} loci.")
 	else:
-		print("Will not annotate based on UniProt\'s reference proteomes because no taxa names were provided to '--ptax, --proteome-taxa'.")
+		logger.info("Will not annotate based on UniProt\'s reference proteomes because no taxa names were provided to '--ptax, --proteome-taxa'.")
 
 	rest_results = {}
 	if config.rest_api:
-		print('Querying UniProt\'s Proteins API...')
+		logger.info("Querying UniProt\'s Proteins API...")
 		# Get annotations through UniProt Proteins API
 		# Create inputs for multiprocessing
-		results = mo.parallelize_function(ur.get_annotation, config.loci_list[1],
-		                                       [config.translation_table, config.rest_api_matches], ct.UNIPROT_REST_API_THREADS, True)
+		results = mo.parallelize_function(ur.get_annotation, config.loci_list[1], [config.translation_table, config.rest_api_matches], ct.UNIPROT_REST_API_THREADS)
 		for r in results:
 			if len(r[1]) > 0:
 				locus_id = fo.file_basename(r[0], False)
 				rest_results[locus_id] = r[1]
 
-		print(f"\nRetrieved annotations for {len(rest_results)}/{len(config.loci_list[0])} loci.")
+		logger.info(f"Retrieved annotations for {len(rest_results)}/{len(config.loci_list[0])} loci.")
 	else:
-		print("Did not provide the '--rapi, --rest-api' option. Will not query UniProt's Proteins API.")
+		logger.info("Did not provide the '--rapi, --rest-api' option. Will not query UniProt's Proteins API.")
 
 	if len(proteome_results) == 0 and len(rest_results) == 0:
-		print("Could not retrieve annotations for any loci in the schema.")
+		# Logged as warning because it is kinda suspicious
+		logger.warning("Could not retrieve annotations for any loci in the schema.")
 	else:
 		# Get column headers
 		annotations_header = [ct.ANNOTATE_SCHEMA_FIRST_COLUMN]
@@ -412,7 +404,7 @@ def main(config):
 		schema_basename = fo.file_basename(config.schema_directory)
 		output_file = create_annotations_table(annotations_lines, config.output_directory, annotations_header, schema_basename)
 
-		print(f"Output file with loci annotations available at {output_file}")
+		logger.info(f"Output file with loci annotations available at {output_file}")
 
 	if config.no_cleanup is False:
 		fo.delete_directory(temp_directory)

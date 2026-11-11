@@ -11,6 +11,7 @@ Code documentation
 
 
 import pandas as pd
+from loguru import logger
 
 import CHEWBBACA.GetAlleles.constants as ct
 from CHEWBBACA.utils import (file_operations as fo,
@@ -47,35 +48,35 @@ def get_locus_alleles(locus_id, allele_ids, locus_file, output_directory):
 	records = []
 	for a in dataset_alleles:
 		if a[0][0] is not None:
-			header = f'>{a[0][0]}_{locus_id}_{a[0][1]}'
+			header = f">{a[0][0]}_{locus_id}_{a[0][1]}"
 		else:
-			header = f'>{locus_id}_{a[0][1]}'
+			header = f">{locus_id}_{a[0][1]}"
 		sequence = a[1]
 		# Alleles must be in the schema!
 		try:
-			record = '\n'.join([header, sequence])
+			record = "\n".join([header, sequence])
 		except:
-			print(f'Error creating record for {locus_id} with allele {a[0][1]}')
+			logger.error(f"Error creating record {a[0][1]} for locus {locus_id}.")
 		records.append(record)
 
 	# Save to file
-	output_file = fo.join_paths(output_directory, [f'{locus_id}.fasta'])
-	fo.write_lines(records, output_file, joiner='\n', write_mode='w')
+	output_file = fo.join_paths(output_directory, [f"{locus_id}.fasta"])
+	fo.write_lines(records, output_file, joiner="\n", write_mode="w")
 
 	return output_file
 
 
 def main(config):
 	# Read input file
-	print('Importing the allelic profiles...')
-	profiles = pd.read_csv(config.allelic_profiles, delimiter='\t', dtype=str, index_col=0, usecols=['FILE'] + config.loci_list[0])
+	logger.info("Importing the allelic profiles...")
+	profiles = pd.read_csv(config.allelic_profiles, delimiter="\t", dtype=str, index_col=0, usecols=["FILE"] + config.loci_list[0])
 
 	nsamples, nloci = profiles.shape
-	print(f'Total loci: {nloci}')
-	print(f'Total samples: {nsamples}')
+	logger.info(f"Total loci: {nloci}")
+	logger.info(f"Total samples: {nsamples}")
 	# Remove all 'INF-' prefixes, missing data and '*' from identifiers
 	# Replace values by '0'
-	print('Masking profiles...')
+	logger.info("Masking profiles...")
 	masked_profiles = profiles.apply(im.replace_chars)
 
 	# Create folder to store FASTA files
@@ -87,7 +88,7 @@ def main(config):
 	inputs = []
 	loci_stats = {locus: [] for locus in config.loci_list[0]}
 	absent_loci = 0
-	print('Determining the list of alleles identified for each locus...')
+	logger.info("Determining the list of alleles identified for each locus...")
 	for i, locus_id in enumerate(config.loci_list[0]):
 		# Get alleles identifiers
 		locus_column = masked_profiles[locus_id]
@@ -97,7 +98,7 @@ def main(config):
 		loci_stats[locus_id].extend([fao.count_sequences(config.loci_list[1][i]), len(locus_column), len(pd.unique(locus_column))])
 		# Only try to fetch if the locus is in at least one sample
 		if len(locus_column) == 0:
-			print(f'No alleles for locus {locus_id} in the dataset. Skipping...')
+			logger.info(f"No alleles for locus {locus_id} in the dataset. Skipping...")
 			absent_loci += 1
 			continue
 		else:
@@ -113,12 +114,12 @@ def main(config):
 			# Append input data for multiprocessing
 			inputs.append((locus_id, allele_ids, config.loci_list[1][i], alleles_directory, get_locus_alleles))
 
-	print(f'Number of loci that were not identified in the dataset: {absent_loci}')
+	logger.info(f"Number of loci that were not identified in the dataset: {absent_loci}")
 
 	output_files = []
 
 	# Save loci statistics
-	loci_stats_file = fo.join_paths(config.output_directory, ['summary_stats.tsv'])
+	loci_stats_file = fo.join_paths(config.output_directory, ["summary_stats.tsv"])
 	loci_stats_header = im.join_list(ct.GETALLELES_LOCI_STATS_HEADER, "\t")
 	loci_stats_lines = [[k]+list(map(str, v)) for k, v in loci_stats.items()]
 	loci_stats_lines = [loci_stats_header] + ['\t'.join(l) for l in loci_stats_lines]
@@ -127,23 +128,23 @@ def main(config):
 
 	# Get and save alleles to FASTA files
 	if not config.distinct:
-		print('Creating FASTA files with the alleles identified in the dataset...')
+		logger.info("Creating FASTA files with the alleles identified in the dataset...")
 	else:
-		print('Creating FASTA files with the distinct alleles identified in the dataset...')
+		logger.info("Creating FASTA files with the distinct alleles identified in the dataset...")
 	fasta_files = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores)
 	fasta_files = [file for file in fasta_files if file is not None]
 	output_files.append(fasta_files)
 
 	if config.translate_alleles:
 		# Create folder to store FASTA files
-		translated_alleles_directory = fo.join_paths(config.output_directory, ['translated_fastas'])
+		translated_alleles_directory = fo.join_paths(config.output_directory, ["translated_fastas"])
 		fo.create_directory(translated_alleles_directory)
-		print('Translating alleles...')
+		logger.info("Translating alleles...")
 		inputs = [[file, translated_alleles_directory, config.translation_table, False, fao.translate_fasta] for file in fasta_files]
 		protein_files = mo.map_async_parallelizer(inputs, mo.function_helper, config.cpu_cores)
 		# Only keep the translated files
 		protein_files = [f[1] for f in protein_files]
 		output_files.append(protein_files)
 
-	print(f'Output files available in {config.output_directory}')
+	logger.info(f"Output files available in {config.output_directory}")
 	return output_files

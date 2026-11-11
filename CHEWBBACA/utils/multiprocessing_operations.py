@@ -94,44 +94,6 @@ def map_async_parallelizer(inputs, function, cpu, chunksize=1, pool_type="pool")
 	return results
 
 
-def progress_bar(remaining, total, previous, tickval=5, ticknum=20):
-	"""Create and print a progress bar to the stdout.
-
-	Parameters
-	----------
-	remaining : int
-		Number of remaining tasks to complete.
-	total : int
-		Total number of inputs that have to be processed.
-	previous : int
-		Percentage of tasks that had been completed in the
-		previous function call.
-	tickval : int
-		Progress completion percentage value for each
-		tick.
-	ticknum : int
-		Total number of ticks in progress bar.
-
-	Returns
-	-------
-	completed : bool
-		Boolean indicating if all inputs have been processed.
-	"""
-	# determine percentage of processed inputs
-	progress = int(100-(remaining/total)*100)
-	# only print if percentage has changed
-	if progress != previous:
-		progress_tick = progress//tickval
-		progress_bar = "[{0}{1}] {2}%".format("="*progress_tick,
-											  " "*(ticknum-progress_tick),
-											  progress)
-		logger.info("\r", progress_bar, end="")
-
-	time.sleep(0.1)
-
-	return progress
-
-
 def distribute_loci(inputs, cores, method):
 	"""Create balanced lists of loci to efficiently parallelize function calls.
 
@@ -184,7 +146,7 @@ def distribute_loci(inputs, cores, method):
 	return splitted_ids
 
 
-def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_progress=False):
+def parallelize_function(function, inputs, common_args=None, cpu_cores=1):
 	"""Create list of inputs and parallelize function calls.
 
 	Parameters
@@ -199,9 +161,6 @@ def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_p
 		function.
 	cpu_cores : int
 		Number of CPU cores used to parallelize the function.
-	show_progress : bool
-		True to show a progress bar for the percentage of
-		inputs that have been processed, False otherwise.
 
 	Returns
 	-------
@@ -221,7 +180,6 @@ def parallelize_function(function, inputs, common_args=None, cpu_cores=1, show_p
 
 	results = map_async_parallelizer(input_lists,
 									 function_helper,
-									 cpu_cores,
-									 show_progress=show_progress)
+									 cpu_cores)
 
 	return results

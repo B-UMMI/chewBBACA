@@ -16,6 +16,7 @@ Code documentation
 from functools import reduce
 
 import pandas as pd
+from loguru import logger
 
 import CHEWBBACA.global_constants as gct
 from CHEWBBACA.SubsetResults import subset_results
@@ -35,16 +36,16 @@ def main(config):
 		If the process should join results data only for the set of shared
 		loci when the results do not share the same loci sets.
 	"""
-	print(f'Received paths to {len(config.results_directories)} folders:\n{"\n".join(config.results_directories)}')
+	logger.info(f"Received paths to {len(config.results_directories)} folders:\n{"\n".join(config.results_directories)}")
 	# Work with the set of common loci if --common was provided
 	if config.common[0] and len(config.common[0]) != config.common[2]:
-		print(f'The input data share results for {len(config.common[1])} loci. Will subset the results in each input directory before merging.')
+		logger.info(f"The input data share results for {len(config.common[1])} loci. Will subset the results in each input directory before merging.")
 		# Save list of loci to pass to the SubsetResults module
-		loci_list_outfile = fo.join_paths(config.output_directory, ['loci.txt'])
+		loci_list_outfile = fo.join_paths(config.output_directory, ["loci.txt"])
 		fo.write_lines(config.common[1], loci_list_outfile)
 		subsetted_inputs = []
 		for d in config.results_directories:
-			print(f'Calling the SubsetResults module to subset the results in {d}...')
+			logger.info(f"Calling the SubsetResults module to subset the results in {d}...")
 			subset_outdir = fo.join_paths(config.output_directory, [fo.file_basename(d)])
 			subset_results.main(d, subset_outdir, loci_list_outfile, None, None, None)
 			subsetted_inputs.append(subset_outdir)
@@ -69,67 +70,67 @@ def main(config):
 	to_exclude = []
 	for ftype, paths in file_list.items():
 		if len(paths) == 0:
-			print(f'Did not find matching files for the {ftype} file type.')
+			logger.info(f"Did not find matching files for the {ftype} file type.")
 			to_exclude.append(ftype)
 		elif len(paths) != len(input_files):
 			# These file types are expected to have the same number of files as input folders.
 			# If absent, merging would just create incomplete results.
 			if ftype in gct.SUPPORTED_RESULTS_FILES[:6]:
-				print(f'Will not merge files ending in {ftype} because their '
-					  f'number ({len(paths)}) is different than expected ({len(input_files)}).')
+				logger.info(f"Will not merge files ending in {ftype} because their "
+					  		f"number ({len(paths)}) is different than expected ({len(input_files)}).")
 				to_exclude.append(ftype)
 			# These file types may not always be present depending on the options used to run chewBBACA and merging them when some are missing is not critical.
 			elif ftype in gct.SUPPORTED_RESULTS_FILES[6:]:
-				print(f'Found {len(paths)} files for the {ftype} file type.')
+				logger.info(f"Found {len(paths)} files for the {ftype} file type.")
 		else:
-			print(f'Found {len(paths)} files for the {ftype} file type.')
+			logger.info(f"Found {len(paths)} files for the {ftype} file type.")
 
 	# Remove from the dictionary the file types without matching files or an unexpected number of files
 	for ftype in to_exclude:
 		del(file_list[ftype])
 
-	print(f'Files in the input directories share results for {len(config.common[1])} loci.')
-	print(f'Merging results for each file type.')
+	logger.info(f"Files in the input directories share results for {len(config.common[1])} loci.")
+	logger.info(f"Merging results for each file type.")
 
 	# Iterate over each file type to merge all
 	for ftype, fpaths in file_list.items():
 		# Define name for the output file with the merged results
 		output_file = fo.join_paths(config.output_directory, [ftype])
-		print(f'Merging {len(fpaths)} files for the {ftype} file type...')
+		logger.info(f"Merging {len(fpaths)} files for the {ftype} file type...")
 		# Merge TSV files with profiles
 		if ftype in [gct.ALLELIC_PROFILES_BASENAME, gct.COORDINATES_PROFILES_BASENAME, gct.PRESENCE_ABSENCE_PROFILES_BASENAME]:
 			# Merge all files without duplicating the header
 			# Add the FILE column to read it as first column
 			# Pass the full or common set of loci
-			dataframes = [pd.read_csv(p, delimiter='\t', dtype=str, usecols=['FILE']+config.common[1]) for p in fpaths]
+			dataframes = [pd.read_csv(p, delimiter="\t", dtype=str, usecols=["FILE"]+config.common[1]) for p in fpaths]
 			merged_df = pd.concat(dataframes, ignore_index=True)
 			# Save merged files
 			merged_df.to_csv(output_file, index=False, sep='\t')
 		elif ftype in [gct.LOCI_STATS_BASENAME, gct.PARALOGOUS_COUNTS_BASENAME]:
 			# Read and use FILE column as index to filter based on loci sets if necessary
-			dataframes = [pd.read_csv(p, delimiter='\t', index_col=0) for p in fpaths]
+			dataframes = [pd.read_csv(p, delimiter="\t", index_col=0) for p in fpaths]
 			# Sum all values to get merged dataframe
 			merged_df = reduce(lambda a, b: a.add(b, fill_value=0), dataframes)
 			# Reset the index to set Index as the first column
 			# Need to rename the index/first column to set the original name
-			merged_df = merged_df.reset_index().rename(columns={'index': 'Locus'})
+			merged_df = merged_df.reset_index().rename(columns={"index": "Locus"})
 			# Save merged files
-			merged_df.to_csv(output_file, index=False, sep='\t')
+			merged_df.to_csv(output_file, index=False, sep="t")
 		elif ftype in [gct.SAMPLE_STATISTICS_BASENAME, gct.MISSING_TSV_BASENAME, gct.PARALOGOUS_TABLE_BASENAME, gct.GENE_COORDINATES_BASENAME]:
 			# Get header and write it to output file
 			header = fo.read_lines(fpaths[0], num_lines=1)
 			fo.write_lines(header, output_file)
 			for p in fpaths:
 				inlines = fo.read_lines(p)[1:]
-				fo.write_lines(inlines, output_file, joiner='\n', write_mode='a')
+				fo.write_lines(inlines, output_file, joiner="\n", write_mode="a")
 		elif ftype in [gct.MISSING_FASTA_BASENAME, gct.INFERRED_ALLELES_BASENAME, gct.INVALID_CDS_BASENAME, gct.UNCLASSIFIED_BASENAME]:
 			fo.concatenate_files(fpaths, output_file)
 
-		print(f'Saved merged results to {output_file}')
+		logger.info(f"Saved merged results to {output_file}")
 
 	# Delete the temporary files created to subset the results if --common was provided
 	if config.common[0] and len(config.common[0]) != config.common[2]:
 		for d in input_files:
 			fo.delete_directory(d)
 
-	print(f'Done. Merged results available in {config.output_directory}')
+	logger.info(f"Done. Merged results available in {config.output_directory}")

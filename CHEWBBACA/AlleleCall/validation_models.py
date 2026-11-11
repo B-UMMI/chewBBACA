@@ -32,7 +32,7 @@ OutputDirectory = Annotated[str,
 							AfterValidator(gval.parentdir_exists),
 							AfterValidator(gval.create_output_directory)]
 
-InputPath = Annotated[str,
+InputPath = Annotated[str | list,
                       Field(description=ct.ALLELECALL_INPUT_PATH_DESCRIPTION),
 					   AfterValidator(partial(gval.input_paths_exist,
 					                          function=fo.exists,
@@ -55,7 +55,7 @@ ChewieSchema = Annotated[str,
 						 AfterValidator(gval.schema_check_config),
 						 AfterValidator(gval.schema_check_short)]
 
-LociList = Annotated[str,
+LociList = Annotated[str | list,
                      Field(default=None, description=ct.ALLELECALL_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,

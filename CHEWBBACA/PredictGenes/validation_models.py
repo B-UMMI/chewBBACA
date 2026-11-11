@@ -287,9 +287,3 @@ class PredictGenesValidator(BaseModel):
 				sys.exit(gct.JUST_TRAINING)
 
 		return self
-
-
-# Define custom exceptions used by the PredictGenes module
-class InputsNoPredictions(Exception):
-	"""Raised when Pyrodigal cannot predict genes from any of the input files"""
-	pass

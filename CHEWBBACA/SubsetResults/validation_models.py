@@ -39,7 +39,7 @@ ResultsFiles = Annotated[str,
 						 AfterValidator(partial(gval.contains_results,
 						                        results_files_basenames=[gct.ALLELIC_PROFILES_BASENAME]))]
 
-LociList = Annotated[str,
+LociList = Annotated[str | list,
                      Field(description=ct.SUBSETRESULTS_LOCI_LIST_DESCRIPTION),
 					 AfterValidator(partial(gval.input_paths_exist,
 					                        function=fo.exists,
@@ -47,7 +47,7 @@ LociList = Annotated[str,
 					 AfterValidator(gval.input_is_fasta),
 					 AfterValidator(fo.list_input_files)]
 
-SampleList = Annotated[str,
+SampleList = Annotated[str | list,
                        Field(description=ct.SUBSETRESULTS_SAMPLE_LIST_DESCRIPTION),
                        AfterValidator(partial(gval.input_paths_exist, function=fo.exists, exception_str=ct.MISSING_EXCLUDE_GENOMES)),
 					   AfterValidator(gval.input_is_fasta),

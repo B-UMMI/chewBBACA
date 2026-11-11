@@ -22,17 +22,21 @@ Code documentation
 
 
 import os
-import sys
 import shutil
 import requests
 import concurrent.futures
 from itertools import repeat
 from urllib3.exceptions import InsecureRequestWarning
 
+from loguru import logger
+
 import CHEWBBACA.global_constants as gct
 import CHEWBBACA.CHEWBBACA_NS.constants as ct
+import CHEWBBACA.CHEWBBACA_NS.validation_models as vm
 from CHEWBBACA.AdaptSchema import adapt_schema
+from CHEWBBACA.AdaptSchema.validation_models import AdaptSchemaValidator
 from CHEWBBACA.utils import (
+    core_functions as cf,
     file_operations as fo,
     process_datetime as pd,
     chewiens_requests as cr)
@@ -61,13 +65,11 @@ def check_compressed(schema_uri, headers_get):
         - The timestamp of the compressed version. Indicates the
           last modification date of the schema at time of compression.
     """
-    zip_uri, zip_response = cr.simple_get_request(schema_uri,
-                                                  headers_get, ['zip'],
-                                                  parameters={'request_type': 'check'})
+    zip_uri, zip_response = cr.simple_get_request(schema_uri, headers_get, ["zip"], parameters={"request_type": "check"})
     zip_info = zip_response.json()
-    if 'zip' in zip_info:
-        zip_file = zip_info['zip'][0]
-        zip_date = zip_file.split('_')[-1].split('.zip')[0]
+    if "zip" in zip_info:
+        zip_file = zip_info["zip"][0]
+        zip_date = zip_file.split("_")[-1].split(".zip")[0]
     else:
         zip_date = None
 
@@ -130,28 +132,20 @@ def download_date(user_date, zip_date, latest, insertion_date,
     # user wants schema at a particular time point
     elif user_date is not None:
         # get schema insertion and last modification date
-        insertion_date_obj = pd.datetime_obj(insertion_date,
-                                             '%Y-%m-%dT%H:%M:%S.%f')
-        modification_date_obj = pd.datetime_obj(modification_date,
-                                                '%Y-%m-%dT%H:%M:%S.%f')
+        insertion_date_obj = pd.datetime_obj(insertion_date, "%Y-%m-%dT%H:%M:%S.%f")
+        modification_date_obj = pd.datetime_obj(modification_date, "%Y-%m-%dT%H:%M:%S.%f")
 
         if user_date is False:
-            sys.exit('Provided date is invalid. Please provide a date '
-                     'in the format "%Y-%m-%dT%H:%M:%S" or '
-                     '"%Y-%m-%dT%H:%M:%S.%f"')
-        if user_date >= insertion_date_obj and \
-           user_date <= modification_date_obj:
-            schema_date = pd.datetime_str(user_date,
-                                          '%Y-%m-%dT%H:%M:%S.%f')
+            logger.warning("Provided date is invalid. Please provide a date in the format '%Y-%m-%dT%H:%M:%S' or '%Y-%m-%dT%H:%M:%S.%f'")
+            raise vm.DownloadSchemaInvalidDateFormat
+        if user_date >= insertion_date_obj and user_date <= modification_date_obj:
+            schema_date = pd.datetime_str(user_date, "%Y-%m-%dT%H:%M:%S.%f")
         elif user_date < insertion_date_obj:
-            sys.exit('Provided date is prior to the date of schema '
-                     'insertion. Please provide a date later than '
-                     'schema insertion date ({0}).'.format(insertion_date))
+            logger.warning(f"Provided date is prior to the date of schema insertion. Please provide a date later than schema insertion date ({insertion_date}).")
+            raise vm.DownloadSchemaInvalidDate
         elif user_date > modification_date_obj:
-            sys.exit('Provided date is greater than the last '
-                     'modification date. Please provide a date '
-                     'equal or prior to the schema modification '
-                     'date ({0}).'.format(insertion_date))
+            logger.warning(f"Provided date is greater than the last modification date. Please provide a date equal or prior to the schema modification date ({insertion_date}).")
+            raise vm.DownloadSchemaInvalidDate
 
     return schema_date
 
@@ -177,24 +171,24 @@ def build_fasta(locus_id, locus_info, download_folder):
         Path to the FASTA file with the locus
         sequences.
     """
-    locus_name = locus_id.rstrip('.fasta')
-    locus_file = os.path.join(download_folder, locus_id+'.fasta')
-    ns_data = locus_info.json()['Fasta']
+    locus_name = locus_id.rstrip(".fasta")
+    locus_file = os.path.join(download_folder, locus_id+".fasta")
+    ns_data = locus_info.json()["Fasta"]
 
     # extract identifiers and DNA sequences from response
     locus_alleles = []
     for allele in ns_data:
-        allele_id = int(allele['allele_id']['value'])
-        allele_seq = allele['nucSeq']['value']
+        allele_id = int(allele["allele_id"]["value"])
+        allele_seq = allele["nucSeq"]["value"]
         locus_alleles.append((allele_id, allele_seq))
 
     # create FASTA records
-    records = ['>{0}_{1}\n{2}'.format(locus_name, a[0], a[1])
+    records = [">{0}_{1}\n{2}".format(locus_name, a[0], a[1])
                for a in locus_alleles]
 
     # write sequences to FASTA file
-    with open(locus_file, 'w') as lf:
-        concat_records = '\n'.join(records)
+    with open(locus_file, "w") as lf:
+        concat_records = "\n".join(records)
         lf.write(concat_records)
 
     return locus_file
@@ -221,18 +215,17 @@ def get_fasta_seqs(url, headers_get, schema_date):
         - Response object with the DNA sequences
           that were downloaded.
     """
-    payload = {'date': schema_date}
+    payload = {"date": schema_date}
     tries = 0
     max_tries = 3
     downloaded = False
     while downloaded is False:
-        res = cr.simple_get_request(url, headers_get,
-                                    [], payload, False, 180)[1]
+        res = cr.simple_get_request(url, headers_get, [], payload, False, 180)[1]
         tries += 1
         if res.status_code in [200, 201] or tries == max_tries:
             downloaded = True
 
-    return (url.rstrip('/fasta'), res)
+    return (url.rstrip("/fasta"), res)
 
 
 def schema_loci(schema_uri, headers_get):
@@ -252,13 +245,13 @@ def schema_loci(schema_uri, headers_get):
         loci names as values.
     """
     # get the list of loci
-    loci_url, loci_res = cr.simple_get_request(schema_uri, headers_get, ['loci'])
-    loci_res = loci_res.json()['Loci']
+    loci_url, loci_res = cr.simple_get_request(schema_uri, headers_get, ["loci"])
+    loci_res = loci_res.json()["Loci"]
 
     # locus URI to locus name
     loci = {}
     for locus in loci_res:
-        loci[str(locus['locus']['value'])] = locus['name']['value']
+        loci[str(locus["locus"]["value"])] = locus["name"]["value"]
 
     return loci
 
@@ -288,20 +281,19 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
     """
     # Total number of loci
     total_loci = len(loci)
-    print('Number of loci to download: {0}'.format(total_loci))
+    logger.info(f"Number of loci to download: {total_loci}")
 
     # Build the list of urls to get
-    fasta_urls = [cr.make_url(locus, 'fasta') for locus in loci]
+    fasta_urls = [cr.make_url(locus, "fasta") for locus in loci]
 
     # Multithread the requests
-    print('Downloading schema files...')
+    logger.info("Downloading schema files...")
     total = 0
     failed = []
     downloaded = 0
     ns_files = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        for result in executor.map(get_fasta_seqs, fasta_urls,
-                                   repeat(headers_get), repeat(schema_date)):
+        for result in executor.map(get_fasta_seqs, fasta_urls, repeat(headers_get), repeat(schema_date)):
             locus_id = loci[result[0]]
             locus_info = result[1]
             if locus_info.status_code in [200, 201]:
@@ -311,17 +303,14 @@ def download_fastas(loci, download_folder, headers_get, schema_date):
             else:
                 failed.append(locus_id)
             total += 1
-            print('\r', 'Downloaded: '
-                  '{0}/{1}'.format(downloaded, total_loci), end='')
+            logger.info("Downloaded: {0}/{1}".format(downloaded, total_loci))
 
-    print('\nDownloaded and wrote FASTA files for '
-          '{0}/{1} loci'.format(downloaded, total))
-    print('Failed download for {0} loci.\n'.format(len(failed)))
+    logger.info(f"Downloaded and wrote FASTA files for {downloaded}/{total} loci.")
+    logger.info(f"Failed download for {failed} loci.")
     if len(failed) > 0:
-        sys.exit('Failed download for following loci: {0}\n'
-                 'Please download files for failed loci '
-                 'through the API or retry full schema '
-                 'download'.format(','.join(failed)))
+        logger.error(f"Failed download for following loci: {','.join(failed)}\n"
+                     "Please download files for failed loci through the API or retry full schema download.")
+        raise vm.DownloadSchemaFailedLociFastaDownload
 
     return ns_files
 
@@ -352,13 +341,12 @@ def download_compressed(zip_uri, schema_filename, download_folder, headers_get):
     fo.create_directory(schema_path)
 
     # Download ZIP archive
-    zip_name = f'{schema_filename}.zip'
-    url, zip_response = cr.simple_get_request(zip_uri, headers_get,
-                                              parameters={'request_type': 'download'})
+    zip_name = f"{schema_filename}.zip"
+    url, zip_response = cr.simple_get_request(zip_uri, headers_get, parameters={"request_type": "download"})
     zip_path = os.path.join(schema_path, zip_name)
-    open(zip_path, 'wb').write(zip_response.content)
+    open(zip_path, "wb").write(zip_response.content)
     # Uncompress
-    print('Decompressing schema...')
+    logger.info("Decompressing schema...")
     shutil.unpack_archive(zip_path, extract_dir=schema_path)
     # Delete ZIP
     os.remove(zip_path)
@@ -366,15 +354,11 @@ def download_compressed(zip_uri, schema_filename, download_folder, headers_get):
     return schema_path
 
 
-def download_ptf(ptf_hash, download_folder, schema_id,
-                 species_id, species_name, headers_get, base_url):
+def download_ptf(download_folder, schema_id, species_id, species_name, headers_get, base_url):
     """Download the Prodigal training file for a schema.
 
     Parameters
     ----------
-    ptf_hash : str
-        Unique identifier of the Prodigal training file
-        (BLAKE2 hash).
     download_folder : str
         Path to the directory to which the Prodigal
         training file should be saved.
@@ -395,14 +379,11 @@ def download_ptf(ptf_hash, download_folder, schema_id,
     ptf_file : str
         Path to the Prodigal training file.
     """
-    ptf_url, ptf_response = cr.simple_get_request(base_url, headers_get,
-                                                  ['species', species_id,
-                                                   'schemas', schema_id, 'ptf'])
+    _, ptf_response = cr.simple_get_request(base_url, headers_get, ["species", species_id, "schemas", schema_id, "ptf"])
 
-    ptf_file = os.path.join(download_folder,
-                            '{0}.trn'.format(species_name.replace(' ', '_')))
+    ptf_file = os.path.join(download_folder, "{0}.trn".format(species_name.replace(" ", "_")))
 
-    open(ptf_file, 'wb').write(ptf_response.content)
+    open(ptf_file, "wb").write(ptf_response.content)
 
     return ptf_file
 
@@ -411,9 +392,9 @@ def main(config):
     # GET request headers
     headers_get = gct.HEADERS_GET_JSON
 
-    print(f"Schema id: {config.schema_id[0]}")
-    print(f"Schema name: {config.schema_id[2]["name"]}")
-    print(f"Schema's species: {config.species_id[1]} (id={config.species_id[0]})")
+    logger.info(f"Schema id: {config.schema_id[0]}")
+    logger.info(f"Schema name: {config.schema_id[2]["name"]}")
+    logger.info(f"Schema's species: {config.species_id[1]} (id={config.species_id[0]})")
 
     # Assign name to local schema
     schema_basename = "_".join(config.species_id[1].split(" "))
@@ -422,9 +403,10 @@ def main(config):
     # Check if schema is locked
     lock_status = config.schema_id[2]["Schema_lock"]
     if lock_status != "Unlocked":
-        sys.exit("Schema is locked. This might be because it is being uploaded, updated or compressed."
-                 " Please try again later and contact the Administrator if the schema stays locked for "
-                 "a long period of time.")
+        logger.warning("Schema is locked. This may be because it is being uploaded, updated or compressed."
+                       " Please try again later and contact the Administrator if the schema stays locked for "
+                       "a long period of time.")
+        raise vm.SchemaLocked
 
     # Get zip information
     zip_uri, zip_date = check_compressed(config.schema_id[1], headers_get)
@@ -434,57 +416,49 @@ def main(config):
                                 config.schema_id[2]["last_modified"])
 
     if schema_date == zip_date:
-        print("\nDownloading compressed version...")
+        logger.info("Downloading compressed version...")
         # Chewie-NS does not add clustering parameters to config, change that
         schema_path = download_compressed(zip_uri, schema_basename, config.output_directory, headers_get)
     else:
-        print("\nDownloading schema FASTA files...")
-        # Download loci FASTA files
+        logger.info("Downloading schema FASTA files...")
+        # Download schema FASTA files
         loci = schema_loci(config.schema_id[1], headers_get)
-        ns_files = download_fastas(loci, config.output_directory, headers_get, schema_date)
+        # Create folder to store FASTA files
+        fastas_folder = fo.join_paths(config.output_directory, ["loci_fastas"])
+        fo.create_directory(fastas_folder)
+        ns_files = download_fastas(loci, fastas_folder, headers_get, schema_date)
+
+        # Use PrepExternalSchema to determine representatives
+        logger.info("Calling the AdaptSchema module to determine a set of representative alleles and create the schema structure...")
+        adapt_schema_outdir = fo.join_paths(config.output_directory, [schema_basename])
+        adapt_schema_config = AdaptSchemaValidator(adapt_schema_outdir,
+                                                   fastas_folder,
+                                                   blast_score_ratio=float(config.schema_id[2]["bsr"]),
+                                                   minimum_length=int(config.schema_id[2]["minimum_length"]),
+                                                   adaptation_minimum_length=0,
+                                                   translation_table=int(config.schema_id[2]["translation_table"]),
+                                                   size_threshold=float(config.schema_id[2]["size_threshold"]),
+                                                   adaptation_size_threshold=0,
+                                                   cpu_cores=config.cpu_cores,
+                                                   blast_path=config.blast_path)
+
+        adapt_schema.main(adapt_schema_config)
+        schema_path = fo.join_paths(adapt_schema_outdir, ["adapted_schema"])
 
         # Download Prodigal training file
         ptf_hash = config.schema_id[2]["prodigal_training_file"]
-        ptf_file = download_ptf(ptf_hash, config.output_directory, config.schema_id[0],
+
+        ptf_file = download_ptf(schema_path, config.schema_id[0],
                                 config.species_id[0], config.species_id[1], headers_get,
                                 config.nomenclature_server_instance)
 
-        # Use PrepExternalSchema to determine representatives
-        schema_path = fo.join_paths(config.output_directory, [schema_basename])
-        schema_path_short = fo.join_paths(schema_path, ["short"])
-        # Create output directories
-        schema_path_exists = fo.create_directory(schema_path)
-        if schema_path_exists is False:
-            sys.exit(gct.OUTPUT_DIRECTORY_EXISTS)
-        fo.create_directory(schema_path_short)
+        # Delete folder with FASTA files downloaded from Chewie-NS
+        fo.delete_directory(fastas_folder)
 
-########################## Need to modufy this part to work with Pydantic models, etc
-
-        loci_list = fo.join_paths(schema_path, [ct.LOCI_TO_ADAPT_BASENAME])
-        loci_list, total_loci = pv.check_input_type(config.output_directory, loci_list)
-
-        # Determine representatives and create schema
-        # Do not apply minimum length and size threshold values
-        adapt_schema.main(loci_list,
-                          [schema_path, schema_path_short],
-                          config.cpu_cores,
-                          float(config.schema_id[2]["bsr"]),
-                          0,
-                          int(config.schema_id[2]["translation_table"]),
-                          None,
-                          config.blast_path)
-
-        # Copy Prodigal training file to schema directory
-        shutil.copy(ptf_file, schema_path)
-        os.remove(ptf_file)
-
-        # Remove FASTA files with sequences from the NS
-        fo.remove_files(ns_files)
-
-        # Write hidden schema config file
+        # Write schema config file
         config.schema_id[2]["ptf_path"] = ptf_hash
         config.schema_id[2]["window_size"] = config.schema_id[2].get("window_size", None)
-        schema_config = pv.write_schema_config(config.schema_id[2],
+        schema_config = cf.write_schema_config(config.schema_id[2],
                                                config.schema_id[2]["chewBBACA_version"],
                                                schema_path)
 
@@ -494,9 +468,6 @@ def main(config):
         if not os.path.exists(ns_config):
             fo.pickle_dumper(download_info, ns_config)
 
-        genes_list_file = pv.write_gene_list(schema_path)
+        genes_list_file = cf.write_gene_list(schema_path)
 
-        # Delete file with list of loci to adapt
-        os.remove(loci_list)
-
-    print(f"Schema is now available at: {schema_path}")
+    logger.info(f"Schema is now available at: {schema_path}")

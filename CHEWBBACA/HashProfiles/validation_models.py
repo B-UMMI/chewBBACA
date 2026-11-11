@@ -78,7 +78,7 @@ ChewieSchema = Annotated[str,
 						 AfterValidator(gval.schema_check_config),
 						 AfterValidator(gval.schema_check_short)]
 
-HashingAlgo = Annotated[str,
+HashingAlgo = Annotated[str | list,
                         Field(default=ct.HASHPROFILES_DEFAULT_HASH_ALGO,
                               validate_default=True,
 							  description=ct.HASHPROFILES_HASHING_ALGO_DESCRIPTION),

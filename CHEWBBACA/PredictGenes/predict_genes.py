@@ -144,10 +144,7 @@ def main(config):
 				filtering_inputs = im.multiprocessing_inputs(filtering_inputs, [], exclude_records)
 
 				# Filter records
-				filtering_results = mo.map_async_parallelizer(filtering_inputs,
-															mo.function_helper,
-															config.cpu_cores,
-															pool_type="threadpool")
+				filtering_results = mo.map_async_parallelizer(filtering_inputs, mo.function_helper, config.cpu_cores, pool_type="threadpool")
 
 				# Save excluded records from all inputs to the same FASTA file
 				excluded_records = im.flatten_list(filtering_results)

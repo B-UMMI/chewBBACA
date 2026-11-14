@@ -12,8 +12,13 @@ Code documentation
 """
 
 
-from Bio.Seq import Seq
+import hashlib
 from collections import Counter
+from multiprocessing import Pool
+
+from tqdm import tqdm
+from Bio.Seq import Seq
+from pyroaring import BitMap
 
 try:
 	import global_constants as gct
@@ -322,8 +327,7 @@ def mode_filter(sequences, size_threshold):
 	return [modes, alm, asm, seqs_lengths]
 
 
-def translate_coding_sequences(seqids, protein_file, sequences_file,
-							   translation_table, minimum_length):
+def translate_coding_sequences(seqids, protein_file, sequences_file, translation_table, minimum_length):
 	"""Translate coding sequences.
 
 	Parameters
@@ -379,72 +383,48 @@ def translate_coding_sequences(seqids, protein_file, sequences_file,
 	return [invalid_alleles, total_seqs]
 
 
-def determine_distinct(sequences_file, unique_fasta, map_ids):
-	"""Identify duplicated sequences in a FASTA file.
+def hash_genes(args):
+	""""""
+	genome_id, fasta_path = args
+	records = fao.sequence_generator(fasta_path)
+	hashed_records = []
+	for rec in records:
+		seq_id = rec.id
+		sequence = str(rec.seq)
+		blake2b_digest = hashlib.blake2b(sequence.encode(), digest_size=16).digest()
+		hashed_records.append((blake2b_digest, seq_id, genome_id, sequence))
 
-	Parameters
-	----------
-	sequences_file : str
-		Path to a FASTA file.
-	unique_fasta : str
-		Path to a FASTA file that will be created to
-		store distinct sequences.
-	map_ids : dict
-		Dictionary with mapping between genome string
-		identifiers and genome integer identifiers.
+	return hashed_records
 
-	Returns
-	-------
-	pickle_out : str
-		Pickled file that contains a dictionary with sequence
-		hashes as keys and a list with pairs of protein
-		identifiers and genome identifiers as values
+
+def deduplicate_predicted_genes(input_fastas, output_fasta, workers):
 	"""
-	out_seqs = []
-	duplicates = {}
-	exhausted = False
-	# Limit of 10000 Fasta records in memory
-	out_limit = 10000
-	seq_generator = fao.sequence_generator(sequences_file)
-	while exhausted is False:
-		record = next(seq_generator, None)
-		if record is not None:
-			# Seq object has to be converted to string
-			seqid = record.id
-			sequence = str(record.seq.upper())
+	"""
+	distinct_seqs = {}
+	tasks = list(enumerate(input_fastas))
 
-			# Use digest() instead of hexdigest() to reduce memory usage?
-			seq_hash = im.hash_sequence(sequence)
+	with (open(output_fasta, "w", buffering=1024 * 1024) as outfile, Pool(processes=workers) as pool):
+		for records in tqdm(pool.imap(hash_genes, tasks, chunksize=10), total=len(tasks), desc="Processing"):
+			for digest, seq_id, genome_id, seq in records:
+				entry = distinct_seqs.get(digest)
+				# Current sequence has not been processed before
+				if entry is None:
+					# Write distinct record to FASTA file
+					formatted_record = f">{seq_id}\n{seq}\n"
+					outfile.write(formatted_record)
 
-			# Add unseen sequence to Fasta file with distinct sequences
-			if seq_hash not in duplicates:
-				recout = fao.fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [seqid, sequence])
-				out_seqs.append(recout)
+					# Create BitMap object to store genome IDs
+					# Genome IDs are added sorted, but it should not be necessary to have them sorted
+					# Store entry about new distinct record in the hash table
+					distinct_seqs[digest] = (seq_id, BitMap([genome_id]))
+				else:
+					# Sequence has been processed before
+					# Simply add teh genome ID to the BitMap object
+					# The same genome ID may appear multiple times if the genome has multiple copies of the sequence
+					distinct_seqs[digest][1].add(genome_id)
 
-			# Add CDS hash as key
-			# Add genome integer identifier and protein identifier to values list
-			# Genome identifier and protein identifier can be used to fetch sequences
-			genome_id, protid = seqid.rsplit('_', 1)
-			genome_id = map_ids[genome_id]
-			duplicates.setdefault(seq_hash, []).extend([int(protid), int(genome_id)])
-		else:
-			exhausted = True
+	return distinct_seqs
 
-		# Write Fasta records to file
-		if len(out_seqs) == out_limit or exhausted is True:
-			if len(out_seqs) > 0:
-				out_seqs = im.join_list(out_seqs, '\n')
-				fo.write_to_file(out_seqs, unique_fasta, 'a', '\n')
-				# Reset list to avoid writing same records multiple times
-				out_seqs = []
-
-	# Save dictionary with genome integer identifiers per distinct sequence
-	# to pickle and only return file path to avoid keeping all dicts from
-	# parallel processes in memory
-	pickle_out = unique_fasta.replace('.fasta', '.duplicates')
-	fo.pickle_dumper(duplicates, pickle_out)
-
-	return pickle_out
 
 
 def determine_small(sequences_file, minimum_length, variation=0):

@@ -12,6 +12,7 @@ Code documentation
 
 
 import re
+import zlib
 import hashlib
 import itertools
 
@@ -21,6 +22,17 @@ try:
 except ModuleNotFoundError:
 	from CHEWBBACA import global_constants as gct
 	from CHEWBBACA.utils import (fasta_operations as fao)
+
+
+def compress_string_list(input_list):
+	""""""
+	joined_strings = "\n".join(input_list).encode("utf-8")
+	return zlib.compress(joined_strings, level=6) # level=6 for higher compression ratio
+
+
+def decompress_string_list(blob):
+	""""""
+	return zlib.decompress(blob).decode("utf-8").split("\n")
 
 
 def ensure_list(input_val):

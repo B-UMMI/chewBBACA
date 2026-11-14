@@ -180,7 +180,7 @@ class PyrodigalArgs(BaseModel):
 	@classmethod
 	def ptf_exists(cls, value):
 		if value is not None:
-			return gval.input_paths_exist(v, fo.exists, ct.INVALID_PTF_PATH)
+			return gval.input_paths_exist(value, fo.exists, ct.INVALID_PTF_PATH)
 
 		return value
 

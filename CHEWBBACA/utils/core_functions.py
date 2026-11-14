@@ -107,7 +107,43 @@ def write_schema_config(config, chewie_version, output_directory):
 	return [os.path.isfile(config_file), config_file]
 
 
-def merge_dna_dedup(dedup_files, ids_map):
+def merge_get_seqids(dedup_files):
+	"""Select distinct sequences based on sequence deduplication results.
+
+	Parameters
+	----------
+	dedup_files : list
+		List with the paths to the files with the results
+		from sequence deduplication.
+
+	Return
+	------
+	total_duplicated : dict
+		Total number of times a sequence was duplicated.
+	representative_seqids : list
+		List with the sequence identifiers of the
+		representative sequences.
+	"""
+	duplicated_count = 0
+	representative_seqids = []
+	representative_hashes = set()
+	for file in dedup_files:
+		results = fo.pickle_loader(file)
+		for hashid, ids in results.items():
+			if hashid not in representative_hashes:
+				# Add hash to the set to register distinct sequences processed
+				representative_hashes.add(hashid)
+				# Add representative seqid
+				representative_seqids.append(ids[0])
+				# Count number of times sequence is duplicated
+				duplicated_count += len(ids) - 2 # Do not count rep seqid and rep genome ID
+			else:
+				duplicated_count += len(ids) - 1 # Do not count rep seqid
+
+	return representative_seqids, duplicated_count
+
+
+def merge_dna_dedup(dedup_files):
 	"""Select distinct DNA sequences based on sequence deduplication results.
 
 	Parameters
@@ -135,32 +171,26 @@ def merge_dna_dedup(dedup_files, ids_map):
 		List with the sequence identifiers of the
 		representative sequences.
 	"""
-	merged_results = {}
-	total_duplicated = 0
+	duplicated_count = 0
 	representative_seqids = []
+	representative_hashes = {}
 	for file in dedup_files:
 		results = fo.pickle_loader(file)
-		# Sequence hash and list with protid:inputID pairs
 		for hashid, ids in results.items():
-			stored_ids = merged_results.get(hashid, [])
-			# Already have a representative seqid
-			if len(stored_ids) > 0:
-				stored_ids = im.polyline_decoding(stored_ids)
-				# Get input integer identifiers
-				new_ids = [ids[i] for i in range(1, len(ids), 2)]
-				total_duplicated += (len(ids)/2)
-			# New distinct sequence
+			if hashid not in representative_hashes:
+				representative_seqids.append(ids[0])
+				updated_ids = ids[1:]
+				duplicated_count += len(ids) - 2
+				representative_hashes[hashid] = [ids[0], im.polyline_encoding(updated_ids)]
 			else:
-				# Choose first sequence seqid as representative
-				rep_seqid = '{0}_{1}'.format(ids_map[1][ids[1]], ids[0])
-				representative_seqids.append(rep_seqid)
-				new_ids = ids[0:2] + [ids[i] for i in range(3, len(ids), 2)]
-				# Do not count representative as duplicate
-				total_duplicated += (len(ids)/2) - 1
+				# Results have SHA256 hash as keys and list with representative seqid and encoded list of genome IDs
+				genome_ids = im.polyline_decoding(representative_hashes[hashid][1])
+				# Add IDs from new entry to stored list
+				updated_ids = genome_ids + ids[1:]
+				duplicated_count += len(ids) - 1
+				representative_hashes[hashid] = [representative_hashes[hashid][0], im.polyline_encoding(updated_ids)]
 
-			merged_results[hashid] = im.polyline_encoding(stored_ids+new_ids)
-
-	return [merged_results, total_duplicated, representative_seqids]
+	return [representative_hashes, representative_seqids, duplicated_count]
 
 
 def merge_protein_dedup(dedup_files, ids_map):
@@ -195,6 +225,19 @@ def merge_protein_dedup(dedup_files, ids_map):
 		results = fo.pickle_loader(file)
 		# Sequence hash and list with protid:inputID pairs
 		for hashid, ids in results.items():
+			if hashid in merged_results:
+				stored_ids = merged_results[hashid]
+				genome_ids = im.polyline_decoding(stored_ids[1])
+				# Get input integer identifiers
+				updated_ids = genome_ids + ids[1:]
+				total_duplicated += len(ids[1:])
+				merged_results[hashid] = [stored_ids[0], im.polyline_encoding(updated_ids)]
+			
+			
+			
+			
+			
+			
 			stored_ids = merged_results.get(hashid, [])
 			new_ids = ids
 			# Already have a representative seqid
@@ -211,47 +254,7 @@ def merge_protein_dedup(dedup_files, ids_map):
 	return [merged_results, total_duplicated, representative_seqids]
 
 
-def merge_get_seqids(dedup_files, ids_map):
-	"""Select distinct sequences based on sequence deduplication results.
-
-	Parameters
-	----------
-	dedup_files : list
-		List with the paths to the files with the results
-		from sequence deduplication.
-	ids_map : dict
-		List with two dictionaries mapping input
-		identifiers to integer identifiers and vice
-		versa.
-
-	Return
-	------
-	total_duplicated : dict
-		Total number of times a sequence was duplicated.
-	representative_seqids : list
-		List with the sequence identifiers of the
-		representative sequences.
-	"""
-	total_duplicated = 0
-	representative_seqids = []
-	representative_hashes = set()
-	for file in dedup_files:
-		results = fo.pickle_loader(file)
-		# Sequence hash and list with protid:inputID pairs
-		for hashid, ids in results.items():
-			if hashid not in representative_hashes:
-				rep_seqid = '{0}_{1}'.format(ids_map[1][ids[1]], ids[0])
-				representative_seqids.append(rep_seqid)
-				representative_hashes.add(hashid)
-				total_duplicated += (len(ids)/2) - 1
-			else:
-				total_duplicated += (len(ids)/2)
-
-	return [None, total_duplicated, representative_seqids]
-
-
-def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
-					   ids_map, protein=False, only_seqids=False):
+def exclude_duplicates(fasta_files, temp_directory, cpu_cores, ids_map, protein=False, only_representatives=False):
 	"""Identify duplicated sequences and select distinct set of sequences.
 
 	Parameters
@@ -284,48 +287,45 @@ def exclude_duplicates(fasta_files, temp_directory, cpu_cores,
 			Path to the FASTA file with distinct sequences.
 	"""
 	# Define output files paths
-	output_files = [fo.join_paths(temp_directory, [f'distinct_{str(i+1)}.fasta'])
+	output_files = [fo.join_paths(temp_directory, [f"distinct_{str(i+1)}.fasta"])
 					for i, file in enumerate(fasta_files)]
 	# Create input lists to pass to multiprocessing
 	dedup_inputs = im.aggregate_iterables([fasta_files, output_files])
-	dedup_inputs = im.multiprocessing_inputs(dedup_inputs, [ids_map[0]],
-											 sm.determine_distinct)
-
+	dedup_inputs = im.multiprocessing_inputs(dedup_inputs, [ids_map[0]], sm.determine_distinct_updated)
 	# Determine set of distinct sequences per file
-	dedup_results = mo.map_async_parallelizer(dedup_inputs,
-											  mo.function_helper,
-											  cpu_cores)
+	dedup_results = mo.map_async_parallelizer(dedup_inputs, mo.function_helper, cpu_cores)
 
-	if only_seqids is True:
-		merge_results = merge_get_seqids(dedup_results, ids_map)
+	if only_representatives is True:
+		merge_results = merge_get_seqids(dedup_results)
 	else:
 		if protein is False:
 			merge_results = merge_dna_dedup(dedup_results, ids_map)  
 		else:
+
+############### I can probably only return the rep seqids of the distinct translated DNA sequences that coded for each distinct protein
+
 			merge_results = merge_protein_dedup(dedup_results, ids_map)
 
 	hash_table, duplicated_count, representative_seqids = merge_results
 
 	if hash_table is not None:
-		hash_table_file = fo.join_paths(temp_directory, ['distinct.hashtable'])
+		hash_table_file = fo.join_paths(temp_directory, ["distinct.hashtable"])
 		fo.pickle_dumper(hash_table, hash_table_file)
 
 	# Concatenate Fasta files from parallel processes
 	dedup_outfiles = [files[1] for files in dedup_inputs]
-	merge_fasta = fo.join_paths(temp_directory, ['concat.fasta'])
+	merge_fasta = fo.join_paths(temp_directory, ["concat.fasta"])
 	merge_fasta = fo.concatenate_files(dedup_outfiles, merge_fasta)
 
 	# Create index for concatenated Fasta and get representative sequences
 	merge_fasta_index = fao.index_fasta(merge_fasta)
-	representative_fasta = fo.join_paths(temp_directory, ['distinct.fasta'])
-	fao.get_sequences_by_id(merge_fasta_index, representative_seqids,
-							representative_fasta, 50000)
+	representative_fasta = fo.join_paths(temp_directory, ["distinct.fasta"])
+	fao.get_sequences_by_id(merge_fasta_index, representative_seqids, representative_fasta, 50000)
 
 	# Remove intermediate files
 	fo.remove_files(dedup_outfiles+dedup_results+[merge_fasta])
 
-	return [hash_table, representative_seqids,
-			representative_fasta, duplicated_count]
+	return [hash_table, representative_seqids, representative_fasta, duplicated_count]
 
 
 def exclude_small(fasta_file, minimum_length, variation=0):
@@ -361,8 +361,7 @@ def exclude_small(fasta_file, minimum_length, variation=0):
 	return [small_seqids, ss_lines]
 
 
-def translate_sequences(sequence_ids, sequences_file, temp_directory,
-						translation_table, minimum_length, cpu_cores):
+def translate_sequences(sequence_ids, sequences_file, temp_directory, translation_table, minimum_length, cpu_cores):
 	"""Translate DNA sequences.
 
 	Returns information about sequences that are untranslatable

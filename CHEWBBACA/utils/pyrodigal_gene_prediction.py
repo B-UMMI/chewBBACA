@@ -143,7 +143,9 @@ def get_gene_info(contig_id, genome_id, protid, genes):
 		confidence = round(gene.confidence(), 2)
 		sequence_hash = im.hash_sequence(sequence)
 		# Store CDS IDs used by Pyrodigal
-		pyrodigal_id = f'{genome_id}_{protid}'
+		# This constructs the CDS IDs that should be assigned by Pyrodigal when ti writes the Gene objects to a file
+		# It is not extracting the IDs from the object
+		pyrodigal_id = f"{genome_id}|{contig_id}|CDS_{protid}"
 		gene_info.append([sequence_hash, sequence, pyrodigal_id,
 						  genome_id, contig_id, str(gene.begin), str(gene.end),
 						  str(protid), str(gene.strand), str(confidence)])
@@ -183,8 +185,9 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 		coordinates and contig size data.
 	"""
 	# Get genome unique identifier
-	genome_basename = input_file[1]
-	records = fao.sequence_generator(input_file[0])
+	genome_path, genome_basename = input_file
+	# Load genome contigs
+	records = fao.sequence_generator(genome_path)
 	records = {rec.id: bytes(rec.seq) for rec in records}
 	contig_sizes = {recid: len(sequence) for recid, sequence in records.items()}
 
@@ -199,17 +202,17 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 	# Predict genes for all input contigs
 	contig_genes = {}
 	for recid, sequence in records.items():
+		# No sequence identifiers are assigned to the predicted genes
 		genes = current_gene_finder.find_genes(sequence)
 		contig_genes[recid] = genes
 
 	# Extract data from Gene objects
-	protid = 1
 	gene_info = []
 	# Store data about first and last CDSs in each sequence to speedup PLOT classification
 	close_to_tip = {genome_basename: {}}
 	for recid, genes in contig_genes.items():
 		# Get coordinate data for CDSs
-		data = get_gene_info(recid, genome_basename, protid, genes)
+		data = get_gene_info(recid, genome_basename, 1, genes)
 		gene_info.extend(data[0])
 		# Get data for first and last CDS in the contig
 		if len(data[0]) > 0:
@@ -224,54 +227,68 @@ def predict_genome_genes(input_file, coordinates_outfile, output_directory, gene
 	# Get total number of CDSs predicted
 	total_genome = len(gene_info)
 
+	# Define the sequence ID prefixes to use before writing the records into files
+	# Define a unique sequence ID prefix for the genes identified in the sequence
+	# Join the genome ID, the contig ID, and "CDS" using '|' as prefix for the sequence IDs to avoid assigning the 
+	# same sequence ID when saving records from multiple Genes objects into the same file
+	seqid_prefixes = {}
+	for recid in contig_genes:
+		seqid_prefixes[recid] = f"{genome_basename}|{recid}|CDS"
+
 	# Save data if Pyrodigal was able to predict genes
+	# All methods used to write the predicted genes need a sequence_id/prefix to create and assign sequence IDs
+	# For genome assemblies with multiple contigs (e.g., complete chromossome + plasmids or draft genomes),
+	# the predicted genes are divided into multiple Genes objects and using the same sequence_id/prefix when writing to
+	# a single output file will result in the same sequence ID being assigned to different CDSs
+	# That will lead to errors down the line because chewBBACA expects each record in a file to have a unique ID
 	output_files = [None, None, None, None, None]
 	if total_genome > 0:
-		if 'genes' in output_formats:
+		if "genes" in output_formats:
 			# Define path to output FASTA
-			fasta_outfile = fo.join_paths(output_directory, ['genes', f'{genome_basename}.fasta'])
-			with open(fasta_outfile, 'w') as outfile:
+			# Use the genome ID as basename to identify the genome source of all records/genes inside the file
+			fasta_outfile = fo.join_paths(output_directory, ["genes", f"{genome_basename}.fasta"])
+			with open(fasta_outfile, "w") as outfile:
 				for recid, genes in contig_genes.items():
 					# Use math.inf to write sequences in a single line
-					genes.write_genes(outfile, sequence_id=genome_basename, width=math.inf)
+					genes.write_genes(outfile, sequence_id=seqid_prefixes[recid], width=math.inf)
 			output_files[0] = (fasta_outfile)
 
-		if 'translations' in output_formats:
-			translations_outfile = fo.join_paths(output_directory, ['translations', f'{genome_basename}_translated.fasta'])
+		if "translations" in output_formats:
+			translations_outfile = fo.join_paths(output_directory, ["translations", f"{genome_basename}_translated.fasta"])
 			with open(translations_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
-					genes.write_translations(outfile, sequence_id=genome_basename, width=math.inf, include_stop=False)
+					genes.write_translations(outfile, sequence_id=seqid_prefixes[recid], width=math.inf, include_stop=False)
 			output_files[1] = translations_outfile
 
-		if 'gff' in output_formats:
-			gff_outfile = fo.join_paths(output_directory, ['gff', f'{genome_basename}.gff'])
+		if "gff" in output_formats:
+			gff_outfile = fo.join_paths(output_directory, ["gff", f"{genome_basename}.gff"])
 			with open(gff_outfile, 'w') as outfile:
 				i = 0
 				for recid, genes in contig_genes.items():
-					genes.write_gff(outfile, sequence_id=genome_basename, header=(i==0), include_translation_table=True)
+					genes.write_gff(outfile, sequence_id=seqid_prefixes[recid], header=(i==0), include_translation_table=True)
 					i += 1
 			output_files[2] = gff_outfile
 
-		if 'genbank' in output_formats:
-			gbk_outfile = fo.join_paths(output_directory, ['genbank', f'{genome_basename}.gbk'])
+		if "genbank" in output_formats:
+			gbk_outfile = fo.join_paths(output_directory, ["genbank", f"{genome_basename}.gbk"])
 			with open(gbk_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
-					genes.write_genbank(outfile, sequence_id=genome_basename)
+					genes.write_genbank(outfile, sequence_id=seqid_prefixes[recid])
 			output_files[3] = gbk_outfile
 
-		if 'scores' in output_formats:
-			scores_outfile = fo.join_paths(output_directory, ['scores', f'{genome_basename}.scores'])
+		if "scores" in output_formats:
+			scores_outfile = fo.join_paths(output_directory, ["scores", f"{genome_basename}.scores"])
 			with open(scores_outfile, 'w') as outfile:
 				for recid, genes in contig_genes.items():
-					genes.write_scores(outfile, sequence_id=genome_basename)
+					genes.write_scores(outfile, sequence_id=seqid_prefixes[recid])
 			output_files[4] = scores_outfile
 
 		# Append gene coordinates to process TSV file
 		coordinate_data = []
 		for gene in gene_info:
 			coordinate_data.append(gene[2:]+[gene[0]])
-		coordinate_outlines = ['\t'.join(l) for l in coordinate_data]
-		fo.write_lines(coordinate_outlines, coordinates_outfile, write_mode='a')
+		coordinate_outlines = ["\t".join(l) for l in coordinate_data]
+		fo.write_lines(coordinate_outlines, coordinates_outfile, write_mode="a")
 
 	return [input_file, total_genome, close_to_tip, output_files]
 
@@ -333,7 +350,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 		training_data = read_training_file(gene_prediction_parameters.pyrodigal_training_file)
 		# Create GeneFinder object based on training data
 		gene_finder = create_gene_finder(training_data, True, True, False)
-	elif gene_prediction_parameters.pyrodigal_training_file is None and gene_prediction_parameters.pyrodigal_mode == 'meta':
+	elif gene_prediction_parameters.pyrodigal_training_file is None and gene_prediction_parameters.pyrodigal_mode == "meta":
 		# Create GeneFinder object to run in meta mode
 		gene_finder = create_gene_finder(None, True, True, True)
 	else:
@@ -342,7 +359,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 	pyrodigal_inputs = im.divide_list_into_n_chunks(fasta_files, len(fasta_files))
 	# Add path to TSV file to store CDS coordinate data per input subset
 	for i in range(len(pyrodigal_inputs)):
-		pyrodigal_inputs[i].append(fo.join_paths(output_directory, [f'gene_coordinates_{i}']))
+		pyrodigal_inputs[i].append(fo.join_paths(output_directory, [f"gene_coordinates_{i}"]))
 
 	# Create subfolders to store each output format
 	for output_format in gene_prediction_parameters.pyrodigal_output_formats:
@@ -355,17 +372,13 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 
 	# Run Pyrodigal to predict genes
 	# Need to use ThreadPool. Pyrodigal might hang when using Pool
-	pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs,
-												  mo.function_helper,
-												  cpu_cores,
-												  pool_type="threadpool")
+	pyrodigal_results = mo.map_async_parallelizer(pyrodigal_inputs, mo.function_helper, cpu_cores, pool_type="threadpool")
 
 	# Get number of inputs for which gene prediction failed
 	# Inputs with 0 CDSs and inputs with error messages
 	failed = {line[0][0]: line[1]
 			  for line in pyrodigal_results
-			  if line[1] == 0
-			  or isinstance(line[1], str) is True}
+			  if line[1] == 0 or isinstance(line[1], str) is True}
 
 	# Get number of CDSs predicted per valid input
 	cds_counts = {line[0][1]: line[1]
@@ -380,7 +393,7 @@ def predict_genes(fasta_files, output_directory, gene_prediction_parameters, tra
 
 	# Merge TSV files with CDS coordinates
 	coordinate_files = [i[1] for i in pyrodigal_inputs]
-	merged_coordinates = fo.join_paths(output_directory, ['gene_coordinates.tsv'])
+	merged_coordinates = fo.join_paths(output_directory, [gct.GENE_COORDINATES_BASENAME])
 	gene_coordinates_header = im.join_list(gct.GENE_TABLE_HEADERS, delimiter="\t") + "\n"
 	fo.concatenate_files(coordinate_files, merged_coordinates, header=gene_coordinates_header)
 	# Delete separate coordinate files

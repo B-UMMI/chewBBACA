@@ -15,7 +15,6 @@ Code documentation
 import os
 import re
 import csv
-import sys
 import math
 from collections import Counter
 
@@ -348,7 +347,7 @@ def count_global_classifications(classification_files, classification_labels):
 	return [classification_counts, total_cds]
 
 
-def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_files, input_ids):
+def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_files):
 	"""Find exact matches at DNA level.
 
 	Parameters
@@ -366,9 +365,6 @@ def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_file
 	classification_files : dict
 		Dictionary with the paths to the loci FASTA files as keys and
 		the paths to the files with classification results as values.
-	input_ids : dict
-		Dictionary with input integer identifiers as keys
-		and input sequence identifiers as values.
 
 	Returns
 	-------
@@ -406,16 +402,14 @@ def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_file
 		locus_total_matches = 0
 		for r in results:
 			# Decode list of inputs that contain allele
-			matched_inputs = im.polyline_decoding(cds_hashtable[r[0]])
+			matched_inputs = im.polyline_decoding(cds_hashtable[r[0]][1])
 			# Get seqid chosen as representative during sequence deduplication
-			representative_seqid = '{0}_{1}'.format(input_ids[matched_inputs[1]], matched_inputs[0])
-			match_data = (r[1], representative_seqid, r[0], 'EXC', 1.0)
+			representative_seqid = cds_hashtable[r[0]][0]
+			match_data = (r[1], representative_seqid, r[0], "EXC", 1.0)
 			# Classify as exact matches
 			# Skip first value in list, it is the protein identifier
 			for gid in matched_inputs[1:]:
-				locus_classifications = update_classification(gid,
-															  locus_classifications,
-															  match_data)
+				locus_classifications = update_classification(gid, locus_classifications, match_data)
 
 			locus_total_matches += len(matched_inputs[1:])
 			# Store representative id for the sequences
@@ -434,7 +428,7 @@ def dna_exact_matches(table_file, cds_hashtable, loci_files, classification_file
 
 
 def protein_exact_matches(table_file, translated_hashtable, loci_files,
-						  classification_files, input_ids, distinct_cds_index,
+						  classification_files, distinct_cds_index,
 						  cds_hashtable, previous_hashes):
 	"""Find exact matches at protein level.
 
@@ -523,9 +517,7 @@ def protein_exact_matches(table_file, translated_hashtable, loci_files,
 			# Do not proceed if the protein hash was in another pre-computed table
 			if r[0] in translated_hashtable and r[0] not in previous_hashes:
 				# Get protids for distinct DNA CDSs
-				matched_protids = im.polyline_decoding(translated_hashtable[r[0]])
-				matched_protids = ['{0}_{1}'.format(input_ids[matched_protids[i+1]], matched_protids[i])
-								   for i in range(0, len(matched_protids), 2)]
+				matched_protids = im.decompress_string_list(translated_hashtable[r[0]])
 				locus_distinct_seqids.extend(matched_protids)
 				locus_distinct_protids_total += 1
 				# For each distinct CDS that codes for the protein
@@ -533,7 +525,7 @@ def protein_exact_matches(table_file, translated_hashtable, loci_files,
 					cds = str(distinct_cds_index.get(m).seq)
 					cds_hash = im.hash_sequence(cds)
 					# Get IDs of genomes that contain the CDS
-					matched_inputs = im.polyline_decoding(cds_hashtable[cds_hash])
+					matched_inputs = im.polyline_decoding(cds_hashtable[cds_hash][1])
 					locus_total_matches += len(matched_inputs)-1
 					# For each genome ID that contains the CDS
 					for gid in matched_inputs[1:]:
@@ -1330,8 +1322,7 @@ def process_blast_results(blast_results, bsr_threshold, query_scores):
 		try:
 			bsr = cf.compute_bsr(raw_score, query_scores[query_id][1])
 		except Exception as e:
-			print('Could not get the self-score for the representative '
-				  f'allele {query_id}', e)
+			logger.warning(f"Could not get the self-score for the representative allele {query_id}", e)
 			continue
 		# Only keep matches above BSR threshold
 		if bsr >= bsr_threshold:
@@ -1395,15 +1386,13 @@ def expand_matches(match_info, pfasta_index, dfasta_index, dhashtable,
 		# Get distinct protein sequence and expand into distinct CDS seqids
 		target_protein = str(pfasta_index.get(target_id).seq)
 		target_phash = im.hash_sequence(target_protein)
-		target_integers = im.polyline_decoding(phashtable[target_phash])
-		target_seqids = ['{0}_{1}'.format(inv_map[target_integers[i+1]], target_integers[i])
-						 for i in range(0, len(target_integers), 2)]
+		target_seqids = im.decompress_string_list(phashtable[target_phash])
 		# Associate match data to each genome that contains one of the distinct CDSs
 		for seqid in target_seqids:
 			target_cds = str(dfasta_index.get(seqid).seq)
 			target_dhash = im.hash_sequence(target_cds)
 			# Get ids for all genomes with same CDS as representative
-			target_inputs = im.polyline_decoding(dhashtable[target_dhash])[1:]
+			target_inputs = im.polyline_decoding(dhashtable[target_dhash][1])
 			for i in target_inputs:
 				# There will be no data about CDSs close to contig tips if input FASTA contain CDSs
 				genome_coordinates = close_to_tip.get(inv_map[i], {}).get(target_dhash, [()])[0]
@@ -1706,8 +1695,7 @@ def create_missing_fasta(class_files, fasta_file, input_map, dna_hashtable,
 					match_classification = match[1]
 					# Get seqid of the representative CDS
 					if id_index == 2:
-						match_protid, match_gid = im.polyline_decoding(dna_hashtable[match_id])[:2]
-						match_id = f'{input_map[match_gid]}_{match_protid}'
+						match_id = dna_hashtable[match_id][0]
 
 					sequence_header = (f'{index}|{genome_id}|{locus_id}&{v[0]}|{match_id}&{match_classification}')
 					sequence = str(dna_index[match_id].seq)
@@ -1840,7 +1828,7 @@ def count_invalid(input_ids, invalid_seqids, cds_index, distinct_htable):
 		current_seq = str(cds_index.get(seqid).seq)
 		seq_hash = im.hash_sequence(current_seq)
 		# Get list of inputs that contain CDS
-		genome_list = im.polyline_decoding(distinct_htable[seq_hash])[1:]
+		genome_list = im.polyline_decoding(distinct_htable[seq_hash][1])[1:]
 		# Increment count for all inputs that contain the CDS
 		for gid in genome_list:
 			invalid_counts[input_ids[1][gid]] += 1
@@ -2132,20 +2120,36 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	# identifiers of genomes that have those sequences
 	# lists of integers are encoded with polyline algorithm
 	# Create directory to store files from DNA deduplication
+	logger.info("Identifying distinct CDSs...")
 	dna_dedup_dir = fo.join_paths(preprocess_dir, ["cds_deduplication"])
 	fo.create_directory(dna_dedup_dir)
-	logger.info("Identifying distinct CDSs...")
-	dna_dedup_results = cf.exclude_duplicates(cds_files, dna_dedup_dir,
-											  config.cpu_cores,
-											  [unique_to_int, int_to_unique])
+	# Start by identifying the distinct set of sequences per concatenated FASTA file
+	distinct_hashes_outfiles = [fo.join_paths(dna_dedup_dir, [f"distinct_{str(i+1)}"]) for i, file in enumerate(cds_files)]
+	distinct_sequences_outfiles = [fo.join_paths(dna_dedup_dir, [f"distinct_{str(i+1)}.fasta"]) for i, file in enumerate(cds_files)]
+	dedup_inputs = im.aggregate_iterables([cds_files, distinct_hashes_outfiles, distinct_sequences_outfiles])
+	dedup_inputs = im.multiprocessing_inputs(dedup_inputs, [unique_to_int], sm.determine_distinct_updated)
+	dedup_results = mo.map_async_parallelizer(dedup_inputs, mo.function_helper, config.cpu_cores)
 
-	dna_distinct_htable, distinct_seqids, distinct_file, repeated = dna_dedup_results
-	logger.info(f"Identified {len(dna_distinct_htable)} distinct CDSs.")
+	# Delete concatenated files to release disk space
+	fo.delete_directory(concatenation_dir)
+
+	# Merge the deduplication results and retain only the list of representative seqids
+	dna_distinct_htable, distinct_seqids, repeated = cf.merge_dna_dedup(distinct_hashes_outfiles)
+	fo.remove_files(distinct_hashes_outfiles)
+
+	# Concatenate Fasta files from parallel processes
+	merge_fasta = fo.join_paths(dna_dedup_dir, ["concat.fasta"])
+	merge_fasta = fo.concatenate_files(distinct_sequences_outfiles, merge_fasta)
+	# Create index for concatenated Fasta and get representative sequences
+	merge_fasta_index = fao.index_fasta(merge_fasta)
+	distinct_file = fo.join_paths(dna_dedup_dir, ["distinct.fasta"])
+	fao.get_sequences_by_id(merge_fasta_index, distinct_seqids, distinct_file, 50000)
+	fo.remove_files(distinct_sequences_outfiles+[merge_fasta])
+
+	logger.info(f"Identified {len(distinct_seqids)} distinct CDSs and excluded {repeated} duplicated CDSs.")
+
 	template_dict["dna_fasta"] = distinct_file
 	template_dict["dna_hashtable"] = dna_distinct_htable
-
-	# Delete concatenated FASTA files
-	fo.remove_files(cds_files)
 
 	# Get mapping between locus file path and locus identifier
 	loci_basenames = im.mapping_function(config.loci_list[0][1], fo.file_basename, [False])
@@ -2173,8 +2177,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 		dna_matches = dna_exact_matches(file,
 										dna_distinct_htable,
 										im.invert_dictionary(loci_to_call),
-										classification_files,
-										int_to_unique)
+										classification_files)
 		# Might have duplicate IDs
 		matched_seqids.extend(dna_matches[0])
 		total_matches += dna_matches[1]
@@ -2225,9 +2228,9 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	invalid_file = fo.join_paths(temp_directory, [gct.INVALID_CDS_BASENAME])
 	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), "\n")
 	fo.write_to_file(invalid_alleles, invalid_file, "w", "\n")
+
 	# Count the number of invalid CDSs per input
-	invalid_counts = count_invalid([unique_to_int, int_to_unique], ut_seqids,
-								   dna_index, dna_distinct_htable)
+	invalid_counts = count_invalid([unique_to_int, int_to_unique], ut_seqids, dna_index, dna_distinct_htable)
 	template_dict["invalid_alleles"] = [invalid_file, invalid_counts]
 	logger.info(f"Unclassified CDSs: {len(unclassified_seqids)-len(ut_seqids)}")
 
@@ -2245,12 +2248,12 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 	protein_dedup_dir = fo.join_paths(preprocess_dir, ["protein_deduplication"])
 	fo.create_directory(protein_dedup_dir)
 	logger.info("Identifying distinct proteins...")
-	ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
-									   [unique_to_int, int_to_unique], True)
+	distinct_hashes_outfile = fo.join_paths(protein_dedup_dir, [f"distinct_proteins"])
+	representative_pfasta = fo.join_paths(protein_dedup_dir, [f"distinct_proteins.fasta"])
+	representative_pseqids = sm.determine_distinct_updated(protein_file, distinct_hashes_outfile, representative_pfasta, unique_to_int, return_repids=True, full_ids=True)
+	distinct_pseqids = fo.pickle_loader(distinct_hashes_outfile)
+	logger.info(f"Identified {len(representative_pseqids)} distinct proteins and excluded {(len(unclassified_seqids)-len(ut_seqids))-len(representative_pseqids)} duplicated proteins.")
 
-	distinct_pseqids, representative_pseqids, representative_pfasta, _ = ds_results
-
-	logger.info(f"Identified {len(distinct_pseqids)} distinct proteins.")
 	template_dict["protein_hashtable"] = distinct_pseqids
 
 	# Identify exact matches at protein level
@@ -2269,7 +2272,6 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 												distinct_pseqids,
 												im.invert_dictionary(loci_to_call),
 												classification_files,
-												int_to_unique,
 												dna_index,
 												dna_distinct_htable,
 												previous_hashes)
@@ -2576,9 +2578,7 @@ def allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_
 		renamed_seqids = [inverse_id_mapping[sid] for sid in unclassified_seqids]
 		fo.write_lines(renamed_seqids, remaining_seqids_file)
 		binary_file = f'{remaining_seqids_file}.bin'
-		blastp_std = bw.run_blastdb_aliastool(blastdb_aliastool_path,
-												remaining_seqids_file,
-												binary_file)
+		blastp_std = bw.run_blastdb_aliastool(blastdb_aliastool_path, remaining_seqids_file, binary_file)
 		remaining_seqids_file = binary_file
 
 		# BLAST representatives against unclassified sequences
@@ -2851,6 +2851,8 @@ def main(config):
 	# Perform allele calling
 	results = allele_calling(config, loci_to_call, temp_directory, pre_computed_dir, loci_modes.copy(), loci_finder)
 
+###############################
+
 	# Assign allele identifiers, add alleles to schema and create output files
 	# Adjust missing locus classification based on mode
 	classification_labels = gct.ALLELE_CLASSES
@@ -2880,7 +2882,7 @@ def main(config):
 											database_path,
 											classification_labels,
 											loci_finder)
-	outfile, repeated_info, repeated_counts = results_contigs
+	_, repeated_info, repeated_counts = results_contigs
 
 	# Identify paralogous loci
 	logger.info("Identifying paralogous loci and creating files with the list of paralogous "
@@ -2915,8 +2917,7 @@ def main(config):
 			current_novel = fo.pickle_loader(locus_novel[1])
 			for l in current_novel:
 				# Get seqids that match hashes
-				rep_seqid = im.polyline_decoding(results["dna_hashtable"][l[0]])[0:2]
-				rep_seqid = "{0}_{1}".format(results["int_to_unique"][rep_seqid[1]], rep_seqid[0])
+				rep_seqid = results["dna_hashtable"][l[0]][0]
 				l.append(rep_seqid)
 			fo.pickle_dumper(current_novel, locus_novel[1])
 

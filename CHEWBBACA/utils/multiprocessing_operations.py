@@ -12,7 +12,6 @@ Code documentation
 """
 
 
-import time
 import traceback
 import multiprocessing.pool
 
@@ -44,7 +43,7 @@ def function_helper(input_args):
 		func_name = (input_args[-1]).__name__
 		traceback_lines = traceback.format_exc()
 		traceback_text = "".join(traceback_lines)
-		logger.error("\nError on {func_name}:\n{traceback_text}\n")
+		logger.error(f"\nError on {func_name}:\n{traceback_text}\n")
 		results = [func_name, traceback_text]
 
 	return results
@@ -85,9 +84,10 @@ def map_async_parallelizer(inputs, function, cpu, chunksize=1, pool_type="pool")
 	# Use context manager to join and close pool automatically
 	with multiprocessing_function(cpu) as pool:
 		# Use tqdm to show progress bar
-		# imap_unordered returns results as processes complete, not in the same order as inputs
-		# Gather results into a list (e.g., if the function being executed in parallel returns a dict, it will be a list of dict)
-		results = list(tqdm(pool.imap_unordered(function, inputs, chunksize=chunksize), total=len(inputs), desc="Processing"))
+		# Use imap instead of imap_unordered to return results in the same order as the input data
+		# The progress bar may stutter when it waits for results to be returned in order
+		# Gather results into a list (e.g., if the function being executed in parallel returns a dict, it will be a list of dicts)
+		results = list(tqdm(pool.imap(function, inputs, chunksize=chunksize), total=len(inputs), desc="Processing"))
 
 	logger.info(f"Finished running {function} in parallel. Processed {len(inputs)} items.")
 
@@ -139,8 +139,7 @@ def distribute_loci(inputs, cores, method):
 		elif method == 'seqcount+length':
 			splitted_values[i] += locus[1] * locus[4]
 		splitted_ids[i].append(locus[0])
-		# at the end of each iteration, choose the sublist
-		# with lowest criterion value
+		# At the end of each iteration, choose the sublist with the lowest criterion value
 		i = splitted_values.index(min(splitted_values))
 
 	return splitted_ids
@@ -174,12 +173,8 @@ def parallelize_function(function, inputs, common_args=None, cpu_cores=1):
 		common_args = []
 
 	# Add common arguments to all sublists
-	input_lists = im.multiprocessing_inputs(input_lists,
-											common_args,
-											function)
+	input_lists = im.multiprocessing_inputs(input_lists, common_args, function)
 
-	results = map_async_parallelizer(input_lists,
-									 function_helper,
-									 cpu_cores)
+	results = map_async_parallelizer(input_lists, function_helper, cpu_cores)
 
 	return results

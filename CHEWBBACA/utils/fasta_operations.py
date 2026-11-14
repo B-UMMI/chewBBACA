@@ -137,7 +137,7 @@ def write_records(records, output_file, mode='w'):
 
 
 def integer_headers(input_fasta, output_fasta, start=1, limit=50000,
-					prefix='', id_map=True, delete_input=False):
+					prefix="", id_map=True, delete_input=False):
 	"""Switch sequence headers in Fasta file by integer values.
 
 	Parameters
@@ -172,7 +172,7 @@ def integer_headers(input_fasta, output_fasta, start=1, limit=50000,
 	while exhausted is False:
 		record = next(seq_generator, None)
 		if record is not None:
-			new_id = '{0}{1}'.format(prefix, start)
+			new_id = "{0}{1}".format(prefix, start)
 			ids_map[new_id] = record.id
 			sequence = str(record.seq)
 			new_rec = fasta_str_record(gct.FASTA_RECORD_TEMPLATE, [new_id, sequence])

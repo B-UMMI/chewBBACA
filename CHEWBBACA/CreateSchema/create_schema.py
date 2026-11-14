@@ -25,12 +25,12 @@ from CHEWBBACA import global_validation as gval
 from CHEWBBACA.CreateSchema import constants as ct
 from CHEWBBACA.PredictGenes import predict_genes
 from CHEWBBACA.utils import (blast_wrapper as bw,
-								core_functions as cf,
-								file_operations as fo,
-								fasta_operations as fao,
-								sequence_manipulation as sm,
-								iterables_manipulation as im,
-								multiprocessing_operations as mo)
+							 core_functions as cf,
+							 file_operations as fo,
+							 fasta_operations as fao,
+							 sequence_manipulation as sm,
+							 iterables_manipulation as im,
+							 multiprocessing_operations as mo)
 
 
 def create_schema_structure(schema_seed_fasta, output_directory, schema_name):
@@ -112,6 +112,9 @@ def create_schema_seed(config):
 			logger.warning(f"{gct.PREDICTGENES_NO_PREDICTIONS}")
 			raise gval.InputsNoPredictions
 	# Inputs are FASTA files with the predicted CDSs
+
+	##### With the new sequence deduplication approach, maybe it is not necessary to rename the sequences?
+	##### Or maybe it is still necessary to ensure the consistency of locus naming
 	else:
 		if not config.no_cds_renaming:
 			# Rename the input CDSs based on the unique identifier for each input file
@@ -124,7 +127,7 @@ def create_schema_seed(config):
 			for file in input_file_ids:
 				output_file = fo.join_paths(renamed_dir, [f"{file[1]}.fasta"])
 				# Use the basename of each input file as unique identifier
-				cds_prefix = f'{file[1]}_'
+				cds_prefix = f"{file[1]}_"
 				renaming_inputs.append([file[0], output_file, 1, 50000,
 										cds_prefix, False, False, fao.integer_headers])
 				cds_fastas.append(output_file)
@@ -172,46 +175,22 @@ def create_schema_seed(config):
 		failed_outfile = fo.join_paths(config.output_directory, [gct.GENE_PREDICTION_FAILURES_BASENAME])
 		fo.write_lines(failed_lines, failed_outfile)
 
-	# Map input identifiers to integers
-	# Use the mapped integers to refer to each input
-	# This reduces memory usage compared to using string identifiers
-	unique_to_int = im.integer_mapping([file[1] for file in input_file_ids])
-	int_to_unique = im.invert_dictionary(unique_to_int)
-
-	# Concatenate subgroups of FASTA files before deduplication
-	num_chunks = 20 if config.cpu_cores <= 20 else config.cpu_cores
-	concatenation_inputs = im.divide_list_into_n_chunks(cds_fastas, num_chunks)
-	concatenation_dir = fo.join_paths(temp_directory, ["1_concatenated_inputs"])
-	fo.create_directory(concatenation_dir)
-	file_index = 1
-	cds_files = []
-	for group in concatenation_inputs:
-		output_file = fo.join_paths(concatenation_dir, [f"cds_{file_index}.fasta"])
-		fo.concatenate_files(group, output_file)
-		cds_files.append(output_file)
-		file_index += 1
-
 	# Create directory to store files from pre-process steps
 	preprocess_dir = fo.join_paths(temp_directory, ["1_cds_preprocess"])
 	fo.create_directory(preprocess_dir)
 
-	# DNA sequences deduplication step
-	# keep hash of unique sequences and a list with the integer
-	# identifiers of genomes that have those sequences
-	# lists of integers are encoded with polyline algorithm
-	# create directory to store files from DNA deduplication
-	dna_dedup_dir = fo.join_paths(preprocess_dir, ["cds_deduplication"])
-	fo.create_directory(dna_dedup_dir)
-	logger.info("Identifying distinct CDSs...")
-	dna_dedup_results = cf.exclude_duplicates(cds_files, dna_dedup_dir, config.cpu_cores,
-									   [unique_to_int, int_to_unique],
-									   False, True)
+#############################
 
-	_, distinct_seqids, distinct_file, repeated = dna_dedup_results
-	logger.info(f"Identified {len(distinct_seqids)} distinct CDSs.")
+	distinct_file = fo.join_paths(preprocess_dir, ["distinct.fasta"])
+	distinct_seqids = sm.deduplicate_predicted_genes(cds_fastas, distinct_file, config.cpu_cores)
+	#fo.pickle_dumper(distinct_seqids, fo.join_paths(preprocess_dir, ["distinct"]))
 
-	# Delete directory containing concatenated FASTA files
-	fo.delete_directory(concatenation_dir)
+	# Only need the seqids
+	distinct_seqids = [v[0] for k, v in distinct_seqids.items()]
+
+##############################
+
+	logger.info(f"Identified {len(distinct_seqids)} distinct CDSs and excluded {total_cdss-len(distinct_seqids)} duplicated CDSs.")
 
 	# Index FASTA file with distinct DNA sequences
 	dna_index = fao.index_fasta(distinct_file)
@@ -230,23 +209,32 @@ def create_schema_seed(config):
 	protein_file, ut_seqids, ut_lines = ts_results
 	logger.info(f"{len(ut_seqids)} CDSs could not be translated.")
 
-	# Create file with list of invalid CDSs
+	# Create file with list of invalid distinct CDSs
 	invalid_file = fo.join_paths(config.output_directory, [gct.INVALID_CDS_BASENAME])
 	invalid_alleles = im.join_list(im.sort_iterable(ut_lines), "\n")
 	fo.write_to_file(invalid_alleles, invalid_file, "w", "\n")
+##### Should count the number of invalid CDSs per input like in AlleleCall
 
 	# Protein deduplication
 	# Create directory to store files from protein deduplication
 	protein_dedup_dir = fo.join_paths(preprocess_dir, ["protein_deduplication"])
 	fo.create_directory(protein_dedup_dir)
 	logger.info("Identifying distinct proteins...")
-	ds_results = cf.exclude_duplicates([protein_file], protein_dedup_dir, 1,
-									   [unique_to_int, int_to_unique],
-									   True, True)
 
-	_, representative_pseqids, representative_pfasta, _ = ds_results
+### Should scan the FASTA file with protein sequences to divide it in a number of intervals equal to the number of CPU cores to process in parallel
 
-	logger.info(f"Identified {len(representative_pseqids)} distinct proteins.")
+#################### This works for schema creation, but what we need is not a BitMap with the list of genome IDs but a list with the seqids for all distinct DNA sequences encoding each protein
+#################### Instead of STR seqids I can probably store a list of BLAKE2b hashes to redice memory usage a little
+
+	representative_pfasta = fo.join_paths(protein_dedup_dir, ["distinct_proteins.fasta"])
+	representative_pseqids = sm.deduplicate_predicted_genes([protein_file], representative_pfasta, config.cpu_cores)
+
+	# Only need the seqids
+	representative_pseqids = [v[0] for k, v in representative_pseqids.items()]
+
+####################
+
+	logger.info(f"Identified {len(representative_pseqids)} distinct proteins and excluded {len(distinct_seqids)-len(representative_pseqids)} duplicated proteins.")
 
 	# Sort remaining seqids
 	schema_seqids = im.sort_iterable(representative_pseqids, sort_key=lambda x: x.lower())
